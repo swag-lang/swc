@@ -2,8 +2,8 @@
 #include "Core/Store.h"
 #include "Lexer/Lexer.h"
 #include "Main/Stats.h"
-#include "Parser/AstNode.h"
-#include "Parser/AstNodes.h"
+#include "Parser/Ast/AstNode.h"
+#include "Parser/Ast/AstNodes.h"
 #include "Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

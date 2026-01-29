@@ -1,5 +1,5 @@
 #pragma once
-#include "Parser/AstNodes.h"
+#include "Parser/Ast/AstNodes.h"
 #include "Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();

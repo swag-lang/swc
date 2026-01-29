@@ -1,5 +1,5 @@
 #pragma once
-#include "Parser/AstNode.h"
+#include "Parser/Ast/AstNode.h"
 #include "Sema/Core/AttributeList.h"
 #include "Sema/Symbol/Symbol.Struct.h"
 #include "Sema/Symbol/Symbol.h"

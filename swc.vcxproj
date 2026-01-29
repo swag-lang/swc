@@ -219,9 +219,9 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Os\OsWin32.cpp"/>
-        <ClCompile Include="src\Parser\Ast.cpp"/>
-        <ClCompile Include="src\Parser\AstNode.cpp"/>
-        <ClCompile Include="src\Parser\AstVisit.cpp"/>
+        <ClCompile Include="src\Parser\Ast\Ast.cpp"/>
+        <ClCompile Include="src\Parser\Ast\AstNode.cpp"/>
+        <ClCompile Include="src\Parser\Ast\AstVisit.cpp"/>
         <ClCompile Include="src\Parser\Parser.Aggregate.cpp"/>
         <ClCompile Include="src\Parser\Parser.Call.cpp"/>
         <ClCompile Include="src\Parser\Parser.Compiler.cpp"/>
@@ -341,13 +341,13 @@
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Memory\Heap.h"/>
         <ClInclude Include="src\Os\Os.h"/>
-        <ClInclude Include="src\Parser\Ast.h"/>
-        <ClInclude Include="src\Parser\AstNode.h"/>
-        <ClInclude Include="src\Parser\AstNodeId.h"/>
-        <ClInclude Include="src\Parser\AstNodes.Def.inc"/>
-        <ClInclude Include="src\Parser\AstNodes.Struct.inc"/>
-        <ClInclude Include="src\Parser\AstNodes.h"/>
-        <ClInclude Include="src\Parser\AstVisit.h"/>
+        <ClInclude Include="src\Parser\Ast\Ast.h"/>
+        <ClInclude Include="src\Parser\Ast\AstNode.h"/>
+        <ClInclude Include="src\Parser\Ast\AstNodeId.h"/>
+        <ClInclude Include="src\Parser\Ast\AstNodes.Def.inc"/>
+        <ClInclude Include="src\Parser\Ast\AstNodes.h"/>
+        <ClInclude Include="src\Parser\Ast\AstNodes.Struct.inc"/>
+        <ClInclude Include="src\Parser\Ast\AstVisit.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\Parser\ParserJob.h"/>
         <ClInclude Include="src\Parser\SyntaxColor.h"/>
@@ -361,7 +361,7 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
-        <ClInclude Include="src\Report\Msg\Errors.Cmd.inc" />
+        <ClInclude Include="src\Report\Msg\Errors.Cmd.inc"/>
         <ClInclude Include="src\Report\Msg\Errors.inc"/>
         <ClInclude Include="src\Report\Msg\Errors.Lex.inc"/>
         <ClInclude Include="src\Report\Msg\Notes.inc"/>
@@ -410,7 +410,7 @@
         <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="src\Report\Msg\Errors.Cmd.msg" />
+        <Content Include="src\Report\Msg\Errors.Cmd.msg"/>
         <Content Include="src\Report\Msg\Errors.msg"/>
         <Content Include="src\Report\Msg\Errors.Lex.msg"/>
         <Content Include="src\Report\Msg\Notes.msg"/>

@@ -3,7 +3,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Memory/Heap.h"
-#include "Parser/Ast.h"
+#include "Parser/Ast/Ast.h"
 #include "Parser/Parser.h"
 #include "Parser/ParserJob.h"
 #include "Thread/Job.h"

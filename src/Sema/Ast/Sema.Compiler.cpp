@@ -3,7 +3,7 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
-#include "Parser/AstNodes.h"
+#include "Parser/Ast/AstNodes.h"
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"

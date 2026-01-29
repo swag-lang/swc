@@ -1,5 +1,5 @@
 #pragma once
-#include "Parser/AstNode.h"
+#include "Parser/Ast/AstNode.h"
 #include "Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE()

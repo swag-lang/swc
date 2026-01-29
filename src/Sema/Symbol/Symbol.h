@@ -2,7 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Parser/AstNode.h"
+#include "Parser/Ast/AstNode.h"
 #include "Sema/Core/AttributeList.h"
 #include "Sema/Type/TypeInfo.h"
 #include "Sema/Type/TypeManager.h"

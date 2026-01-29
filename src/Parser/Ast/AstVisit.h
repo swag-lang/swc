@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/SmallVector.h"
-#include "Parser/AstNode.h"
+#include "Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
 

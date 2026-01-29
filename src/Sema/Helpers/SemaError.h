@@ -1,5 +1,5 @@
 #pragma once
-#include "Parser/AstNode.h"
+#include "Parser/Ast/AstNode.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Type/TypeInfo.h"
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "Parser/Ast.h"
+#include "Parser/Ast/Ast.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Symbol/Symbol.h"
 #include "Sema/Type/TypeInfo.h"

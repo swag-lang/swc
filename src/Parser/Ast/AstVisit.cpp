@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Parser/AstVisit.h"
+#include "Parser/Ast/AstVisit.h"
 #include "Main/Stats.h"
-#include "Parser/Ast.h"
-#include "Parser/AstNodes.h"
+#include "Parser/Ast/Ast.h"
+#include "Parser/Ast/AstNodes.h"
 
 SWC_BEGIN_NAMESPACE();
 

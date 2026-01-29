@@ -482,14 +482,19 @@ AstNodeRef Parser::parseSwitch()
             case TokenId::KwdCase:
             {
                 if (currentCase)
+                {
+                    if (nodeStmts.empty())
+                        raiseError(DiagnosticId::parser_err_empty_case, currentCase->tokRef());
                     currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
+                }
+
                 nodeStmts.clear();
 
                 auto caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
 
-                auto [bodyRef, bodyPtr] = ast_->makeNode<AstNodeId::SwitchCaseBody>(ast_->node(caseRef).tokRef());
+                auto [bodyRef, bodyPtr]  = ast_->makeNode<AstNodeId::SwitchCaseBody>(ast_->node(caseRef).tokRef());
                 currentCase->nodeBodyRef = bodyRef;
                 currentBody              = bodyPtr;
                 break;

@@ -194,6 +194,7 @@
         <ClCompile Include="src\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
         <ClCompile Include="src\Lexer\SourceView.cpp"/>
+        <ClCompile Include="src\Lexer\SyntaxColor.cpp"/>
         <ClCompile Include="src\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
@@ -235,7 +236,6 @@
         <ClCompile Include="src\Parser\Parser.Type.cpp"/>
         <ClCompile Include="src\Parser\Parser.Var.cpp"/>
         <ClCompile Include="src\Parser\ParserJob.cpp"/>
-        <ClCompile Include="src\Parser\SyntaxColor.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -322,6 +322,7 @@
         <ClInclude Include="src\Lexer\Lexer.h"/>
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
         <ClInclude Include="src\Lexer\SourceView.h"/>
+        <ClInclude Include="src\Lexer\SyntaxColor.h"/>
         <ClInclude Include="src\Lexer\Token.h"/>
         <ClInclude Include="src\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
@@ -350,7 +351,6 @@
         <ClInclude Include="src\Parser\Ast\AstVisit.h"/>
         <ClInclude Include="src\Parser\Parser.h"/>
         <ClInclude Include="src\Parser\ParserJob.h"/>
-        <ClInclude Include="src\Parser\SyntaxColor.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Assert.h"/>
         <ClInclude Include="src\Report\DiagnosticBuilder.h"/>

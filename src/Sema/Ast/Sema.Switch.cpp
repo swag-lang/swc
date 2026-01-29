@@ -191,8 +191,16 @@ namespace
         return Result::Continue;
     }
 
-    Result checkDuplicateConstCaseValue(Sema& sema, const AstNodeRef& switchRef, const AstNodeRef& caseExprRef)
+    Result checkDuplicateConstCaseValue(Sema& sema, AstNodeRef switchRef, AstNodeRef caseExprRef, AstNodeRef whereRef)
     {
+        // A case expression with a 'where' clause is not tested for duplicates, except
+        // if the where clause if a 'true' constant. 
+        if (whereRef.isValid())
+        {
+            if (!sema.hasConstant(whereRef) || sema.constantRefOf(whereRef) != sema.cstMgr().cstTrue())
+                return Result::Continue;
+        }
+
         auto* seenSet = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
@@ -251,7 +259,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
     RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
-    RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef));
+    RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
 
     return Result::Continue;
 }

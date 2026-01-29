@@ -1331,13 +1331,13 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
 // -----------------------------------------------------------------------------
 struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
 {
-    SpanRef    spanExprRef;
     AstNodeRef nodeWhereRef;
+    SpanRef    spanExprRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
-        AstNode::collectChildren(out, ast, spanExprRef);
         AstNode::collectChildren(out, {nodeWhereRef});
+        AstNode::collectChildren(out, ast, spanExprRef);
         AstCompoundT::collectChildren(out, ast);
     }
 

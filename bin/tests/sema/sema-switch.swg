@@ -182,5 +182,7 @@ func toto()->s32 => 1
         break
     case 1 where b == 2:
         break
+    case 1:
+        break
     }
 }

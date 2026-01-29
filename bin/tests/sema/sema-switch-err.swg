@@ -74,3 +74,15 @@
             break
     }
 }
+
+#test
+{
+    var a = 2
+    switch a
+    {
+    case 1 where true:
+        break
+    case 1: // swc-expected-error {{sema_err_switch_case_duplicate}}
+        break
+    }
+}

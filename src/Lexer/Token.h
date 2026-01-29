@@ -13,7 +13,6 @@ enum class TokenIdKind
     Symbol,
     Keyword,
     KeywordLogic,
-    KeywordHasMode,
     Compiler,
     CompilerFunc,
     CompilerIntrinsic,
@@ -96,8 +95,7 @@ struct Token
     static bool isLiteral(TokenId id) { return toKind(id) == TokenIdKind::Literal; }
     static bool isSymbol(TokenId id) { return toKind(id) == TokenIdKind::Symbol; }
     static bool isKeywordLogic(TokenId id) { return toKind(id) == TokenIdKind::KeywordLogic; }
-    static bool isKeywordHasMode(TokenId id) { return toKind(id) == TokenIdKind::KeywordHasMode; }
-    static bool isKeyword(TokenId id) { return toKind(id) == TokenIdKind::Keyword || isKeywordLogic(id) || isKeywordHasMode(id); }
+    static bool isKeyword(TokenId id) { return toKind(id) == TokenIdKind::Keyword || isKeywordLogic(id); }
     static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsicReturn; }
     static bool isCompilerIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsic || isCompilerIntrinsicReturn(id); }
     static bool isCompilerFunc(TokenId id) { return toKind(id) == TokenIdKind::CompilerFunc; }

@@ -1,4 +1,3 @@
-// Parser errors
 SWC_DIAG_DEF(parser_err_unexpected_token)
 SWC_DIAG_DEF(parser_err_expected_token)
 SWC_DIAG_DEF(parser_err_expected_token_fam)

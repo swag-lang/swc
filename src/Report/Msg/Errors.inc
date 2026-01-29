@@ -1,6 +1,5 @@
-#include "Errors.CmdLine.inc"
-#include "Errors.Io.inc"
-#include "Errors.Test.inc"
+#include "Errors.Cmd.inc"
+#include "Errors.Misc.inc"
 #include "Errors.Lex.inc"
 #include "Errors.Parser.inc"
 #include "Errors.Sema.inc"

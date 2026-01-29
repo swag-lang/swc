@@ -1,6 +1,5 @@
-#include "Errors.CmdLine.msg"
-#include "Errors.Io.msg"
-#include "Errors.Test.msg"
+#include "Errors.Cmd.msg"
+#include "Errors.Misc.msg"
 #include "Errors.Lex.msg"
 #include "Errors.Parser.msg"
 #include "Errors.Sema.msg"

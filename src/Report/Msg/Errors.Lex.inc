@@ -1,4 +1,3 @@
-// Lexer errors
 SWC_DIAG_DEF(lex_err_not_utf8)
 SWC_DIAG_DEF(lex_err_unclosed_comment)
 SWC_DIAG_DEF(lex_err_string_eol)

@@ -122,16 +122,6 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
 
 namespace
 {
-    bool isChildOfSpanExprRef(Sema& sema, const SpanRef& spanExprRef, const AstNodeRef& childRef)
-    {
-        if (!spanExprRef.isValid())
-            return false;
-
-        SmallVector<AstNodeRef> expressions;
-        sema.ast().nodes(expressions, spanExprRef);
-        return std::ranges::find(expressions, childRef) != expressions.end();
-    }
-
     Result castToSwitchType(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
     {
         SemaNodeView view(sema, nodeRef);
@@ -194,7 +184,7 @@ namespace
     Result checkDuplicateConstCaseValue(Sema& sema, AstNodeRef switchRef, AstNodeRef caseExprRef, AstNodeRef whereRef)
     {
         // A case expression with a 'where' clause is not tested for duplicates, except
-        // if the where clause if a 'true' constant. 
+        // if the where clause if a 'true' constant.
         if (whereRef.isValid())
         {
             if (!sema.hasConstant(whereRef) || sema.constantRefOf(whereRef) != sema.cstMgr().cstTrue())
@@ -231,19 +221,24 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         return Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition);
     }
 
+    // Only cast case expressions (not the statements in the case body).
+    // `childRef` can be one of the expressions in `spanExprRef`.
+    if (!spanExprRef.isValid())
+        return Result::Continue;
+
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
     const AstNode&       switchNode    = sema.node(switchRef);
     const AstSwitchStmt* switchStmt    = switchNode.cast<AstSwitchStmt>();
     const bool           hasSwitchExpr = switchStmt->nodeExprRef.isValid();
-
     const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
     const TypeRef        switchTypeRef = payload->exprTypeRef;
 
-    // Only cast case expressions (not the statements in the case body).
-    // `childRef` can be one of the expressions in `spanExprRef`.
-    if (!isChildOfSpanExprRef(sema, spanExprRef, childRef))
+    SmallVector<AstNodeRef> expressions;
+    sema.ast().nodes(expressions, spanExprRef);
+    const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
+    if (!isExprChild)
         return Result::Continue;
 
     // Condition-switch: each `case <expr>` must be bool-compatible.

@@ -106,9 +106,6 @@ namespace Math
 
     ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits)
     {
-        SWC_ASSERT(floatBits == 32 || floatBits == 64);
-        SWC_ASSERT(src.bitWidth() == floatBits);
-
         const uint64_t raw = src.asI64();
 
         if (floatBits == 32)

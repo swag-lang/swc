@@ -70,3 +70,5 @@ const NegInf0 = cast #bit (f32) 0xFF800000
 const NaN1    = cast #bit (f64) 0x7ff8000000000001
 const Inf1    = cast #bit (f64) 0x7ff0000000000000
 const NegInf1 = cast #bit (f64) 0xfff0000000000000
+
+const A = cast #bit (f32) -666

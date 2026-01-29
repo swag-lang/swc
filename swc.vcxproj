@@ -353,8 +353,6 @@
         <ClInclude Include="src\Parser\SyntaxColor.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Report\Assert.h"/>
-        <ClInclude Include="src\Report\Diagnostic.Errors.inc"/>
-        <ClInclude Include="src\Report\Diagnostic.Notes.inc"/>
         <ClInclude Include="src\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Report\DiagnosticDef.h"/>
         <ClInclude Include="src\Report\ExitCodes.h"/>
@@ -363,6 +361,8 @@
         <ClInclude Include="src\Report\DiagnosticElement.h"/>
         <ClInclude Include="src\Report\Logger.h"/>
         <ClInclude Include="src\Report\LogSymbol.h"/>
+        <ClInclude Include="src\Report\Msg\Errors.inc" />
+        <ClInclude Include="src\Report\Msg\Notes.inc" />
         <ClInclude Include="src\Runtime\Runtime.h"/>
         <ClInclude Include="src\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
@@ -403,8 +403,8 @@
         <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Content Include="src\Report\Diagnostic.Errors.msg"/>
-        <Content Include="src\Report\Diagnostic.Notes.msg"/>
+        <Content Include="src\Report\Msg\Errors.msg" />
+        <Content Include="src\Report\Msg\Notes.msg" />
     </ItemGroup>
     <ItemGroup>
         <Folder Include="src\Memory\mimalloc\"/>

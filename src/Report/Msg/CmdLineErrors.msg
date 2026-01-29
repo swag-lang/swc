@@ -1,0 +1,11 @@
+SWC_DIAG_DEF(cmdline_err_invalid_arg, Error, "invalid command-line argument: '{arg}'")
+SWC_DIAG_DEF(cmdline_err_invalid_cmd_arg, Error, "invalid argument '{arg}' for command '{command}'")
+SWC_DIAG_DEF(cmdline_err_invalid_enum, Error, "invalid value '{value}' for argument '{arg}'; the value of '{long}' must be one of {values}")
+SWC_DIAG_DEF(cmdline_err_missing_arg_val, Error, "missing value for argument '{arg}'")
+SWC_DIAG_DEF(cmdline_err_invalid_bool, Error, "invalid negation for argument '{arg}'; '{long}' is not a boolean argument")
+SWC_DIAG_DEF(cmdline_err_missing_command, Error, "missing command before arguments")
+SWC_DIAG_DEF(cmdline_err_invalid_command, Error, "invalid command '{arg}'; command must be one of {values}")
+SWC_DIAG_DEF(cmdline_err_invalid_folder, Error, "invalid folder path: '{path}'; {because}")
+SWC_DIAG_DEF(cmdline_err_invalid_file, Error, "invalid file path: '{path}'; {because}")
+
+SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")

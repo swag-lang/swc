@@ -1,0 +1,13 @@
+// Command line errors
+SWC_DIAG_DEF(cmdline_err_invalid_arg)
+SWC_DIAG_DEF(cmdline_err_invalid_cmd_arg)
+SWC_DIAG_DEF(cmdline_err_invalid_enum)
+SWC_DIAG_DEF(cmdline_err_missing_arg_val)
+SWC_DIAG_DEF(cmdline_err_invalid_bool)
+SWC_DIAG_DEF(cmdline_err_missing_command)
+SWC_DIAG_DEF(cmdline_err_invalid_command)
+SWC_DIAG_DEF(cmdline_err_invalid_folder)
+SWC_DIAG_DEF(cmdline_err_invalid_file)
+
+// Compiler command specific errors 
+SWC_DIAG_DEF(cmd_err_no_input)

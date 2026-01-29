@@ -1329,16 +1329,22 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
 };
 
 // -----------------------------------------------------------------------------
-struct AstSwitchCaseStmt : AstCompoundT<AstNodeId::SwitchCaseStmt>
+struct AstSwitchCaseBody : AstCompoundT<AstNodeId::SwitchCaseBody>
+{
+};
+
+// -----------------------------------------------------------------------------
+struct AstSwitchCaseStmt : AstNodeT<AstNodeId::SwitchCaseStmt>
 {
     AstNodeRef nodeWhereRef;
     SpanRef    spanExprRef;
+    AstNodeRef nodeBodyRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
         AstNode::collectChildren(out, {nodeWhereRef});
         AstNode::collectChildren(out, ast, spanExprRef);
-        AstCompoundT::collectChildren(out, ast);
+        AstNode::collectChildren(out, {nodeBodyRef});
     }
 
     static Result semaPreNode(Sema& sema);

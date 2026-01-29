@@ -212,6 +212,7 @@ SWC_NODE_DEF(InfiniteLoopStmt, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(SwitchStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(SwitchCaseStmt, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(SwitchCaseBody, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(TryCatchStmt, AstNodeIdFlagsE::Zero)
 

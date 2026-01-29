@@ -472,6 +472,7 @@ AstNodeRef Parser::parseSwitch()
     SmallVector<AstNodeRef> nodeChildren;
     SmallVector<AstNodeRef> nodeStmts;
     AstSwitchCaseStmt*      currentCase = nullptr;
+    AstSwitchCaseBody*      currentBody = nullptr;
 
     while (isNot(TokenId::SymRightCurly) && !atEnd())
     {
@@ -481,12 +482,16 @@ AstNodeRef Parser::parseSwitch()
             case TokenId::KwdCase:
             {
                 if (currentCase)
-                    currentCase->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
+                    currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
                 nodeStmts.clear();
 
                 auto caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
+
+                auto [bodyRef, bodyPtr] = ast_->makeNode<AstNodeId::SwitchCaseBody>(ast_->node(caseRef).tokRef());
+                currentCase->nodeBodyRef = bodyRef;
+                currentBody              = bodyPtr;
                 break;
             }
 
@@ -500,7 +505,7 @@ AstNodeRef Parser::parseSwitch()
     }
 
     if (currentCase)
-        currentCase->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
+        currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());
     expectAndConsumeClosing(TokenId::SymRightCurly, openRef);

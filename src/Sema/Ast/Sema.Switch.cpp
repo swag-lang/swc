@@ -275,11 +275,15 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     const auto* caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-    if (!caseStmt->spanChildrenRef.isValid())
+    if (!caseStmt->nodeBodyRef.isValid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
+
+    const auto* caseBody = sema.node(caseStmt->nodeBodyRef).cast<AstSwitchCaseBody>();
+    if (!caseBody || !caseBody->spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> stmts;
-    sema.ast().nodes(stmts, caseStmt->spanChildrenRef);
+    sema.ast().nodes(stmts, caseBody->spanChildrenRef);
     const auto itStmt = std::ranges::find(stmts, sema.curNodeRef());
     if (itStmt == stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());

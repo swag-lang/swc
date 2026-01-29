@@ -122,13 +122,13 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
 
 namespace
 {
-    Result castToSwitchType(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
+    Result castCaseToSwitch(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
     {
         SemaNodeView view(sema, nodeRef);
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
     }
 
-    Result castCaseExprToBoolForConditionSwitch(Sema& sema, const AstNodeRef& exprRef)
+    Result castCaseToBool(Sema& sema, const AstNodeRef& exprRef)
     {
         SemaNodeView  nodeView(sema, exprRef);
         const TypeRef boolTypeRef = sema.ctx().typeMgr().typeBool();
@@ -169,9 +169,9 @@ namespace
 
         const auto* range = sema.node(rangeRef).cast<AstRangeExpr>();
         if (range->nodeExprDownRef.isValid())
-            RESULT_VERIFY(castToSwitchType(sema, range->nodeExprDownRef, switchTypeRef));
+            RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprDownRef, switchTypeRef));
         if (range->nodeExprUpRef.isValid())
-            RESULT_VERIFY(castToSwitchType(sema, range->nodeExprUpRef, switchTypeRef));
+            RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprUpRef, switchTypeRef));
 
         if (range->nodeExprDownRef.isValid())
             RESULT_VERIFY(checkCaseExprIsConst(sema, range->nodeExprDownRef));
@@ -221,30 +221,23 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         return Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition);
     }
 
-    // Only cast case expressions (not the statements in the case body).
-    // `childRef` can be one of the expressions in `spanExprRef`.
+    // Be sure this is a case expression
     if (!spanExprRef.isValid())
+        return Result::Continue;
+    const bool isExprChild = childRef != nodeWhereRef && childRef != nodeBodyRef;
+    if (!isExprChild)
         return Result::Continue;
 
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const AstNode&       switchNode    = sema.node(switchRef);
-    const AstSwitchStmt* switchStmt    = switchNode.cast<AstSwitchStmt>();
-    const bool           hasSwitchExpr = switchStmt->nodeExprRef.isValid();
     const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
     const TypeRef        switchTypeRef = payload->exprTypeRef;
-
-    SmallVector<AstNodeRef> expressions;
-    sema.ast().nodes(expressions, spanExprRef);
-    const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
-    if (!isExprChild)
-        return Result::Continue;
-
-    // Condition-switch: each `case <expr>` must be bool-compatible.
-    if (!hasSwitchExpr)
+    
+    // This is a switch without an expression
+    if (switchTypeRef.isInvalid())
     {
-        RESULT_VERIFY(castCaseExprToBoolForConditionSwitch(sema, childRef));
+        RESULT_VERIFY(castCaseToBool(sema, childRef));
         return Result::Continue;
     }
 
@@ -252,7 +245,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (sema.node(childRef).is(AstNodeId::RangeExpr))
         return handleRangeCaseExpr(sema, childRef, switchTypeRef);
 
-    RESULT_VERIFY(castToSwitchType(sema, childRef, switchTypeRef));
+    RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));
     RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
     RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
 

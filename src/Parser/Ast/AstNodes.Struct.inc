@@ -525,8 +525,8 @@ struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    static Result semaPostNode(Sema& sema);
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -616,13 +616,13 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 // -----------------------------------------------------------------------------
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 {
-    static Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

@@ -7,6 +7,7 @@
 #include "Parser/Ast/AstNodes.h"
 #include "Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -452,7 +453,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstStructLiteral::semaPostNode(Sema& sema) const
+Result AstStructLiteral::semaPostNode(Sema& sema)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
@@ -460,23 +461,21 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
     std::vector<ConstantRef> values;
     for (const auto& child : children)
     {
-        if (sema.hasConstant(child))
-            values.push_back(sema.constantRefOf(child));
-        else
-            values.push_back(sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeUndefined(sema.ctx())));
+        RESULT_VERIFY(SemaCheck::isConstant(sema, child));
+        values.push_back(sema.constantRefOf(child));
     }
 
-    const auto val = ConstantValue::makeAggregate(sema.ctx(), sema.typeRefOf(sema.curNodeRef()), values);
+    const auto val = ConstantValue::makeAggregate(sema.ctx(), TypeRef::invalid(), values);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-    SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
-    return Result::SkipChildren;
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    return Result::Continue;
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
-    SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
     return Result::SkipChildren;
 }
 

@@ -34,11 +34,11 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeIfBlockRef)
     {
         SemaFrame       frame    = sema.frame();
-        SemaCompilerIf* parentIf = frame.compilerIf();
+        SemaCompilerIf* parentIf = frame.currentCompilerIf();
         SemaCompilerIf* ifFrame  = sema.compiler().allocate<SemaCompilerIf>();
         ifFrame->parent          = parentIf;
 
-        frame.setCompilerIf(ifFrame);
+        frame.setCurrentCompilerIf(ifFrame);
         sema.setPayload(nodeIfBlockRef, ifFrame);
         sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
@@ -48,11 +48,11 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     if (nodeElseBlockRef.isValid())
     {
         SemaFrame       frame     = sema.frame();
-        SemaCompilerIf* parentIf  = frame.compilerIf();
+        SemaCompilerIf* parentIf  = frame.currentCompilerIf();
         SemaCompilerIf* elseFrame = sema.compiler().allocate<SemaCompilerIf>();
         elseFrame->parent         = parentIf;
 
-        frame.setCompilerIf(elseFrame);
+        frame.setCurrentCompilerIf(elseFrame);
         sema.setPayload(nodeElseBlockRef, elseFrame);
         sema.pushFramePopOnPostChild(frame, childRef);
     }
@@ -263,13 +263,13 @@ Result AstCompilerGlobal::semaPreDecl(Sema& sema) const
     switch (mode)
     {
         case Mode::AccessPublic:
-            sema.frame().setAccess(SymbolAccess::Public);
+            sema.frame().setCurrentAccess(SymbolAccess::Public);
             break;
         case Mode::AccessInternal:
-            sema.frame().setAccess(SymbolAccess::Internal);
+            sema.frame().setCurrentAccess(SymbolAccess::Internal);
             break;
         case Mode::AccessPrivate:
-            sema.frame().setAccess(SymbolAccess::Private);
+            sema.frame().setCurrentAccess(SymbolAccess::Private);
             break;
         case Mode::Namespace:
             return AstNamespaceDecl::pushNamespace(sema, this, spanNameRef);
@@ -556,7 +556,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     auto frame = sema.frame();
-    frame.setFunction(&sym);
+    frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
     sema.curScope().setSymMap(&sym);

@@ -39,7 +39,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     symItf.setTyped(sema.ctx());
 
     SemaFrame frame = sema.frame();
-    frame.setInterface(&symItf);
+    frame.setCurrentInterface(&symItf);
     sema.pushFramePopOnPostNode(frame);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&symItf);

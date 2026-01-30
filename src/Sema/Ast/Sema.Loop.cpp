@@ -13,7 +13,7 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
-        frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
+        frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }
@@ -27,7 +27,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
-        frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
+        frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Loop);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }
@@ -49,16 +49,16 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
 Result AstBreakStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().breakableKind() == SemaFrame::BreakableKind::None)
+    if (sema.frame().currentBreakableKind() == SemaFrame::BreakableKind::None)
         return SemaError::raise(sema, DiagnosticId::sema_err_break_outside_breakable, sema.curNodeRef());
     return Result::Continue;
 }
 
 Result AstContinueStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().breakableKind() == SemaFrame::BreakableKind::None)
+    if (sema.frame().currentBreakableKind() == SemaFrame::BreakableKind::None)
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
-    if (sema.frame().breakableKind() != SemaFrame::BreakableKind::Loop)
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakableKind::Loop)
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
     return Result::Continue;
 }

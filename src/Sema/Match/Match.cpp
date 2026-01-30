@@ -129,7 +129,7 @@ namespace
             // in member-access/auto-member-access.
             if (const auto* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
             {
-                if (const SymbolImpl* symImpl = sema.frame().impl())
+                if (const SymbolImpl* symImpl = sema.frame().currentImpl())
                 {
                     if (symImpl->isForStruct() && symImpl->symStruct() == structSym && symImpl->idRef() != structSym->idRef())
                         addSymMap(lookUpCxt, symImpl->asSymMap(), priority);

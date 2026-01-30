@@ -13,7 +13,7 @@ struct SemaCompilerIf
     std::vector<Symbol*> symbols;
     SemaCompilerIf*      parent = nullptr;
 
-    void addSymbol(Symbol* sym)
+    void addSymbolToChain(Symbol* sym)
     {
         for (auto* it = this; it; it = it->parent)
             it->symbols.push_back(sym);
@@ -40,23 +40,23 @@ public:
     void                           pushNs(IdentifierRef id) { nsPath_.push_back(id); }
     void                           popNs() { nsPath_.pop_back(); }
 
-    SymbolAccess         access() const { return access_; }
-    void                 setAccess(SymbolAccess access) { access_ = access; }
-    AttributeList&       attributes() { return attributes_; }
-    const AttributeList& attributes() const { return attributes_; }
+    SymbolAccess         currentAccess() const { return access_; }
+    void                 setCurrentAccess(SymbolAccess access) { access_ = access; }
+    AttributeList&       currentAttributes() { return attributes_; }
+    const AttributeList& currentAttributes() const { return attributes_; }
 
-    SemaCompilerIf*  compilerIf() const { return compilerIf_; }
-    void             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*      impl() const { return impl_; }
-    void             setImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface* interface() const { return interface_; }
-    void             setInterface(SymbolInterface* itf) { interface_ = itf; }
-    SymbolFunction*  function() const { return function_; }
-    void             setFunction(SymbolFunction* func) { function_ = func; }
+    SemaCompilerIf*  currentCompilerIf() const { return compilerIf_; }
+    void             setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*      currentImpl() const { return impl_; }
+    void             setCurrentImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface* currentInterface() const { return interface_; }
+    void             setCurrentInterface(SymbolInterface* itf) { interface_ = itf; }
+    SymbolFunction*  currentFunction() const { return function_; }
+    void             setCurrentFunction(SymbolFunction* func) { function_ = func; }
 
-    const Breakable& breakable() const { return breakable_; }
-    BreakableKind    breakableKind() const { return breakable_.kind; }
-    void             setBreakable(AstNodeRef nodeRef, BreakableKind kind);
+    const Breakable& currentBreakable() const { return breakable_; }
+    void             setCurrentBreakable(AstNodeRef nodeRef, BreakableKind kind);
+    BreakableKind    currentBreakableKind() const { return breakable_.kind; }
     AstNodeRef       currentSwitch() const { return currentSwitch_; }
     void             setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef       currentSwitchCase() const { return currentSwitchCase_; }

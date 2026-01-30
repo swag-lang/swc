@@ -64,13 +64,13 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
 
 void Symbol::registerCompilerIf(Sema& sema)
 {
-    if (auto* compilerIf = sema.frame().compilerIf())
-        compilerIf->addSymbol(this);
+    if (auto* compilerIf = sema.frame().currentCompilerIf())
+        compilerIf->addSymbolToChain(this);
 }
 
 void Symbol::registerAttributes(Sema& sema)
 {
-    setAttributes(sema.frame().attributes());
+    setAttributes(sema.frame().currentAttributes());
 }
 
 bool Symbol::isType() const

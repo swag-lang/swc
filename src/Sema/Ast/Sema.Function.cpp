@@ -30,7 +30,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    if (sym.isMethod() && !sema.frame().impl() && !sema.frame().interface())
+    if (sym.isMethod() && !sema.frame().currentImpl() && !sema.frame().currentInterface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
@@ -38,7 +38,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     }
 
     SemaFrame frame = sema.frame();
-    frame.setFunction(&sym);
+    frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -47,9 +47,9 @@ namespace
 {
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
-        if (sema.frame().impl() && sema.frame().impl()->isForStruct())
+        if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
         {
-            const SymbolImpl* symImpl   = sema.frame().impl()->asSymMap()->safeCast<SymbolImpl>();
+            const SymbolImpl* symImpl   = sema.frame().currentImpl()->asSymMap()->safeCast<SymbolImpl>();
             const TypeRef     ownerType = symImpl->symStruct()->typeRef();
             auto&             ctx       = sema.ctx();
             SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
@@ -143,7 +143,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
 Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 {
-    const SymbolImpl* symImpl = sema.frame().impl();
+    const SymbolImpl* symImpl = sema.frame().currentImpl();
     if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
@@ -186,7 +186,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
-    const SymbolFunction* sym = sema.frame().function();
+    const SymbolFunction* sym = sema.frame().currentFunction();
     SWC_ASSERT(sym);
 
     const TypeRef returnTypeRef = sym->returnTypeRef();

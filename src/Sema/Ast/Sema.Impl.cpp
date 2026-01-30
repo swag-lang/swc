@@ -94,7 +94,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         }
 
         auto frame = sema.frame();
-        frame.setImpl(&symImpl);
+        frame.setCurrentImpl(&symImpl);
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(symImpl.asSymMap());

@@ -47,7 +47,7 @@ void SemaFrame::popBindingVar()
         bindingVars_.pop_back();
 }
 
-void SemaFrame::setBreakable(AstNodeRef nodeRef, BreakableKind kind)
+void SemaFrame::setCurrentBreakable(AstNodeRef nodeRef, BreakableKind kind)
 {
     breakable_.nodeRef = nodeRef;
     breakable_.kind    = kind;
@@ -60,7 +60,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     if (!sema.curScope().isTopLevel() || sema.curScope().isImpl())
         return symbolMap;
 
-    const SymbolAccess access = sema.frame().access();
+    const SymbolAccess access = sema.frame().currentAccess();
 
     SymbolMap* root = nullptr;
     if (access == SymbolAccess::Internal)
@@ -74,7 +74,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 SymbolFlags SemaFrame::flagsForCurrentAccess() const
 {
     SymbolFlags flags = SymbolFlagsE::Zero;
-    if (access() == SymbolAccess::Public)
+    if (currentAccess() == SymbolAccess::Public)
         flags.add(SymbolFlagsE::Public);
     return flags;
 }

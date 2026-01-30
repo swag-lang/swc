@@ -21,7 +21,7 @@ namespace
 Result AstSwitchStmt::semaPreNode(Sema& sema)
 {
     SemaFrame frame = sema.frame();
-    frame.setBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
+    frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
     sema.setPayload(sema.curNodeRef(), sema.compiler().allocate<SwitchPayload>());
@@ -64,14 +64,14 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     }
 
     // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
-    if (sema.frame().attributes().hasSwagFlag(SwagAttributeFlagsE::Complete))
+    if (sema.frame().currentAttributes().hasSwagFlag(SwagAttributeFlagsE::Complete))
     {
         if (!nodeExprRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
     }
 
     // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
-    if (sema.frame().attributes().hasSwagFlag(SwagAttributeFlagsE::Incomplete))
+    if (sema.frame().currentAttributes().hasSwagFlag(SwagAttributeFlagsE::Incomplete))
     {
         if (!nodeExprRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_incomplete_no_expr, sema.curNodeRef());
@@ -237,7 +237,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstFallThroughStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().breakableKind() != SemaFrame::BreakableKind::Switch)
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakableKind::Switch)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     const AstNodeRef caseRef = sema.frame().currentSwitchCase();

@@ -32,7 +32,7 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
     }
 
     SemaFrame newFrame = sema.frame();
-    newFrame.setAccess(access);
+    newFrame.setCurrentAccess(access);
     sema.pushFramePopOnPostNode(newFrame);
 
     return Result::Continue;
@@ -157,13 +157,13 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const SwagAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != SwagAttributeFlagsE::Zero)
     {
-        sema.frame().attributes().addSwagFlag(attrFlags);
+        sema.frame().currentAttributes().addSwagFlag(attrFlags);
         return Result::Continue;
     }
 
     AttributeInstance inst;
     inst.symbol = &attrSym;
-    sema.frame().attributes().attributes.push_back(inst);
+    sema.frame().currentAttributes().attributes.push_back(inst);
 
     return Result::Continue;
 }

@@ -157,19 +157,20 @@ public:
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
     // clang-format off
-    Sign                 payloadIntSign() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.sign; }
-    uint32_t             payloadIntBits() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.bits; }
-    uint32_t             payloadIntLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : payloadInt_.bits; }
-    uint32_t             payloadScalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? payloadIntLikeBits() : payloadFloatBits(); }
-    uint32_t             payloadFloatBits() const noexcept { SWC_ASSERT(isFloat()); return payloadFloat_.bits; }
-    SymbolEnum&          payloadSymEnum() const noexcept { SWC_ASSERT(isEnum()); return *payloadEnum_.sym; }
-    SymbolStruct&        payloadSymStruct() const noexcept { SWC_ASSERT(isStruct()); return *payloadStruct_.sym; }
-    SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *payloadInterface_.sym; }
-    SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *payloadAlias_.sym; }
-    SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *payloadFunction_.sym; }
-    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return payloadTypeRef_.typeRef; }
-    auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.dims; }
-    TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.typeRef; }
+    Sign                        payloadIntSign() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.sign; }
+    uint32_t                    payloadIntBits() const noexcept { SWC_ASSERT(isInt()); return payloadInt_.bits; }
+    uint32_t                    payloadIntLikeBits() const noexcept { SWC_ASSERT(isIntLike()); return isCharRune() ? 32 : payloadInt_.bits; }
+    uint32_t                    payloadScalarNumericBits() const noexcept { SWC_ASSERT(isScalarNumeric()); return isIntLike() ? payloadIntLikeBits() : payloadFloatBits(); }
+    uint32_t                    payloadFloatBits() const noexcept { SWC_ASSERT(isFloat()); return payloadFloat_.bits; }
+    SymbolEnum&                 payloadSymEnum() const noexcept { SWC_ASSERT(isEnum()); return *payloadEnum_.sym; }
+    SymbolStruct&               payloadSymStruct() const noexcept { SWC_ASSERT(isStruct()); return *payloadStruct_.sym; }
+    SymbolInterface&            payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *payloadInterface_.sym; }
+    SymbolAlias&                payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *payloadAlias_.sym; }
+    SymbolFunction&             payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *payloadFunction_.sym; }
+    TypeRef                     payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return payloadTypeRef_.typeRef; }
+    auto&                       payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.dims; }
+    TypeRef                     payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.typeRef; }
+    const std::vector<TypeRef>& payloadAggregateTypes() const noexcept { SWC_ASSERT(isAggregate()); return payloadAggregate_.types; }
     // clang-format on
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
@@ -196,7 +197,7 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregate(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeAggregate(const std::vector<TypeRef>& types, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
@@ -257,6 +258,11 @@ private:
             std::vector<uint64_t> dims;
             TypeRef               typeRef;
         } payloadArray_;
+
+        struct
+        {
+            std::vector<TypeRef> types;
+        } payloadAggregate_;
 
         struct
         {

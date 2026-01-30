@@ -59,8 +59,6 @@ public:
     TypeRef typeVariadic() const { return typeVariadic_; }
     TypeRef typeTypeInfo() const { return typeTypeInfo_; }
 
-    TypeRef typeAggregateStruct() const { return typeAggregateStruct_; }
-    TypeRef typeAggregateArray() const { return typeAggregateArray_; }
     TypeRef typeBlockPtrVoid() const { return typeBlockPtrVoid_; }
     TypeRef typeConstBlockPtrVoid() const { return typeConstBlockPtrVoid_; }
     TypeRef typeBlockPtrU8() const { return typeBlockPtrU8_; }
@@ -174,9 +172,6 @@ private:
     TypeRef typeConstValuePtrU8_   = TypeRef::invalid();
     TypeRef typeVariadic_          = TypeRef::invalid();
     TypeRef typeTypeInfo_          = TypeRef::invalid();
-
-    TypeRef typeAggregateStruct_ = TypeRef::invalid();
-    TypeRef typeAggregateArray_  = TypeRef::invalid();
 
     std::vector<std::vector<TypeRef>>      promoteTable_;
     std::unordered_map<uint32_t, uint32_t> promoteIndex_;

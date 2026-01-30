@@ -440,9 +440,14 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
 
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::vector<ConstantRef>& values)
 {
-    ConstantValue  cv;
-    cv.typeRef_          = ctx.typeMgr().typeAggregateStruct();
-    cv.kind_             = ConstantKind::Aggregate;
+    ConstantValue        cv;
+    std::vector<TypeRef> memberTypes;
+    memberTypes.reserve(values.size());
+    for (const auto& v : values)
+        memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
+
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes));
+    cv.kind_    = ConstantKind::Aggregate;
     std::construct_at(&cv.asAggregate.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -450,8 +455,13 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::ve
 
 ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vector<ConstantRef>& values)
 {
-    ConstantValue cv;
-    cv.typeRef_ = ctx.typeMgr().typeAggregateArray();
+    ConstantValue        cv;
+    std::vector<TypeRef> memberTypes;
+    memberTypes.reserve(values.size());
+    for (const auto& v : values)
+        memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
+
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, TypeInfoFlagsE::AggregateArray));
     cv.kind_    = ConstantKind::Aggregate;
     std::construct_at(&cv.asAggregate.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

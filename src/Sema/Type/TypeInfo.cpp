@@ -14,6 +14,9 @@ TypeInfo::~TypeInfo()
         case TypeInfoKind::Array:
             std::destroy_at(&payloadArray_.dims);
             break;
+        case TypeInfoKind::Aggregate:
+            std::destroy_at(&payloadAggregate_.types);
+            break;
         default:
             break;
     }
@@ -56,6 +59,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::Aggregate:
+            std::construct_at(&payloadAggregate_.types, other.payloadAggregate_.types);
             break;
 
         case TypeInfoKind::Enum:
@@ -121,6 +125,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
             break;
 
         case TypeInfoKind::Aggregate:
+            std::construct_at(&payloadAggregate_.types, std::move(other.payloadAggregate_.types));
             break;
 
         case TypeInfoKind::Enum:
@@ -204,6 +209,9 @@ uint32_t TypeInfo::hash() const
             return h;
 
         case TypeInfoKind::Aggregate:
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            for (const TypeRef tr : payloadAggregate_.types)
+                h = Math::hashCombine(h, tr.get());
             return h;
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
@@ -265,6 +273,11 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return payloadTypeRef_.typeRef == other.payloadTypeRef_.typeRef;
 
         case TypeInfoKind::Aggregate:
+            if (payloadAggregate_.types.size() != other.payloadAggregate_.types.size())
+                return false;
+            for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
+                if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i])
+                    return false;
             return true;
 
         case TypeInfoKind::Enum:
@@ -358,7 +371,18 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
 
         case TypeInfoKind::Aggregate:
-            out += isAggregateArray() ? "aggregate(array)" : "aggregate(struct)";
+            out += isAggregateArray() ? "aggregate'array" : "aggregate'struct";
+            if (!payloadAggregate_.types.empty())
+            {
+                out += "(";
+                for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
+                {
+                    if (i)
+                        out += ", ";
+                    out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
+                }
+                out += ")";
+            }
             break;
 
         case TypeInfoKind::ValuePointer:
@@ -664,9 +688,10 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregate(TypeInfoFlags flags)
+TypeInfo TypeInfo::makeAggregate(const std::vector<TypeRef>& types, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Aggregate, flags};
+    std::construct_at(&ti.payloadAggregate_.types, types);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -752,7 +777,21 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).sizeOf(ctx);
 
         case TypeInfoKind::Aggregate:
-            return ctx.typeMgr().get(payloadTypeRef_.typeRef).sizeOf(ctx);
+        {
+            uint64_t size  = 0;
+            uint32_t align = 1;
+            for (const TypeRef tr : payloadAggregate_.types)
+            {
+                const TypeInfo& ty = ctx.typeMgr().get(tr);
+                const uint32_t  a  = ty.alignOf(ctx);
+                const uint64_t  s  = ty.sizeOf(ctx);
+                align              = std::max(align, a);
+                size               = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
+                size += s;
+            }
+            size = ((size + static_cast<uint64_t>(align) - 1) / static_cast<uint64_t>(align)) * static_cast<uint64_t>(align);
+            return size;
+        }
 
         default:
             SWC_UNREACHABLE();
@@ -790,7 +829,12 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             return 8;
 
         case TypeInfoKind::Aggregate:
-            return ctx.typeMgr().get(payloadTypeRef_.typeRef).alignOf(ctx);
+        {
+            uint32_t align = 1;
+            for (const TypeRef tr : payloadAggregate_.types)
+                align = std::max(align, ctx.typeMgr().get(tr).alignOf(ctx));
+            return align;
+        }
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(payloadArray_.typeRef).alignOf(ctx);
@@ -839,7 +883,10 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
         case TypeInfoKind::TypedVariadic:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::Aggregate:
-            return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
+            for (const TypeRef tr : payloadAggregate_.types)
+                if (!ctx.typeMgr().get(tr).isCompleted(ctx))
+                    return false;
+            return true;
         default:
             break;
     }
@@ -878,6 +925,11 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
         }
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
+        case TypeInfoKind::Aggregate:
+            for (const TypeRef tr : payloadAggregate_.types)
+                if (auto* sym = ctx.typeMgr().get(tr).getSymbolDependency(ctx))
+                    return sym;
+            return nullptr;
         default:
             break;
     }

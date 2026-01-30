@@ -1326,7 +1326,8 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
         AstCompoundT::collectChildren(out, ast);
     }
 
-    static Result semaPreNode(Sema& sema);
+    Result        semaPreNode(Sema& sema) const;
+    static Result semaPostNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };

@@ -18,13 +18,33 @@ namespace
     };
 }
 
-Result AstSwitchStmt::semaPreNode(Sema& sema)
+Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {
+    // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
+    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete))
+    {
+        if (!nodeExprRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
+    }
+
+    // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
+    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Incomplete))
+    {
+        if (!nodeExprRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_incomplete_no_expr, sema.curNodeRef());
+    }
+
+    // Register switch
     SemaFrame frame = sema.frame();
     frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
     sema.setPayload(sema.curNodeRef(), sema.compiler().allocate<SwitchPayload>());
+    return Result::Continue;
+}
+
+Result AstSwitchStmt::semaPostNode(Sema& sema)
+{
     return Result::Continue;
 }
 
@@ -46,10 +66,9 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeExprRef)
     {
         const SemaNodeView exprView(sema, nodeExprRef);
-        const auto&        typeMgr   = sema.ctx().typeMgr();
-        const TypeInfo&    type      = typeMgr.get(exprView.typeRef);
+        const TypeInfo&    type      = sema.ctx().typeMgr().get(exprView.typeRef);
         const TypeRef      ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo&    finalType = typeMgr.get(ultimate);
+        const TypeInfo&    finalType = sema.ctx().typeMgr().get(ultimate);
         if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
@@ -61,20 +80,6 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
             frame.pushBindingType(exprView.typeRef);
             sema.pushFramePopOnPostNode(frame);
         }
-    }
-
-    // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
-    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete))
-    {
-        if (!nodeExprRef.isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
-    }
-
-    // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
-    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Incomplete))
-    {
-        if (!nodeExprRef.isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_incomplete_no_expr, sema.curNodeRef());
     }
 
     return Result::Continue;

@@ -8,9 +8,6 @@ const A = [1's32, 2, 3, 4, 5]
 const Af = [1.0'f64, 2]
 #assert(#typeof(Af) == #type [2] f64)
 
-const Af1 = [1.0, 2]
-#assert(#typeof(Af1) == #type [2] f32)
-
 #test
 {
     var x = 1
@@ -32,3 +29,8 @@ const Af1 = [1.0, 2]
 {
     var F = ["hello", 1] // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+const G = [1.0, 2]
+#assert(#typeof(G) == #type [2] f32)
+const G1 = [[1.0], [2.0], [3.0]]
+#assert(#typeof(G1) == #type [3] [1] f32)

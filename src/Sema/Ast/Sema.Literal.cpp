@@ -6,7 +6,9 @@
 #include "Main/Global.h"
 #include "Parser/Ast/AstNodes.h"
 #include "Report/DiagnosticDef.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
 
@@ -453,65 +455,89 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-namespace
-{
-    Result semaPostAggregateLiteral(Sema& sema, const SmallVector<AstNodeRef>& children, AstNode& node, bool isArray)
-    {
-        std::vector<TypeRef> memberTypes;
-        memberTypes.reserve(children.size());
-
-        bool                     allConstant = true;
-        std::vector<ConstantRef> values;
-        values.reserve(children.size());
-
-        for (const auto& child : children)
-        {
-            memberTypes.push_back(sema.typeRefOf(child));
-            if (!sema.hasConstant(child))
-                allConstant = false;
-            else
-                values.push_back(sema.constantRefOf(child));
-        }
-
-        if (allConstant)
-        {
-            if (isArray)
-            {
-                const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-            }
-            else
-            {
-                const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values);
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-            }
-        }
-        else
-        {
-            TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-            if (isArray)
-                flags.add(TypeInfoFlagsE::AggregateArray);
-            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, flags));
-            sema.setType(sema.curNodeRef(), typeRef);
-        }
-
-        SemaInfo::addSemaFlags(node, NodeSemaFlags::Value);
-        return Result::Continue;
-    }
-}
-
 Result AstStructLiteral::semaPostNode(Sema& sema)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    return semaPostAggregateLiteral(sema, children, *this, false);
+
+    std::vector<TypeRef> memberTypes;
+    memberTypes.reserve(children.size());
+
+    bool                     allConstant = true;
+    std::vector<ConstantRef> values;
+    values.reserve(children.size());
+
+    for (const auto& child : children)
+    {
+        memberTypes.push_back(sema.typeRefOf(child));
+        if (!sema.hasConstant(child))
+            allConstant = false;
+        else
+            values.push_back(sema.constantRefOf(child));
+    }
+
+    if (allConstant)
+    {
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+    }
+    else
+    {
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, TypeInfoFlagsE::Zero));
+        sema.setType(sema.curNodeRef(), typeRef);
+    }
+
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    return Result::Continue;
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
 {
-    SmallVector<AstNodeRef> children;
-    collectChildren(children, sema.ast());
-    return semaPostAggregateLiteral(sema, children, *this, true);
+    // 'AstArrayLiteral' directly contains the element expressions in `spanChildrenRef`.
+    SmallVector<AstNodeRef> elements;
+    collectChildren(elements, sema.ast());
+
+    // Empty array literal: keep it valid and typed as a real array type.
+    // The element type cannot be inferred from elements, so default to `any`.
+    if (elements.empty())
+    {
+        const std::vector<uint64_t> dims         = {0};
+        const TypeRef               arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeAny()));
+        sema.setType(sema.curNodeRef(), arrayTypeRef);
+        SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+        return Result::Continue;
+    }
+
+    // Take the first element as the reference type, and ensure all other elements are castable/casted to it.
+    const TypeRef refElemTypeRef = sema.typeRefOf(elements[0]);
+
+    bool                     allConstant = true;
+    std::vector<ConstantRef> values;
+    values.reserve(elements.size());
+
+    for (const auto& child : elements)
+    {
+        SemaNodeView nodeView(sema, child);
+        RESULT_VERIFY(Cast::cast(sema, nodeView, refElemTypeRef, CastKind::Initialization));
+
+        if (!sema.hasConstant(nodeView.nodeRef))
+            allConstant = false;
+        else
+            values.push_back(sema.constantRefOf(nodeView.nodeRef));
+    }
+
+    const std::vector dims         = {elements.size()};
+    const TypeRef     arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, refElemTypeRef));
+    sema.setType(sema.curNodeRef(), arrayTypeRef);
+
+    if (allConstant)
+    {
+        const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+    }
+
+    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

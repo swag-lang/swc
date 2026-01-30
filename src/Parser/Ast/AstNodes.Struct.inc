@@ -616,6 +616,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 // -----------------------------------------------------------------------------
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 {
+    static Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

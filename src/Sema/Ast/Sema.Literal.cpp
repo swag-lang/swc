@@ -460,4 +460,12 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     return Result::SkipChildren;
 }
 
+Result AstArrayLiteral::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
+    return Result::SkipChildren;
+}
+
 SWC_END_NAMESPACE();

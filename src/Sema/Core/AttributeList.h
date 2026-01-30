@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolAttribute;
 
 // Some runtime attributes have their own flag
-enum class SwagAttributeFlagsE : uint64_t
+enum class RtAttributeFlagsE : uint64_t
 {
     Zero         = 0,
     EnumFlags    = 1 << 0,
@@ -38,7 +38,7 @@ enum class SwagAttributeFlagsE : uint64_t
     NoDoc        = 1 << 26,
     Global       = 1 << 27,
 };
-using SwagAttributeFlags = EnumFlags<SwagAttributeFlagsE>;
+using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 
 // One attribute
 struct AttributeInstance
@@ -50,10 +50,10 @@ struct AttributeInstance
 struct AttributeList
 {
     SmallVector<AttributeInstance, 4> attributes;
-    SwagAttributeFlags                swagFlags = SwagAttributeFlagsE::Zero;
+    RtAttributeFlags                  rtFlags = RtAttributeFlagsE::Zero;
 
-    bool hasSwagFlag(SwagAttributeFlagsE fl) const { return swagFlags.has(fl); }
-    void addSwagFlag(SwagAttributeFlags fl) { swagFlags.add(fl); }
+    bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
+    void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
 };
 
 SWC_END_NAMESPACE();

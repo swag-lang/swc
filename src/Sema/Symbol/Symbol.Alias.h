@@ -18,7 +18,7 @@ public:
     void          setAliasedSymbol(const Symbol* sym) { aliasedSymbol_ = sym; }
     TypeRef       underlyingTypeRef() const { return underlyingTypeRef_; }
     void          setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
-    bool          isStrict() const { return attributes().hasSwagFlag(SwagAttributeFlagsE::Strict); }
+    bool          isStrict() const { return attributes().hasRtFlag(RtAttributeFlagsE::Strict); }
     uint64_t      sizeOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).sizeOf(ctx); }
 
 private:

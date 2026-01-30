@@ -58,40 +58,40 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
         struct PredefinedAttr
         {
             IdentifierRef      id;
-            SwagAttributeFlags fl;
+            RtAttributeFlags fl;
         };
 
         const auto& idMgr = sema.idMgr();
 
         const PredefinedAttr predefined[] = {
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti), .fl = SwagAttributeFlagsE::AttrMulti},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr), .fl = SwagAttributeFlagsE::ConstExpr},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBc), .fl = SwagAttributeFlagsE::PrintBc},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBcGen), .fl = SwagAttributeFlagsE::PrintBcGen},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintAsm), .fl = SwagAttributeFlagsE::PrintAsm},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Compiler), .fl = SwagAttributeFlagsE::Compiler},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Inline), .fl = SwagAttributeFlagsE::Inline},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoInline), .fl = SwagAttributeFlagsE::NoInline},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PlaceHolder), .fl = SwagAttributeFlagsE::PlaceHolder},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoPrint), .fl = SwagAttributeFlagsE::NoPrint},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Macro), .fl = SwagAttributeFlagsE::Macro},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Mixin), .fl = SwagAttributeFlagsE::Mixin},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Implicit), .fl = SwagAttributeFlagsE::Implicit},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumFlags), .fl = SwagAttributeFlagsE::EnumFlags},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumIndex), .fl = SwagAttributeFlagsE::EnumIndex},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDuplicate), .fl = SwagAttributeFlagsE::NoDuplicate},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Complete), .fl = SwagAttributeFlagsE::Complete},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Overload), .fl = SwagAttributeFlagsE::Overload},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::CalleeReturn), .fl = SwagAttributeFlagsE::CalleeReturn},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Discardable), .fl = SwagAttributeFlagsE::Discardable},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NotGeneric), .fl = SwagAttributeFlagsE::NotGeneric},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Tls), .fl = SwagAttributeFlagsE::Tls},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoCopy), .fl = SwagAttributeFlagsE::NoCopy},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Opaque), .fl = SwagAttributeFlagsE::Opaque},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Incomplete), .fl = SwagAttributeFlagsE::Incomplete},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDoc), .fl = SwagAttributeFlagsE::NoDoc},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Strict), .fl = SwagAttributeFlagsE::Strict},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Global), .fl = SwagAttributeFlagsE::Global},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti), .fl = RtAttributeFlagsE::AttrMulti},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr), .fl = RtAttributeFlagsE::ConstExpr},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBc), .fl = RtAttributeFlagsE::PrintBc},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBcGen), .fl = RtAttributeFlagsE::PrintBcGen},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintAsm), .fl = RtAttributeFlagsE::PrintAsm},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Compiler), .fl = RtAttributeFlagsE::Compiler},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Inline), .fl = RtAttributeFlagsE::Inline},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoInline), .fl = RtAttributeFlagsE::NoInline},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PlaceHolder), .fl = RtAttributeFlagsE::PlaceHolder},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoPrint), .fl = RtAttributeFlagsE::NoPrint},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Macro), .fl = RtAttributeFlagsE::Macro},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Mixin), .fl = RtAttributeFlagsE::Mixin},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Implicit), .fl = RtAttributeFlagsE::Implicit},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumFlags), .fl = RtAttributeFlagsE::EnumFlags},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumIndex), .fl = RtAttributeFlagsE::EnumIndex},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDuplicate), .fl = RtAttributeFlagsE::NoDuplicate},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Complete), .fl = RtAttributeFlagsE::Complete},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Overload), .fl = RtAttributeFlagsE::Overload},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::CalleeReturn), .fl = RtAttributeFlagsE::CalleeReturn},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Discardable), .fl = RtAttributeFlagsE::Discardable},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NotGeneric), .fl = RtAttributeFlagsE::NotGeneric},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Tls), .fl = RtAttributeFlagsE::Tls},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoCopy), .fl = RtAttributeFlagsE::NoCopy},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Opaque), .fl = RtAttributeFlagsE::Opaque},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Incomplete), .fl = RtAttributeFlagsE::Incomplete},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDoc), .fl = RtAttributeFlagsE::NoDoc},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Strict), .fl = RtAttributeFlagsE::Strict},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Global), .fl = RtAttributeFlagsE::Global},
         };
 
         const IdentifierRef idRef = sym.idRef();
@@ -154,10 +154,10 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 
     // Predefined attributes
     const SymbolAttribute&   attrSym   = identView.sym->cast<SymbolAttribute>();
-    const SwagAttributeFlags attrFlags = attrSym.rtAttributeFlags();
-    if (attrFlags != SwagAttributeFlagsE::Zero)
+    const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
+    if (attrFlags != RtAttributeFlagsE::Zero)
     {
-        sema.frame().currentAttributes().addSwagFlag(attrFlags);
+        sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;
     }
 

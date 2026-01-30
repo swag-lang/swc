@@ -15,8 +15,8 @@ public:
     {
     }
 
-    SwagAttributeFlags                  rtAttributeFlags() const { return rtAttributes_; }
-    void                                setRtAttributeFlags(SwagAttributeFlags attr) { rtAttributes_ = attr; }
+    RtAttributeFlags                    rtAttributeFlags() const { return rtAttributes_; }
+    void                                setRtAttributeFlags(RtAttributeFlags attr) { rtAttributes_ = attr; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
@@ -24,7 +24,7 @@ public:
 
 private:
     std::vector<SymbolVariable*> parameters_;
-    SwagAttributeFlags           rtAttributes_ = SwagAttributeFlagsE::Zero;
+    RtAttributeFlags             rtAttributes_ = RtAttributeFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

@@ -72,27 +72,27 @@ public:
     bool         isAggregate() const { return kind_ == ConstantKind::Aggregate; }
 
     // clang-format off
-    bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
-    char32_t getChar() const { SWC_ASSERT(isChar()); return asCharRune.val; }
-    char32_t getRune() const { SWC_ASSERT(isRune()); return asCharRune.val; }
-    std::string_view getString() const { SWC_ASSERT(isString()); return asString.val; }
-    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return asInt.val; }
-    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return asFloat.val; }
-    uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return asPointer.val; }
-    uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return asPointer.val; }
-    uint64_t getSlicePointer() const { SWC_ASSERT(isSlice()); return asSlice.ptr; }
-    uint64_t getSliceCount() const { SWC_ASSERT(isSlice()); return asSlice.count; }
-    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return asTypeInfo.val; }
-    ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
-    std::string_view getStruct() const { SWC_ASSERT(isStruct()); return asStruct.val; }
-    const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return asAggregate.val; }
+    bool getBool() const { SWC_ASSERT(isBool()); return payloadBool_.val; }
+    char32_t getChar() const { SWC_ASSERT(isChar()); return payloadCharRune_.val; }
+    char32_t getRune() const { SWC_ASSERT(isRune()); return payloadCharRune_.val; }
+    std::string_view getString() const { SWC_ASSERT(isString()); return payloadString_.val; }
+    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return payloadInt_.val; }
+    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return payloadFloat_.val; }
+    uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return payloadPointer_.val; }
+    uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return payloadPointer_.val; }
+    uint64_t getSlicePointer() const { SWC_ASSERT(isSlice()); return payloadSlice_.ptr; }
+    uint64_t getSliceCount() const { SWC_ASSERT(isSlice()); return payloadSlice_.count; }
+    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeInfo_.val; }
+    ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
+    std::string_view getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
+    const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return payloadAggregate_.val; }
     // clang-format on
 
     template<typename T>
     const T* getStruct(TypeRef typeRef) const
     {
         SWC_ASSERT(isStruct(typeRef));
-        return reinterpret_cast<const T*>(asStruct.val.data());
+        return reinterpret_cast<const T*>(payloadStruct_.val.data());
     }
 
     const TypeInfo& type(const TaskContext& ctx) const;
@@ -131,58 +131,58 @@ private:
         struct
         {
             std::string_view val;
-        } asString;
+        } payloadString_;
 
         struct
         {
             std::string_view val;
-        } asStruct;
+        } payloadStruct_;
 
         struct
         {
             char32_t val;
-        } asCharRune;
+        } payloadCharRune_;
 
         struct
         {
             bool val;
-        } asBool;
+        } payloadBool_;
 
         struct
         {
             ApsInt val;
-        } asInt;
+        } payloadInt_;
 
         struct
         {
             ApFloat val;
-        } asFloat;
+        } payloadFloat_;
 
         struct
         {
             uint64_t val;
-        } asPointer;
+        } payloadPointer_;
 
         struct
         {
             uint64_t ptr;
             uint64_t count;
-        } asSlice;
+        } payloadSlice_;
 
         struct
         {
             TypeRef val;
-        } asTypeInfo;
+        } payloadTypeInfo_;
 
         struct
         {
             ConstantRef val;
-        } asEnumValue;
+        } payloadEnumValue_;
 
         struct
         {
             std::vector<ConstantRef> val;
-        } asAggregate;
+        } payloadAggregate_;
     };
 };
 

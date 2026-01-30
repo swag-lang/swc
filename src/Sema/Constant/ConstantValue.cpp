@@ -16,7 +16,7 @@ ConstantValue::~ConstantValue()
     switch (kind_)
     {
         case ConstantKind::Aggregate:
-            std::destroy_at(&asAggregate.val);
+            std::destroy_at(&payloadAggregate_.val);
             break;
         default:
             break;
@@ -31,42 +31,42 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
     {
         case ConstantKind::Invalid:
         case ConstantKind::Bool:
-            asBool = other.asBool;
+            payloadBool_ = other.payloadBool_;
             break;
         case ConstantKind::Char:
         case ConstantKind::Rune:
-            asCharRune = other.asCharRune;
+            payloadCharRune_ = other.payloadCharRune_;
             break;
         case ConstantKind::String:
-            asString = other.asString;
+            payloadString_ = other.payloadString_;
             break;
         case ConstantKind::Struct:
-            asStruct = other.asStruct;
+            payloadStruct_ = other.payloadStruct_;
             break;
         case ConstantKind::Int:
-            asInt = other.asInt;
+            payloadInt_ = other.payloadInt_;
             break;
         case ConstantKind::Float:
-            asFloat = other.asFloat;
+            payloadFloat_ = other.payloadFloat_;
             break;
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
-            asPointer = other.asPointer;
+            payloadPointer_ = other.payloadPointer_;
             break;
         case ConstantKind::Slice:
-            asSlice = other.asSlice;
+            payloadSlice_ = other.payloadSlice_;
             break;
         case ConstantKind::TypeValue:
-            asTypeInfo = other.asTypeInfo;
+            payloadTypeInfo_ = other.payloadTypeInfo_;
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
-            asEnumValue = other.asEnumValue;
+            payloadEnumValue_ = other.payloadEnumValue_;
             break;
         case ConstantKind::Aggregate:
-            std::construct_at(&asAggregate.val, other.asAggregate.val);
+            std::construct_at(&payloadAggregate_.val, other.payloadAggregate_.val);
             break;
         default:
             SWC_UNREACHABLE();
@@ -81,42 +81,42 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     {
         case ConstantKind::Invalid:
         case ConstantKind::Bool:
-            asBool = other.asBool;
+            payloadBool_ = other.payloadBool_;
             break;
         case ConstantKind::Char:
         case ConstantKind::Rune:
-            asCharRune = other.asCharRune;
+            payloadCharRune_ = other.payloadCharRune_;
             break;
         case ConstantKind::String:
-            asString = other.asString;
+            payloadString_ = other.payloadString_;
             break;
         case ConstantKind::Struct:
-            asStruct = other.asStruct;
+            payloadStruct_ = other.payloadStruct_;
             break;
         case ConstantKind::Int:
-            asInt = other.asInt;
+            payloadInt_ = other.payloadInt_;
             break;
         case ConstantKind::Float:
-            asFloat = other.asFloat;
+            payloadFloat_ = other.payloadFloat_;
             break;
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
-            asPointer = other.asPointer;
+            payloadPointer_ = other.payloadPointer_;
             break;
         case ConstantKind::Slice:
-            asSlice = other.asSlice;
+            payloadSlice_ = other.payloadSlice_;
             break;
         case ConstantKind::TypeValue:
-            asTypeInfo = other.asTypeInfo;
+            payloadTypeInfo_ = other.payloadTypeInfo_;
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
-            asEnumValue = other.asEnumValue;
+            payloadEnumValue_ = other.payloadEnumValue_;
             break;
         case ConstantKind::Aggregate:
-            std::construct_at(&asAggregate.val, std::move(other.asAggregate.val));
+            std::construct_at(&payloadAggregate_.val, std::move(other.payloadAggregate_.val));
             break;
         default:
             SWC_UNREACHABLE();
@@ -294,7 +294,7 @@ ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
     ConstantValue cv;
     cv.typeRef_   = ctx.typeMgr().typeBool();
     cv.kind_      = ConstantKind::Bool;
-    cv.asBool.val = value;
+    cv.payloadBool_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -322,7 +322,7 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
     ConstantValue cv;
     cv.typeRef_     = ctx.typeMgr().typeString();
     cv.kind_        = ConstantKind::String;
-    cv.asString.val = value;
+    cv.payloadString_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -332,7 +332,7 @@ ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
     ConstantValue cv;
     cv.typeRef_       = ctx.typeMgr().typeChar();
     cv.kind_          = ConstantKind::Char;
-    cv.asCharRune.val = value;
+    cv.payloadCharRune_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -342,7 +342,7 @@ ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
     ConstantValue cv;
     cv.typeRef_       = ctx.typeMgr().typeRune();
     cv.kind_          = ConstantKind::Rune;
-    cv.asCharRune.val = value;
+    cv.payloadCharRune_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -352,7 +352,7 @@ ConstantValue ConstantValue::makeTypeValue(TaskContext& ctx, TypeRef value)
     ConstantValue cv;
     cv.typeRef_       = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
     cv.kind_          = ConstantKind::TypeValue;
-    cv.asTypeInfo.val = value;
+    cv.payloadTypeInfo_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -365,8 +365,8 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
     ConstantValue cv;
     cv.typeRef_  = ctx.typeMgr().typeInt(bitWidth, sign);
     cv.kind_     = ConstantKind::Int;
-    cv.asInt.val = value;
-    cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
+    cv.payloadInt_.val = value;
+    cv.payloadInt_.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -378,8 +378,8 @@ ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt
     ConstantValue cv;
     cv.typeRef_  = ctx.typeMgr().typeInt(0, sign);
     cv.kind_     = ConstantKind::Int;
-    cv.asInt.val = value;
-    cv.asInt.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
+    cv.payloadInt_.val = value;
+    cv.payloadInt_.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -392,7 +392,7 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
     ConstantValue cv;
     cv.typeRef_    = ctx.typeMgr().typeFloat(bitWidth);
     cv.kind_       = ConstantKind::Float;
-    cv.asFloat.val = value;
+    cv.payloadFloat_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -404,7 +404,7 @@ ConstantValue ConstantValue::makeFloatUnsized(const TaskContext& ctx, const ApFl
     ConstantValue cv;
     cv.typeRef_    = ctx.typeMgr().typeFloat(0);
     cv.kind_       = ConstantKind::Float;
-    cv.asFloat.val = value;
+    cv.payloadFloat_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -423,7 +423,7 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef value
     ConstantValue cv;
     cv.typeRef_        = typeRef;
     cv.kind_           = ConstantKind::EnumValue;
-    cv.asEnumValue.val = valueCst;
+    cv.payloadEnumValue_.val = valueCst;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -433,7 +433,7 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     ConstantValue cv;
     cv.typeRef_     = typeRef;
     cv.kind_        = ConstantKind::Struct;
-    cv.asStruct.val = bytes;
+    cv.payloadStruct_.val = bytes;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -448,7 +448,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::ve
 
     cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes));
     cv.kind_    = ConstantKind::Aggregate;
-    std::construct_at(&cv.asAggregate.val, values);
+    std::construct_at(&cv.payloadAggregate_.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -461,7 +461,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vec
     const std::vector dims        = {values.size()};
     cv.typeRef_                   = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
     cv.kind_                      = ConstantKind::Aggregate;
-    std::construct_at(&cv.asAggregate.val, values);
+    std::construct_at(&cv.payloadAggregate_.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -472,7 +472,7 @@ ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef,
     const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, flags);
     cv.typeRef_       = ctx.typeMgr().addType(ty);
     cv.kind_          = ConstantKind::ValuePointer;
-    cv.asPointer.val  = value;
+    cv.payloadPointer_.val  = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -483,7 +483,7 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     const TypeInfo ty = TypeInfo::makeBlockPointer(typeRef, flags);
     cv.typeRef_       = ctx.typeMgr().addType(ty);
     cv.kind_          = ConstantKind::BlockPointer;
-    cv.asPointer.val  = value;
+    cv.payloadPointer_.val  = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -494,8 +494,8 @@ ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, uint64
     const TypeInfo ty = TypeInfo::makeSlice(typeRef, flags);
     cv.typeRef_       = ctx.typeMgr().addType(ty);
     cv.kind_          = ConstantKind::Slice;
-    cv.asSlice.ptr    = ptr;
-    cv.asSlice.count  = count;
+    cv.payloadSlice_.ptr    = ptr;
+    cv.payloadSlice_.count  = count;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -507,44 +507,44 @@ uint32_t ConstantValue::hash() const noexcept
     switch (kind_)
     {
         case ConstantKind::Bool:
-            h = Math::hashCombine(h, asBool.val);
+            h = Math::hashCombine(h, payloadBool_.val);
             break;
         case ConstantKind::Char:
         case ConstantKind::Rune:
-            h = Math::hashCombine(h, asCharRune.val);
+            h = Math::hashCombine(h, payloadCharRune_.val);
             break;
         case ConstantKind::String:
-            h = Math::hashCombine(h, Math::hash(asString.val));
+            h = Math::hashCombine(h, Math::hash(payloadString_.val));
             break;
         case ConstantKind::Struct:
-            h = Math::hashCombine(h, Math::hash(asStruct.val));
+            h = Math::hashCombine(h, Math::hash(payloadStruct_.val));
             break;
         case ConstantKind::Aggregate:
             for (auto& v : getAggregate())
                 h = Math::hashCombine(h, v.get());
             break;
         case ConstantKind::TypeValue:
-            h = Math::hashCombine(h, asTypeInfo.val.get());
+            h = Math::hashCombine(h, payloadTypeInfo_.val.get());
             break;
         case ConstantKind::Int:
-            h = Math::hashCombine(h, asInt.val.hash());
+            h = Math::hashCombine(h, payloadInt_.val.hash());
             break;
         case ConstantKind::Float:
-            h = Math::hashCombine(h, asFloat.val.hash());
+            h = Math::hashCombine(h, payloadFloat_.val.hash());
             break;
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
-            h = Math::hashCombine(h, asPointer.val);
+            h = Math::hashCombine(h, payloadPointer_.val);
             break;
         case ConstantKind::Slice:
-            h = Math::hashCombine(h, asSlice.ptr);
-            h = Math::hashCombine(h, asSlice.count);
+            h = Math::hashCombine(h, payloadSlice_.ptr);
+            h = Math::hashCombine(h, payloadSlice_.count);
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
             break;
         case ConstantKind::EnumValue:
-            h = Math::hashCombine(h, asEnumValue.val.get());
+            h = Math::hashCombine(h, payloadEnumValue_.val.get());
             break;
 
         default:
@@ -609,7 +609,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::TypeValue:
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
         case ConstantKind::EnumValue:
-            return ctx.cstMgr().get(asEnumValue.val).toString(ctx);
+            return ctx.cstMgr().get(payloadEnumValue_.val).toString(ctx);
         case ConstantKind::ValuePointer:
             return std::format("*0x{:016X}", getValuePointer());
         case ConstantKind::BlockPointer:

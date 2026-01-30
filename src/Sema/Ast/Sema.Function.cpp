@@ -184,4 +184,43 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);
 }
 
+Result AstReturnStmt::semaPreNode(Sema& sema) const
+{
+    if (!sema.frame().function())
+        return SemaError::raise(sema, DiagnosticId::sema_err_return_outside_func, sema.curNodeRef());
+    return Result::Continue;
+}
+
+Result AstReturnStmt::semaPostNode(Sema& sema)
+{
+    const auto            curNodeRef = sema.curNodeRef();
+    const auto*           node       = sema.node(curNodeRef).cast<AstReturnStmt>();
+    const SymbolFunction* sym        = sema.frame().function();
+    SWC_ASSERT(sym);
+
+    const TypeRef returnTypeRef = sym->returnTypeRef();
+    const auto&   returnType    = sema.typeMgr().get(returnTypeRef);
+    if (node->nodeExprRef.isValid())
+    {
+        if (returnType.isVoid())
+        {
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, node->nodeExprRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        SemaNodeView nodeView(sema, node->nodeExprRef);
+        RESULT_VERIFY(Cast::cast(sema, nodeView, returnTypeRef, CastKind::Implicit));
+    }
+    else if (!returnType.isVoid())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, curNodeRef);
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

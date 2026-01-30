@@ -663,7 +663,7 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
-
+    
     Result castToVariadic(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto& typeMgr = sema.ctx().typeMgr();
@@ -677,6 +677,12 @@ namespace
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
+    }
+    
+    Result castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        // TODO
+        return Result::Continue;
     }
 }
 
@@ -754,6 +760,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isCString())
         res = castToCString(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isStruct())
+        res = castToStruct(sema, castCtx, srcTypeRef, dstTypeRef);
     else
     {
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

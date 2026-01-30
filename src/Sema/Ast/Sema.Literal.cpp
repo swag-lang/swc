@@ -452,4 +452,12 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
+Result AstStructLiteral::semaPostNode(Sema& sema)
+{
+    // TODO
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
+    return Result::SkipChildren;
+}
+
 SWC_END_NAMESPACE();

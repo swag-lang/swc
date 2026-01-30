@@ -438,10 +438,10 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregate(TaskContext& ctx, TypeRef typeRef, const std::vector<ConstantRef>& values)
+ConstantValue ConstantValue::makeAggregate(TaskContext& ctx, const std::vector<ConstantRef>& values)
 {
     ConstantValue  cv;
-    const TypeInfo aggTy = TypeInfo::makeAggregate(typeRef);
+    const TypeInfo aggTy = TypeInfo::makeAggregate();
     cv.typeRef_          = ctx.typeMgr().addType(aggTy);
     cv.kind_             = ConstantKind::Aggregate;
     std::construct_at(&cv.asAggregate.val, values);

@@ -164,7 +164,7 @@ public:
     SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *payloadInterface_.sym; }
     SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *payloadAlias_.sym; }
     SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *payloadFunction_.sym; }
-    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isAggregate()); return payloadTypeRef_.typeRef; }
+    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return payloadTypeRef_.typeRef; }
     auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.dims; }
     TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.typeRef; }
     // clang-format on
@@ -193,7 +193,7 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregate(TypeRef typeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeAggregate(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);

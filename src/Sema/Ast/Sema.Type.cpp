@@ -398,7 +398,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     TypeRef returnType = ctx.typeMgr().typeVoid();
     if (nodeReturnTypeRef.isValid())
         returnType = sema.typeRefOf(nodeReturnTypeRef);
-    symFunc->setReturnType(returnType);
+    symFunc->setReturnTypeRef(returnType);
     symFunc->setExtraFlags(flags());
 
     const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);

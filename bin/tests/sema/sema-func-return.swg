@@ -22,8 +22,3 @@ func test5() -> s32
 {
     return "string"; // swc-expected-error {{sema_err_cannot_cast}}
 }
-
-#test
-{
-    return; // swc-expected-error {{sema_err_return_outside_func}}
-}

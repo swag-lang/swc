@@ -106,7 +106,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         if (childRef == nodeBodyRef)
         {
-            sym.setReturnType(sema.typeRefOf(nodeBodyRef));
+            sym.setReturnTypeRef(sema.typeRefOf(nodeBodyRef));
             setIsTyped = true;
         }
     }
@@ -115,7 +115,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         TypeRef returnType = sema.typeMgr().typeVoid();
         if (nodeReturnTypeRef.isValid())
             returnType = sema.typeRefOf(nodeReturnTypeRef);
-        sym.setReturnType(returnType);
+        sym.setReturnTypeRef(returnType);
         setIsTyped = true;
     }
 
@@ -182,13 +182,6 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     }
 
     return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);
-}
-
-Result AstReturnStmt::semaPreNode(Sema& sema) const
-{
-    if (!sema.frame().function())
-        return SemaError::raise(sema, DiagnosticId::sema_err_return_outside_func, sema.curNodeRef());
-    return Result::Continue;
 }
 
 Result AstReturnStmt::semaPostNode(Sema& sema)

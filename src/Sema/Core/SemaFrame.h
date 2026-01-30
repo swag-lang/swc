@@ -45,32 +45,29 @@ public:
     AttributeList&       attributes() { return attributes_; }
     const AttributeList& attributes() const { return attributes_; }
 
-    SemaCompilerIf*                  compilerIf() const { return compilerIf_; }
-    void                             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    SymbolImpl*                      impl() const { return impl_; }
-    void                             setImpl(SymbolImpl* impl) { impl_ = impl; }
-    SymbolInterface*                 interface() const { return interface_; }
-    void                             setInterface(SymbolInterface* itf) { interface_ = itf; }
-    SymbolFunction*                  function() const { return function_; }
-    void                             setFunction(SymbolFunction* func) { function_ = func; }
+    SemaCompilerIf*  compilerIf() const { return compilerIf_; }
+    void             setCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+    SymbolImpl*      impl() const { return impl_; }
+    void             setImpl(SymbolImpl* impl) { impl_ = impl; }
+    SymbolInterface* interface() const { return interface_; }
+    void             setInterface(SymbolInterface* itf) { interface_ = itf; }
+    SymbolFunction*  function() const { return function_; }
+    void             setFunction(SymbolFunction* func) { function_ = func; }
+
+    const Breakable& breakable() const { return breakable_; }
+    BreakableKind    breakableKind() const { return breakable_.kind; }
+    void             setBreakable(AstNodeRef nodeRef, BreakableKind kind);
+    AstNodeRef       currentSwitch() const { return currentSwitch_; }
+    void             setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef       currentSwitchCase() const { return currentSwitchCase_; }
+    void             setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
     void                             pushBindingType(TypeRef type);
     void                             popBindingType();
     std::span<SymbolVariable* const> bindingVars() const { return bindingVars_.span(); }
     void                             pushBindingVar(SymbolVariable* sym);
     void                             popBindingVar();
-
-    const Breakable& breakable() const { return breakable_; }
-    BreakableKind    breakableKind() const { return breakable_.kind; }
-    void             setBreakable(AstNodeRef nodeRef, BreakableKind kind);
-
-    // Active switch statement (used by `case` semantic analysis).
-    AstNodeRef currentSwitch() const { return currentSwitch_; }
-    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-
-    // Active switch case statement (used by `fallthrough` semantic analysis).
-    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
-    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;

@@ -16,7 +16,7 @@ public:
     Symbol*  addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol*  addSingleSymbolOrError(Sema& sema, Symbol* symbol);
     void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void     appendAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+    void     getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool     empty() const noexcept;
     uint32_t count() const noexcept { return count_; }
 

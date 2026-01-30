@@ -61,7 +61,7 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
         return Result::Continue;
 
     std::vector<const Symbol*> symbols;
-    enumType.payloadSymEnum().appendAllSymbols(symbols);
+    enumType.payloadSymEnum().getAllSymbols(symbols);
 
     for (const Symbol* sym : symbols)
     {

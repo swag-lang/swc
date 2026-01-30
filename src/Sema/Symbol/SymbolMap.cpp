@@ -153,17 +153,19 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     }
 }
 
-void SymbolMap::appendAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
+void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
+    out.clear();
+
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         {
             const Shard&     shard = shards[i];
             std::shared_lock lock(shard.mutex);
-            for (const auto& it : shard.map)
+            for (const auto& val : shard.map | std::views::values)
             {
-                for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+                for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
                 {
                     if (includeIgnored || !cur->isIgnored())
                         out.push_back(cur);
@@ -184,9 +186,9 @@ void SymbolMap::appendAllSymbols(std::vector<const Symbol*>& out, bool includeIg
         {
             const Shard&     shard = shards[i];
             std::shared_lock lock(shard.mutex);
-            for (const auto& it : shard.map)
+            for (const auto& val : shard.map | std::views::values)
             {
-                for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+                for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
                 {
                     if (includeIgnored || !cur->isIgnored())
                         out.push_back(cur);
@@ -199,9 +201,9 @@ void SymbolMap::appendAllSymbols(std::vector<const Symbol*>& out, bool includeIg
 
     if (isBig())
     {
-        for (const auto& it : bigMap_)
+        for (const auto& val : bigMap_ | std::views::values)
         {
-            for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+            for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
             {
                 if (includeIgnored || !cur->isIgnored())
                     out.push_back(cur);

@@ -207,7 +207,7 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
 
     if (ty.isArray())
     {
-        if (typeMgr.get(ty.payloadArrayElemTypeRef()).isConcrete())
+        if (typeMgr.get(ty.payloadArrayElemTypeRef()).isConcreteScalar())
         {
             result = cstRef;
             return true;

@@ -473,8 +473,18 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    SmallVector<AstNodeRef> children;
+    collectChildren(children, sema.ast());
+
+    std::vector<ConstantRef> values;
+    for (const auto& child : children)
+    {
+        RESULT_VERIFY(SemaCheck::isConstant(sema, child));
+        values.push_back(sema.constantRefOf(child));
+    }
+
+    const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
     return Result::SkipChildren;
 }

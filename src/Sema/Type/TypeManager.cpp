@@ -74,6 +74,9 @@ void TypeManager::setup(TaskContext& ctx)
     typeVariadic_  = addType(TypeInfo::makeVariadic());
     typeTypeInfo_  = addType(TypeInfo::makeTypeInfo());
 
+    typeAggregateStruct_ = addType(TypeInfo::makeAggregate());
+    typeAggregateArray_  = addType(TypeInfo::makeAggregate(TypeInfoFlagsE::AggregateArray));
+
     typeBlockPtrVoid_      = addType(TypeInfo::makeBlockPointer(typeVoid_));
     typeConstBlockPtrVoid_ = addType(TypeInfo::makeBlockPointer(typeVoid_, TypeInfoFlagsE::Const));
     typeBlockPtrU8_        = addType(TypeInfo::makeBlockPointer(typeU8_));

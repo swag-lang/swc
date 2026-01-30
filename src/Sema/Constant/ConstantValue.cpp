@@ -441,9 +441,18 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
 ConstantValue ConstantValue::makeAggregate(TaskContext& ctx, const std::vector<ConstantRef>& values)
 {
     ConstantValue  cv;
-    const TypeInfo aggTy = TypeInfo::makeAggregate();
-    cv.typeRef_          = ctx.typeMgr().addType(aggTy);
+    cv.typeRef_          = ctx.typeMgr().typeAggregateStruct();
     cv.kind_             = ConstantKind::Aggregate;
+    std::construct_at(&cv.asAggregate.val, values);
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vector<ConstantRef>& values)
+{
+    ConstantValue cv;
+    cv.typeRef_ = ctx.typeMgr().typeAggregateArray();
+    cv.kind_    = ConstantKind::Aggregate;
     std::construct_at(&cv.asAggregate.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;

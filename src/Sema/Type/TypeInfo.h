@@ -14,9 +14,10 @@ class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
 {
-    Zero     = 0,
-    Const    = 1 << 0,
-    Nullable = 1 << 1,
+    Zero           = 0,
+    Const          = 1 << 0,
+    Nullable       = 1 << 1,
+    AggregateArray = 1 << 2,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
@@ -100,6 +101,8 @@ public:
     void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
+    bool          isAggregateArray() const noexcept { return isAggregate() && flags_.has(TypeInfoFlagsE::AggregateArray); }
+    bool          isAggregateStruct() const noexcept { return isAggregate() && !flags_.has(TypeInfoFlagsE::AggregateArray); }
 
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }

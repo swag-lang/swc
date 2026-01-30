@@ -60,11 +60,14 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     if (!enumType.isEnum())
         return Result::Continue;
 
-    std::vector<const SymbolEnumValue*> values;
-    enumType.payloadSymEnum().appendEnumValues(values);
+    std::vector<const Symbol*> symbols;
+    enumType.payloadSymEnum().appendAllSymbols(symbols);
 
-    for (const SymbolEnumValue* value : values)
+    for (const Symbol* sym : symbols)
     {
+        if (!sym || !sym->isEnumValue())
+            continue;
+        const auto* value = sym->safeCast<SymbolEnumValue>();
         if (!value)
             continue;
         const ConstantRef cstRef = value->cstRef();

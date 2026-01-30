@@ -153,6 +153,74 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     }
 }
 
+void SymbolMap::appendAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
+{
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    {
+        for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+        {
+            const Shard&     shard = shards[i];
+            std::shared_lock lock(shard.mutex);
+            for (const auto& it : shard.map)
+            {
+                for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+                {
+                    if (includeIgnored || !cur->isIgnored())
+                        out.push_back(cur);
+                }
+            }
+        }
+
+        return;
+    }
+
+    std::shared_lock lk(mutex_);
+
+    // Check sharded again after lock
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    {
+        lk.unlock();
+        for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+        {
+            const Shard&     shard = shards[i];
+            std::shared_lock lock(shard.mutex);
+            for (const auto& it : shard.map)
+            {
+                for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+                {
+                    if (includeIgnored || !cur->isIgnored())
+                        out.push_back(cur);
+                }
+            }
+        }
+
+        return;
+    }
+
+    if (isBig())
+    {
+        for (const auto& it : bigMap_)
+        {
+            for (const Symbol* cur = it.second; cur; cur = cur->nextHomonym())
+            {
+                if (includeIgnored || !cur->isIgnored())
+                    out.push_back(cur);
+            }
+        }
+    }
+    else
+    {
+        for (uint32_t i = 0; i < smallSize_; ++i)
+        {
+            for (const Symbol* cur = small_[i].head; cur; cur = cur->nextHomonym())
+            {
+                if (includeIgnored || !cur->isIgnored())
+                    out.push_back(cur);
+            }
+        }
+    }
+}
+
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)
 {
     SWC_ASSERT(symbol != nullptr);

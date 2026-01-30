@@ -57,8 +57,6 @@ public:
     bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
-    void appendEnumValues(std::vector<const SymbolEnumValue*>& out) const;
-
 private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
     ApsInt  nextValue_;

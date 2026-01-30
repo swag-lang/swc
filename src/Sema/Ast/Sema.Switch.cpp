@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/Ast/AstNodes.h"
+#include "Sema/Ast/Sema.Payload.h"
 #include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -8,19 +9,6 @@
 #include "Sema/Symbol/Symbol.Enum.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    struct SwitchPayload
-    {
-        TypeRef exprTypeRef = TypeRef::invalid();
-
-        TypeRef enumTypeRef = TypeRef::invalid();
-        bool    isComplete  = false;
-
-        std::unordered_map<ConstantRef, SourceCodeLocation> seen;
-    };
-}
 
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {
@@ -44,8 +32,8 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
 
-    auto* payload       = sema.compiler().allocate<SwitchPayload>();
-    payload->isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+    SwitchPayload* payload = sema.compiler().allocate<SwitchPayload>();
+    payload->isComplete    = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
     sema.setPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }

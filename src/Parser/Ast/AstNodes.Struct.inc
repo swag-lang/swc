@@ -622,7 +622,7 @@ struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 // -----------------------------------------------------------------------------
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
-    static Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

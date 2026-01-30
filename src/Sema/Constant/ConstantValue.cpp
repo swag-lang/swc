@@ -7,6 +7,142 @@
 
 SWC_BEGIN_NAMESPACE();
 
+ConstantValue::ConstantValue()
+{
+}
+
+ConstantValue::~ConstantValue()
+{
+    switch (kind_)
+    {
+        case ConstantKind::Aggregate:
+            std::destroy_at(&asAggregate.val);
+            break;
+        default:
+            break;
+    }
+}
+
+ConstantValue::ConstantValue(const ConstantValue& other) :
+    kind_(other.kind_),
+    typeRef_(other.typeRef_)
+{
+    switch (kind_)
+    {
+        case ConstantKind::Invalid:
+        case ConstantKind::Bool:
+            asBool = other.asBool;
+            break;
+        case ConstantKind::Char:
+        case ConstantKind::Rune:
+            asCharRune = other.asCharRune;
+            break;
+        case ConstantKind::String:
+            asString = other.asString;
+            break;
+        case ConstantKind::Struct:
+            asStruct = other.asStruct;
+            break;
+        case ConstantKind::Int:
+            asInt = other.asInt;
+            break;
+        case ConstantKind::Float:
+            asFloat = other.asFloat;
+            break;
+        case ConstantKind::ValuePointer:
+        case ConstantKind::BlockPointer:
+            asPointer = other.asPointer;
+            break;
+        case ConstantKind::Slice:
+            asSlice = other.asSlice;
+            break;
+        case ConstantKind::TypeValue:
+            asTypeInfo = other.asTypeInfo;
+            break;
+        case ConstantKind::Null:
+        case ConstantKind::Undefined:
+            break;
+        case ConstantKind::EnumValue:
+            asEnumValue = other.asEnumValue;
+            break;
+        case ConstantKind::Aggregate:
+            std::construct_at(&asAggregate.val, other.asAggregate.val);
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
+    kind_(other.kind_),
+    typeRef_(other.typeRef_)
+{
+    switch (kind_)
+    {
+        case ConstantKind::Invalid:
+        case ConstantKind::Bool:
+            asBool = other.asBool;
+            break;
+        case ConstantKind::Char:
+        case ConstantKind::Rune:
+            asCharRune = other.asCharRune;
+            break;
+        case ConstantKind::String:
+            asString = other.asString;
+            break;
+        case ConstantKind::Struct:
+            asStruct = other.asStruct;
+            break;
+        case ConstantKind::Int:
+            asInt = other.asInt;
+            break;
+        case ConstantKind::Float:
+            asFloat = other.asFloat;
+            break;
+        case ConstantKind::ValuePointer:
+        case ConstantKind::BlockPointer:
+            asPointer = other.asPointer;
+            break;
+        case ConstantKind::Slice:
+            asSlice = other.asSlice;
+            break;
+        case ConstantKind::TypeValue:
+            asTypeInfo = other.asTypeInfo;
+            break;
+        case ConstantKind::Null:
+        case ConstantKind::Undefined:
+            break;
+        case ConstantKind::EnumValue:
+            asEnumValue = other.asEnumValue;
+            break;
+        case ConstantKind::Aggregate:
+            std::construct_at(&asAggregate.val, std::move(other.asAggregate.val));
+            break;
+        default:
+            SWC_UNREACHABLE();
+    }
+
+    other.kind_ = ConstantKind::Invalid;
+}
+
+ConstantValue& ConstantValue::operator=(const ConstantValue& other)
+{
+    if (this == &other)
+        return *this;
+    this->~ConstantValue();
+    new (this) ConstantValue(other);
+    return *this;
+}
+
+ConstantValue& ConstantValue::operator=(ConstantValue&& other) noexcept
+{
+    if (this == &other)
+        return *this;
+    this->~ConstantValue();
+    new (this) ConstantValue(std::move(other));
+    return *this;
+}
+
 bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
 {
     if (kind_ != rhs.kind_)
@@ -30,6 +166,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
             return getEnumValue() == rhs.getEnumValue();
+        case ConstantKind::Aggregate:
+            return getAggregate() == rhs.getAggregate();
         case ConstantKind::Int:
             return getInt().same(rhs.getInt());
         case ConstantKind::Float:
@@ -65,6 +203,8 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getString() == rhs.getString();
         case ConstantKind::Struct:
             return getStruct() == rhs.getStruct();
+        case ConstantKind::Aggregate:
+            return getAggregate() == rhs.getAggregate();
         case ConstantKind::Int:
             return getInt().eq(rhs.getInt());
         case ConstantKind::Float:
@@ -298,6 +438,16 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     return cv;
 }
 
+ConstantValue ConstantValue::makeAggregate(const TaskContext&, TypeRef typeRef, const std::vector<ConstantRef>& values)
+{
+    ConstantValue cv;
+    cv.typeRef_ = typeRef;
+    cv.kind_    = ConstantKind::Aggregate;
+    std::construct_at(&cv.asAggregate.val, values);
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
 {
     ConstantValue  cv;
@@ -350,6 +500,10 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::Struct:
             h = Math::hashCombine(h, Math::hash(asStruct.val));
+            break;
+        case ConstantKind::Aggregate:
+            for (auto& v : getAggregate())
+                h = Math::hashCombine(h, v.get());
             break;
         case ConstantKind::TypeValue:
             h = Math::hashCombine(h, asTypeInfo.val.get());
@@ -428,6 +582,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getString();
         case ConstantKind::Struct:
             return "<struct>";
+        case ConstantKind::Aggregate:
+            return "<aggregate>";
         case ConstantKind::Int:
             return getInt().toString();
         case ConstantKind::Float:

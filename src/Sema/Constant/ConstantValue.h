@@ -27,6 +27,7 @@ enum class ConstantKind
     TypeValue,
     EnumValue,
     Struct,
+    Aggregate,
 };
 
 class ConstantValue
@@ -35,8 +36,13 @@ class ConstantValue
     friend class ConstantManager;
 
 public:
-    // ReSharper disable once CppPossiblyUninitializedMember
-    ConstantValue() {}
+    ConstantValue();
+    ConstantValue(const ConstantValue& other);
+    ConstantValue(ConstantValue&& other) noexcept;
+    ~ConstantValue();
+
+    ConstantValue& operator=(const ConstantValue& other);
+    ConstantValue& operator=(ConstantValue&& other) noexcept;
 
     bool operator==(const ConstantValue& rhs) const noexcept;
 
@@ -63,6 +69,7 @@ public:
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
     bool         isStruct() const { return kind_ == ConstantKind::Struct; }
     bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
+    bool         isAggregate() const { return kind_ == ConstantKind::Aggregate; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return asBool.val; }
@@ -78,6 +85,7 @@ public:
     TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return asTypeInfo.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return asEnumValue.val; }
     std::string_view getStruct() const { SWC_ASSERT(isStruct()); return asStruct.val; }
+    const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return asAggregate.val; }
     // clang-format on
 
     template<typename T>
@@ -103,6 +111,7 @@ public:
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::string_view bytes);
+    static ConstantValue makeAggregate(const TaskContext& ctx, TypeRef typeRef, const std::vector<ConstantRef>& values);
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
@@ -168,6 +177,11 @@ private:
         {
             ConstantRef val;
         } asEnumValue;
+
+        struct
+        {
+            std::vector<ConstantRef> val;
+        } asAggregate;
     };
 };
 

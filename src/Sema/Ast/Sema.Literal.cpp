@@ -454,8 +454,20 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
 
 Result AstStructLiteral::semaPostNode(Sema& sema)
 {
-    // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
+    SmallVector<AstNodeRef> children;
+    collectChildren(children, sema.ast());
+
+    std::vector<ConstantRef> values;
+    for (const auto& child : children)
+    {
+        if (sema.hasConstant(child))
+            values.push_back(sema.constantRefOf(child));
+        else
+            values.push_back(sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeUndefined(sema.ctx())));
+    }
+
+    const auto val = ConstantValue::makeAggregate(sema.ctx(), sema.typeRefOf(sema.curNodeRef()), values);
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     SemaInfo::addSemaFlags(sema.node(sema.curNodeRef()), NodeSemaFlags::Value);
     return Result::SkipChildren;
 }

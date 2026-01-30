@@ -465,7 +465,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
         values.push_back(sema.constantRefOf(child));
     }
 
-    const auto val = ConstantValue::makeAggregate(sema.ctx(), values);
+    const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
     return Result::Continue;

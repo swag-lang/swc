@@ -358,7 +358,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
 
         case TypeInfoKind::Aggregate:
-            out += isAggregateArray() ? "aggregate_array" : "aggregate_struct";
+            out += isAggregateArray() ? "aggregate(array)" : "aggregate(struct)";
             break;
 
         case TypeInfoKind::ValuePointer:

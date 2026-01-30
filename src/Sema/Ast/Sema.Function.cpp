@@ -196,11 +196,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema)
     if (node->nodeExprRef.isValid())
     {
         if (returnType.isVoid())
-        {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, node->nodeExprRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, node->nodeExprRef);
 
         SemaNodeView nodeView(sema, node->nodeExprRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, returnTypeRef, CastKind::Implicit));

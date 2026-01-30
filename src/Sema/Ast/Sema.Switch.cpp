@@ -132,6 +132,32 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (switchTypeRef.isInvalid())
         return Result::Continue;
 
+    // This is a 'default' case (no expressions). Validate default-specific rules once.
+    if (!spanExprRef.isValid() && childRef == nodeBodyRef)
+    {
+        auto* switchPayload = sema.payload<SwitchPayload>(switchRef);
+        SWC_ASSERT(switchPayload);
+
+        const AstNodeRef caseRef = sema.frame().currentSwitchCase();
+        const auto       curLoc  = sema.node(caseRef).locationWithChildren(sema.ctx(), sema.ast());
+
+        if (switchPayload->isComplete)
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, caseRef);
+
+        if (!switchPayload->hasDefault)
+        {
+            switchPayload->hasDefault      = true;
+            switchPayload->firstDefaultLoc = curLoc;
+            return Result::Continue;
+        }
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_multiple_default, caseRef);
+        diag.addNote(DiagnosticId::sema_note_previous_default_case);
+        diag.last().addSpan(switchPayload->firstDefaultLoc);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     // Only touch case expressions (not the statements in the case body).
     if (!spanExprRef.isValid())
         return Result::Continue;

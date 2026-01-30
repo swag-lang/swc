@@ -175,8 +175,6 @@
     {
         case 1 to 3:
             break
-        default:
-            break
     }
 }
 
@@ -187,8 +185,6 @@ func toto()->s32 => 1
     switch toto()
     {
         case 1 to 3:
-            break
-        default:
             break
     }
 }

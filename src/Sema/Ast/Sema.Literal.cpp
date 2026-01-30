@@ -483,7 +483,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, TypeInfoFlagsE::Zero));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 

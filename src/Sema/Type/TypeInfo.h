@@ -17,7 +17,6 @@ enum class TypeInfoFlagsE : uint8_t
     Zero           = 0,
     Const          = 1 << 0,
     Nullable       = 1 << 1,
-    AggregateArray = 1 << 2,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
@@ -101,8 +100,7 @@ public:
     void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
-    bool          isAggregateArray() const noexcept { return isAggregate() && flags_.has(TypeInfoFlagsE::AggregateArray); }
-    bool          isAggregateStruct() const noexcept { return isAggregate() && !flags_.has(TypeInfoFlagsE::AggregateArray); }
+    bool          isAggregateStruct() const noexcept { return isAggregate(); }
 
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
@@ -197,7 +195,7 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregate(const std::vector<TypeRef>& types, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeAggregate(const std::vector<TypeRef>& types);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);

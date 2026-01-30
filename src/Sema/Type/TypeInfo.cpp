@@ -371,17 +371,17 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         }
 
         case TypeInfoKind::Aggregate:
-            out += isAggregateArray() ? "aggregate'array" : "aggregate'struct";
+            out += "aggregate";
             if (!payloadAggregate_.types.empty())
             {
-                out += "(";
+                out += "{";
                 for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 {
                     if (i)
                         out += ", ";
                     out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
                 }
-                out += ")";
+                out += "}";
             }
             break;
 
@@ -688,9 +688,9 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregate(const std::vector<TypeRef>& types, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeAggregate(const std::vector<TypeRef>& types)
 {
-    TypeInfo ti{TypeInfoKind::Aggregate, flags};
+    TypeInfo ti{TypeInfoKind::Aggregate, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;

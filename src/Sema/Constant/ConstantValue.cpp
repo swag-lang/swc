@@ -292,8 +292,8 @@ const TypeInfo& ConstantValue::type(const TaskContext& ctx) const
 ConstantValue ConstantValue::makeBool(const TaskContext& ctx, bool value)
 {
     ConstantValue cv;
-    cv.typeRef_   = ctx.typeMgr().typeBool();
-    cv.kind_      = ConstantKind::Bool;
+    cv.typeRef_         = ctx.typeMgr().typeBool();
+    cv.kind_            = ConstantKind::Bool;
     cv.payloadBool_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -320,8 +320,8 @@ ConstantValue ConstantValue::makeUndefined(const TaskContext& ctx)
 ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view value)
 {
     ConstantValue cv;
-    cv.typeRef_     = ctx.typeMgr().typeString();
-    cv.kind_        = ConstantKind::String;
+    cv.typeRef_           = ctx.typeMgr().typeString();
+    cv.kind_              = ConstantKind::String;
     cv.payloadString_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -330,8 +330,8 @@ ConstantValue ConstantValue::makeString(const TaskContext& ctx, std::string_view
 ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().typeChar();
-    cv.kind_          = ConstantKind::Char;
+    cv.typeRef_             = ctx.typeMgr().typeChar();
+    cv.kind_                = ConstantKind::Char;
     cv.payloadCharRune_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -340,8 +340,8 @@ ConstantValue ConstantValue::makeChar(const TaskContext& ctx, char32_t value)
 ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().typeRune();
-    cv.kind_          = ConstantKind::Rune;
+    cv.typeRef_             = ctx.typeMgr().typeRune();
+    cv.kind_                = ConstantKind::Rune;
     cv.payloadCharRune_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -350,8 +350,8 @@ ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
 ConstantValue ConstantValue::makeTypeValue(TaskContext& ctx, TypeRef value)
 {
     ConstantValue cv;
-    cv.typeRef_       = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
-    cv.kind_          = ConstantKind::TypeValue;
+    cv.typeRef_             = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
+    cv.kind_                = ConstantKind::TypeValue;
     cv.payloadTypeInfo_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -363,8 +363,8 @@ ConstantValue ConstantValue::makeInt(const TaskContext& ctx, const ApsInt& value
         return makeIntUnsized(ctx, value, sign);
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().typeInt(bitWidth, sign);
-    cv.kind_     = ConstantKind::Int;
+    cv.typeRef_        = ctx.typeMgr().typeInt(bitWidth, sign);
+    cv.kind_           = ConstantKind::Int;
     cv.payloadInt_.val = value;
     cv.payloadInt_.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -376,8 +376,8 @@ ConstantValue ConstantValue::makeIntUnsized(const TaskContext& ctx, const ApsInt
     SWC_ASSERT(value.bitWidth() == ApInt::maxBitWidth());
 
     ConstantValue cv;
-    cv.typeRef_  = ctx.typeMgr().typeInt(0, sign);
-    cv.kind_     = ConstantKind::Int;
+    cv.typeRef_        = ctx.typeMgr().typeInt(0, sign);
+    cv.kind_           = ConstantKind::Int;
     cv.payloadInt_.val = value;
     cv.payloadInt_.val.setUnsigned(sign == TypeInfo::Sign::Unsigned);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -390,8 +390,8 @@ ConstantValue ConstantValue::makeFloat(const TaskContext& ctx, const ApFloat& va
         return makeFloatUnsized(ctx, value);
 
     ConstantValue cv;
-    cv.typeRef_    = ctx.typeMgr().typeFloat(bitWidth);
-    cv.kind_       = ConstantKind::Float;
+    cv.typeRef_          = ctx.typeMgr().typeFloat(bitWidth);
+    cv.kind_             = ConstantKind::Float;
     cv.payloadFloat_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -402,8 +402,8 @@ ConstantValue ConstantValue::makeFloatUnsized(const TaskContext& ctx, const ApFl
     SWC_ASSERT(value.bitWidth() == ApFloat::maxBitWidth());
 
     ConstantValue cv;
-    cv.typeRef_    = ctx.typeMgr().typeFloat(0);
-    cv.kind_       = ConstantKind::Float;
+    cv.typeRef_          = ctx.typeMgr().typeFloat(0);
+    cv.kind_             = ConstantKind::Float;
     cv.payloadFloat_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -421,8 +421,8 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
 ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef valueCst, TypeRef typeRef)
 {
     ConstantValue cv;
-    cv.typeRef_        = typeRef;
-    cv.kind_           = ConstantKind::EnumValue;
+    cv.typeRef_              = typeRef;
+    cv.kind_                 = ConstantKind::EnumValue;
     cv.payloadEnumValue_.val = valueCst;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -431,8 +431,8 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef value
 ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std::string_view bytes)
 {
     ConstantValue cv;
-    cv.typeRef_     = typeRef;
-    cv.kind_        = ConstantKind::Struct;
+    cv.typeRef_           = typeRef;
+    cv.kind_              = ConstantKind::Struct;
     cv.payloadStruct_.val = bytes;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -456,6 +456,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::ve
 ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vector<ConstantRef>& values)
 {
     SWC_ASSERT(!values.empty());
+
     ConstantValue     cv;
     const TypeRef     elemTypeRef = ctx.cstMgr().get(values[0]).typeRef();
     const std::vector dims        = {values.size()};
@@ -469,10 +470,10 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vec
 ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
 {
     ConstantValue  cv;
-    const TypeInfo ty = TypeInfo::makeValuePointer(typeRef, flags);
-    cv.typeRef_       = ctx.typeMgr().addType(ty);
-    cv.kind_          = ConstantKind::ValuePointer;
-    cv.payloadPointer_.val  = value;
+    const TypeInfo ty      = TypeInfo::makeValuePointer(typeRef, flags);
+    cv.typeRef_            = ctx.typeMgr().addType(ty);
+    cv.kind_               = ConstantKind::ValuePointer;
+    cv.payloadPointer_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -480,10 +481,10 @@ ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef,
 ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
 {
     ConstantValue  cv;
-    const TypeInfo ty = TypeInfo::makeBlockPointer(typeRef, flags);
-    cv.typeRef_       = ctx.typeMgr().addType(ty);
-    cv.kind_          = ConstantKind::BlockPointer;
-    cv.payloadPointer_.val  = value;
+    const TypeInfo ty      = TypeInfo::makeBlockPointer(typeRef, flags);
+    cv.typeRef_            = ctx.typeMgr().addType(ty);
+    cv.kind_               = ConstantKind::BlockPointer;
+    cv.payloadPointer_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -491,11 +492,11 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
 ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count, TypeInfoFlagsE flags)
 {
     ConstantValue  cv;
-    const TypeInfo ty = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_       = ctx.typeMgr().addType(ty);
-    cv.kind_          = ConstantKind::Slice;
-    cv.payloadSlice_.ptr    = ptr;
-    cv.payloadSlice_.count  = count;
+    const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_            = ctx.typeMgr().addType(ty);
+    cv.kind_               = ConstantKind::Slice;
+    cv.payloadSlice_.ptr   = ptr;
+    cv.payloadSlice_.count = count;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }

@@ -27,7 +27,8 @@ enum class ConstantKind
     TypeValue,
     EnumValue,
     Struct,
-    Aggregate,
+    AggregateArray,
+    AggregateStruct,
 };
 
 class ConstantValue
@@ -69,7 +70,9 @@ public:
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
     bool         isStruct() const { return kind_ == ConstantKind::Struct; }
     bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
-    bool         isAggregate() const { return kind_ == ConstantKind::Aggregate; }
+    bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
+    bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
+    bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return payloadBool_.val; }
@@ -86,6 +89,8 @@ public:
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
     std::string_view getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
     const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return payloadAggregate_.val; }
+    const std::vector<ConstantRef>& getAggregateArray() const { SWC_ASSERT(isAggregateArray()); return payloadAggregate_.val; }
+    const std::vector<ConstantRef>& getAggregateStruct() const { SWC_ASSERT(isAggregateStruct()); return payloadAggregate_.val; }
     // clang-format on
 
     template<typename T>

@@ -15,7 +15,8 @@ ConstantValue::~ConstantValue()
 {
     switch (kind_)
     {
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             std::destroy_at(&payloadAggregate_.val);
             break;
         default:
@@ -65,7 +66,8 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
         case ConstantKind::EnumValue:
             payloadEnumValue_ = other.payloadEnumValue_;
             break;
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             std::construct_at(&payloadAggregate_.val, other.payloadAggregate_.val);
             break;
         default:
@@ -115,7 +117,8 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
         case ConstantKind::EnumValue:
             payloadEnumValue_ = other.payloadEnumValue_;
             break;
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             std::construct_at(&payloadAggregate_.val, std::move(other.payloadAggregate_.val));
             break;
         default:
@@ -166,7 +169,8 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
             return getEnumValue() == rhs.getEnumValue();
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             return getAggregate() == rhs.getAggregate();
         case ConstantKind::Int:
             return getInt().same(rhs.getInt());
@@ -203,7 +207,8 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getString() == rhs.getString();
         case ConstantKind::Struct:
             return getStruct() == rhs.getStruct();
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             return getAggregate() == rhs.getAggregate();
         case ConstantKind::Int:
             return getInt().eq(rhs.getInt());
@@ -447,7 +452,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::ve
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
     cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes));
-    cv.kind_    = ConstantKind::Aggregate;
+    cv.kind_    = ConstantKind::AggregateStruct;
     std::construct_at(&cv.payloadAggregate_.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -461,7 +466,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vec
     const TypeRef     elemTypeRef = ctx.cstMgr().get(values[0]).typeRef();
     const std::vector dims        = {values.size()};
     cv.typeRef_                   = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
-    cv.kind_                      = ConstantKind::Aggregate;
+    cv.kind_                      = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values);
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
@@ -520,7 +525,8 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::Struct:
             h = Math::hashCombine(h, Math::hash(payloadStruct_.val));
             break;
-        case ConstantKind::Aggregate:
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
             for (auto& v : getAggregate())
                 h = Math::hashCombine(h, v.get());
             break;
@@ -601,8 +607,10 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getString();
         case ConstantKind::Struct:
             return "<struct>";
-        case ConstantKind::Aggregate:
-            return "<aggregate>";
+        case ConstantKind::AggregateArray:
+            return "<array>";
+        case ConstantKind::AggregateStruct:
+            return "<struct>";
         case ConstantKind::Int:
             return getInt().toString();
         case ConstantKind::Float:

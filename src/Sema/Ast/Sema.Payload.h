@@ -5,13 +5,11 @@ SWC_BEGIN_NAMESPACE();
 
 struct SwitchPayload
 {
-    TypeRef            exprTypeRef = TypeRef::invalid();
-    TypeRef            enumTypeRef = TypeRef::invalid();
-    bool               isComplete  = false;
-    bool               hasDefault  = false;
-    SourceCodeLocation firstDefaultLoc;
+    std::unordered_map<ConstantRef, AstNodeRef> seen;
 
-    std::unordered_map<ConstantRef, SourceCodeLocation> seen;
+    TypeRef    exprTypeRef     = TypeRef::invalid();
+    AstNodeRef firstDefaultRef = AstNodeRef::invalid();
+    bool       isComplete      = false;
 };
 
 SWC_END_NAMESPACE();

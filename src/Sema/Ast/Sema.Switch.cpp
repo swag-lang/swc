@@ -41,10 +41,11 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
     auto* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
-    if (!payload || !payload->isComplete || payload->enumTypeRef.isInvalid())
+    if (!payload || !payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeInfo& enumType = sema.typeMgr().get(payload->enumTypeRef);
+    const TypeRef   enumTypeRef = sema.typeMgr().get(payload->exprTypeRef).unwrap(sema.ctx(), payload->exprTypeRef, TypeExpandE::Alias);
+    const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
     if (!enumType.isEnum())
         return Result::Continue;
 
@@ -65,7 +66,7 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
         if (!payload->seen.contains(cstRef))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, sema.curNodeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, payload->enumTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, enumTypeRef);
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
             diag.last().addArgument(Diagnostic::ARG_VALUE, value->getFullScopedName(sema.ctx()));
@@ -105,8 +106,6 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         if (type.isEnum())
         {
-            sema.payload<SwitchPayload>(sema.curNodeRef())->enumTypeRef = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias);
-
             SemaFrame frame = sema.frame();
             frame.pushBindingType(exprView.typeRef);
             sema.pushFramePopOnPostNode(frame);
@@ -139,21 +138,19 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         SWC_ASSERT(switchPayload);
 
         const AstNodeRef caseRef = sema.frame().currentSwitchCase();
-        const auto       curLoc  = sema.node(caseRef).locationWithChildren(sema.ctx(), sema.ast());
 
         if (switchPayload->isComplete)
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, caseRef);
 
-        if (!switchPayload->hasDefault)
+        if (!switchPayload->firstDefaultRef.isValid())
         {
-            switchPayload->hasDefault      = true;
-            switchPayload->firstDefaultLoc = curLoc;
+            switchPayload->firstDefaultRef = caseRef;
             return Result::Continue;
         }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_multiple_default, caseRef);
         diag.addNote(DiagnosticId::sema_note_previous_default_case);
-        diag.last().addSpan(switchPayload->firstDefaultLoc);
+        diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).locationWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -238,20 +235,19 @@ namespace
         auto* seenSet = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
-        const SemaNodeView       exprView(sema, caseExprRef);
-        const SourceCodeLocation curLoc = sema.node(caseExprRef).locationWithChildren(sema.ctx(), sema.ast());
+        const SemaNodeView exprView(sema, caseExprRef);
 
         const auto it = seenSet->seen.find(exprView.cstRef);
         if (it == seenSet->seen.end())
         {
-            seenSet->seen.emplace(exprView.cstRef, curLoc);
+            seenSet->seen.emplace(exprView.cstRef, caseExprRef);
             return Result::Continue;
         }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
         diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(it->second);
+        diag.last().addSpan(sema.node(it->second).locationWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }

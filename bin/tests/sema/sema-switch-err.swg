@@ -103,12 +103,62 @@
 
 #test
 {
+    // Only unconditional defaults participate in duplicate-default checks.
+    // `default where true` is unconditional.
+    switch 1
+    {
+        default where true:
+            break
+        default: // swc-expected-error {{sema_err_switch_multiple_default}}
+            break
+    }
+}
+
+#test
+{
+    // `default where false` is conditional, so it should not be considered a duplicate default.
+    switch 1
+    {
+        default where false:
+            break
+        default:
+            break
+    }
+}
+
+#test
+{
+    // Two conditional defaults are allowed.
+    switch 1
+    {
+        default where false:
+            break
+        default where 1 < 2:
+            break
+    }
+}
+
+#test
+{
     #[Swag.Complete]
     switch 1
     {
         case 1:
             break
         default: // swc-expected-error {{sema_err_switch_complete_has_default}}
+            break
+    }
+}
+
+#test
+{
+    // A complete switch should only reject an unconditional default.
+    #[Swag.Complete]
+    switch 1
+    {
+        case 1:
+            break
+        default where false:
             break
     }
 }

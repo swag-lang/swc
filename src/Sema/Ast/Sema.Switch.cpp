@@ -139,6 +139,13 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
 
         const AstNodeRef caseRef = sema.frame().currentSwitchCase();
 
+        // A 'default' with a 'where' clause is only considered an unconditional default if the
+        // where clause is a constant 'true'. Otherwise, it behaves like a conditional default
+        // and does not participate in duplicate-default checks.
+        const bool isUnconditionalDefault = nodeWhereRef.isInvalid() || sema.constantRefOf(nodeWhereRef) == sema.cstMgr().cstTrue();
+        if (!isUnconditionalDefault)
+            return Result::Continue;
+
         if (switchPayload->isComplete)
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, caseRef);
 

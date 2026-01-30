@@ -14,33 +14,8 @@ bool SemaInfo::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-
-    const AstNode& node = ast().node(nodeRef);
-    switch (semaKind(node))
-    {
-        case NodeSemaKind::ConstantRef:
-            return true;
-
-        case NodeSemaKind::SymbolRef:
-        {
-            const Symbol& sym = getSymbol(ctx, nodeRef);
-            return sym.isConst() || sym.isEnumValue();
-        }
-
-        case NodeSemaKind::SymbolList:
-        {
-            const auto symbols = getSymbolList(nodeRef);
-            SWC_ASSERT(!symbols.empty());
-            if (symbols.size() == 1)
-                return symbols.front()->isConst() || symbols.front()->isEnumValue();
-            break;
-        }
-
-        default:
-            break;
-    }
-
-    return false;
+    const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
+    return cstRef.isValid();
 }
 
 const ConstantValue& SemaInfo::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
@@ -55,8 +30,6 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return ConstantRef::invalid();
-
-    SWC_ASSERT(hasConstant(ctx, nodeRef));
 
     const AstNode& node = ast().node(nodeRef);
     switch (semaKind(node))
@@ -83,7 +56,8 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
         case NodeSemaKind::SymbolList:
         {
             const std::span<const Symbol*> symList = getSymbolList(nodeRef);
-            SWC_ASSERT(symList.size() == 1);
+            if(symList.size() > 1)
+                return ConstantRef::invalid();
             if (symList.front()->isConst())
                 return symList.front()->cast<SymbolConstant>().cstRef();
             if (symList.front()->isEnumValue())
@@ -95,7 +69,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
             break;
     }
 
-    SWC_UNREACHABLE();
+    return ConstantRef::invalid();
 }
 
 void SemaInfo::setConstant(AstNodeRef nodeRef, ConstantRef ref)
@@ -143,12 +117,12 @@ AstNodeRef SemaInfo::getSubstituteRef(AstNodeRef nodeRef) const
     return nodeRef;
 }
 
-bool SemaInfo::hasType(AstNodeRef nodeRef) const
+bool SemaInfo::hasType(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::TypeRef;
+    const TypeRef typeRef = getTypeRef(ctx, nodeRef);
+    return typeRef.isValid();
 }
 
 TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
@@ -158,7 +132,7 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 
     const AstNode&     node = ast().node(nodeRef);
     const NodeSemaKind kind = semaKind(node);
-    TypeRef            value;
+    TypeRef            value = TypeRef::invalid();
     switch (kind)
     {
         case NodeSemaKind::ConstantRef:
@@ -177,11 +151,9 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
             value = symbols.back()->typeRef();
             break;
         }
-        case NodeSemaKind::Invalid:
-            return TypeRef::invalid();
 
         default:
-            SWC_UNREACHABLE();
+            return TypeRef::invalid();
     }
 
 #if SWC_HAS_REF_DEBUG_INFO

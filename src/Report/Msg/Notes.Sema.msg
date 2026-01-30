@@ -3,6 +3,7 @@ SWC_DIAG_DEF(sema_note_unsigned_signed, Note, "the value exceeds the maximum val
 SWC_DIAG_DEF(sema_note_cast_explicit, Note, "you could cast the value explicitly")
 SWC_DIAG_DEF(sema_note_other_definition, Note, "the other definition of '{tok}' is here")
 SWC_DIAG_DEF(sema_note_previous_case_value, Note, "previous case value is here")
+SWC_DIAG_DEF(sema_note_switch_missing_enum_value, Note, "missing enum value '{value}'")
 SWC_DIAG_DEF(sema_note_other_implementation, Note, "the other implementation is here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "waiting ...")

@@ -5,6 +5,7 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Symbol/Symbol.Enum.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,6 +14,9 @@ namespace
     struct SwitchPayload
     {
         TypeRef exprTypeRef = TypeRef::invalid();
+
+        TypeRef enumTypeRef = TypeRef::invalid();
+        bool    isComplete  = false;
 
         std::unordered_map<ConstantRef, SourceCodeLocation> seen;
     };
@@ -25,9 +29,6 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     {
         if (!nodeExprRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
-
-        const SemaNodeView exprView(sema, nodeExprRef);
-        const TypeInfo&    type = sema.ctx().typeMgr().get(exprView.typeRef);
     }
 
     // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
@@ -42,12 +43,46 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
-    sema.setPayload(sema.curNodeRef(), sema.compiler().allocate<SwitchPayload>());
+
+    auto* payload       = sema.compiler().allocate<SwitchPayload>();
+    payload->isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+    sema.setPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }
 
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
+    auto* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
+    if (!payload || !payload->isComplete || payload->enumTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeInfo& enumType = sema.typeMgr().get(payload->enumTypeRef);
+    if (!enumType.isEnum())
+        return Result::Continue;
+
+    std::vector<const SymbolEnumValue*> values;
+    enumType.payloadSymEnum().appendEnumValues(values);
+
+    for (const SymbolEnumValue* value : values)
+    {
+        if (!value)
+            continue;
+        const ConstantRef cstRef = value->cstRef();
+        if (cstRef.isInvalid())
+            continue;
+
+        if (!payload->seen.contains(cstRef))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, payload->enumTypeRef);
+
+            diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
+            diag.last().addArgument(Diagnostic::ARG_VALUE, value->getFullScopedName(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
     return Result::Continue;
 }
 
@@ -79,6 +114,8 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         if (type.isEnum())
         {
+            sema.payload<SwitchPayload>(sema.curNodeRef())->enumTypeRef = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias);
+
             SemaFrame frame = sema.frame();
             frame.pushBindingType(exprView.typeRef);
             sema.pushFramePopOnPostNode(frame);

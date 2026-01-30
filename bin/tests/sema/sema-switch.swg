@@ -60,6 +60,26 @@
 
 #test
 {
+    enum E : s32
+    {
+        A = 1,
+        B = 2,
+        C = 3,
+    }
+
+    var v : E = .A
+    #[Swag.Complete]
+    switch v // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
+    {
+        case .A:
+            break
+        case .B:
+            break
+    }
+}
+
+#test
+{
     // enum is valid if its underlying type is supported
     enum E : s32
     {

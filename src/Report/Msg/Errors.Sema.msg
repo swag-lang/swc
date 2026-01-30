@@ -88,6 +88,7 @@ SWC_DIAG_DEF(sema_err_switch_range_invalid_type, Error, "range case is only supp
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "a switch with an expression must have a constant for each case value")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicated constant case value '{value}'")
 SWC_DIAG_DEF(sema_err_switch_complete_no_expr, Error, "a switch without an expression cannot be marked with the 'Complete' attribute")
+SWC_DIAG_DEF(sema_err_switch_complete_enum_not_exhaustive, Error, "complete switch on enum '{type}' does not cover all enum values")
 SWC_DIAG_DEF(sema_err_switch_incomplete_no_expr, Error, "a switch without an expression cannot be marked with the 'Incomplete' attribute")
 SWC_DIAG_DEF(sema_err_fallthrough_outside_switch_case, Error, "'fallthrough' can only be used as the last statement of a switch case")
 SWC_DIAG_DEF(sema_err_fallthrough_not_last_stmt, Error, "'fallthrough' must be the last statement of a switch case")

@@ -81,7 +81,7 @@ public:
     void       setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
     AstNodeRef getSubstituteRef(AstNodeRef nodeRef) const;
 
-    bool    hasType(AstNodeRef nodeRef) const;
+    bool    hasType(const TaskContext& ctx, AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
     void    setType(AstNodeRef nodeRef, TypeRef ref);
 

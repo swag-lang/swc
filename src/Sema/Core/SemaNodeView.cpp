@@ -31,8 +31,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
     typeRef = sema.typeRefOf(nodeRef);
     if (typeRef.isValid())
         type = &sema.typeMgr().get(typeRef);
-    if (sema.hasConstant(nodeRef))
-        cstRef = sema.constantRefOf(nodeRef);
+    cstRef = sema.constantRefOf(nodeRef);
     if (cstRef.isValid())
         cst = &sema.cstMgr().get(cstRef);
 

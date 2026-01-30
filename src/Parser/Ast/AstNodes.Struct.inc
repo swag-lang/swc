@@ -239,8 +239,8 @@ struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 {
     AstNodeRef nodeExprRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    static Result semaPostNode(Sema& sema);
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

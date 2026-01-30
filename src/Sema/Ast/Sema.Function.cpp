@@ -184,26 +184,24 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);
 }
 
-Result AstReturnStmt::semaPostNode(Sema& sema)
+Result AstReturnStmt::semaPostNode(Sema& sema) const
 {
-    const auto            curNodeRef = sema.curNodeRef();
-    const auto*           node       = sema.node(curNodeRef).cast<AstReturnStmt>();
-    const SymbolFunction* sym        = sema.frame().function();
+    const SymbolFunction* sym = sema.frame().function();
     SWC_ASSERT(sym);
 
     const TypeRef returnTypeRef = sym->returnTypeRef();
     const auto&   returnType    = sema.typeMgr().get(returnTypeRef);
-    if (node->nodeExprRef.isValid())
+    if (nodeExprRef.isValid())
     {
         if (returnType.isVoid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, node->nodeExprRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, nodeExprRef);
 
-        SemaNodeView nodeView(sema, node->nodeExprRef);
+        SemaNodeView nodeView(sema, nodeExprRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, returnTypeRef, CastKind::Implicit));
     }
     else if (!returnType.isVoid())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, curNodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_missing_value, sema.curNodeRef());
         diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;

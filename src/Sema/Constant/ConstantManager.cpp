@@ -160,7 +160,7 @@ Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstN
 
 bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign)
 {
-    const auto           ctx     = sema.ctx();
+    auto&                ctx     = sema.ctx();
     const ConstantValue& srcCst  = get(cstRef);
     const TypeManager&   typeMgr = ctx.typeMgr();
     const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
@@ -202,6 +202,41 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
         const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
         const ConstantValue floatVal  = ConstantValue::makeFloat(ctx, concreteF, destBits);
         result                        = addConstant(ctx, floatVal);
+        return true;
+    }
+
+    if (ty.isArray())
+    {
+        if (typeMgr.get(ty.payloadArrayElemTypeRef()).isConcrete())
+        {
+            result = cstRef;
+            return true;
+        }
+
+        const auto& srcArray = srcCst.getAggregateArray();
+        bool        changed  = false;
+
+        std::vector<ConstantRef> newValues;
+        newValues.reserve(srcArray.size());
+
+        for (const auto& it : srcArray)
+        {
+            ConstantRef subResult = it;
+            if (!concretizeConstant(sema, subResult, it, hintSign))
+                return false;
+            if (subResult != it)
+                changed = true;
+            newValues.push_back(subResult);
+        }
+
+        if (!changed)
+        {
+            result = cstRef;
+            return true;
+        }
+
+        const ConstantValue arrayVal = ConstantValue::makeAggregateArray(ctx, newValues);
+        result                       = addConstant(ctx, arrayVal);
         return true;
     }
 

@@ -937,6 +937,13 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
     return nullptr;
 }
 
+bool TypeInfo::isConcrete() const noexcept
+{
+    if (isIntUnsized() || isFloatUnsized())
+        return false;
+    return true;
+}
+
 bool TypeInfo::isEnumFlags() const noexcept
 {
     return isEnum() && payloadEnum_.sym->isEnumFlags();

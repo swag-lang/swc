@@ -14,9 +14,9 @@ class TypeManager;
 
 enum class TypeInfoFlagsE : uint8_t
 {
-    Zero           = 0,
-    Const          = 1 << 0,
-    Nullable       = 1 << 1,
+    Zero     = 0,
+    Const    = 1 << 0,
+    Nullable = 1 << 1,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
 
@@ -145,6 +145,7 @@ public:
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
+    bool isConcrete() const noexcept;
     bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }

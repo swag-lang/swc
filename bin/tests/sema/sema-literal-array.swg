@@ -8,6 +8,9 @@ const A = [1's32, 2, 3, 4, 5]
 const Af = [1.0'f64, 2]
 #assert(#typeof(Af) == #type [2] f64)
 
+const Af1 = [1.0, 2]
+#assert(#typeof(Af1) == #type [2] f32)
+
 #test
 {
     var x = 1

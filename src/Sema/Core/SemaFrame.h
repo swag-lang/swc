@@ -23,17 +23,17 @@ struct SemaCompilerIf
 class SemaFrame
 {
 public:
-    enum class BreakableKind : uint8_t
+    enum class BreakContextKind : uint8_t
     {
         None,
         Loop,
         Switch,
     };
 
-    struct Breakable
+    struct BreakContext
     {
-        AstNodeRef    nodeRef = AstNodeRef::invalid();
-        BreakableKind kind    = BreakableKind::None;
+        AstNodeRef       nodeRef = AstNodeRef::invalid();
+        BreakContextKind kind    = BreakContextKind::None;
     };
 
     std::span<const IdentifierRef> nsPath() const { return nsPath_; }
@@ -54,13 +54,13 @@ public:
     SymbolFunction*  currentFunction() const { return function_; }
     void             setCurrentFunction(SymbolFunction* func) { function_ = func; }
 
-    const Breakable& currentBreakable() const { return breakable_; }
-    void             setCurrentBreakable(AstNodeRef nodeRef, BreakableKind kind);
-    BreakableKind    currentBreakableKind() const { return breakable_.kind; }
-    AstNodeRef       currentSwitch() const { return currentSwitch_; }
-    void             setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef       currentSwitchCase() const { return currentSwitchCase_; }
-    void             setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    const BreakContext& currentBreakable() const { return breakable_; }
+    void                setCurrentBreakable(AstNodeRef nodeRef, BreakContextKind kind);
+    BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
+    AstNodeRef          currentSwitch() const { return currentSwitch_; }
+    void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef          currentSwitchCase() const { return currentSwitchCase_; }
+    void                setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
 
     std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
     void                             pushBindingType(TypeRef type);
@@ -80,7 +80,7 @@ private:
     SymbolImpl*                     impl_       = nullptr;
     SymbolInterface*                interface_  = nullptr;
     SymbolFunction*                 function_   = nullptr;
-    Breakable                       breakable_;
+    BreakContext                    breakable_;
     AstNodeRef                      currentSwitch_     = AstNodeRef::invalid();
     AstNodeRef                      currentSwitchCase_ = AstNodeRef::invalid();
     SmallVector<TypeRef, 2>         bindingTypes_;

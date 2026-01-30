@@ -21,7 +21,7 @@ namespace
 Result AstSwitchStmt::semaPreNode(Sema& sema)
 {
     SemaFrame frame = sema.frame();
-    frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakableKind::Switch);
+    frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
     sema.setPayload(sema.curNodeRef(), sema.compiler().allocate<SwitchPayload>());
@@ -237,7 +237,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstFallThroughStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().currentBreakableKind() != SemaFrame::BreakableKind::Switch)
+    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Switch)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     const AstNodeRef caseRef = sema.frame().currentSwitchCase();

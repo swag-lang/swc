@@ -47,7 +47,7 @@ void SemaFrame::popBindingVar()
         bindingVars_.pop_back();
 }
 
-void SemaFrame::setCurrentBreakable(AstNodeRef nodeRef, BreakableKind kind)
+void SemaFrame::setCurrentBreakable(AstNodeRef nodeRef, BreakContextKind kind)
 {
     breakable_.nodeRef = nodeRef;
     breakable_.kind    = kind;

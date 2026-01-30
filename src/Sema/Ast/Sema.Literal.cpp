@@ -475,8 +475,16 @@ namespace
 
         if (allConstant)
         {
-            const auto val = isArray ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), values);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+            if (isArray)
+            {
+                const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+            }
+            else
+            {
+                const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values);
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+            }
         }
         else
         {

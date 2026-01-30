@@ -453,40 +453,57 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
+namespace
+{
+    Result semaPostAggregateLiteral(Sema& sema, const SmallVector<AstNodeRef>& children, AstNode& node, bool isArray)
+    {
+        std::vector<TypeRef> memberTypes;
+        memberTypes.reserve(children.size());
+
+        bool                     allConstant = true;
+        std::vector<ConstantRef> values;
+        values.reserve(children.size());
+
+        for (const auto& child : children)
+        {
+            memberTypes.push_back(sema.typeRefOf(child));
+            if (!sema.hasConstant(child))
+                allConstant = false;
+            else
+                values.push_back(sema.constantRefOf(child));
+        }
+
+        if (allConstant)
+        {
+            const auto val = isArray ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), values);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+        }
+        else
+        {
+            TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+            if (isArray)
+                flags.add(TypeInfoFlagsE::AggregateArray);
+            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, flags));
+            sema.setType(sema.curNodeRef(), typeRef);
+        }
+
+        SemaInfo::addSemaFlags(node, NodeSemaFlags::Value);
+        return Result::Continue;
+    }
+}
+
 Result AstStructLiteral::semaPostNode(Sema& sema)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-
-    std::vector<ConstantRef> values;
-    for (const auto& child : children)
-    {
-        RESULT_VERIFY(SemaCheck::isConstant(sema, child));
-        values.push_back(sema.constantRefOf(child));
-    }
-
-    const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values);
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
-    return Result::Continue;
+    return semaPostAggregateLiteral(sema, children, *this, false);
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-
-    std::vector<ConstantRef> values;
-    for (const auto& child : children)
-    {
-        RESULT_VERIFY(SemaCheck::isConstant(sema, child));
-        values.push_back(sema.constantRefOf(child));
-    }
-
-    const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
-    return Result::SkipChildren;
+    return semaPostAggregateLiteral(sema, children, *this, true);
 }
 
 SWC_END_NAMESPACE();

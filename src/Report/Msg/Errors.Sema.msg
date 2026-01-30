@@ -107,3 +107,4 @@ SWC_DIAG_DEF(sema_err_not_callable, Error, "expression is not callable like a fu
 SWC_DIAG_DEF(sema_err_bad_function_match, Error, "no matching call for '{sym}'")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no overload matches")
 SWC_DIAG_DEF(sema_err_cst_struct_member_type, Error, "the type '{type}' of the struct member cannot be evaluated at compile time")
+SWC_DIAG_DEF(sema_err_empty_array_literal, Error, "empty array literal")

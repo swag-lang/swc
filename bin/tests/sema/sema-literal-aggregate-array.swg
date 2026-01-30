@@ -16,9 +16,11 @@ const Af = [1.0, 2]
 
     var D = [1.0, 2] // int literal must be casted to float
     #print(#typeof(D))
+}
 
-    var E = []
-    #print(#typeof(E))
+#test
+{
+    var E = [] // swc-expected-error {{sema_err_empty_array_literal}}
 }
 
 #test

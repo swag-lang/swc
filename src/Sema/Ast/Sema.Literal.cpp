@@ -497,18 +497,10 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> elements;
     collectChildren(elements, sema.ast());
 
-    // Empty array literal: keep it valid and typed as a real array type.
-    // The element type cannot be inferred from elements, so default to `any`.
     if (elements.empty())
-    {
-        const std::vector<uint64_t> dims         = {0};
-        const TypeRef               arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeAny()));
-        sema.setType(sema.curNodeRef(), arrayTypeRef);
-        SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
-        return Result::Continue;
-    }
+        return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
-    // Take the first element as the reference type, and ensure all other elements are castable/casted to it.
+    // Take the first element as the reference type and ensure all other elements are castable/casted to it.
     const TypeRef refElemTypeRef = sema.typeRefOf(elements[0]);
 
     bool                     allConstant = true;

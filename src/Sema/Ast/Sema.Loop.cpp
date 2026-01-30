@@ -13,7 +13,7 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
-        frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }
@@ -27,7 +27,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
-        frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     }

@@ -54,8 +54,8 @@ public:
     SymbolFunction*  currentFunction() const { return function_; }
     void             setCurrentFunction(SymbolFunction* func) { function_ = func; }
 
-    const BreakContext& currentBreakable() const { return breakable_; }
-    void                setCurrentBreakable(AstNodeRef nodeRef, BreakContextKind kind);
+    const BreakContext& currentBreakContext() const { return breakable_; }
+    void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
     AstNodeRef          currentSwitch() const { return currentSwitch_; }
     void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }

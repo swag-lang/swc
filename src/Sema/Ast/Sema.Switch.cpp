@@ -25,6 +25,9 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     {
         if (!nodeExprRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
+
+        const SemaNodeView exprView(sema, nodeExprRef);
+        const TypeInfo&    type = sema.ctx().typeMgr().get(exprView.typeRef);
     }
 
     // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
@@ -36,7 +39,7 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 
     // Register switch
     SemaFrame frame = sema.frame();
-    frame.setCurrentBreakable(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
+    frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
     sema.setPayload(sema.curNodeRef(), sema.compiler().allocate<SwitchPayload>());

@@ -452,7 +452,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstStructLiteral::semaPostNode(Sema& sema)
+Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());

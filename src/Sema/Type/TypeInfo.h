@@ -41,6 +41,7 @@ enum class TypeInfoKind : uint8_t
     Reference,
     Slice,
     Array,
+    Aggregate,
     Struct,
     Interface,
     Alias,
@@ -55,15 +56,16 @@ using TypeRef = StrongRef<TypeInfo>;
 
 enum class TypeExpandE : uint32_t
 {
-    None     = 0,
-    Alias    = 1 << 0,
-    Enum     = 1 << 1,
-    Pointer  = 1 << 2,
-    Function = 1 << 3,
-    Array    = 1 << 4,
-    Slice    = 1 << 5,
-    Variadic = 1 << 6,
-    All      = 0xFFFFFFFF,
+    None      = 0,
+    Alias     = 1 << 0,
+    Enum      = 1 << 1,
+    Pointer   = 1 << 2,
+    Function  = 1 << 3,
+    Array     = 1 << 4,
+    Slice     = 1 << 5,
+    Variadic  = 1 << 6,
+    Aggregate = 1 << 7,
+    All       = 0xFFFFFFFF,
 };
 using TypeExpand = EnumFlags<TypeExpandE>;
 
@@ -122,6 +124,7 @@ public:
     bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
+    bool isAggregate() const noexcept { return kind_ == TypeInfoKind::Aggregate; }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
     bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
@@ -161,7 +164,7 @@ public:
     SymbolInterface&     payloadSymInterface() const noexcept { SWC_ASSERT(isInterface()); return *payloadInterface_.sym; }
     SymbolAlias&         payloadSymAlias() const noexcept { SWC_ASSERT(isAlias()); return *payloadAlias_.sym; }
     SymbolFunction&      payloadSymFunction() const noexcept { SWC_ASSERT(isFunction()); return *payloadFunction_.sym; }
-    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic()); return payloadTypeRef_.typeRef; }
+    TypeRef              payloadTypeRef() const noexcept { SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isAggregate()); return payloadTypeRef_.typeRef; }
     auto&                payloadArrayDims() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.dims; }
     TypeRef              payloadArrayElemTypeRef() const noexcept { SWC_ASSERT(isArray()); return payloadArray_.typeRef; }
     // clang-format on
@@ -190,6 +193,7 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeAggregate(TypeRef typeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);

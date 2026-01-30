@@ -52,6 +52,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::Aggregate:
             payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
@@ -114,6 +115,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::Aggregate:
             payloadTypeRef_ = other.payloadTypeRef_;
             break;
 
@@ -194,6 +196,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::Aggregate:
             h = Math::hashCombine(h, payloadTypeRef_.typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -253,6 +256,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
+        case TypeInfoKind::Aggregate:
             return payloadTypeRef_.typeRef == other.payloadTypeRef_.typeRef;
 
         case TypeInfoKind::Enum:
@@ -342,6 +346,13 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         {
             const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("typeinfo({})", type.toName(ctx));
+            break;
+        }
+
+        case TypeInfoKind::Aggregate:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
+            out += std::format("aggregate({})", type.toName(ctx));
             break;
         }
 
@@ -486,6 +497,8 @@ Utf8 TypeInfo::toFamily(const TaskContext&) const
             return "slice";
         case TypeInfoKind::Array:
             return "array";
+        case TypeInfoKind::Aggregate:
+            return "aggregate";
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
             return "variadic";
@@ -646,6 +659,14 @@ TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementT
     return ti;
 }
 
+TypeInfo TypeInfo::makeAggregate(TypeRef typeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::Aggregate, flags};
+    ti.payloadTypeRef_ = {.typeRef = typeRef};
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 TypeInfo TypeInfo::makeFunction(SymbolFunction* sym, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Function, flags};
@@ -726,6 +747,9 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).sizeOf(ctx);
 
+        case TypeInfoKind::Aggregate:
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).sizeOf(ctx);
+
         default:
             SWC_UNREACHABLE();
     }
@@ -760,6 +784,9 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::TypedVariadic:
         case TypeInfoKind::TypeInfo:
             return 8;
+
+        case TypeInfoKind::Aggregate:
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).alignOf(ctx);
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(payloadArray_.typeRef).alignOf(ctx);
@@ -807,6 +834,8 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypedVariadic:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
+        case TypeInfoKind::Aggregate:
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         default:
             break;
     }
@@ -844,6 +873,8 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return nullptr;
         }
         case TypeInfoKind::TypeValue:
+            return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
+        case TypeInfoKind::Aggregate:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
         default:
             break;
@@ -895,6 +926,8 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
         else if (expandFlags.has(TypeExpandE::Enum) && ty.isEnum())
             sub = ty.payloadEnum_.sym->underlyingTypeRef();
         else if (expandFlags.has(TypeExpandE::Pointer) && ty.isAnyPointer())
+            sub = ty.payloadTypeRef_.typeRef;
+        else if (expandFlags.has(TypeExpandE::Aggregate) && ty.isAggregate())
             sub = ty.payloadTypeRef_.typeRef;
         else if (expandFlags.has(TypeExpandE::Array) && ty.isArray())
             sub = ty.payloadArray_.typeRef;

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Core/DataSegment.h"
+#include "Runtime/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();
 

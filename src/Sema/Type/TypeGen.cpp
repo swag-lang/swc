@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Type/TypeGen.h"
-#include "Core/DataSegment.h"
+#include "Runtime/DataSegment.h"
 #include "Main/TaskContext.h"
 #include "Runtime/Runtime.h"
 #include "Sema/Core/Sema.h"

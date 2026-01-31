@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/DataSegment.h"
+#include "Runtime/DataSegment.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/Sema.h"
 

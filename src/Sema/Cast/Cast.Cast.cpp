@@ -597,7 +597,7 @@ namespace
             if (castCtx.isConstantFolding())
             {
                 const auto cst = sema.cstMgr().get(castCtx.srcConstRef);
-                RESULT_VERIFY(sema.cstMgr().makeConstantTypeInfo(sema, castCtx.outConstRef, cst.getTypeValue(), castCtx.errorNodeRef));
+                RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castCtx.outConstRef, cst.getTypeValue(), castCtx.errorNodeRef));
             }
 
             return Result::Continue;

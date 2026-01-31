@@ -171,7 +171,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex);
 }
 
-Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
+Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
     const auto&    ctx        = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);

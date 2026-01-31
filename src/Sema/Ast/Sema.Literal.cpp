@@ -532,8 +532,8 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         values.push_back(nodeView.cstRef);
     }
 
-    const std::vector dims         = {elements.size()};
-    const TypeRef     arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, refElemTypeRef));
+    SmallVector   dims         = {elements.size()};
+    const TypeRef arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, refElemTypeRef));
     sema.setType(sema.curNodeRef(), arrayTypeRef);
 
     if (allConstant)

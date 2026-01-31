@@ -462,11 +462,11 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
 {
     SWC_ASSERT(!values.empty());
 
-    ConstantValue     cv;
-    const TypeRef     elemTypeRef = ctx.cstMgr().get(values[0]).typeRef();
-    const std::vector dims        = {values.size()};
-    cv.typeRef_                   = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
-    cv.kind_                      = ConstantKind::AggregateArray;
+    ConstantValue cv;
+    const TypeRef elemTypeRef = ctx.cstMgr().get(values[0]).typeRef();
+    SmallVector   dims        = {values.size()};
+    cv.typeRef_               = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
+    cv.kind_                  = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;

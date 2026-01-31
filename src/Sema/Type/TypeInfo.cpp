@@ -679,19 +679,19 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
-    std::construct_at(&ti.payloadArray_.dims, dims);
+    std::construct_at(&ti.payloadArray_.dims, dims.begin(), dims.end());
     ti.payloadArray_.typeRef = elementTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregate(const std::vector<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregate(const std::span<TypeRef>& types)
 {
     TypeInfo ti{TypeInfoKind::Aggregate, TypeInfoFlagsE::Const};
-    std::construct_at(&ti.payloadAggregate_.types, types);
+    std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }

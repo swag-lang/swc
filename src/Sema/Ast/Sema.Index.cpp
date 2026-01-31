@@ -52,6 +52,8 @@ namespace
         ////////////////////////////////////////////////////////
         if (nodeExprView.cst->isAggregateArray())
         {
+            if (nodeExprView.type->payloadArrayDims().size() > 1)
+                return Result::Continue;
             const auto& values = nodeExprView.cst->getAggregateArray();
             if (std::cmp_greater_equal(constIndex, values.size()))
                 return SemaError::raiseIndexOutOfRange(sema, constIndex, values.size(), nodeArgRef);
@@ -86,8 +88,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     ////////////////////////////////////////////////////////
     if (nodeExprView.type->isArray())
     {
-        const auto& arrayDims   = nodeExprView.type->payloadArrayDims();
-        const auto  numExpected = arrayDims.size();
+        const auto&    arrayDims   = nodeExprView.type->payloadArrayDims();
+        const uint64_t numExpected = arrayDims.size();
         if (numExpected > 1)
         {
             std::vector<uint64_t> dims;
@@ -133,7 +135,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     RESULT_VERIFY(constantFold(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
-    
+
     SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);
 

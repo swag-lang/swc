@@ -15,7 +15,7 @@ namespace
 {
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& ops)
     {
-        const auto& ctx = sema.ctx();
+        auto& ctx = sema.ctx();
 
         if (ops.type->isInt())
         {
@@ -39,7 +39,7 @@ namespace
             return Result::Continue;
         }
 
-        const auto& ctx = sema.ctx();
+        auto& ctx = sema.ctx();
         if (ops.type->isInt())
         {
             ApsInt value = ops.cst->getInt();
@@ -102,8 +102,7 @@ namespace
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
     {
-        const auto& ctx = sema.ctx();
-
+        auto&  ctx   = sema.ctx();
         ApsInt value = ops.cst->getInt();
         value.invertAllBits();
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), ops.type->payloadIntSign()));

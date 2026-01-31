@@ -98,7 +98,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
 
 bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)
 {
-    const auto& ctx = sema.ctx();
+    auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType        = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src            = sema.cstMgr().get(castCtx.constantFoldingSrc());
@@ -115,8 +115,7 @@ bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef d
 
 bool Cast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
 {
-    const auto& ctx = sema.ctx();
-
+    auto&                ctx   = sema.ctx();
     const ConstantValue& src   = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApsInt         value = src.getIntLike();
     const bool           b     = !value.isZero();
@@ -245,8 +244,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
 
 bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const auto& ctx = sema.ctx();
-
+    auto&                ctx        = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApsInt         intVal     = src.getIntLike();
@@ -270,14 +268,12 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef 
 
 bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const auto& ctx = sema.ctx();
-
-    const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
-    const ApFloat&       srcVal  = src.getFloat();
-
-    const uint32_t targetBits = dstType.payloadIntLikeBits();
-    const bool     isUnsigned = dstType.isIntLikeUnsigned();
+    auto&                ctx        = sema.ctx();
+    const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ApFloat&       srcVal     = src.getFloat();
+    const uint32_t       targetBits = dstType.payloadIntLikeBits();
+    const bool           isUnsigned = dstType.isIntLikeUnsigned();
 
     bool         isExact  = false;
     bool         overflow = false;
@@ -296,8 +292,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef 
 
 bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const auto& ctx = sema.ctx();
-
+    auto&                ctx        = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
     const ApFloat&       floatVal   = src.getFloat();

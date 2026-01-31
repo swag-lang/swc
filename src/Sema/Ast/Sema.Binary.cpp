@@ -18,7 +18,7 @@ namespace
 {
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const auto& ctx         = sema.ctx();
+        auto&       ctx         = sema.ctx();
         ConstantRef leftCstRef  = nodeLeftView.cstRef;
         ConstantRef rightCstRef = nodeRightView.cstRef;
 
@@ -181,9 +181,8 @@ namespace
 
     Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const auto& ctx = sema.ctx();
-
-        Utf8 str = nodeLeftView.cst->toString(ctx);
+        auto& ctx = sema.ctx();
+        Utf8  str = nodeLeftView.cst->toString(ctx);
         str += nodeRightView.cst->toString(ctx);
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
         return Result::Continue;

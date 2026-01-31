@@ -7,7 +7,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void ConstantManager::setup(const TaskContext& ctx)
+void ConstantManager::setup(TaskContext& ctx)
 {
     cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
     cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));
@@ -18,12 +18,12 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
 }
 
-ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
+ConstantRef ConstantManager::addS32(TaskContext& ctx, int32_t value)
 {
     return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
-ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
+ConstantRef ConstantManager::addInt(TaskContext& ctx, uint64_t value)
 {
     const ApsInt        val{value, ApsInt::maxBitWidth()};
     const ConstantValue cstVal = ConstantValue::makeIntUnsized(ctx, val, TypeInfo::Sign::Unknown);
@@ -57,6 +57,18 @@ namespace
         std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
         const auto stored      = ConstantValue::makeStruct(ctx, value.typeRef(), view);
+
+        const uint32_t localIndex = shard.dataSegment.add(stored);
+        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        return addCstFinalize(manager, result);
+    }
+
+    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
+    {
+        std::unique_lock lk(shard.mutex);
+        const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+        const auto stored      = ConstantValue::makeSlice(ctx, value.typeRef(), view);
 
         const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
@@ -106,13 +118,15 @@ namespace
     }
 }
 
-ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
+ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
     if (value.isStruct())
         return addCstStruct(*this, shard, shardIndex, ctx, value);
+    if (value.isSlice())
+        return addCstSlice(*this, shard, shardIndex, ctx, value);
     if (value.isString())
         return addCstString(*this, shard, shardIndex, ctx, value);
 

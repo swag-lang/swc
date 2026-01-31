@@ -53,7 +53,8 @@ public:
     std::pair<ByteSpan, Ref> push_copy_span(ByteSpan payload, uint32_t align = alignof(std::byte))
     {
         auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
-        std::memcpy(dst, payload.data(), payload.size());
+        if (payload.data()) // TODO
+            std::memcpy(dst, payload.data(), payload.size());
         return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
     }
 

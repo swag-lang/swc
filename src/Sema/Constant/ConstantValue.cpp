@@ -459,6 +459,17 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, Byt
     return cv;
 }
 
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
+{
+    ConstantValue  cv;
+    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_          = ctx.typeMgr().addType(ty);
+    cv.kind_             = ConstantKind::Slice;
+    cv.payloadSlice_.val = bytes;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values)
 {
     ConstantValue        cv;
@@ -506,17 +517,6 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     cv.typeRef_            = ctx.typeMgr().addType(ty);
     cv.kind_               = ConstantKind::BlockPointer;
     cv.payloadPointer_.val = value;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return cv;
-}
-
-ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
-{
-    ConstantValue  cv;
-    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_          = ctx.typeMgr().addType(ty);
-    cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = bytes;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }

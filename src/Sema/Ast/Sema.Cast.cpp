@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
-    const auto&   ctx     = sema.ctx();
+    auto&         ctx     = sema.ctx();
     const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
 
     SWC_ASSERT(sema.hasConstant(nodeLiteralRef));

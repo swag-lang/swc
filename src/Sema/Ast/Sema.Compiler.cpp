@@ -172,7 +172,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
-    const auto&       ctx     = sema.ctx();
+    auto&             ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
     const SourceView& srcView = sema.ast().srcView();
 
@@ -413,7 +413,7 @@ namespace
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&        ctx      = sema.ctx();
+        auto&              ctx      = sema.ctx();
         const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 
@@ -430,7 +430,7 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&        ctx      = sema.ctx();
+        auto&              ctx      = sema.ctx();
         const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 
@@ -447,7 +447,7 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
     {
-        const auto&        ctx      = sema.ctx();
+        auto&              ctx      = sema.ctx();
         const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
         const SemaNodeView nodeView(sema, childRef);
 

@@ -117,7 +117,7 @@ Result AstUndefinedExpr::semaPreNode(Sema& sema)
 
 Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
-    const auto&       ctx     = sema.ctx();
+    auto&             ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
     const SourceView& srcView = sema.compiler().srcView(srcViewRef());
     std::string_view  str     = tok.string(srcView);
@@ -154,7 +154,7 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 
 Result AstStringLiteral::semaPreNode(Sema& sema) const
 {
-    const auto&       ctx     = sema.ctx();
+    auto&             ctx     = sema.ctx();
     const Token&      tok     = sema.token(srcViewRef(), tokRef());
     const SourceView& srcView = sema.compiler().srcView(srcViewRef());
     std::string_view  str     = tok.string(srcView);
@@ -210,7 +210,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
 
 Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx = sema.ctx();
+    auto&       ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
     auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
@@ -244,7 +244,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 
 Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx = sema.ctx();
+    auto&       ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
     auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
@@ -283,7 +283,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
 
 Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx = sema.ctx();
+    auto&       ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
     const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 
@@ -331,7 +331,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 
 Result AstFloatLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& ctx = sema.ctx();
+    auto&       ctx = sema.ctx();
     const auto& tok = sema.token(srcViewRef(), tokRef());
     const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 

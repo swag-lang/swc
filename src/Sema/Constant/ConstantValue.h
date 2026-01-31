@@ -127,6 +127,14 @@ public:
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 
+    template<typename T>
+    static ConstantValue makeIntSized(const TaskContext& ctx, T value)
+    {
+        constexpr bool isUnsigned = std::is_unsigned_v<T>;
+        const ApsInt   v(static_cast<uint64_t>(value), sizeof(T) * 8, isUnsigned);
+        return makeInt(ctx, v, sizeof(T) * 8, isUnsigned ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
+    }
+
 private:
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeRef      typeRef_ = TypeRef::invalid();

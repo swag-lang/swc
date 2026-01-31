@@ -80,7 +80,7 @@ SWC_DIAG_DEF(sema_err_take_address_not_lvalue, Error, "cannot take the address o
 SWC_DIAG_DEF(sema_err_type_not_indexable, Error, "an expression of type '{type}' cannot be indexed")
 SWC_DIAG_DEF(sema_err_index_too_large, Error, "index is too large")
 SWC_DIAG_DEF(sema_err_index_negative, Error, "index cannot be negative (got '{value}')")
-SWC_DIAG_DEF(sema_err_index_out_of_range, Error, "index '{value}' is out of range (max is '{count}')")
+SWC_DIAG_DEF(sema_err_index_out_of_range, Error, "index '{value}' is out of range (size is '{count}')")
 SWC_DIAG_DEF(sema_err_method_outside_impl, Error, "a method must be declared inside an implementation block")
 SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' can only be used inside an implementation block")
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' can only be used inside a loop or switch statement")

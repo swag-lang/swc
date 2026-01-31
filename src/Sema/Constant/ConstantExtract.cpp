@@ -47,12 +47,12 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
     TypeRef valueTypeRef = symVar.typeRef();
     if (typeField->isEnum())
+    {
         valueTypeRef = typeField->payloadSymEnum().underlyingTypeRef();
+        typeField    = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
+    }
 
-    if (typeField->isEnum())
-        typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
-
-    ConstantValue cv = ConstantValue::makeValue(ctx, fieldBytes.data(), valueTypeRef);
+    ConstantValue cv = ConstantValue::make(ctx, fieldBytes.data(), valueTypeRef);
     if (!cv.isValid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
@@ -123,7 +123,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         if (elemType.isEnum())
             valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
 
-        const ConstantValue cv = ConstantValue::makeValue(ctx, elemBytes.data(), valueTypeRef);
+        const ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef);
         if (!cv.isValid())
             return Result::Continue;
 

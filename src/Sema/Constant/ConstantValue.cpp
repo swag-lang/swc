@@ -8,21 +8,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// ReSharper disable once CppPossiblyUninitializedMember
 ConstantValue::ConstantValue()
 {
-}
-
-ConstantValue::~ConstantValue()
-{
-    switch (kind_)
-    {
-        case ConstantKind::AggregateArray:
-        case ConstantKind::AggregateStruct:
-            std::destroy_at(&payloadAggregate_.val);
-            break;
-        default:
-            break;
-    }
 }
 
 ConstantValue::ConstantValue(const ConstantValue& other) :
@@ -127,6 +115,19 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     }
 
     other.kind_ = ConstantKind::Invalid;
+}
+
+ConstantValue::~ConstantValue()
+{
+    switch (kind_)
+    {
+        case ConstantKind::AggregateArray:
+        case ConstantKind::AggregateStruct:
+            std::destroy_at(&payloadAggregate_.val);
+            break;
+        default:
+            break;
+    }
 }
 
 ConstantValue& ConstantValue::operator=(const ConstantValue& other)
@@ -460,67 +461,6 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, Byt
     return cv;
 }
 
-ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
-{
-    ConstantValue  cv;
-    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_          = ctx.typeMgr().addType(ty);
-    cv.kind_             = ConstantKind::Slice;
-    cv.payloadSlice_.val = bytes;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
-    return cv;
-}
-
-ConstantValue ConstantValue::makeValue(TaskContext& ctx, const void* valuePtr, TypeRef typeRef)
-{
-    SWC_ASSERT(valuePtr);
-
-    const TypeInfo& ty = ctx.typeMgr().get(typeRef);
-
-    if (ty.isStruct())
-    {
-        const auto bytes = ByteSpan{reinterpret_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
-        return makeStruct(ctx, typeRef, bytes);
-    }
-    if (ty.isBool())
-    {
-        return makeBool(ctx, *reinterpret_cast<const bool*>(valuePtr));
-    }
-    if (ty.isIntLike())
-    {
-        const ApsInt apsInt(reinterpret_cast<const char*>(valuePtr), ty.payloadIntLikeBits(), ty.isIntUnsigned());
-        return makeFromIntLike(ctx, apsInt, ty);
-    }
-    if (ty.isFloat())
-    {
-        const ApFloat apFloat(reinterpret_cast<const char*>(valuePtr), ty.payloadFloatBits());
-        return makeFloat(ctx, apFloat, ty.payloadFloatBits());
-    }
-    if (ty.isString())
-    {
-        const auto str = reinterpret_cast<const Runtime::String*>(valuePtr);
-        return makeString(ctx, std::string_view(str->ptr, str->length));
-    }
-    if (ty.isValuePointer())
-    {
-        const auto val = *reinterpret_cast<const uint64_t*>(valuePtr);
-        return makeValuePointer(ctx, ty.payloadTypeRef(), val);
-    }
-    if (ty.isBlockPointer())
-    {
-        const auto val = *reinterpret_cast<const uint64_t*>(valuePtr);
-        return makeBlockPointer(ctx, ty.payloadTypeRef(), val);
-    }
-    if (ty.isSlice())
-    {
-        const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
-        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
-        return makeSlice(ctx, ty.payloadTypeRef(), span);
-    }
-
-    return ConstantValue{};
-}
-
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values)
 {
     ConstantValue        cv;
@@ -570,6 +510,74 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     cv.payloadPointer_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
+}
+
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
+{
+    ConstantValue  cv;
+    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_          = ctx.typeMgr().addType(ty);
+    cv.kind_             = ConstantKind::Slice;
+    cv.payloadSlice_.val = bytes;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef)
+{
+    SWC_ASSERT(valuePtr);
+
+    const TypeInfo& ty = ctx.typeMgr().get(typeRef);
+
+    if (ty.isStruct())
+    {
+        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        return makeStruct(ctx, typeRef, bytes);
+    }
+
+    if (ty.isBool())
+    {
+        return makeBool(ctx, *static_cast<const bool*>(valuePtr));
+    }
+
+    if (ty.isIntLike())
+    {
+        const ApsInt apsInt(static_cast<const char*>(valuePtr), ty.payloadIntLikeBits(), ty.isIntUnsigned());
+        return makeFromIntLike(ctx, apsInt, ty);
+    }
+
+    if (ty.isFloat())
+    {
+        const ApFloat apFloat(static_cast<const char*>(valuePtr), ty.payloadFloatBits());
+        return makeFloat(ctx, apFloat, ty.payloadFloatBits());
+    }
+
+    if (ty.isString())
+    {
+        const auto str = static_cast<const Runtime::String*>(valuePtr);
+        return makeString(ctx, std::string_view(str->ptr, str->length));
+    }
+
+    if (ty.isValuePointer())
+    {
+        const auto val = *static_cast<const uint64_t*>(valuePtr);
+        return makeValuePointer(ctx, ty.payloadTypeRef(), val);
+    }
+
+    if (ty.isBlockPointer())
+    {
+        const auto val = *static_cast<const uint64_t*>(valuePtr);
+        return makeBlockPointer(ctx, ty.payloadTypeRef(), val);
+    }
+
+    if (ty.isSlice())
+    {
+        const auto     slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        return makeSlice(ctx, ty.payloadTypeRef(), span);
+    }
+
+    return ConstantValue{};
 }
 
 uint32_t ConstantValue::hash() const noexcept

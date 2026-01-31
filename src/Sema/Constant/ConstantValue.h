@@ -121,7 +121,7 @@ public:
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
 
-    static ConstantValue makeValue(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
+    static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
 
     template<typename T>
     static ConstantValue makeIntSized(const TaskContext& ctx, T value)

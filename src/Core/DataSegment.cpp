@@ -9,6 +9,14 @@ std::pair<std::string_view, Ref> DataSegment::addView(std::string_view value)
     return store_.push_copy_view(value);
 }
 
+std::pair<ByteSpan, Ref> DataSegment::addView(ByteSpan value)
+{
+    std::unique_lock lock(mutex_);
+    auto [ref, dst] = store_.push_back_raw(static_cast<uint32_t>(value.size()), alignof(std::byte));
+    std::memcpy(dst, value.data(), value.size());
+    return {{static_cast<const std::byte*>(dst), value.size()}, ref};
+}
+
 std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 {
     std::unique_lock lock(mutex_);

@@ -164,7 +164,11 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
         case ConstantKind::String:
             return getString() == rhs.getString();
         case ConstantKind::Struct:
-            return getStruct() == rhs.getStruct();
+        {
+            const auto a = getStruct();
+            const auto b = rhs.getStruct();
+            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
+        }
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
@@ -206,7 +210,11 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
         case ConstantKind::String:
             return getString() == rhs.getString();
         case ConstantKind::Struct:
-            return getStruct() == rhs.getStruct();
+        {
+            const auto a = getStruct();
+            const auto b = rhs.getStruct();
+            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
+        }
         case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
             return getAggregate() == rhs.getAggregate();
@@ -433,7 +441,7 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef value
     return cv;
 }
 
-ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std::string_view bytes)
+ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
 {
     ConstantValue cv;
     cv.typeRef_           = typeRef;
@@ -523,7 +531,7 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, Math::hash(payloadString_.val));
             break;
         case ConstantKind::Struct:
-            h = Math::hashCombine(h, Math::hash(payloadStruct_.val));
+            h = Math::hashCombine(h, Math::hash(asStringView(payloadStruct_.val)));
             break;
         case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:

@@ -254,12 +254,12 @@
         <ClCompile Include="src\Sema\Ast\Sema.Cast.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Compiler.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Enum.cpp"/>
-        <ClCompile Include="src\Sema\Ast\Sema.Identifier.cpp" />
+        <ClCompile Include="src\Sema\Ast\Sema.Identifier.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Binary.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Conditional.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Index.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Logical.cpp"/>
-        <ClCompile Include="src\Sema\Ast\Sema.Member.cpp" />
+        <ClCompile Include="src\Sema\Ast\Sema.Member.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Relational.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Switch.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Unary.cpp"/>
@@ -309,6 +309,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Core\ByteSpan.h"/>
         <ClInclude Include="src\Core\DataSegment.h"/>
         <ClInclude Include="src\Core\Flags.h"/>
         <ClInclude Include="src\Core\Result.h"/>

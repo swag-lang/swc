@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/ByteSpan.h"
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 #include "Sema/Type/TypeInfo.h"
@@ -87,7 +88,7 @@ public:
     uint64_t getSliceCount() const { SWC_ASSERT(isSlice()); return payloadSlice_.count; }
     TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeInfo_.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
-    std::string_view getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
+    ByteSpan getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
     const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return payloadAggregate_.val; }
     const std::vector<ConstantRef>& getAggregateArray() const { SWC_ASSERT(isAggregateArray()); return payloadAggregate_.val; }
     const std::vector<ConstantRef>& getAggregateStruct() const { SWC_ASSERT(isAggregateStruct()); return payloadAggregate_.val; }
@@ -115,7 +116,7 @@ public:
     static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
-    static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::string_view bytes);
+    static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
@@ -148,7 +149,7 @@ private:
 
         struct
         {
-            std::string_view val;
+            ByteSpan val;
         } payloadStruct_;
 
         struct

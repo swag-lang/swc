@@ -57,7 +57,7 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
     rtLoc.lineEnd   = loc.line;
     rtLoc.colEnd    = loc.column + loc.len;
 
-    const auto view   = std::string_view(reinterpret_cast<const char*>(&rtLoc), sizeof(rtLoc));
+    const auto view   = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
     const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, view);
     return sema.cstMgr().addConstant(ctx, cstVal);
 }
@@ -65,7 +65,7 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&                   ctx = sema.ctx();
-    std::string_view        bytes;
+    ByteSpan                bytes;
     Runtime::Slice<uint8_t> sliceHeader;
     if (cst.isStruct())
     {
@@ -79,13 +79,13 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
         SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
         SWC_ASSERT(ptr);
-        bytes = std::string_view(reinterpret_cast<const char*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(ctx));
+        bytes = ByteSpan{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(ctx)};
     }
     else if (cst.isSlice())
     {
         sliceHeader.ptr   = reinterpret_cast<uint8_t*>(cst.getSlicePointer());
         sliceHeader.count = cst.getSliceCount();
-        bytes             = std::string_view(reinterpret_cast<const char*>(&sliceHeader), sizeof(sliceHeader));
+        bytes             = ByteSpan{reinterpret_cast<const std::byte*>(&sliceHeader), sizeof(sliceHeader)};
     }
     else
     {
@@ -98,7 +98,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
-    const auto fieldBytes = std::string_view(bytes.data() + symVar.offset(), typeField->sizeOf(ctx));
+    const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
     if (typeField->isEnum())
         typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
@@ -114,12 +114,12 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (typeField->isIntLike())
     {
-        const ApsInt apsInt(fieldBytes.data(), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
+        const ApsInt apsInt(reinterpret_cast<const char*>(fieldBytes.data()), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
         cv = ConstantValue::makeFromIntLike(ctx, apsInt, *typeField);
     }
     else if (typeField->isFloat())
     {
-        const ApFloat apFloat(fieldBytes.data(), typeField->payloadFloatBits());
+        const ApFloat apFloat(reinterpret_cast<const char*>(fieldBytes.data()), typeField->payloadFloatBits());
         cv = ConstantValue::makeFloat(ctx, apFloat, typeField->payloadFloatBits());
     }
     else if (typeField->isString())

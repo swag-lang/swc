@@ -30,7 +30,11 @@ namespace
         {
             const auto& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef);
             const auto& rightCst = sema.cstMgr().get(nodeRightView.cstRef);
-            result               = sema.cstMgr().cstBool(leftCst.getStruct() == rightCst.getStruct());
+            const auto leftBytes  = leftCst.getStruct();
+            const auto rightBytes = rightCst.getStruct();
+            const bool isEq = leftBytes.size() == rightBytes.size() &&
+                              (leftBytes.empty() || std::memcmp(leftBytes.data(), rightBytes.data(), leftBytes.size()) == 0);
+            result = sema.cstMgr().cstBool(isEq);
             return Result::Continue;
         }
 

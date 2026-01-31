@@ -116,7 +116,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
             SWC_UNREACHABLE();
     }
 
-    other.kind_ = ConstantKind::Invalid;
+    other.kind_            = ConstantKind::Invalid;
     other.payloadBorrowed_ = false;
 }
 
@@ -169,11 +169,7 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
         case ConstantKind::String:
             return getString() == rhs.getString();
         case ConstantKind::Struct:
-        {
-            const auto a = getStruct();
-            const auto b = rhs.getStruct();
-            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
-        }
+            return getStruct().data() == rhs.getStruct().data();
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
         case ConstantKind::EnumValue:
@@ -190,11 +186,7 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
         case ConstantKind::BlockPointer:
             return getBlockPointer() == rhs.getBlockPointer();
         case ConstantKind::Slice:
-        {
-            const auto a = getSlice();
-            const auto b = rhs.getSlice();
-            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
-        }
+            return getSlice().data() == rhs.getSlice().data();
         case ConstantKind::Null:
             return true;
         case ConstantKind::Undefined:
@@ -219,11 +211,7 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
         case ConstantKind::String:
             return getString() == rhs.getString();
         case ConstantKind::Struct:
-        {
-            const auto a = getStruct();
-            const auto b = rhs.getStruct();
-            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
-        }
+            return getStruct().data() == rhs.getStruct().data();
         case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
             return getAggregate() == rhs.getAggregate();
@@ -233,20 +221,16 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
             return getFloat().eq(rhs.getFloat());
         case ConstantKind::TypeValue:
             return getTypeValue() == rhs.getTypeValue();
-        case ConstantKind::Null:
-            return true;
-        case ConstantKind::Undefined:
-            return true;
         case ConstantKind::ValuePointer:
             return getValuePointer() == rhs.getValuePointer();
         case ConstantKind::BlockPointer:
             return getBlockPointer() == rhs.getBlockPointer();
         case ConstantKind::Slice:
-        {
-            const auto a = getSlice();
-            const auto b = rhs.getSlice();
-            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
-        }
+            return getSlice().data() == rhs.getSlice().data();
+        case ConstantKind::Null:
+            return true;
+        case ConstantKind::Undefined:
+            return true;
 
         default:
             SWC_UNREACHABLE();

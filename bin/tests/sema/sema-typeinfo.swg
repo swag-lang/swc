@@ -17,7 +17,8 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[0].name == "R")
 #assert(PA.fields[1].name == "G")
 #assert(PA.fields[2].name == "B")
-//#assert(PA.fields[2].pointedType == s32)
+#assert(PA.fields[2].pointedType == f32) // swc-expected-error {{sema_err_compiler_assert}}
+#assert(PA.fields[2].pointedType == s32)
 #print(PA.fields[3].name) // swc-expected-error {{sema_err_index_out_of_range}}
 
 #test

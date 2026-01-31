@@ -26,15 +26,11 @@ namespace
             return Result::Continue;
         }
 
-        if (nodeLeftView.type->isTypeInfo() && nodeRightView.type->isTypeInfo())
+        if (nodeLeftView.type->isAnyTypeInfo(sema.ctx()) && nodeRightView.type->isAnyTypeInfo(sema.ctx()))
         {
             const auto& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef);
             const auto& rightCst = sema.cstMgr().get(nodeRightView.cstRef);
-            const auto leftBytes  = leftCst.getStruct();
-            const auto rightBytes = rightCst.getStruct();
-            const bool isEq = leftBytes.size() == rightBytes.size() &&
-                              (leftBytes.empty() || std::memcmp(leftBytes.data(), rightBytes.data(), leftBytes.size()) == 0);
-            result = sema.cstMgr().cstBool(isEq);
+            result               = sema.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
             return Result::Continue;
         }
 

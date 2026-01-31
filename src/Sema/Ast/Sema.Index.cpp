@@ -55,6 +55,15 @@ namespace
         return Result::Continue;
     }
 
+    Result reportIndexOutOfRange(Sema& sema, AstNodeRef nodeArgRef, int64_t constIndex, size_t count)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
+        diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+        diag.addArgument(Diagnostic::ARG_COUNT, count);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     Result constantFold(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
     {
         if (!hasConstIndex || !nodeExprView.cst)
@@ -64,32 +73,16 @@ namespace
         {
             const auto& values = nodeExprView.cst->getAggregateArray();
             if (std::cmp_greater_equal(constIndex, values.size()))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-                diag.addArgument(Diagnostic::ARG_COUNT, values.size());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+                return reportIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
             sema.setConstant(sema.curNodeRef(), values[constIndex]);
         }
-        else if (nodeExprView.cst->isString() || nodeExprView.cst->isSlice())
+        else if (nodeExprView.cst->isString())
         {
-            // If it's a slice, it's only constant foldable if it's actually a string
-            if (nodeExprView.cst->isSlice() && !nodeExprView.type->isAnyString())
-                return Result::Continue;
-
             const std::string_view s = nodeExprView.cst->getString();
             if (std::cmp_greater_equal(constIndex, s.size()))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-                diag.addArgument(Diagnostic::ARG_COUNT, s.size());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+                return reportIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
 
-            const uint8_t       ch  = static_cast<uint8_t>(s[constIndex]);
+            const uint8_t       ch = static_cast<uint8_t>(s[constIndex]);
             const ApsInt        v(static_cast<uint64_t>(ch), 8);
             const ConstantValue cst = ConstantValue::makeInt(sema.ctx(), v, 8, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
@@ -182,8 +175,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             return Result::Error;
         }
 
-        bool                             allConstant = nodeExprView.cst != nullptr;
-        std::vector<int64_t>             constIndexes;
+        bool                            allConstant = nodeExprView.cst != nullptr;
+        std::vector<int64_t>            constIndexes;
         const std::vector<ConstantRef>* curValues = allConstant ? &nodeExprView.cst->getAggregateArray() : nullptr;
 
         for (size_t i = 0; i < numGot; i++)
@@ -202,13 +195,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 if (allConstant)
                 {
                     if (std::cmp_greater_equal(constIndex, curValues->size()))
-                    {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeRef);
-                        diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-                        diag.addArgument(Diagnostic::ARG_COUNT, curValues->size());
-                        diag.report(sema.ctx());
-                        return Result::Error;
-                    }
+                        return reportIndexOutOfRange(sema, nodeRef, constIndex, curValues->size());
 
                     const auto& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
                     if (i < numGot - 1)

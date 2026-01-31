@@ -94,6 +94,16 @@ public:
 
     AstNodeRef findNodeRef(const AstNode* node) const;
 
+    enum class VisitResult
+    {
+        Continue,
+        Skip,
+        Stop,
+    };
+
+    using Visitor = VisitResult (*)(AstNodeRef, const AstNode&, void*);
+    static void visit(const Ast& ast, AstNodeRef root, void* user, Visitor f);
+
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32u - SHARD_BITS;

@@ -13,6 +13,9 @@
 struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
 
+const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
+#assert(PA.fields[0].name == "R")
+
 #test
 {
     var a: typeinfo = #typeof(f32)

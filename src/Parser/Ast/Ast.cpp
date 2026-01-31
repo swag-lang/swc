@@ -1,3 +1,5 @@
+#include <ranges>
+
 #include "pch.h"
 #include "Parser/Ast/Ast.h"
 
@@ -73,6 +75,33 @@ AstNodeRef Ast::findNodeRef(const AstNode* node) const
 
     SWC_ASSERT(false);
     return AstNodeRef::invalid();
+}
+
+void Ast::visit(const Ast& ast, AstNodeRef root, void* user, Visitor f)
+{
+    SmallVector<AstNodeRef> children;
+    SmallVector<AstNodeRef> stack;
+    stack.push_back(root);
+
+    while (!stack.empty())
+    {
+        const auto nodeRef = stack.back();
+        stack.pop_back();
+        if (!nodeRef.isValid())
+            continue;
+
+        const auto& node = ast.node(nodeRef);
+        const auto  res  = f(nodeRef, node, user);
+        if (res == VisitResult::Stop)
+            break;
+        if (res == VisitResult::Skip)
+            continue;
+
+        children.clear();
+        nodeIdInfos(node.id()).collectChildren(children, ast, node);
+        for (auto& it : std::ranges::reverse_view(children))
+            stack.push_back(it);
+    }
 }
 
 SWC_END_NAMESPACE();

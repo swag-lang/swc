@@ -116,7 +116,40 @@ Result SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const Con
 
 Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
 {
-    return raise(sema, DiagnosticId::sema_err_expr_not_const, nodeRef);
+    auto diag = report(sema, DiagnosticId::sema_err_expr_not_const, nodeRef);
+
+    struct Context
+    {
+        Sema*      sema;
+        AstNodeRef nodeRef;
+        AstNodeRef lowest;
+    };
+
+    Context context{.sema = &sema, .nodeRef = nodeRef, .lowest = AstNodeRef::invalid()};
+    Ast::visit(sema.ast(), nodeRef, &context, [](AstNodeRef childRef, const AstNode&, void* user) {
+        const auto ctx = static_cast<Context*>(user);
+        if (childRef == ctx->nodeRef)
+            return Ast::VisitResult::Continue;
+
+        const SemaNodeView nodeView{*ctx->sema, childRef};
+        if (nodeView.cstRef.isInvalid())
+        {
+            ctx->lowest = childRef;
+            return Ast::VisitResult::Continue;
+        }
+
+        return Ast::VisitResult::Skip;
+    });
+
+    if (context.lowest.isValid())
+    {
+        const SourceCodeLocation loc = sema.node(context.lowest).locationWithChildren(sema.ctx(), sema.ast());
+        diag.addNote(DiagnosticId::sema_note_not_constant);
+        diag.last().addSpan(loc);
+    }
+
+    diag.report(sema.ctx());
+    return Result::Error;
 }
 
 Result SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)

@@ -18,6 +18,8 @@ struct DiagnosticArgument
                  TokenId,
                  DiagnosticId,
                  uint32_t,
+                 int64_t,
+                 uint64_t,
                  TypeRef,
                  ConstantRef,
                  IdentifierRef>

@@ -32,5 +32,21 @@ const Af = [1.0'f64, 2]
 
 const G = [1.0, 2]
 #assert(#typeof(G) == #type [2] f32)
+#assert(#typeof(G[0]) == f32)
+#assert(#typeof(G[1]) == f32)
+#assert(G[1] == 2)
+
 const G1 = [[1.0], [2.0], [3.0]]
 #assert(#typeof(G1) == #type [3] [1] f32)
+
+#test
+{
+    const H = [1, 2]
+    var a = H[-1] // swc-expected-error {{sema_err_index_negative}}
+}
+
+#test
+{
+    const H = [1, 2]
+    var b = H[2] // swc-expected-error {{sema_err_index_out_of_range}}
+}

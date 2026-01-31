@@ -231,7 +231,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
     SWC_ASSERT(nodeView.sym);
 
     // If we matched against the interface implementation block in a struct,
-    // then we replace it with the corresponding interface type 
+    // then we replace it with the corresponding interface type
     if (nodeView.sym->isImpl() && nodeView.type->isInterface())
     {
         sema.setSymbol(nodeIdentRef, &nodeView.type->payloadSymInterface());
@@ -270,7 +270,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> out;
     sema.ast().nodes(out, spanDimensionsRef);
 
-    std::vector<uint64_t> dims;
+    std::vector<int64_t> dims;
     for (const auto& dimRef : out)
     {
         SemaNodeView dimView(sema, dimRef);
@@ -298,7 +298,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, dimView.nodeRef, dimView.cstRef, TypeInfo::Sign::Unsigned));
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
-        const uint64_t       dim    = newCst.getInt().as64();
+        const int64_t        dim    = newCst.getInt().asI64();
         if (dim == 0)
             return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimView.nodeRef);
         dims.push_back(dim);

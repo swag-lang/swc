@@ -1,6 +1,9 @@
+#include <utility>
+
 #include "pch.h"
-#include "Sema/Core/Sema.h"
 #include "Parser/Ast/AstNodes.h"
+#include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Match/Match.h"
@@ -103,14 +106,39 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return Result::Error;
     }
 
+    // Validate constant index
+    bool    hasConstIndex = false;
+    int64_t constIndex    = 0;
+    if (nodeArgView.cst)
+    {
+        const auto& idxInt = nodeArgView.cst->getInt();
+        if (!idxInt.fits64())
+        {
+            return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
+        }
+
+        hasConstIndex = true;
+        constIndex    = idxInt.asI64();
+
+        if (constIndex < 0)
+        {
+            if (nodeExprView.type->isArray() || nodeExprView.type->isSlice() || nodeExprView.type->isAnyString())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+    }
+
     if (nodeExprView.type->isArray())
     {
         const auto& arrayDims   = nodeExprView.type->payloadArrayDims();
         const auto  numExpected = arrayDims.size();
-
         if (numExpected > 1)
         {
-            std::vector<uint64_t> dims;
+            std::vector<int64_t> dims;
             for (size_t i = 1; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());
@@ -121,7 +149,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
             sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
 
-        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
+        if (SemaInfo::isLValue(sema.node(nodeExprView.nodeRef)))
             SemaInfo::setIsLValue(*this);
     }
     else if (nodeExprView.type->isBlockPointer())
@@ -146,6 +174,41 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     else
     {
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
+    }
+
+    // Constant folding
+    if (nodeExprView.cst && hasConstIndex)
+    {
+        if (nodeExprView.cst->isAggregateArray())
+        {
+            const auto& values = nodeExprView.cst->getAggregateArray();
+            if (std::cmp_greater_equal(constIndex, values.size()))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                diag.addArgument(Diagnostic::ARG_COUNT, values.size());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+            sema.setConstant(sema.curNodeRef(), values[constIndex]);
+        }
+        else if (nodeExprView.cst->isString())
+        {
+            const std::string_view s = nodeExprView.cst->getString();
+            if (std::cmp_greater_equal(constIndex, s.size()))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                diag.addArgument(Diagnostic::ARG_COUNT, s.empty() ? 0 : s.size() - 1);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            const uint8_t       ch = static_cast<uint8_t>(s[constIndex]);
+            const ApsInt        v(static_cast<uint64_t>(ch), 8);
+            const ConstantValue cst = ConstantValue::makeInt(sema.ctx(), v, 8, TypeInfo::Sign::Unsigned);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+        }
     }
 
     SemaInfo::setIsValue(*this);
@@ -189,7 +252,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot < numExpected)
         {
-            std::vector<uint64_t> dims;
+            std::vector<int64_t> dims;
             for (size_t i = numGot; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());

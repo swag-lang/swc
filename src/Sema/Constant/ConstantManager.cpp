@@ -55,7 +55,7 @@ namespace
     ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         std::unique_lock lk(shard.mutex);
-        const auto [view, ref] = shard.dataSegment.addView(value.getStruct());
+        const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
         const auto stored      = ConstantValue::makeStruct(ctx, value.typeRef(), view);
 
         const uint32_t localIndex = shard.dataSegment.add(stored);

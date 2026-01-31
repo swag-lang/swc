@@ -12,8 +12,7 @@ struct DataSegmentRelocation
 class DataSegment
 {
 public:
-    std::pair<std::string_view, Ref> addView(std::string_view value);
-    std::pair<ByteSpan, Ref>         addView(ByteSpan value);
+    std::pair<ByteSpan, Ref>         addSpan(ByteSpan value);
     std::pair<std::string_view, Ref> addString(const Utf8& value);
     uint32_t                         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                             addRelocation(uint32_t offset, uint32_t targetOffset);

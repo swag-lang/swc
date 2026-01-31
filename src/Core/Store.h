@@ -49,17 +49,20 @@ public:
         return {r, static_cast<T*>(p)};
     }
 
-    // Allocate raw bytes with chosen alignment
-    std::pair<Ref, void*> push_back_raw(uint32_t size, uint32_t align = alignof(std::max_align_t))
+    // Allocate and copy raw bytes; returns a stable view + its Ref.
+    std::pair<ByteSpan, Ref> push_copy_span(ByteSpan payload, uint32_t align = alignof(std::byte))
     {
-        return allocate(size, align);
+        auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
+        std::memcpy(dst, payload.data(), payload.size());
+        return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
     }
 
-    std::pair<std::string_view, Ref> push_copy_view(std::string_view payload)
+    // Allocate and copy chars; returns a stable view + its Ref.
+    std::pair<std::string_view, Ref> push_copy_spawn(std::string_view payload)
     {
-        auto [ref, dst] = push_back_raw(static_cast<uint32_t>(payload.size()), alignof(char));
+        auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), alignof(char));
         std::memcpy(dst, payload.data(), payload.size());
-        return {{static_cast<char*>(dst), payload.size()}, ref};
+        return {{static_cast<const char*>(dst), payload.size()}, ref};
     }
 
     template<class T>

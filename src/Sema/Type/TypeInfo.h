@@ -1,5 +1,4 @@
 #pragma once
-#include "Math/Hash.h"
 #include "Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();

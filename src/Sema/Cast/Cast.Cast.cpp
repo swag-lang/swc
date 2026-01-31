@@ -679,7 +679,7 @@ namespace
         return Result::Error;
     }
 
-    Result castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    Result castToStruct(Sema&, CastContext&, TypeRef, TypeRef)
     {
         // TODO
         return Result::Continue;

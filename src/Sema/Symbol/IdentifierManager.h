@@ -2,9 +2,6 @@
 #include "Core/Store.h"
 #include "Core/StringMap.h"
 #include "Lexer/SourceView.h"
-#include "Math/Hash.h"
-
-#include <array>
 
 SWC_BEGIN_NAMESPACE();
 

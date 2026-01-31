@@ -40,7 +40,7 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
-    auto* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
+    const auto* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
     if (!payload || !payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 

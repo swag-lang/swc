@@ -304,8 +304,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
-        const uint32_t numArgs = countCallArgs(args, ufcsArg);
-        int            count   = 0;
+        int count = 0;
         for (const auto& sa : sorted)
         {
             if (count >= 5)

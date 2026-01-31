@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const ConstantRef leftCstRef  = nodeLeftView.cstRef;
         const ConstantRef rightCstRef = nodeRightView.cstRef;

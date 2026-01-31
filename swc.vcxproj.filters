@@ -100,6 +100,7 @@
     <ClCompile Include="src\Sema\Core\SemaJob.cpp" />
     <ClCompile Include="src\Sema\Core\SemaNodeView.cpp" />
     <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp" />
+    <ClCompile Include="src\Sema\Helpers\SemaExtract.cpp" />
     <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp" />
     <ClCompile Include="src\Sema\Match\Match.cpp" />
     <ClCompile Include="src\Sema\Match\Match.Func.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="src\Sema\Constant\ConstantValue.h" />
     <ClInclude Include="src\Sema\Helpers\SemaCheck.h" />
     <ClInclude Include="src\Sema\Helpers\SemaError.h" />
+    <ClInclude Include="src\Sema\Helpers\SemaExtract.h" />
     <ClInclude Include="src\Sema\Symbol\IdentifierManager.h" />
     <ClInclude Include="src\Sema\Symbol\SymbolMap.h" />
     <ClInclude Include="src\Sema\Symbol\Symbol.h" />

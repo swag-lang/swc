@@ -4,6 +4,7 @@
 #include "Sema/Cast/Cast.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
+#include "Sema/Helpers/SemaExtract.h"
 #include "Sema/Helpers/SemaHelpers.h"
 #include "Sema/Match/Match.h"
 #include "Sema/Match/MatchContext.h"
@@ -369,7 +370,7 @@ namespace
         if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(node->nodeRightRef)[0]->isVariable())
         {
             const SymbolVariable& symVar = sema.getSymbolList(node->nodeRightRef)[0]->cast<SymbolVariable>();
-            RESULT_VERIFY(SemaHelpers::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
+            RESULT_VERIFY(SemaExtract::extractConstantStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
             return Result::SkipChildren;
         }
 

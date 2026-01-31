@@ -75,7 +75,6 @@ namespace SemaHelpers
     }
 
     ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
-    Result      extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef);
 }
 
 SWC_END_NAMESPACE();

@@ -287,6 +287,7 @@
         <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>
+        <ClCompile Include="src\Sema\Helpers\SemaExtract.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp"/>
         <ClCompile Include="src\Sema\Match\Match.cpp"/>
         <ClCompile Include="src\Sema\Match\Match.Func.cpp"/>
@@ -387,6 +388,7 @@
         <ClInclude Include="src\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaError.h"/>
+        <ClInclude Include="src\Sema\Helpers\SemaExtract.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Sema\Match\Match.h"/>
         <ClInclude Include="src\Sema\Match\MatchContext.h"/>

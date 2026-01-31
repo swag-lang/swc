@@ -185,7 +185,11 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
         case ConstantKind::BlockPointer:
             return getBlockPointer() == rhs.getBlockPointer();
         case ConstantKind::Slice:
-            return getSlicePointer() == rhs.getSlicePointer() && getSliceCount() == rhs.getSliceCount();
+        {
+            const auto a = getSlice();
+            const auto b = rhs.getSlice();
+            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
+        }
         case ConstantKind::Null:
             return true;
         case ConstantKind::Undefined:
@@ -233,7 +237,11 @@ bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
         case ConstantKind::BlockPointer:
             return getBlockPointer() == rhs.getBlockPointer();
         case ConstantKind::Slice:
-            return getSlicePointer() == rhs.getSlicePointer() && getSliceCount() == rhs.getSliceCount();
+        {
+            const auto a = getSlice();
+            const auto b = rhs.getSlice();
+            return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size()) == 0);
+        }
 
         default:
             SWC_UNREACHABLE();
@@ -502,14 +510,13 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count, TypeInfoFlagsE flags)
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
 {
     ConstantValue  cv;
-    const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_            = ctx.typeMgr().addType(ty);
-    cv.kind_               = ConstantKind::Slice;
-    cv.payloadSlice_.ptr   = ptr;
-    cv.payloadSlice_.count = count;
+    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_          = ctx.typeMgr().addType(ty);
+    cv.kind_             = ConstantKind::Slice;
+    cv.payloadSlice_.val = bytes;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -531,7 +538,10 @@ uint32_t ConstantValue::hash() const noexcept
             h = Math::hashCombine(h, Math::hash(payloadString_.val));
             break;
         case ConstantKind::Struct:
-            h = Math::hashCombine(h, Math::hash(asStringView(payloadStruct_.val)));
+            h = Math::hashCombine(h, Math::hash(payloadStruct_.val));
+            break;
+        case ConstantKind::Slice:
+            h = Math::hashCombine(h, Math::hash(payloadSlice_.val));
             break;
         case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
@@ -550,10 +560,6 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::ValuePointer:
         case ConstantKind::BlockPointer:
             h = Math::hashCombine(h, payloadPointer_.val);
-            break;
-        case ConstantKind::Slice:
-            h = Math::hashCombine(h, payloadSlice_.ptr);
-            h = Math::hashCombine(h, payloadSlice_.count);
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
@@ -632,7 +638,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::BlockPointer:
             return std::format("[*] 0x{:016X}", getBlockPointer());
         case ConstantKind::Slice:
-            return std::format("[..] (0x{:016X}, {})", getSlicePointer(), getSliceCount());
+            return std::format("[..] (0x{:016X}, {})", reinterpret_cast<uintptr_t>(getSlice().data()), getSlice().size());
         case ConstantKind::Null:
             return "null";
         case ConstantKind::Undefined:

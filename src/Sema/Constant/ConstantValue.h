@@ -83,8 +83,7 @@ public:
     const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return payloadFloat_.val; }
     uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return payloadPointer_.val; }
     uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return payloadPointer_.val; }
-    uint64_t getSlicePointer() const { SWC_ASSERT(isSlice()); return payloadSlice_.ptr; }
-    uint64_t getSliceCount() const { SWC_ASSERT(isSlice()); return payloadSlice_.count; }
+    ByteSpan getSlice() const { SWC_ASSERT(isSlice()); return payloadSlice_.val; }
     TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeInfo_.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
     ByteSpan getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
@@ -120,12 +119,7 @@ public:
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, uint64_t ptr, uint64_t count, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
-
-    uint32_t hash() const noexcept;
-    ApsInt   getIntLike() const;
-    bool     ge(const ConstantValue& rhs) const noexcept;
-    Utf8     toString(const TaskContext& ctx) const;
+    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
 
     template<typename T>
     static ConstantValue makeIntSized(const TaskContext& ctx, T value)
@@ -134,6 +128,11 @@ public:
         const ApsInt   v(static_cast<uint64_t>(value), sizeof(T) * 8, isUnsigned);
         return makeInt(ctx, v, sizeof(T) * 8, isUnsigned ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed);
     }
+
+    uint32_t hash() const noexcept;
+    ApsInt   getIntLike() const;
+    bool     ge(const ConstantValue& rhs) const noexcept;
+    Utf8     toString(const TaskContext& ctx) const;
 
 private:
     ConstantKind kind_    = ConstantKind::Invalid;
@@ -178,8 +177,7 @@ private:
 
         struct
         {
-            uint64_t ptr;
-            uint64_t count;
+            ByteSpan val;
         } payloadSlice_;
 
         struct

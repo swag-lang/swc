@@ -516,11 +516,11 @@ namespace
             {
                 if (castCtx.isConstantFolding())
                 {
-                    const ConstantValue&   cst = sema.cstMgr().get(castCtx.srcConstRef);
-                    const std::string_view str = cst.getString();
-                    const uint64_t         ptr = reinterpret_cast<uint64_t>(str.data());
-                    const ConstantValue    cv  = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), ptr, str.size(), TypeInfoFlagsE::Const);
-                    castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), cv);
+                    const ConstantValue&   cst  = sema.cstMgr().get(castCtx.srcConstRef);
+                    const std::string_view str  = cst.getString();
+                    const ByteSpan         span = asByteSpan(str);
+                    const ConstantValue    cv   = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
+                    castCtx.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), cv);
                 }
 
                 return Result::Continue;

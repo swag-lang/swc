@@ -64,9 +64,8 @@ ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 
 Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
-    auto&                   ctx = sema.ctx();
-    ByteSpan                bytes;
-    Runtime::Slice<uint8_t> sliceHeader;
+    auto&    ctx = sema.ctx();
+    ByteSpan bytes;
     if (cst.isStruct())
     {
         bytes = cst.getStruct();
@@ -83,9 +82,7 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (cst.isSlice())
     {
-        sliceHeader.ptr   = reinterpret_cast<uint8_t*>(cst.getSlicePointer());
-        sliceHeader.count = cst.getSliceCount();
-        bytes             = ByteSpan{reinterpret_cast<const std::byte*>(&sliceHeader), sizeof(sliceHeader)};
+        bytes = cst.getSlice();
     }
     else
     {
@@ -134,8 +131,9 @@ Result SemaHelpers::extractConstantStructMember(Sema& sema, const ConstantValue&
     }
     else if (typeField->isSlice())
     {
-        const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
-        cv               = ConstantValue::makeSlice(ctx, typeField->payloadTypeRef(), reinterpret_cast<uint64_t>(slice->ptr), slice->count);
+        const auto     slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
+        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        cv = ConstantValue::makeSlice(ctx, typeField->payloadTypeRef(), span);
     }
     else
     {

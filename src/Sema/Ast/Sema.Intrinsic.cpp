@@ -104,7 +104,7 @@ namespace
 
             if (nodeView.cst->isSlice())
             {
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getSliceCount()));
+                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getSlice().size()));
                 return Result::Continue;
             }
         }

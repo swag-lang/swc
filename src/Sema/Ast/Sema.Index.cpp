@@ -106,7 +106,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     if (hasConstIndex && nodeExprView.cst)
-        RESULT_VERIFY(ConstantExtract::atIndex(sema, nodeArgRef, nodeExprView.cstRef, constIndex));
+        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
 
     SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);

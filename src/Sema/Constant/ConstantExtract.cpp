@@ -105,10 +105,9 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     return Result::Continue;
 }
 
-Result ConstantExtract::atIndex(Sema& sema, AstNodeRef nodeArgRef, ConstantRef cstRef, int64_t constIndex)
+Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
-    const ConstantValue& cst      = sema.cstMgr().get(cstRef);
-    const TypeInfo&      typeInfo = sema.typeMgr().get(cst.typeRef());
+    const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
 
     ////////////////////////////////////////////////////////
     if (cst.isAggregateArray())
@@ -128,8 +127,8 @@ Result ConstantExtract::atIndex(Sema& sema, AstNodeRef nodeArgRef, ConstantRef c
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
-        const ConstantValue cst = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+        const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cstInt));
         return Result::Continue;
     }
 

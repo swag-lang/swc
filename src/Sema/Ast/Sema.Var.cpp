@@ -90,7 +90,7 @@ namespace
         else if (nodeInitView.cstRef.isValid())
         {
             ConstantRef newCstRef;
-            RESULT_VERIFY(ctx.cstMgr().concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
+            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
             nodeInitView.setCstRef(sema, newCstRef);
 
             if (nodeInitView.type->isInt())

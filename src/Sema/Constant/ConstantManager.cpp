@@ -151,64 +151,6 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex);
 }
 
-Result ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
-{
-    if (!concretizeConstant(sema, result, cstRef, hintSign))
-        return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, get(cstRef));
-    return Result::Continue;
-}
-
-bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign)
-{
-    auto&                ctx     = sema.ctx();
-    const ConstantValue& srcCst  = get(cstRef);
-    const TypeManager&   typeMgr = ctx.typeMgr();
-    const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
-
-    if (ty.isIntUnsized())
-    {
-        TypeInfo::Sign sign = ty.payloadIntSign();
-        if (sign == TypeInfo::Sign::Unknown)
-            sign = hintSign;
-        if (sign == TypeInfo::Sign::Unknown)
-            sign = TypeInfo::Sign::Signed;
-
-        ApsInt value = srcCst.getIntLike();
-        value.setSigned(sign == TypeInfo::Sign::Signed);
-        bool           overflow = false;
-        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
-        if (overflow)
-            return false;
-
-        value.resize(destBits);
-        value.setSigned(sign == TypeInfo::Sign::Signed);
-
-        const TypeRef       concreteTypeRef = typeMgr.typeInt(destBits, sign);
-        const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
-        const ConstantValue intVal          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
-        result                              = addConstant(ctx, intVal);
-        return true;
-    }
-
-    if (ty.isFloatUnsized())
-    {
-        const ApFloat& srcF     = srcCst.getFloat();
-        bool           overflow = false;
-        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
-        if (overflow)
-            return false;
-
-        bool                isExact   = false;
-        const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
-        const ConstantValue floatVal  = ConstantValue::makeFloat(ctx, concreteF, destBits);
-        result                        = addConstant(ctx, floatVal);
-        return true;
-    }
-
-    result = cstRef;
-    return true;
-}
-
 Result ConstantManager::makeConstantTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
     const auto&    ctx        = sema.ctx();

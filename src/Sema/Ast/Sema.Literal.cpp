@@ -516,7 +516,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     {
         SemaNodeView firstView(sema, elements[0]);
         ConstantRef  cstResult = ConstantRef::invalid();
-        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, cstResult, elements.front(), firstView.cstRef, TypeInfo::Sign::Unknown));
+        RESULT_VERIFY(Cast::concretizeConstant(sema, cstResult, elements.front(), firstView.cstRef, TypeInfo::Sign::Unknown));
         refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
     }
 

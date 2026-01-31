@@ -9,20 +9,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    bool concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
-    {
-        if (!sema.cstMgr().concretizeConstant(sema, result, cstRef, hintSign))
-        {
-            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(cstRef).typeRef(), TypeRef::invalid());
-            return false;
-        }
-
-        return true;
-    }
-}
-
 void Cast::foldConstantIdentity(CastContext& castCtx)
 {
     castCtx.setConstantFoldingResult(castCtx.constantFoldingSrc());
@@ -36,15 +22,23 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), dstType.payloadIntSign()))
+        if (!concretizeConstant(sema, newCstRef, castCtx.constantFoldingSrc(), dstType.payloadIntSign()))
+        {
+            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
+        }
+        
         castCtx.setConstantFoldingSrc(newCstRef);
     }
     else if (dstType.isFloat())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx, castCtx.constantFoldingSrc(), TypeInfo::Sign::Signed))
+        if (!concretizeConstant(sema, newCstRef, castCtx.constantFoldingSrc(), TypeInfo::Sign::Signed))
+        {
+            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
+        }
+        
         castCtx.setConstantFoldingSrc(newCstRef);
     }
 
@@ -373,13 +367,13 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
         if (!leftConcrete)
         {
             const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->payloadIntSign() : TypeInfo::Sign::Signed;
-            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef, leftCstRef, hintSign));
+            RESULT_VERIFY(concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef, leftCstRef, hintSign));
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
         else if (!rightConcrete)
         {
             const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->payloadIntSign() : TypeInfo::Sign::Signed;
-            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef, rightCstRef, hintSign));
+            RESULT_VERIFY(concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef, rightCstRef, hintSign));
             rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
@@ -389,6 +383,64 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     RESULT_VERIFY(castConstant(sema, rightCstRef, rightCstRef, promotedTypeRef, nodeRightView.nodeRef, CastKind::Promotion));
 
     return Result::Continue;
+}
+
+Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
+{
+    if (!concretizeConstant(sema, result, cstRef, hintSign))
+        return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, sema.cstMgr().get(cstRef));
+    return Result::Continue;
+}
+
+bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign)
+{
+    auto&                ctx     = sema.ctx();
+    const ConstantValue& srcCst  = sema.cstMgr().get(cstRef);
+    const TypeManager&   typeMgr = ctx.typeMgr();
+    const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());
+
+    if (ty.isIntUnsized())
+    {
+        TypeInfo::Sign sign = ty.payloadIntSign();
+        if (sign == TypeInfo::Sign::Unknown)
+            sign = hintSign;
+        if (sign == TypeInfo::Sign::Unknown)
+            sign = TypeInfo::Sign::Signed;
+
+        ApsInt value = srcCst.getIntLike();
+        value.setSigned(sign == TypeInfo::Sign::Signed);
+        bool           overflow = false;
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
+        if (overflow)
+            return false;
+
+        value.resize(destBits);
+        value.setSigned(sign == TypeInfo::Sign::Signed);
+
+        const TypeRef       concreteTypeRef = typeMgr.typeInt(destBits, sign);
+        const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
+        const ConstantValue intVal          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
+        result                              = sema.cstMgr().addConstant(ctx, intVal);
+        return true;
+    }
+
+    if (ty.isFloatUnsized())
+    {
+        const ApFloat& srcF     = srcCst.getFloat();
+        bool           overflow = false;
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(srcF.minBits(), overflow);
+        if (overflow)
+            return false;
+
+        bool                isExact   = false;
+        const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
+        const ConstantValue floatVal  = ConstantValue::makeFloat(ctx, concreteF, destBits);
+        result                        = sema.cstMgr().addConstant(ctx, floatVal);
+        return true;
+    }
+
+    result = cstRef;
+    return true;
 }
 
 SWC_END_NAMESPACE();

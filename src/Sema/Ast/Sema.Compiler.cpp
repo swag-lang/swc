@@ -7,6 +7,7 @@
 #include "Report/Diagnostic.h"
 #include "Report/DiagnosticDef.h"
 #include "Report/Logger.h"
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -317,7 +318,7 @@ namespace
         if (nodeView.cstRef.isValid())
         {
             ConstantRef newCstRef;
-            RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown));
+            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown));
             nodeView.setCstRef(sema, newCstRef);
         }
 

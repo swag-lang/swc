@@ -1,6 +1,8 @@
 #include "pch.h"
-#include "Sema/Core/Sema.h"
+
+#include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"
+#include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"
 #include "Sema/Helpers/SemaError.h"
@@ -295,7 +297,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         }
 
         ConstantRef newCstRef;
-        RESULT_VERIFY(sema.cstMgr().concretizeConstant(sema, newCstRef, dimView.nodeRef, dimView.cstRef, TypeInfo::Sign::Unsigned));
+        RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, dimView.nodeRef, dimView.cstRef, TypeInfo::Sign::Unsigned));
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const int64_t        dim    = newCst.getInt().asI64();

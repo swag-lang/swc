@@ -78,7 +78,7 @@ SWC_DIAG_DEF(sema_err_pointer_arithmetic_void_ptr, Error, "pointer arithmetic is
 SWC_DIAG_DEF(sema_err_take_address_constant, Error, "cannot take the address of a constant expression")
 SWC_DIAG_DEF(sema_err_take_address_not_lvalue, Error, "cannot take the address of an expression that is not an l-value")
 SWC_DIAG_DEF(sema_err_type_not_indexable, Error, "an expression of type '{type}' cannot be indexed")
-SWC_DIAG_DEF(sema_err_index_too_large, Error, "index is too large")
+SWC_DIAG_DEF(sema_err_index_too_large, Error, "index does not fit in 64 bits")
 SWC_DIAG_DEF(sema_err_index_negative, Error, "index cannot be negative (got '{value}')")
 SWC_DIAG_DEF(sema_err_index_out_of_range, Error, "index '{value}' is out of range (size is '{count}')")
 SWC_DIAG_DEF(sema_err_method_outside_impl, Error, "a method must be declared inside an implementation block")

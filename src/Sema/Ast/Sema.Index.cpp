@@ -29,27 +29,16 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
             }
 
-            hasConstIndex = true;
-            constIndex    = idxInt.asI64();
-        }
-
-        return Result::Continue;
-    }
-
-    Result checkIndexValue(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
-    {
-        if (!hasConstIndex)
-            return Result::Continue;
-
-        if (constIndex < 0)
-        {
-            if (nodeExprView.type->isArray() || nodeExprView.type->isSlice() || nodeExprView.type->isAnyString())
+            if (nodeArgView.type->isIntSigned() && idxInt.isNegative())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, nodeArgRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
                 diag.report(sema.ctx());
                 return Result::Error;
             }
+
+            hasConstIndex = true;
+            constIndex    = idxInt.asI64();
         }
 
         return Result::Continue;
@@ -91,7 +80,6 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
     RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
-    RESULT_VERIFY(checkIndexValue(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
 
     ////////////////////////////////////////////////////////
     if (nodeExprView.type->isArray())
@@ -189,7 +177,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
             RESULT_VERIFY(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
-            RESULT_VERIFY(checkIndexValue(sema, nodeRef, nodeExprView, constIndex, hasConstIndex));
 
             if (hasConstIndex)
             {
@@ -255,7 +242,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             int64_t            constIndex    = 0;
             bool               hasConstIndex = false;
             RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
-            RESULT_VERIFY(checkIndexValue(sema, children[0], nodeExprView, constIndex, hasConstIndex));
         }
 
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());

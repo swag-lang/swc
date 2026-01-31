@@ -15,7 +15,7 @@ namespace
     {
         if (!nodeArgView.type->isInt())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeArgRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_not_int, nodeArgRef);
             diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;

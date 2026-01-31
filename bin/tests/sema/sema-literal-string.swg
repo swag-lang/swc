@@ -8,3 +8,4 @@ const A = "hello world"
 
 const B = "hello" ++ "world"
 #assert(B[5] == 'w')
+#assert(B[5.0] == 'w') // swc-expected-error {{sema_err_index_not_int}}

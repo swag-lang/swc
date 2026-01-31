@@ -19,7 +19,7 @@
 #test
 {
     var a3: [2, 2] s32
-    var b3 = a3[0, 0.0] // swc-expected-error {{sema_err_array_dim_not_int}}
+    var b3 = a3[0, 0.0] // swc-expected-error {{sema_err_index_not_int}}
 }
 
 #test

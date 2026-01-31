@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Sema/Type/TypeGen.h"
-#include "Runtime/DataSegment.h"
 #include "Main/TaskContext.h"
+#include "Runtime/DataSegment.h"
 #include "Runtime/Runtime.h"
 #include "Sema/Core/Sema.h"
+#include "Sema/Symbol/Symbol.Variable.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -202,11 +203,55 @@ namespace
             rtType.totalCount *= dims[i];
     }
 
-    void initStruct(Sema& sema, DataSegment& storage, Runtime::TypeInfoStruct& rtType, uint32_t offset, const TypeInfo& type)
+    void initStruct(Sema&                         sema,
+                    DataSegment&                  storage,
+                    Runtime::TypeInfoStruct&      rtType,
+                    uint32_t                      offset,
+                    const TypeInfo&               type,
+                    TypeGen::TypeGenCache::Entry& entry)
     {
-        const Utf8 name          = type.toName(sema.ctx());
+        const auto& ctx = sema.ctx();
+
+        const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
-        rtType.fields.count      = type.payloadSymStruct().fields().size();
+
+        const auto& fields  = type.payloadSymStruct().fields();
+        rtType.fields.count = fields.size();
+
+        entry.structFieldsCount = static_cast<uint32_t>(fields.size());
+        entry.structFieldTypes.clear();
+
+        if (fields.empty())
+        {
+            rtType.fields.ptr        = nullptr;
+            entry.structFieldsOffset = 0;
+            return;
+        }
+
+        const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
+        entry.structFieldsOffset             = fieldsOffset;
+        rtType.fields.ptr                    = fieldsPtr;
+        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
+
+        for (uint32_t i = 0; i < fields.size(); ++i)
+        {
+            const auto* symField = fields[i];
+            SWC_ASSERT(symField);
+
+            Runtime::TypeValue& tv = fieldsPtr[i];
+
+            // Name
+            const auto& id = ctx.idMgr().get(symField->idRef());
+            const Utf8  fName{id.name};
+            const auto  elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            tv.name.length         = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+
+            // Offset in bytes within the struct
+            tv.offset = symField->offset();
+
+            // Type (wired later once dep TypeInfos are emitted)
+            entry.structFieldTypes.push_back(symField->typeRef());
+        }
     }
 
     void addTypeRelocation(DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, uint32_t targetOffset)
@@ -246,6 +291,17 @@ namespace
             case LayoutKind::TypedVariadic:
                 deps.push_back(type.payloadTypeRef());
                 break;
+
+            case LayoutKind::Struct:
+            {
+                for (const auto* field : type.payloadSymStruct().fields())
+                {
+                    if (!field)
+                        continue;
+                    deps.push_back(field->typeRef());
+                }
+                break;
+            }
 
             default:
                 break;
@@ -292,11 +348,7 @@ namespace
                 return reservePayload<Runtime::TypeInfoPointer>(storage, Runtime::TypeInfoKind::Pointer);
 
             case LayoutKind::Struct:
-            {
-                auto [offset, base] = reservePayload<Runtime::TypeInfoStruct>(storage, Runtime::TypeInfoKind::Struct);
-                initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(base), offset, type);
-                return {offset, base};
-            }
+                return reservePayload<Runtime::TypeInfoStruct>(storage, Runtime::TypeInfoKind::Struct);
 
             case LayoutKind::Alias:
                 return reservePayload<Runtime::TypeInfoAlias>(storage, Runtime::TypeInfoKind::Alias);
@@ -378,6 +430,24 @@ namespace
                 break;
             }
 
+            case LayoutKind::Struct:
+            {
+                // Wire each `TypeValue.pointedType` of `fields`.
+                if (!entry.structFieldsCount || !entry.structFieldsOffset)
+                    break;
+
+                SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
+                for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
+                {
+                    const TypeRef depKey     = entry.structFieldTypes[i];
+                    const auto&   dep        = requireDone(cache, depKey);
+                    const auto    elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                    addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
+                }
+
+                break;
+            }
+
             default:
                 break;
         }
@@ -416,6 +486,16 @@ namespace
                 tmp.rtTypeRef = entry.rtTypeRef;
                 tmp.offset    = entry.offset;
                 initCommon(sema, storage, *rtBase, offset, type, tmp);
+
+                if (kind == LayoutKind::Struct)
+                {
+                    initStruct(sema,
+                               storage,
+                               *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase),
+                               offset,
+                               type,
+                               entry);
+                }
 
                 entry.deps = computeDeps(tm, ctx, type, kind);
                 it         = cache.entries.emplace(key, std::move(entry)).first;

@@ -22,8 +22,21 @@ public:
     {
         std::unique_lock lock(mutex_);
         auto             res = store_.emplace_uninit<T>();
-        memset(res.second, 0, sizeof(T));
+        std::memset(res.second, 0, sizeof(T));
         return res;
+    }
+
+    template<typename T>
+    std::pair<uint32_t, T*> reserveSpan(uint32_t count)
+    {
+        if (!count)
+            return {0, nullptr};
+        std::unique_lock lock(mutex_);
+        const uint32_t   bytes = static_cast<uint32_t>(sizeof(T)) * count;
+        const auto       res   = store_.push_copy_span(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));
+        auto*            ptr   = store_.ptr<T>(res.second);
+        std::memset(ptr, 0, bytes);
+        return {res.second, ptr};
     }
 
     template<typename T>

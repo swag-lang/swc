@@ -120,4 +120,10 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+Result AstParenExpr::semaPostNode(Sema& sema)
+{
+    sema.inheritSema(*this, nodeExprRef);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

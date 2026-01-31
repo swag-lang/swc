@@ -248,7 +248,7 @@
         <ClCompile Include="src\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Report\Logger.cpp"/>
         <ClCompile Include="src\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Runtime\DataSegment.cpp" />
+        <ClCompile Include="src\Runtime\DataSegment.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Attributes.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Block.cpp"/>
         <ClCompile Include="src\Sema\Ast\Sema.Cast.cpp"/>
@@ -279,6 +279,7 @@
         <ClCompile Include="src\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
+        <ClCompile Include="src\Sema\Constant\SemaExtract.cpp"/>
         <ClCompile Include="src\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaFrame.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaInfo.cpp"/>
@@ -287,7 +288,6 @@
         <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaError.cpp"/>
-        <ClCompile Include="src\Sema\Helpers\SemaExtract.cpp"/>
         <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp"/>
         <ClCompile Include="src\Sema\Match\Match.cpp"/>
         <ClCompile Include="src\Sema\Match\Match.Func.cpp"/>
@@ -372,12 +372,13 @@
         <ClInclude Include="src\Report\Msg\Errors.Misc.inc"/>
         <ClInclude Include="src\Report\Msg\Notes.Parser.inc"/>
         <ClInclude Include="src\Report\Msg\Notes.Sema.inc"/>
-        <ClInclude Include="src\Runtime\DataSegment.h" />
+        <ClInclude Include="src\Runtime\DataSegment.h"/>
         <ClInclude Include="src\Runtime\Runtime.h"/>
         <ClInclude Include="src\Sema\Ast\Sema.Payload.h"/>
         <ClInclude Include="src\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
+        <ClInclude Include="src\Sema\Constant\SemaExtract.h"/>
         <ClInclude Include="src\Sema\Core\AttributeList.h"/>
         <ClInclude Include="src\Sema\Core\Sema.h"/>
         <ClInclude Include="src\Sema\Core\SemaFrame.h"/>
@@ -388,7 +389,6 @@
         <ClInclude Include="src\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaError.h"/>
-        <ClInclude Include="src\Sema\Helpers\SemaExtract.h"/>
         <ClInclude Include="src\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Sema\Match\Match.h"/>
         <ClInclude Include="src\Sema\Match\MatchContext.h"/>

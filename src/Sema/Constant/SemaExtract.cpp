@@ -1,7 +1,6 @@
 #include "pch.h"
-
-#include "Sema/Helpers/SemaExtract.h"
-
+#include "Sema/Constant/SemaExtract.h"
+#include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -9,7 +8,6 @@
 #include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Symbol/Symbol.Variable.h"
 #include "Sema/Type/TypeManager.h"
-#include "Runtime/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -138,7 +136,7 @@ Result SemaExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, const S
     ////////////////////////////////////////////////////////
     if (nodeExprView.cst->isSlice())
     {
-        auto&          ctx        = sema.ctx();
+        auto&          ctx         = sema.ctx();
         const TypeRef  elemTypeRef = nodeExprView.type->payloadTypeRef();
         const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
 

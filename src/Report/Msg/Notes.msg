@@ -1,2 +1,2 @@
-#include "Notes.Parser.msg"
-#include "Notes.Sema.msg"
+#include "Report/Msg/Notes.Parser.msg"
+#include "Report/Msg/Notes.Sema.msg"

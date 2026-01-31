@@ -79,7 +79,6 @@ namespace Cast
     TypeRef castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind = CastKind::Implicit);
     Result  cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero);
     Result  emitCastFailure(Sema& sema, const CastFailure& f);
-    bool    concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign);
 
     void foldConstantIdentity(CastContext& castCtx);
     bool foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);

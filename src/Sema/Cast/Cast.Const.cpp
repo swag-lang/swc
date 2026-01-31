@@ -9,15 +9,18 @@
 
 SWC_BEGIN_NAMESPACE();
 
-bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
+namespace
 {
-    if (!sema.cstMgr().concretizeConstant(sema, result, cstRef, hintSign))
+    bool concretizeConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeInfo::Sign hintSign)
     {
-        castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(cstRef).typeRef(), TypeRef::invalid());
-        return false;
-    }
+        if (!sema.cstMgr().concretizeConstant(sema, result, cstRef, hintSign))
+        {
+            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(cstRef).typeRef(), TypeRef::invalid());
+            return false;
+        }
 
-    return true;
+        return true;
+    }
 }
 
 void Cast::foldConstantIdentity(CastContext& castCtx)

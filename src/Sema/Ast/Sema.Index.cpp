@@ -56,16 +56,18 @@ namespace
             if (std::cmp_greater_equal(constIndex, values.size()))
                 return SemaError::raiseIndexOutOfRange(sema, constIndex, values.size(), nodeArgRef);
             sema.setConstant(sema.curNodeRef(), values[constIndex]);
+            return Result::Continue;
         }
 
         ////////////////////////////////////////////////////////
-        else if (nodeExprView.cst->isString())
+        if (nodeExprView.cst->isString())
         {
             const std::string_view s = nodeExprView.cst->getString();
             if (std::cmp_greater_equal(constIndex, s.size()))
                 return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
             const ConstantValue cst = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+            return Result::Continue;
         }
 
         return Result::Continue;
@@ -98,30 +100,24 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         {
             sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
-
-        if (SemaInfo::isLValue(sema.node(nodeExprView.nodeRef)))
-            SemaInfo::setIsLValue(*this);
     }
 
     ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isBlockPointer())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
-        SemaInfo::setIsLValue(*this);
     }
 
     ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isSlice())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
-        SemaInfo::setIsLValue(*this);
     }
 
     ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isString() || nodeExprView.type->isCString())
     {
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
-        SemaInfo::setIsLValue(*this);
     }
 
     ////////////////////////////////////////////////////////
@@ -137,6 +133,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     RESULT_VERIFY(constantFold(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
+    
+    SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);
 
     return Result::Continue;

@@ -4,6 +4,8 @@ const At = [[1, 2],[3, 4, 5]] // swc-expected-error {{sema_err_cannot_cast}}
 
 const A = [1's32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
+const A1 = [1, 2, 3, 4, 5]
+#assert(#typeof(A1) == #type [5] s32)
 
 const Af = [1.0'f64, 2]
 #assert(#typeof(Af) == #type [2] f64)
@@ -55,4 +57,3 @@ const I = [1, cast(s32) 2.2]
 #assert(#typeof(I) == #type [2] s32)
 
 const J = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err_ambiguous_array_type}}
-//const K = [1, 2.2]

@@ -385,14 +385,14 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     return Result::Continue;
 }
 
-Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign)
+Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts)
 {
-    if (!concretizeConstant(sema, result, cstRef, hintSign))
+    if (!concretizeConstant(sema, result, cstRef, hintSign, force32BitInts))
         return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, sema.cstMgr().get(cstRef));
     return Result::Continue;
 }
 
-bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign)
+bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts)
 {
     auto&                ctx     = sema.ctx();
     const ConstantValue& srcCst  = sema.cstMgr().get(cstRef);
@@ -410,7 +410,8 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         ApsInt value = srcCst.getIntLike();
         value.setSigned(sign == TypeInfo::Sign::Signed);
         bool           overflow = false;
-        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
+        uint32_t       minBits  = force32BitInts ? std::max(value.minBits(), 32u) : value.minBits();
+        const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(minBits, overflow);
         if (overflow)
             return false;
 

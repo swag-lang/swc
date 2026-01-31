@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Sema/Constant/ConstantExtract.h"
-#include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -46,45 +45,15 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
     const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
+    TypeRef valueTypeRef = symVar.typeRef();
+    if (typeField->isEnum())
+        valueTypeRef = typeField->payloadSymEnum().underlyingTypeRef();
+
     if (typeField->isEnum())
         typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
 
-    ConstantValue cv;
-    if (typeField->isStruct())
-    {
-        cv = ConstantValue::makeStruct(ctx, typeField->payloadTypeRef(), fieldBytes);
-    }
-    else if (typeField->isBool())
-    {
-        cv = ConstantValue::makeBool(ctx, *reinterpret_cast<const bool*>(fieldBytes.data()));
-    }
-    else if (typeField->isIntLike())
-    {
-        const ApsInt apsInt(reinterpret_cast<const char*>(fieldBytes.data()), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
-        cv = ConstantValue::makeFromIntLike(ctx, apsInt, *typeField);
-    }
-    else if (typeField->isFloat())
-    {
-        const ApFloat apFloat(reinterpret_cast<const char*>(fieldBytes.data()), typeField->payloadFloatBits());
-        cv = ConstantValue::makeFloat(ctx, apFloat, typeField->payloadFloatBits());
-    }
-    else if (typeField->isString())
-    {
-        const auto str = reinterpret_cast<const Runtime::String*>(fieldBytes.data());
-        cv             = ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
-    }
-    else if (typeField->isValuePointer())
-    {
-        const auto val = *reinterpret_cast<const uint64_t*>(fieldBytes.data());
-        cv             = ConstantValue::makeValuePointer(ctx, typeField->payloadTypeRef(), val);
-    }
-    else if (typeField->isSlice())
-    {
-        const auto     slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(fieldBytes.data());
-        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
-        cv = ConstantValue::makeSlice(ctx, typeField->payloadTypeRef(), span);
-    }
-    else
+    ConstantValue cv = ConstantValue::makeValue(ctx, fieldBytes.data(), valueTypeRef);
+    if (!cv.isValid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
         diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
@@ -150,43 +119,13 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
 
         const auto elemBytes = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
 
-        const TypeInfo* typeField = &elemType;
-        if (typeField->isEnum())
-            typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
+        TypeRef valueTypeRef = elemTypeRef;
+        if (elemType.isEnum())
+            valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
 
-        ConstantValue cv;
-        if (typeField->isStruct())
-        {
-            cv = ConstantValue::makeStruct(ctx, typeField->payloadTypeRef(), elemBytes);
-        }
-        else if (typeField->isBool())
-        {
-            cv = ConstantValue::makeBool(ctx, *reinterpret_cast<const bool*>(elemBytes.data()));
-        }
-        else if (typeField->isIntLike())
-        {
-            const ApsInt apsInt(reinterpret_cast<const char*>(elemBytes.data()), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
-            cv = ConstantValue::makeFromIntLike(ctx, apsInt, *typeField);
-        }
-        else if (typeField->isFloat())
-        {
-            const ApFloat apFloat(reinterpret_cast<const char*>(elemBytes.data()), typeField->payloadFloatBits());
-            cv = ConstantValue::makeFloat(ctx, apFloat, typeField->payloadFloatBits());
-        }
-        else if (typeField->isString())
-        {
-            const auto str = reinterpret_cast<const Runtime::String*>(elemBytes.data());
-            cv             = ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
-        }
-        else if (typeField->isValuePointer())
-        {
-            const auto val = *reinterpret_cast<const uint64_t*>(elemBytes.data());
-            cv             = ConstantValue::makeValuePointer(ctx, typeField->payloadTypeRef(), val);
-        }
-        else
-        {
+        const ConstantValue cv = ConstantValue::makeValue(ctx, elemBytes.data(), valueTypeRef);
+        if (!cv.isValid())
             return Result::Continue;
-        }
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cv));
         return Result::Continue;

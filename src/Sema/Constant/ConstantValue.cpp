@@ -2,6 +2,7 @@
 #include "Sema/Constant/ConstantValue.h"
 #include "Main/TaskContext.h"
 #include "Math/Hash.h"
+#include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
 
@@ -468,6 +469,56 @@ ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSp
     cv.payloadSlice_.val = bytes;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
+}
+
+ConstantValue ConstantValue::makeValue(TaskContext& ctx, const void* valuePtr, TypeRef typeRef)
+{
+    SWC_ASSERT(valuePtr);
+
+    const TypeInfo& ty = ctx.typeMgr().get(typeRef);
+
+    if (ty.isStruct())
+    {
+        const auto bytes = ByteSpan{reinterpret_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        return makeStruct(ctx, typeRef, bytes);
+    }
+    if (ty.isBool())
+    {
+        return makeBool(ctx, *reinterpret_cast<const bool*>(valuePtr));
+    }
+    if (ty.isIntLike())
+    {
+        const ApsInt apsInt(reinterpret_cast<const char*>(valuePtr), ty.payloadIntLikeBits(), ty.isIntUnsigned());
+        return makeFromIntLike(ctx, apsInt, ty);
+    }
+    if (ty.isFloat())
+    {
+        const ApFloat apFloat(reinterpret_cast<const char*>(valuePtr), ty.payloadFloatBits());
+        return makeFloat(ctx, apFloat, ty.payloadFloatBits());
+    }
+    if (ty.isString())
+    {
+        const auto str = reinterpret_cast<const Runtime::String*>(valuePtr);
+        return makeString(ctx, std::string_view(str->ptr, str->length));
+    }
+    if (ty.isValuePointer())
+    {
+        const auto val = *reinterpret_cast<const uint64_t*>(valuePtr);
+        return makeValuePointer(ctx, ty.payloadTypeRef(), val);
+    }
+    if (ty.isBlockPointer())
+    {
+        const auto val = *reinterpret_cast<const uint64_t*>(valuePtr);
+        return makeBlockPointer(ctx, ty.payloadTypeRef(), val);
+    }
+    if (ty.isSlice())
+    {
+        const auto slice = reinterpret_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        return makeSlice(ctx, ty.payloadTypeRef(), span);
+    }
+
+    return ConstantValue{};
 }
 
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values)

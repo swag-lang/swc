@@ -173,7 +173,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    const auto&    ctx        = sema.ctx();
+    auto&          ctx        = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
 
@@ -181,10 +181,14 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     std::unique_lock       lk(shard.mutex);
     RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
 
-    const auto        value      = ConstantValue::makeStruct(ctx, infoResult.rtTypeRef, infoResult.span);
-    const uint32_t    localIndex = shard.dataSegment.add(value);
-    const ConstantRef result{(shardIndex << LOCAL_BITS) | localIndex};
-    outRef = addCstFinalize(*this, result);
+    // 'typeinfo(T)' produces a value of the built-in 'TypeInfo' type.
+    // That type is a pointer to the runtime typeinfo payload stored in the 'DataSegment'.
+    SWC_ASSERT(infoResult.span.data());
+    const uint64_t ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
+    const auto     value    = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
+    ConstantValue  stored   = value;
+    stored.setTypeRef(sema.typeMgr().typeTypeInfo());
+    outRef = addConstant(sema.ctx(), stored);
     return Result::Continue;
 }
 

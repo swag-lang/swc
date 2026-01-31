@@ -21,8 +21,15 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     else if (cst.isValuePointer() || cst.isBlockPointer())
     {
         const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
-        SWC_ASSERT(cstType.isAnyPointer());
-        const TypeInfo& pointedType = sema.typeMgr().get(cstType.payloadTypeRef());
+        TypeRef         pointedTypeRef;
+        if (cstType.isAnyPointer())
+            pointedTypeRef = cstType.payloadTypeRef();
+        else if (cstType.isTypeInfo())
+            pointedTypeRef = sema.typeMgr().structTypeInfo();
+        else
+            SWC_UNREACHABLE();
+
+        const TypeInfo& pointedType = sema.typeMgr().get(pointedTypeRef);
         SWC_ASSERT(pointedType.isStruct());
         const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
         SWC_ASSERT(ptr);

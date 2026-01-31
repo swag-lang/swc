@@ -99,7 +99,7 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
             payloadSlice_ = other.payloadSlice_;
             break;
         case ConstantKind::TypeValue:
-            payloadTypeInfo_ = other.payloadTypeInfo_;
+            payloadTypeValue_ = other.payloadTypeValue_;
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
@@ -151,7 +151,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
             payloadSlice_ = other.payloadSlice_;
             break;
         case ConstantKind::TypeValue:
-            payloadTypeInfo_ = other.payloadTypeInfo_;
+            payloadTypeValue_ = other.payloadTypeValue_;
             break;
         case ConstantKind::Null:
         case ConstantKind::Undefined:
@@ -342,9 +342,9 @@ ConstantValue ConstantValue::makeRune(const TaskContext& ctx, char32_t value)
 ConstantValue ConstantValue::makeTypeValue(TaskContext& ctx, TypeRef value)
 {
     ConstantValue cv;
-    cv.typeRef_             = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
-    cv.kind_                = ConstantKind::TypeValue;
-    cv.payloadTypeInfo_.val = value;
+    cv.typeRef_              = ctx.typeMgr().addType(TypeInfo::makeTypeValue(value));
+    cv.kind_                 = ConstantKind::TypeValue;
+    cv.payloadTypeValue_.val = value;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -611,7 +611,7 @@ uint32_t ConstantValue::hash() const noexcept
                 h = Math::hashCombine(h, v.get());
             break;
         case ConstantKind::TypeValue:
-            h = Math::hashCombine(h, payloadTypeInfo_.val.get());
+            h = Math::hashCombine(h, payloadTypeValue_.val.get());
             break;
         case ConstantKind::Int:
             h = Math::hashCombine(h, payloadInt_.val.hash());

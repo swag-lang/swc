@@ -96,7 +96,7 @@ public:
     uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return payloadPointer_.val; }
     uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return payloadPointer_.val; }
     ByteSpan getSlice() const { SWC_ASSERT(isSlice()); return payloadSlice_.val; }
-    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeInfo_.val; }
+    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeValue_.val; }
     ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
     ByteSpan getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
     const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return payloadAggregate_.val; }
@@ -204,7 +204,7 @@ private:
         struct
         {
             TypeRef val;
-        } payloadTypeInfo_;
+        } payloadTypeValue_;
 
         struct
         {

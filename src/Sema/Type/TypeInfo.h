@@ -105,9 +105,7 @@ public:
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
     bool isInt() const noexcept { return kind_ == TypeInfoKind::Int; }
-    bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && payloadInt_.bits == 0; }
     bool isFloat() const noexcept { return kind_ == TypeInfoKind::Float; }
-    bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && payloadFloat_.bits == 0; }
     bool isTypeValue() const noexcept { return kind_ == TypeInfoKind::TypeValue; }
     bool isRune() const noexcept { return kind_ == TypeInfoKind::Rune; }
     bool isAny() const noexcept { return kind_ == TypeInfoKind::Any; }
@@ -130,6 +128,9 @@ public:
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
     bool isTypedVariadic() const noexcept { return kind_ == TypeInfoKind::TypedVariadic; }
 
+    bool isIntUnsized() const noexcept { return kind_ == TypeInfoKind::Int && payloadInt_.bits == 0; }
+    bool isFloatUnsized() const noexcept { return kind_ == TypeInfoKind::Float && payloadFloat_.bits == 0; }
+    bool isScalarUnsized() const noexcept { return isIntUnsized() || isFloatUnsized(); }
     bool isIntUnsigned() const noexcept { return isInt() && payloadInt_.sign == Sign::Unsigned; }
     bool isIntSigned() const noexcept { return isInt() && payloadInt_.sign == Sign::Signed; }
     bool isIntSignKnown() const noexcept { return isInt() && payloadInt_.sign != Sign::Unknown; }

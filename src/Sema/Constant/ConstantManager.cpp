@@ -205,42 +205,6 @@ bool ConstantManager::concretizeConstant(Sema& sema, ConstantRef& result, Consta
         return true;
     }
 
-    if (ty.isArray())
-    {
-        const TypeInfo tyElem = typeMgr.get(ty.payloadArrayElemTypeRef());
-        if (tyElem.isConcreteScalar())
-        {
-            result = cstRef;
-            return true;
-        }
-
-        const auto& srcArray = srcCst.getAggregateArray();
-        bool        changed  = false;
-
-        std::vector<ConstantRef> newValues;
-        newValues.reserve(srcArray.size());
-
-        for (const auto& it : srcArray)
-        {
-            ConstantRef subResult = it;
-            if (!concretizeConstant(sema, subResult, it, hintSign))
-                return false;
-            if (subResult != it)
-                changed = true;
-            newValues.push_back(subResult);
-        }
-
-        if (!changed)
-        {
-            result = cstRef;
-            return true;
-        }
-
-        const ConstantValue arrayVal = ConstantValue::makeAggregateArray(ctx, newValues);
-        result                       = addConstant(ctx, arrayVal);
-        return true;
-    }
-
     result = cstRef;
     return true;
 }

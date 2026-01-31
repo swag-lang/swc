@@ -496,12 +496,31 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     // 'AstArrayLiteral' directly contains the element expressions in `spanChildrenRef`.
     SmallVector<AstNodeRef> elements;
     collectChildren(elements, sema.ast());
-
     if (elements.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
     // Take the first element as the reference type and ensure all other elements are castable/casted to it.
-    const TypeRef refElemTypeRef = sema.typeRefOf(elements[0]);
+    TypeRef refElemTypeRef = TypeRef::invalid();
+    for (const auto& child : elements)
+    {
+        SemaNodeView nodeView(sema, child);
+        if (nodeView.type->isScalarNumeric() && !nodeView.type->isScalarUnsized())
+        {
+            if (refElemTypeRef.isValid() && refElemTypeRef != nodeView.typeRef)
+                return SemaError::raise(sema, DiagnosticId::sema_err_ambiguous_array_type, sema.curNodeRef());
+            refElemTypeRef = nodeView.typeRef;
+        }
+    }
+
+    if (!refElemTypeRef.isValid())
+    {
+        SemaNodeView firstView(sema, elements[0]);
+        CastContext  castCtx(CastKind::Implicit);
+        ConstantRef  cstResult = ConstantRef::invalid();
+        if (!Cast::concretizeConstant(sema, cstResult, castCtx, firstView.cstRef, TypeInfo::Sign::Unknown))
+            return Result::Continue;
+        refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
+    }
 
     bool                     allConstant = true;
     std::vector<ConstantRef> values;
@@ -511,11 +530,8 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     {
         SemaNodeView nodeView(sema, child);
         RESULT_VERIFY(Cast::cast(sema, nodeView, refElemTypeRef, CastKind::Initialization));
-
-        if (!sema.hasConstant(nodeView.nodeRef))
-            allConstant = false;
-        else
-            values.push_back(sema.constantRefOf(nodeView.nodeRef));
+        allConstant = allConstant && nodeView.cstRef.isValid();
+        values.push_back(nodeView.cstRef);
     }
 
     const std::vector dims         = {elements.size()};

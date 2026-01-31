@@ -50,3 +50,9 @@ const G1 = [[1.0], [2.0], [3.0]]
     const H = [1, 2]
     var b = H[2] // swc-expected-error {{sema_err_index_out_of_range}}
 }
+
+const I = [1, cast(s32) 2.2]
+#assert(#typeof(I) == #type [2] s32)
+
+const J = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err_ambiguous_array_type}}
+//const K = [1, 2.2]

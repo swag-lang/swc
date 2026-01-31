@@ -27,7 +27,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
             castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
         }
-        
+
         castCtx.setConstantFoldingSrc(newCstRef);
     }
     else if (dstType.isFloat())
@@ -38,7 +38,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
             castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
         }
-        
+
         castCtx.setConstantFoldingSrc(newCstRef);
     }
 

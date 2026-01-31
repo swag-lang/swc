@@ -9,32 +9,37 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstIndexExpr::semaPostNode(Sema& sema)
+namespace
 {
-    const SemaNodeView nodeExprView(sema, nodeExprRef);
-    const SemaNodeView nodeArgView(sema, nodeArgRef);
-
-    if (!nodeArgView.type->isInt())
+    Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeArgRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    // Validate constant index
-    bool    hasConstIndex = false;
-    int64_t constIndex    = 0;
-    if (nodeArgView.cst)
-    {
-        const auto& idxInt = nodeArgView.cst->getInt();
-        if (!idxInt.fits64())
+        if (!nodeArgView.type->isInt())
         {
-            return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeArgRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
         }
 
-        hasConstIndex = true;
-        constIndex    = idxInt.asI64();
+        if (nodeArgView.cst)
+        {
+            const auto& idxInt = nodeArgView.cst->getInt();
+            if (!idxInt.fits64())
+            {
+                return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
+            }
+
+            hasConstIndex = true;
+            constIndex    = idxInt.asI64();
+        }
+
+        return Result::Continue;
+    }
+
+    Result checkIndexValue(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
+    {
+        if (!hasConstIndex)
+            return Result::Continue;
 
         if (constIndex < 0)
         {
@@ -46,7 +51,63 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
                 return Result::Error;
             }
         }
+
+        return Result::Continue;
     }
+
+    Result constantFold(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
+    {
+        if (!hasConstIndex || !nodeExprView.cst)
+            return Result::Continue;
+
+        if (nodeExprView.cst->isAggregateArray())
+        {
+            const auto& values = nodeExprView.cst->getAggregateArray();
+            if (std::cmp_greater_equal(constIndex, values.size()))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                diag.addArgument(Diagnostic::ARG_COUNT, values.size());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+            sema.setConstant(sema.curNodeRef(), values[constIndex]);
+        }
+        else if (nodeExprView.cst->isString() || nodeExprView.cst->isSlice())
+        {
+            // If it's a slice, it's only constant foldable if it's actually a string
+            if (nodeExprView.cst->isSlice() && !nodeExprView.type->isAnyString())
+                return Result::Continue;
+
+            const std::string_view s = nodeExprView.cst->getString();
+            if (std::cmp_greater_equal(constIndex, s.size()))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                diag.addArgument(Diagnostic::ARG_COUNT, s.size());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            const uint8_t       ch  = static_cast<uint8_t>(s[constIndex]);
+            const ApsInt        v(static_cast<uint64_t>(ch), 8);
+            const ConstantValue cst = ConstantValue::makeInt(sema.ctx(), v, 8, TypeInfo::Sign::Unsigned);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+        }
+
+        return Result::Continue;
+    }
+}
+
+Result AstIndexExpr::semaPostNode(Sema& sema)
+{
+    const SemaNodeView nodeExprView(sema, nodeExprRef);
+    const SemaNodeView nodeArgView(sema, nodeArgRef);
+
+    int64_t constIndex    = 0;
+    bool    hasConstIndex = false;
+    RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
+    RESULT_VERIFY(checkIndexValue(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
 
     if (nodeExprView.type->isArray())
     {
@@ -92,40 +153,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    // Constant folding
-    if (nodeExprView.cst && hasConstIndex)
-    {
-        if (nodeExprView.cst->isAggregateArray())
-        {
-            const auto& values = nodeExprView.cst->getAggregateArray();
-            if (std::cmp_greater_equal(constIndex, values.size()))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-                diag.addArgument(Diagnostic::ARG_COUNT, values.size());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-            sema.setConstant(sema.curNodeRef(), values[constIndex]);
-        }
-        else if (nodeExprView.cst->isString())
-        {
-            const std::string_view s = nodeExprView.cst->getString();
-            if (std::cmp_greater_equal(constIndex, s.size()))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-                diag.addArgument(Diagnostic::ARG_COUNT, s.size());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
-            const uint8_t       ch = static_cast<uint8_t>(s[constIndex]);
-            const ApsInt        v(static_cast<uint64_t>(ch), 8);
-            const ConstantValue cst = ConstantValue::makeInt(sema.ctx(), v, 8, TypeInfo::Sign::Unsigned);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
-        }
-    }
+    RESULT_VERIFY(constantFold(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
 
     SemaInfo::setIsValue(*this);
     return Result::Continue;
@@ -135,12 +163,12 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
+    SmallVector<AstNodeRef> children;
+    sema.ast().nodes(children, spanChildrenRef);
+
     // Array
     if (nodeExprView.type->isArray())
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, spanChildrenRef);
-
         const auto&    arrayDims   = nodeExprView.type->payloadArrayDims();
         const uint64_t numExpected = arrayDims.size();
         const size_t   numGot      = children.size();
@@ -154,15 +182,51 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             return Result::Error;
         }
 
-        for (const AstNodeRef nodeRef : children)
+        bool                             allConstant = nodeExprView.cst != nullptr;
+        std::vector<int64_t>             constIndexes;
+        const std::vector<ConstantRef>* curValues = allConstant ? &nodeExprView.cst->getAggregateArray() : nullptr;
+
+        for (size_t i = 0; i < numGot; i++)
         {
+            const auto         nodeRef = children[i];
             const SemaNodeView nodeArgView(sema, nodeRef);
-            if (!nodeArgView.type->isInt())
+
+            int64_t constIndex    = 0;
+            bool    hasConstIndex = false;
+            RESULT_VERIFY(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
+            RESULT_VERIFY(checkIndexValue(sema, nodeRef, nodeExprView, constIndex, hasConstIndex));
+
+            if (hasConstIndex)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
-                diag.report(sema.ctx());
-                return Result::Error;
+                constIndexes.push_back(constIndex);
+                if (allConstant)
+                {
+                    if (std::cmp_greater_equal(constIndex, curValues->size()))
+                    {
+                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeRef);
+                        diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
+                        diag.addArgument(Diagnostic::ARG_COUNT, curValues->size());
+                        diag.report(sema.ctx());
+                        return Result::Error;
+                    }
+
+                    const auto& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
+                    if (i < numGot - 1)
+                    {
+                        if (nextCst.isAggregateArray())
+                            curValues = &nextCst.getAggregateArray();
+                        else
+                            allConstant = false;
+                    }
+                    else
+                    {
+                        sema.setConstant(sema.curNodeRef(), (*curValues)[constIndex]);
+                    }
+                }
+            }
+            else
+            {
+                allConstant = false;
             }
         }
 
@@ -186,9 +250,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     // Slice
     else if (nodeExprView.type->isSlice())
     {
-        SmallVector<AstNodeRef> children;
-        sema.ast().nodes(children, spanChildrenRef);
-
         const size_t numGot = children.size();
         if (numGot > 1)
         {
@@ -199,16 +260,13 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             return Result::Error;
         }
 
-        for (const AstNodeRef nodeRef : children)
+        if (numGot == 1)
         {
-            const SemaNodeView nodeArgView(sema, nodeRef);
-            if (!nodeArgView.type->isInt())
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, nodeRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+            const SemaNodeView nodeArgView(sema, children[0]);
+            int64_t            constIndex    = 0;
+            bool               hasConstIndex = false;
+            RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
+            RESULT_VERIFY(checkIndexValue(sema, children[0], nodeExprView, constIndex, hasConstIndex));
         }
 
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());

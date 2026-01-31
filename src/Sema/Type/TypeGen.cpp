@@ -320,7 +320,7 @@ namespace
         return {off, &ptr->base};
     }
 
-    std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(Sema& sema, DataSegment& storage, LayoutKind kind, const TypeInfo& type)
+    std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)
     {
         switch (kind)
         {
@@ -479,23 +479,15 @@ namespace
                 entry.rtTypeRef       = rtTypeRefFor(tm, kind);
                 RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.rtTypeRef, node));
 
-                auto [offset, rtBase] = allocateTypeInfoPayload(sema, storage, kind, type);
+                auto [offset, rtBase] = allocateTypeInfoPayload(storage, kind, type);
                 entry.offset          = offset;
 
                 TypeGen::TypeGenResult tmp;
                 tmp.rtTypeRef = entry.rtTypeRef;
                 tmp.offset    = entry.offset;
                 initCommon(sema, storage, *rtBase, offset, type, tmp);
-
                 if (kind == LayoutKind::Struct)
-                {
-                    initStruct(sema,
-                               storage,
-                               *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase),
-                               offset,
-                               type,
-                               entry);
-                }
+                    initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase), offset, type, entry);
 
                 entry.deps = computeDeps(tm, ctx, type, kind);
                 it         = cache.entries.emplace(key, std::move(entry)).first;

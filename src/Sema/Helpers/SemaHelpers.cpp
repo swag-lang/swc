@@ -6,7 +6,6 @@
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbol.Attribute.h"
-#include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Symbol/Symbol.Function.h"
 #include "Sema/Symbol/Symbol.Interface.h"
 #include "Sema/Type/TypeManager.h"

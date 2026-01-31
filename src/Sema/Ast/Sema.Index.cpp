@@ -55,15 +55,6 @@ namespace
         return Result::Continue;
     }
 
-    Result reportIndexOutOfRange(Sema& sema, AstNodeRef nodeArgRef, int64_t constIndex, size_t count)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_out_of_range, nodeArgRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, constIndex);
-        diag.addArgument(Diagnostic::ARG_COUNT, count);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
     Result constantFold(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
     {
         if (!hasConstIndex || !nodeExprView.cst)
@@ -73,14 +64,14 @@ namespace
         {
             const auto& values = nodeExprView.cst->getAggregateArray();
             if (std::cmp_greater_equal(constIndex, values.size()))
-                return reportIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
+                return SemaError::raiseIndexOutOfRange(sema, constIndex, values.size(), nodeArgRef);
             sema.setConstant(sema.curNodeRef(), values[constIndex]);
         }
         else if (nodeExprView.cst->isString())
         {
             const std::string_view s = nodeExprView.cst->getString();
             if (std::cmp_greater_equal(constIndex, s.size()))
-                return reportIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
+                return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
 
             const uint8_t       ch = static_cast<uint8_t>(s[constIndex]);
             const ApsInt        v(static_cast<uint64_t>(ch), 8);
@@ -195,7 +186,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 if (allConstant)
                 {
                     if (std::cmp_greater_equal(constIndex, curValues->size()))
-                        return reportIndexOutOfRange(sema, nodeRef, constIndex, curValues->size());
+                        return SemaError::raiseIndexOutOfRange(sema, constIndex, curValues->size(), nodeRef);
 
                     const auto& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
                     if (i < numGot - 1)

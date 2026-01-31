@@ -179,7 +179,7 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span
         diag.addNote(DiagnosticId::sema_note_could_be);
         diag.last().addSpan(other->loc(ctx));
     }
-    
+
     diag.report(ctx);
     return Result::Error;
 }
@@ -242,6 +242,15 @@ Result SemaError::raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef 
 {
     auto diag = report(sema, DiagnosticId::sema_err_type_not_indexable, nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+Result SemaError::raiseIndexOutOfRange(Sema& sema, int64_t index, size_t maxCount, AstNodeRef nodeRef)
+{
+    auto diag = report(sema, DiagnosticId::sema_err_index_out_of_range, nodeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, index);
+    diag.addArgument(Diagnostic::ARG_COUNT, maxCount);
     diag.report(sema.ctx());
     return Result::Error;
 }

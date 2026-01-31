@@ -56,7 +56,7 @@ ConstantRef SemaInfo::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef)
         case NodeSemaKind::SymbolList:
         {
             const std::span<const Symbol*> symList = getSymbolList(nodeRef);
-            if(symList.size() > 1)
+            if (symList.size() > 1)
                 return ConstantRef::invalid();
             if (symList.front()->isConst())
                 return symList.front()->cast<SymbolConstant>().cstRef();
@@ -130,8 +130,8 @@ TypeRef SemaInfo::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return TypeRef::invalid();
 
-    const AstNode&     node = ast().node(nodeRef);
-    const NodeSemaKind kind = semaKind(node);
+    const AstNode&     node  = ast().node(nodeRef);
+    const NodeSemaKind kind  = semaKind(node);
     TypeRef            value = TypeRef::invalid();
     switch (kind)
     {

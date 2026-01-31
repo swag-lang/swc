@@ -15,7 +15,7 @@ void IdentifierManager::setup(TaskContext&)
 
     struct PredefinedEntry
     {
-        PredefinedName  name;
+        PredefinedName   name;
         std::string_view str;
     };
 

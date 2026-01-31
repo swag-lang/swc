@@ -76,7 +76,7 @@ public:
             local = shards_[shard].store.emplace_uninit<NodeType>();
 
             const uint32_t localByteRef = local.first;
-            globalRef                  = AstNodeRef{packRef(shard, localByteRef)};
+            globalRef                   = AstNodeRef{packRef(shard, localByteRef)};
             ::new (local.second) AstNode(ID, srcView_->ref(), tokRef);
         }
 
@@ -113,16 +113,16 @@ private:
 
     AstNode* nodePtr(uint32_t globalRef)
     {
-        const uint32_t s = refShard(globalRef);
-        const uint32_t l = refLocal(globalRef);
+        const uint32_t   s = refShard(globalRef);
+        const uint32_t   l = refLocal(globalRef);
         std::shared_lock lk(shards_[s].mutex);
         return shards_[s].store.ptr<AstNode>(l);
     }
 
     const AstNode* nodePtr(uint32_t globalRef) const
     {
-        const uint32_t s = refShard(globalRef);
-        const uint32_t l = refLocal(globalRef);
+        const uint32_t   s = refShard(globalRef);
+        const uint32_t   l = refLocal(globalRef);
         std::shared_lock lk(shards_[s].mutex);
         return shards_[s].store.ptr<AstNode>(l);
     }

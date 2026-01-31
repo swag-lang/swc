@@ -57,7 +57,7 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     {
         struct PredefinedAttr
         {
-            IdentifierRef      id;
+            IdentifierRef    id;
             RtAttributeFlags fl;
         };
 
@@ -153,7 +153,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
     // Predefined attributes
-    const SymbolAttribute&   attrSym   = identView.sym->cast<SymbolAttribute>();
+    const SymbolAttribute& attrSym   = identView.sym->cast<SymbolAttribute>();
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {

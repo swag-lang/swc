@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 void TypeManager::setup(TaskContext& ctx)
 {
-    const auto& idMgr                          = ctx.idMgr();
+    const auto& idMgr                                                                   = ctx.idMgr();
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TargetOs)]           = RuntimeTypeKind::TargetOs;
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoKind)]       = RuntimeTypeKind::TypeInfoKind;
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;

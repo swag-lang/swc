@@ -14,7 +14,10 @@ struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
 
 const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
-//#assert(PA.fields[0].name == "R")
+#assert(PA.fields[0].name == "R")
+#assert(PA.fields[1].name == "G")
+#assert(PA.fields[2].name == "B")
+#print(PA.fields[3].name) // swc-expected-error {{sema_err_index_out_of_range}}
 
 #test
 {

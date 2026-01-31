@@ -107,13 +107,11 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         auto&          ctx         = sema.ctx();
         const TypeRef  elemTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
-
-        const uint64_t elemSize = elemType.sizeOf(ctx);
-        if (!elemSize)
-            return Result::Continue;
+        const uint64_t elemSize    = elemType.sizeOf(ctx);
+        SWC_ASSERT(elemSize);
 
         const ByteSpan bytes      = cst.getSlice();
-        const uint64_t numEntries = bytes.size() / elemSize;
+        const uint64_t numEntries = bytes.size();
         if (std::cmp_greater_equal(constIndex, numEntries))
             return SemaError::raiseIndexOutOfRange(sema, constIndex, numEntries, nodeArgRef);
 

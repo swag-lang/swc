@@ -105,7 +105,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    RESULT_VERIFY(ConstantExtract::constantFoldIndex(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
+    if (hasConstIndex && nodeExprView.cst)
+        RESULT_VERIFY(ConstantExtract::atIndex(sema, nodeArgRef, nodeExprView.cstRef, constIndex));
 
     SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);

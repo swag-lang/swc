@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Result.h"
 #include "Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();

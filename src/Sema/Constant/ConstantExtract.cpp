@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantExtract.h"
+#include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -11,7 +11,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result ConstantExtract::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&    ctx = sema.ctx();
     ByteSpan bytes;
@@ -105,17 +105,17 @@ Result ConstantExtract::extractConstantStructMember(Sema& sema, const ConstantVa
     return Result::Continue;
 }
 
-Result ConstantExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
+Result ConstantExtract::atIndex(Sema& sema, AstNodeRef nodeArgRef, ConstantRef cstRef, int64_t constIndex)
 {
-    if (!hasConstIndex || !nodeExprView.cst)
-        return Result::Continue;
+    const ConstantValue& cst      = sema.cstMgr().get(cstRef);
+    const TypeInfo&      typeInfo = sema.typeMgr().get(cst.typeRef());
 
     ////////////////////////////////////////////////////////
-    if (nodeExprView.cst->isAggregateArray())
+    if (cst.isAggregateArray())
     {
-        if (nodeExprView.type->payloadArrayDims().size() > 1)
+        if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
-        const auto& values = nodeExprView.cst->getAggregateArray();
+        const auto& values = cst.getAggregateArray();
         if (std::cmp_greater_equal(constIndex, values.size()))
             return SemaError::raiseIndexOutOfRange(sema, constIndex, values.size(), nodeArgRef);
         sema.setConstant(sema.curNodeRef(), values[constIndex]);
@@ -123,9 +123,9 @@ Result ConstantExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, con
     }
 
     ////////////////////////////////////////////////////////
-    if (nodeExprView.cst->isString())
+    if (cst.isString())
     {
-        const std::string_view s = nodeExprView.cst->getString();
+        const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
         const ConstantValue cst = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
@@ -134,17 +134,17 @@ Result ConstantExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, con
     }
 
     ////////////////////////////////////////////////////////
-    if (nodeExprView.cst->isSlice())
+    if (cst.isSlice())
     {
         auto&          ctx         = sema.ctx();
-        const TypeRef  elemTypeRef = nodeExprView.type->payloadTypeRef();
+        const TypeRef  elemTypeRef = typeInfo.payloadTypeRef();
         const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
 
         const uint64_t elemSize = elemType.sizeOf(ctx);
         if (!elemSize)
             return Result::Continue;
 
-        const ByteSpan bytes      = nodeExprView.cst->getSlice();
+        const ByteSpan bytes      = cst.getSlice();
         const uint64_t numEntries = bytes.size() / elemSize;
         if (std::cmp_greater_equal(constIndex, numEntries))
             return SemaError::raiseIndexOutOfRange(sema, constIndex, numEntries, nodeArgRef);

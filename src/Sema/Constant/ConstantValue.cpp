@@ -443,7 +443,7 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, std
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::vector<ConstantRef>& values)
+ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values)
 {
     ConstantValue        cv;
     std::vector<TypeRef> memberTypes;
@@ -453,12 +453,12 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::ve
 
     cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes));
     cv.kind_    = ConstantKind::AggregateStruct;
-    std::construct_at(&cv.payloadAggregate_.val, values);
+    std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vector<ConstantRef>& values)
+ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values)
 {
     SWC_ASSERT(!values.empty());
 
@@ -467,7 +467,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vec
     const std::vector dims        = {values.size()};
     cv.typeRef_                   = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
     cv.kind_                      = ConstantKind::AggregateArray;
-    std::construct_at(&cv.payloadAggregate_.val, values);
+    std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }

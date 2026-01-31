@@ -520,10 +520,10 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
     }
 
-    bool                     allConstant = true;
-    std::vector<ConstantRef> values;
+    SmallVector<ConstantRef> values;
     values.reserve(elements.size());
 
+    bool allConstant = true;
     for (const auto& child : elements)
     {
         SemaNodeView nodeView(sema, child);

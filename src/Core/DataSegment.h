@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/ByteSpan.h"
 #include "Core/Store.h"
 
 SWC_BEGIN_NAMESPACE();

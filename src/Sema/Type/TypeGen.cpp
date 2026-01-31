@@ -109,7 +109,7 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
 
         const TypeInfo& structType = sema.typeMgr().get(result.rtTypeRef);
-        result.view                = std::string_view{storage.ptr<char>(offset), structType.sizeOf(ctx)};
+        result.span                = ByteSpan{storage.ptr<std::byte>(offset), structType.sizeOf(ctx)};
 
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);
@@ -469,7 +469,7 @@ namespace
         result.rtTypeRef  = entry.rtTypeRef;
 
         const TypeInfo& structType = tm.get(result.rtTypeRef);
-        result.view                = std::string_view{storage.ptr<char>(result.offset), structType.sizeOf(ctx)};
+        result.span                = ByteSpan{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
 
         sema.compiler().notifyAlive();
         return Result::Continue;

@@ -10,9 +10,9 @@ class TypeGen
 public:
     struct TypeGenResult
     {
-        std::string_view view;
-        TypeRef          rtTypeRef;
-        uint32_t         offset = 0;
+        ByteSpan span;
+        TypeRef  rtTypeRef;
+        uint32_t offset = 0;
     };
 
     struct TypeGenCache

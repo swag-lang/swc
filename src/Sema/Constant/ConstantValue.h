@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/ByteSpan.h"
 #include "Math/ApFloat.h"
 #include "Math/ApsInt.h"
 #include "Sema/Type/TypeInfo.h"

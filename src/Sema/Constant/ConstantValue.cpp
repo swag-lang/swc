@@ -8,6 +8,57 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    enum class NumericCmp
+    {
+        Same,
+        Eq,
+    };
+
+    bool compareSameKind(const ConstantValue& lhs, const ConstantValue& rhs, NumericCmp numericCmp) noexcept
+    {
+        SWC_ASSERT(lhs.kind() == rhs.kind());
+        switch (lhs.kind())
+        {
+            case ConstantKind::Bool:
+                return lhs.getBool() == rhs.getBool();
+            case ConstantKind::Char:
+                return lhs.getChar() == rhs.getChar();
+            case ConstantKind::Rune:
+                return lhs.getRune() == rhs.getRune();
+            case ConstantKind::String:
+                return lhs.getString() == rhs.getString();
+            case ConstantKind::Struct:
+                return lhs.getStruct().data() == rhs.getStruct().data();
+            case ConstantKind::AggregateArray:
+            case ConstantKind::AggregateStruct:
+                return lhs.getAggregate() == rhs.getAggregate();
+            case ConstantKind::Int:
+                return numericCmp == NumericCmp::Same ? lhs.getInt().same(rhs.getInt()) : lhs.getInt().eq(rhs.getInt());
+            case ConstantKind::Float:
+                return numericCmp == NumericCmp::Same ? lhs.getFloat().same(rhs.getFloat()) : lhs.getFloat().eq(rhs.getFloat());
+            case ConstantKind::TypeValue:
+                return lhs.getTypeValue() == rhs.getTypeValue();
+            case ConstantKind::EnumValue:
+                return lhs.getEnumValue() == rhs.getEnumValue();
+            case ConstantKind::ValuePointer:
+                return lhs.getValuePointer() == rhs.getValuePointer();
+            case ConstantKind::BlockPointer:
+                return lhs.getBlockPointer() == rhs.getBlockPointer();
+            case ConstantKind::Slice:
+                return lhs.getSlice().data() == rhs.getSlice().data();
+            case ConstantKind::Null:
+                return true;
+            case ConstantKind::Undefined:
+                return true;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+}
+
 // ReSharper disable once CppPossiblyUninitializedMember
 ConstantValue::ConstantValue()
 {
@@ -158,83 +209,14 @@ bool ConstantValue::operator==(const ConstantValue& rhs) const noexcept
     if (typeRef_ != rhs.typeRef_)
         return false;
 
-    switch (kind_)
-    {
-        case ConstantKind::Bool:
-            return getBool() == rhs.getBool();
-        case ConstantKind::Char:
-            return getChar() == rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() == rhs.getRune();
-        case ConstantKind::String:
-            return getString() == rhs.getString();
-        case ConstantKind::Struct:
-            return getStruct().data() == rhs.getStruct().data();
-        case ConstantKind::TypeValue:
-            return getTypeValue() == rhs.getTypeValue();
-        case ConstantKind::EnumValue:
-            return getEnumValue() == rhs.getEnumValue();
-        case ConstantKind::AggregateArray:
-        case ConstantKind::AggregateStruct:
-            return getAggregate() == rhs.getAggregate();
-        case ConstantKind::Int:
-            return getInt().same(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().same(rhs.getFloat());
-        case ConstantKind::ValuePointer:
-            return getValuePointer() == rhs.getValuePointer();
-        case ConstantKind::BlockPointer:
-            return getBlockPointer() == rhs.getBlockPointer();
-        case ConstantKind::Slice:
-            return getSlice().data() == rhs.getSlice().data();
-        case ConstantKind::Null:
-            return true;
-        case ConstantKind::Undefined:
-            return true;
-
-        default:
-            SWC_UNREACHABLE();
-    }
+    return compareSameKind(*this, rhs, NumericCmp::Same);
 }
 
 bool ConstantValue::eq(const ConstantValue& rhs) const noexcept
 {
     SWC_ASSERT(kind_ == rhs.kind_);
-    switch (kind_)
-    {
-        case ConstantKind::Bool:
-            return getBool() == rhs.getBool();
-        case ConstantKind::Char:
-            return getChar() == rhs.getChar();
-        case ConstantKind::Rune:
-            return getRune() == rhs.getRune();
-        case ConstantKind::String:
-            return getString() == rhs.getString();
-        case ConstantKind::Struct:
-            return getStruct().data() == rhs.getStruct().data();
-        case ConstantKind::AggregateArray:
-        case ConstantKind::AggregateStruct:
-            return getAggregate() == rhs.getAggregate();
-        case ConstantKind::Int:
-            return getInt().eq(rhs.getInt());
-        case ConstantKind::Float:
-            return getFloat().eq(rhs.getFloat());
-        case ConstantKind::TypeValue:
-            return getTypeValue() == rhs.getTypeValue();
-        case ConstantKind::ValuePointer:
-            return getValuePointer() == rhs.getValuePointer();
-        case ConstantKind::BlockPointer:
-            return getBlockPointer() == rhs.getBlockPointer();
-        case ConstantKind::Slice:
-            return getSlice().data() == rhs.getSlice().data();
-        case ConstantKind::Null:
-            return true;
-        case ConstantKind::Undefined:
-            return true;
 
-        default:
-            SWC_UNREACHABLE();
-    }
+    return compareSameKind(*this, rhs, NumericCmp::Eq);
 }
 
 bool ConstantValue::lt(const ConstantValue& rhs) const noexcept

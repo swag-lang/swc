@@ -6,8 +6,7 @@ SWC_BEGIN_NAMESPACE();
 std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value)
 {
     std::unique_lock lock(mutex_);
-    const auto [view, ref] = store_.push_copy_span(value);
-    return {ByteSpan{view.data(), view.size()}, ref};
+    return store_.push_copy_span(value);
 }
 
 std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
@@ -15,9 +14,10 @@ std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
     std::unique_lock lock(mutex_);
     if (const auto it = mapString_.find(value); it != mapString_.end())
         return it->second;
-    const auto res    = store_.push_copy_spawn(std::string_view(value));
-    mapString_[value] = res;
-    return res;
+    const auto [span, ref]      = store_.push_copy_span(asByteSpan(std::string_view(value)));
+    const std::string_view view = asStringView(span);
+    mapString_[value]           = {view, ref};
+    return {view, ref};
 }
 
 uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value)

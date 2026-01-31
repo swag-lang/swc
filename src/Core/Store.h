@@ -57,14 +57,6 @@ public:
         return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
     }
 
-    // Allocate and copy chars; returns a stable view + its Ref.
-    std::pair<std::string_view, Ref> push_copy_spawn(std::string_view payload)
-    {
-        auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), alignof(char));
-        std::memcpy(dst, payload.data(), payload.size());
-        return {{static_cast<const char*>(dst), payload.size()}, ref};
-    }
-
     template<class T>
     T* ptr(Ref ref) noexcept
     {

@@ -125,25 +125,24 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
         AstNodeRef lowest;
     };
 
-    Context context{.sema = &sema, .nodeRef = nodeRef, .lowest = AstNodeRef::invalid()};
-    Ast::visit(sema.ast(), nodeRef, &context, [](AstNodeRef childRef, const AstNode&, void* user) {
-        const auto ctx = static_cast<Context*>(user);
-        if (childRef == ctx->nodeRef)
+    AstNodeRef lowest = AstNodeRef::invalid();
+    Ast::visit(sema.ast(), nodeRef, [&](AstNodeRef childRef, const AstNode&) {
+        if (childRef == nodeRef)
             return Ast::VisitResult::Continue;
 
-        const SemaNodeView nodeView{*ctx->sema, childRef};
+        const SemaNodeView nodeView{sema, childRef};
         if (nodeView.cstRef.isInvalid())
         {
-            ctx->lowest = childRef;
+            lowest = childRef;
             return Ast::VisitResult::Continue;
         }
 
         return Ast::VisitResult::Skip;
     });
 
-    if (context.lowest.isValid())
+    if (lowest.isValid())
     {
-        const SourceCodeLocation loc = sema.node(context.lowest).locationWithChildren(sema.ctx(), sema.ast());
+        const SourceCodeLocation loc = sema.node(lowest).locationWithChildren(sema.ctx(), sema.ast());
         diag.addNote(DiagnosticId::sema_note_not_constant);
         diag.last().addSpan(loc);
     }

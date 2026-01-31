@@ -1,5 +1,3 @@
-#include <ranges>
-
 #include "pch.h"
 #include "Parser/Ast/Ast.h"
 
@@ -77,7 +75,7 @@ AstNodeRef Ast::findNodeRef(const AstNode* node) const
     return AstNodeRef::invalid();
 }
 
-void Ast::visit(const Ast& ast, AstNodeRef root, void* user, Visitor f)
+void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
 {
     SmallVector<AstNodeRef> children;
     SmallVector<AstNodeRef> stack;
@@ -91,7 +89,7 @@ void Ast::visit(const Ast& ast, AstNodeRef root, void* user, Visitor f)
             continue;
 
         const auto& node = ast.node(nodeRef);
-        const auto  res  = f(nodeRef, node, user);
+        const auto  res  = f(nodeRef, node);
         if (res == VisitResult::Stop)
             break;
         if (res == VisitResult::Skip)

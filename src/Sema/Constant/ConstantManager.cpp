@@ -124,9 +124,17 @@ ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& 
     auto&          shard      = shards_[shardIndex];
 
     if (value.isStruct())
+    {
+        if (value.isPayloadBorrowed())
+            return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstStruct(*this, shard, shardIndex, ctx, value);
+    }
     if (value.isSlice())
+    {
+        if (value.isPayloadBorrowed())
+            return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstSlice(*this, shard, shardIndex, ctx, value);
+    }
     if (value.isString())
         return addCstString(*this, shard, shardIndex, ctx, value);
 

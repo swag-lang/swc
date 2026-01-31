@@ -37,6 +37,12 @@ class ConstantValue
     friend class ConstantManager;
 
 public:
+    enum class PayloadOwnership : uint8_t
+    {
+        Owned,
+        Borrowed,
+    };
+
     ConstantValue();
     ConstantValue(const ConstantValue& other);
     ConstantValue(ConstantValue&& other) noexcept;
@@ -73,6 +79,12 @@ public:
     bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
     bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
     bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
+
+    bool isPayloadBorrowed() const
+    {
+        SWC_ASSERT(isStruct() || isSlice());
+        return payloadBorrowed_;
+    }
 
     // clang-format off
     bool getBool() const { SWC_ASSERT(isBool()); return payloadBool_.val; }
@@ -115,13 +127,16 @@ public:
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
+    static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
 
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
+    static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef, PayloadOwnership ownership);
 
     template<typename T>
     static ConstantValue makeIntSized(const TaskContext& ctx, T value)
@@ -139,6 +154,10 @@ public:
 private:
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeRef      typeRef_ = TypeRef::invalid();
+
+    // For Struct/Slice only. When borrowed, the ByteSpan points to external storage whose lifetime must outlive
+    // the constant (typically memory already stored in a `DataSegment`).
+    bool payloadBorrowed_ = false;
 
     union
     {

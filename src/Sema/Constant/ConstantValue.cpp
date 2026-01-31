@@ -15,7 +15,8 @@ ConstantValue::ConstantValue()
 
 ConstantValue::ConstantValue(const ConstantValue& other) :
     kind_(other.kind_),
-    typeRef_(other.typeRef_)
+    typeRef_(other.typeRef_),
+    payloadBorrowed_(other.payloadBorrowed_)
 {
     switch (kind_)
     {
@@ -66,7 +67,8 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
 
 ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     kind_(other.kind_),
-    typeRef_(other.typeRef_)
+    typeRef_(other.typeRef_),
+    payloadBorrowed_(other.payloadBorrowed_)
 {
     switch (kind_)
     {
@@ -115,6 +117,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
     }
 
     other.kind_ = ConstantKind::Invalid;
+    other.payloadBorrowed_ = false;
 }
 
 ConstantValue::~ConstantValue()
@@ -457,6 +460,18 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, Byt
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
     cv.payloadStruct_.val = bytes;
+    cv.payloadBorrowed_   = false;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+{
+    ConstantValue cv;
+    cv.typeRef_           = typeRef;
+    cv.kind_              = ConstantKind::Struct;
+    cv.payloadStruct_.val = bytes;
+    cv.payloadBorrowed_   = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
@@ -519,11 +534,29 @@ ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSp
     cv.typeRef_          = ctx.typeMgr().addType(ty);
     cv.kind_             = ConstantKind::Slice;
     cv.payloadSlice_.val = bytes;
+    cv.payloadBorrowed_  = false;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
+{
+    ConstantValue  cv;
+    const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
+    cv.typeRef_          = ctx.typeMgr().addType(ty);
+    cv.kind_             = ConstantKind::Slice;
+    cv.payloadSlice_.val = bytes;
+    cv.payloadBorrowed_  = true;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
 ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef)
+{
+    return make(ctx, valuePtr, typeRef, PayloadOwnership::Owned);
+}
+
+ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef, PayloadOwnership ownership)
 {
     SWC_ASSERT(valuePtr);
 
@@ -532,6 +565,8 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
     if (ty.isStruct())
     {
         const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        if (ownership == PayloadOwnership::Borrowed)
+            return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
     }
 
@@ -574,6 +609,8 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
     {
         const auto     slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
         const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        if (ownership == PayloadOwnership::Borrowed)
+            return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span);
         return makeSlice(ctx, ty.payloadTypeRef(), span);
     }
 

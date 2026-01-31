@@ -130,10 +130,10 @@ public:
     static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
-    static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
-    static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef);
     static ConstantValue make(TaskContext& ctx, const void* valuePtr, TypeRef typeRef, PayloadOwnership ownership);

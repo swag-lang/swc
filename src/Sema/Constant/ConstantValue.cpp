@@ -471,7 +471,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
     return cv;
 }
 
-ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
+ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags)
 {
     ConstantValue  cv;
     const TypeInfo ty      = TypeInfo::makeValuePointer(typeRef, flags);
@@ -482,7 +482,7 @@ ConstantValue ConstantValue::makeValuePointer(TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlagsE flags)
+ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags)
 {
     ConstantValue  cv;
     const TypeInfo ty      = TypeInfo::makeBlockPointer(typeRef, flags);
@@ -493,7 +493,7 @@ ConstantValue ConstantValue::makeBlockPointer(TaskContext& ctx, TypeRef typeRef,
     return cv;
 }
 
-ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
+ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
 {
     ConstantValue  cv;
     const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
@@ -505,7 +505,7 @@ ConstantValue ConstantValue::makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSp
     return cv;
 }
 
-ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlagsE flags)
+ConstantValue ConstantValue::makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags)
 {
     ConstantValue  cv;
     const TypeInfo ty    = TypeInfo::makeSlice(typeRef, flags);
@@ -562,13 +562,13 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
     if (ty.isValuePointer())
     {
         const auto val = *static_cast<const uint64_t*>(valuePtr);
-        return makeValuePointer(ctx, ty.payloadTypeRef(), val);
+        return makeValuePointer(ctx, ty.payloadTypeRef(), val, ty.flags());
     }
 
     if (ty.isBlockPointer())
     {
         const auto val = *static_cast<const uint64_t*>(valuePtr);
-        return makeBlockPointer(ctx, ty.payloadTypeRef(), val);
+        return makeBlockPointer(ctx, ty.payloadTypeRef(), val, ty.flags());
     }
 
     if (ty.isSlice())

@@ -432,7 +432,7 @@ namespace
 
             case LayoutKind::Struct:
             {
-                // Wire each `TypeValue.pointedType` of `fields`.
+                // Wire each 'TypeValue.pointedType' of 'fields'.
                 if (!entry.structFieldsCount || !entry.structFieldsOffset)
                     break;
 
@@ -459,6 +459,19 @@ namespace
         const TypeManager& tm   = ctx.typeMgr();
         const AstNode&     node = sema.node(ownerNodeRef);
 
+        // Non-recursive (explicit stack) type-info generation.
+        //
+        // We need to emit one runtime 'TypeInfo*' payload per type, and then "wire" all
+        // the internal 'TypeRef' links to offsets in the 'DataSegment' via relocations.
+        //
+        // The algorithm is a DFS over type dependencies:
+        // - First pass for a type: allocate payload + initialize fields that don't depend
+        //   on other type infos (common init + optional struct field metadata).
+        // - Collect dependencies for the type and push them.
+        // - Once all deps are done: wire relocations for this type and mark it Done.
+        //
+        // This is intentionally iterative to avoid recursion depth issues and to allow
+        // pausing/resuming if needed by the compiler pipeline.
         SmallVector<TypeRef>        stack;
         std::unordered_set<TypeRef> inStack;
 
@@ -467,28 +480,42 @@ namespace
 
         while (!stack.empty())
         {
+            // The current node in the DFS. We only pop it once it's fully processed.
             const TypeRef   key  = stack.back();
             const TypeInfo& type = tm.get(key);
 
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())
             {
+                // The first time we see this type in the cache: allocate and initialize its
+                // runtime payload, then compute its dependency list.
                 TypeGen::TypeGenCache::Entry entry;
 
                 const LayoutKind kind = layoutKindOf(type);
                 entry.rtTypeRef       = rtTypeRefFor(tm, kind);
+
+                // Make sure the runtime TypeInfo struct definition exists before we write
+                // an instance of it into the 'DataSegment'.
                 RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.rtTypeRef, node));
 
+                // Allocate the concrete runtime payload (TypeInfoStruct/TypeInfoPtr/...) in
+                // the target storage and remember its offset.
                 auto [offset, rtBase] = allocateTypeInfoPayload(storage, kind, type);
                 entry.offset          = offset;
 
                 TypeGen::TypeGenResult tmp;
                 tmp.rtTypeRef = entry.rtTypeRef;
                 tmp.offset    = entry.offset;
+
+                // Fill the common fields that are independent of other type infos.
                 initCommon(sema, storage, *rtBase, offset, type, tmp);
+
+                // For structs, also emit the field list, but the per-field 'pointedType'
+                // links will be fixed up later when dependencies are Done.
                 if (kind == LayoutKind::Struct)
                     initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase), offset, type, entry);
 
+                // Compute direct dependencies required to wire this payload.
                 entry.deps = computeDeps(tm, ctx, type, kind);
                 it         = cache.entries.emplace(key, std::move(entry)).first;
             }
@@ -496,6 +523,7 @@ namespace
             auto& entry = it->second;
             if (entry.state == TypeGen::TypeGenCache::State::Done)
             {
+                // Fully processed: pop and continue unwinding.
                 stack.pop_back();
                 inStack.erase(key);
                 continue;
@@ -516,6 +544,7 @@ namespace
 
                 if (!inStack.contains(depKey))
                 {
+                    // Depth-first: process this dependency before completing 'key'.
                     stack.push_back(depKey);
                     inStack.insert(depKey);
                 }

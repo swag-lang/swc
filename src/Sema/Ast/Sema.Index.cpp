@@ -5,7 +5,9 @@
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Match/MatchContext.h"
+#include "Sema/Symbol/Symbol.Enum.h"
 #include "Sema/Type/TypeManager.h"
+#include "Runtime/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -69,6 +71,66 @@ namespace
                 return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
             const ConstantValue cst = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+            return Result::Continue;
+        }
+
+        ////////////////////////////////////////////////////////
+        if (nodeExprView.cst->isSlice())
+        {
+            auto&          ctx        = sema.ctx();
+            const TypeRef  elemTypeRef = nodeExprView.type->payloadTypeRef();
+            const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
+
+            const uint64_t elemSize = elemType.sizeOf(ctx);
+            if (!elemSize)
+                return Result::Continue;
+
+            const ByteSpan bytes      = nodeExprView.cst->getSlice();
+            const uint64_t numEntries = bytes.size() / elemSize;
+            if (std::cmp_greater_equal(constIndex, numEntries))
+                return SemaError::raiseIndexOutOfRange(sema, constIndex, numEntries, nodeArgRef);
+
+            const auto elemBytes = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
+
+            const TypeInfo* typeField = &elemType;
+            if (typeField->isEnum())
+                typeField = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
+
+            ConstantValue cv;
+            if (typeField->isStruct())
+            {
+                cv = ConstantValue::makeStruct(ctx, typeField->payloadTypeRef(), elemBytes);
+            }
+            else if (typeField->isBool())
+            {
+                cv = ConstantValue::makeBool(ctx, *reinterpret_cast<const bool*>(elemBytes.data()));
+            }
+            else if (typeField->isIntLike())
+            {
+                const ApsInt apsInt(reinterpret_cast<const char*>(elemBytes.data()), typeField->payloadIntLikeBits(), typeField->isIntUnsigned());
+                cv = ConstantValue::makeFromIntLike(ctx, apsInt, *typeField);
+            }
+            else if (typeField->isFloat())
+            {
+                const ApFloat apFloat(reinterpret_cast<const char*>(elemBytes.data()), typeField->payloadFloatBits());
+                cv = ConstantValue::makeFloat(ctx, apFloat, typeField->payloadFloatBits());
+            }
+            else if (typeField->isString())
+            {
+                const auto str = reinterpret_cast<const Runtime::String*>(elemBytes.data());
+                cv             = ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
+            }
+            else if (typeField->isValuePointer())
+            {
+                const auto val = *reinterpret_cast<const uint64_t*>(elemBytes.data());
+                cv             = ConstantValue::makeValuePointer(ctx, typeField->payloadTypeRef(), val);
+            }
+            else
+            {
+                return Result::Continue;
+            }
+
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cv));
             return Result::Continue;
         }
 

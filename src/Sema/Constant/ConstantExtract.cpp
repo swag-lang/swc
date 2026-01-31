@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Sema/Constant/SemaExtract.h"
 #include "Runtime/Runtime.h"
+#include "Sema/Constant/ConstantExtract.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
@@ -11,7 +11,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result SemaExtract::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantExtract::extractConstantStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&    ctx = sema.ctx();
     ByteSpan bytes;
@@ -105,7 +105,7 @@ Result SemaExtract::extractConstantStructMember(Sema& sema, const ConstantValue&
     return Result::Continue;
 }
 
-Result SemaExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
+Result ConstantExtract::constantFoldIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeExprView, int64_t constIndex, bool hasConstIndex)
 {
     if (!hasConstIndex || !nodeExprView.cst)
         return Result::Continue;

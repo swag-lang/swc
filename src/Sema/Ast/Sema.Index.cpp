@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
 #include "Parser/Ast/AstNodes.h"
+#include "Sema/Constant/ConstantExtract.h"
 #include "Sema/Constant/ConstantManager.h"
-#include "Sema/Constant/SemaExtract.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Match/MatchContext.h"
@@ -105,7 +105,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    RESULT_VERIFY(SemaExtract::constantFoldIndex(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
+    RESULT_VERIFY(ConstantExtract::constantFoldIndex(sema, nodeArgRef, nodeExprView, constIndex, hasConstIndex));
 
     SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);

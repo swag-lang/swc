@@ -679,7 +679,7 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::vector<int64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeArray(const std::vector<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Array, flags};
     std::construct_at(&ti.payloadArray_.dims, dims);

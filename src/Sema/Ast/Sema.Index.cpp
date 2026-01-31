@@ -100,7 +100,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         const auto  numExpected = arrayDims.size();
         if (numExpected > 1)
         {
-            std::vector<int64_t> dims;
+            std::vector<uint64_t> dims;
             for (size_t i = 1; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());
@@ -221,7 +221,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot < numExpected)
         {
-            std::vector<int64_t> dims;
+            std::vector<uint64_t> dims;
             for (size_t i = numGot; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());

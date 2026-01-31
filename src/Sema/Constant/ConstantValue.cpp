@@ -464,7 +464,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::vec
 
     ConstantValue     cv;
     const TypeRef     elemTypeRef = ctx.cstMgr().get(values[0]).typeRef();
-    const std::vector dims        = {static_cast<int64_t>(values.size())};
+    const std::vector dims        = {values.size()};
     cv.typeRef_                   = ctx.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
     cv.kind_                      = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values);

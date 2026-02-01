@@ -138,3 +138,9 @@
     var b = cast(string) a
     var c = cast(cstring) a
 }
+
+#test
+{
+    var a: [*] s32
+    var b = cast(u64) a
+}

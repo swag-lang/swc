@@ -106,7 +106,7 @@ namespace
             return Result::Error;
         }
 
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         if (!srcType.isPointerLike() && !srcType.isIntLike())
         {
@@ -134,7 +134,7 @@ namespace
 
     Result castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
@@ -181,7 +181,7 @@ namespace
 
     Result castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
 
         switch (castCtx.kind)
@@ -233,7 +233,7 @@ namespace
 
     Result castToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
 
         if (srcType.isBool())
@@ -243,13 +243,24 @@ namespace
         if (srcType.isFloat())
             return castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
 
+        if (castCtx.kind == CastKind::Explicit)
+        {
+            // From pointer
+            if (srcType.isAnyPointer() && dstTypeRef == sema.typeMgr().typeU64())
+            {
+                if (castCtx.isConstantFolding())
+                    Cast::foldConstantIdentity(castCtx);
+                return Result::Continue;
+            }
+        }
+
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
 
     Result castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
@@ -293,7 +304,7 @@ namespace
 
     Result castToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.ctx().typeMgr();
+        const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
 
         if (srcType.isFloat())
@@ -504,7 +515,7 @@ namespace
             }
         }
 
-        if (srcTypeRef == sema.ctx().typeMgr().typeU64())
+        if (srcTypeRef == sema.typeMgr().typeU64())
         {
             if (castCtx.kind == CastKind::Explicit)
                 return Result::Continue;
@@ -644,7 +655,7 @@ namespace
 
     Result castToString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& typeMgr = sema.typeMgr();
         const auto& srcType = typeMgr.get(srcTypeRef);
         if (srcType.isSlice())
         {
@@ -675,7 +686,7 @@ namespace
 
     Result castToCString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& typeMgr = sema.typeMgr();
         const auto& srcType = typeMgr.get(srcTypeRef);
 
         if (srcType.isBlockPointer())
@@ -696,7 +707,7 @@ namespace
 
     Result castToVariadic(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto& typeMgr = sema.ctx().typeMgr();
+        const auto& typeMgr = sema.typeMgr();
         const auto& dstType = typeMgr.get(dstTypeRef);
 
         if (dstType.isVariadic())
@@ -736,7 +747,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
 
-    const auto&     typeMgr = sema.ctx().typeMgr();
+    const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 

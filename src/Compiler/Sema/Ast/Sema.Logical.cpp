@@ -68,8 +68,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
-    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
-    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::Condition));
+    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeBool(), CastKind::Condition));
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding

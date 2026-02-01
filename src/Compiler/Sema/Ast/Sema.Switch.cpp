@@ -96,9 +96,9 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeExprRef)
     {
         const SemaNodeView exprView(sema, nodeExprRef);
-        const TypeInfo&    type      = sema.ctx().typeMgr().get(exprView.typeRef);
+        const TypeInfo&    type      = sema.typeMgr().get(exprView.typeRef);
         const TypeRef      ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo&    finalType = sema.ctx().typeMgr().get(ultimate);
+        const TypeInfo&    finalType = sema.typeMgr().get(ultimate);
         if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
@@ -265,7 +265,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (childRef == nodeWhereRef)
     {
         SemaNodeView nodeView(sema, nodeWhereRef);
-        return Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition);
+        return Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition);
     }
 
     // Be sure this is a case expression
@@ -285,7 +285,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (switchTypeRef.isInvalid())
     {
         SemaNodeView nodeView(sema, childRef);
-        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
         return Result::Continue;
     }
 

@@ -22,7 +22,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SemaInfo::setIsValue(*this);
 
     // Condition must be bool
-    RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.ctx().typeMgr().typeBool(), CastKind::Condition));
+    RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::Condition));
 
     // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();

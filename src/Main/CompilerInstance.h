@@ -1,8 +1,8 @@
 #pragma once
 #include "Memory/Arena.h"
 #include "Report/ExitCodes.h"
-#include "Thread/JobManager.h"
-#include "Thread/RaceCondition.h"
+#include "Support/Thread/JobManager.h"
+#include "Support/Thread/RaceCondition.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();

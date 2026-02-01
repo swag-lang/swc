@@ -1,6 +1,6 @@
 #pragma once
 #include "Sema/Core/Sema.h"
-#include "Thread/Job.h"
+#include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
 

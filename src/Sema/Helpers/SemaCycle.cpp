@@ -5,7 +5,7 @@
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaJob.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

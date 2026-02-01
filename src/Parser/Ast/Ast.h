@@ -4,7 +4,7 @@
 #include "Main/Stats.h"
 #include "Parser/Ast/AstNode.h"
 #include "Parser/Ast/AstNodes.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

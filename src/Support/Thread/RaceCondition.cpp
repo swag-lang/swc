@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Thread/RaceCondition.h"
+#include "Support/Thread/RaceCondition.h"
 #include "Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

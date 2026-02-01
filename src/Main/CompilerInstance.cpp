@@ -17,7 +17,7 @@
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Type/TypeGen.h"
 #include "Sema/Type/TypeManager.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();

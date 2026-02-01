@@ -3,7 +3,7 @@
 #include "Lexer/LangSpec.h"
 #include "Os/Os.h"
 #include "Report/Logger.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

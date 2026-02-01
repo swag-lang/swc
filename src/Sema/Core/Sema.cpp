@@ -10,7 +10,7 @@
 #include "Sema/Helpers/SemaCycle.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/JobManager.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE();

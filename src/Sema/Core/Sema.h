@@ -4,7 +4,7 @@
 #include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Sema/Core/SemaScope.h"
-#include "Thread/Job.h"
+#include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -8,8 +8,8 @@
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Support/Math/Hash.h"
-#include "Thread/Job.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/Job.h"
+#include "Support/Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();

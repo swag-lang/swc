@@ -6,8 +6,8 @@
 #include "Parser/Ast/Ast.h"
 #include "Parser/Parser/Parser.h"
 #include "Parser/Parser/ParserJob.h"
-#include "Thread/Job.h"
-#include "Thread/JobManager.h"
+#include "Support/Thread/Job.h"
+#include "Support/Thread/JobManager.h"
 #include "Wmf/SourceFile.h"
 #include "Wmf/Verify.h"
 

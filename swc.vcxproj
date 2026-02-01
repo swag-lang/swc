@@ -307,8 +307,8 @@
         <ClCompile Include="src\Sema\Type\TypeGen.Process.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
-        <ClCompile Include="src\Thread\JobManager.cpp"/>
-        <ClCompile Include="src\Thread\RaceCondition.cpp"/>
+        <ClCompile Include="src\Support\Thread\JobManager.cpp"/>
+        <ClCompile Include="src\Support\Thread\RaceCondition.cpp"/>
         <ClCompile Include="src\Wmf\SourceFile.cpp"/>
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
@@ -412,9 +412,9 @@
         <ClInclude Include="src\Sema\Type\TypeGen.Internal.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>
-        <ClInclude Include="src\Thread\Job.h"/>
-        <ClInclude Include="src\Thread\JobManager.h"/>
-        <ClInclude Include="src\Thread\RaceCondition.h"/>
+        <ClInclude Include="src\Support\Thread\Job.h"/>
+        <ClInclude Include="src\Support\Thread\JobManager.h"/>
+        <ClInclude Include="src\Support\Thread\RaceCondition.h"/>
         <ClInclude Include="src\Wmf\SourceFile.h"/>
         <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>

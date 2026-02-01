@@ -153,8 +153,8 @@ namespace
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeViewSize));
 
-        if (!nodeViewPtr.type->isAnyPointer())
-            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
+        if (!nodeViewPtr.type->isValuePointer())
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeValuePtrVoid());
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (nodeViewPtr.type->isConst())

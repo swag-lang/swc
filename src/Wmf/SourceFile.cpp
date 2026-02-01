@@ -1,12 +1,12 @@
 ﻿#include "pch.h"
 #include "Wmf/SourceFile.h"
-#include "Support/Core/Timer.h"
+#include "Compiler/Sema/Core/SemaInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Timer.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
-#include "Sema/Core/SemaInfo.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1,6 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
-#include "Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

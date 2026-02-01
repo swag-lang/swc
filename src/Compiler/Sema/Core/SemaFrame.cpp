@@ -1,0 +1,82 @@
+#include "pch.h"
+#include "Compiler/Sema/Core/SemaFrame.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
+
+SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    SymbolMap* followNamespace(Sema& sema, SymbolMap* root, std::span<const IdentifierRef> nsPath)
+    {
+        SymbolMap* m = root;
+        for (const IdentifierRef idRef : nsPath)
+        {
+            auto&   ctx = sema.ctx();
+            auto*   ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+            Symbol* res = m->addSingleSymbol(ctx, ns);
+            SWC_ASSERT(res->isNamespace());
+            m = res->asSymMap();
+        }
+
+        return m;
+    }
+}
+
+void SemaFrame::pushBindingType(TypeRef type)
+{
+    if (type.isValid())
+        bindingTypes_.push_back(type);
+}
+
+void SemaFrame::popBindingType()
+{
+    if (!bindingTypes_.empty())
+        bindingTypes_.pop_back();
+}
+
+void SemaFrame::pushBindingVar(SymbolVariable* sym)
+{
+    if (sym)
+        bindingVars_.push_back(sym);
+}
+
+void SemaFrame::popBindingVar()
+{
+    if (!bindingVars_.empty())
+        bindingVars_.pop_back();
+}
+
+void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
+{
+    breakable_.nodeRef = nodeRef;
+    breakable_.kind    = kind;
+}
+
+SymbolMap* SemaFrame::currentSymMap(Sema& sema)
+{
+    SymbolMap* symbolMap = sema.curSymMap();
+
+    if (!sema.curScope().isTopLevel() || sema.curScope().isImpl())
+        return symbolMap;
+
+    const SymbolAccess access = sema.frame().currentAccess();
+
+    SymbolMap* root = nullptr;
+    if (access == SymbolAccess::Internal)
+        root = &sema.semaInfo().fileNamespace();
+    else
+        root = &sema.semaInfo().moduleNamespace();
+
+    return followNamespace(sema, root, sema.frame().nsPath());
+}
+
+SymbolFlags SemaFrame::flagsForCurrentAccess() const
+{
+    SymbolFlags flags = SymbolFlagsE::Zero;
+    if (currentAccess() == SymbolAccess::Public)
+        flags.add(SymbolFlagsE::Public);
+    return flags;
+}
+
+SWC_END_NAMESPACE();

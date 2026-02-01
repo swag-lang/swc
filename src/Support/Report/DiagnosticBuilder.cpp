@@ -1,17 +1,17 @@
 #include "pch.h"
 #include "Support/Report/DiagnosticBuilder.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SyntaxColor.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticElement.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/LogSymbol.h"
-#include "Sema/Constant/ConstantManager.h"
-#include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

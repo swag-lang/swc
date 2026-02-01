@@ -1,8 +1,8 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/DiagnosticDef.h"
-#include "Sema/Constant/ConstantValue.h"
-#include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

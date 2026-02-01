@@ -79,28 +79,28 @@
         <OutDir>bin/</OutDir>
         <IntDir>.tmp/x64/debug/</IntDir>
         <TargetName>swc_debug</TargetName>
-        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+        <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
         <OutDir>bin/</OutDir>
         <IntDir>.tmp/x64/release/</IntDir>
         <TargetName>swc</TargetName>
-        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+        <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
         <LinkIncremental>false</LinkIncremental>
         <OutDir>bin/</OutDir>
         <IntDir>.tmp/x64/stats/</IntDir>
         <TargetName>swc_stats</TargetName>
-        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+        <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
         <LinkIncremental>false</LinkIncremental>
         <OutDir>bin/</OutDir>
         <IntDir>.tmp/x64/devmode/</IntDir>
         <TargetName>swc_devmode</TargetName>
-        <IncludePath>src/;src/memory/mimalloc/include</IncludePath>
+        <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
         <ClCompile>
@@ -209,10 +209,10 @@
         <ClCompile Include="src\Support\Math\ApsInt.cpp"/>
         <ClCompile Include="src\Support\Math\Hash.cpp"/>
         <ClCompile Include="src\Support\Math\Helpers.cpp"/>
-        <ClCompile Include="src\Memory\Allocator.cpp"/>
-        <ClCompile Include="src\Memory\Arena.cpp"/>
-        <ClCompile Include="src\Memory\Heap.cpp"/>
-        <ClCompile Include="src\Memory\Mimalloc.cpp">
+        <ClCompile Include="src\Support\Memory\Allocator.cpp"/>
+        <ClCompile Include="src\Support\Memory\Arena.cpp"/>
+        <ClCompile Include="src\Support\Memory\Heap.cpp"/>
+        <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
@@ -344,8 +344,8 @@
         <ClInclude Include="src\Support\Math\ApsInt.h"/>
         <ClInclude Include="src\Support\Math\Hash.h"/>
         <ClInclude Include="src\Support\Math\Helpers.h"/>
-        <ClInclude Include="src\Memory\Arena.h"/>
-        <ClInclude Include="src\Memory\Heap.h"/>
+        <ClInclude Include="src\Support\Memory\Arena.h"/>
+        <ClInclude Include="src\Support\Memory\Heap.h"/>
         <ClInclude Include="src\Support\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast\Ast.h"/>
         <ClInclude Include="src\Parser\Ast\AstNode.h"/>
@@ -419,7 +419,7 @@
         <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="src\Memory\mimalloc\"/>
+        <Folder Include="src\Support\Memory\mimalloc\"/>
         <Folder Include="src\Support\"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>

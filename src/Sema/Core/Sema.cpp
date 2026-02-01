@@ -2,7 +2,6 @@
 #include "Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
-#include "Memory/Heap.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Sema/Core/SemaJob.h"
@@ -10,6 +9,7 @@
 #include "Sema/Helpers/SemaCycle.h"
 #include "Sema/Helpers/SemaError.h"
 #include "Sema/Symbol/Symbols.h"
+#include "Support/Memory/Heap.h"
 #include "Support/Thread/JobManager.h"
 #include "Wmf/Verify.h"
 

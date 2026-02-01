@@ -12,7 +12,7 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
     std::unique_lock lk(mutexImpls_);
     symImpl.setSymStruct(this);
     impls_.push_back(&symImpl);
-    sema.ctx().compiler().notifyAlive();
+    sema.compiler().notifyAlive();
 }
 
 std::vector<SymbolImpl*> SymbolStruct::impls() const
@@ -53,7 +53,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
-    sema.ctx().compiler().notifyAlive();
+    sema.compiler().notifyAlive();
     return Result::Continue;
 }
 

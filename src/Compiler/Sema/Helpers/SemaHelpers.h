@@ -34,7 +34,7 @@ namespace SemaHelpers
 
     inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
     {
-        const uint32_t id = sema.ctx().compiler().atomicId().fetch_add(1);
+        const uint32_t id = sema.compiler().atomicId().fetch_add(1);
         return sema.idMgr().addIdentifier(std::format("{}_{}", name, id));
     }
 

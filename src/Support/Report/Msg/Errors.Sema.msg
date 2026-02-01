@@ -30,6 +30,7 @@ SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many identifiers
 SWC_DIAG_DEF(sema_err_decomposition_not_enough_names, Error, "not enough identifiers in the decomposition; the struct has {count} fields")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_wait_sym_declared, Error, "the symbol '{sym}' has not been declared")
+SWC_DIAG_DEF(sema_err_wait_impl_registration, Error, "waiting for implementation registration") 
 SWC_DIAG_DEF(sema_err_wait_sym_typed, Error, "the symbol '{sym}' has not been typed")
 SWC_DIAG_DEF(sema_err_wait_sym_completed, Error, "the symbol '{sym}' has not been completed")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")

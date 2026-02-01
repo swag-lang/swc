@@ -13,7 +13,6 @@ impl I for A {
 }
 
 namespace B {}
-
 /*
 impl I for B {} // swc-expected-error {{sema_err_impl_not_struct}}
 impl B for B {} // swc-expected-error {{sema_err_impl_not_interface}}

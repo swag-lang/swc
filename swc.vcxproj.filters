@@ -112,6 +112,9 @@
     <ClCompile Include="src\Sema\Symbol\Symbol.Interface.cpp" />
     <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp" />
     <ClCompile Include="src\Sema\Type\TypeGen.cpp" />
+    <ClCompile Include="src\Sema\Type\TypeGen.Layout.cpp" />
+    <ClCompile Include="src\Sema\Type\TypeGen.Payload.cpp" />
+    <ClCompile Include="src\Sema\Type\TypeGen.Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\pch.h" />
@@ -166,6 +169,7 @@
     <ClInclude Include="src\Sema\Symbol\Symbol.h" />
     <ClInclude Include="src\Sema\Type\TypeInfo.h" />
     <ClInclude Include="src\Sema\Type\TypeManager.h" />
+    <ClInclude Include="src\Sema\Type\TypeGen.Internal.h" />
     <ClInclude Include="src\Thread\RaceCondition.h" />
     <ClInclude Include="src\Wmf\SourceFile.h" />
     <ClInclude Include="src\Wmf\Verify.h" />

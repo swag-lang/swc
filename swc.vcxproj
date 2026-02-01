@@ -279,7 +279,7 @@
         <ClCompile Include="src\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Sema\Constant\ConstantValue.cpp"/>
-        <ClCompile Include="src\Sema\Constant\ConstantExtract.cpp" />
+        <ClCompile Include="src\Sema\Constant\ConstantExtract.cpp"/>
         <ClCompile Include="src\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaFrame.cpp"/>
         <ClCompile Include="src\Sema\Core\SemaInfo.cpp"/>
@@ -302,6 +302,9 @@
         <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Sema\Symbol\Symbol.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeGen.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeGen.Layout.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeGen.Payload.cpp"/>
+        <ClCompile Include="src\Sema\Type\TypeGen.Process.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Sema\Type\TypeManager.cpp"/>
         <ClCompile Include="src\Thread\JobManager.cpp"/>
@@ -378,7 +381,7 @@
         <ClInclude Include="src\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Sema\Constant\ConstantValue.h"/>
-        <ClInclude Include="src\Sema\Constant\ConstantExtract.h" />
+        <ClInclude Include="src\Sema\Constant\ConstantExtract.h"/>
         <ClInclude Include="src\Sema\Core\AttributeList.h"/>
         <ClInclude Include="src\Sema\Core\Sema.h"/>
         <ClInclude Include="src\Sema\Core\SemaFrame.h"/>
@@ -406,6 +409,7 @@
         <ClInclude Include="src\Sema\Symbol\SymbolMap.h"/>
         <ClInclude Include="src\Sema\Symbol\Symbol.h"/>
         <ClInclude Include="src\Sema\Type\TypeGen.h"/>
+        <ClInclude Include="src\Sema\Type\TypeGen.Internal.h"/>
         <ClInclude Include="src\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Sema\Type\TypeManager.h"/>
         <ClInclude Include="src\Thread\Job.h"/>

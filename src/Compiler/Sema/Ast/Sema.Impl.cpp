@@ -26,7 +26,6 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
             const SemaNodeView forView(sema, nodeForRef);
             targetIdRef = sema.idMgr().addIdentifier(sema.ctx(), forView.node->srcViewRef(), forView.node->tokRef());
         }
-        sym->setTargetIdRef(targetIdRef);
 
         // An `impl` block will be registered to its target (struct/enum/interface) only in the
         // second pass, once the name lookup has run. Track pending registrations so completion of
@@ -99,7 +98,15 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         if (!symImpl.isPendingRegistrationResolved())
         {
             symImpl.setPendingRegistrationResolved();
-            sema.compiler().decPendingImplRegistrations(symImpl.targetIdRef());
+
+            IdentifierRef targetIdRef = symImpl.idRef();
+            if (nodeForRef.isValid())
+            {
+                const SemaNodeView forView(sema, nodeForRef);
+                targetIdRef = sema.idMgr().addIdentifier(sema.ctx(), forView.node->srcViewRef(), forView.node->tokRef());
+            }
+
+            sema.compiler().decPendingImplRegistrations(targetIdRef);
         }
 
         auto frame = sema.frame();

@@ -34,11 +34,8 @@ public:
     void          setSymStruct(SymbolStruct* sym);
     SymbolEnum*   symEnum() const;
     void          setSymEnum(SymbolEnum* sym);
-    IdentifierRef targetIdRef() const noexcept { return targetIdRef_; }
-    void          setTargetIdRef(IdentifierRef idRef) noexcept { targetIdRef_ = idRef; }
 
 private:
-    IdentifierRef targetIdRef_ = IdentifierRef::invalid();
     union
     {
         SymbolStruct* ownerStruct_ = nullptr;

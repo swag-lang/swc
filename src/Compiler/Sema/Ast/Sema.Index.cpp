@@ -56,7 +56,6 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     bool    hasConstIndex = false;
     RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
 
-    ////////////////////////////////////////////////////////
     if (nodeExprView.type->isArray())
     {
         const auto&    arrayDims   = nodeExprView.type->payloadArrayDims();
@@ -74,32 +73,23 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
             sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
     }
-
-    ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isBlockPointer())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
     }
-
-    ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isSlice())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadTypeRef());
     }
-
-    ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isString() || nodeExprView.type->isCString())
     {
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
     }
 
-    ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isValuePointer())
     {
         return SemaError::raisePointerArithmeticValuePointer(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
     }
-
-    ////////////////////////////////////////////////////////
     else
     {
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
@@ -121,7 +111,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> children;
     sema.ast().nodes(children, spanChildrenRef);
 
-    ////////////////////////////////////////////////////////
     if (nodeExprView.type->isArray())
     {
         const auto&    arrayDims   = nodeExprView.type->payloadArrayDims();
@@ -194,8 +183,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }
-
-    ////////////////////////////////////////////////////////
     else if (nodeExprView.type->isSlice())
     {
         const size_t numGot = children.size();
@@ -220,8 +207,6 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         if (SemaInfo::isLValue(sema.node(nodeExprRef)))
             SemaInfo::setIsLValue(*this);
     }
-
-    ////////////////////////////////////////////////////////
     else
     {
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);

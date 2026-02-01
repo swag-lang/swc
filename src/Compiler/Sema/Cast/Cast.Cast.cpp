@@ -456,15 +456,13 @@ namespace
                 ok = true;
             else if (srcType.isValuePointer() && dstType.isBlockPointer() && castCtx.kind == CastKind::Explicit)
                 ok = true;
-            // TODO
-            // @compatibility
+            // TODO @legacy
             else if (sameUnderlying || srcIsVoid || dstIsVoid)
                 ok = true;
 
             if (ok)
             {
-                // TODO
-                // @compatibility
+                // TODO @legacy
                 if (dstType.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Pointer) == sema.typeMgr().typeVoid())
                 {
                 }
@@ -538,6 +536,14 @@ namespace
 
                 return Result::Continue;
             }
+        }
+
+        // TODO @legacy (for parameters of type struct, which in fact are references)
+        if (srcType.isStruct())
+        {
+            const auto dstElemTypeRef = dstType.payloadTypeRef();
+            if (srcTypeRef == dstElemTypeRef)
+                return Result::Continue;
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

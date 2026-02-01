@@ -223,8 +223,7 @@ namespace
         if (nodeView.type->isArray())
             blockPointer = true;
 
-        // TODO
-        // @compatibility
+        // TODO @legacy
         if (const auto* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
         {
             const SemaNodeView baseView(sema, idxExpr->nodeExprRef);

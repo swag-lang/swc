@@ -178,8 +178,11 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     auto&          shard      = shards_[shardIndex];
 
     TypeGen::TypeGenResult infoResult;
-    std::unique_lock       lk(shard.mutex);
-    RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+
+    {
+        std::unique_lock lk(shard.mutex);
+        RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+    }
 
     // 'typeinfo(T)' produces a value of the built-in 'TypeInfo' type.
     // That type is a pointer to the runtime typeinfo payload stored in the 'DataSegment'.

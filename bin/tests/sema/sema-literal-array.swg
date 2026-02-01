@@ -126,5 +126,5 @@ const J = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err_ambiguou
     // jagged via local vars still invalid
     var x = [1, 2]
     var y = [3, 4, 5]
-    var N = [x, y] // swc1-expected-error {{sema_err_cannot_cast}}
+    var N = [x, y] // swc-expected-error {{sema_err_cannot_cast}}
 }

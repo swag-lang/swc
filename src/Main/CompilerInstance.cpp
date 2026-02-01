@@ -2,7 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Lexer/SourceView.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
 #include "Main/FileSystem.h"

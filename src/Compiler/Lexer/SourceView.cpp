@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Lexer/SourceView.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Wmf/SourceFile.h"

@@ -189,12 +189,12 @@
         <ClCompile Include="src\Support\Core\Store.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
-        <ClCompile Include="src\Lexer\LangSpec.cpp"/>
-        <ClCompile Include="src\Lexer\Lexer.cpp"/>
-        <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
-        <ClCompile Include="src\Lexer\SourceView.cpp"/>
-        <ClCompile Include="src\Lexer\SyntaxColor.cpp"/>
-        <ClCompile Include="src\Lexer\Token.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SourceCodeLocation.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SyntaxColor.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command.Syntax.cpp"/>
@@ -323,13 +323,13 @@
         <ClInclude Include="src\Support\Core\StrongRef.h"/>
         <ClInclude Include="src\Support\Core\Utf8.h"/>
         <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
-        <ClInclude Include="src\Lexer\LangSpec.h"/>
-        <ClInclude Include="src\Lexer\Lexer.h"/>
-        <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>
-        <ClInclude Include="src\Lexer\SourceView.h"/>
-        <ClInclude Include="src\Lexer\SyntaxColor.h"/>
-        <ClInclude Include="src\Lexer\Token.h"/>
-        <ClInclude Include="src\Lexer\Tokens.Def.inc"/>
+        <ClInclude Include="src\Compiler\Lexer\LangSpec.h"/>
+        <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
+        <ClInclude Include="src\Compiler\Lexer\SourceCodeLocation.h"/>
+        <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>
+        <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h"/>
+        <ClInclude Include="src\Compiler\Lexer\Token.h"/>
+        <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\Command.h"/>
@@ -419,6 +419,7 @@
         <ClInclude Include="src\Wmf\Verify.h"/>
     </ItemGroup>
     <ItemGroup>
+        <Folder Include="src\Compiler\"/>
         <Folder Include="src\Support\Memory\mimalloc\"/>
         <Folder Include="src\Support\"/>
     </ItemGroup>

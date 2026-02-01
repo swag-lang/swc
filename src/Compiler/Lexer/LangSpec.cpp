@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Lexer/LangSpec.h"
-#include "Lexer/Token.h"
+#include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/Lexer/Token.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
 
@@ -24,7 +24,7 @@ void LangSpec::setupKeywords()
         SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id); \
     }
 
-#include "Lexer/Tokens.Def.inc"
+#include "Compiler/Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
 }

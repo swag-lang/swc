@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeLocation.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"

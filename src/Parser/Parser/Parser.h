@@ -1,7 +1,7 @@
 #pragma once
 #include "Support/Core/SmallVector.h"
-#include "Lexer/Lexer.h"
-#include "Lexer/Token.h"
+#include "Compiler/Lexer/Lexer.h"
+#include "Compiler/Lexer/Token.h"
 #include "Parser/Ast/Ast.h"
 #include "Parser/Ast/AstNode.h"
 #include "Support/Report/Diagnostic.h"

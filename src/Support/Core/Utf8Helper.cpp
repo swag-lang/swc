@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Lexer/LangSpec.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 

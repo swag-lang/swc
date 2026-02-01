@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Lexer/Token.h"
+#include "Compiler/Lexer/Token.h"
 #include "Lexer.h"
 
 SWC_BEGIN_NAMESPACE();

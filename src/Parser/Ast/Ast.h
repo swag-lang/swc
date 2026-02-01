@@ -1,6 +1,6 @@
 #pragma once
 #include "Support/Core/Store.h"
-#include "Lexer/Lexer.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Main/Stats.h"
 #include "Parser/Ast/AstNode.h"
 #include "Parser/Ast/AstNodes.h"

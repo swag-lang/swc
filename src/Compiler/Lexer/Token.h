@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeLocation.h"
 
 SWC_BEGIN_NAMESPACE();
 class SourceView;
@@ -37,7 +37,7 @@ struct TokenIdInfo
 enum class TokenId : uint16_t
 {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) __enum,
-#include "Lexer/Tokens.Def.inc"
+#include "Compiler/Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
     Count
@@ -45,7 +45,7 @@ enum class TokenId : uint16_t
 
 constexpr std::array TOKEN_ID_INFOS = {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKind::__kind},
-#include "Lexer/Tokens.Def.inc"
+#include "Compiler/Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
 };

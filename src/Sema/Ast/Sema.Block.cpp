@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
-#include "Lexer/LangSpec.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaError.h"

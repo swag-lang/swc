@@ -1,7 +1,7 @@
 #pragma once
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Store.h"
-#include "Lexer/SourceView.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Parser/Ast/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE();

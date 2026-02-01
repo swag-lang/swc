@@ -1,5 +1,5 @@
 #pragma once
-#include "Lexer/Token.h"
+#include "Compiler/Lexer/Token.h"
 #include "Support/Report/DiagnosticElement.h"
 #include "Wmf/SourceFile.h"
 

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
-#include "Lexer/LangSpec.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Parser/Ast/AstNodes.h"
 #include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"

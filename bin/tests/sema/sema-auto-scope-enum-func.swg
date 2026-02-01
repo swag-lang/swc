@@ -32,9 +32,7 @@ impl Vec2
     func set_axis(axis: OverA, value: f32)
     {
         if axis == .A {
-            .x = value
         } elif axis == .B {
-            .y = value
         }
     }
 

@@ -1396,8 +1396,11 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
     AstNodeRef       nodeLeftRef;
     AstNodeRef       nodeRightRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+
+    Result semaPreNode(Sema& sema) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

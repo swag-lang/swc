@@ -47,29 +47,21 @@ void CompilerInstance::setupSema(TaskContext& ctx)
     cstMgr_->setup(ctx);
 }
 
-uint32_t CompilerInstance::pendingImplRegistrations(IdentifierRef idRef) const
+uint32_t CompilerInstance::pendingImplRegistrations() const
 {
-    std::shared_lock lock(pendingImplRegistrationsMutex_);
-    const auto       it = pendingImplRegistrations_.find(idRef);
-    if (it == pendingImplRegistrations_.end())
-        return 0;
-    return it->second;
+    return pendingImplRegistrations_.load(std::memory_order_relaxed);
 }
 
-void CompilerInstance::incPendingImplRegistrations(IdentifierRef idRef)
+void CompilerInstance::incPendingImplRegistrations()
 {
-    std::unique_lock lock(pendingImplRegistrationsMutex_);
-    pendingImplRegistrations_[idRef]++;
+    pendingImplRegistrations_.fetch_add(1, std::memory_order_relaxed);
     notifyAlive();
 }
 
-void CompilerInstance::decPendingImplRegistrations(IdentifierRef idRef)
+void CompilerInstance::decPendingImplRegistrations()
 {
-    std::unique_lock lock(pendingImplRegistrationsMutex_);
-    const auto       it = pendingImplRegistrations_.find(idRef);
-    SWC_ASSERT(it != pendingImplRegistrations_.end());
-    SWC_ASSERT(it->second > 0);
-    it->second--;
+    const auto prev = pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
+    SWC_ASSERT(prev > 0);
     notifyAlive();
 }
 

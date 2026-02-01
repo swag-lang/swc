@@ -35,7 +35,6 @@ impl I0 for S0 { mtd impl toto() {} }
     a.toto()
 }
 
-
 interface I1 { mtd toto(); }
 struct T {}
 

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Sema/Type/TypeGen.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,7 +18,7 @@ namespace Runtime
     struct TypeInfoStruct;
 }
 
-namespace typegen_detail
+namespace TypeGenInternal
 {
     enum class LayoutKind
     {

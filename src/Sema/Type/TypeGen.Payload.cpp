@@ -1,7 +1,5 @@
 #include "pch.h"
-
 #include "Sema/Type/TypeGen.Internal.h"
-
 #include "Main/TaskContext.h"
 #include "Runtime/DataSegment.h"
 #include "Runtime/Runtime.h"
@@ -43,7 +41,7 @@ namespace
     }
 }
 
-namespace typegen_detail
+namespace TypeGenInternal
 {
     void initCommon(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenResult& result)
     {

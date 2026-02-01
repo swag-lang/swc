@@ -1,13 +1,11 @@
 #include "pch.h"
-
 #include "Sema/Type/TypeGen.Internal.h"
-
 #include "Sema/Core/Sema.h"
 #include "Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace typegen_detail
+namespace TypeGenInternal
 {
     LayoutKind layoutKindOf(const TypeInfo& type)
     {

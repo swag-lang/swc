@@ -21,7 +21,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
-    return typegen_detail::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
+    return TypeGenInternal::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
 }
 
 SWC_END_NAMESPACE();

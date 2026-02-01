@@ -1,7 +1,5 @@
 #include "pch.h"
-
 #include "Sema/Type/TypeGen.Internal.h"
-
 #include "Main/TaskContext.h"
 #include "Runtime/DataSegment.h"
 #include "Sema/Core/Sema.h"
@@ -10,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace typegen_detail
+namespace TypeGenInternal
 {
     SmallVector<TypeRef> computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
     {

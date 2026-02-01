@@ -26,7 +26,7 @@ public:
     const ConstantValue& get(ConstantRef constantRef) const;
 
     Result  makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
-    TypeRef getBackTypeInfoTypeRef(Sema& sema, ConstantRef cstRef) const;
+    TypeRef makeTypeValue(Sema& sema, ConstantRef cstRef) const;
 
     struct Shard
     {

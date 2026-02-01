@@ -38,13 +38,16 @@ public:
         std::unordered_map<TypeRef, Entry> entries;
     };
 
-    Result makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
+    Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
+    TypeRef getRealTypeRef(const void* ptr) const;
 
 private:
     TypeGenCache& cacheFor(const DataSegment& storage);
 
     std::mutex                                                            cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;
+    mutable std::mutex                                                    ptrToTypeMutex_;
+    std::unordered_map<const void*, TypeRef>                              ptrToType_;
 };
 
 SWC_END_NAMESPACE();

@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
+#include "Support/Core/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,7 +22,23 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
-    return TypeGenInternal::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
+    const auto res = TypeGenInternal::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
+    if (res == Result::Continue)
+    {
+        std::scoped_lock lk2(ptrToTypeMutex_);
+        ptrToType_[result.span.data()] = typeRef;
+    }
+
+    return res;
+}
+
+TypeRef TypeGen::getRealTypeRef(const void* ptr) const
+{
+    std::scoped_lock lk(ptrToTypeMutex_);
+    const auto       it = ptrToType_.find(ptr);
+    if (it != ptrToType_.end())
+        return it->second;
+    return TypeRef::invalid();
 }
 
 SWC_END_NAMESPACE();

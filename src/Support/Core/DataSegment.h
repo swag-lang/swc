@@ -16,6 +16,7 @@ public:
     std::pair<std::string_view, Ref> addString(const Utf8& value);
     uint32_t                         addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                             addRelocation(uint32_t offset, uint32_t targetOffset);
+    Ref                              findRef(const void* ptr) const noexcept { return store_.findRef(ptr); }
 
     template<typename T>
     std::pair<uint32_t, T*> reserve()

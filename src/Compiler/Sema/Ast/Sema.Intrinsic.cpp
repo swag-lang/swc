@@ -158,6 +158,21 @@ namespace
         if (!nodeViewType.type->isAnyTypeInfo(sema.ctx()))
             return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
 
+        // Check if the pointer is void* or a pointer to the type defined in the right expression
+        const TypeRef typeRefPointee  = nodeViewPtr.type->payloadTypeRef();
+        const TypeRef typeRefTypeInfo = sema.typeMgr().getRealTypeRef(sema, nodeViewType);
+        if (!sema.typeMgr().get(typeRefPointee).isVoid())
+        {
+            if (typeRefPointee != typeRefTypeInfo)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeViewPtr.typeRef);
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeRefTypeInfo);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (nodeViewPtr.type->isConst())
             flags.add(TypeInfoFlagsE::Const);

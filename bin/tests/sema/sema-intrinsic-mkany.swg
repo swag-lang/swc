@@ -12,3 +12,12 @@
     var ptr: *s32
     var b: any = @mkany(ptr, ptr) // swc-expected-error {{sema_err_expected_type_fam}}
 }
+
+#test
+{
+    var x: s32
+    var y: f32
+    var b: any = @mkany(&x, s32)
+    var c: any = @mkany(&x, f32) // swc-expected-error {{sema_err_invalid_mkany_ptr}}
+    var d: any = @mkany(cast(*void) &x, f32)
+}

@@ -1,10 +1,28 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
+
+TypeRef TypeManager::getRealTypeRef(Sema& sema, const SemaNodeView& nodeView) const
+{
+    if (nodeView.type->isAnyTypeInfo(sema.ctx()))
+    {
+        if (nodeView.cst && nodeView.cst->isValuePointer())
+        {
+            const auto ptr = reinterpret_cast<const void*>(nodeView.cst->getValuePointer());
+            const auto res = sema.typeGen().getRealTypeRef(ptr);
+            if (res.isValid())
+                return res;
+        }
+    }
+
+    return nodeView.typeRef;
+}
 
 void TypeManager::setup(TaskContext& ctx)
 {

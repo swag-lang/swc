@@ -30,8 +30,7 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const AstNodeRef   nodeArgRef = children[0];
-        const SemaNodeView nodeView(sema, nodeArgRef);
+        const SemaNodeView nodeView(sema, children[0]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
 
@@ -62,7 +61,7 @@ namespace
         }
 
         if (!resultTypeRef.isValid())
-            return SemaError::raiseInvalidType(sema, nodeArgRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
+            return SemaError::raiseInvalidType(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         SemaInfo::setIsValue(node);
@@ -71,13 +70,12 @@ namespace
 
     Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const AstNodeRef   nodeArgRef = children[0];
-        const SemaNodeView nodeView(sema, nodeArgRef);
+        const SemaNodeView nodeView(sema, children[0]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
 
         if (!nodeView.type || !nodeView.type->isAny())
-            return SemaError::raiseRequestedTypeFam(sema, nodeArgRef, nodeView.typeRef, sema.typeMgr().typeAny());
+            return SemaError::raiseRequestedTypeFam(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
         SemaInfo::setIsValue(node);
@@ -86,12 +84,11 @@ namespace
 
     Result semaIntrinsicCountOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        auto               ctx        = sema.ctx();
-        const AstNodeRef   nodeArgRef = children[0];
-        const SemaNodeView nodeView(sema, nodeArgRef);
+        auto               ctx = sema.ctx();
+        const SemaNodeView nodeView(sema, children[0]);
 
         if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeArgRef);
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeView.nodeRef);
 
         // Compile time
         if (nodeView.cst)
@@ -112,7 +109,7 @@ namespace
         if (nodeView.type->isEnum())
         {
             if (!nodeView.type->isCompleted(ctx))
-                return sema.waitCompleted(nodeView.type, nodeArgRef);
+                return sema.waitCompleted(nodeView.type, nodeView.nodeRef);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count()));
             return Result::Continue;
         }
@@ -142,7 +139,7 @@ namespace
             return Result::Continue;
         }
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeArgRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
         diag.report(ctx);
         return Result::Error;
@@ -172,17 +169,14 @@ namespace
 
     Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
     {
-        auto nodeArg1Ref = children[0];
-        auto nodeArg2Ref = children[1];
-
-        const SemaNodeView nodeViewPtr(sema, nodeArg1Ref);
-        SemaNodeView       nodeViewSize(sema, nodeArg2Ref);
+        const SemaNodeView nodeViewPtr(sema, children[0]);
+        SemaNodeView       nodeViewSize(sema, children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));
 
         if (!nodeViewPtr.type->isAnyPointer())
-            return SemaError::raiseRequestedTypeFam(sema, nodeArg1Ref, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
 

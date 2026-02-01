@@ -291,6 +291,20 @@ namespace
         return Result::Continue;
     }
 
+    Result castToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+
+        if (srcType.isFloat())
+            return castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+        if (srcType.isIntLike())
+            return castIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
+
     Result castFromEnum(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         if (castCtx.kind != CastKind::Explicit)
@@ -752,10 +766,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToBool(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isIntLike())
         res = castToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isIntLike() && dstType.isFloat())
-        res = castIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isFloat() && dstType.isFloat())
-        res = castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isFloat())
+        res = castToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeValue())
         res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isAnyTypeInfo(sema.ctx()) && dstType.isAnyTypeInfo(sema.ctx()))

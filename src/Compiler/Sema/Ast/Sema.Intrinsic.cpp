@@ -148,6 +148,28 @@ namespace
         return Result::Error;
     }
 
+    Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    {
+        const SemaNodeView nodeViewPtr(sema, children[0]);
+        SemaNodeView       nodeViewSize(sema, children[1]);
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeViewSize));
+
+        if (!nodeViewPtr.type->isAnyPointer())
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
+
+        TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+        if (nodeViewPtr.type->isConst())
+            flags.add(TypeInfoFlagsE::Const);
+
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAny(flags));
+        sema.setType(sema.curNodeRef(), typeRef);
+        SemaInfo::setIsValue(node);
+
+        return Result::Continue;
+    }
+
     Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
     {
         auto nodeArg1Ref = children[0];
@@ -198,6 +220,8 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicKindOf(sema, *this, children);
         case TokenId::IntrinsicCountOf:
             return semaIntrinsicCountOf(sema, *this, children);
+        case TokenId::IntrinsicMakeAny:
+            return semaIntrinsicMakeAny(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:
             return semaIntrinsicMakeSlice(sema, *this, children, false);
         case TokenId::IntrinsicMakeString:
@@ -208,7 +232,6 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicCVaArg:
         case TokenId::IntrinsicMakeCallback:
         case TokenId::IntrinsicMakeInterface:
-        case TokenId::IntrinsicMakeAny:
         case TokenId::IntrinsicIs:
         case TokenId::IntrinsicAs:
         case TokenId::IntrinsicTableOf:

@@ -98,7 +98,6 @@ namespace Cast
     AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
 
     void convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
-    void convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView);
 }
 
 SWC_END_NAMESPACE();

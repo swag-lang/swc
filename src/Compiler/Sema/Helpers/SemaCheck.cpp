@@ -59,35 +59,34 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
     const AstNode& node = sema.ast().node(nodeRef);
     if (SemaInfo::isValue(node))
         return Result::Continue;
-    const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
-    diag.report(sema.ctx());
-    return Result::Error;
+    return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 {
     if (SemaInfo::isValue(*nodeView.node))
         return Result::Continue;
-    if (nodeView.type)
-        Cast::convertTypeToTypeValue(sema, nodeView);
-    return isValue(sema, nodeView.nodeRef);
+    if (nodeView.typeRef.isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
+
+    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
+    nodeView.setCstRef(sema, cstRef);
+    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
+    return Result::Continue;
 }
 
 Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
 {
     if (SemaInfo::isValue(*nodeView.node))
         return Result::Continue;
+    if (nodeView.typeRef.isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
 
-    // If we have a type expression, materialize it as a value of the built-in 'TypeInfo' type.
-    if (nodeView.type)
-    {
-        ConstantRef cstRef;
-        RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
-        nodeView.setCstRef(sema, cstRef);
-        sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
-    }
-
-    return isValue(sema, nodeView.nodeRef);
+    ConstantRef cstRef;
+    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
+    nodeView.setCstRef(sema, cstRef);
+    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
+    return Result::Continue;
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)

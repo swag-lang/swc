@@ -155,9 +155,8 @@ namespace
 
         if (!nodeViewPtr.type->isValuePointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeValuePtrVoid());
-
         if (!nodeViewType.type->isAnyTypeInfo(sema.ctx()))
-            return SemaError::raiseInvalidType(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (nodeViewPtr.type->isConst())

@@ -22,12 +22,4 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     nodeView.compute(sema, nodeView.nodeRef);
 }
 
-void Cast::convertTypeToTypeValue(Sema& sema, SemaNodeView& nodeView)
-{
-    TaskContext&      ctx    = sema.ctx();
-    const ConstantRef cstRef = sema.cstMgr().addConstant(ctx, ConstantValue::makeTypeValue(ctx, nodeView.typeRef));
-    nodeView.setCstRef(sema, cstRef);
-    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
-}
-
 SWC_END_NAMESPACE();

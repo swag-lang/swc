@@ -424,6 +424,17 @@
         <Folder Include="src\Support\Memory\mimalloc\"/>
         <Folder Include="src\Support\"/>
     </ItemGroup>
+    <ItemGroup>
+      <Content Include="src\Support\Report\Msg\Errors.Cmd.msg" />
+      <Content Include="src\Support\Report\Msg\Errors.Lex.msg" />
+      <Content Include="src\Support\Report\Msg\Errors.Misc.msg" />
+      <Content Include="src\Support\Report\Msg\Errors.msg" />
+      <Content Include="src\Support\Report\Msg\Errors.Parser.msg" />
+      <Content Include="src\Support\Report\Msg\Errors.Sema.msg" />
+      <Content Include="src\Support\Report\Msg\Notes.msg" />
+      <Content Include="src\Support\Report\Msg\Notes.Parser.msg" />
+      <Content Include="src\Support\Report\Msg\Notes.Sema.msg" />
+    </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>

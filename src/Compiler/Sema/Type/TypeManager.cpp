@@ -235,22 +235,6 @@ uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& 
     return bits;
 }
 
-TypeRef TypeManager::getRealTypeRef(Sema& sema, const SemaNodeView& nodeView) const
-{
-    if (nodeView.type->isAnyTypeInfo(sema.ctx()))
-    {
-        if (nodeView.cst && nodeView.cst->isValuePointer())
-        {
-            const auto ptr = reinterpret_cast<const void*>(nodeView.cst->getValuePointer());
-            const auto res = sema.typeGen().getRealTypeRef(ptr);
-            if (res.isValid())
-                return res;
-        }
-    }
-
-    return nodeView.typeRef;
-}
-
 bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 {
     const auto it = mapRtKind_.find(idRef);

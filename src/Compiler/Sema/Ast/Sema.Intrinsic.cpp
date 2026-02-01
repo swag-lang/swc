@@ -160,7 +160,7 @@ namespace
 
         // Check if the pointer is void* or a pointer to the type defined in the right expression
         const TypeRef typeRefPointee  = nodeViewPtr.type->payloadTypeRef();
-        const TypeRef typeRefTypeInfo = sema.typeMgr().getRealTypeRef(sema, nodeViewType);
+        const TypeRef typeRefTypeInfo = sema.cstMgr().getBackTypeInfoTypeRef(sema, nodeViewType.cstRef);
         if (!sema.typeMgr().get(typeRefPointee).isVoid())
         {
             if (typeRefPointee != typeRefTypeInfo)

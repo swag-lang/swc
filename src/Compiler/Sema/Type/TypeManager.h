@@ -85,8 +85,6 @@ public:
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
-    TypeRef getRealTypeRef(Sema& sema, const SemaNodeView& nodeView) const;
-
     bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
     void    registerRuntimeType(IdentifierRef idRef, TypeRef typeRef);
     TypeRef runtimeType(RuntimeTypeKind kind) const;

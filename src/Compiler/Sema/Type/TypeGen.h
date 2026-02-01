@@ -39,7 +39,7 @@ public:
     };
 
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
-    TypeRef getRealTypeRef(const void* ptr) const;
+    TypeRef getBackTypeRef(const void* ptr) const;
 
 private:
     TypeGenCache& cacheFor(const DataSegment& storage);

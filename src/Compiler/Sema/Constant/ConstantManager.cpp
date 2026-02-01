@@ -195,4 +195,25 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     return Result::Continue;
 }
 
+TypeRef ConstantManager::getBackTypeInfoTypeRef(Sema& sema, ConstantRef cstRef) const
+{
+    if (!cstRef.isValid())
+        return TypeRef::invalid();
+
+    const auto& cst  = get(cstRef);
+    const auto& type = sema.typeMgr().get(cst.typeRef());
+    if (type.isAnyTypeInfo(sema.ctx()))
+    {
+        if (cst.isValuePointer())
+        {
+            const auto ptr = reinterpret_cast<const void*>(cst.getValuePointer());
+            const auto res = sema.typeGen().getBackTypeRef(ptr);
+            if (res.isValid())
+                return res;
+        }
+    }
+
+    return cst.typeRef();
+}
+
 SWC_END_NAMESPACE();

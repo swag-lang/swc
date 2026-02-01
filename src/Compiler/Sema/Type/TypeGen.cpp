@@ -32,7 +32,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     return res;
 }
 
-TypeRef TypeGen::getRealTypeRef(const void* ptr) const
+TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 {
     std::scoped_lock lk(ptrToTypeMutex_);
     const auto       it = ptrToType_.find(ptr);

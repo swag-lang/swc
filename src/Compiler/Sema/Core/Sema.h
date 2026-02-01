@@ -120,6 +120,8 @@ private:
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
 
+    void cleanupNode(AstNode& node, Result doneResult);
+
     void processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
     void processDeferredPopsPostNode(AstNodeRef nodeRef);
 

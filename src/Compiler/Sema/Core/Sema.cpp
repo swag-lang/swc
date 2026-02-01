@@ -354,8 +354,17 @@ Result Sema::postNode(AstNode& node)
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNode(*this, node);
     if (result == Result::Continue)
+    {
         processDeferredPopsPostNode(curNodeRef());
+        cleanupNode(node, Result::Continue);
+    }
     return result;
+}
+
+void Sema::cleanupNode(AstNode& node, Result doneResult)
+{
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    info.semaCleanup(*this, node, doneResult);
 }
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
@@ -461,6 +470,18 @@ JobResult Sema::exec()
 
         if (result == AstVisitResult::Error)
         {
+            // Visiting has stopped. Cleanup remaining active nodes.
+            // Do not call cleanup on Pause (handled by the Pause branch above).
+            if (visit_.currentNodeRef().isValid())
+                cleanupNode(ast().node(visit_.currentNodeRef()), Result::Error);
+            for (size_t up = 0;; up++)
+            {
+                const AstNodeRef parentRef = visit_.parentNodeRef(up);
+                if (parentRef.isInvalid())
+                    break;
+                cleanupNode(ast().node(parentRef), Result::Error);
+            }
+
             jobResult = JobResult::Done;
             break;
         }

@@ -1,8 +1,8 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
-#include "Support/Core/SmallVector.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -293,6 +293,7 @@ struct AstNodeIdInfo
     using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
+    using SemaCleanup        = void (*)(Sema&, AstNode&, Result);
 
     AstCollectChildren collectChildren;
 
@@ -305,6 +306,7 @@ struct AstNodeIdInfo
     SemaPreNodeChild  semaPreNodeChild;
     SemaPostNodeChild semaPostNodeChild;
     SemaPostNode      semaPostNode;
+    SemaCleanup       semaCleanup;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -374,6 +376,13 @@ Result semaPostNode(Sema& sema, AstNode& node)
     return node.cast<NodeType>()->semaPostNode(sema);
 }
 
+template<AstNodeId ID>
+void semaCleanup(Sema& sema, AstNode& node, Result doneResult)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    node.cast<NodeType>()->semaCleanup(sema, doneResult);
+}
+
 constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                             \
                                           #__enum,                               \
@@ -386,7 +395,8 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           &semaPreNode<AstNodeId::__enum>,       \
                                           &semaPreNodeChild<AstNodeId::__enum>,  \
                                           &semaPostNodeChild<AstNodeId::__enum>, \
-                                          &semaPostNode<AstNodeId::__enum>},
+                                          &semaPostNode<AstNodeId::__enum>,      \
+                                          &semaCleanup<AstNodeId::__enum>},
 #include "Compiler/Parser/Ast/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF

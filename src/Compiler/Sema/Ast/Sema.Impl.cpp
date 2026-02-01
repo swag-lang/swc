@@ -119,4 +119,20 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     return Result::Continue;
 }
 
+void AstImpl::semaCleanup(Sema& sema, Result result) const
+{
+    const SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    if (!symImpl.isPendingRegistrationResolved())
+    {
+        IdentifierRef targetIdRef = symImpl.idRef();
+        if (nodeForRef.isValid())
+        {
+            const SemaNodeView forView(sema, nodeForRef);
+            targetIdRef = sema.idMgr().addIdentifier(sema.ctx(), forView.node->srcViewRef(), forView.node->tokRef());
+        }
+
+        sema.compiler().decPendingImplRegistrations(targetIdRef);
+    }
+}
+
 SWC_END_NAMESPACE();

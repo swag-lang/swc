@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Wmf/Verify.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Lexer.h"
 #include "Main/CommandLine.h"

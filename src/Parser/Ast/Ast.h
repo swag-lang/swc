@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Store.h"
+#include "Support/Core/Store.h"
 #include "Lexer/Lexer.h"
 #include "Main/Stats.h"
 #include "Parser/Ast/AstNode.h"

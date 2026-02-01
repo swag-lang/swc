@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Lexer/SyntaxColor.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Lexer/Token.h"
 #include "Main/CommandLine.h"

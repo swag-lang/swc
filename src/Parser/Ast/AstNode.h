@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/SmallVector.h"
-#include "Core/Store.h"
+#include "Support/Core/SmallVector.h"
+#include "Support/Core/Store.h"
 #include "Lexer/SourceView.h"
 #include "Parser/Ast/AstNodeId.h"
 

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cstddef>
-#include <span>
-#include <string_view>
-
 SWC_BEGIN_NAMESPACE();
 
 // A view of raw bytes.

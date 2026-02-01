@@ -1,6 +1,6 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
-#include "Core/SmallVector.h"
+#include "Support/Core/SmallVector.h"
 #include "Parser/Ast/AstNode.h"
 #include "Parser/Ast/AstNodeId.h"
 

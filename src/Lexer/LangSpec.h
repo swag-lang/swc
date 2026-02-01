@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Flags.h"
-#include "Core/StringMap.h"
+#include "Support/Core/Flags.h"
+#include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();
 

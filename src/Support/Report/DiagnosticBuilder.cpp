@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Support/Report/DiagnosticBuilder.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/SyntaxColor.h"
 #include "Main/CommandLine.h"

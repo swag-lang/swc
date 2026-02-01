@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"

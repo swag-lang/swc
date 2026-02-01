@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "Wmf/SourceFile.h"
-#include "Core/Timer.h"
+#include "Support/Core/Timer.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"

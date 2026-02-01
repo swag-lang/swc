@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/SmallVector.h"
+#include "Support/Core/SmallVector.h"
 #include "Lexer/Lexer.h"
 #include "Lexer/Token.h"
 #include "Parser/Ast/Ast.h"

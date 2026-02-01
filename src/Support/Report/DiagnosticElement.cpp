@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DiagnosticElement.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

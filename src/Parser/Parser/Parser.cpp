@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Parser/Parser/Parser.h"
-#include "Core/Timer.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Timer.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();

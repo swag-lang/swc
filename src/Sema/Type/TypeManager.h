@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Store.h"
+#include "Support/Core/Store.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();

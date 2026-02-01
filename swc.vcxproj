@@ -186,9 +186,9 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Core\Store.cpp"/>
-        <ClCompile Include="src\Core\Utf8.cpp"/>
-        <ClCompile Include="src\Core\Utf8Helper.cpp"/>
+        <ClCompile Include="src\Support\Core\Store.cpp"/>
+        <ClCompile Include="src\Support\Core\Utf8.cpp"/>
+        <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Lexer\LangSpec.cpp"/>
         <ClCompile Include="src\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Lexer\SourceCodeLocation.cpp"/>
@@ -313,16 +313,16 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Core\ByteSpan.h"/>
-        <ClInclude Include="src\Core\Flags.h"/>
-        <ClInclude Include="src\Core\Result.h"/>
-        <ClInclude Include="src\Core\Store.h"/>
-        <ClInclude Include="src\Core\SmallVector.h"/>
-        <ClInclude Include="src\Core\StringMap.h"/>
-        <ClInclude Include="src\Core\Timer.h"/>
-        <ClInclude Include="src\Core\StrongRef.h"/>
-        <ClInclude Include="src\Core\Utf8.h"/>
-        <ClInclude Include="src\Core\Utf8Helper.h"/>
+        <ClInclude Include="src\Support\Core\ByteSpan.h"/>
+        <ClInclude Include="src\Support\Core\Flags.h"/>
+        <ClInclude Include="src\Support\Core\Result.h"/>
+        <ClInclude Include="src\Support\Core\Store.h"/>
+        <ClInclude Include="src\Support\Core\SmallVector.h"/>
+        <ClInclude Include="src\Support\Core\StringMap.h"/>
+        <ClInclude Include="src\Support\Core\Timer.h"/>
+        <ClInclude Include="src\Support\Core\StrongRef.h"/>
+        <ClInclude Include="src\Support\Core\Utf8.h"/>
+        <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Lexer\Lexer.h"/>
         <ClInclude Include="src\Lexer\SourceCodeLocation.h"/>

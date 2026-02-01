@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/SmallVector.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

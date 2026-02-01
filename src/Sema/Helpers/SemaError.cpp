@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Helpers/SemaError.h"
-#include "Core/Utf8Helper.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Diagnostic.h"
 #include "Sema/Core/Sema.h"

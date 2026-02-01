@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Store.h"
-#include "Core/StringMap.h"
+#include "Support/Core/Store.h"
+#include "Support/Core/StringMap.h"
 #include "Lexer/SourceView.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -2,8 +2,8 @@
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
+#include "Main/ExitCodes.h"
 #include "Main/Global.h"
-#include "Support/Report/ExitCodes.h"
 
 int main(int argc, char* argv[])
 {

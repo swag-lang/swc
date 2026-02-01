@@ -186,7 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Support\Core\DataSegment.cpp" />
+        <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\Store.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
@@ -313,8 +313,9 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
-        <ClInclude Include="src\Support\Core\DataSegment.h" />
+        <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\Store.h"/>
@@ -361,7 +362,6 @@
         <ClInclude Include="src\Support\Report\Assert.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticDef.h"/>
-        <ClInclude Include="src\Support\Report\ExitCodes.h"/>
         <ClInclude Include="src\Support\Report\LogColor.h"/>
         <ClInclude Include="src\Support\Report\Diagnostic.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticElement.h"/>

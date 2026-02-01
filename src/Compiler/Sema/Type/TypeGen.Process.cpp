@@ -4,7 +4,7 @@
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
-#include "Runtime/DataSegment.h"
+#include "Support/Core/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();
 

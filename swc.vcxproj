@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Support\Core\DataSegment.cpp" />
         <ClCompile Include="src\Support\Core\Store.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
@@ -248,7 +249,6 @@
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
         <ClCompile Include="src\Support\Report\Logger.cpp"/>
         <ClCompile Include="src\Support\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Runtime\DataSegment.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp"/>
@@ -314,6 +314,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
+        <ClInclude Include="src\Support\Core\DataSegment.h" />
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\Store.h"/>
@@ -375,7 +376,6 @@
         <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
-        <ClInclude Include="src\Runtime\DataSegment.h"/>
         <ClInclude Include="src\Runtime\Runtime.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>

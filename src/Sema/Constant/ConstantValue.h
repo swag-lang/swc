@@ -1,7 +1,7 @@
 #pragma once
-#include "Math/ApFloat.h"
-#include "Math/ApsInt.h"
 #include "Sema/Type/TypeInfo.h"
+#include "Support/Math/ApFloat.h"
+#include "Support/Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE();
 class TaskContext;

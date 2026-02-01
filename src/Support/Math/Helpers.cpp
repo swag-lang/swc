@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Math/Helpers.h"
-#include "Math/ApFloat.h"
+#include "Support/Math/Helpers.h"
+#include "Support/Math/ApFloat.h"
 
 SWC_BEGIN_NAMESPACE();
 class ApFloat;

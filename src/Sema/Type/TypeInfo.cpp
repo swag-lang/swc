@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Sema/Type/TypeInfo.h"
 #include "Core/Utf8Helper.h"
-#include "Math/Hash.h"
 #include "Sema/Symbol/Symbols.h"
 #include "Sema/Type/TypeManager.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 

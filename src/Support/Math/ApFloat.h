@@ -1,6 +1,6 @@
 #pragma once
-#include "Math/ApInt.h"
-#include "Math/ApsInt.h"
+#include "Support/Math/ApInt.h"
+#include "Support/Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE();
 

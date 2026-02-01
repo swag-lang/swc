@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Math/ApsInt.h"
-#include "Math/Hash.h"
+#include "Support/Math/ApsInt.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 

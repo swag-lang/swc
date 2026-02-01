@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Main/TaskContext.h"
-#include "Math/Hash.h"
 #include "Runtime/Runtime.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Type/TypeManager.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 

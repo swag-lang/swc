@@ -57,12 +57,13 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     if (sema.compiler().pendingImplRegistrations() != 0)
         return sema.waitImplRegistrations(sym.srcViewRef(), sym.tokRef());
 
+    RESULT_VERIFY(sym.canBeCompleted(sema));
+    sym.computeLayout(sema);
+    
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
-
-    RESULT_VERIFY(sym.canBeCompleted(sema));
-    sym.computeLayout(sema);
+    
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

@@ -2,7 +2,7 @@
 #include "Sema/Helpers/SemaError.h"
 #include "Core/Utf8Helper.h"
 #include "Main/CompilerInstance.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"
 

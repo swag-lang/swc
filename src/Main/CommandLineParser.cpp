@@ -5,8 +5,8 @@
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Main/Version.h"
-#include "Report/Diagnostic.h"
-#include "Report/Logger.h"
+#include "Support/Report/Diagnostic.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 

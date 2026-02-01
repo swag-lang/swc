@@ -5,7 +5,7 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Wmf/Verify.h"
 

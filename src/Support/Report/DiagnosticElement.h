@@ -1,6 +1,6 @@
 #pragma once
 #include "Lexer/SourceCodeLocation.h"
-#include "Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticDef.h"
 #include "Sema/Constant/ConstantValue.h"
 #include "Sema/Type/TypeInfo.h"
 

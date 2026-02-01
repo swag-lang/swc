@@ -2,7 +2,7 @@
 
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
-#include "Report/LogSymbol.h"
+#include "Support/Report/LogSymbol.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -15,9 +15,9 @@ enum class DiagnosticId
 {
     None = 0,
 #define SWC_DIAG_DEF(id) id,
-#include "Report/Msg/Errors.inc"
+#include "Support/Report/Msg/Errors.inc"
 
-#include "Report/Msg/Notes.inc"
+#include "Support/Report/Msg/Notes.inc"
 
 #undef SWC_DIAG_DEF
     Count,

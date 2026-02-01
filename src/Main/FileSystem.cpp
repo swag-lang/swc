@@ -2,7 +2,7 @@
 #include "Main/FileSystem.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 

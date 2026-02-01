@@ -4,7 +4,7 @@
 #include "Lexer/Token.h"
 #include "Parser/Ast/Ast.h"
 #include "Parser/Ast/AstNode.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 

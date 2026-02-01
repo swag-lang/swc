@@ -6,7 +6,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();

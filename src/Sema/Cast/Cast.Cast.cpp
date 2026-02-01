@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Sema/Cast/Cast.h"
 #include "Parser/Ast/AstNodes.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Sema/Constant/ConstantManager.h"
 #include "Sema/Core/Sema.h"
 #include "Sema/Core/SemaNodeView.h"

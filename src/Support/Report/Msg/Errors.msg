@@ -1,0 +1,5 @@
+#include "Support/Report/Msg/Errors.Cmd.msg"
+#include "Support/Report/Msg/Errors.Misc.msg"
+#include "Support/Report/Msg/Errors.Lex.msg"
+#include "Support/Report/Msg/Errors.Parser.msg"
+#include "Support/Report/Msg/Errors.Sema.msg"

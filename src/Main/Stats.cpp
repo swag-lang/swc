@@ -3,8 +3,8 @@
 #include "Core/Timer.h"
 #include "Core/Utf8Helper.h"
 #include "Main/Global.h"
-#include "Report/LogColor.h"
-#include "Report/Logger.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

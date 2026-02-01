@@ -6,7 +6,7 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
-#include "Report/LogColor.h"
+#include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
 

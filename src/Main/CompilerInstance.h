@@ -1,6 +1,6 @@
 #pragma once
 #include "Memory/Arena.h"
-#include "Report/ExitCodes.h"
+#include "Support/Report/ExitCodes.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
 #include "Wmf/SourceFile.h"

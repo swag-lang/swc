@@ -1,7 +1,7 @@
 #pragma once
 #include "Lexer/Lexer.h"
 #include "Lexer/SourceCodeLocation.h"
-#include "Report/DiagnosticDef.h"
+#include "Support/Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE();
 

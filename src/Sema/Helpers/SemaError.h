@@ -1,6 +1,6 @@
 #pragma once
 #include "Parser/Ast/AstNode.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();

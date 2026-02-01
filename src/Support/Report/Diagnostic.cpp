@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "Report/Diagnostic.h"
+#include "Support/Report/Diagnostic.h"
 #include "Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/DiagnosticBuilder.h"
+#include "Support/Report/DiagnosticElement.h"
+#include "Support/Report/Logger.h"
 #include "Support/Os/Os.h"
-#include "Report/DiagnosticBuilder.h"
-#include "Report/DiagnosticElement.h"
-#include "Report/Logger.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -29,9 +29,9 @@ namespace
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 #define SWC_DIAG_DEF(id, sev, msg) \
     arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev, DiagnosticId::id};
-#include "Report/Msg/Errors.msg"
+#include "Support/Report/Msg/Errors.msg"
 
-#include "Report/Msg/Notes.msg"
+#include "Support/Report/Msg/Notes.msg"
 
 #undef SWC_DIAG_DEF
         return arr;

@@ -2,7 +2,7 @@
 #ifdef _WIN32
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
-#include "Report/ExitCodes.h"
+#include "Support/Report/ExitCodes.h"
 
 SWC_BEGIN_NAMESPACE();
 

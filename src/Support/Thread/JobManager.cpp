@@ -3,8 +3,8 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Support/Os/Os.h"
-#include "Report/LogColor.h"
-#include "Report/Logger.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 

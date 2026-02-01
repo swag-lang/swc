@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Parser/Parser/ParserJob.h"
-#include "Parser/Parser/Parser.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Wmf/SourceFile.h"
 #include "Wmf/Verify.h"
 

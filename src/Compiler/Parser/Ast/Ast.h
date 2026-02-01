@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/Store.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Main/Stats.h"
-#include "Parser/Ast/AstNode.h"
-#include "Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
+#include "Support/Core/Store.h"
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();

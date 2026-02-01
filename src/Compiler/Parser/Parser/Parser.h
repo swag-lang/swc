@@ -1,9 +1,9 @@
 #pragma once
-#include "Support/Core/SmallVector.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/Token.h"
-#include "Parser/Ast/Ast.h"
-#include "Parser/Ast/AstNode.h"
+#include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/AstNode.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();

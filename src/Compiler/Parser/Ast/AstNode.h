@@ -1,8 +1,8 @@
 #pragma once
+#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstNodeId.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Store.h"
-#include "Compiler/Lexer/SourceView.h"
-#include "Parser/Ast/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE();
 class TypeInfo;

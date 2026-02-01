@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/Ast.h"
 
 SWC_BEGIN_NAMESPACE();
 

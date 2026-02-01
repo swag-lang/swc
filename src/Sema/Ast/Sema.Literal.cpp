@@ -4,7 +4,7 @@
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
-#include "Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Sema/Cast/Cast.h"
 #include "Sema/Constant/ConstantManager.h"

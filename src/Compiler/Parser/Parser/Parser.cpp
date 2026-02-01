@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/Parser/Parser.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Main/Stats.h"

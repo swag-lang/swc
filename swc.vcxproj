@@ -219,22 +219,22 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
         <ClCompile Include="src\Support\Os\OsWin32.cpp"/>
-        <ClCompile Include="src\Parser\Ast\Ast.cpp"/>
-        <ClCompile Include="src\Parser\Ast\AstNode.cpp"/>
-        <ClCompile Include="src\Parser\Ast\AstVisit.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Aggregate.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Call.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Compiler.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Compound.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Enum.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Expression.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Func.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Literal.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Stmt.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Type.cpp"/>
-        <ClCompile Include="src\Parser\Parser\Parser.Var.cpp"/>
-        <ClCompile Include="src\Parser\Parser\ParserJob.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -347,15 +347,15 @@
         <ClInclude Include="src\Support\Memory\Arena.h"/>
         <ClInclude Include="src\Support\Memory\Heap.h"/>
         <ClInclude Include="src\Support\Os\Os.h"/>
-        <ClInclude Include="src\Parser\Ast\Ast.h"/>
-        <ClInclude Include="src\Parser\Ast\AstNode.h"/>
-        <ClInclude Include="src\Parser\Ast\AstNodeId.h"/>
-        <ClInclude Include="src\Parser\Ast\AstNodes.Def.inc"/>
-        <ClInclude Include="src\Parser\Ast\AstNodes.h"/>
-        <ClInclude Include="src\Parser\Ast\AstNodes.Struct.inc"/>
-        <ClInclude Include="src\Parser\Ast\AstVisit.h"/>
-        <ClInclude Include="src\Parser\Parser\Parser.h"/>
-        <ClInclude Include="src\Parser\Parser\ParserJob.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\Ast.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Def.inc"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h"/>
+        <ClInclude Include="src\Compiler\Parser\Parser\Parser.h"/>
+        <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Support\Report\Assert.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>

@@ -2,7 +2,7 @@
 #include "Main/Command.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
-#include "Parser/Parser/ParserJob.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
 #include "Sema/Core/SemaJob.h"
 #include "Sema/Symbol/IdentifierManager.h"
 #include "Sema/Symbol/Symbols.h"

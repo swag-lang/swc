@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Parser/Parser/Parser.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Diagnostic.h"
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "Parser/Ast/Ast.h"
-#include "Parser/Ast/AstVisit.h"
+#include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/AstVisit.h"
 #include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Sema/Core/SemaScope.h"

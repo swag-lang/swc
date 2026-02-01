@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Sema/Core/Sema.h"
-#include "Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Sema/Core/SemaFrame.h"
 #include "Sema/Core/SemaNodeView.h"
 #include "Sema/Helpers/SemaCheck.h"

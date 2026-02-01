@@ -1,8 +1,8 @@
 // ReSharper disable CppPossiblyUninitializedMember
 #pragma once
 #include "Support/Core/SmallVector.h"
-#include "Parser/Ast/AstNode.h"
-#include "Parser/Ast/AstNodeId.h"
+#include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Parser/Ast/AstNodeId.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -243,7 +243,7 @@ struct AstGenericParamT : AstNodeT<I, E>
 // -----------------------------------------------------------------------------
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "Parser/Ast/AstNodes.Struct.inc"
+#include "Compiler/Parser/Ast/AstNodes.Struct.inc"
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -257,7 +257,7 @@ struct AstTypeOf;
     {                                   \
         using type = Ast##__enum;       \
     };
-#include "Parser/Ast/AstNodes.Def.inc"
+#include "Compiler/Parser/Ast/AstNodes.Def.inc"
 #undef SWC_NODE_DEF
 
 template<class F>
@@ -268,7 +268,7 @@ decltype(auto) visitAstNodeId(AstNodeId id, F f)
 #define SWC_NODE_DEF(__enum, __flags) \
     case AstNodeId::__enum:           \
         return std::forward<F>(f).template operator()<AstNodeId::__enum>();
-#include "Parser/Ast/AstNodes.Def.inc"
+#include "Compiler/Parser/Ast/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF
         default:
@@ -387,7 +387,7 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           &semaPreNodeChild<AstNodeId::__enum>,  \
                                           &semaPostNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>},
-#include "Parser/Ast/AstNodes.Def.inc"
+#include "Compiler/Parser/Ast/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF
 };

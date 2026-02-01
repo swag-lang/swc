@@ -564,11 +564,15 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstCompilerRunExpr::semaPreNode(Sema& sema)
+Result AstCompilerRunExpr::semaPostNode(Sema& sema)
 {
     // TODO
-    sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-    return Result::SkipChildren;
+    const SemaNodeView nodeView(sema, nodeExprRef);
+    SWC_ASSERT(nodeView.type && nodeView.type->isStruct());
+    ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
+    sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cv));
+
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

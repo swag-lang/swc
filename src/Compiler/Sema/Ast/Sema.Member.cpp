@@ -336,7 +336,7 @@ namespace
         lookUpCxt.srcViewRef = node->srcViewRef();
         lookUpCxt.tokRef     = tokNameRef;
 
-        if (nodeLeftView.sym->isImpl())
+        if (nodeLeftView.sym && nodeLeftView.sym->isImpl())
             lookUpCxt.symMapHint = nodeLeftView.sym->asSymMap();
         else
             lookUpCxt.symMapHint = &symInterface;

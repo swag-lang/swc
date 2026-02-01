@@ -484,6 +484,11 @@ namespace
             const TypeRef   key  = stack.back();
             const TypeInfo& type = tm.get(key);
 
+            // Be sure the type is completed.
+            const LayoutKind kind = layoutKindOf(type);
+            if (kind == LayoutKind::Struct && !type.isCompleted(ctx))
+                return sema.waitCompleted(&type.payloadSymStruct(), node.srcViewRef(), node.tokRef());
+
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())
             {
@@ -491,8 +496,7 @@ namespace
                 // runtime payload, then compute its dependency list.
                 TypeGen::TypeGenCache::Entry entry;
 
-                const LayoutKind kind = layoutKindOf(type);
-                entry.rtTypeRef       = rtTypeRefFor(tm, kind);
+                entry.rtTypeRef = rtTypeRefFor(tm, kind);
 
                 // Make sure the runtime TypeInfo struct definition exists before we write
                 // an instance of it into the 'DataSegment'.
@@ -528,8 +532,6 @@ namespace
                 inStack.erase(key);
                 continue;
             }
-
-            const LayoutKind kind = layoutKindOf(type);
 
             // Push the first unmet dependency.
             bool pushedDep = false;

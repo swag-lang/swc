@@ -218,7 +218,7 @@
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Os\OsWin32.cpp"/>
+        <ClCompile Include="src\Support\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Parser\Ast\Ast.cpp"/>
         <ClCompile Include="src\Parser\Ast\AstNode.cpp"/>
         <ClCompile Include="src\Parser\Ast\AstVisit.cpp"/>
@@ -346,7 +346,7 @@
         <ClInclude Include="src\Support\Math\Helpers.h"/>
         <ClInclude Include="src\Memory\Arena.h"/>
         <ClInclude Include="src\Memory\Heap.h"/>
-        <ClInclude Include="src\Os\Os.h"/>
+        <ClInclude Include="src\Support\Os\Os.h"/>
         <ClInclude Include="src\Parser\Ast\Ast.h"/>
         <ClInclude Include="src\Parser\Ast\AstNode.h"/>
         <ClInclude Include="src\Parser\Ast\AstNodeId.h"/>

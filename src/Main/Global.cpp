@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/Global.h"
 #include "Lexer/LangSpec.h"
-#include "Os/Os.h"
+#include "Support/Os/Os.h"
 #include "Report/Logger.h"
 #include "Support/Thread/JobManager.h"
 

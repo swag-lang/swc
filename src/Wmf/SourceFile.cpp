@@ -4,7 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Os/Os.h"
+#include "Support/Os/Os.h"
 #include "Report/Diagnostic.h"
 #include "Sema/Core/SemaInfo.h"
 #include "Wmf/Verify.h"

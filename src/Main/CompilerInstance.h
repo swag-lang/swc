@@ -47,9 +47,9 @@ public:
     bool changed() const { return changed_; }
     void clearChanged() { changed_ = false; }
 
-    uint32_t pendingImplRegistrations() const;
-    void     incPendingImplRegistrations();
-    void     decPendingImplRegistrations();
+    uint32_t pendingImplRegistrations(IdentifierRef idRef) const;
+    void     incPendingImplRegistrations(IdentifierRef idRef);
+    void     decPendingImplRegistrations(IdentifierRef idRef);
 
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
     bool                   setMainFunc(AstCompilerFunc* node);
@@ -111,10 +111,11 @@ private:
         Arena arena;
     };
 
-    std::vector<PerThreadData> perThreadData_;
-    std::atomic<uint32_t>      atomicId_                 = 0;
-    std::atomic<uint32_t>      pendingImplRegistrations_ = 0;
-    AstCompilerFunc*           mainFunc_                 = nullptr;
+    std::vector<PerThreadData>                  perThreadData_;
+    std::atomic<uint32_t>                       atomicId_ = 0;
+    std::unordered_map<IdentifierRef, uint32_t> pendingImplRegistrations_;
+    mutable std::shared_mutex                   pendingImplRegistrationsMutex_;
+    AstCompilerFunc*                            mainFunc_ = nullptr;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

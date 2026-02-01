@@ -145,9 +145,10 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
             case TaskStateKind::SemaWaitImplRegistrations:
             {
-                // This is a global barrier wait (no symbol dependency). If it reaches cycle detection,
-                // something prevents impl registrations from completing.
+                // This is a per-struct barrier wait. If it reaches cycle detection,
+                // something prevents impl registrations for that struct from completing.
                 auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_impl_registration, state.srcViewRef, state.tokRef);
+                diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
                 diag.report(ctx);
                 break;
             }

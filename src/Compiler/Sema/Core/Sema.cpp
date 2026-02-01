@@ -354,10 +354,7 @@ Result Sema::postNode(AstNode& node)
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNode(*this, node);
     if (result == Result::Continue)
-    {
         processDeferredPopsPostNode(curNodeRef());
-        cleanupNode(node, Result::Continue);
-    }
     return result;
 }
 
@@ -470,8 +467,7 @@ JobResult Sema::exec()
 
         if (result == AstVisitResult::Error)
         {
-            // Visiting has stopped. Cleanup remaining active nodes.
-            // Do not call cleanup on Pause (handled by the Pause branch above).
+            // Visiting has stopped. Clean up remaining active nodes.
             if (visit_.currentNodeRef().isValid())
                 cleanupNode(ast().node(visit_.currentNodeRef()), Result::Error);
             for (size_t up = 0;; up++)

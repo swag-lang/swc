@@ -499,10 +499,12 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
     // Take the first element as the reference type and ensure all other elements are castable/casted to it.
+    bool    allConstant    = true;
     TypeRef refElemTypeRef = TypeRef::invalid();
     for (const auto& child : elements)
     {
         SemaNodeView nodeView(sema, child);
+        allConstant = allConstant && nodeView.cstRef.isValid();
         if (nodeView.type->isScalarNumeric() && !nodeView.type->isScalarUnsized())
         {
             if (refElemTypeRef.isValid() && refElemTypeRef != nodeView.typeRef)
@@ -514,20 +516,25 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     if (!refElemTypeRef.isValid())
     {
         SemaNodeView firstView(sema, elements[0]);
-        ConstantRef  cstResult = ConstantRef::invalid();
-        RESULT_VERIFY(Cast::concretizeConstant(sema, cstResult, elements.front(), firstView.cstRef, TypeInfo::Sign::Unknown, true));
-        refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
+        if (firstView.cstRef.isValid())
+        {
+            ConstantRef cstResult = ConstantRef::invalid();
+            RESULT_VERIFY(Cast::concretizeConstant(sema, cstResult, elements.front(), firstView.cstRef, TypeInfo::Sign::Unknown, true));
+            refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
+        }
+        else
+        {
+            refElemTypeRef = firstView.typeRef;
+        }
     }
 
     SmallVector<ConstantRef> values;
     values.reserve(elements.size());
 
-    bool allConstant = true;
     for (const auto& child : elements)
     {
         SemaNodeView nodeView(sema, child);
         RESULT_VERIFY(Cast::cast(sema, nodeView, refElemTypeRef, CastKind::Initialization));
-        allConstant = allConstant && nodeView.cstRef.isValid();
         values.push_back(nodeView.cstRef);
     }
 

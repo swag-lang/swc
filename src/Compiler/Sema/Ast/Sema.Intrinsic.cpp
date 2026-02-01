@@ -148,13 +148,16 @@ namespace
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView nodeViewPtr(sema, children[0]);
-        SemaNodeView       nodeViewSize(sema, children[1]);
+        SemaNodeView       nodeViewType(sema, children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
-        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeViewSize));
+        RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeViewType));
 
         if (!nodeViewPtr.type->isValuePointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeValuePtrVoid());
+
+        if (!nodeViewType.type->isAnyTypeInfo(sema.ctx()))
+            return SemaError::raiseInvalidType(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (nodeViewPtr.type->isConst())

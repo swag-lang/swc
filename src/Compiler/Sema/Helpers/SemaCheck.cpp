@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -69,6 +70,23 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
         return Result::Continue;
     if (nodeView.type)
         Cast::convertTypeToTypeValue(sema, nodeView);
+    return isValue(sema, nodeView.nodeRef);
+}
+
+Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
+{
+    if (SemaInfo::isValue(*nodeView.node))
+        return Result::Continue;
+
+    // If we have a type expression, materialize it as a value of the built-in 'TypeInfo' type.
+    if (nodeView.type)
+    {
+        ConstantRef cstRef;
+        RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
+        nodeView.setCstRef(sema, cstRef);
+        sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
+    }
+
     return isValue(sema, nodeView.nodeRef);
 }
 

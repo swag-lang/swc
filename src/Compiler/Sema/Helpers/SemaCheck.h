@@ -11,6 +11,7 @@ namespace SemaCheck
     Result modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
     Result isValue(Sema& sema, AstNodeRef nodeRef);
     Result isValueOrType(Sema& sema, SemaNodeView& nodeView);
+    Result isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView);
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
     Result checkSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
 }

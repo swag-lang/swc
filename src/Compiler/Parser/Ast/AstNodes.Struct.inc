@@ -479,8 +479,8 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 // -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
-    static Result semaPreDecl(Sema&) { return Result::SkipChildren; }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreDecl(Sema&) { return Result::SkipChildren; } // TODO
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
         AstIfBaseT::collectChildren(out, ast);
     }
 
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------
@@ -1255,7 +1255,7 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
     AstNodeRef       nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------
@@ -1267,7 +1267,7 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
     AstNodeRef nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarDeclRef, nodeExprRef, nodePostStmtRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------
@@ -1279,7 +1279,7 @@ struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
     AstNodeRef       nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; }
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------
@@ -1404,12 +1404,13 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 };
 
 // -----------------------------------------------------------------------------
-enum class AstAssignListStmtFlagsE : AstNode::ParserFlags
+enum class AstAssignListFlagsE : AstNode::ParserFlags
 {
     Zero          = 0,
     Decomposition = 1 << 0,
 };
 
-struct AstAssignListStmt : AstCompoundT<AstNodeId::AssignListStmt, AstAssignListStmtFlagsE>
+struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
+    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };

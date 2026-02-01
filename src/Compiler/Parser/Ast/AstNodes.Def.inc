@@ -198,7 +198,7 @@ SWC_NODE_DEF(IntrinsicCallVariadic, AstNodeIdFlagsE::Zero)
 //  Statements & Control Flow
 // ============================================================================
 SWC_NODE_DEF(AssignStmt, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(AssignListStmt, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(AssignList, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(IfStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ElseIfStmt, AstNodeIdFlagsE::Zero)

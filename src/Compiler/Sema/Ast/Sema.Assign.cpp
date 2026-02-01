@@ -10,11 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
 {
-    // TODO
-    //const auto op = sema.token(srcViewRef(), tokRef()).id;
-    //if (op != TokenId::SymEqual)
-        return Result::SkipChildren;
-
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero));
     return Result::Continue;
 }
@@ -38,16 +33,19 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema)
 {
-    // TODO
-    //const auto op = sema.token(srcViewRef(), tokRef()).id;
-    //if (op != TokenId::SymEqual)
-        return Result::SkipChildren;
-    
     // Left must be assignable.
     const SemaNodeView leftView(sema, nodeLeftRef);
+
+    // TODO
+    //if (leftView.node->safeCast<AstAssignList>())
+        return Result::Continue;
+    const auto op = sema.token(srcViewRef(), tokRef()).id;
+    if (op != TokenId::SymEqual)
+        return Result::Continue;
+
     if (!SemaInfo::isLValue(*leftView.node))
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, srcViewRef(), tokRef());
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, srcViewRef(), tokRef());
         diag.report(sema.ctx());
         return Result::Error;
     }

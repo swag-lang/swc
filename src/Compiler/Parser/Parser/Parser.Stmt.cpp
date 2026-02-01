@@ -633,8 +633,8 @@ AstNodeRef Parser::parseAssignStmt()
     if (is(TokenId::SymLeftParen))
     {
         const auto openRef            = consume();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>(ref());
-        nodePtr->addFlag(AstAssignListStmtFlagsE::Decomposition);
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
+        nodePtr->addFlag(AstAssignListFlagsE::Decomposition);
         if (consumeIf(TokenId::SymQuestion).isValid())
             nodeLeft = AstNodeRef::invalid();
         else
@@ -665,9 +665,10 @@ AstNodeRef Parser::parseAssignStmt()
         // Multi affectations
         if (is(TokenId::SymComma))
         {
-            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignListStmt>(ref());
             SmallVector<AstNodeRef> nodeAffects;
             nodeAffects.push_back(nodeLeft);
+
+            const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
             while (consumeIf(TokenId::SymComma).isValid())
             {
                 const auto nodeExpr = parseExpression();

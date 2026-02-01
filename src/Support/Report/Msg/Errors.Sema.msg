@@ -77,6 +77,7 @@ SWC_DIAG_DEF(sema_err_pointer_arithmetic_value_ptr, Error, "pointer arithmetic i
 SWC_DIAG_DEF(sema_err_pointer_arithmetic_void_ptr, Error, "pointer arithmetic is not allowed on a pointer to void of type '{type}'")
 SWC_DIAG_DEF(sema_err_take_address_constant, Error, "cannot take the address of a constant expression")
 SWC_DIAG_DEF(sema_err_take_address_not_lvalue, Error, "cannot take the address of an expression that is not an l-value")
+SWC_DIAG_DEF(sema_err_assign_not_lvalue, Error, "cannot assign to an expression that is not an l-value")
 SWC_DIAG_DEF(sema_err_type_not_indexable, Error, "an expression of type '{type}' cannot be indexed")
 SWC_DIAG_DEF(sema_err_index_not_int, Error, "the index must be an integer literal (got '{type}')")
 SWC_DIAG_DEF(sema_err_index_too_large, Error, "index does not fit in 64 bits")

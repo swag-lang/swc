@@ -11,8 +11,8 @@ SWC_BEGIN_NAMESPACE();
 Result AstAssignStmt::semaPreNode(Sema& sema) const
 {
     // TODO
-    const auto op = sema.token(srcViewRef(), tokRef()).id;
-    if (op != TokenId::SymEqual)
+    //const auto op = sema.token(srcViewRef(), tokRef()).id;
+    //if (op != TokenId::SymEqual)
         return Result::SkipChildren;
 
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero));
@@ -39,8 +39,8 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 Result AstAssignStmt::semaPostNode(Sema& sema)
 {
     // TODO
-    const auto op = sema.token(srcViewRef(), tokRef()).id;
-    if (op != TokenId::SymEqual)
+    //const auto op = sema.token(srcViewRef(), tokRef()).id;
+    //if (op != TokenId::SymEqual)
         return Result::SkipChildren;
     
     // Left must be assignable.

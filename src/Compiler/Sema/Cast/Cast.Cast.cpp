@@ -231,6 +231,22 @@ namespace
         return Result::Continue;
     }
 
+    Result castToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const auto&     typeMgr = sema.ctx().typeMgr();
+        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+
+        if (srcType.isBool())
+            return castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        if (srcType.isIntLike())
+            return castIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        if (srcType.isFloat())
+            return castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
+
     Result castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto&     typeMgr = sema.ctx().typeMgr();
@@ -732,18 +748,14 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFromNull(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isUndefined())
         res = castFromUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isBool() && dstType.isIntLike())
-        res = castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isBool())
         res = castToBool(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isIntLike() && dstType.isIntLike())
-        res = castIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isIntLike())
+        res = castToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isIntLike() && dstType.isFloat())
         res = castIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isFloat() && dstType.isFloat())
         res = castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
-    else if (srcType.isFloat() && dstType.isIntLike())
-        res = castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeValue())
         res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isAnyTypeInfo(sema.ctx()) && dstType.isAnyTypeInfo(sema.ctx()))

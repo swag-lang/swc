@@ -82,14 +82,14 @@ public:
     bool                     hasPayload(AstNodeRef n) const { return semaContext().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { semaContext().setPayload(n, payload); }
 
-    bool isLValue(const AstNode& n) const { return SemaContext::isLValue(n); }
-    bool isValue(const AstNode& n) const { return SemaContext::isValue(n); }
-    bool isLValue(AstNodeRef n) const { return SemaContext::isLValue(node(n)); }
-    bool isValue(AstNodeRef n) const { return SemaContext::isValue(node(n)); }
-    void setIsLValue(AstNode& n) { SemaContext::setIsLValue(n); }
-    void setIsValue(AstNode& n) { SemaContext::setIsValue(n); }
-    void setIsLValue(AstNodeRef n) { SemaContext::setIsLValue(node(n)); }
-    void setIsValue(AstNodeRef n) { SemaContext::setIsValue(node(n)); }
+    bool isLValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::LValue); }
+    bool isValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Value); }
+    void setIsLValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::LValue); }
+    void setIsValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::Value); }
+    bool isLValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::LValue); }
+    bool isValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::Value); }
+    void setIsLValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::LValue); }
+    void setIsValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::Value); }
 
     void inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSemaFlags(nodeDst, node(srcRef)); }
     void inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSemaKindRef(nodeDst, node(srcRef)); }

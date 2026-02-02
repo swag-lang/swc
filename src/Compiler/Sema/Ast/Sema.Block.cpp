@@ -12,16 +12,16 @@ SWC_BEGIN_NAMESPACE();
 Result AstFile::semaPreDecl(Sema& sema) const
 {
     SymbolNamespace* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    sema.semaInfo().setFileNamespace(*fileNamespace);
+    sema.setFileNamespace(*fileNamespace);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
-    sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
+    sema.curScope().setSymMap(&sema.moduleNamespace());
     return Result::Continue;
 }
 
 Result AstFile::semaPreNode(Sema& sema)
 {
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
-    sema.curScope().setSymMap(&sema.semaInfo().moduleNamespace());
+    sema.curScope().setSymMap(&sema.moduleNamespace());
     return Result::Continue;
 }
 

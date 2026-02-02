@@ -188,7 +188,7 @@ namespace
             MatchContext::Priority priority;
             priority.scopeDepth = scopeDepth;
             priority.visibility = MatchContext::VisibilityTier::FileNamespace;
-            addSymMap(lookUpCxt, &sema.semaInfo().fileNamespace(), priority);
+            addSymMap(lookUpCxt, &sema.fileNamespace(), priority);
         }
 
         // Module-level namespace: outer than file-level.
@@ -196,7 +196,7 @@ namespace
             MatchContext::Priority priority;
             priority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
             priority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
-            addSymMap(lookUpCxt, &sema.semaInfo().moduleNamespace(), priority);
+            addSymMap(lookUpCxt, &sema.moduleNamespace(), priority);
         }
     }
 

@@ -53,6 +53,13 @@ public:
     const SourceFile*        file() const;
     const Ast&               ast() const;
 
+    const SymbolNamespace& moduleNamespace() const { return semaInfo().moduleNamespace(); }
+    SymbolNamespace&       moduleNamespace() { return semaInfo().moduleNamespace(); }
+    void                   setModuleNamespace(SymbolNamespace& ns) { semaInfo().setModuleNamespace(ns); }
+    const SymbolNamespace& fileNamespace() const { return semaInfo().fileNamespace(); }
+    SymbolNamespace&       fileNamespace() { return semaInfo().fileNamespace(); }
+    void                   setFileNamespace(SymbolNamespace& ns) { semaInfo().setFileNamespace(ns); }
+
     TypeRef                  typeRefOf(AstNodeRef n) const { return semaInfo().getTypeRef(ctx(), n); }
     ConstantRef              constantRefOf(AstNodeRef n) const { return semaInfo().getConstantRef(ctx(), n); }
     const ConstantValue&     constantOf(AstNodeRef n) const { return semaInfo().getConstant(ctx(), n); }
@@ -76,18 +83,18 @@ public:
     bool                     hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
 
-    bool                     isLValue(const AstNode& n) const { return SemaInfo::isLValue(n); }
-    bool                     isValue(const AstNode& n) const { return SemaInfo::isValue(n); }
-    bool                     isLValue(AstNodeRef n) const { return SemaInfo::isLValue(node(n)); }
-    bool                     isValue(AstNodeRef n) const { return SemaInfo::isValue(node(n)); }
-    void                     setIsLValue(AstNode& n) { SemaInfo::setIsLValue(n); }
-    void                     setIsValue(AstNode& n) { SemaInfo::setIsValue(n); }
-    void                     setIsLValue(AstNodeRef n) { SemaInfo::setIsLValue(node(n)); }
-    void                     setIsValue(AstNodeRef n) { SemaInfo::setIsValue(node(n)); }
+    bool isLValue(const AstNode& n) const { return SemaInfo::isLValue(n); }
+    bool isValue(const AstNode& n) const { return SemaInfo::isValue(n); }
+    bool isLValue(AstNodeRef n) const { return SemaInfo::isLValue(node(n)); }
+    bool isValue(AstNodeRef n) const { return SemaInfo::isValue(node(n)); }
+    void setIsLValue(AstNode& n) { SemaInfo::setIsLValue(n); }
+    void setIsValue(AstNode& n) { SemaInfo::setIsValue(n); }
+    void setIsLValue(AstNodeRef n) { SemaInfo::setIsLValue(node(n)); }
+    void setIsValue(AstNodeRef n) { SemaInfo::setIsValue(node(n)); }
 
-    void                     inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaFlags(nodeDst, node(srcRef)); }
-    void                     inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaKindRef(nodeDst, node(srcRef)); }
-    void                     inheritSema(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSema(nodeDst, node(srcRef)); }
+    void inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaFlags(nodeDst, node(srcRef)); }
+    void inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaKindRef(nodeDst, node(srcRef)); }
+    void inheritSema(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSema(nodeDst, node(srcRef)); }
 
     template<typename T>
     T* payload(AstNodeRef n) const

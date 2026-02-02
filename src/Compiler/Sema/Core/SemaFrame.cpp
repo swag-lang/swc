@@ -64,9 +64,9 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 
     SymbolMap* root = nullptr;
     if (access == SymbolAccess::Internal)
-        root = &sema.semaInfo().fileNamespace();
+        root = &sema.fileNamespace();
     else
-        root = &sema.semaInfo().moduleNamespace();
+        root = &sema.moduleNamespace();
 
     return followNamespace(sema, root, sema.frame().nsPath());
 }

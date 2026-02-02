@@ -8,6 +8,28 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Result checkConstant(Sema& sema, TokenId op, const AstNode& node, const SemaNodeView& nodeRightView)
+    {
+        switch (op)
+        {
+            case TokenId::SymSlashEqual:
+            case TokenId::SymPercentEqual:
+                if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
+                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
+                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                break;
+
+            default:
+                break;
+        }
+
+        return Result::Continue;
+    }
+}
+
 Result AstAssignStmt::semaPreNode(Sema& sema) const
 {
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero));
@@ -33,14 +55,13 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema)
 {
-    // Left must be assignable.
-    const SemaNodeView leftView(sema, nodeLeftRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
 
     // TODO
-    if (leftView.node->srcView(sema.ctx()).file()->isRuntime())
+    if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
 
-    if (!SemaInfo::isLValue(*leftView.node))
+    if (!SemaInfo::isLValue(*nodeLeftView.node))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, srcViewRef(), tokRef());
         diag.report(sema.ctx());
@@ -48,12 +69,19 @@ Result AstAssignStmt::semaPostNode(Sema& sema)
     }
 
     // Right must be a value (or a type that can be converted to a value).
-    SemaNodeView rightView(sema, nodeRightRef);
-    RESULT_VERIFY(SemaCheck::isValueOrType(sema, rightView));
+    SemaNodeView nodeRightView(sema, nodeRightRef);
+    RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
 
     // Cast RHS to LHS type.
-    if (leftView.typeRef.isValid())
-        RESULT_VERIFY(Cast::cast(sema, rightView, leftView.typeRef, CastKind::Initialization));
+    if (nodeLeftView.typeRef.isValid())
+        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Initialization));
+
+    // Right is constant
+    const Token& tok = sema.token(srcViewRef(), tokRef());
+    if (nodeRightView.cstRef.isValid())
+    {
+        RESULT_VERIFY(checkConstant(sema, tok.id, *this, nodeRightView));
+    }
 
     // Assignment statement has no value. Ensure the current node isn't flagged as a value.
     SemaInfo::removeSemaFlags(*this, NodeSemaFlags::Value);

@@ -37,10 +37,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema)
     const SemaNodeView leftView(sema, nodeLeftRef);
 
     // TODO
-    //if (leftView.node->safeCast<AstAssignList>())
-        return Result::Continue;
-    const auto op = sema.token(srcViewRef(), tokRef()).id;
-    if (op != TokenId::SymEqual)
+    if (leftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
 
     if (!SemaInfo::isLValue(*leftView.node))

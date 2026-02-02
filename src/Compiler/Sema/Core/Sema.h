@@ -114,12 +114,12 @@ public:
     SemaScope*       pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     bool             enteringState() const { return visit_.enteringState(); }
 
-    Result waitIdentifier(IdentifierRef idRef, const SourceCodeRef& loc);
-    Result waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& loc);
-    Result waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& loc);
-    Result waitCompleted(const Symbol* symbol, const SourceCodeRef& loc);
-    Result waitDeclared(const Symbol* symbol, const SourceCodeRef& loc);
-    Result waitTyped(const Symbol* symbol, const SourceCodeRef& loc);
+    Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 

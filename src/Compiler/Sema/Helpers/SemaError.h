@@ -11,9 +11,9 @@ class Symbol;
 namespace SemaError
 {
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
-    Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& loc);
+    Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
 
-    Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& loc);
+    Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
     Result raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);

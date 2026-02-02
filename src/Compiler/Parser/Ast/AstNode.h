@@ -39,9 +39,9 @@ using AstNodeRef = StrongRef<AstNode>;
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
-    explicit AstNode(AstNodeId nodeId, const SourceCodeRef& loc) :
+    explicit AstNode(AstNodeId nodeId, const SourceCodeRef& codeRef) :
         id_(nodeId),
-        codeRef_(loc)
+        codeRef_(codeRef)
     {
     }
 
@@ -137,8 +137,8 @@ struct AstNodeT : AstNode
     using FlagsE             = E;
     using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
-    explicit AstNodeT(const SourceCodeRef& loc) :
-        AstNode(I, loc)
+    explicit AstNodeT(const SourceCodeRef& codeRef) :
+        AstNode(I, codeRef)
     {
     }
 

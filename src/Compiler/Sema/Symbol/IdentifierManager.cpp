@@ -91,10 +91,10 @@ void IdentifierManager::setup(TaskContext&)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 }
 
-IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& loc)
+IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)
 {
-    const SourceView&      srcView = ctx.compiler().srcView(loc.srcViewRef);
-    const Token&           tok     = srcView.token(loc.tokRef);
+    const SourceView&      srcView = ctx.compiler().srcView(codeRef.srcViewRef);
+    const Token&           tok     = srcView.token(codeRef.tokRef);
     const std::string_view name    = tok.string(srcView);
 
     if (tok.id == TokenId::Identifier)

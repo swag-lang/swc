@@ -216,70 +216,70 @@ namespace
     }
 }
 
-Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& loc)
+Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = loc.srcViewRef;
-    wait.tokRef     = loc.tokRef;
+    wait.srcViewRef = codeRef.srcViewRef;
+    wait.tokRef     = codeRef.tokRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
 
-Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& loc)
+Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitCompilerDefined;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = loc.srcViewRef;
-    wait.tokRef     = loc.tokRef;
+    wait.srcViewRef = codeRef.srcViewRef;
+    wait.tokRef     = codeRef.tokRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
 
-Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& loc)
+Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitImplRegistrations;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = loc.srcViewRef;
-    wait.tokRef     = loc.tokRef;
+    wait.srcViewRef = codeRef.srcViewRef;
+    wait.tokRef     = codeRef.tokRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
 
-Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& loc)
+Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymDeclared;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = loc.srcViewRef;
-    wait.tokRef       = loc.tokRef;
+    wait.srcViewRef   = codeRef.srcViewRef;
+    wait.tokRef       = codeRef.tokRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
-Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& loc)
+Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymTyped;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = loc.srcViewRef;
-    wait.tokRef       = loc.tokRef;
+    wait.srcViewRef   = codeRef.srcViewRef;
+    wait.tokRef       = codeRef.tokRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
-Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& loc)
+Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymCompleted;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = loc.srcViewRef;
-    wait.tokRef       = loc.tokRef;
+    wait.srcViewRef   = codeRef.srcViewRef;
+    wait.tokRef       = codeRef.tokRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;

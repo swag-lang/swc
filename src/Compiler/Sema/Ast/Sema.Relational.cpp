@@ -335,7 +335,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     // Force types
     RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));

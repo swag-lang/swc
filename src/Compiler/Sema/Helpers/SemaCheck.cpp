@@ -56,15 +56,15 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
 
 Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
 {
-    const AstNode& node = sema.ast().node(nodeRef);
-    if (SemaInfo::isValue(node))
+    const AstNode& node = sema.node(nodeRef);
+    if (sema.isValue(node))
         return Result::Continue;
     return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 {
-    if (SemaInfo::isValue(*nodeView.node))
+    if (sema.isValue(*nodeView.node))
         return Result::Continue;
     if (nodeView.typeRef.isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
@@ -77,7 +77,7 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 
 Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
 {
-    if (SemaInfo::isValue(*nodeView.node))
+    if (sema.isValue(*nodeView.node))
         return Result::Continue;
     if (nodeView.typeRef.isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
@@ -190,7 +190,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
     }
 
     // Left must be a l-value
-    if (!SemaInfo::isLValue(*leftView.node))
+    if (!sema.isLValue(*leftView.node))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, node.srcViewRef(), node.tokRef());
         diag.report(sema.ctx());

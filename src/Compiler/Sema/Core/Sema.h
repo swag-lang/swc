@@ -25,8 +25,6 @@ public:
     TaskContext&               ctx() { return *ctx_; }
     const TaskContext&         ctx() const { return *ctx_; }
     bool                       isDeclPass() const { return declPass_; }
-    SemaInfo&                  semaInfo() { return *semaInfo_; }
-    const SemaInfo&            semaInfo() const { return *semaInfo_; }
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
@@ -125,10 +123,12 @@ public:
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
-    SemaScope* pushScope(SemaScopeFlags flags);
-    void       popScope();
-    void       pushFrame(const SemaFrame& frame);
-    void       popFrame();
+    SemaScope*      pushScope(SemaScopeFlags flags);
+    void            popScope();
+    void            pushFrame(const SemaFrame& frame);
+    void            popFrame();
+    SemaInfo&       semaInfo() { return *semaInfo_; }
+    const SemaInfo& semaInfo() const { return *semaInfo_; }
 
     void   setVisitors();
     Result preDecl(AstNode& node);

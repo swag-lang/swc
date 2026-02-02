@@ -425,7 +425,7 @@ namespace
         auto [memberRef, memberPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(argNode.tokRef());
         auto [leftRef, leftPtr]     = sema.ast().makeNode<AstNodeId::Identifier>(argNode.tokRef());
         sema.setSymbol(leftRef, &enumSym);
-        SemaInfo::setIsValue(*leftPtr);
+        sema.setIsValue(*leftPtr);
 
         memberPtr->nodeLeftRef  = leftRef;
         memberPtr->nodeRightRef = autoMem->nodeIdentRef;
@@ -435,7 +435,7 @@ namespace
         sema.setType(memberRef, paramTy);
         sema.setType(argRef, paramTy);
         sema.setSubstitute(argRef, memberRef);
-        SemaInfo::setIsValue(*memberPtr);
+        sema.setIsValue(*memberPtr);
 
         return Result::Continue;
     }
@@ -832,7 +832,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
     // Set the call node type to the return type of the selected function
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
-    SemaInfo::setIsValue(sema.node(sema.curNodeRef()));
+    sema.setIsValue(sema.node(sema.curNodeRef()));
     return Result::Continue;
 }
 

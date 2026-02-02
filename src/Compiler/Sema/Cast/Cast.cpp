@@ -45,13 +45,12 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 
 AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
 {
-    SemaInfo&      semaInfo           = sema.semaInfo();
-    const AstNode& node               = sema.ast().node(nodeRef);
+    const AstNode& node               = sema.node(nodeRef);
     auto [substNodeRef, substNodePtr] = sema.ast().makeNode<AstNodeId::ImplicitCastExpr>(node.tokRef());
     substNodePtr->nodeExprRef         = nodeRef;
-    semaInfo.setSubstitute(nodeRef, substNodeRef);
-    semaInfo.setType(substNodeRef, dstTypeRef);
-    SemaInfo::setIsValue(*substNodePtr);
+    sema.setSubstitute(nodeRef, substNodeRef);
+    sema.setType(substNodeRef, dstTypeRef);
+    sema.setIsValue(*substNodePtr);
     return substNodeRef;
 }
 

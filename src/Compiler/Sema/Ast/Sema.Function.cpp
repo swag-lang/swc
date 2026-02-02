@@ -177,7 +177,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
     {
         const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
-        if (SemaInfo::isValue(*nodeLeftView.node))
+        if (sema.isValue(*nodeLeftView.node))
             ufcsArg = nodeLeftView.nodeRef;
     }
 

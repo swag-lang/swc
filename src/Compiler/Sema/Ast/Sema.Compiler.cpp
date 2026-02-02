@@ -229,7 +229,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
 
         case TokenId::CompilerCallerFunction:
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
-            SemaInfo::setIsValue(*this);
+            sema.setIsValue(*this);
             break;
         case TokenId::CompilerCallerLocation:
         case TokenId::CompilerCurLocation:

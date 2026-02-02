@@ -55,7 +55,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
     if (sema.compiler().pendingImplRegistrations() != 0)
-        return sema.waitImplRegistrations(sym.idRef(), sym.srcViewRef(), sym.tokRef());
+        return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
@@ -109,7 +109,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
     if (sema.compiler().pendingImplRegistrations() != 0)
-        return sema.waitImplRegistrations(sym.idRef(), sym.srcViewRef(), sym.tokRef());
+        return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);

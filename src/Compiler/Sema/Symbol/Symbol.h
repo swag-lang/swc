@@ -68,9 +68,10 @@ public:
     void            setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     const TypeInfo& type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }
     const AstNode*  decl() const noexcept { return decl_; }
+    SourceCodeRef   codeRef() const noexcept { return SourceCodeRef{decl_->srcViewRef(), tokRef_}; }
+    SourceCodeRange codeRange(TaskContext& ctx) const noexcept;
     SourceViewRef   srcViewRef() const noexcept { return decl_->srcViewRef(); }
     TokenRef        tokRef() const noexcept { return tokRef_; }
-    SourceCodeRange loc(TaskContext& ctx) const noexcept;
     Utf8            toFamily() const;
 
     SymbolFlags flags() const noexcept { return flags_; }

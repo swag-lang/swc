@@ -258,7 +258,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
-        return sema.waitIdentifier(sym.idRef(), sym.srcViewRef(), sym.tokRef());
+        return sema.waitIdentifier(sym.idRef(), sym.codeRef());
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

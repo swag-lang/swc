@@ -188,9 +188,9 @@ Result SemaError::raiseInternal(Sema& sema, const AstNode& node)
 Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_already_defined, SourceCodeRef{symbol->srcViewRef(), symbol->tokRef()});
+    auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->codeRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->loc(ctx));
+    diag.last().addSpan(otherSymbol->codeRange(ctx));
     diag.report(ctx);
     return Result::Error;
 }
@@ -198,9 +198,9 @@ Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Sy
 Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
     auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_ghosting, SourceCodeRef{symbol->srcViewRef(), symbol->tokRef()});
+    auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->codeRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->loc(ctx));
+    diag.last().addSpan(otherSymbol->codeRange(ctx));
     diag.report(ctx);
     return Result::Error;
 }
@@ -214,7 +214,7 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span
     for (const auto other : symbols)
     {
         diag.addNote(DiagnosticId::sema_note_could_be);
-        diag.last().addSpan(other->loc(ctx));
+        diag.last().addSpan(other->codeRange(ctx));
     }
 
     diag.report(ctx);

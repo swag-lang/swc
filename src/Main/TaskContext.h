@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -30,8 +31,7 @@ struct TaskState
 {
     TaskStateKind kind         = TaskStateKind::None;
     AstNodeRef    nodeRef      = AstNodeRef::invalid();
-    SourceViewRef srcViewRef   = SourceViewRef::invalid();
-    TokenRef      tokRef       = TokenRef::invalid();
+    SourceCodeRef codeRef      = SourceCodeRef::invalid();
     IdentifierRef idRef        = IdentifierRef::invalid();
     const Symbol* symbol       = nullptr;
     const Symbol* waiterSymbol = nullptr;
@@ -40,8 +40,7 @@ struct TaskState
     {
         kind         = TaskStateKind::None;
         nodeRef      = AstNodeRef::invalid();
-        srcViewRef   = SourceViewRef::invalid();
-        tokRef       = TokenRef::invalid();
+        codeRef      = SourceCodeRef::invalid();
         idRef        = IdentifierRef::invalid();
         symbol       = nullptr;
         waiterSymbol = nullptr;

@@ -137,7 +137,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         {
             case TaskStateKind::SemaWaitIdentifier:
             {
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{state.srcViewRef, state.tokRef});
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unknown_symbol, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
                 diag.report(ctx);
                 break;
@@ -147,7 +147,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 // This is a per-struct barrier wait. If it reaches cycle detection,
                 // something prevents impl registrations for that struct from completing.
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_impl_registration, SourceCodeRef{state.srcViewRef, state.tokRef});
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_impl_registration, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
                 diag.report(ctx);
                 break;
@@ -156,7 +156,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitSymDeclared:
             {
                 SWC_ASSERT(state.symbol);
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_declared, SourceCodeRef{state.srcViewRef, state.tokRef});
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_declared, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
@@ -165,7 +165,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitSymTyped:
             {
                 SWC_ASSERT(state.symbol);
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_typed, SourceCodeRef{state.srcViewRef, state.tokRef});
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_typed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
@@ -175,7 +175,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 SWC_ASSERT(state.symbol);
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, SourceCodeRef{state.srcViewRef, state.tokRef});
+                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;

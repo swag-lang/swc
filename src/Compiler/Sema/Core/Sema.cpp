@@ -221,8 +221,7 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = codeRef.srcViewRef;
-    wait.tokRef     = codeRef.tokRef;
+    wait.codeRef    = codeRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
@@ -232,8 +231,7 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeR
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitCompilerDefined;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = codeRef.srcViewRef;
-    wait.tokRef     = codeRef.tokRef;
+    wait.codeRef    = codeRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
@@ -243,8 +241,7 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitImplRegistrations;
     wait.nodeRef    = curNodeRef();
-    wait.srcViewRef = codeRef.srcViewRef;
-    wait.tokRef     = codeRef.tokRef;
+    wait.codeRef    = codeRef;
     wait.idRef      = idRef;
     return Result::Pause;
 }
@@ -254,8 +251,7 @@ Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymDeclared;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = codeRef.srcViewRef;
-    wait.tokRef       = codeRef.tokRef;
+    wait.codeRef      = codeRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
@@ -266,8 +262,7 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymTyped;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = codeRef.srcViewRef;
-    wait.tokRef       = codeRef.tokRef;
+    wait.codeRef      = codeRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
@@ -278,8 +273,7 @@ Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymCompleted;
     wait.nodeRef      = curNodeRef();
-    wait.srcViewRef   = codeRef.srcViewRef;
-    wait.tokRef       = codeRef.tokRef;
+    wait.codeRef      = codeRef;
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
@@ -290,6 +284,8 @@ Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitTypeCompleted;
     wait.nodeRef      = nodeRef;
+    if (nodeRef.isValid())
+        wait.codeRef = node(nodeRef).codeRef();
     wait.symbol       = type->getSymbolDependency(ctx());
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;

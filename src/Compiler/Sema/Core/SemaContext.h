@@ -33,7 +33,7 @@ enum class NodeSemaFlags : uint16_t
     Value  = 1 << 15,
 };
 
-class SemaInfo
+class SemaContext
 {
     friend class Sema;
 

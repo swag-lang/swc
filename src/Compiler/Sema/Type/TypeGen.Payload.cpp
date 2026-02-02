@@ -3,8 +3,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
-#include "Support/Core/DataSegment.h"
 #include "Runtime/Runtime.h"
+#include "Support/Core/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();
 

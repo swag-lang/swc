@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceCodeLocation.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();

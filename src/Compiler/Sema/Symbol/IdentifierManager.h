@@ -1,7 +1,7 @@
 #pragma once
+#include "Compiler/Lexer/SourceView.h"
 #include "Support/Core/Store.h"
 #include "Support/Core/StringMap.h"
-#include "Compiler/Lexer/SourceView.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "Compiler/Lexer/Lexer.h"
-#include "Support/Core/Timer.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Support/Report/Diagnostic.h"
+#include "Support/Core/Timer.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 

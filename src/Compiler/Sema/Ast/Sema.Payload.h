@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Sema/Core/SemaInfo.h"
+#include "Compiler/Sema/Core/SemaContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,15 +1,15 @@
 #include "pch.h"
 #include "Support/Report/Diagnostic.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Support/Report/DiagnosticElement.h"
 #include "Support/Report/Logger.h"
-#include "Support/Os/Os.h"
 #include "Wmf/Verify.h"
 
 SWC_BEGIN_NAMESPACE();

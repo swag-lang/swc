@@ -283,7 +283,7 @@
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\SemaInfo.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Core\SemaContext.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
@@ -386,7 +386,7 @@
         <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\Sema.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaInfo.h"/>
+        <ClInclude Include="src\Compiler\Sema\Core\SemaContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
@@ -425,15 +425,15 @@
         <Folder Include="src\Support\"/>
     </ItemGroup>
     <ItemGroup>
-      <Content Include="src\Support\Report\Msg\Errors.Cmd.msg" />
-      <Content Include="src\Support\Report\Msg\Errors.Lex.msg" />
-      <Content Include="src\Support\Report\Msg\Errors.Misc.msg" />
-      <Content Include="src\Support\Report\Msg\Errors.msg" />
-      <Content Include="src\Support\Report\Msg\Errors.Parser.msg" />
-      <Content Include="src\Support\Report\Msg\Errors.Sema.msg" />
-      <Content Include="src\Support\Report\Msg\Notes.msg" />
-      <Content Include="src\Support\Report\Msg\Notes.Parser.msg" />
-      <Content Include="src\Support\Report\Msg\Notes.Sema.msg" />
+        <Content Include="src\Support\Report\Msg\Errors.Cmd.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.Lex.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.Misc.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.Parser.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.Sema.msg"/>
+        <Content Include="src\Support\Report\Msg\Notes.msg"/>
+        <Content Include="src\Support\Report\Msg\Notes.Parser.msg"/>
+        <Content Include="src\Support\Report\Msg\Notes.Sema.msg"/>
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
     <ImportGroup Label="ExtensionTargets">

@@ -1,7 +1,7 @@
 #pragma once
-#include "Support/Core/SmallVector.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 

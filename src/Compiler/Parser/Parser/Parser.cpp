@@ -66,7 +66,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);
-    const SourceCodeRange loc = node.locationWithChildren(*ctx_, *ast_);
+    const SourceCodeRange loc = node.codeRangeWithChildren(*ctx_, *ast_);
     diag.last().addSpan(loc, "");
 
     if (tknRef == lastErrorToken_)

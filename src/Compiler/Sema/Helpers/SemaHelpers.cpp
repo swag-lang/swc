@@ -39,7 +39,7 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 {
     auto&      ctx     = sema.ctx();
-    const auto loc     = node.locationWithChildren(ctx, sema.ast());
+    const auto loc     = node.codeRangeWithChildren(ctx, sema.ast());
     const auto typeRef = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;

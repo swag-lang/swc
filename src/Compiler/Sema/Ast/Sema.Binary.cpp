@@ -149,7 +149,7 @@ namespace
 
             if (!wrap && type.payloadIntBits() != 0 && overflow)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node.srcViewRef(), node.tokRef());
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node.codeRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                 diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);

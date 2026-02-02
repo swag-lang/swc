@@ -56,11 +56,11 @@ namespace TypeGenInternal
     Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, TypeRef rtTypeRef, const AstNode& node)
     {
         if (rtTypeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), node.srcViewRef(), node.tokRef());
+            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), node.codeRef());
 
         const auto& structType = tm.get(rtTypeRef);
         if (!structType.isCompleted(sema.ctx()))
-            return sema.waitCompleted(&structType.payloadSymStruct(), node.srcViewRef(), node.tokRef());
+            return sema.waitCompleted(&structType.payloadSymStruct(), node.codeRef());
 
         return Result::Continue;
     }

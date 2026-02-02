@@ -35,7 +35,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_binary_operand_type, srcViewRef(), tokRef());
         diag.addArgument(Diagnostic::ARG_TYPE, nodeTrueView.typeRef);
         diag.addNote(DiagnosticId::sema_note_other_definition);
-        diag.last().addSpan(nodeFalseView.node->locationWithChildren(sema.ctx(), sema.ast()));
+        diag.last().addSpan(nodeFalseView.node->codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }

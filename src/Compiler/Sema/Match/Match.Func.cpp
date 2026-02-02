@@ -226,7 +226,7 @@ namespace
         if (fail.hasLocation && fail.argIndex < numArgs)
         {
             const AstNodeRef argRef = getCallArg(fail.argIndex, args, ufcsArg);
-            diagElement.addSpan(sema.node(argRef).locationWithChildren(ctx, sema.ast()));
+            diagElement.addSpan(sema.node(argRef).codeRangeWithChildren(ctx, sema.ast()));
         }
     }
 

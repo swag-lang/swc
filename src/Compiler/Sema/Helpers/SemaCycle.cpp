@@ -54,7 +54,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         Sema& sema = itEdge->second.job->sema();
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-        const SourceCodeRange loc = sema.node(itEdge->second.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
+        const SourceCodeRange loc = sema.node(itEdge->second.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
         diag.last().addSpan(loc, next->name(*ctx_), DiagnosticSeverity::Note);
     }
 

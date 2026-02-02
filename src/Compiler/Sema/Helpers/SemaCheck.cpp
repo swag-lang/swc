@@ -44,7 +44,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
         const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {tokId});
 
         // Emit diagnostic
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, srcView.token(mdfRef).string(srcView));
         diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, mdfRef), "");
         diag.report(sema.ctx());
@@ -166,7 +166,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
         {
             if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
-                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, node.srcViewRef(), node.tokRef());
+                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, node.codeRef());
                 diag.report(sema.ctx());
                 return Result::Error;
             }
@@ -174,7 +174,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
 
         if (leftView.sym->isConstant())
         {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, node.srcViewRef(), node.tokRef());
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, node.codeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -182,7 +182,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
 
     if (leftView.type && leftView.type->isConst())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, node.codeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -191,7 +191,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
     // Left must be a l-value
     if (!sema.isLValue(*leftView.node))
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, node.srcViewRef(), node.tokRef());
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, node.codeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }

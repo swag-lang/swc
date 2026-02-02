@@ -41,7 +41,7 @@ struct AstNode
     // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId, SourceCodeRef loc) :
         id_(nodeId),
-        loc_(loc)
+        codeRef_(loc)
     {
     }
 
@@ -79,12 +79,12 @@ struct AstNode
     bool      is(AstNodeId id) const { return id_ == id; }
     bool      isNot(AstNodeId id) const { return id_ != id; }
 
-    SourceCodeRange      location(const TaskContext& ctx) const;
-    SourceCodeRange      locationWithChildren(const TaskContext& ctx, const Ast& ast) const;
     const SourceView&    srcView(const TaskContext& ctx) const;
-    const SourceCodeRef& loc() const { return loc_; }
-    SourceViewRef        srcViewRef() const { return loc_.srcViewRef; }
-    TokenRef             tokRef() const { return loc_.tokRef; }
+    SourceCodeRange      codeRange(const TaskContext& ctx) const;
+    SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
+    const SourceCodeRef& codeRef() const { return codeRef_; }
+    SourceViewRef        srcViewRef() const { return codeRef_.srcViewRef; }
+    TokenRef             tokRef() const { return codeRef_.tokRef; }
     TokenRef             tokRefEnd(const Ast& ast) const;
     AstNodeRef           nodeRef(const Ast& ast) const;
 
@@ -126,7 +126,7 @@ protected:
     uint16_t      semaBits_ = 0;
     AstNodeId     id_       = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
-    SourceCodeRef loc_;
+    SourceCodeRef codeRef_;
     uint32_t      semaRef_ = 0;
 };
 

@@ -225,7 +225,7 @@ namespace
         if (nodeLeftView.type->isAnyTypeInfo(sema.ctx()) && nodeRightView.type->isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());
@@ -239,7 +239,7 @@ namespace
         if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.srcViewRef(), node.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
         diag.report(sema.ctx());

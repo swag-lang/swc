@@ -157,7 +157,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_multiple_default, caseRef);
         diag.addNote(DiagnosticId::sema_note_previous_default_case);
-        diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).locationWithChildren(sema.ctx(), sema.ast()));
+        diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -254,7 +254,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
         diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(sema.node(it->second).locationWithChildren(sema.ctx(), sema.ast()));
+        diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
         return Result::Error;
     }

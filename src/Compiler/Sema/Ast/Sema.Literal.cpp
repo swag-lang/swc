@@ -91,7 +91,7 @@ namespace
 
 Result AstBoolLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& tok = sema.token(loc());
+    const auto& tok = sema.token(codeRef());
     if (tok.is(TokenId::KwdTrue))
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstTrue());
     else if (tok.is(TokenId::KwdFalse))
@@ -117,7 +117,7 @@ Result AstUndefinedExpr::semaPreNode(Sema& sema)
 Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 {
     auto&             ctx     = sema.ctx();
-    const Token&      tok     = sema.token(loc());
+    const Token&      tok     = sema.token(codeRef());
     const SourceView& srcView = sema.compiler().srcView(srcViewRef());
     std::string_view  str     = tok.string(srcView);
 
@@ -154,7 +154,7 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 Result AstStringLiteral::semaPreNode(Sema& sema) const
 {
     auto&             ctx     = sema.ctx();
-    const Token&      tok     = sema.token(loc());
+    const Token&      tok     = sema.token(codeRef());
     const SourceView& srcView = sema.compiler().srcView(srcViewRef());
     std::string_view  str     = tok.string(srcView);
 
@@ -210,7 +210,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
 Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
     auto&       ctx = sema.ctx();
-    const auto& tok = sema.token(loc());
+    const auto& tok = sema.token(codeRef());
     auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);
@@ -229,7 +229,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
         bool over = false;
         value.logicalShiftLeft(1, over);
         if (over)
-            return SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, loc());
+            return SemaError::raise(sema, DiagnosticId::sema_err_number_too_big, codeRef());
 
         value.bitwiseOr((c == '1') ? 1 : 0);
     }
@@ -244,7 +244,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
     auto&       ctx = sema.ctx();
-    const auto& tok = sema.token(loc());
+    const auto& tok = sema.token(codeRef());
     auto        str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);

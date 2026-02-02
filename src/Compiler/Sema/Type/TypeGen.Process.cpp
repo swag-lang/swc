@@ -92,7 +92,7 @@ namespace TypeGenInternal
             // Be sure the type is completed.
             const LayoutKind kind = layoutKindOf(type);
             if (kind == LayoutKind::Struct && !type.isCompleted(ctx))
-                return sema.waitCompleted(&type.payloadSymStruct(), node.srcViewRef(), node.tokRef());
+                return sema.waitCompleted(&type.payloadSymStruct(), node.codeRef());
 
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())

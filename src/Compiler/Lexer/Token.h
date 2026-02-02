@@ -2,8 +2,8 @@
 #include "Compiler/Lexer/SourceCodeLocation.h"
 
 SWC_BEGIN_NAMESPACE();
-class SourceView;
 
+class SourceView;
 class SourceFile;
 
 enum class TokenIdKind

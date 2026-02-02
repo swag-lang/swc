@@ -25,7 +25,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
 
-    void setReportArguments(Sema& sema, Diagnostic& diag, SourceCodeRef loc)
+    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& loc)
     {
         setReportArguments(sema, diag, loc.srcViewRef, loc.tokRef);
     }
@@ -55,7 +55,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     return diag;
 }
 
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceCodeRef loc)
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& loc)
 {
     auto diag = report(sema, id, loc.srcViewRef, loc.tokRef);
     return diag;
@@ -72,7 +72,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
     return diag;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, SourceCodeRef loc)
+Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& loc)
 {
     return raise(sema, id, loc.srcViewRef, loc.tokRef);
 }

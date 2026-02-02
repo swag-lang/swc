@@ -20,7 +20,7 @@ std::vector<SymbolImpl*> SymbolEnum::impls() const
     return impls_;
 }
 
-bool SymbolEnum::computeNextValue(Sema& sema, SourceCodeRef codeRef)
+bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)
 {
     bool overflow = false;
 

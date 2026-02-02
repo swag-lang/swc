@@ -91,7 +91,7 @@ void IdentifierManager::setup(TaskContext&)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 }
 
-IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceCodeRef loc)
+IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& loc)
 {
     return addIdentifier(ctx, loc.srcViewRef, loc.tokRef);
 }

@@ -41,7 +41,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     if (itLoc == graph_.edges.end())
         return;
 
-    auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, SourceCodeRef{firstSym->srcViewRef(), firstSym->tokRef()});
+    auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, firstSym->codeRef());
     diag.addArgument(Diagnostic::ARG_SYM, firstSym->name(*ctx_));
 
     for (size_t i = 0; i < cycle.size(); i++)

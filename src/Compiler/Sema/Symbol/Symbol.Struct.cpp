@@ -35,7 +35,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
     {
         if (itf->idRef() == symImpl.idRef())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, SourceCodeRef{symImpl.srcViewRef(), symImpl.tokRef()});
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl.codeRef());
             diag.addArgument(Diagnostic::ARG_SYM, symImpl.name(sema.ctx()));
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
             auto& note = diag.addElement(DiagnosticId::sema_note_other_implementation);

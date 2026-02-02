@@ -1,3 +1,4 @@
+// ReSharper disable CppMemberFunctionMayBeStatic
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"

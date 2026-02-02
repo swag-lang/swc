@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Stats.h"

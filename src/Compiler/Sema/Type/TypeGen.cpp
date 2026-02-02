@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
-#include "Support/Core/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();
 

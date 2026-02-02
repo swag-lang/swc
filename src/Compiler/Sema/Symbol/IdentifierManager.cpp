@@ -93,13 +93,8 @@ void IdentifierManager::setup(TaskContext&)
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& loc)
 {
-    return addIdentifier(ctx, loc.srcViewRef, loc.tokRef);
-}
-
-IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)
-{
-    const SourceView&      srcView = ctx.compiler().srcView(srcViewRef);
-    const Token&           tok     = srcView.token(tokRef);
+    const SourceView&      srcView = ctx.compiler().srcView(loc.srcViewRef);
+    const Token&           tok     = srcView.token(loc.tokRef);
     const std::string_view name    = tok.string(srcView);
 
     if (tok.id == TokenId::Identifier)

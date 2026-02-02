@@ -73,7 +73,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Initialization));
 
     // Right is constant
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
     if (nodeRightView.cstRef.isValid())
     {
         RESULT_VERIFY(checkConstant(sema, tok.id, *this, nodeRightView));

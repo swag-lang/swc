@@ -283,7 +283,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
 Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 {
     auto&       ctx = sema.ctx();
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto& tok = sema.token(codeRef());
     const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());
@@ -331,7 +331,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 Result AstFloatLiteral::semaPreNode(Sema& sema) const
 {
     auto&       ctx = sema.ctx();
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto& tok = sema.token(codeRef());
     const auto  str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());

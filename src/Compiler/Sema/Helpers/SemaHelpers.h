@@ -14,7 +14,7 @@ namespace SemaHelpers
     {
         auto& ctx = sema.ctx();
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, node.srcViewRef(), tokNameRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, {node.srcViewRef(), tokNameRef});
         const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
 
         T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);

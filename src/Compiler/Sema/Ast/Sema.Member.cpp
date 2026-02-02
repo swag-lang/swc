@@ -209,7 +209,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
 
     const SemaNodeView  nodeRightView(sema, nodeIdentRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
@@ -312,7 +312,7 @@ namespace
     {
         const SymbolEnum& enumSym = nodeLeftView.type->payloadSymEnum();
         if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, node->srcViewRef(), tokNameRef);
+            return sema.waitCompleted(&enumSym, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
@@ -330,7 +330,7 @@ namespace
     {
         const SymbolInterface& symInterface = nodeLeftView.type->payloadSymInterface();
         if (!symInterface.isCompleted())
-            return sema.waitCompleted(&symInterface, node->srcViewRef(), tokNameRef);
+            return sema.waitCompleted(&symInterface, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
@@ -352,7 +352,7 @@ namespace
     {
         const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
         if (!symStruct.isCompleted())
-            return sema.waitCompleted(&symStruct, node->srcViewRef(), tokNameRef);
+            return sema.waitCompleted(&symStruct, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = node->srcViewRef();
@@ -391,7 +391,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     SemaNodeView        nodeLeftView(sema, nodeLeftRef);
     const SemaNodeView  nodeRightView(sema, nodeRightRef);
     const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokNameRef);
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Namespace
@@ -420,7 +420,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     {
         const TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
         if (typeInfoRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), srcViewRef(), tokNameRef);
+            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), {srcViewRef(), tokNameRef});
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())

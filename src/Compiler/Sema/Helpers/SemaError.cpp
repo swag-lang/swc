@@ -10,24 +10,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void setReportArguments(Sema& sema, Diagnostic& diag, SourceViewRef srcViewRef, TokenRef tokRef)
+    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& loc)
     {
-        SWC_ASSERT(srcViewRef.isValid());
-        SWC_ASSERT(tokRef.isValid());
+        SWC_ASSERT(loc.srcViewRef.isValid());
+        SWC_ASSERT(loc.tokRef.isValid());
 
         const auto&       ctx     = sema.ctx();
-        const SourceView& srcView = sema.compiler().srcView(srcViewRef);
-        const Token&      token   = srcView.token(tokRef);
-        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, sema.ast().srcView(), tokRef);
+        const SourceView& srcView = sema.compiler().srcView(loc.srcViewRef);
+        const Token&      token   = srcView.token(loc.tokRef);
+        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, sema.ast().srcView(), loc.tokRef);
 
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
-    }
-
-    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& loc)
-    {
-        setReportArguments(sema, diag, loc.srcViewRef, loc.tokRef);
     }
 
     void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
@@ -46,7 +41,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
 
     const SemaNodeView nodeView(sema, nodeRef);
-    setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef());
+    setReportArguments(sema, diag, nodeView.node->codeRef());
     setReportArguments(sema, diag, nodeView.sym);
 
     const SourceCodeRange loc = sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());

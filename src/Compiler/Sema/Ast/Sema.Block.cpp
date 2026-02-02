@@ -44,7 +44,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
                 return SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, SourceCodeRef{node->srcViewRef(), tokRef});
         }
 
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokRef);
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), {node->srcViewRef(), tokRef});
         sema.frame().pushNs(idRef);
 
         constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::Completed;

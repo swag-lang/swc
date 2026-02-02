@@ -15,7 +15,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView  identView(sema, nodeIdentRef);
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->srcViewRef(), identView.node->tokRef());
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->codeRef());
         SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 

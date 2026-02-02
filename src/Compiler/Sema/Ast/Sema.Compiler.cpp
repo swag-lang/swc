@@ -109,7 +109,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
-    const Token&         tok      = sema.token(srcViewRef(), tokRef());
+    const Token&         tok      = sema.token(codeRef());
     const ConstantValue& constant = sema.constantOf(nodeArgRef);
     switch (tok.id)
     {
@@ -173,7 +173,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
     auto&             ctx     = sema.ctx();
-    const Token&      tok     = sema.token(srcViewRef(), tokRef());
+    const Token&      tok     = sema.token(codeRef());
     const SourceView& srcView = sema.ast().srcView();
 
     switch (tok.id)
@@ -460,7 +460,7 @@ namespace
 
 Result AstCompilerCall::semaPostNode(Sema& sema) const
 {
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
     switch (tok.id)
     {
         case TokenId::CompilerTypeOf:
@@ -504,7 +504,7 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
     auto&        ctx = sema.ctx();
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerFuncMain)
     {
         if (!ctx.compiler().setMainFunc(this))

@@ -360,11 +360,11 @@ namespace
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
+            return sema.waitCompleted(&enumSym, argNode.codeRef());
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef    = argNode.srcViewRef();
@@ -405,11 +405,11 @@ namespace
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, argNode.srcViewRef(), argNode.tokRef());
+            return sema.waitCompleted(&enumSym, argNode.codeRef());
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.srcViewRef(), tokNameRef);
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
         MatchContext lookUpCxt;
         lookUpCxt.srcViewRef = argNode.srcViewRef();

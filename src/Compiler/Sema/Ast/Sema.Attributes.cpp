@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
 
     SymbolAccess access;
     switch (tok.id)

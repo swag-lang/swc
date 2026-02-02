@@ -89,7 +89,6 @@ public:
 
     void              setup(TaskContext&);
     IdentifierRef     addIdentifier(const TaskContext& ctx, const SourceCodeRef& loc);
-    IdentifierRef     addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef);
     IdentifierRef     addIdentifier(std::string_view name);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
     const Identifier& getNoLock(IdentifierRef idRef) const;

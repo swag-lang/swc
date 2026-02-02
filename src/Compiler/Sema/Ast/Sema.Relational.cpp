@@ -331,7 +331,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
-    const auto&  tok = sema.token(srcViewRef(), tokRef());
+    const auto&  tok = sema.token({srcViewRef(), tokRef()});
 
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));

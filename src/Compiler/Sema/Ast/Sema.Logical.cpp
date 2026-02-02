@@ -64,7 +64,7 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     // Type-check
-    const auto& tok = sema.token(srcViewRef(), tokRef());
+    const auto& tok = sema.token(codeRef());
     RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
 
     // Set the result type

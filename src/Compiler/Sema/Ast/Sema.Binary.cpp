@@ -397,7 +397,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     // Force types
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
     RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Type-check

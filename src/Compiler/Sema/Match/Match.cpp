@@ -235,15 +235,15 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         if (lookUpCxt.noWaitOnEmpty)
             return Result::Continue;
-        return sema.waitIdentifier(idRef, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+        return sema.waitIdentifier(idRef, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
     }
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+            return sema.waitDeclared(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
         if (!other->isTyped())
-            return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+            return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
     }
 
     return Result::Continue;
@@ -263,7 +263,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+            return sema.waitDeclared(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
     }
 
     if (lookUpCxt.count() == 1)
@@ -285,7 +285,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         {
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
-                return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+                return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
             if (!sym.deepCompare(other))
                 continue;
         }
@@ -302,7 +302,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         {
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
-                return sema.waitTyped(other, lookUpCxt.srcViewRef, lookUpCxt.tokRef);
+                return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
             if (!sym.deepCompare(other))
                 continue;
         }

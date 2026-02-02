@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
 {
-    const auto&      tok     = sema.token(srcViewRef(), tokRef());
+    const auto&      tok     = sema.token(codeRef());
     const auto&      typeMgr = sema.typeMgr();
     const AstNodeRef nodeRef = sema.curNodeRef();
 
@@ -387,7 +387,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
         IdentifierRef idRef = IdentifierRef::invalid();
         if (param->hasFlag(AstLambdaParamFlagsE::Named))
-            idRef = sema.idMgr().addIdentifier(ctx, param->srcViewRef(), param->tokRef());
+            idRef = sema.idMgr().addIdentifier(ctx, param->codeRef());
 
         SymbolVariable* const symVar = Symbol::make<SymbolVariable>(ctx, param, param->tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);

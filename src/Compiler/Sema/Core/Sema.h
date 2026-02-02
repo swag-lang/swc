@@ -36,7 +36,6 @@ public:
     CompilerInstance&          compiler() { return ctx().compiler(); }
     const CompilerInstance&    compiler() const { return ctx().compiler(); }
     const Token&               token(const SourceCodeRef& loc) const { return srcView(loc.srcViewRef).token(loc.tokRef); }
-    const Token&               token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
@@ -121,13 +120,6 @@ public:
     Result waitCompleted(const Symbol* symbol, const SourceCodeRef& loc);
     Result waitDeclared(const Symbol* symbol, const SourceCodeRef& loc);
     Result waitTyped(const Symbol* symbol, const SourceCodeRef& loc);
-
-    Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    Result      waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    Result      waitImplRegistrations(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
-    Result      waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    Result      waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
-    Result      waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 

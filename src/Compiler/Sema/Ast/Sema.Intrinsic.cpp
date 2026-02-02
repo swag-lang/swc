@@ -14,7 +14,7 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
     sema.setIsValue(*this);
 
-    const Token& tok = sema.token(srcViewRef(), tokRef());
+    const Token& tok = sema.token(codeRef());
     switch (tok.id)
     {
         case TokenId::IntrinsicIndex:
@@ -218,7 +218,7 @@ namespace
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
-    const Token&            tok = sema.token(srcViewRef(), tokRef());
+    const Token&            tok = sema.token(codeRef());
     SmallVector<AstNodeRef> children;
     sema.ast().nodes(children, spanChildrenRef);
 

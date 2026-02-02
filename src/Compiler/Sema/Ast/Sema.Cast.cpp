@@ -21,7 +21,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     // @MinusLiteralSuffix
     if (const auto parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
     {
-        const Token& tok = sema.token(parentNode->srcViewRef(), parentNode->tokRef());
+        const Token& tok = sema.token(parentNode->codeRef());
         if (tok.is(TokenId::SymMinus))
         {
             const ConstantValue& cst  = sema.cstMgr().get(cstRef);

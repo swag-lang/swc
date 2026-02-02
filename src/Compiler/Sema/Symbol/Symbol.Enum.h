@@ -49,7 +49,7 @@ public:
     void          setNextValue(const ApsInt& value) { nextValue_ = value; }
     bool          hasNextValue() const { return hasExtraFlag(SymbolEnumFlagsE::HasNextValue); }
     void          setHasNextValue() { addExtraFlag(SymbolEnumFlagsE::HasNextValue); }
-    bool          computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef);
+    bool          computeNextValue(Sema& sema, SourceCodeRef codeRef);
 
     void                     addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;

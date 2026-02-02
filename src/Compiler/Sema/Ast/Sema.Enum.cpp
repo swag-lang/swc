@@ -153,13 +153,13 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         // No initializer => auto value
         if (!underlyingType.isInt())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, srcViewRef(), tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, underlyingTypeRef);
             diag.report(ctx);
             return Result::Error;
         }
 
-        if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, srcViewRef(), tokRef()))
+        if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, codeRef()))
             return Result::Error;
 
         ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
@@ -168,7 +168,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     }
 
     // Create a symbol for this enum value
-    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, srcViewRef(), tokRef());
+    const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
     SymbolFlags         flags    = SymbolFlagsE::Declared | SymbolFlagsE::Completed;
     SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);

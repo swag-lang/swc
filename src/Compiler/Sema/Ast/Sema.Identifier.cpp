@@ -66,7 +66,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (sema.hasConstant(sema.curNodeRef()))
         return Result::Continue;
 
-    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), srcViewRef(), tokRef());
+    const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
 
     // Parser tags the callee expression when building a call: `foo()`.
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);
@@ -77,7 +77,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     const Result ret = Match::match(sema, lookUpCxt, idRef);
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
-        return sema.waitCompilerDefined(idRef, srcViewRef(), tokRef());
+        return sema.waitCompilerDefined(idRef, codeRef());
     RESULT_VERIFY(ret);
 
     return checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());

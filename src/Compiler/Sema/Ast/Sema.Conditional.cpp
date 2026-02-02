@@ -32,7 +32,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
     if (!typeRef.isValid())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_binary_operand_type, srcViewRef(), tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_binary_operand_type, codeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, nodeTrueView.typeRef);
         diag.addNote(DiagnosticId::sema_note_other_definition);
         diag.last().addSpan(nodeFalseView.node->codeRangeWithChildren(sema.ctx(), sema.ast()));

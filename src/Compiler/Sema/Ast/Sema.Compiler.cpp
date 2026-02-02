@@ -123,7 +123,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             if (!constant.isBool())
                 return SemaError::raiseInvalidType(sema, nodeArgRef, constant.typeRef(), sema.typeMgr().typeBool());
             if (!constant.getBool())
-                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
             break;
 
         default:
@@ -134,7 +134,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerError:
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, srcViewRef(), tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, codeRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
             diag.report(sema.ctx());
             return Result::Error;
@@ -142,7 +142,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerWarning:
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, srcViewRef(), tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, codeRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, constant.getString());
             diag.report(sema.ctx());
             return Result::Continue;
@@ -160,7 +160,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerAssert:
             if (!constant.getBool())
-                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, srcViewRef(), tokRef());
+                return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
             break;
 
         default:
@@ -219,7 +219,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             const TypeRef typeRef = sema.typeMgr().enumTargetOs();
             if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TargetOs), srcViewRef(), tokRef());
+                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TargetOs), codeRef());
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -236,7 +236,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
             if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), srcViewRef(), tokRef());
+                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), codeRef());
             sema.setConstant(sema.curNodeRef(), SemaHelpers::makeConstantLocation(sema, *this));
             break;
         }
@@ -509,7 +509,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     {
         if (!ctx.compiler().setMainFunc(this))
         {
-            auto  diag = SemaError::report(sema, DiagnosticId::sema_err_already_defined, srcViewRef(), tokRef());
+            auto  diag = SemaError::report(sema, DiagnosticId::sema_err_already_defined, codeRef());
             auto& note = diag.addElement(DiagnosticId::sema_note_other_definition);
             note.setSeverity(DiagnosticSeverity::Note);
             note.addSpan(Diagnostic::tokenErrorLocation(ctx, ctx.compiler().mainFunc()->srcView(ctx), ctx.compiler().mainFunc()->tokRef()));

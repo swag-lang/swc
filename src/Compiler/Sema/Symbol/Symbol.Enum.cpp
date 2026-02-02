@@ -20,7 +20,7 @@ std::vector<SymbolImpl*> SymbolEnum::impls() const
     return impls_;
 }
 
-bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef tokRef)
+bool SymbolEnum::computeNextValue(Sema& sema, SourceCodeRef codeRef)
 {
     bool overflow = false;
 
@@ -34,7 +34,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
         }
         else if (!nextValue().isPowerOf2())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_flag_enum_power_2, srcViewRef, tokRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_flag_enum_power_2, codeRef);
             diag.addArgument(Diagnostic::ARG_VALUE, nextValue().toString());
             diag.report(sema.ctx());
             return false;
@@ -54,7 +54,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, SourceViewRef srcViewRef, TokenRef
 
     if (overflow)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, srcViewRef, tokRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_literal_overflow, codeRef);
         diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, underlyingTypeRef());
         diag.report(sema.ctx());
         return false;

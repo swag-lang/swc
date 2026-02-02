@@ -70,14 +70,14 @@ namespace
         if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
         {
             if (isConst)
-                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, owner.srcViewRef(), tokDiag);
+                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
             if (isLet)
-                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
+                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
             if (nodeTypeRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, owner.srcViewRef(), tokDiag);
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
             if (!isParameter && nodeTypeView.typeRef.isValid() && nodeTypeView.type->isReference())
-                return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, owner.srcViewRef(), tokDiag);
+                return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
             markExplicitUndefined(symbols);
         }
@@ -109,7 +109,7 @@ namespace
         const TypeRef finalTypeRef = nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef;
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, owner.srcViewRef(), tokDiag);
+            return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
         if (isUsing && finalTypeRef.isValid())
         {
@@ -118,7 +118,7 @@ namespace
             {
                 if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.payloadTypeRef()).isStruct())
                 {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, owner.srcViewRef(), tokDiag);
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
                     diag.report(ctx);
                     return Result::Error;
@@ -130,7 +130,7 @@ namespace
         if (isConst)
         {
             if (nodeInitRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, owner.srcViewRef(), tokDiag);
+                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
             if (nodeInitView.cstRef.isInvalid())
                 return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef);
 
@@ -140,10 +140,10 @@ namespace
 
         // Variable
         if (isLet && nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, owner.srcViewRef(), tokDiag);
+            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
         if (!isLet && !isParameter && isRefType && nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, owner.srcViewRef(), tokDiag);
+            return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
         completeVar(sema, symbols, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
 

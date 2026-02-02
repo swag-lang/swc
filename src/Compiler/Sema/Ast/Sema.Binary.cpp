@@ -35,7 +35,7 @@ namespace
             {
                 const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
                 const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-                auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, node.srcViewRef(), mdfRef);
+                auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
                 diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                 diag.report(sema.ctx());
                 return Result::Error;

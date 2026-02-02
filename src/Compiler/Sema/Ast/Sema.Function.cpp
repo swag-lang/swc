@@ -34,7 +34,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
-        return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, srcViewRef(), mtdTokRef);
+        return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
 
     SemaFrame frame = sema.frame();

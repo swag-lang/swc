@@ -130,7 +130,7 @@ namespace
 
     Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.srcViewRef(), expr.tokRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.codeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -143,7 +143,7 @@ namespace
 
         if (ops.type->isIntUnsigned())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
@@ -159,7 +159,7 @@ namespace
 
         if (ops.type->isIntSigned())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.srcViewRef(), expr.tokRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
             diag.report(sema.ctx());
             return Result::Error;

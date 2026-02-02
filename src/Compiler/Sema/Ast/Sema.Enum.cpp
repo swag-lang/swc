@@ -112,7 +112,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 {
     SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     if (sym.empty())
-        return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, srcViewRef(), tokNameRef);
+        return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
     // Runtime enum
     if (sym.inSwagNamespace(sema.ctx()))

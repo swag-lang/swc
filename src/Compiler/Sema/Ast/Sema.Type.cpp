@@ -162,7 +162,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
                 const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::KwdConst});
-                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
                 return Result::Error;
@@ -185,7 +185,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
                 const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
-                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, srcViewRef(), constTokRef);
+                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
                 diag.report(sema.ctx());
                 return Result::Error;

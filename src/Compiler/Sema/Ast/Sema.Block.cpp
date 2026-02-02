@@ -41,7 +41,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
         {
             const Token& tok = srcView.token(tokRef);
             if (LangSpec::isReservedNamespace(tok.string(srcView)))
-                return SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, node->srcViewRef(), tokRef);
+                return SemaError::raise(sema, DiagnosticId::sema_err_reserved_swag_ns, SourceCodeRef{node->srcViewRef(), tokRef});
         }
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node->srcViewRef(), tokRef);

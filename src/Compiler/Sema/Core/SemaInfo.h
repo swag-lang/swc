@@ -63,6 +63,8 @@ public:
     static bool          isValue(const AstNode& node) { return hasSemaFlags(node, NodeSemaFlags::Value); }
     static void          setIsLValue(AstNode& node) { addSemaFlags(node, NodeSemaFlags::LValue); }
     static void          setIsValue(AstNode& node) { addSemaFlags(node, NodeSemaFlags::Value); }
+    static void          removeIsLValue(AstNode& node) { removeSemaFlags(node, NodeSemaFlags::LValue); }
+    static void          removeIsValue(AstNode& node) { removeSemaFlags(node, NodeSemaFlags::Value); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }

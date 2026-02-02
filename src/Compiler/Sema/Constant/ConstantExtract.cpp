@@ -83,6 +83,7 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
 Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
+    SWC_ASSERT(cst.isValid());
     const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
 
     ////////////////////////////////////////////////////////

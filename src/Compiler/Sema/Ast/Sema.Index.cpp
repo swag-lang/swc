@@ -85,7 +85,6 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     {
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
     }
-
     else if (nodeExprView.type->isValuePointer())
     {
         return SemaError::raisePointerArithmeticValuePointer(sema, sema.node(nodeExprRef), nodeExprRef, nodeExprView.typeRef);
@@ -95,11 +94,17 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    if (hasConstIndex && nodeExprView.cst)
-        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
-
-    SemaInfo::setIsLValue(*this);
     SemaInfo::setIsValue(*this);
+
+    // Constant extract
+    if (nodeExprView.cst && hasConstIndex)
+    {
+        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
+    }
+    else
+    {
+        SemaInfo::setIsLValue(*this);
+    }
 
     return Result::Continue;
 }

@@ -142,11 +142,6 @@ struct AstNodeT : AstNode
     {
     }
 
-    explicit AstNodeT(SourceViewRef srcViewRef, TokenRef tokRef) :
-        AstNode(I, {srcViewRef, tokRef})
-    {
-    }
-
     FlagsType& flags()
     {
         if constexpr (!std::is_void_v<E>)

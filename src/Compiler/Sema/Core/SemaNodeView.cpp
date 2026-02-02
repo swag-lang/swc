@@ -23,7 +23,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
     cstRef  = ConstantRef::invalid();
     typeRef = TypeRef::invalid();
 
-    nodeRef = sema.semaInfo().getSubstituteRef(ref);
+    nodeRef = sema.getSubstituteRef(ref);
     if (!nodeRef.isValid())
         return;
 

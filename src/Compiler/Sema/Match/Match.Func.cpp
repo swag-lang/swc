@@ -347,7 +347,7 @@ namespace
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef argSubRef   = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef argSubRef   = sema.getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
         const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -392,7 +392,7 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef argSubRef   = sema.semaInfo().getSubstituteRef(argRef);
+        const AstNodeRef argSubRef   = sema.getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
         const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -434,7 +434,7 @@ namespace
         sema.setSymbolList(autoMem->nodeIdentRef, lookUpCxt.symbols());
         sema.setType(memberRef, paramTy);
         sema.setType(argRef, paramTy);
-        sema.semaInfo().setSubstitute(argRef, memberRef);
+        sema.setSubstitute(argRef, memberRef);
         SemaInfo::setIsValue(*memberPtr);
 
         return Result::Continue;

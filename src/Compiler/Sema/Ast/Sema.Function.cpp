@@ -166,7 +166,7 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> args;
     collectArguments(args, sema.ast());
     for (auto& arg : args)
-        arg = sema.semaInfo().getSubstituteRef(arg);
+        arg = sema.getSubstituteRef(arg);
 
     // Collect overload set
     SmallVector<Symbol*> symbols;

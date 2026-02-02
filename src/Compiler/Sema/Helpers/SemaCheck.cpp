@@ -71,7 +71,7 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 
     const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
     nodeView.setCstRef(sema, cstRef);
-    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
+    sema.setConstant(nodeView.nodeRef, cstRef);
     return Result::Continue;
 }
 
@@ -85,7 +85,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
     ConstantRef cstRef;
     RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
     nodeView.setCstRef(sema, cstRef);
-    sema.semaInfo().setConstant(nodeView.nodeRef, cstRef);
+    sema.setConstant(nodeView.nodeRef, cstRef);
     return Result::Continue;
 }
 

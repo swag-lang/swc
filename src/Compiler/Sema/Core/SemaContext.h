@@ -36,13 +36,13 @@ enum class NodeSemaFlags : uint16_t
 class SemaContext
 {
     friend class Sema;
-
-public:
-    Ast&       ast() { return ast_; }
-    const Ast& ast() const { return ast_; }
-    void       setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
+    friend class SourceFile;
+    friend class SemaJob;
 
 protected:
+    Ast&       ast() { return ast_; }
+    const Ast& ast() const { return ast_; }
+
     static NodeSemaKind  semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
     static void          setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint16_t>(value); }
     static uint32_t      semaShard(const AstNode& node) { return (node.semaBits() & SEMA_SHARD_MASK) >> SEMA_SHARD_SHIFT; }
@@ -60,6 +60,7 @@ protected:
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }
+    void                   setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
 
     const SymbolNamespace& fileNamespace() const { return *fileNamespace_; }
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }

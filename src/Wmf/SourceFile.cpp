@@ -16,7 +16,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    semaInfo_ = std::make_unique<SemaContext>();
+    semaContext_ = std::make_unique<SemaContext>();
     unitTest_ = std::make_unique<Verify>(this);
 }
 
@@ -24,12 +24,17 @@ SourceFile::~SourceFile() = default;
 
 Ast& SourceFile::ast()
 {
-    return semaInfo_->ast();
+    return semaContext_->ast();
 }
 
 const Ast& SourceFile::ast() const
 {
-    return semaInfo_->ast();
+    return semaContext_->ast();
+}
+
+void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
+{
+    semaContext_->setModuleNamespace(ns);
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)

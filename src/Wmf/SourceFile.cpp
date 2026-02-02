@@ -17,7 +17,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     flags_(flags)
 {
     semaContext_ = std::make_unique<SemaContext>();
-    unitTest_ = std::make_unique<Verify>(this);
+    unitTest_    = std::make_unique<Verify>(this);
 }
 
 SourceFile::~SourceFile() = default;

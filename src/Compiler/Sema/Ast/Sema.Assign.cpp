@@ -5,6 +5,8 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Constant.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -61,6 +63,35 @@ Result AstAssignStmt::semaPostNode(Sema& sema)
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
 
+    // Disallow assignment to immutable lvalues:
+    if (nodeLeftView.sym)
+    {
+        const auto* symVar = nodeLeftView.sym->safeCast<SymbolVariable>();
+        if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
+        {
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, srcViewRef(), tokRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        const auto* symConst = nodeLeftView.sym->safeCast<SymbolConstant>();
+        if (symConst)
+        {
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, srcViewRef(), tokRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
+    if (nodeLeftView.type && nodeLeftView.type->isConst())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, srcViewRef(), tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    // Left must be a l-value
     if (!SemaInfo::isLValue(*nodeLeftView.node))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, srcViewRef(), tokRef());

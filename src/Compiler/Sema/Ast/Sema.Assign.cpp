@@ -5,8 +5,6 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Symbol/Symbol.Constant.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -55,7 +53,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     return Result::Continue;
 }
 
-Result AstAssignStmt::semaPostNode(Sema& sema)
+Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
 
@@ -63,41 +61,8 @@ Result AstAssignStmt::semaPostNode(Sema& sema)
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
 
-    // Disallow assignment to immutable lvalues:
-    if (nodeLeftView.sym)
-    {
-        const auto* symVar = nodeLeftView.sym->safeCast<SymbolVariable>();
-        if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
-        {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, srcViewRef(), tokRef());
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        const auto* symConst = nodeLeftView.sym->safeCast<SymbolConstant>();
-        if (symConst)
-        {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, srcViewRef(), tokRef());
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-    }
-
-    if (nodeLeftView.type && nodeLeftView.type->isConst())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, srcViewRef(), tokRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    // Left must be a l-value
-    if (!SemaInfo::isLValue(*nodeLeftView.node))
-    {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, srcViewRef(), tokRef());
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
+    // Check LHS assignability
+    RESULT_VERIFY(SemaCheck::isAssignable(sema, *this, nodeLeftView));
 
     // Right must be a value (or a type that can be converted to a value).
     SemaNodeView nodeRightView(sema, nodeRightRef);
@@ -114,8 +79,6 @@ Result AstAssignStmt::semaPostNode(Sema& sema)
         RESULT_VERIFY(checkConstant(sema, tok.id, *this, nodeRightView));
     }
 
-    // Assignment statement has no value. Ensure the current node isn't flagged as a value.
-    SemaInfo::removeSemaFlags(*this, NodeSemaFlags::Value);
     return Result::Continue;
 }
 

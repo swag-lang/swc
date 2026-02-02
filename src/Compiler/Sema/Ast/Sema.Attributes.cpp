@@ -129,7 +129,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
     SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
-    RESULT_VERIFY(SemaCheck::checkSignature(sema, sym.parameters(), true));
+    RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
     RESULT_VERIFY(Match::ghosting(sema, sym));
     sym.setCompleted(sema.ctx());

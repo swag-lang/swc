@@ -25,7 +25,7 @@ enum class SymbolKind : uint8_t
     Invalid,
     Module,
     Namespace,
-    Const,
+    Constant,
     Variable,
     Enum,
     EnumValue,
@@ -103,7 +103,7 @@ public:
     bool is(SymbolKind kind) const noexcept { return kind_ == kind; }
     bool isNamespace() const noexcept { return kind_ == SymbolKind::Namespace; }
     bool isVariable() const noexcept { return kind_ == SymbolKind::Variable; }
-    bool isConst() const noexcept { return kind_ == SymbolKind::Const; }
+    bool isConstant() const noexcept { return kind_ == SymbolKind::Constant; }
     bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isStruct() const noexcept { return kind_ == SymbolKind::Struct; }
@@ -116,7 +116,7 @@ public:
 
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface() || isImpl(); }
     bool isType() const;
-    bool isValueExpr() const noexcept { return isVariable() || isConst() || isEnumValue(); }
+    bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool inSwagNamespace(const TaskContext& ctx) const noexcept;
     bool acceptOverloads() const noexcept { return isFunction() || isAttribute(); }
     bool deepCompare(const Symbol* other) const noexcept;

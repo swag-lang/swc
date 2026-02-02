@@ -100,7 +100,7 @@ Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
     return Result::Continue;
 }
 
-Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute)
+Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute)
 {
     bool hasName    = false;
     bool hasDefault = false;
@@ -153,6 +153,48 @@ Result SemaCheck::checkSignature(Sema& sema, const std::vector<SymbolVariable*>&
             hasName = true;
         else if (hasName)
             return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param.decl()->srcViewRef(), param.tokRef());
+    }
+
+    return Result::Continue;
+}
+
+Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeView& leftView)
+{
+    // Disallow assignment to immutable lvalues:
+    if (leftView.sym)
+    {
+        if (const auto* symVar = leftView.sym->safeCast<SymbolVariable>())
+        {
+            if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
+            {
+                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, node.srcViewRef(), node.tokRef());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
+        if (leftView.sym->isConstant())
+        {
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, node.srcViewRef(), node.tokRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
+    if (leftView.type && leftView.type->isConst())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, node.srcViewRef(), node.tokRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    // Left must be a l-value
+    if (!SemaInfo::isLValue(*leftView.node))
+    {
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, node.srcViewRef(), node.tokRef());
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     return Result::Continue;

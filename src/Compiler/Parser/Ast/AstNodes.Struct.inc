@@ -1401,7 +1401,7 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema);
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

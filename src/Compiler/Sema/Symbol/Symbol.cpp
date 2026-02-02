@@ -22,7 +22,7 @@ Utf8 Symbol::toFamily() const
     {
         case SymbolKind::Namespace: return "namespace";
         case SymbolKind::Variable: return "variable";
-        case SymbolKind::Const: return "constant";
+        case SymbolKind::Constant: return "constant";
         case SymbolKind::Enum: return "enum";
         case SymbolKind::EnumValue: return "enum value";
         case SymbolKind::Attribute: return "attribute";

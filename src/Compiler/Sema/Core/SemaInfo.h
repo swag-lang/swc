@@ -35,22 +35,14 @@ enum class NodeSemaFlags : uint16_t
 
 class SemaInfo
 {
-    Ast              ast_;
-    SymbolNamespace* moduleNamespace_ = nullptr;
-    SymbolNamespace* fileNamespace_   = nullptr;
-
-    struct Shard
-    {
-        std::shared_mutex mutex;
-        Store             store;
-    };
-
-    Shard shards_[SEMA_SHARD_NUM];
+    friend class Sema;
 
 public:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
+    void       setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
 
+protected:
     static NodeSemaKind  semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
     static void          setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint16_t>(value); }
     static uint32_t      semaShard(const AstNode& node) { return (node.semaBits() & SEMA_SHARD_MASK) >> SEMA_SHARD_SHIFT; }
@@ -68,7 +60,6 @@ public:
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }
-    void                   setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
 
     const SymbolNamespace& fileNamespace() const { return *fileNamespace_; }
     SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
@@ -111,6 +102,18 @@ private:
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
+
+    Ast              ast_;
+    SymbolNamespace* moduleNamespace_ = nullptr;
+    SymbolNamespace* fileNamespace_   = nullptr;
+
+    struct Shard
+    {
+        std::shared_mutex mutex;
+        Store             store;
+    };
+
+    Shard shards_[SEMA_SHARD_NUM];
 };
 
 SWC_END_NAMESPACE();

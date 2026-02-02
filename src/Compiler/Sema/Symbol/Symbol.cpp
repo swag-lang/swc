@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SourceCodeLocation Symbol::loc(TaskContext& ctx) const noexcept
+SourceCodeRange Symbol::loc(TaskContext& ctx) const noexcept
 {
     const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
     const Token&      tok     = srcView.token(tokRef_);

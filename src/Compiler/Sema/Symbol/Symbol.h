@@ -61,17 +61,17 @@ public:
     {
     }
 
-    SymbolKind         kind() const noexcept { return kind_; }
-    IdentifierRef      idRef() const noexcept { return idRef_; }
-    void               setIdRef(IdentifierRef idRef) noexcept { idRef_ = idRef; }
-    TypeRef            typeRef() const noexcept { return typeRef_; }
-    void               setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
-    const TypeInfo&    type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }
-    const AstNode*     decl() const noexcept { return decl_; }
-    SourceViewRef      srcViewRef() const noexcept { return decl_->srcViewRef(); }
-    TokenRef           tokRef() const noexcept { return tokRef_; }
-    SourceCodeLocation loc(TaskContext& ctx) const noexcept;
-    Utf8               toFamily() const;
+    SymbolKind      kind() const noexcept { return kind_; }
+    IdentifierRef   idRef() const noexcept { return idRef_; }
+    void            setIdRef(IdentifierRef idRef) noexcept { idRef_ = idRef; }
+    TypeRef         typeRef() const noexcept { return typeRef_; }
+    void            setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
+    const TypeInfo& type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }
+    const AstNode*  decl() const noexcept { return decl_; }
+    SourceViewRef   srcViewRef() const noexcept { return decl_->srcViewRef(); }
+    TokenRef        tokRef() const noexcept { return tokRef_; }
+    SourceCodeRange loc(TaskContext& ctx) const noexcept;
+    Utf8            toFamily() const;
 
     SymbolFlags flags() const noexcept { return flags_; }
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }

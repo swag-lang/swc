@@ -20,16 +20,16 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
     }
 }
 
-SourceCodeLocation AstNode::location(const TaskContext& ctx) const
+SourceCodeRange AstNode::location(const TaskContext& ctx) const
 {
     const SourceView& view  = srcView(ctx);
     const Token&      token = view.token(loc_.tokRef);
     return token.location(ctx, view);
 }
 
-SourceCodeLocation AstNode::locationWithChildren(const TaskContext& ctx, const Ast& ast) const
+SourceCodeRange AstNode::locationWithChildren(const TaskContext& ctx, const Ast& ast) const
 {
-    SourceCodeLocation loc{};
+    SourceCodeRange loc{};
 
     // Always use the SourceView of the node itself
     const auto baseViewRef = loc_.srcViewRef;
@@ -43,8 +43,8 @@ SourceCodeLocation AstNode::locationWithChildren(const TaskContext& ctx, const A
     const auto  baseLine = baseLoc.line;
 
     // Descend left-most while staying on the same line and same SourceView
-    auto               leftMost = this;
-    SourceCodeLocation startLoc = baseLoc;
+    auto            leftMost = this;
+    SourceCodeRange startLoc = baseLoc;
     while (true)
     {
         SmallVector<AstNodeRef> children;
@@ -64,8 +64,8 @@ SourceCodeLocation AstNode::locationWithChildren(const TaskContext& ctx, const A
     }
 
     // Descend right-most while staying on the same line and same SourceView
-    auto               rightMost = this;
-    SourceCodeLocation endLoc    = baseTok.location(ctx, view);
+    auto            rightMost = this;
+    SourceCodeRange endLoc    = baseTok.location(ctx, view);
     while (true)
     {
         SmallVector<AstNodeRef> children;

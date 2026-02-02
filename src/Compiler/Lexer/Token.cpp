@@ -26,10 +26,10 @@ uint32_t Token::crc(const SourceView& srcView) const
     return srcView.identifiers()[byteStart].crc;
 }
 
-SourceCodeLocation Token::location(const TaskContext& ctx, const SourceView& srcView) const
+SourceCodeRange Token::location(const TaskContext& ctx, const SourceView& srcView) const
 {
-    SourceCodeLocation loc;
-    uint32_t           offset;
+    SourceCodeRange loc;
+    uint32_t        offset;
     if (id == TokenId::Identifier)
         offset = srcView.identifiers()[byteStart].byteStart;
     else

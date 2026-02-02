@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"

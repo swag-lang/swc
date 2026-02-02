@@ -216,7 +216,7 @@ namespace
     }
 }
 
-Result Sema::waitIdentifier(IdentifierRef idRef, SourceLocation loc)
+Result Sema::waitIdentifier(IdentifierRef idRef, SourceCodeRef loc)
 {
     return waitIdentifier(idRef, loc.srcViewRef, loc.tokRef);
 }
@@ -232,7 +232,7 @@ Result Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, Token
     return Result::Pause;
 }
 
-Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceLocation loc)
+Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceCodeRef loc)
 {
     return waitCompilerDefined(idRef, loc.srcViewRef, loc.tokRef);
 }
@@ -248,7 +248,7 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, 
     return Result::Pause;
 }
 
-Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceLocation loc)
+Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceCodeRef loc)
 {
     return waitImplRegistrations(idRef, loc.srcViewRef, loc.tokRef);
 }
@@ -264,7 +264,7 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceViewRef srcViewRef
     return Result::Pause;
 }
 
-Result Sema::waitDeclared(const Symbol* symbol, SourceLocation loc)
+Result Sema::waitDeclared(const Symbol* symbol, SourceCodeRef loc)
 {
     return waitDeclared(symbol, loc.srcViewRef, loc.tokRef);
 }
@@ -281,7 +281,7 @@ Result Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenR
     return Result::Pause;
 }
 
-Result Sema::waitTyped(const Symbol* symbol, SourceLocation loc)
+Result Sema::waitTyped(const Symbol* symbol, SourceCodeRef loc)
 {
     return waitTyped(symbol, loc.srcViewRef, loc.tokRef);
 }
@@ -298,7 +298,7 @@ Result Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef 
     return Result::Pause;
 }
 
-Result Sema::waitCompleted(const Symbol* symbol, SourceLocation loc)
+Result Sema::waitCompleted(const Symbol* symbol, SourceCodeRef loc)
 {
     return waitCompleted(symbol, loc.srcViewRef, loc.tokRef);
 }

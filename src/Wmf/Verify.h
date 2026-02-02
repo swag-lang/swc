@@ -1,6 +1,6 @@
 #pragma once
 #include "Compiler/Lexer/Lexer.h"
-#include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Report/DiagnosticDef.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,8 +14,8 @@ struct VerifyDirective
 {
     DiagnosticSeverity kind = DiagnosticSeverity::Zero;
     Utf8               match;
-    SourceCodeLocation loc;   // Location to raise the error
-    SourceCodeLocation myLoc; // Location of the directive itself
+    SourceCodeRange    loc;   // Location to raise the error
+    SourceCodeRange    myLoc; // Location of the directive itself
 
     // Line constraint:
     // - if lineMin == 0 and lineMax == 0 and allowedLines empty => "anywhere" (@*)

@@ -11,10 +11,10 @@ class Symbol;
 namespace SemaError
 {
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
-    Diagnostic report(Sema& sema, DiagnosticId id, SourceLocation loc);
+    Diagnostic report(Sema& sema, DiagnosticId id, SourceCodeRef loc);
     Diagnostic report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
 
-    Result raise(Sema& sema, DiagnosticId id, SourceLocation loc);
+    Result raise(Sema& sema, DiagnosticId id, SourceCodeRef loc);
     Result raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef);
     Result raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
 

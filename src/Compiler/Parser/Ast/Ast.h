@@ -77,7 +77,7 @@ public:
 
             const uint32_t localByteRef = local.first;
             globalRef                   = AstNodeRef{packRef(shard, localByteRef)};
-            ::new (local.second) AstNode(ID, SourceLocation(srcView_->ref(), tokRef));
+            ::new (local.second) AstNode(ID, SourceCodeRef(srcView_->ref(), tokRef));
         }
 
 #if SWC_HAS_STATS

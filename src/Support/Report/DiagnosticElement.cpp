@@ -32,7 +32,7 @@ void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& message, DiagnosticSeverity severity)
+void DiagnosticElement::addSpan(const SourceCodeRange& loc, const Utf8& message, DiagnosticSeverity severity)
 {
     SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
     srcView_ = loc.srcView;
@@ -47,7 +47,7 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, const Utf8& messa
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity)
+void DiagnosticElement::addSpan(const SourceCodeRange& loc, DiagnosticId diagId, DiagnosticSeverity severity)
 {
     SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
     srcView_ = loc.srcView;
@@ -60,18 +60,18 @@ void DiagnosticElement::addSpan(const SourceCodeLocation& loc, DiagnosticId diag
     spans_.push_back(span);
 }
 
-SourceCodeLocation DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
+SourceCodeRange DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
 {
     if (!srcView_ || spans_.empty())
         return {};
     return location(spans_[spanIndex], ctx);
 }
 
-SourceCodeLocation DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
+SourceCodeRange DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
 {
     if (!srcView_)
         return {};
-    SourceCodeLocation loc;
+    SourceCodeRange loc;
     loc.fromOffset(ctx, *srcView_, span.offset, span.len);
     return loc;
 }

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -41,7 +41,7 @@ namespace
     }
 }
 
-void SourceCodeLocation::fromOffset(const TaskContext& ctx, const SourceView& view, uint32_t inOffset, uint32_t inLen)
+void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view, uint32_t inOffset, uint32_t inLen)
 {
     if (inLen == 0)
         return;

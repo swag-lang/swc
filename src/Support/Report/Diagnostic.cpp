@@ -66,10 +66,10 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView,
     return str;
 }
 
-SourceCodeLocation Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef)
+SourceCodeRange Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef)
 {
-    const Token&       token = srcView.token(tokRef);
-    SourceCodeLocation loc   = token.location(ctx, srcView);
+    const Token&    token = srcView.token(tokRef);
+    SourceCodeRange loc   = token.location(ctx, srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {

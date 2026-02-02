@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/DiagnosticDef.h"
@@ -38,8 +38,8 @@ public:
     const SourceView* srcView() const { return srcView_; }
 
     void        addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
-    void        addSpan(const SourceCodeLocation& loc, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
-    void        addSpan(const SourceCodeLocation& loc, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void        addSpan(const SourceCodeRange& loc, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void        addSpan(const SourceCodeRange& loc, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
     const auto& spans() const { return spans_; }
     auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }
@@ -48,8 +48,8 @@ public:
     Utf8 message() const;
     void setMessage(Utf8 m);
 
-    SourceCodeLocation location(uint32_t spanIndex, const TaskContext& ctx) const;
-    SourceCodeLocation location(const DiagnosticSpan& span, const TaskContext& ctx) const;
+    SourceCodeRange    location(uint32_t spanIndex, const TaskContext& ctx) const;
+    SourceCodeRange    location(const DiagnosticSpan& span, const TaskContext& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

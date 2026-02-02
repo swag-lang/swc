@@ -3,14 +3,12 @@
 SWC_BEGIN_NAMESPACE();
 
 class SourceView;
-class CompilerInstance;
-class SourceFile;
 class TaskContext;
-using SourceViewRef = StrongRef<SourceView>;
 struct Token;
-using TokenRef = StrongRef<Token>;
+using SourceViewRef = StrongRef<SourceView>;
+using TokenRef      = StrongRef<Token>;
 
-struct SourceCodeLocation
+struct SourceCodeRange
 {
     const SourceView* srcView = nullptr;
     uint32_t          offset  = 0;
@@ -21,13 +19,13 @@ struct SourceCodeLocation
     void fromOffset(const TaskContext& ctx, const SourceView& view, uint32_t inOffset, uint32_t inLen = 1);
 };
 
-struct SourceLocation
+struct SourceCodeRef
 {
     SourceViewRef srcViewRef = SourceViewRef::invalid();
     TokenRef      tokRef     = TokenRef::invalid();
 
-    bool                  isValid() const { return srcViewRef.isValid() && tokRef.isValid(); }
-    static SourceLocation invalid() { return {}; }
+    bool                 isValid() const { return srcViewRef.isValid() && tokRef.isValid(); }
+    static SourceCodeRef invalid() { return {}; }
 };
 
 SWC_END_NAMESPACE();

@@ -66,7 +66,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);
-    const SourceCodeLocation loc = node.locationWithChildren(*ctx_, *ast_);
+    const SourceCodeRange loc = node.locationWithChildren(*ctx_, *ast_);
     diag.last().addSpan(loc, "");
 
     if (tknRef == lastErrorToken_)
@@ -264,8 +264,8 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto         diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    SourceCodeLocation loc  = curToken_[-1].location(*ctx_, ast_->srcView());
+    const auto      diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    SourceCodeRange loc  = curToken_[-1].location(*ctx_, ast_->srcView());
     loc.column += loc.len;
     loc.offset += loc.len;
     loc.len = 1;

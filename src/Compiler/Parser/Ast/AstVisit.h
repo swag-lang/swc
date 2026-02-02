@@ -40,12 +40,12 @@ public:
     Ast&       ast() { return *ast_; }
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    const SourceFile*  dbgSrcFile = nullptr;
-    const AstNode*     dbgNode    = nullptr;
-    const Token*       dbgTok     = nullptr;
-    std::string_view   dbgTokView;
-    TokenRef           dbgTokRef = TokenRef::invalid();
-    SourceCodeLocation dbgLoc;
+    const SourceFile* dbgSrcFile = nullptr;
+    const AstNode*    dbgNode    = nullptr;
+    const Token*      dbgTok     = nullptr;
+    std::string_view  dbgTokView;
+    TokenRef          dbgTokRef = TokenRef::invalid();
+    SourceCodeRange   dbgLoc;
 #endif
 
 private:

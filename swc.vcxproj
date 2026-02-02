@@ -192,7 +192,7 @@
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\SourceCodeLocation.cpp"/>
+        <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SyntaxColor.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
@@ -328,7 +328,7 @@
         <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Compiler\Lexer\LangSpec.h"/>
         <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
-        <ClInclude Include="src\Compiler\Lexer\SourceCodeLocation.h"/>
+        <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>
         <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h"/>
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>

@@ -244,7 +244,7 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
 
     for (auto& elem : diag.elements())
     {
-        const SourceCodeLocation loc = elem->location(0, ctx);
+        const SourceCodeRange loc = elem->location(0, ctx);
         for (auto& directive : directives_)
         {
             if (directive.kind != elem->severity())

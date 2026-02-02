@@ -11,7 +11,7 @@ class Ast;
 class SourceFile;
 class TaskContext;
 class ConstantValue;
-struct SourceCodeLocation;
+struct SourceCodeRange;
 
 enum class AstModifierFlagsE : uint32_t
 {
@@ -39,7 +39,7 @@ using AstNodeRef = StrongRef<AstNode>;
 struct AstNode
 {
     // ReSharper disable once CppPossiblyUninitializedMember
-    explicit AstNode(AstNodeId nodeId, SourceLocation loc) :
+    explicit AstNode(AstNodeId nodeId, SourceCodeRef loc) :
         id_(nodeId),
         loc_(loc)
     {
@@ -79,14 +79,14 @@ struct AstNode
     bool      is(AstNodeId id) const { return id_ == id; }
     bool      isNot(AstNodeId id) const { return id_ != id; }
 
-    SourceCodeLocation    location(const TaskContext& ctx) const;
-    SourceCodeLocation    locationWithChildren(const TaskContext& ctx, const Ast& ast) const;
-    const SourceView&     srcView(const TaskContext& ctx) const;
-    const SourceLocation& loc() const { return loc_; }
-    SourceViewRef         srcViewRef() const { return loc_.srcViewRef; }
-    TokenRef              tokRef() const { return loc_.tokRef; }
-    TokenRef              tokRefEnd(const Ast& ast) const;
-    AstNodeRef            nodeRef(const Ast& ast) const;
+    SourceCodeRange      location(const TaskContext& ctx) const;
+    SourceCodeRange      locationWithChildren(const TaskContext& ctx, const Ast& ast) const;
+    const SourceView&    srcView(const TaskContext& ctx) const;
+    const SourceCodeRef& loc() const { return loc_; }
+    SourceViewRef        srcViewRef() const { return loc_.srcViewRef; }
+    TokenRef             tokRef() const { return loc_.tokRef; }
+    TokenRef             tokRefEnd(const Ast& ast) const;
+    AstNodeRef           nodeRef(const Ast& ast) const;
 
     template<typename T>
     T* cast()
@@ -123,11 +123,11 @@ struct AstNode
 #endif
 
 protected:
-    uint16_t       semaBits_ = 0;
-    AstNodeId      id_       = AstNodeId::Invalid;
-    ParserFlags    parserFlags_{};
-    SourceLocation loc_;
-    uint32_t       semaRef_ = 0;
+    uint16_t      semaBits_ = 0;
+    AstNodeId     id_       = AstNodeId::Invalid;
+    ParserFlags   parserFlags_{};
+    SourceCodeRef loc_;
+    uint32_t      semaRef_ = 0;
 };
 
 template<AstNodeId I, typename E = void>
@@ -137,7 +137,7 @@ struct AstNodeT : AstNode
     using FlagsE             = E;
     using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
-    explicit AstNodeT(SourceLocation loc) :
+    explicit AstNodeT(SourceCodeRef loc) :
         AstNode(I, loc)
     {
     }

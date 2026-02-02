@@ -24,11 +24,11 @@ namespace
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
-    
-    void setReportArguments(Sema& sema, Diagnostic& diag, SourceLocation loc)
+
+    void setReportArguments(Sema& sema, Diagnostic& diag, SourceCodeRef loc)
     {
         setReportArguments(sema, diag, loc.srcViewRef, loc.tokRef);
-    }   
+    }
 
     void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
     {
@@ -49,13 +49,13 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     setReportArguments(sema, diag, nodeView.node->srcViewRef(), nodeView.node->tokRef());
     setReportArguments(sema, diag, nodeView.sym);
 
-    const SourceCodeLocation loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "");
 
     return diag;
 }
 
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceLocation loc)
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceCodeRef loc)
 {
     auto diag = report(sema, id, loc.srcViewRef, loc.tokRef);
     return diag;
@@ -72,7 +72,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
     return diag;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, SourceLocation loc)
+Result SemaError::raise(Sema& sema, DiagnosticId id, SourceCodeRef loc)
 {
     return raise(sema, id, loc.srcViewRef, loc.tokRef);
 }
@@ -158,7 +158,7 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
 
     if (lowest.isValid())
     {
-        const SourceCodeLocation loc = sema.node(lowest).locationWithChildren(sema.ctx(), sema.ast());
+        const SourceCodeRange loc = sema.node(lowest).locationWithChildren(sema.ctx(), sema.ast());
         diag.addNote(DiagnosticId::sema_note_not_constant);
         diag.last().addSpan(loc);
     }
@@ -172,7 +172,7 @@ Result SemaError::raiseBinaryOperandType(Sema& sema, const AstNode& nodeOp, AstN
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
 
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
@@ -184,7 +184,7 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, const AstNode& nodeOp, AstNo
     auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
 
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
@@ -244,7 +244,7 @@ Result SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nod
 {
     const auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
 
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
@@ -256,7 +256,7 @@ Result SemaError::raisePointerArithmeticValuePointer(Sema& sema, const AstNode& 
     auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_value_ptr, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
 
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
@@ -268,7 +268,7 @@ Result SemaError::raisePointerArithmeticVoidPointer(Sema& sema, const AstNode& n
     auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_void_ptr, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
 
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
 
     diag.report(sema.ctx());
@@ -279,7 +279,7 @@ Result SemaError::raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeR
 {
     auto diag = report(sema, DiagnosticId::sema_err_invalid_op_enum, nodeOp.srcViewRef(), nodeOp.tokRef());
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
-    const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;

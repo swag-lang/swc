@@ -188,8 +188,8 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
 
         case TokenId::CompilerLine:
         {
-            const SourceCodeLocation loc = tok.location(ctx, srcView);
-            const ConstantValue&     val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0, TypeInfo::Sign::Unsigned);
+            const SourceCodeRange loc = tok.location(ctx, srcView);
+            const ConstantValue&  val = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(loc.line), 0, TypeInfo::Sign::Unsigned);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }

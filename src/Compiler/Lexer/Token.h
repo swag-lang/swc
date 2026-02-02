@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Lexer/SourceCodeLocation.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -79,11 +79,11 @@ struct Token
         return std::ranges::any_of(list, [this](auto id) { return this->id == id; });
     }
 
-    bool               isNot(TokenId id) const { return this->id != id; }
-    std::string_view   string(const SourceView& srcView) const;
-    uint32_t           crc(const SourceView& srcView) const;
-    SourceCodeLocation location(const TaskContext& ctx, const SourceView& srcView) const;
-    bool               hasFlag(TokenFlags flag) const { return flags.has(flag); }
+    bool             isNot(TokenId id) const { return this->id != id; }
+    std::string_view string(const SourceView& srcView) const;
+    uint32_t         crc(const SourceView& srcView) const;
+    SourceCodeRange  location(const TaskContext& ctx, const SourceView& srcView) const;
+    bool             hasFlag(TokenFlags flag) const { return flags.has(flag); }
 
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }
     static std::string_view toName(TokenId id);
@@ -110,9 +110,9 @@ struct Token
     static bool isReserved(TokenId id) { return toKind(id) == TokenIdKind::Reserved; }
 
 #if SWC_HAS_TOKEN_DEBUG_INFO
-    const char8_t*     dbgPtr     = nullptr;
-    SourceView*        dbgSrcView = nullptr;
-    SourceCodeLocation dbgLoc;
+    const char8_t*  dbgPtr     = nullptr;
+    SourceView*     dbgSrcView = nullptr;
+    SourceCodeRange dbgLoc;
 #endif
 };
 

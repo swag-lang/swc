@@ -58,8 +58,6 @@ namespace
                     val1.mul(rightCst.getFloat());
                     break;
                 case TokenId::SymSlash:
-                    if (rightCst.getFloat().isZero())
-                        return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                     val1.div(rightCst.getFloat());
                     break;
 
@@ -98,14 +96,10 @@ namespace
                     break;
 
                 case TokenId::SymSlash:
-                    if (val2.isZero())
-                        return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                     val1.div(val2, overflow);
                     break;
 
                 case TokenId::SymPercent:
-                    if (val2.isZero())
-                        return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef, leftCst.typeRef());
                     val1.mod(val2, overflow);
                     break;
 
@@ -336,6 +330,25 @@ namespace
         return Result::Continue;
     }
 
+    Result checkConstant(Sema& sema, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeRightView)
+    {
+        switch (op)
+        {
+            case TokenId::SymSlash:
+            case TokenId::SymPercent:
+                if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
+                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
+                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                break;
+
+            default:
+                break;
+        }
+
+        return Result::Continue;
+    }
+
     Result check(Sema& sema, TokenId op, const AstBinaryExpr& expr, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
@@ -406,29 +419,18 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 
     sema.setType(sema.curNodeRef(), resultTypeRef);
 
+    // Right is constant
+    if (nodeRightView.cstRef.isValid())
+    {
+        RESULT_VERIFY(checkConstant(sema, tok.id, *this, nodeRightView));
+    }
+
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeLeftView, nodeRightView));
         sema.semaInfo().setConstant(sema.curNodeRef(), result);
-    }
-    
-    // Check right operand
-    else if (nodeRightView.cstRef.isValid())
-    {
-        switch (tok.id)
-        {
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-                if (nodeLeftView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, *this, nodeRightView.nodeRef, nodeLeftView.typeRef);
-                if (nodeLeftView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                    return SemaError::raiseDivZero(sema, *this, nodeRightView.nodeRef, nodeLeftView.typeRef);
-                break;
-            default:
-                break;
-        }
     }
 
     return Result::Continue;

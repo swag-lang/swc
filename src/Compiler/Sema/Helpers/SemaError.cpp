@@ -224,10 +224,9 @@ Result SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const Const
     return Result::Error;
 }
 
-Result SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseDivZero(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    const auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOp.srcViewRef(), nodeOp.tokRef());
 
     const SourceCodeLocation loc = sema.node(nodeValueRef).locationWithChildren(sema.ctx(), sema.ast());
     diag.last().addSpan(loc, "", DiagnosticSeverity::Note);

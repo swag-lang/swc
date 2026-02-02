@@ -377,6 +377,7 @@ void ApFloat::mul(const ApFloat& rhs)
 
 void ApFloat::div(const ApFloat& rhs)
 {
+    SWC_ASSERT(!rhs.isZero());
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
 
     switch (bitWidth_)

@@ -94,7 +94,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     // Constant extract
     if (nodeExprView.cst && hasConstIndex)
@@ -103,7 +103,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else
     {
-        SemaInfo::setIsLValue(*this);
+        sema.setIsLValue(*this);
     }
 
     return Result::Continue;
@@ -185,8 +185,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
         }
 
-        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
-            SemaInfo::setIsLValue(*this);
+        if (sema.isLValue(nodeExprRef))
+            sema.setIsLValue(*this);
     }
     else if (nodeExprView.type->isSlice())
     {
@@ -209,15 +209,15 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         }
 
         sema.setType(sema.curNodeRef(), nodeExprView.type->payloadArrayElemTypeRef());
-        if (SemaInfo::isLValue(sema.node(nodeExprRef)))
-            SemaInfo::setIsLValue(*this);
+        if (sema.isLValue(nodeExprRef))
+            sema.setIsLValue(*this);
     }
     else
     {
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
     }
 
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
     return Result::Continue;
 }
 

@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Core/SemaInfo.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -19,7 +18,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondView.nodeRef));
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeTrueView.nodeRef));
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseView.nodeRef));
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     // Condition must be bool
     RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::Condition));
@@ -49,7 +48,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         AstNodeRef   selectedBranchRef = nodeCondView.cst->getBool() ? nodeTrueRef : nodeFalseRef;
         SemaNodeView selectedBranchView(sema, selectedBranchRef);
         RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
-        sema.semaInfo().setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef);
+        sema.setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef);
         if (selectedBranchView.cstRef.isValid())
             sema.setConstant(sema.curNodeRef(), selectedBranchView.cstRef);
     }

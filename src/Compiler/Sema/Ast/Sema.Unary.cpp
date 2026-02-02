@@ -193,7 +193,7 @@ namespace
             return Result::Error;
         }
 
-        if (!SemaInfo::isLValue(*nodeView.node))
+        if (!sema.isLValue(*nodeView.node))
         {
             const auto               diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.srcViewRef(), node.tokRef());
             const SourceCodeLocation loc  = sema.node(nodeView.nodeRef).locationWithChildren(sema.ctx(), sema.ast());
@@ -263,7 +263,7 @@ namespace
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
-        SemaInfo::setIsLValue(node);
+        sema.setIsLValue(node);
         return Result::Continue;
     }
 
@@ -317,7 +317,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());

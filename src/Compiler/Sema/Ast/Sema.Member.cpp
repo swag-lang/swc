@@ -273,7 +273,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
         sema.setSymbol(leftRef, selected.symVar);
     else
         sema.setSymbol(leftRef, selected.symMap);
-    SemaInfo::setIsValue(*leftPtr);
+    sema.setIsValue(*leftPtr);
 
     nodePtr->nodeLeftRef  = leftRef;
     nodePtr->nodeRightRef = nodeIdentRef;
@@ -283,8 +283,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     sema.setSymbolList(nodeRef, sema.getSymbolList(sema.curNodeRef()));
     sema.setSymbolList(nodeIdentRef, sema.getSymbolList(nodeRef));
 
-    sema.semaInfo().setSubstitute(sema.curNodeRef(), nodeRef);
-    SemaInfo::setIsValue(*nodePtr);
+    sema.setSubstitute(sema.curNodeRef(), nodeRef);
+    sema.setIsValue(*nodePtr);
 
     return Result::SkipChildren;
 }
@@ -374,8 +374,8 @@ namespace
             return Result::SkipChildren;
         }
 
-        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || SemaInfo::isLValue(sema.node(node->nodeLeftRef)))
-            SemaInfo::setIsLValue(*node);
+        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || sema.isLValue(node->nodeLeftRef))
+            sema.setIsLValue(*node);
         return Result::SkipChildren;
     }
 }
@@ -436,13 +436,13 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())
     {
         sema.setType(sema.curNodeRef(), nodeLeftView.type->payloadTypeRef());
-        SemaInfo::setIsValue(*this);
+        sema.setIsValue(*this);
         return Result::SkipChildren;
     }
 
     // TODO
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
     return Result::SkipChildren;
 }
 

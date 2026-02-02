@@ -3,7 +3,6 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/SemaInfo.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -395,7 +394,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     // Force types
     const Token& tok = sema.token(srcViewRef(), tokRef());
@@ -430,7 +429,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeLeftView, nodeRightView));
-        sema.semaInfo().setConstant(sema.curNodeRef(), result);
+        sema.setConstant(sema.curNodeRef(), result);
     }
 
     return Result::Continue;
@@ -440,7 +439,7 @@ Result AstBinaryConditionalExpr::semaPostNode(Sema& sema)
 {
     // TODO
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstS32(1));
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    sema.setIsValue(*this);
     return Result::Continue;
 }
 

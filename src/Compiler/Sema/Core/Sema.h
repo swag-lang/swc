@@ -65,6 +65,9 @@ public:
     bool                     hasType(AstNodeRef n) const { return semaInfo().hasType(ctx(), n); }
     bool                     hasConstant(AstNodeRef n) const { return semaInfo().hasConstant(ctx(), n); }
     bool                     hasSymbol(AstNodeRef n) const { return semaInfo().hasSymbol(n); }
+    bool                     hasSubstitute(AstNodeRef n) const { return semaInfo().hasSubstitute(n); }
+    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return semaInfo().getSubstituteRef(n); }
+    void                     setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { semaInfo().setSubstitute(n, substNodeRef); }
     void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { semaInfo().setSymbolList(n, symbols); }
     void                     setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { semaInfo().setSymbolList(n, symbols); }
     bool                     hasSymbolList(AstNodeRef n) const { return semaInfo().hasSymbolList(n); }
@@ -72,6 +75,16 @@ public:
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return semaInfo().getSymbolList(n); }
     bool                     hasPayload(AstNodeRef n) const { return semaInfo().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { semaInfo().setPayload(n, payload); }
+
+    bool                     isLValue(const AstNode& n) const { return SemaInfo::isLValue(n); }
+    bool                     isValue(const AstNode& n) const { return SemaInfo::isValue(n); }
+    bool                     isLValue(AstNodeRef n) const { return SemaInfo::isLValue(node(n)); }
+    bool                     isValue(AstNodeRef n) const { return SemaInfo::isValue(node(n)); }
+    void                     setIsLValue(AstNode& n) { SemaInfo::setIsLValue(n); }
+    void                     setIsValue(AstNode& n) { SemaInfo::setIsValue(n); }
+    void                     setIsLValue(AstNodeRef n) { SemaInfo::setIsLValue(node(n)); }
+    void                     setIsValue(AstNodeRef n) { SemaInfo::setIsValue(node(n)); }
+
     void                     inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaFlags(nodeDst, node(srcRef)); }
     void                     inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSemaKindRef(nodeDst, node(srcRef)); }
     void                     inheritSema(AstNode& nodeDst, AstNodeRef srcRef) { SemaInfo::inheritSema(nodeDst, node(srcRef)); }

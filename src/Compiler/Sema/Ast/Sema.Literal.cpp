@@ -486,7 +486,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), typeRef);
     }
 
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    sema.setIsValue(*this);
     return Result::Continue;
 }
 
@@ -548,7 +548,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
 
-    SemaInfo::addSemaFlags(*this, NodeSemaFlags::Value);
+    sema.setIsValue(*this);
     return Result::Continue;
 }
 

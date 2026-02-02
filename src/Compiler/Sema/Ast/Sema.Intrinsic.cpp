@@ -3,7 +3,6 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/SemaInfo.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -13,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstIntrinsicValue::semaPostNode(Sema& sema)
 {
-    SemaInfo::setIsValue(*this);
+    sema.setIsValue(*this);
 
     const Token& tok = sema.token(srcViewRef(), tokRef());
     switch (tok.id)
@@ -64,7 +63,7 @@ namespace
             return SemaError::raiseInvalidType(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
-        SemaInfo::setIsValue(node);
+        sema.setIsValue(node);
         return Result::Continue;
     }
 
@@ -78,7 +77,7 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
-        SemaInfo::setIsValue(node);
+        sema.setIsValue(node);
         return Result::Continue;
     }
 
@@ -117,7 +116,7 @@ namespace
         if (nodeView.type->isAnyString())
         {
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
-            SemaInfo::setIsValue(node);
+            sema.setIsValue(node);
             return Result::Continue;
         }
 
@@ -135,7 +134,7 @@ namespace
         if (nodeView.type->isSlice())
         {
             sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
-            SemaInfo::setIsValue(node);
+            sema.setIsValue(node);
             return Result::Continue;
         }
 
@@ -179,7 +178,7 @@ namespace
 
         const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAny(flags));
         sema.setType(sema.curNodeRef(), typeRef);
-        SemaInfo::setIsValue(node);
+        sema.setIsValue(node);
 
         return Result::Continue;
     }
@@ -212,7 +211,7 @@ namespace
         }
 
         sema.setType(sema.curNodeRef(), typeRef);
-        SemaInfo::setIsValue(node);
+        sema.setIsValue(node);
         return Result::Continue;
     }
 }

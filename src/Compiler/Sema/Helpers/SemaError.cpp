@@ -24,6 +24,11 @@ namespace
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
+    
+    void setReportArguments(Sema& sema, Diagnostic& diag, SourceLocation loc)
+    {
+        setReportArguments(sema, diag, loc.srcViewRef, loc.tokRef);
+    }   
 
     void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
     {
@@ -50,6 +55,12 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
     return diag;
 }
 
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceLocation loc)
+{
+    auto diag = report(sema, id, loc.srcViewRef, loc.tokRef);
+    return diag;
+}
+
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
@@ -59,6 +70,11 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, SourceViewRef srcViewR
     diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, tokRef), "");
 
     return diag;
+}
+
+Result SemaError::raise(Sema& sema, DiagnosticId id, SourceLocation loc)
+{
+    return raise(sema, id, loc.srcViewRef, loc.tokRef);
 }
 
 Result SemaError::raise(Sema& sema, DiagnosticId id, SourceViewRef srcViewRef, TokenRef tokRef)

@@ -35,6 +35,7 @@ public:
     const AstNode&             node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     CompilerInstance&          compiler() { return ctx().compiler(); }
     const CompilerInstance&    compiler() const { return ctx().compiler(); }
+    const Token&               token(SourceLocation loc) const { return srcView(loc.srcViewRef).token(loc.tokRef); }
     const Token&               token(SourceViewRef srcViewRef, TokenRef tokRef) const { return srcView(srcViewRef).token(tokRef); }
 
     ConstantManager&         cstMgr();
@@ -113,6 +114,13 @@ public:
     SemaScope*       pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope*       pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     bool             enteringState() const { return visit_.enteringState(); }
+
+    Result      waitIdentifier(IdentifierRef idRef, SourceLocation loc);
+    Result      waitCompilerDefined(IdentifierRef idRef, SourceLocation loc);
+    Result      waitImplRegistrations(IdentifierRef idRef, SourceLocation loc);
+    Result      waitCompleted(const Symbol* symbol, SourceLocation loc);
+    Result      waitDeclared(const Symbol* symbol, SourceLocation loc);
+    Result      waitTyped(const Symbol* symbol, SourceLocation loc);
 
     Result      waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);
     Result      waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef);

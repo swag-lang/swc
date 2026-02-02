@@ -91,6 +91,11 @@ void IdentifierManager::setup(TaskContext&)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 }
 
+IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceLocation loc)
+{
+    return addIdentifier(ctx, loc.srcViewRef, loc.tokRef);
+}
+
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     const SourceView&      srcView = ctx.compiler().srcView(srcViewRef);

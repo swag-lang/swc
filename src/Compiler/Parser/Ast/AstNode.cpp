@@ -23,7 +23,7 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
 SourceCodeLocation AstNode::location(const TaskContext& ctx) const
 {
     const SourceView& view  = srcView(ctx);
-    const Token&      token = view.token(tokRef_);
+    const Token&      token = view.token(loc_.tokRef);
     return token.location(ctx, view);
 }
 
@@ -32,13 +32,13 @@ SourceCodeLocation AstNode::locationWithChildren(const TaskContext& ctx, const A
     SourceCodeLocation loc{};
 
     // Always use the SourceView of the node itself
-    const auto baseViewRef = srcViewRef_;
+    const auto baseViewRef = loc_.srcViewRef;
     auto&      view        = ctx.compiler().srcView(baseViewRef);
-    if (tokRef_.isInvalid() || view.tokens().empty())
+    if (loc_.tokRef.isInvalid() || view.tokens().empty())
         return loc;
 
     // Baseline comes from this node token
-    const auto& baseTok  = view.token(tokRef_);
+    const auto& baseTok  = view.token(loc_.tokRef);
     const auto  baseLoc  = baseTok.location(ctx, view);
     const auto  baseLine = baseLoc.line;
 
@@ -105,7 +105,7 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     info.collectChildren(children, ast, *this);
 
     if (children.empty())
-        return tokRef_;
+        return loc_.tokRef;
 
     const AstNode& node = ast.node(children.back());
     return node.tokRefEnd(ast);

@@ -19,6 +19,15 @@ struct SourceIdentifier
 class SourceView;
 using SourceViewRef = StrongRef<SourceView>;
 
+struct SourceLocation
+{
+    SourceViewRef srcViewRef = SourceViewRef::invalid();
+    TokenRef      tokRef     = TokenRef::invalid();
+
+    bool isValid() const { return srcViewRef.isValid() && tokRef.isValid(); }
+    static SourceLocation invalid() { return {}; }
+};
+
 class SourceView
 {
 public:

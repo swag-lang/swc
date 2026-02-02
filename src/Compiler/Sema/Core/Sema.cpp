@@ -216,6 +216,11 @@ namespace
     }
 }
 
+Result Sema::waitIdentifier(IdentifierRef idRef, SourceLocation loc)
+{
+    return waitIdentifier(idRef, loc.srcViewRef, loc.tokRef);
+}
+
 Result Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
@@ -225,6 +230,11 @@ Result Sema::waitIdentifier(IdentifierRef idRef, SourceViewRef srcViewRef, Token
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
     return Result::Pause;
+}
+
+Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceLocation loc)
+{
+    return waitCompilerDefined(idRef, loc.srcViewRef, loc.tokRef);
 }
 
 Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
@@ -238,6 +248,11 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, SourceViewRef srcViewRef, 
     return Result::Pause;
 }
 
+Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceLocation loc)
+{
+    return waitImplRegistrations(idRef, loc.srcViewRef, loc.tokRef);
+}
+
 Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait = ctx().state();
@@ -247,6 +262,11 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, SourceViewRef srcViewRef
     wait.tokRef     = tokRef;
     wait.idRef      = idRef;
     return Result::Pause;
+}
+
+Result Sema::waitDeclared(const Symbol* symbol, SourceLocation loc)
+{
+    return waitDeclared(symbol, loc.srcViewRef, loc.tokRef);
 }
 
 Result Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
@@ -261,6 +281,11 @@ Result Sema::waitDeclared(const Symbol* symbol, SourceViewRef srcViewRef, TokenR
     return Result::Pause;
 }
 
+Result Sema::waitTyped(const Symbol* symbol, SourceLocation loc)
+{
+    return waitTyped(symbol, loc.srcViewRef, loc.tokRef);
+}
+
 Result Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)
 {
     TaskState& wait   = ctx().state();
@@ -271,6 +296,11 @@ Result Sema::waitTyped(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef 
     wait.symbol       = symbol;
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
+}
+
+Result Sema::waitCompleted(const Symbol* symbol, SourceLocation loc)
+{
+    return waitCompleted(symbol, loc.srcViewRef, loc.tokRef);
 }
 
 Result Sema::waitCompleted(const Symbol* symbol, SourceViewRef srcViewRef, TokenRef tokRef)

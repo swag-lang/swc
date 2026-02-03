@@ -30,9 +30,7 @@ namespace
 #define SWC_DIAG_DEF(id, sev, msg) \
     arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev, DiagnosticId::id};
 #include "Support/Report/Msg/Errors.msg"
-
 #include "Support/Report/Msg/Notes.msg"
-
 #undef SWC_DIAG_DEF
         return arr;
     }
@@ -40,12 +38,13 @@ namespace
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
-Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView, TokenRef tokRef)
+Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef)
 {
-    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
-    const Token&            token             = srcView.token(tokRef);
-    Utf8                    str               = token.string(srcView);
+    const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
+    const Token&      token   = srcView.token(codeRef.tokRef);
+    Utf8              str     = token.string(srcView);
 
+    constexpr static size_t MAX_TOKEN_STR_LEN = 40;
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
         const auto pos = str.find_first_of("\n\r");
@@ -66,10 +65,11 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView,
     return str;
 }
 
-SourceCodeRange Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef)
+SourceCodeRange Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceCodeRef& codeRef)
 {
-    const Token&    token     = srcView.token(tokRef);
-    SourceCodeRange codeRange = token.codeRange(ctx, srcView);
+    const SourceView& srcView   = ctx.compiler().srcView(codeRef.srcViewRef);
+    const Token&      token     = srcView.token(codeRef.tokRef);
+    SourceCodeRange   codeRange = token.codeRange(ctx, srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {

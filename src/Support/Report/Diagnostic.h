@@ -72,8 +72,8 @@ public:
     static std::string_view   diagIdName(DiagnosticId id);
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 
-    static Utf8            tokenErrorString(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef);
-    static SourceCodeRange tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef);
+    static Utf8            tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef);
+    static SourceCodeRange tokenErrorLocation(const TaskContext& ctx, const SourceCodeRef& codeRef);
 
     template<typename T>
     void addArgument(std::string_view name, T&& arg)

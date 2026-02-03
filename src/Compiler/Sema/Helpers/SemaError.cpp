@@ -12,13 +12,12 @@ namespace
 {
     void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& loc)
     {
-        SWC_ASSERT(loc.srcViewRef.isValid());
-        SWC_ASSERT(loc.tokRef.isValid());
+        SWC_ASSERT(loc.isValid());
 
         const auto&       ctx     = sema.ctx();
         const SourceView& srcView = sema.compiler().srcView(loc.srcViewRef);
         const Token&      token   = srcView.token(loc.tokRef);
-        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, sema.ast().srcView(), loc.tokRef);
+        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, loc);
 
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
@@ -60,7 +59,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& c
     setReportArguments(sema, diag, codeRef);
 
     const auto& srcView = sema.compiler().srcView(codeRef.srcViewRef);
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), srcView, codeRef.tokRef), "");
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), codeRef), "");
 
     return diag;
 }

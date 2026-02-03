@@ -17,7 +17,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     }
     else
     {
-        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef));
+        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef}));
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
@@ -26,7 +26,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     if (tokRef.get() != 0)
     {
         const auto& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(-1)));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef.offset(-1)}));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id));
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenPrev.id)));
     }
@@ -34,7 +34,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     if (tokRef.get() < ast_->srcView().tokens().size() - 1)
     {
         const auto& tokenNext = ast_->srcView().token(tokRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, ast_->srcView(), tokRef.offset(1)));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef.offset(1)}));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id));
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenNext.id)));
     }
@@ -51,7 +51,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     auto diag = Diagnostic::get(id, ast_->srcView().fileRef());
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), tknRef), "");
+    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, SourceCodeRef{ast_->srcView().ref(), tknRef}), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -237,7 +237,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
     {
         auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
         setReportExpected(diag, closeId);
-        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, ast_->srcView(), openRef), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, SourceCodeRef{ast_->srcView().ref(), openRef}), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
         diag.report(*ctx_);
     }
 

@@ -97,11 +97,6 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, Repor
     return Result::Error;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef)
-{
-    return raise(sema, id, atNodeRef, ReportLocation::Children);
-}
-
 Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, atNodeRef, ReportLocation::Children);

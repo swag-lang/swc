@@ -23,8 +23,7 @@ namespace SemaError
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
 
     Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
-    Result raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef);
-    Result raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location);
+    Result raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
 

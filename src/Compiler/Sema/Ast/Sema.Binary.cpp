@@ -329,7 +329,54 @@ namespace
         return Result::Continue;
     }
 
-    Result checkConstant(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeRightView)
+    Result castAndResultType(Sema& sema, TokenId op, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    {
+        TypeRef resultTypeRef = nodeLeftView.typeRef;
+
+        const TypeRef ptrDiffTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
+
+        switch (op)
+        {
+            case TokenId::SymPlus:
+                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
+                {
+                    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, ptrDiffTypeRef, CastKind::Implicit));
+                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    nodeRightView.compute(sema, node.nodeRightRef);
+                    resultTypeRef = nodeRightView.typeRef;
+                }
+                else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                {
+                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, ptrDiffTypeRef, CastKind::Implicit));
+                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    nodeRightView.compute(sema, node.nodeRightRef);
+                    resultTypeRef = nodeLeftView.typeRef;
+                }
+                break;
+
+            case TokenId::SymMinus:
+                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                {
+                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, ptrDiffTypeRef, CastKind::Implicit));
+                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    nodeRightView.compute(sema, node.nodeRightRef);
+                    resultTypeRef = nodeLeftView.typeRef;
+                }
+                else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
+                {
+                    resultTypeRef = ptrDiffTypeRef;
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        return Result::Continue;
+    }
+
+    Result checkConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
@@ -350,6 +397,9 @@ namespace
 
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
+        if (nodeRightView.cstRef.isValid())
+            RESULT_VERIFY(checkConstant(sema, op, sema.curNodeRef(), node, nodeRightView));
+
         switch (op)
         {
             case TokenId::SymPlusPlus:
@@ -396,33 +446,11 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
     sema.setIsValue(*this);
 
-    // Force types
     const Token& tok = sema.token(codeRef());
+
     RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-
-    // Type-check
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-
-    // Set the result type
-    TypeRef resultTypeRef = nodeLeftView.typeRef;
-    if (tok.id == TokenId::SymPlus)
-    {
-        if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
-            resultTypeRef = nodeRightView.typeRef;
-    }
-    else if (tok.id == TokenId::SymMinus)
-    {
-        if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
-            resultTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
-    }
-
-    sema.setType(sema.curNodeRef(), resultTypeRef);
-
-    // Right is constant
-    if (nodeRightView.cstRef.isValid())
-    {
-        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, *this, nodeRightView));
-    }
+    RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Constant folding
     if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())

@@ -105,16 +105,9 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     for (const auto& nodeRef : nodeRefs)
     {
         const SemaNodeView nodeView(sema, nodeRef);
-        if (!nodeView.sym)
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
-
-        if (nodeView.sym->isNamespace())
-        {
-            sema.curScope().addUsingSymMap(nodeView.sym->asSymMap());
-            continue;
-        }
-
-        return SemaError::raiseInternal(sema, sema.curNodeRef());
+        SWC_ASSERT(nodeView.sym);
+        SWC_ASSERT(nodeView.sym->isNamespace());
+        sema.curScope().addUsingSymMap(nodeView.sym->asSymMap());
     }
 
     return Result::Continue;

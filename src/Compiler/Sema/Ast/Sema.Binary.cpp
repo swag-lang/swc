@@ -348,12 +348,12 @@ namespace
         return Result::Continue;
     }
 
-    Result check(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstBinaryExpr& expr, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymPlusPlus:
-                return checkPlusPlus(sema, expr, nodeLeftView, nodeRightView);
+                return checkPlusPlus(sema, node, nodeLeftView, nodeRightView);
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
@@ -365,7 +365,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                return checkOp(sema, nodeRef, op, expr, nodeLeftView, nodeRightView);
+                return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
 
             default:
                 return SemaError::raiseInternal(sema, nodeRef);
@@ -388,9 +388,8 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    const AstNodeRef nodeRef = sema.curNodeRef();
-    SemaNodeView     nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView     nodeRightView(sema, nodeRightRef);
+    SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
@@ -399,10 +398,10 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 
     // Force types
     const Token& tok = sema.token(codeRef());
-    RESULT_VERIFY(promote(sema, nodeRef, tok.id, *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(promote(sema, sema.curNodeRef(), tok.id, *this, nodeLeftView, nodeRightView));
 
     // Type-check
-    RESULT_VERIFY(check(sema, nodeRef, tok.id, *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
 
     // Set the result type
     TypeRef resultTypeRef = nodeLeftView.typeRef;
@@ -422,7 +421,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     // Right is constant
     if (nodeRightView.cstRef.isValid())
     {
-        RESULT_VERIFY(checkConstant(sema, nodeRef, tok.id, *this, nodeRightView));
+        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, *this, nodeRightView));
     }
 
     // Constant folding

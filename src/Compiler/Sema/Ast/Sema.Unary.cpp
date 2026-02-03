@@ -13,85 +13,85 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& ops)
+    Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
         auto& ctx = sema.ctx();
 
-        if (ops.type->isInt())
+        if (nodeView.type->isInt())
         {
-            ApsInt value = ops.cst->getInt();
+            ApsInt value = nodeView.cst->getInt();
             value.setUnsigned(true);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
             return Result::Continue;
         }
 
-        result = ops.cstRef;
+        result = nodeView.cstRef;
         return Result::Continue;
     }
 
-    Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& ops)
+    Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
-        if (ops.node->is(AstNodeId::SuffixLiteral))
+        if (nodeView.node->is(AstNodeId::SuffixLiteral))
         {
-            result = sema.constantRefOf(ops.nodeRef);
+            result = sema.constantRefOf(nodeView.nodeRef);
             return Result::Continue;
         }
 
         auto& ctx = sema.ctx();
-        if (ops.type->isInt())
+        if (nodeView.type->isInt())
         {
-            ApsInt value = ops.cst->getInt();
+            ApsInt value = nodeView.cst->getInt();
 
             bool overflow = false;
             value.negate(overflow);
             if (overflow)
-                return SemaError::raiseLiteralOverflow(sema, ops.nodeRef, *ops.cst, ops.typeRef);
+                return SemaError::raiseLiteralOverflow(sema, nodeView.nodeRef, *nodeView.cst, nodeView.typeRef);
 
             value.setUnsigned(false);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), TypeInfo::Sign::Signed));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Signed));
             return Result::Continue;
         }
 
-        if (ops.type->isFloat())
+        if (nodeView.type->isFloat())
         {
-            ApFloat value = ops.cst->getFloat();
+            ApFloat value = nodeView.cst->getFloat();
             value.negate();
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, ops.type->payloadFloatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, nodeView.type->payloadFloatBits()));
             return Result::Continue;
         }
 
         return Result::Error;
     }
 
-    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr& node, const SemaNodeView& ops)
+    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        if (ops.cst->isBool())
+        if (nodeView.cst->isBool())
         {
-            result = sema.cstMgr().cstNegBool(ops.cstRef);
+            result = sema.cstMgr().cstNegBool(nodeView.cstRef);
             return Result::Continue;
         }
 
-        if (ops.cst->isInt())
+        if (nodeView.cst->isInt())
         {
-            result = sema.cstMgr().cstBool(ops.cst->getInt().isZero());
+            result = sema.cstMgr().cstBool(nodeView.cst->getInt().isZero());
             return Result::Continue;
         }
 
-        if (ops.cst->isChar())
+        if (nodeView.cst->isChar())
         {
-            result = sema.cstMgr().cstBool(ops.cst->getChar());
+            result = sema.cstMgr().cstBool(nodeView.cst->getChar());
             return Result::Continue;
         }
 
-        if (ops.cst->isRune())
+        if (nodeView.cst->isRune())
         {
-            result = sema.cstMgr().cstBool(ops.cst->getRune());
+            result = sema.cstMgr().cstBool(nodeView.cst->getRune());
             return Result::Continue;
         }
 
-        if (ops.cst->isString())
+        if (nodeView.cst->isString())
         {
             result = sema.cstMgr().cstFalse();
             return Result::Continue;
@@ -100,27 +100,27 @@ namespace
         return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 
-    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
+    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& nodeView)
     {
         auto&  ctx   = sema.ctx();
-        ApsInt value = ops.cst->getInt();
+        ApsInt value = nodeView.cst->getInt();
         value.invertAllBits();
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, ops.type->payloadIntBits(), ops.type->payloadIntSign()));
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
         return Result::Continue;
     }
 
-    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
         switch (op)
         {
             case TokenId::SymMinus:
-                return constantFoldMinus(sema, result, ops);
+                return constantFoldMinus(sema, result, nodeView);
             case TokenId::SymPlus:
-                return constantFoldPlus(sema, result, ops);
+                return constantFoldPlus(sema, result, nodeView);
             case TokenId::SymBang:
-                return constantFoldBang(sema, result, node, ops);
+                return constantFoldBang(sema, result, node, nodeView);
             case TokenId::SymTilde:
-                return constantFoldTilde(sema, result, node, ops);
+                return constantFoldTilde(sema, result, node, nodeView);
             default:
                 break;
         }
@@ -128,58 +128,58 @@ namespace
         return Result::Error;
     }
 
-    Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.codeRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (ops.type->isFloat() || ops.type->isIntSigned() || ops.type->isIntUnsized())
+        if (nodeView.type->isFloat() || nodeView.type->isIntSigned() || nodeView.type->isIntUnsized())
             return Result::Continue;
 
-        if (ops.type->isIntUnsigned())
+        if (nodeView.type->isIntUnsigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        return reportInvalidType(sema, expr, ops);
+        return reportInvalidType(sema, expr, nodeView);
     }
 
-    Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (ops.type->isFloat() || ops.type->isIntUnsigned() || ops.type->isIntUnsized())
+        if (nodeView.type->isFloat() || nodeView.type->isIntUnsigned() || nodeView.type->isIntUnsized())
             return Result::Continue;
 
-        if (ops.type->isIntSigned())
+        if (nodeView.type->isIntSigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, ops.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        return reportInvalidType(sema, expr, ops);
+        return reportInvalidType(sema, expr, nodeView);
     }
 
-    Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (ops.type->isConvertibleToBool())
+        if (nodeView.type->isConvertibleToBool())
             return Result::Continue;
-        return reportInvalidType(sema, expr, ops);
+        return reportInvalidType(sema, expr, nodeView);
     }
 
-    Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& ops)
+    Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (ops.type->isInt())
+        if (nodeView.type->isInt())
             return Result::Continue;
-        return reportInvalidType(sema, expr, ops);
+        return reportInvalidType(sema, expr, nodeView);
     }
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
@@ -287,24 +287,24 @@ namespace
         return Result::Continue;
     }
 
-    Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& ops)
+    Result check(Sema& sema, TokenId op, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
         switch (op)
         {
             case TokenId::SymMinus:
-                return checkMinus(sema, node, ops);
+                return checkMinus(sema, node, nodeView);
             case TokenId::SymPlus:
-                return checkPlus(sema, node, ops);
+                return checkPlus(sema, node, nodeView);
             case TokenId::SymBang:
-                return checkBang(sema, node, ops);
+                return checkBang(sema, node, nodeView);
             case TokenId::SymTilde:
-                return checkTilde(sema, node, ops);
+                return checkTilde(sema, node, nodeView);
             case TokenId::SymAmpersand:
-                return checkTakeAddress(sema, node, ops);
+                return checkTakeAddress(sema, node, nodeView);
             case TokenId::KwdDRef:
-                return checkDRef(sema, node, ops);
+                return checkDRef(sema, node, nodeView);
             case TokenId::KwdMoveRef:
-                return checkMoveRef(sema, node, ops);
+                return checkMoveRef(sema, node, nodeView);
             default:
                 return SemaError::raiseInternal(sema, sema.curNodeRef());
         }

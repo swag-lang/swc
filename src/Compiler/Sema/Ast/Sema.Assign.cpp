@@ -28,6 +28,28 @@ namespace
 
         return Result::Continue;
     }
+
+    Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        switch (op)
+        {
+            case TokenId::SymEqual:
+            case TokenId::SymPlusEqual:
+            case TokenId::SymMinusEqual:
+            case TokenId::SymAsteriskEqual:
+            case TokenId::SymSlashEqual:
+            case TokenId::SymAmpersandEqual:
+            case TokenId::SymPipeEqual:
+            case TokenId::SymCircumflexEqual:
+            case TokenId::SymPercentEqual:
+            case TokenId::SymLowerLowerEqual:
+            case TokenId::SymGreaterGreaterEqual:
+                return Result::Continue;
+
+            default:
+                return SemaError::raiseInternal(sema, nodeRef);
+        }
+    }
 }
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
@@ -62,11 +84,12 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
 
-    // Check LHS assignability
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
-
-    // Right must be a value (or a type that can be converted to a value).
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
+
+    // Type-check
+    const Token& tok = sema.token(codeRef());
+    RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
 
     // Cast RHS to LHS type.
     if (nodeLeftView.typeRef.isValid())
@@ -75,7 +98,6 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     }
 
     // Right is constant
-    const Token& tok = sema.token(codeRef());
     if (nodeRightView.cstRef.isValid())
     {
         RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, nodeRightView));

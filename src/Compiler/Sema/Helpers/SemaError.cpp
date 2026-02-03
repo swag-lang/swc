@@ -102,6 +102,18 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, Repor
     return Result::Error;
 }
 
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location)
+{
+    return report(sema, id, atNode.nodeRef(sema.ast()), location);
+}
+
+Result SemaError::raise(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location)
+{
+    const auto diag = report(sema, id, atNode, location);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
 {
     auto diag = report(sema, id, atSymbol.codeRef());

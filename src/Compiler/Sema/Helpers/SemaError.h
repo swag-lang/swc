@@ -27,6 +27,8 @@ namespace SemaError
     Result     raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
     Result     raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
+    Diagnostic report(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location = ReportLocation::Children);
+    Result     raise(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location = ReportLocation::Children);
     Diagnostic report(Sema& sema, DiagnosticId id, const Symbol& atSymbol);
     Result     raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol);
 

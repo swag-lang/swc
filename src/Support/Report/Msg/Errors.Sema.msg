@@ -34,7 +34,7 @@ SWC_DIAG_DEF(sema_err_wait_impl_registration, Error, "all 'impl' blocks for stru
 SWC_DIAG_DEF(sema_err_wait_sym_typed, Error, "the symbol '{sym}' has not been typed")
 SWC_DIAG_DEF(sema_err_wait_sym_completed, Error, "the symbol '{sym}' has not been completed")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")
-SWC_DIAG_DEF(sema_err_integer_overflow, Error, "integer overflow in constant expression: '{left}' {tok} '{right}' for type '{type}'")
+SWC_DIAG_DEF(sema_err_integer_overflow, Error, "integer overflow in constant expression (type is '{type}')")
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "'{tok}' can only be applied to integer types (the type is '{type}')")
 SWC_DIAG_DEF(sema_err_modifier_unsupported, Error, "the modifier '{what}' cannot be applied to '{tok}'")
 SWC_DIAG_DEF(sema_err_negative_shift, Error, "invalid negative shift operand '{right}'")

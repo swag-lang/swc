@@ -56,30 +56,13 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNod
     element.addSpan(codeRange, message, severity);
 }
 
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
-{
-    auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
-
-    diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
-
-    const SemaNodeView nodeView(sema, atNodeRef);
-    setReportArguments(sema, diag, nodeView.node->codeRef());
-    setReportArguments(sema, diag, nodeView.sym);
-
-    return diag;
-}
-
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef)
-{
-    return report(sema, id, atNodeRef, ReportLocation::Children);
-}
-
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
-    auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    auto              diag    = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
+    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
+
     setReportArguments(sema, diag, atCodeRef);
-    const auto& srcView = sema.ctx().compiler().srcView(atCodeRef.srcViewRef);
-    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "");
     return diag;
 }
 
@@ -88,6 +71,18 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCode
     const auto diag = report(sema, id, atCodeRef);
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
+{
+    auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
+
+    const SemaNodeView nodeView(sema, atNodeRef);
+    setReportArguments(sema, diag, nodeView.node->codeRef());
+    setReportArguments(sema, diag, nodeView.sym);
+
+    return diag;
 }
 
 Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)

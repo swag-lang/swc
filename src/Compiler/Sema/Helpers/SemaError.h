@@ -18,8 +18,7 @@ namespace SemaError
 
     void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
 
-    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef);
-    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location);
+    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
 
     Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);

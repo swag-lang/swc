@@ -29,6 +29,12 @@ namespace
         return Result::Continue;
     }
 
+    Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    {
+        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Assignment));
+        return Result::Continue;
+    }
+    
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef.isValid())
@@ -93,12 +99,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
 
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-
-    // Cast RHS to LHS type.
-    if (nodeLeftView.typeRef.isValid())
-    {
-        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Assignment));
-    }
+    RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     return Result::Continue;
 }

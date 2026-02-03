@@ -331,8 +331,7 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        TypeRef resultTypeRef = nodeLeftView.typeRef;
-
+        TypeRef       resultTypeRef  = nodeLeftView.typeRef;
         const TypeRef ptrDiffTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
 
         switch (op)

@@ -12,7 +12,7 @@ namespace SemaError
 {
     void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
 
-    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
+    Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
 
     Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
@@ -35,8 +35,8 @@ namespace SemaError
     Result raisePointerArithmeticValuePointer(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raisePointerArithmeticVoidPointer(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
-    Result raiseIndexOutOfRange(Sema& sema, int64_t index, size_t maxCount, AstNodeRef nodeRef);
+    Result raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
+    Result raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
 }
 
 SWC_END_NAMESPACE();

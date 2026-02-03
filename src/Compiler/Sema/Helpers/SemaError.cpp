@@ -41,14 +41,14 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeR
     element.addSpan(codeRange, message, severity);
 }
 
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef)
 {
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    addSpan(sema, diag.last(), atNodeRef, "", DiagnosticSeverity::Error);
 
-    const SemaNodeView nodeView(sema, nodeRef);
+    const SemaNodeView nodeView(sema, atNodeRef);
     setReportArguments(sema, diag, nodeView.node->codeRef());
     setReportArguments(sema, diag, nodeView.sym);
-    addSpan(sema, diag.last(), nodeRef);
 
     return diag;
 }
@@ -253,20 +253,19 @@ Result SemaError::raiseInvalidOpEnum(Sema& sema, const AstNode& nodeOp, AstNodeR
     return Result::Error;
 }
 
-Result SemaError::raiseTypeNotIndexable(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
+Result SemaError::raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_type_not_indexable, nodeRef);
+    auto diag = report(sema, DiagnosticId::sema_err_type_not_indexable, atNodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseIndexOutOfRange(Sema& sema, int64_t index, size_t maxCount, AstNodeRef nodeRef)
+Result SemaError::raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_index_out_of_range, nodeRef);
+    auto diag = report(sema, DiagnosticId::sema_err_index_out_of_range, atNodeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, index);
     diag.addArgument(Diagnostic::ARG_COUNT, maxCount);
-    addSpan(sema, diag.last(), nodeRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }

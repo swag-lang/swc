@@ -93,7 +93,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
             return Result::Continue;
         const auto& values = cst.getAggregateArray();
         if (std::cmp_greater_equal(constIndex, values.size()))
-            return SemaError::raiseIndexOutOfRange(sema, constIndex, values.size(), nodeArgRef);
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
         sema.setConstant(sema.curNodeRef(), values[constIndex]);
         return Result::Continue;
     }
@@ -103,7 +103,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
     {
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
-            return SemaError::raiseIndexOutOfRange(sema, constIndex, s.size(), nodeArgRef);
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
         const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cstInt));
         return Result::Continue;
@@ -121,7 +121,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         const ByteSpan bytes      = cst.getSlice();
         const uint64_t numEntries = bytes.size();
         if (std::cmp_greater_equal(constIndex, numEntries))
-            return SemaError::raiseIndexOutOfRange(sema, constIndex, numEntries, nodeArgRef);
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, numEntries);
 
         const auto elemBytes = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
 

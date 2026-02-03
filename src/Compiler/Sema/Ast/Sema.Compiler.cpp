@@ -512,7 +512,9 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             auto  diag = SemaError::report(sema, DiagnosticId::sema_err_already_defined, codeRef());
             auto& note = diag.addElement(DiagnosticId::sema_note_other_definition);
             note.setSeverity(DiagnosticSeverity::Note);
-            note.addSpan(sema.srcView(ctx.compiler().mainFunc()->srcViewRef()).tokenCodeRange(ctx, ctx.compiler().mainFunc()->tokRef()));
+            const AstCompilerFunc* mainFunc = ctx.compiler().mainFunc();
+            const SourceView&      srcView  = mainFunc->srcView(ctx);
+            note.addSpan(srcView.tokenCodeRange(ctx, mainFunc->tokRef()));
             diag.report(ctx);
             return Result::Error;
         }

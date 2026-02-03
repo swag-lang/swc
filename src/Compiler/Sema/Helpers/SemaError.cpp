@@ -7,46 +7,61 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
 {
-    SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, SemaError::ReportLocation location)
+    const auto& ctx  = sema.ctx();
+    const auto& node = sema.node(atNodeRef);
+    switch (location)
     {
-        const auto& ctx  = sema.ctx();
-        const auto& node = sema.node(atNodeRef);
-        switch (location)
-        {
-            case SemaError::ReportLocation::Token:
-                return node.codeRange(ctx);
-            case SemaError::ReportLocation::Children:
-                return node.codeRangeWithChildren(ctx, sema.ast());
-        }
-
-        SWC_UNREACHABLE();
+        case ReportLocation::Token:
+            return node.codeRange(ctx);
+        case ReportLocation::Children:
+            return node.codeRangeWithChildren(ctx, sema.ast());
     }
 
-    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange)
-    {
-        SWC_ASSERT(codeRange.isValid());
+    SWC_UNREACHABLE();
+}
 
-        const auto&       ctx     = sema.ctx();
-        const SourceView& srcView = sema.srcView(codeRange.srcViewRef);
-        const Token&      token   = srcView.token(codeRange.tokRef);
-        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, codeRange);
+void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange)
+{
+    SWC_ASSERT(codeRange.isValid());
 
-        diag.addArgument(Diagnostic::ARG_TOK, tokStr);
-        diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
-        diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
-    }
+    const auto&       ctx     = sema.ctx();
+    const SourceView& srcView = sema.srcView(codeRange.srcViewRef);
+    const Token&      token   = srcView.token(codeRange.tokRef);
+    const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, codeRange);
 
-    void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
-    {
-        if (!sym)
-            return;
+    diag.addArgument(Diagnostic::ARG_TOK, tokStr);
+    diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
+    diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
+}
 
-        diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
-        diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily());
-        diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()));
-    }
+void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym)
+{
+    if (!sym)
+        return;
+
+    diag.addArgument(Diagnostic::ARG_SYM, sym->name(sema.ctx()));
+    diag.addArgument(Diagnostic::ARG_SYM_FAM, sym->toFamily());
+    diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(sym->toFamily()));
+}
+
+void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type)
+{
+    if (!type)
+        return;
+
+    diag.addArgument(Diagnostic::ARG_TYPE, type->toName(sema.ctx()));
+    diag.addArgument(Diagnostic::ARG_SYM_FAM, type->toFamily(sema.ctx()));
+    diag.addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(type->toFamily(sema.ctx())));
+}
+
+void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef)
+{
+    const SemaNodeView nodeView(sema, nodeRef);
+    setReportArguments(sema, diag, nodeView.node->codeRef());
+    setReportArguments(sema, diag, nodeView.sym);
+    setReportArguments(sema, diag, nodeView.type);
 }
 
 void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message, DiagnosticSeverity severity)
@@ -76,11 +91,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, 
 {
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
     diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
-
-    const SemaNodeView nodeView(sema, atNodeRef);
-    setReportArguments(sema, diag, nodeView.node->codeRef());
-    setReportArguments(sema, diag, nodeView.sym);
-
+    setReportArguments(sema, diag, atNodeRef);
     return diag;
 }
 
@@ -93,7 +104,9 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, Repor
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
 {
-    return report(sema, id, atSymbol.codeRef());
+    auto diag = report(sema, id, atSymbol.codeRef());
+    setReportArguments(sema, diag, &atSymbol);
+    return diag;
 }
 
 Result SemaError::raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol)

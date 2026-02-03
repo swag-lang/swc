@@ -55,7 +55,6 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
-    const AstNodeRef   nodeRef = sema.curNodeRef();
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
 
     // TODO
@@ -77,7 +76,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
     if (nodeRightView.cstRef.isValid())
     {
-        RESULT_VERIFY(checkConstant(sema, nodeRef, tok.id, *this, nodeRightView));
+        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, *this, nodeRightView));
     }
 
     return Result::Continue;

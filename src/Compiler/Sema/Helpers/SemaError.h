@@ -16,7 +16,12 @@ namespace SemaError
         Children,
     };
 
-    void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
+    SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
+    void            setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);
+    void            setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym);
+    void            setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type);
+    void            setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef);
+    void            addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
 
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
     Result     raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);

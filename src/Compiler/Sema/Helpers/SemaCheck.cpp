@@ -130,7 +130,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
 
             if (!allowed)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_attribute_parameter_type, param.codeRef());
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_attribute_parameter_type, param);
                 diag.addArgument(Diagnostic::ARG_TYPE, type.toName(sema.ctx()));
                 diag.report(sema.ctx());
                 return Result::Error;
@@ -139,19 +139,19 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
 
         // Variadic must be last
         if (type.isAnyVariadic() && i != parameters.size() - 1)
-            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param.codeRef());
+            return SemaError::raise(sema, DiagnosticId::sema_err_variadic_not_last, param);
 
         // A parameter without a default follows a parameter with a default value
         if (param.hasExtraFlag(SymbolVariableFlagsE::Initialized))
             hasDefault = true;
         else if (hasDefault)
-            return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param.codeRef());
+            return SemaError::raise(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param);
 
         // If a parameter has a name, then what follows should have a name
         if (param.idRef().isValid())
             hasName = true;
         else if (hasName)
-            return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param.codeRef());
+            return SemaError::raise(sema, DiagnosticId::sema_err_unnamed_parameter, param);
     }
 
     return Result::Continue;

@@ -89,10 +89,10 @@ Utf8 DiagnosticBuilder::build()
     uint32_t maxLine = 0;
     for (const auto& e : elements)
     {
-        if (e->hasCodeLocation())
+        if (e->hasSpans())
         {
             for (uint32_t i = 0; i < e->spans().size(); ++i)
-                maxLine = std::max(e->location(i, *ctx_).line, maxLine);
+                maxLine = std::max(e->codeRange(i, *ctx_).line, maxLine);
         }
     }
 
@@ -111,7 +111,7 @@ Utf8 DiagnosticBuilder::build()
 
     // Render primary element body (location/code) if any
     writeLabelMsg(primary);
-    if (primary.hasCodeLocation())
+    if (primary.hasSpans())
         writeCodeBlock(primary);
 
     // Now render all secondary elements as part of the same diagnostic
@@ -120,7 +120,7 @@ Utf8 DiagnosticBuilder::build()
         const auto& el = *elements[i];
         out_.append(gutterW_, ' ');
         writeLabelMsg(el);
-        if (el.hasCodeLocation())
+        if (el.hasSpans())
             writeCodeBlock(el);
     }
 
@@ -359,7 +359,7 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
 
 void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
 {
-    const auto loc = el.location(0, *ctx_);
+    const auto loc = el.codeRange(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
     if (el.srcView()->fileRef().isValid())
@@ -628,8 +628,8 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     // Sort underlines by column to process them in order
     auto sortedSpans = el.spans();
     std::ranges::sort(sortedSpans, [&](const auto& a, const auto& b) {
-        const auto loc1 = el.location(a, *ctx_);
-        const auto loc2 = el.location(b, *ctx_);
+        const auto loc1 = el.codeRange(a, *ctx_);
+        const auto loc2 = el.codeRange(b, *ctx_);
         return loc1.column < loc2.column;
     });
 
@@ -644,7 +644,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
     for (const auto& span : sortedSpans)
     {
-        const auto loc = el.location(span, *ctx_);
+        const auto loc = el.codeRange(span, *ctx_);
 
         if (loc.line != currentLine)
         {

@@ -26,16 +26,16 @@ uint32_t Token::crc(const SourceView& srcView) const
     return srcView.identifiers()[byteStart].crc;
 }
 
-SourceCodeRange Token::location(const TaskContext& ctx, const SourceView& srcView) const
+SourceCodeRange Token::codeRange(const TaskContext& ctx, const SourceView& srcView) const
 {
-    SourceCodeRange loc;
+    SourceCodeRange codeRange;
     uint32_t        offset;
     if (id == TokenId::Identifier)
         offset = srcView.identifiers()[byteStart].byteStart;
     else
         offset = byteStart;
-    loc.fromOffset(ctx, srcView, offset, byteLength);
-    return loc;
+    codeRange.fromOffset(ctx, srcView, offset, byteLength);
+    return codeRange;
 }
 
 std::string_view Token::toName(TokenId id)

@@ -60,20 +60,20 @@ void DiagnosticElement::addSpan(const SourceCodeRange& loc, DiagnosticId diagId,
     spans_.push_back(span);
 }
 
-SourceCodeRange DiagnosticElement::location(uint32_t spanIndex, const TaskContext& ctx) const
+SourceCodeRange DiagnosticElement::codeRange(uint32_t spanIndex, const TaskContext& ctx) const
 {
     if (!srcView_ || spans_.empty())
         return {};
-    return location(spans_[spanIndex], ctx);
+    return codeRange(spans_[spanIndex], ctx);
 }
 
-SourceCodeRange DiagnosticElement::location(const DiagnosticSpan& span, const TaskContext& ctx) const
+SourceCodeRange DiagnosticElement::codeRange(const DiagnosticSpan& span, const TaskContext& ctx) const
 {
     if (!srcView_)
         return {};
-    SourceCodeRange loc;
-    loc.fromOffset(ctx, *srcView_, span.offset, span.len);
-    return loc;
+    SourceCodeRange codeRange;
+    codeRange.fromOffset(ctx, *srcView_, span.offset, span.len);
+    return codeRange;
 }
 
 std::string_view DiagnosticElement::idName() const

@@ -43,13 +43,13 @@ public:
     const auto& spans() const { return spans_; }
     auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }
-    bool        hasCodeLocation() const { return srcView_ != nullptr && !spans_.empty(); }
+    bool        hasSpans() const { return srcView_ != nullptr && !spans_.empty(); }
 
     Utf8 message() const;
     void setMessage(Utf8 m);
 
-    SourceCodeRange    location(uint32_t spanIndex, const TaskContext& ctx) const;
-    SourceCodeRange    location(const DiagnosticSpan& span, const TaskContext& ctx) const;
+    SourceCodeRange    codeRange(uint32_t spanIndex, const TaskContext& ctx) const;
+    SourceCodeRange    codeRange(const DiagnosticSpan& span, const TaskContext& ctx) const;
     std::string_view   idName() const;
     DiagnosticId       id() const { return id_; }
     DiagnosticSeverity severity() const { return severity_; }

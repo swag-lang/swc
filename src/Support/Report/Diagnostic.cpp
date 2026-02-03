@@ -68,18 +68,18 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext&, const SourceView& srcView,
 
 SourceCodeRange Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceView& srcView, TokenRef tokRef)
 {
-    const Token&    token = srcView.token(tokRef);
-    SourceCodeRange loc   = token.location(ctx, srcView);
+    const Token&    token     = srcView.token(tokRef);
+    SourceCodeRange codeRange = token.codeRange(ctx, srcView);
 
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
         const auto str = token.string(srcView);
         const auto pos = str.find_first_of("\n\r");
         if (pos != Utf8::npos)
-            loc.len = static_cast<uint32_t>(pos);
+            codeRange.len = static_cast<uint32_t>(pos);
     }
 
-    return loc;
+    return codeRange;
 }
 
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)

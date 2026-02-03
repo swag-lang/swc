@@ -186,18 +186,18 @@ namespace
     {
         if (nodeView.cstRef.isValid())
         {
-            const auto            diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
-            const SourceCodeRange loc  = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
-            diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
+            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
         if (!sema.isLValue(*nodeView.node))
         {
-            const auto            diag = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.codeRef());
-            const SourceCodeRange loc  = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
-            diag.last().addSpan(loc, "", DiagnosticSeverity::Note);
+            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.codeRef());
+            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
             return Result::Error;
         }

@@ -82,7 +82,7 @@ struct Token
     bool             isNot(TokenId id) const { return this->id != id; }
     std::string_view string(const SourceView& srcView) const;
     uint32_t         crc(const SourceView& srcView) const;
-    SourceCodeRange  location(const TaskContext& ctx, const SourceView& srcView) const;
+    SourceCodeRange  codeRange(const TaskContext& ctx, const SourceView& srcView) const;
     bool             hasFlag(TokenFlags flag) const { return flags.has(flag); }
 
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }

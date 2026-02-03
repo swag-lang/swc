@@ -24,22 +24,22 @@ SourceCodeRange AstNode::codeRange(const TaskContext& ctx) const
 {
     const SourceView& view  = srcView(ctx);
     const Token&      token = view.token(codeRef_.tokRef);
-    return token.location(ctx, view);
+    return token.codeRange(ctx, view);
 }
 
 SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const
 {
-    SourceCodeRange loc{};
+    SourceCodeRange codeRange{};
 
     // Always use the SourceView of the node itself
     const auto baseViewRef = codeRef_.srcViewRef;
     auto&      view        = ctx.compiler().srcView(baseViewRef);
     if (codeRef_.tokRef.isInvalid() || view.tokens().empty())
-        return loc;
+        return codeRange;
 
     // Baseline comes from this node token
     const auto& baseTok  = view.token(codeRef_.tokRef);
-    const auto  baseLoc  = baseTok.location(ctx, view);
+    const auto  baseLoc  = baseTok.codeRange(ctx, view);
     const auto  baseLine = baseLoc.line;
 
     // Descend left-most while staying on the same line and same SourceView
@@ -55,7 +55,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
         if (child.srcViewRef() != baseViewRef)
             break;
         const auto& childTok = view.token(child.tokRef());
-        const auto  childLoc = childTok.location(ctx, view);
+        const auto  childLoc = childTok.codeRange(ctx, view);
         if (childLoc.line != baseLine)
             break;
         leftMost = &child;
@@ -65,7 +65,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
 
     // Descend right-most while staying on the same line and same SourceView
     auto            rightMost = this;
-    SourceCodeRange endLoc    = baseTok.location(ctx, view);
+    SourceCodeRange endLoc    = baseTok.codeRange(ctx, view);
     while (true)
     {
         SmallVector<AstNodeRef> children;
@@ -76,7 +76,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
         if (child.srcViewRef() != baseViewRef)
             break;
         const auto& childTok = view.token(child.tokRef());
-        const auto  childLoc = childTok.location(ctx, view);
+        const auto  childLoc = childTok.codeRange(ctx, view);
         if (childLoc.line != baseLine)
             break;
         rightMost = &child;
@@ -88,8 +88,8 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     const uint32_t startOff = startLoc.offset;
     const uint32_t endByte  = endLoc.offset + endLoc.len;
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
-    loc.fromOffset(ctx, view, startOff, spanLen);
-    return loc;
+    codeRange.fromOffset(ctx, view, startOff, spanLen);
+    return codeRange;
 }
 
 const SourceView& AstNode::srcView(const TaskContext& ctx) const

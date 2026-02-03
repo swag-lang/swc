@@ -244,13 +244,13 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
 
     for (auto& elem : diag.elements())
     {
-        const SourceCodeRange loc = elem->location(0, ctx);
+        const SourceCodeRange codeRange = elem->codeRange(0, ctx);
         for (auto& directive : directives_)
         {
             if (directive.kind != elem->severity())
                 continue;
 
-            if (!directive.matchesLine(loc.line))
+            if (!directive.matchesLine(codeRange.line))
                 continue;
 
             if (elem->idName().find(directive.match) == Utf8::npos &&

@@ -66,8 +66,8 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);
-    const SourceCodeRange loc = node.codeRangeWithChildren(*ctx_, *ast_);
-    diag.last().addSpan(loc, "");
+    const SourceCodeRange codeRange = node.codeRangeWithChildren(*ctx_, *ast_);
+    diag.last().addSpan(codeRange, "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -264,12 +264,12 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto      diag = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    SourceCodeRange loc  = curToken_[-1].location(*ctx_, ast_->srcView());
-    loc.column += loc.len;
-    loc.offset += loc.len;
-    loc.len = 1;
-    diag.last().addSpan(loc, "");
+    const auto      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    SourceCodeRange codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
+    codeRange.column += codeRange.len;
+    codeRange.offset += codeRange.len;
+    codeRange.len = 1;
+    diag.last().addSpan(codeRange, "");
     diag.report(*ctx_);
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }

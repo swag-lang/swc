@@ -13,7 +13,7 @@ SourceCodeRange Symbol::codeRange(TaskContext& ctx) const noexcept
 {
     const SourceView& srcView = ctx.compiler().srcView(srcViewRef());
     const Token&      tok     = srcView.token(tokRef_);
-    return tok.location(ctx, srcView);
+    return tok.codeRange(ctx, srcView);
 }
 
 Utf8 Symbol::toFamily() const

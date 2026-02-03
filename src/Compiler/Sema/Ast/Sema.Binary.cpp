@@ -307,7 +307,7 @@ namespace
         return Result::Continue;
     }
 
-    Result promote(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    Result promote(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         if (op == TokenId::SymPipe || op == TokenId::SymAmpersand || op == TokenId::SymCircumflex)
         {
@@ -398,7 +398,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 
     // Force types
     const Token& tok = sema.token(codeRef());
-    RESULT_VERIFY(promote(sema, sema.curNodeRef(), tok.id, *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
 
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));

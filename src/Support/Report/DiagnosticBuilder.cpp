@@ -547,7 +547,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
 }
 
 void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
-                                       const SourceCodeRange&   loc,
+                                       const SourceCodeRange&   codeRange,
                                        const DiagnosticSpan&    span,
                                        uint32_t                 tokenLenChars,
                                        const Utf8&              currentFullCodeLine,
@@ -560,7 +560,7 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
     const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
 
     // The initial window anchored with a small left context.
-    const uint32_t rawStart    = (loc.column > leftContext) ? (loc.column - leftContext) : 0u;
+    const uint32_t rawStart    = (codeRange.column > leftContext) ? (codeRange.column - leftContext) : 0u;
     uint32_t       windowStart = rawStart;
 
     uint32_t   visibleWidth = diagMax;
@@ -581,7 +581,7 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
     const Utf8 provisional = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
 
     // Underline start relative to provisional slice
-    const uint32_t underlineStart0 = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
+    const uint32_t underlineStart0 = (codeRange.column > windowStart) ? (codeRange.column - windowStart) : 0u;
 
     uint32_t ltrim = 0;
     if (addPrefix && underlineStart0 > 0)
@@ -602,11 +602,11 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
     }
 
     const Utf8 codeSlice = currentFullCodeLine.substr(windowStart, windowEnd - windowStart);
-    writeCodeLine(loc.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");
+    writeCodeLine(codeRange.line, addPrefix ? ellipsis : "", codeSlice, addSuffix ? ellipsis : "");
 
     const uint32_t prefixCols            = addPrefix ? lenEllipsis : 0;
     const uint32_t sliceVisible          = (windowEnd - windowStart);
-    const uint32_t underlineStartInSlice = (loc.column > windowStart) ? (loc.column - windowStart) : 0u;
+    const uint32_t underlineStartInSlice = (codeRange.column > windowStart) ? (codeRange.column - windowStart) : 0u;
     const uint32_t rightAvail            = (underlineStartInSlice < sliceVisible) ? (sliceVisible - underlineStartInSlice) : 0u;
     const uint32_t adjustedLen           = std::min(tokenLenChars, rightAvail);
     const uint32_t adjustedCol           = prefixCols + underlineStartInSlice;

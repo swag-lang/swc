@@ -38,8 +38,8 @@ public:
     const SourceView* srcView() const { return srcView_; }
 
     void        addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
-    void        addSpan(const SourceCodeRange& loc, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
-    void        addSpan(const SourceCodeRange& loc, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void        addSpan(const SourceCodeRange& codeRange, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void        addSpan(const SourceCodeRange& codeRange, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
     const auto& spans() const { return spans_; }
     auto&       span(uint32_t index) { return spans_[index]; }
     const auto& span(uint32_t index) const { return spans_[index]; }

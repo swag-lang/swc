@@ -32,29 +32,29 @@ void DiagnosticElement::addSpan(const SourceView* srcView, uint32_t offset, uint
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeRange& loc, const Utf8& message, DiagnosticSeverity severity)
+void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, const Utf8& message, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
-    srcView_ = loc.srcView;
+    SWC_ASSERT(!srcView_ || codeRange.srcView == srcView_);
+    srcView_ = codeRange.srcView;
 
-    if (!loc.len)
+    if (!codeRange.len)
         return;
     DiagnosticSpan span;
-    span.offset   = loc.offset;
-    span.len      = loc.len;
+    span.offset   = codeRange.offset;
+    span.len      = codeRange.len;
     span.severity = severity;
     span.message  = message;
     spans_.push_back(span);
 }
 
-void DiagnosticElement::addSpan(const SourceCodeRange& loc, DiagnosticId diagId, DiagnosticSeverity severity)
+void DiagnosticElement::addSpan(const SourceCodeRange& codeRange, DiagnosticId diagId, DiagnosticSeverity severity)
 {
-    SWC_ASSERT(!srcView_ || loc.srcView == srcView_);
-    srcView_ = loc.srcView;
+    SWC_ASSERT(!srcView_ || codeRange.srcView == srcView_);
+    srcView_ = codeRange.srcView;
 
     DiagnosticSpan span;
-    span.offset    = loc.offset;
-    span.len       = loc.len;
+    span.offset    = codeRange.offset;
+    span.len       = codeRange.len;
     span.severity  = severity;
     span.messageId = diagId;
     spans_.push_back(span);

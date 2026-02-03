@@ -189,9 +189,9 @@ AstModifierFlags Parser::parseModifiers()
 
         if (result.has(toSet))
         {
-            auto       diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
-            const auto loc  = ast_->srcView().token(done[toSet]).codeRange(*ctx_, ast_->srcView());
-            diag.last().addSpan(loc, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            auto                  diag      = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            const SourceCodeRange codeRange = ast_->srcView().token(done[toSet]).codeRange(*ctx_, ast_->srcView());
+            diag.last().addSpan(codeRange, DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
 

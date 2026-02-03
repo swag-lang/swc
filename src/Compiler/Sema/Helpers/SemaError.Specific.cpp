@@ -7,6 +7,26 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->codeRef());
+    diag.addNote(DiagnosticId::sema_note_other_definition);
+    diag.last().addSpan(otherSymbol->codeRange(ctx));
+    diag.report(ctx);
+    return Result::Error;
+}
+
+Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->codeRef());
+    diag.addNote(DiagnosticId::sema_note_other_definition);
+    diag.last().addSpan(otherSymbol->codeRange(ctx));
+    diag.report(ctx);
+    return Result::Error;
+}
+
 Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, atNodeRef, ReportLocation::Children);
@@ -96,26 +116,6 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
 Result SemaError::raiseInternal(Sema& sema, AstNodeRef atNodeRef)
 {
     return raise(sema, DiagnosticId::sema_err_internal, atNodeRef, ReportLocation::Token);
-}
-
-Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
-{
-    auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->codeRef());
-    diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->codeRange(ctx));
-    diag.report(ctx);
-    return Result::Error;
-}
-
-Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
-{
-    auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->codeRef());
-    diag.addNote(DiagnosticId::sema_note_other_definition);
-    diag.last().addSpan(otherSymbol->codeRange(ctx));
-    diag.report(ctx);
-    return Result::Error;
 }
 
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)

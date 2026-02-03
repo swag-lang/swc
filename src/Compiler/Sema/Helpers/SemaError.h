@@ -16,33 +16,33 @@ namespace SemaError
         Children,
     };
 
-    void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
+    void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
 
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location);
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
 
     Result raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
-    Result raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
-    Result raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, ReportLocation location);
+    Result raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef);
+    Result raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location);
 
-    Diagnostic reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Diagnostic reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
 
-    Result raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    Result raiseRequestedTypeFam(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    Result raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
-    Result raiseExprNotConst(Sema& sema, AstNodeRef nodeRef);
-    Result raiseBinaryOperandType(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raiseUnaryOperandType(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raiseInternal(Sema& sema, AstNodeRef nodeRef);
+    Result raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
+    Result raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);
+    Result raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseInternal(Sema& sema, AstNodeRef atNodeRef);
     Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    Result raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<const Symbol*> symbols);
-    Result raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal);
-    Result raiseDivZero(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef);
-    Result raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result raiseInvalidOpEnum(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
+    Result raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
+    Result raiseDivZero(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef);
+    Result raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
     Result raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
 }

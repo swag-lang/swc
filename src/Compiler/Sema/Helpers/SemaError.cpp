@@ -10,10 +10,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef nodeRef, SemaError::ReportLocation location)
+    SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, SemaError::ReportLocation location)
     {
         const auto& ctx  = sema.ctx();
-        const auto& node = sema.node(nodeRef);
+        const auto& node = sema.node(atNodeRef);
         switch (location)
         {
             case SemaError::ReportLocation::Token:
@@ -50,9 +50,9 @@ namespace
     }
 }
 
-void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, const Utf8& message, DiagnosticSeverity severity)
+void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message, DiagnosticSeverity severity)
 {
-    const SourceCodeRange codeRange = sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+    const SourceCodeRange codeRange = sema.node(atNodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
     element.addSpan(codeRange, message, severity);
 }
 
@@ -90,40 +90,40 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRe
     return Result::Error;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, ReportLocation location)
+Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
 {
-    const auto diag = report(sema, id, nodeRef, location);
+    const auto diag = report(sema, id, atNodeRef, location);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef nodeRef)
+Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef)
 {
-    return raise(sema, id, nodeRef, ReportLocation::Children);
+    return raise(sema, id, atNodeRef, ReportLocation::Children);
 }
 
-Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, nodeRef, ReportLocation::Children);
+    auto diag = report(sema, DiagnosticId::sema_err_cannot_cast, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
     return diag;
 }
 
-Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, nodeRef, ReportLocation::Children);
+    auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
     diag.report(ctx);
     return Result::Error;
 }
 
-Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
+Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_expected_type_fam, nodeRef, ReportLocation::Children);
+    auto  diag = report(sema, DiagnosticId::sema_err_expected_type_fam, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     const TypeInfo& ty = sema.typeMgr().get(targetTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx));
@@ -132,29 +132,22 @@ Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef nodeRef, TypeRef 
     return Result::Error;
 }
 
-Result SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal, TypeRef targetTypeRef)
+Result SemaError::raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_literal_overflow, nodeRef, ReportLocation::Children);
+    auto diag = report(sema, DiagnosticId::sema_err_literal_overflow, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
+Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_expr_not_const, nodeRef, ReportLocation::Children);
-
-    struct Context
-    {
-        Sema*      sema;
-        AstNodeRef nodeRef;
-        AstNodeRef lowest;
-    };
+    auto diag = report(sema, DiagnosticId::sema_err_expr_not_const, atNodeRef, ReportLocation::Children);
 
     AstNodeRef lowest = AstNodeRef::invalid();
-    Ast::visit(sema.ast(), nodeRef, [&](AstNodeRef childRef, const AstNode&) {
-        if (childRef == nodeRef)
+    Ast::visit(sema.ast(), atNodeRef, [&](AstNodeRef childRef, const AstNode&) {
+        if (childRef == atNodeRef)
             return Ast::VisitResult::Continue;
 
         const SemaNodeView nodeView{sema, childRef};
@@ -177,27 +170,27 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef nodeRef)
     return Result::Error;
 }
 
-Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, nodeOpRef, ReportLocation::Token);
+    auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, nodeOpRef, ReportLocation::Token);
+    auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseInternal(Sema& sema, AstNodeRef nodeRef)
+Result SemaError::raiseInternal(Sema& sema, AstNodeRef atNodeRef)
 {
-    return raise(sema, DiagnosticId::sema_err_internal, nodeRef, ReportLocation::Token);
+    return raise(sema, DiagnosticId::sema_err_internal, atNodeRef, ReportLocation::Token);
 }
 
 Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
@@ -220,10 +213,10 @@ Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* 
     return Result::Error;
 }
 
-Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)
 {
     auto& ctx  = sema.ctx();
-    auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, nodeRef, ReportLocation::Children);
+    auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_SYM, symbols.front()->name(ctx));
 
     for (const auto other : symbols)
@@ -236,43 +229,43 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef nodeRef, std::span
     return Result::Error;
 }
 
-Result SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef nodeRef, const ConstantValue& literal)
+Result SemaError::raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, nodeRef, ReportLocation::Children);
+    auto diag = report(sema, DiagnosticId::sema_err_literal_too_big, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_VALUE, literal.toString(sema.ctx()));
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseDivZero(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef)
+Result SemaError::raiseDivZero(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef)
 {
-    const auto diag = report(sema, DiagnosticId::sema_err_division_zero, nodeOpRef, ReportLocation::Token);
+    const auto diag = report(sema, DiagnosticId::sema_err_division_zero, atNodeRef, ReportLocation::Token);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_value_ptr, nodeOpRef, ReportLocation::Token);
+    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_value_ptr, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_void_ptr, nodeOpRef, ReportLocation::Token);
+    auto diag = report(sema, DiagnosticId::sema_err_pointer_arithmetic_void_ptr, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;
 }
 
-Result SemaError::raiseInvalidOpEnum(Sema& sema, AstNodeRef nodeOpRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
 {
-    auto diag = report(sema, DiagnosticId::sema_err_invalid_op_enum, nodeOpRef, ReportLocation::Token);
+    auto diag = report(sema, DiagnosticId::sema_err_invalid_op_enum, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());

@@ -46,6 +46,8 @@ public:
     void                                 setMustSkip() { mustSkip_ = true; }
     bool                                 isRuntimeFile() const { return file_ && file_->isRuntime(); }
 
+    SourceCodeRange               tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const;
+    std::string_view              tokenString(TokenRef tokRef) const;
     Utf8                          codeLine(const TaskContext& ctx, uint32_t line) const;
     std::string_view              codeView(uint32_t offset, uint32_t len) const;
     std::pair<uint32_t, uint32_t> triviaRangeForToken(TokenRef tok) const;

@@ -57,7 +57,8 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& c
 {
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
     setReportArguments(sema, diag, codeRef);
-    diag.last().addSpan(sema.ctx().compiler().srcView(codeRef.srcViewRef).token(codeRef.tokRef).codeRange(sema.ctx(), sema.ctx().compiler().srcView(codeRef.srcViewRef)), "");
+    const auto& srcView = sema.ctx().compiler().srcView(codeRef.srcViewRef);
+    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), codeRef.tokRef), "");
     return diag;
 }
 

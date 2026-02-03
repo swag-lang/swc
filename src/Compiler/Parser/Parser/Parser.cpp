@@ -51,7 +51,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     auto diag = Diagnostic::get(id, ast_->srcView().fileRef());
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(ast_->srcView().token(tknRef).codeRange(*ctx_, ast_->srcView()), "");
+    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);

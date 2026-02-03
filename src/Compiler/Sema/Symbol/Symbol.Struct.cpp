@@ -39,8 +39,9 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             diag.addArgument(Diagnostic::ARG_SYM, symImpl.name(sema.ctx()));
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
             auto& note = diag.addElement(DiagnosticId::sema_note_other_implementation);
-            note.setSrcView(&sema.compiler().srcView(itf->srcViewRef()));
-            note.addSpan(sema.token(itf->codeRef()).codeRange(sema.ctx(), sema.srcView(itf->srcViewRef())), "");
+            const auto& srcView = sema.compiler().srcView(itf->srcViewRef());
+            note.setSrcView(&srcView);
+            note.addSpan(srcView.tokenCodeRange(sema.ctx(), itf->tokRef()), "");
             diag.report(sema.ctx());
             return Result::Error;
         }

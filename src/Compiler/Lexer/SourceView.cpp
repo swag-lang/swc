@@ -84,6 +84,16 @@ std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) cons
     SWC_ASSERT(i + 1 < triviaStart_.size());
     return {triviaStart_[i], triviaStart_[i + 1]};
 }
+    
+SourceCodeRange SourceView::tokenCodeRange(const TaskContext& ctx, TokenRef tokRef) const
+{
+    return token(tokRef).codeRange(ctx, *this);
+}
+
+std::string_view SourceView::tokenString(TokenRef tokRef) const
+{
+    return token(tokRef).string(*this);
+}
 
 TokenRef SourceView::findRightFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const
 {

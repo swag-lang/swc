@@ -36,6 +36,8 @@ public:
     CompilerInstance&          compiler() { return ctx().compiler(); }
     const CompilerInstance&    compiler() const { return ctx().compiler(); }
     const Token&               token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
+    SourceCodeRange            tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
+    std::string_view           tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;

@@ -91,4 +91,16 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, Repor
     return Result::Error;
 }
 
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
+{
+    return report(sema, id, atSymbol.codeRef());
+}
+
+Result SemaError::raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
+{
+    const auto diag = report(sema, id, atSymbol);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 SWC_END_NAMESPACE();

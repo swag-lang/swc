@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result checkConstant(Sema& sema, AstNodeRef nodeRef, TokenId op, const SemaNodeView& nodeRightView)
+    Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
@@ -31,6 +31,9 @@ namespace
 
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
+        if (nodeRightView.cstRef.isValid())
+            RESULT_VERIFY(checkRightConstant(sema, op, nodeRef, nodeRightView));
+
         switch (op)
         {
             case TokenId::SymEqual:
@@ -87,20 +90,14 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
 
-    // Type-check
     const Token& tok = sema.token(codeRef());
+
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
 
     // Cast RHS to LHS type.
     if (nodeLeftView.typeRef.isValid())
     {
         RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Assignment));
-    }
-
-    // Right is constant
-    if (nodeRightView.cstRef.isValid())
-    {
-        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, nodeRightView));
     }
 
     return Result::Continue;

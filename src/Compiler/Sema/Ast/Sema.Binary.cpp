@@ -376,7 +376,7 @@ namespace
         return Result::Continue;
     }
 
-    Result checkConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeRightView)
+    Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
@@ -398,7 +398,7 @@ namespace
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef.isValid())
-            RESULT_VERIFY(checkConstant(sema, op, sema.curNodeRef(), node, nodeRightView));
+            RESULT_VERIFY(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
         switch (op)
         {

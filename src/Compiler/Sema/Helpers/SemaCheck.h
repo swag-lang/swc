@@ -13,7 +13,7 @@ namespace SemaCheck
     Result isValueOrType(Sema& sema, SemaNodeView& nodeView);
     Result isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView);
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
-    Result isAssignable(Sema& sema, const AstNode& node, const SemaNodeView& leftView);
+    Result isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& leftView);
     Result isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
 }
 

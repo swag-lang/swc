@@ -157,7 +157,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
     return Result::Continue;
 }
 
-Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeView& leftView)
+Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& leftView)
 {
     // Disallow assignment to immutable lvalues:
     if (leftView.sym)
@@ -166,7 +166,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
         {
             if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
-                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, node.codeRef());
+                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
                 diag.report(sema.ctx());
                 return Result::Error;
             }
@@ -174,7 +174,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
 
         if (leftView.sym->isConstant())
         {
-            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, node.codeRef());
+            const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -182,7 +182,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
 
     if (leftView.type && leftView.type->isConst())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, node.codeRef());
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, nodeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -191,7 +191,7 @@ Result SemaCheck::isAssignable(Sema& sema, const AstNode& node, const SemaNodeVi
     // Left must be a l-value
     if (!sema.isLValue(*leftView.node))
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, node.codeRef());
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }

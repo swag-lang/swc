@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result checkConstant(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstNode& node, const SemaNodeView& nodeRightView)
+    Result checkConstant(Sema& sema, AstNodeRef nodeRef, TokenId op, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
@@ -62,7 +62,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     // Check LHS assignability
-    RESULT_VERIFY(SemaCheck::isAssignable(sema, *this, nodeLeftView));
+    RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
 
     // Right must be a value (or a type that can be converted to a value).
     SemaNodeView nodeRightView(sema, nodeRightRef);
@@ -76,7 +76,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
     if (nodeRightView.cstRef.isValid())
     {
-        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, *this, nodeRightView));
+        RESULT_VERIFY(checkConstant(sema, sema.curNodeRef(), tok.id, nodeRightView));
     }
 
     return Result::Continue;

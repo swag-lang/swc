@@ -74,18 +74,18 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef)
     return report(sema, id, atNodeRef, ReportLocation::Children);
 }
 
-Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef)
+Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
     auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
-    setReportArguments(sema, diag, codeRef);
-    const auto& srcView = sema.ctx().compiler().srcView(codeRef.srcViewRef);
-    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), codeRef.tokRef), "");
+    setReportArguments(sema, diag, atCodeRef);
+    const auto& srcView = sema.ctx().compiler().srcView(atCodeRef.srcViewRef);
+    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "");
     return diag;
 }
 
-Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef)
+Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
-    const auto diag = report(sema, id, codeRef);
+    const auto diag = report(sema, id, atCodeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }

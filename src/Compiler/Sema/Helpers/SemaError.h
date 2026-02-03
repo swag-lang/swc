@@ -10,6 +10,8 @@ class Symbol;
 
 namespace SemaError
 {
+    void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
+
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef nodeRef);
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& codeRef);
 

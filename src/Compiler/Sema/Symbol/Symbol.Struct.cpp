@@ -40,7 +40,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
             auto& note = diag.addElement(DiagnosticId::sema_note_other_implementation);
             note.setSrcView(&sema.compiler().srcView(itf->srcViewRef()));
-            note.addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), symImpl.codeRef()), "");
+            note.addSpan(sema.token(itf->codeRef()).codeRange(sema.ctx(), sema.srcView(itf->srcViewRef())), "");
             diag.report(sema.ctx());
             return Result::Error;
         }

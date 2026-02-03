@@ -71,8 +71,16 @@ SourceCodeRange DiagnosticElement::codeRange(const DiagnosticSpan& span, const T
 {
     if (!srcView_)
         return {};
+
     SourceCodeRange codeRange;
     codeRange.fromOffset(ctx, *srcView_, span.offset, span.len);
+
+    // Truncate at the first newline if necessary.
+    const auto str = srcView_->codeView(span.offset, span.len);
+    const auto pos = str.find_first_of("\n\r");
+    if (pos != std::string_view::npos)
+        codeRange.len = static_cast<uint32_t>(pos);
+
     return codeRange;
 }
 

@@ -73,7 +73,6 @@ public:
     static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
 
     static Utf8            tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef);
-    static SourceCodeRange tokenErrorLocation(const TaskContext& ctx, const SourceCodeRef& codeRef);
 
     template<typename T>
     void addArgument(std::string_view name, T&& arg)

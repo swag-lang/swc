@@ -51,7 +51,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
     auto diag = Diagnostic::get(id, ast_->srcView().fileRef());
     setReportArguments(diag, tknRef);
-    diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, SourceCodeRef{ast_->srcView().ref(), tknRef}), "");
+    diag.last().addSpan(ast_->srcView().token(tknRef).codeRange(*ctx_, ast_->srcView()), "");
 
     if (tknRef == lastErrorToken_)
         diag.setSilent(true);
@@ -237,7 +237,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
     {
         auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
         setReportExpected(diag, closeId);
-        diag.last().addSpan(Diagnostic::tokenErrorLocation(*ctx_, SourceCodeRef{ast_->srcView().ref(), openRef}), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
+        diag.last().addSpan(tok.codeRange(*ctx_, ast_->srcView()), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
         diag.report(*ctx_);
     }
 

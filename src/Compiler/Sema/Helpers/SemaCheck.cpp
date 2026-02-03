@@ -46,7 +46,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
         // Emit diagnostic
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, srcView.token(mdfRef).string(srcView));
-        diag.last().addSpan(Diagnostic::tokenErrorLocation(sema.ctx(), SourceCodeRef{node.srcViewRef(), mdfRef}), "");
+        diag.last().addSpan(srcView.token(mdfRef).codeRange(sema.ctx(), srcView), "");
         diag.report(sema.ctx());
     });
 

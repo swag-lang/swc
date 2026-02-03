@@ -65,23 +65,6 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
     return str;
 }
 
-SourceCodeRange Diagnostic::tokenErrorLocation(const TaskContext& ctx, const SourceCodeRef& codeRef)
-{
-    const SourceView& srcView   = ctx.compiler().srcView(codeRef.srcViewRef);
-    const Token&      token     = srcView.token(codeRef.tokRef);
-    SourceCodeRange   codeRange = token.codeRange(ctx, srcView);
-
-    if (token.hasFlag(TokenFlagsE::EolInside))
-    {
-        const auto str = token.string(srcView);
-        const auto pos = str.find_first_of("\n\r");
-        if (pos != Utf8::npos)
-            codeRange.len = static_cast<uint32_t>(pos);
-    }
-
-    return codeRange;
-}
-
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
     SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);

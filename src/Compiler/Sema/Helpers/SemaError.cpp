@@ -10,14 +10,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& loc)
+    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange)
     {
-        SWC_ASSERT(loc.isValid());
+        SWC_ASSERT(codeRange.isValid());
 
         const auto&       ctx     = sema.ctx();
-        const SourceView& srcView = sema.compiler().srcView(loc.srcViewRef);
-        const Token&      token   = srcView.token(loc.tokRef);
-        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, loc);
+        const SourceView& srcView = sema.compiler().srcView(codeRange.srcViewRef);
+        const Token&      token   = srcView.token(codeRange.tokRef);
+        const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, codeRange);
 
         diag.addArgument(Diagnostic::ARG_TOK, tokStr);
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));

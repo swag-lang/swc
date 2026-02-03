@@ -108,7 +108,7 @@ namespace
     // Returns a new index (i advanced), or leaves the directive at default if malformed.
     size_t parseLineConstraint(const LangSpec& langSpec, std::string_view comment, size_t i, VerifyDirective& directive)
     {
-        const uint32_t baseLine = directive.myLoc.line;
+        const uint32_t baseLine = directive.myCodeRange.line;
 
         // default is exact base line unless "@..." overrides it
         setExact(directive, baseLine);
@@ -272,7 +272,7 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
         if (!directive.touched)
         {
             const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
-            diag.last().addSpan(directive.myLoc, "");
+            diag.last().addSpan(directive.myCodeRange, "");
             diag.report(ctx);
         }
     }
@@ -362,8 +362,8 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         // Base location info
         const auto byteStart = trivia.tok.byteStart + static_cast<uint32_t>(pos);
         const auto byteLen   = static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size());
-        directive.myLoc.fromOffset(ctx, *srcView_, byteStart, byteLen);
-        directive.loc = directive.myLoc;
+        directive.myCodeRange.fromOffset(ctx, *srcView_, byteStart, byteLen);
+        directive.codeRange = directive.myCodeRange;
 
         // Handle @*, @+ etc. suffix
         // Handle @... suffix (line constraints)

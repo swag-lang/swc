@@ -14,8 +14,8 @@ struct VerifyDirective
 {
     DiagnosticSeverity kind = DiagnosticSeverity::Zero;
     Utf8               match;
-    SourceCodeRange    loc;   // Location to raise the error
-    SourceCodeRange    myLoc; // Location of the directive itself
+    SourceCodeRange    codeRange;   // Location to raise the error
+    SourceCodeRange    myCodeRange; // Location of the directive itself
 
     // Line constraint:
     // - if lineMin == 0 and lineMax == 0 and allowedLines empty => "anywhere" (@*)

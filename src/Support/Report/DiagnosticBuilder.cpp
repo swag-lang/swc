@@ -359,7 +359,7 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
 
 void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
 {
-    const auto loc = el.codeRange(0, *ctx_);
+    const SourceCodeRange codeRange = el.codeRange(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
     if (el.srcView()->fileRef().isValid())
@@ -378,17 +378,17 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += ":";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(loc.line);
+    out_ += std::to_string(codeRange.line);
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += ":";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(loc.column);
+    out_ += std::to_string(codeRange.column);
 
     out_ += partStyle(DiagPart::FileLocationSep);
     out_ += "-";
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(loc.column + loc.len);
+    out_ += std::to_string(codeRange.column + codeRange.len);
 }
 
 void DiagnosticBuilder::writeGutter(uint32_t gutter)
@@ -642,11 +642,11 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     uint32_t currentFullCharCount   = 0;
     bool     currentLineIsTruncated = false;
 
-    for (const auto& span : sortedSpans)
+    for (const DiagnosticSpan& span : sortedSpans)
     {
-        const auto loc = el.codeRange(span, *ctx_);
+        const SourceCodeRange codeRange = el.codeRange(span, *ctx_);
 
-        if (loc.line != currentLine)
+        if (codeRange.line != currentLine)
         {
             // Flush the previous underline row if needed
             if (!currentLineIsTruncated)
@@ -659,23 +659,23 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
             }
 
             // Prepare a new line
-            currentFullCodeLine    = el.srcView()->codeLine(*ctx_, loc.line);
+            currentFullCodeLine    = el.srcView()->codeLine(*ctx_, codeRange.line);
             currentFullCharCount   = Utf8Helper::countChars(currentFullCodeLine);
             currentLineIsTruncated = (currentFullCharCount > diagMax);
 
             if (!currentLineIsTruncated)
-                writeCodeLine(loc.line, "", currentFullCodeLine, "");
+                writeCodeLine(codeRange.line, "", currentFullCodeLine, "");
 
-            currentLine = loc.line;
+            currentLine = codeRange.line;
         }
 
-        const std::string_view tokenView     = el.srcView()->codeView(loc.offset, loc.len);
+        const std::string_view tokenView     = el.srcView()->codeView(codeRange.offset, codeRange.len);
         const uint32_t         tokenLenChars = Utf8Helper::countChars(tokenView);
 
         if (currentLineIsTruncated)
-            writeCodeTrunc(el, loc, span, tokenLenChars, currentFullCodeLine, currentFullCharCount);
+            writeCodeTrunc(el, codeRange, span, tokenLenChars, currentFullCodeLine, currentFullCharCount);
         else
-            underlinesOnCurrentLine.emplace_back(loc.column, tokenLenChars, span);
+            underlinesOnCurrentLine.emplace_back(codeRange.column, tokenLenChars, span);
     }
 
     if (!underlinesOnCurrentLine.empty())

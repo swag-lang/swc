@@ -35,7 +35,7 @@ public:
     const AstNode&             node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     CompilerInstance&          compiler() { return ctx().compiler(); }
     const CompilerInstance&    compiler() const { return ctx().compiler(); }
-    const Token&               token(const SourceCodeRef& loc) const { return srcView(loc.srcViewRef).token(loc.tokRef); }
+    const Token&               token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;

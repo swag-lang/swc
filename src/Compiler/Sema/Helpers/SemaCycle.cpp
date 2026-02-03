@@ -22,11 +22,11 @@ void SemaCycle::addEdge(const Symbol* from, const Symbol* to, SemaJob* job, cons
 
     graph_.adj[from].push_back(to);
 
-    auto& loc = graph_.edges[{from, to}];
-    if (!loc.job)
+    WaitGraph::NodeLoc& nodeLoc = graph_.edges[{from, to}];
+    if (!nodeLoc.job)
     {
-        loc.job     = job;
-        loc.nodeRef = state.nodeRef;
+        nodeLoc.job     = job;
+        nodeLoc.nodeRef = state.nodeRef;
     }
 }
 

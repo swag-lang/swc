@@ -38,23 +38,23 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 
 ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 {
-    auto&      ctx     = sema.ctx();
-    const auto loc     = node.codeRangeWithChildren(ctx, sema.ast());
-    const auto typeRef = sema.typeMgr().structSourceCodeLocation();
+    auto&                 ctx       = sema.ctx();
+    const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());
+    const TypeRef         typeRef   = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;
 
-    const std::string_view nameView = sema.cstMgr().addString(ctx, loc.srcView->file()->path().string());
+    const std::string_view nameView = sema.cstMgr().addString(ctx, codeRange.srcView->file()->path().string());
     rtLoc.fileName.ptr              = nameView.data();
     rtLoc.fileName.length           = nameView.size();
 
     rtLoc.funcName.ptr    = nullptr;
     rtLoc.funcName.length = 0;
 
-    rtLoc.lineStart = loc.line;
-    rtLoc.colStart  = loc.column;
-    rtLoc.lineEnd   = loc.line;
-    rtLoc.colEnd    = loc.column + loc.len;
+    rtLoc.lineStart = codeRange.line;
+    rtLoc.colStart  = codeRange.column;
+    rtLoc.lineEnd   = codeRange.line;
+    rtLoc.colEnd    = codeRange.column + codeRange.len;
 
     const auto view   = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
     const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, view);

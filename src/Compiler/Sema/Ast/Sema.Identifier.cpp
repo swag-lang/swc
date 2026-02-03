@@ -72,8 +72,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee);
 
     MatchContext lookUpCxt;
-    lookUpCxt.srcViewRef = srcViewRef();
-    lookUpCxt.tokRef     = tokRef();
+    lookUpCxt.codeRef = codeRef();
 
     const Result ret = Match::match(sema, lookUpCxt, idRef);
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))

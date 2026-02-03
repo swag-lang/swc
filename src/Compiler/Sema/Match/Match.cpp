@@ -235,15 +235,15 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         if (lookUpCxt.noWaitOnEmpty)
             return Result::Continue;
-        return sema.waitIdentifier(idRef, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+        return sema.waitIdentifier(idRef, lookUpCxt.codeRef);
     }
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+            return sema.waitDeclared(other, lookUpCxt.codeRef);
         if (!other->isTyped())
-            return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+            return sema.waitTyped(other, lookUpCxt.codeRef);
     }
 
     return Result::Continue;
@@ -252,8 +252,7 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 Result Match::ghosting(Sema& sema, const Symbol& sym)
 {
     MatchContext lookUpCxt;
-    lookUpCxt.srcViewRef = sym.srcViewRef();
-    lookUpCxt.tokRef     = sym.tokRef();
+    lookUpCxt.codeRef = sym.codeRef();
 
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, sym.idRef());
@@ -263,7 +262,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     for (const Symbol* other : lookUpCxt.symbols())
     {
         if (!other->isDeclared())
-            return sema.waitDeclared(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+            return sema.waitDeclared(other, lookUpCxt.codeRef);
     }
 
     if (lookUpCxt.count() == 1)
@@ -285,7 +284,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         {
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
-                return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+                return sema.waitTyped(other, lookUpCxt.codeRef);
             if (!sym.deepCompare(other))
                 continue;
         }
@@ -302,7 +301,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         {
             SWC_ASSERT(sym.isTyped());
             if (!other->isTyped())
-                return sema.waitTyped(other, {lookUpCxt.srcViewRef, lookUpCxt.tokRef});
+                return sema.waitTyped(other, lookUpCxt.codeRef);
             if (!sym.deepCompare(other))
                 continue;
         }

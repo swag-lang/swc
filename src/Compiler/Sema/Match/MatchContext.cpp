@@ -20,6 +20,7 @@ void MatchContext::clear()
     localSymbols.clear();
     symMapHint          = nullptr;
     hasCurrentPriority_ = false;
+    codeRef             = SourceCodeRef::invalid();
 }
 
 void MatchContext::resetCandidates()

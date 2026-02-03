@@ -367,8 +367,7 @@ namespace
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef    = argNode.srcViewRef();
-        lookUpCxt.tokRef        = tokNameRef;
+        lookUpCxt.codeRef       = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint    = &enumSym;
         lookUpCxt.noWaitOnEmpty = true;
 
@@ -412,8 +411,7 @@ namespace
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = argNode.srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.codeRef    = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &enumSym;
 
         // Keep normal wait semantics here (noWaitOnEmpty = false) to behave like `Enum.Value`.

@@ -145,8 +145,7 @@ namespace
         for (const AutoMemberCandidate& candidate : candidates)
         {
             MatchContext lookUpCxt;
-            lookUpCxt.srcViewRef    = srcViewRef;
-            lookUpCxt.tokRef        = tokNameRef;
+            lookUpCxt.codeRef       = SourceCodeRef{srcViewRef, tokNameRef};
             lookUpCxt.noWaitOnEmpty = true;
             lookUpCxt.symMapHint    = candidate.symMap;
 
@@ -296,8 +295,7 @@ namespace
         const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = node->srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &namespaceSym;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
@@ -315,8 +313,7 @@ namespace
             return sema.waitCompleted(&enumSym, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = node->srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &enumSym;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
@@ -333,8 +330,7 @@ namespace
             return sema.waitCompleted(&symInterface, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = node->srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
 
         if (nodeLeftView.sym && nodeLeftView.sym->isImpl())
             lookUpCxt.symMapHint = nodeLeftView.sym->asSymMap();
@@ -355,8 +351,7 @@ namespace
             return sema.waitCompleted(&symStruct, {node->srcViewRef(), tokNameRef});
 
         MatchContext lookUpCxt;
-        lookUpCxt.srcViewRef = node->srcViewRef();
-        lookUpCxt.tokRef     = tokNameRef;
+        lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &symStruct;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));

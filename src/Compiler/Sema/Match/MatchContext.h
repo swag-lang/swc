@@ -1,6 +1,5 @@
 #pragma once
-#include "Compiler/Lexer/SourceView.h"
-#include "Compiler/Lexer/Token.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -28,8 +27,7 @@ public:
         static int     compare(const Priority& a, const Priority& b);
     };
 
-    SourceViewRef srcViewRef = SourceViewRef::invalid();
-    TokenRef      tokRef     = TokenRef::invalid();
+    SourceCodeRef codeRef = SourceCodeRef::invalid();
 
     // Optional hint: if set, we only look in this symMap (high precision lookup).
     const SymbolMap* symMapHint = nullptr;

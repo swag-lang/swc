@@ -55,7 +55,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
-    const AstNodeRef nodeRef = sema.curNodeRef();
+    const AstNodeRef   nodeRef = sema.curNodeRef();
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
 
     // TODO

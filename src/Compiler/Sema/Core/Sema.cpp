@@ -281,9 +281,9 @@ Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
 
 Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
-    TaskState& wait   = ctx().state();
-    wait.kind         = TaskStateKind::SemaWaitTypeCompleted;
-    wait.nodeRef      = nodeRef;
+    TaskState& wait = ctx().state();
+    wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
+    wait.nodeRef    = nodeRef;
     if (nodeRef.isValid())
         wait.codeRef = node(nodeRef).codeRef();
     wait.symbol       = type->getSymbolDependency(ctx());

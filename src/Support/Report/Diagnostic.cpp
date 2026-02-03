@@ -30,7 +30,9 @@ namespace
 #define SWC_DIAG_DEF(id, sev, msg) \
     arr[(size_t) DiagnosticId::id] = {#id, msg, DiagnosticSeverity::sev, DiagnosticId::id};
 #include "Support/Report/Msg/Errors.msg"
+
 #include "Support/Report/Msg/Notes.msg"
+
 #undef SWC_DIAG_DEF
         return arr;
     }

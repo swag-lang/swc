@@ -389,8 +389,8 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
     const AstNodeRef nodeRef = sema.curNodeRef();
-    SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView nodeRightView(sema, nodeRightRef);
+    SemaNodeView     nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView     nodeRightView(sema, nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));

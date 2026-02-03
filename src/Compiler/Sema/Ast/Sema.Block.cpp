@@ -106,7 +106,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     {
         const SemaNodeView nodeView(sema, nodeRef);
         if (!nodeView.sym)
-            return SemaError::raiseInternal(sema, *this);
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
 
         if (nodeView.sym->isNamespace())
         {
@@ -114,7 +114,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
             continue;
         }
 
-        return SemaError::raiseInternal(sema, *this);
+        return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 
     return Result::Continue;

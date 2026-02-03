@@ -21,7 +21,7 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            return SemaError::raiseInternal(sema, *this);
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 }
 
@@ -250,7 +250,7 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            return SemaError::raiseInternal(sema, *this);
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 }
 

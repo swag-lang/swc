@@ -10,16 +10,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result checkConstant(Sema& sema, TokenId op, const AstNode& node, const SemaNodeView& nodeRightView)
+    Result checkConstant(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstNode& node, const SemaNodeView& nodeRightView)
     {
         switch (op)
         {
             case TokenId::SymSlashEqual:
             case TokenId::SymPercentEqual:
                 if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
                 if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                    return SemaError::raiseDivZero(sema, node, nodeRightView.nodeRef);
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
                 break;
 
             default:
@@ -55,6 +55,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
+    const AstNodeRef nodeRef = sema.curNodeRef();
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
 
     // TODO
@@ -76,7 +77,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
     if (nodeRightView.cstRef.isValid())
     {
-        RESULT_VERIFY(checkConstant(sema, tok.id, *this, nodeRightView));
+        RESULT_VERIFY(checkConstant(sema, nodeRef, tok.id, *this, nodeRightView));
     }
 
     return Result::Continue;

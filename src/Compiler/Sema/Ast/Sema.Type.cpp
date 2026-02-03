@@ -81,7 +81,7 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
             break;
     }
 
-    return SemaError::raiseInternal(sema, *this);
+    return SemaError::raiseInternal(sema, sema.curNodeRef());
 }
 
 Result AstVariadicType::semaPostNode(Sema& sema)

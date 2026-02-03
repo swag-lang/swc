@@ -97,7 +97,7 @@ namespace
             return Result::Continue;
         }
 
-        return SemaError::raiseInternal(sema, node);
+        return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& ops)
@@ -248,7 +248,7 @@ namespace
     Result checkDRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
         if (!nodeView.type->isAnyPointer())
-            return SemaError::raiseUnaryOperandType(sema, node, nodeView.nodeRef, nodeView.typeRef);
+            return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
         return Result::Continue;
     }
 
@@ -279,7 +279,7 @@ namespace
             if (nodeView.type->isEnum())
             {
                 if (!nodeView.type->isEnumFlags())
-                    return SemaError::raiseInvalidOpEnum(sema, node, nodeView.nodeRef, nodeView.typeRef);
+                    return SemaError::raiseInvalidOpEnum(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
                 Cast::convertEnumToUnderlying(sema, nodeView);
             }
         }
@@ -306,7 +306,7 @@ namespace
             case TokenId::KwdMoveRef:
                 return checkMoveRef(sema, node, ops);
             default:
-                return SemaError::raiseInternal(sema, node);
+                return SemaError::raiseInternal(sema, sema.curNodeRef());
         }
     }
 }

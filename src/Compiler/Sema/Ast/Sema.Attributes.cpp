@@ -147,7 +147,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 {
     const SemaNodeView identView(sema, nodeIdentRef);
     if (!identView.sym)
-        return SemaError::raiseInternal(sema, *identView.node);
+        return SemaError::raiseInternal(sema, identView.nodeRef);
 
     if (!identView.sym->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);

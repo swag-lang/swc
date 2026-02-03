@@ -497,7 +497,7 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
             return Result::SkipChildren;
 
         default:
-            return SemaError::raiseInternal(sema, *this);
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
 }
 

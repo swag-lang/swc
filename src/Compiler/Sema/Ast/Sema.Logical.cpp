@@ -43,18 +43,19 @@ namespace
         }
     }
 
-    Result check(Sema& sema, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result check(Sema& sema, AstNodeRef nodeRef, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, node, node.nodeLeftRef, nodeLeftView.typeRef);
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
         if (!nodeRightView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, node, node.nodeRightRef, nodeRightView.typeRef);
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
         return Result::Continue;
     }
 }
 
 Result AstLogicalExpr::semaPostNode(Sema& sema)
 {
+    const AstNodeRef nodeRef = sema.curNodeRef();
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
 
@@ -65,7 +66,7 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
 
     // Type-check
     const auto& tok = sema.token(codeRef());
-    RESULT_VERIFY(check(sema, *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(check(sema, nodeRef, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
     RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::Condition));

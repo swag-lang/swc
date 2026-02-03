@@ -163,6 +163,7 @@ namespace
             case CastKind::Implicit:
             case CastKind::Parameter:
             case CastKind::Initialization:
+            case CastKind::Assignment:
             case CastKind::Explicit:
                 break;
 
@@ -198,6 +199,7 @@ namespace
             case CastKind::Implicit:
             case CastKind::Parameter:
             case CastKind::Initialization:
+            case CastKind::Assignment:
             case CastKind::Explicit:
                 break;
 
@@ -279,6 +281,7 @@ namespace
             case CastKind::Implicit:
             case CastKind::Parameter:
             case CastKind::Initialization:
+            case CastKind::Assignment:
                 if (narrowing)
                 {
                     castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

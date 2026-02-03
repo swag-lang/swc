@@ -17,6 +17,7 @@ enum class CastKind
     Explicit,
     Promotion,
     Initialization,
+    Assignment,
 };
 
 enum class CastFlagsE : uint32_t

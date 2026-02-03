@@ -56,6 +56,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView       nodeRightView(sema, nodeRightRef);
 
     // TODO
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
@@ -65,12 +66,13 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
 
     // Right must be a value (or a type that can be converted to a value).
-    SemaNodeView nodeRightView(sema, nodeRightRef);
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
 
     // Cast RHS to LHS type.
     if (nodeLeftView.typeRef.isValid())
-        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Initialization));
+    {
+        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Assignment));
+    }
 
     // Right is constant
     const Token& tok = sema.token(codeRef());

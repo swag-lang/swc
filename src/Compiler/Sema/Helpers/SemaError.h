@@ -12,8 +12,8 @@ namespace SemaError
 {
     enum class ReportLocation
     {
-        NodeCodeRef,
-        NodeCodeRangeWithChildren,
+        Token,
+        Children,
     };
 
     void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef nodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);

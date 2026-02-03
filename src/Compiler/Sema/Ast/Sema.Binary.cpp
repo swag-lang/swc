@@ -331,6 +331,15 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
+        // Constant folding
+        if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
+        {
+            ConstantRef result;
+            RESULT_VERIFY(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
+            sema.setConstant(sema.curNodeRef(), result);
+            return Result::Continue;
+        }
+
         TypeRef       resultTypeRef  = nodeLeftView.typeRef;
         const TypeRef ptrDiffTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
 
@@ -450,14 +459,6 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
-
-    // Constant folding
-    if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
-    {
-        ConstantRef result;
-        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeLeftView, nodeRightView));
-        sema.setConstant(sema.curNodeRef(), result);
-    }
 
     return Result::Continue;
 }

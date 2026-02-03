@@ -340,24 +340,20 @@ namespace
             return Result::Continue;
         }
 
-        TypeRef       resultTypeRef  = nodeLeftView.typeRef;
-        const TypeRef ptrDiffTypeRef = sema.typeMgr().typeInt(64, TypeInfo::Sign::Signed);
-
+        TypeRef resultTypeRef = nodeLeftView.typeRef;
         switch (op)
         {
             case TokenId::SymPlus:
                 if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, ptrDiffTypeRef, CastKind::Implicit));
-                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeRightView.compute(sema, node.nodeRightRef);
                     resultTypeRef = nodeRightView.typeRef;
                 }
                 else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, ptrDiffTypeRef, CastKind::Implicit));
+                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef);
-                    nodeRightView.compute(sema, node.nodeRightRef);
                     resultTypeRef = nodeLeftView.typeRef;
                 }
                 break;
@@ -365,14 +361,13 @@ namespace
             case TokenId::SymMinus:
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, ptrDiffTypeRef, CastKind::Implicit));
+                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef);
-                    nodeRightView.compute(sema, node.nodeRightRef);
                     resultTypeRef = nodeLeftView.typeRef;
                 }
                 else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
                 {
-                    resultTypeRef = ptrDiffTypeRef;
+                    resultTypeRef = sema.typeMgr().typeS64();
                 }
                 break;
 

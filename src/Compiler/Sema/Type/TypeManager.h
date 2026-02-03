@@ -75,7 +75,13 @@ public:
     TypeRef typeIntSigned() const { return typeIntSigned_; }
     TypeRef typeIntUnsigned() const { return typeIntUnsigned_; }
     TypeRef typeFloat(uint32_t bits) const;
+    TypeRef typeS8() const { return typeS8_; }
     TypeRef typeU8() const { return typeU8_; }
+    TypeRef typeS16() const { return typeS16_; }
+    TypeRef typeU16() const { return typeU16_; }
+    TypeRef typeS32() const { return typeS32_; }
+    TypeRef typeU32() const { return typeU32_; }
+    TypeRef typeS64() const { return typeS64_; }
     TypeRef typeU64() const { return typeU64_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);

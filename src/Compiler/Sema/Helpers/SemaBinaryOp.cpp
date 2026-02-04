@@ -26,7 +26,7 @@ namespace SemaBinaryOp
                 if (leftView.type->isBlockPointer() && rightView.type->isBlockPointer())
                     return Result::Continue;
                 if (leftView.type->isScalarNumeric() && rightView.type->isBlockPointer())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, rightView.typeRef);
+                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef, rightView.typeRef);
                 break;
 
             case TokenId::SymMinus:
@@ -58,9 +58,9 @@ namespace SemaBinaryOp
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
                 if (!leftView.type->isScalarNumeric())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef);
+                    return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef, rightView.typeRef);
                 if (!rightView.type->isScalarNumeric())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, rightView.typeRef);
+                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef, rightView.typeRef);
                 break;
 
             case TokenId::SymAmpersand:
@@ -69,9 +69,9 @@ namespace SemaBinaryOp
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
                 if (!leftView.type->isInt())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef);
+                    return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef, rightView.typeRef);
                 if (!rightView.type->isInt())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, rightView.typeRef);
+                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef, rightView.typeRef);
                 break;
 
             default:

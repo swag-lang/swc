@@ -18,7 +18,7 @@ SWC_DIAG_DEF(sema_err_literal_too_big, Error, "the value '{value}' cannot fit in
 SWC_DIAG_DEF(sema_err_negate_unsigned, Error, "cannot negate an unsigned type '{type}'")
 SWC_DIAG_DEF(sema_err_signed_unsigned, Error, "cannot cast value '{value}' to '{requested-type}' due to a signed/unsigned range mismatch")
 SWC_DIAG_DEF(sema_err_unary_operand_type, Error, "the unary operator '{tok}' cannot be applied to an operand of type '{type}'")
-SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "the binary operator '{tok}' cannot be applied to operands of type '{type}'")
+SWC_DIAG_DEF(sema_err_binary_operand_type, Error, "the binary operator '{tok}' cannot be applied to operands of type '{left}' and '{right}'")
 SWC_DIAG_DEF(sema_err_compare_operand_type, Error, "cannot compare using '{tok}': the left operand has type '{left}', the right operand has type '{right}'")
 SWC_DIAG_DEF(sema_err_const_missing_init, Error, "a constant must be initialized with a value")
 SWC_DIAG_DEF(sema_err_const_ref_type, Error, "a constant cannot have a reference type")

@@ -424,7 +424,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
 
     if (!nodeLeftView.type->isConvertibleToBool())
-        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef);
+        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef, nodeRightView.typeRef);
 
     RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Implicit));
     sema.setType(sema.curNodeRef(), nodeLeftView.typeRef);

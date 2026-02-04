@@ -46,9 +46,9 @@ namespace
     Result check(Sema& sema, AstNodeRef nodeRef, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef, nodeRightView.typeRef);
         if (!nodeRightView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef, nodeRightView.typeRef);
         return Result::Continue;
     }
 }

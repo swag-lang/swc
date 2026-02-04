@@ -95,10 +95,11 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
     return Result::Error;
 }
 
-Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef)
+Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef)
 {
     auto diag = report(sema, DiagnosticId::sema_err_binary_operand_type, atNodeRef, ReportLocation::Token);
-    diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
+    diag.addArgument(Diagnostic::ARG_LEFT, leftTypeRef);
+    diag.addArgument(Diagnostic::ARG_RIGHT, rightTypeRef);
     addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());
     return Result::Error;

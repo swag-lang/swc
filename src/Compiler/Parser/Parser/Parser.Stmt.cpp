@@ -628,6 +628,11 @@ AstNodeRef Parser::parseDoCurlyBlock()
 AstNodeRef Parser::parseAssignStmt()
 {
     AstNodeRef nodeLeft;
+    const auto makeAssignIgnore = [&]() {
+        const auto [ignoreRef, ignorePtr] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
+        (void) ignorePtr;
+        return ignoreRef;
+    };
 
     // Decomposition
     if (is(TokenId::SymLeftParen))
@@ -636,7 +641,7 @@ AstNodeRef Parser::parseAssignStmt()
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
         nodePtr->addFlag(AstAssignListFlagsE::Decomposition);
         if (consumeIf(TokenId::SymQuestion).isValid())
-            nodeLeft = AstNodeRef::invalid();
+            nodeLeft = makeAssignIgnore();
         else
             nodeLeft = parseExpression();
 
@@ -645,7 +650,7 @@ AstNodeRef Parser::parseAssignStmt()
         while (consumeIf(TokenId::SymComma).isValid())
         {
             if (consumeIf(TokenId::SymQuestion).isValid())
-                nodeAffects.push_back(AstNodeRef::invalid());
+                nodeAffects.push_back(makeAssignIgnore());
             else
                 nodeAffects.push_back(parseExpression());
         }

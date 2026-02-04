@@ -106,6 +106,8 @@ namespace
             const auto leftRef = leftRefs[i];
             if (leftRef.isInvalid())
                 continue;
+            if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
+                continue;
 
             const SemaNodeView leftView(sema, leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
@@ -132,6 +134,8 @@ namespace
         {
             if (leftRef.isInvalid())
                 return SemaError::raiseInternal(sema, sema.curNodeRef());
+            if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
+                continue;
 
             const SemaNodeView leftView(sema, leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
@@ -175,6 +179,10 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
 
+    // TODO
+    if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
+        return Result::Continue;
+    
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node->is(AstNodeId::AssignList))
     {

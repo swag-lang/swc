@@ -1415,3 +1415,8 @@ struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
     static Result semaPreNode(Sema&) { return Result::Continue; }
 };
+
+// -----------------------------------------------------------------------------
+struct AstAssignIgnore : AstNodeT<AstNodeId::AssignIgnore>
+{
+};

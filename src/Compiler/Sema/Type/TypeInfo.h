@@ -140,7 +140,7 @@ public:
     bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return isInt() || isCharRune(); }
-    bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction() || isTypeInfo() || isTypeInfo(); }
+    bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction() || isTypeInfo(); }
     bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }

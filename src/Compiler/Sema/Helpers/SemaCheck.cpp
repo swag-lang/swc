@@ -180,14 +180,6 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
         }
     }
 
-    if (leftView.type && leftView.type->isConst())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_immutable, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, leftView.typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
     // Left must be a l-value
     if (!sema.isLValue(*leftView.node))
     {

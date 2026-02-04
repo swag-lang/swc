@@ -35,5 +35,5 @@
     var ptr: [*] s32
     ptr += 1
     var ptr1: const [*] s32
-    //ptr1 += 1
+    ptr1 += 1
 }

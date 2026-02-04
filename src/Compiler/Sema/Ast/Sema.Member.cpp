@@ -82,14 +82,12 @@ namespace
         auto addCandidate = [&](const TypeInfo* typeInfo, const SymbolVariable* symVar) -> Result {
             if (typeInfo->isStruct())
             {
-                if (!typeInfo->isCompleted(sema.ctx()))
-                    return sema.waitCompleted(typeInfo, sema.curNodeRef());
+                RESULT_VERIFY(sema.waitCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymStruct(), .symVar = symVar});
             }
             else if (typeInfo->isEnum())
             {
-                if (!typeInfo->isCompleted(sema.ctx()))
-                    return sema.waitCompleted(typeInfo, sema.curNodeRef());
+                RESULT_VERIFY(sema.waitCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymEnum(), .symVar = symVar});
             }
             return Result::Continue;
@@ -309,8 +307,7 @@ namespace
     Result semaEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolEnum& enumSym = nodeLeftView.type->payloadSymEnum();
-        if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, {node->srcViewRef(), tokNameRef});
+        RESULT_VERIFY(sema.waitCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -326,8 +323,7 @@ namespace
     Result semaInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type->payloadSymInterface();
-        if (!symInterface.isCompleted())
-            return sema.waitCompleted(&symInterface, {node->srcViewRef(), tokNameRef});
+        RESULT_VERIFY(sema.waitCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -347,8 +343,7 @@ namespace
     Result semaStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
     {
         const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
-        if (!symStruct.isCompleted())
-            return sema.waitCompleted(&symStruct, {node->srcViewRef(), tokNameRef});
+        RESULT_VERIFY(sema.waitCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};

@@ -59,8 +59,7 @@ namespace TypeGenInternal
             return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), node.codeRef());
 
         const auto& structType = tm.get(rtTypeRef);
-        if (!structType.isCompleted(sema.ctx()))
-            return sema.waitCompleted(&structType.payloadSymStruct(), node.codeRef());
+        RESULT_VERIFY(sema.waitCompleted(&structType.payloadSymStruct(), node.codeRef()));
 
         return Result::Continue;
     }

@@ -81,9 +81,8 @@ namespace
             diag.report(sema.ctx());
             return Result::Error;
         }
-        
-        if (!nodeRightView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeRightView.type, nodeRightView.nodeRef);
+
+        RESULT_VERIFY(sema.waitCompleted(nodeRightView.type, nodeRightView.nodeRef));
 
         const SymbolStruct& symStruct = nodeRightView.type->payloadSymStruct();
         const auto&         fields    = symStruct.fields();

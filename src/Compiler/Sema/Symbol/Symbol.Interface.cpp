@@ -10,11 +10,7 @@ Result SymbolInterface::canBeCompleted(Sema& sema) const
     for (const auto method : methods_)
     {
         auto& symFunc = method->cast<SymbolFunction>();
-        if (!symFunc.isCompleted())
-        {
-            sema.waitCompleted(&symFunc, symFunc.codeRef());
-            return Result::Pause;
-        }
+        RESULT_VERIFY(sema.waitCompleted(&symFunc, symFunc.codeRef()));
     }
 
     return Result::Continue;

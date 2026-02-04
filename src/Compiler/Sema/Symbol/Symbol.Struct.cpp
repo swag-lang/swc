@@ -73,17 +73,25 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
         auto& type = symVar.typeInfo(sema.ctx());
 
+        const AstVarDecl*         var     = symVar.decl()->safeCast<AstVarDecl>();
+        const AstVarDeclNameList* varList = symVar.decl()->safeCast<AstVarDeclNameList>();
+
         if (type.isStruct() && &type.payloadSymStruct() == this)
         {
-            const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
-            return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
+            if (var)
+                return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
+            if (varList)
+                return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, varList->nodeTypeRef.isValid() ? varList->nodeTypeRef : varList->nodeInitRef);
         }
 
-        if (!type.isCompleted(sema.ctx()))
+        if (var)
         {
-            const AstVarDecl* var = symVar.decl()->cast<AstVarDecl>();
-            sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            return Result::Pause;
+            RESULT_VERIFY(sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef));
+        }
+
+        if (varList)
+        {
+            RESULT_VERIFY(sema.waitCompleted(&type, varList->nodeTypeRef.isValid() ? varList->nodeTypeRef : varList->nodeInitRef));
         }
     }
 

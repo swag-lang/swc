@@ -107,8 +107,7 @@ namespace
 
         if (nodeView.type->isEnum())
         {
-            if (!nodeView.type->isCompleted(ctx))
-                return sema.waitCompleted(nodeView.type, nodeView.nodeRef);
+            RESULT_VERIFY(sema.waitCompleted(nodeView.type, nodeView.nodeRef));
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count()));
             return Result::Continue;
         }

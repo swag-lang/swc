@@ -248,6 +248,8 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
 
 Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
+    if (!symbol || symbol->isDeclared())
+        return Result::Continue;
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymDeclared;
     wait.nodeRef      = curNodeRef();
@@ -259,6 +261,8 @@ Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 
 Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
+    if (!symbol || symbol->isTyped())
+        return Result::Continue;
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymTyped;
     wait.nodeRef      = curNodeRef();
@@ -270,6 +274,8 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 
 Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
+    if (!symbol || symbol->isCompleted())
+        return Result::Continue;
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitSymCompleted;
     wait.nodeRef      = curNodeRef();
@@ -281,6 +287,8 @@ Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
 
 Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
+    if (!type || type->isCompleted(ctx()))
+        return Result::Continue;
     TaskState& wait = ctx().state();
     wait.kind       = TaskStateKind::SemaWaitTypeCompleted;
     wait.nodeRef    = nodeRef;

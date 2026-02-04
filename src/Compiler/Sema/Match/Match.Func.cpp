@@ -359,8 +359,7 @@ namespace
             return Result::Continue;
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, argNode.codeRef());
+        RESULT_VERIFY(sema.waitCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();
@@ -403,8 +402,7 @@ namespace
             return Result::Continue;
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        if (!enumSym.isCompleted())
-            return sema.waitCompleted(&enumSym, argNode.codeRef());
+        RESULT_VERIFY(sema.waitCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();

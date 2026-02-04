@@ -352,8 +352,7 @@ namespace
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
 
-        if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, childRef);
+        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return Result::Continue;
@@ -378,8 +377,7 @@ namespace
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
 
-        if (!nodeView.type->isCompleted(sema.ctx()))
-            return sema.waitCompleted(nodeView.type, childRef);
+        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return Result::Continue;

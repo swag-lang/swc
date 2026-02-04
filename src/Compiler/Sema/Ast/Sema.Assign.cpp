@@ -190,15 +190,14 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (tok.id == TokenId::SymEqual)
     {
         RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
-        RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
     }
     else
     {
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
         RESULT_VERIFY(checkCompoundOp(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-        RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
     }
 
+    RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
     return Result::Continue;
 }
 

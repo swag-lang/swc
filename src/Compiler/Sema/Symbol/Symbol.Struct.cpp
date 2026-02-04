@@ -71,28 +71,16 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         if (symVar.isIgnored())
             continue;
 
-        auto& type = symVar.typeInfo(sema.ctx());
+        SWC_ASSERT(symVar.decl()->is(AstNodeId::VarDecl) || symVar.decl()->is(AstNodeId::VarDeclNameList));
+        auto&            type        = symVar.typeInfo(sema.ctx());
+        const auto       var         = reinterpret_cast<const AstVarDeclBase*>(symVar.decl());
+        const AstNodeRef typeNodeRef = var->typeOrInitRef();
 
-        const AstVarDecl*         var     = symVar.decl()->safeCast<AstVarDecl>();
-        const AstVarDeclNameList* varList = symVar.decl()->safeCast<AstVarDeclNameList>();
-
+        // A struct is referencing itself
         if (type.isStruct() && &type.payloadSymStruct() == this)
-        {
-            if (var)
-                return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef);
-            if (varList)
-                return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, varList->nodeTypeRef.isValid() ? varList->nodeTypeRef : varList->nodeInitRef);
-        }
+            return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, typeNodeRef);
 
-        if (var)
-        {
-            RESULT_VERIFY(sema.waitCompleted(&type, var->nodeTypeRef.isValid() ? var->nodeTypeRef : var->nodeInitRef));
-        }
-
-        if (varList)
-        {
-            RESULT_VERIFY(sema.waitCompleted(&type, varList->nodeTypeRef.isValid() ? varList->nodeTypeRef : varList->nodeInitRef));
-        }
+        RESULT_VERIFY(sema.waitCompleted(&type, typeNodeRef));
     }
 
     return Result::Continue;

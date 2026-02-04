@@ -159,6 +159,23 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 };
 
 // -----------------------------------------------------------------------------
+struct AstVarDeclBase
+{
+    AstNodeRef nodeTypeRef;
+    AstNodeRef nodeInitRef;
+
+    void collectVarChildren(SmallVector<AstNodeRef>& out) const
+    {
+        AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef});
+    }
+
+    AstNodeRef typeOrInitRef() const
+    {
+        return nodeTypeRef.isValid() ? nodeTypeRef : nodeInitRef;
+    }
+};
+
+// -----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallZeroT : AstNodeT<I, E>
 {

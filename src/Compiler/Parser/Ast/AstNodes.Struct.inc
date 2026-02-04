@@ -1039,12 +1039,9 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
     Using     = 1 << 4,
 };
 
-struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>
+struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
-    AstNodeRef nodeTypeRef;
-    AstNodeRef nodeInitRef;
-
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1052,13 +1049,11 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>
 };
 
 // -----------------------------------------------------------------------------
-struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList, AstVarDeclFlagsE>
+struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList, AstVarDeclFlagsE>, AstVarDeclBase
 {
     SpanRef    spanNamesRef;
-    AstNodeRef nodeTypeRef;
-    AstNodeRef nodeInitRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeInitRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;

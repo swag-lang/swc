@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -61,6 +63,70 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 {
     std::shared_lock lk(mutexInterfaces_);
     return interfaces_;
+}
+
+namespace
+{
+    bool isUsingMemberDecl(const AstNode* decl)
+    {
+        if (!decl)
+            return false;
+        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
+            return var->hasFlag(AstVarDeclFlagsE::Using);
+        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
+            return varList->hasFlag(AstVarDeclFlagsE::Using);
+        return false;
+    }
+}
+
+bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
+{
+    for (const auto itfImpl : interfaces())
+    {
+        if (itfImpl && itfImpl->idRef() == itf.idRef())
+            return true;
+    }
+
+    return false;
+}
+
+bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const
+{
+    if (implementsInterface(itf))
+        return true;
+
+    const auto& ctx     = sema.ctx();
+    const auto& typeMgr = sema.typeMgr();
+
+    for (const auto* field : fields_)
+    {
+        if (!field || field->isIgnored())
+            continue;
+
+        const auto& symVar = field->cast<SymbolVariable>();
+        if (!isUsingMemberDecl(symVar.decl()))
+            continue;
+
+        const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
+
+        if (ultimateType.isStruct())
+        {
+            if (ultimateType.payloadSymStruct().implementsInterface(itf))
+                return true;
+            continue;
+        }
+
+        if (ultimateType.isAnyPointer())
+        {
+            const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
+            if (pointeeUltimate.isStruct() && pointeeUltimate.payloadSymStruct().implementsInterface(itf))
+                return true;
+        }
+    }
+
+    return false;
 }
 
 Result SymbolStruct::canBeCompleted(Sema& sema) const

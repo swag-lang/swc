@@ -5,6 +5,8 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolImpl;
+class SymbolInterface;
+class Sema;
 
 enum class SymbolStructFlagsE : uint8_t
 {
@@ -35,6 +37,8 @@ public:
     void                                addInterface(SymbolImpl& symImpl);
     Result                              addInterface(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>            interfaces() const;
+    bool                                implementsInterface(const SymbolInterface& itf) const;
+    bool                                implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
     SymbolStructFlags                   structFlags() const noexcept { return extraFlags(); }
 
 private:

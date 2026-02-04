@@ -5,7 +5,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
@@ -14,66 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isUsingMemberDecl(const AstNode* decl)
-    {
-        if (!decl)
-            return false;
-        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
-            return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
-            return varList->hasFlag(AstVarDeclFlagsE::Using);
-        return false;
-    }
-
-    bool structImplementsInterface(const SymbolStruct& fromStruct, const SymbolInterface& toItf)
-    {
-        for (const auto itfImpl : fromStruct.interfaces())
-        {
-            if (itfImpl && itfImpl->idRef() == toItf.idRef())
-                return true;
-        }
-        return false;
-    }
-
-    bool structOrUsingImplementsInterface(Sema& sema, const SymbolStruct& fromStruct, const SymbolInterface& toItf)
-    {
-        if (structImplementsInterface(fromStruct, toItf))
-            return true;
-
-        const auto& ctx     = sema.ctx();
-        const auto& typeMgr = sema.typeMgr();
-
-        for (const auto* field : fromStruct.fields())
-        {
-            if (!field || field->isIgnored())
-                continue;
-
-            const auto& symVar = field->cast<SymbolVariable>();
-            if (!isUsingMemberDecl(symVar.decl()))
-                continue;
-
-            const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-            const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
-
-            if (ultimateType.isStruct())
-            {
-                if (structImplementsInterface(ultimateType.payloadSymStruct(), toItf))
-                    return true;
-                continue;
-            }
-
-            if (ultimateType.isAnyPointer())
-            {
-                const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-                const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
-                if (pointeeUltimate.isStruct() && structImplementsInterface(pointeeUltimate.payloadSymStruct(), toItf))
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     Result castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isConstantFolding())
@@ -454,7 +393,7 @@ namespace
             {
                 const auto& fromStruct = srcPointeeType.payloadSymStruct();
                 const auto& toItf      = dstPointeeType.payloadSymInterface();
-                if (structOrUsingImplementsInterface(sema, fromStruct, toItf))
+                if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
                     return Result::Continue;
             }
         }
@@ -805,7 +744,7 @@ namespace
             const SymbolStruct& fromStruct = srcType.payloadSymStruct();
             RESULT_VERIFY(sema.waitCompleted(&srcType, castCtx.errorNodeRef));
             const SymbolInterface& toItf = dstType.payloadSymInterface();
-            if (structOrUsingImplementsInterface(sema, fromStruct, toItf))
+            if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
                 return Result::Continue;
         }
 

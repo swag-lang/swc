@@ -54,5 +54,5 @@
 {
     var a: f32
     var b: bool
-    a, b = 1
+    a, b = 1 // swc-expected-error {{sema_err_cannot_cast}}
 }

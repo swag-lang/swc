@@ -97,7 +97,6 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
 
     const Token& tok = sema.token(codeRef());
-
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
 

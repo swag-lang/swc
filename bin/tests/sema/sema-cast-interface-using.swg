@@ -41,5 +41,5 @@ struct Bad
 #test
 {
     var b: Bad
-    var i2 = cast(I) b // swc-expected-error {{sema_err_cannot_cast}}
+    var i2 = cast(I) b // swc-expected-error {{sema_err_cannot_cast_to_interface}}
 }

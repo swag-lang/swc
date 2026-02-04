@@ -395,6 +395,8 @@ namespace
                 const auto& toItf      = dstPointeeType.payloadSymInterface();
                 if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
                     return Result::Continue;
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
+                return Result::Error;
             }
         }
 
@@ -748,7 +750,7 @@ namespace
                 return Result::Continue;
         }
 
-        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
 }

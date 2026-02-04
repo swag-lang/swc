@@ -5,6 +5,7 @@ SWC_DIAG_DEF(sema_err_invalid_type, Error, "invalid type; expected '{requested-t
 SWC_DIAG_DEF(sema_err_expected_type_fam, Error, "invalid type; expected {a-requested-type-fam} type, but got '{type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{requested-type}'")
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "cannot cast from '{type}' to '{requested-type}' (const mismatch)")
+SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "cannot cast from '{type}' to interface '{requested-type}' (struct does not implement it)")
 SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "enum casts must use the underlying type '{opt-type}'")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")

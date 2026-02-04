@@ -56,3 +56,11 @@
     var b: bool
     a, b = 1 // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    var a: [*] u8
+    a += 1
+    a -= 1
+    a *= 2 // swc-expected-error {{sema_err_binary_operand_type}}
+}

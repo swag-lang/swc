@@ -77,6 +77,15 @@ public:
     template<typename T>
     void addArgument(std::string_view name, T&& arg)
     {
+        for (auto& a : arguments_)
+        {
+            if (a.name == name)
+            {
+                a.val = std::forward<T>(arg);
+                return;
+            }
+        }
+
         arguments_.emplace_back(Argument{name, std::forward<T>(arg)});
     }
 

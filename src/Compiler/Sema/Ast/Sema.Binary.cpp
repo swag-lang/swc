@@ -4,8 +4,8 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaBinaryOp.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
@@ -323,7 +323,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
+                RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, op, nodeLeftView, nodeRightView, CastKind::Implicit));
                 break;
 
             default:

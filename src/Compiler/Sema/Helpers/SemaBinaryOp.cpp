@@ -26,7 +26,7 @@ namespace SemaBinaryOp
                 if (leftView.type->isBlockPointer() && rightView.type->isBlockPointer())
                     return Result::Continue;
                 if (leftView.type->isScalarNumeric() && rightView.type->isBlockPointer())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef, rightView.typeRef);
+                    return Result::Continue;
                 break;
 
             case TokenId::SymMinus:
@@ -81,9 +81,8 @@ namespace SemaBinaryOp
         return Result::Continue;
     }
 
-    Result castRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind)
+    Result castRightToLeft(Sema& sema, TokenId op, SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind)
     {
-        (void) nodeRef;
         switch (op)
         {
             case TokenId::SymPlus:
@@ -93,6 +92,13 @@ namespace SemaBinaryOp
                     RESULT_VERIFY(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     return Result::Continue;
                 }
+
+                if (leftView.type->isScalarNumeric() && rightView.type->isBlockPointer())
+                {
+                    RESULT_VERIFY(Cast::cast(sema, leftView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                    return Result::Continue;
+                }
+
                 if (leftView.type->isBlockPointer() && rightView.type->isBlockPointer())
                 {
                     return Result::Continue;

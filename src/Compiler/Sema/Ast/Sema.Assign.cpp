@@ -30,10 +30,10 @@ namespace
         return Result::Continue;
     }
 
-    Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp = Token::assignToBinary(op);
-        RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, binOp, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Assignment));
+        RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, binOp, nodeLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }
 
@@ -88,8 +88,8 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView       nodeRightView(sema, nodeRightRef);
+    SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView nodeRightView(sema, nodeRightRef);
 
     // TODO
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())

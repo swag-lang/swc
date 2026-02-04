@@ -460,8 +460,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 
 Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView nodeRightView(sema, nodeRightRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView       nodeRightView(sema, nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));

@@ -98,4 +98,35 @@ TokenId Token::toRelated(TokenId id)
     }
 }
 
+TokenId Token::assignToBinary(TokenId op)
+{
+    switch (op)
+    {
+        case TokenId::SymPlusEqual:
+            return TokenId::SymPlus;
+        case TokenId::SymMinusEqual:
+            return TokenId::SymMinus;
+        case TokenId::SymAsteriskEqual:
+            return TokenId::SymAsterisk;
+        case TokenId::SymSlashEqual:
+            return TokenId::SymSlash;
+        case TokenId::SymAmpersandEqual:
+            return TokenId::SymAmpersand;
+        case TokenId::SymPipeEqual:
+            return TokenId::SymPipe;
+        case TokenId::SymCircumflexEqual:
+            return TokenId::SymCircumflex;
+        case TokenId::SymPercentEqual:
+            return TokenId::SymPercent;
+        case TokenId::SymLowerLowerEqual:
+            return TokenId::SymLowerLower;
+        case TokenId::SymGreaterGreaterEqual:
+            return TokenId::SymGreaterGreater;
+        case TokenId::SymEqual:
+            return TokenId::SymEqual;
+    }
+
+    SWC_UNREACHABLE();
+}
+
 SWC_END_NAMESPACE();

@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaBinaryOp.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\Store.cpp"/>
@@ -315,6 +316,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaBinaryOp.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>

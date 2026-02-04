@@ -44,3 +44,9 @@ enum R { A, B }
     var a: R
     a = .A
 }
+
+#test
+{
+    var a: f32
+    a += 1's16
+}

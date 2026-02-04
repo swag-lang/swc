@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaBinaryOp.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 
@@ -31,97 +32,8 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        switch (op)
-        {
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
-                {
-                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    return Result::Continue;
-                }
-                break;
-
-            default:
-                break;
-        }
-
-        RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Assignment));
-        return Result::Continue;
-    }
-
-    Result checkCompoundOp(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        switch (op)
-        {
-            case TokenId::SymPlusEqual:
-                if (nodeLeftView.type->isValuePointer())
-                    return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isValuePointer())
-                    return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
-                    return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
-                    return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
-                    return Result::Continue;
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
-                    return Result::Continue;
-                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-                break;
-
-            case TokenId::SymMinusEqual:
-                if (nodeLeftView.type->isValuePointer())
-                    return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isValuePointer())
-                    return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-
-                if (nodeLeftView.type->isBlockPointer() && nodeLeftView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
-                    return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (nodeRightView.type->isBlockPointer() && nodeRightView.type->payloadTypeRef() == sema.typeMgr().typeVoid())
-                    return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
-                    return Result::Continue;
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
-                    return Result::Continue;
-                break;
-
-            default:
-                break;
-        }
-
-        switch (op)
-        {
-            case TokenId::SymSlashEqual:
-            case TokenId::SymPercentEqual:
-            case TokenId::SymPlusEqual:
-            case TokenId::SymMinusEqual:
-            case TokenId::SymAsteriskEqual:
-                if (!nodeLeftView.type->isScalarNumeric())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (!nodeRightView.type->isScalarNumeric())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-                break;
-
-            case TokenId::SymAmpersandEqual:
-            case TokenId::SymPipeEqual:
-            case TokenId::SymCircumflexEqual:
-            case TokenId::SymGreaterGreaterEqual:
-            case TokenId::SymLowerLowerEqual:
-                if (!nodeLeftView.type->isInt())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                if (!nodeRightView.type->isInt())
-                    return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-                break;
-
-            default:
-                break;
-        }
-
+        const TokenId binOp = Token::assignToBinary(op);
+        RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, binOp, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }
 
@@ -194,7 +106,8 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     else
     {
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
-        RESULT_VERIFY(checkCompoundOp(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+        const TokenId binOp = Token::assignToBinary(tok.id);
+        RESULT_VERIFY(SemaBinaryOp::checkOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, nodeLeftView, nodeRightView));
     }
 
     RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));

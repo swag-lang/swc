@@ -89,6 +89,7 @@ struct Token
     static std::string_view toName(TokenId id);
     static std::string_view toFamily(TokenId id);
     static TokenId          toRelated(TokenId id);
+    static TokenId          assignToBinary(TokenId op);
 
     bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
 

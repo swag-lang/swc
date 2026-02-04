@@ -50,3 +50,45 @@ enum R { A, B }
     var a: f32
     a += 1's16
 }
+
+#test
+{
+    var a: f32
+    a = 1
+}
+
+#test
+{
+    var p: [*] s32
+    var i: s32
+    p += i
+    p = p + i
+    p = i + p
+    p -= 1
+    var d: s64
+    d = p - p
+}
+
+#test
+{
+    var a: s32
+    a = 1.5 // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: s32
+    a += 1.5 // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: f32
+    a &= 1 // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
+    var p: [*] s32
+    p += 1.0 // swc-expected-error {{sema_err_cannot_cast}}
+}

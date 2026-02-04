@@ -628,37 +628,32 @@ AstNodeRef Parser::parseDoCurlyBlock()
 AstNodeRef Parser::parseAssignStmt()
 {
     AstNodeRef nodeLeft;
-    const auto makeAssignIgnore = [&]() {
-        const auto [ignoreRef, ignorePtr] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
-        (void) ignorePtr;
-        return ignoreRef;
-    };
 
     // Decomposition
     if (is(TokenId::SymLeftParen))
     {
-        const auto openRef            = consume();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
-        nodePtr->addFlag(AstAssignListFlagsE::Decomposition);
-        if (consumeIf(TokenId::SymQuestion).isValid())
-            nodeLeft = makeAssignIgnore();
-        else
-            nodeLeft = parseExpression();
+        const auto openRef = consume();
 
-        SmallVector<AstNodeRef> nodeAffects;
-        nodeAffects.push_back(nodeLeft);
-        while (consumeIf(TokenId::SymComma).isValid())
+        const auto [listRef, listPtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
+        listPtr->addFlag(AstAssignListFlagsE::Decomposition);
+
+        SmallVector<AstNodeRef> affects;
+        do
         {
             if (consumeIf(TokenId::SymQuestion).isValid())
-                nodeAffects.push_back(makeAssignIgnore());
+            {
+                const auto [ignoreRef, _] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
+                affects.push_back(ignoreRef);
+            }
             else
-                nodeAffects.push_back(parseExpression());
-        }
+            {
+                affects.push_back(parseExpression());
+            }
+        } while (consumeIf(TokenId::SymComma).isValid());
 
         expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-
-        nodePtr->spanChildrenRef = ast_->pushSpan(nodeAffects.span());
-        nodeLeft                 = nodeRef;
+        listPtr->spanChildrenRef = ast_->pushSpan(affects.span());
+        nodeLeft                 = listRef;
     }
     else
     {
@@ -676,8 +671,14 @@ AstNodeRef Parser::parseAssignStmt()
             const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
             while (consumeIf(TokenId::SymComma).isValid())
             {
-                const auto nodeExpr = parseExpression();
-                nodeAffects.push_back(nodeExpr);
+                if (consumeIf(TokenId::SymQuestion).isValid())
+                {
+                    const auto [ignoreRef, ignorePtr] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
+                    (void) ignorePtr;
+                    nodeAffects.push_back(ignoreRef);
+                }
+                else
+                    nodeAffects.push_back(parseExpression());
             }
 
             nodePtr->spanChildrenRef = ast_->pushSpan(nodeAffects.span());

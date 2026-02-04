@@ -1,5 +1,7 @@
 #pragma once
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
@@ -7,7 +9,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaHelpers
 {
-    void handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
+    Result checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView);
+    Result castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
+    void   handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
 
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)

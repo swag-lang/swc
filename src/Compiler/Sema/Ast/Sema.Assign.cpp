@@ -3,9 +3,9 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Helpers/SemaBinaryOp.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -33,7 +33,7 @@ namespace
     Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp = Token::assignToBinary(op);
-        RESULT_VERIFY(SemaBinaryOp::castRightToLeft(sema, binOp, nodeLeftView, nodeRightView, CastKind::Assignment));
+        RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }
 
@@ -107,7 +107,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     {
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
         const TokenId binOp = Token::assignToBinary(tok.id);
-        RESULT_VERIFY(SemaBinaryOp::checkOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, nodeLeftView, nodeRightView));
+        RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, nodeLeftView, nodeRightView));
     }
 
     RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));

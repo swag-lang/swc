@@ -14,6 +14,66 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isUsingMemberDecl(const AstNode* decl)
+    {
+        if (!decl)
+            return false;
+        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
+            return var->hasFlag(AstVarDeclFlagsE::Using);
+        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
+            return varList->hasFlag(AstVarDeclFlagsE::Using);
+        return false;
+    }
+
+    bool structImplementsInterface(const SymbolStruct& fromStruct, const SymbolInterface& toItf)
+    {
+        for (const auto itfImpl : fromStruct.interfaces())
+        {
+            if (itfImpl && itfImpl->idRef() == toItf.idRef())
+                return true;
+        }
+        return false;
+    }
+
+    bool structOrUsingImplementsInterface(Sema& sema, const SymbolStruct& fromStruct, const SymbolInterface& toItf)
+    {
+        if (structImplementsInterface(fromStruct, toItf))
+            return true;
+
+        const auto& ctx     = sema.ctx();
+        const auto& typeMgr = sema.typeMgr();
+
+        for (const auto* field : fromStruct.fields())
+        {
+            if (!field || field->isIgnored())
+                continue;
+
+            const auto& symVar = field->cast<SymbolVariable>();
+            if (!isUsingMemberDecl(symVar.decl()))
+                continue;
+
+            const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+            const TypeInfo& ultimateType    = typeMgr.get(ultimateTypeRef);
+
+            if (ultimateType.isStruct())
+            {
+                if (structImplementsInterface(ultimateType.payloadSymStruct(), toItf))
+                    return true;
+                continue;
+            }
+
+            if (ultimateType.isAnyPointer())
+            {
+                const TypeRef   pointeeUltimateRef = typeMgr.get(ultimateType.payloadTypeRef()).unwrap(ctx, ultimateType.payloadTypeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+                const TypeInfo& pointeeUltimate    = typeMgr.get(pointeeUltimateRef);
+                if (pointeeUltimate.isStruct() && structImplementsInterface(pointeeUltimate.payloadSymStruct(), toItf))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     Result castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
     {
         if (castCtx.isConstantFolding())
@@ -394,11 +454,8 @@ namespace
             {
                 const auto& fromStruct = srcPointeeType.payloadSymStruct();
                 const auto& toItf      = dstPointeeType.payloadSymInterface();
-                for (const auto itfImpl : fromStruct.interfaces())
-                {
-                    if (itfImpl && itfImpl->idRef() == toItf.idRef())
-                        return Result::Continue;
-                }
+                if (structOrUsingImplementsInterface(sema, fromStruct, toItf))
+                    return Result::Continue;
             }
         }
 
@@ -737,21 +794,23 @@ namespace
         // TODO
         return Result::Continue;
     }
-}
 
-TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
-{
-    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
-        return dstTypeRef;
-    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
-        return srcTypeRef;
-    return TypeRef::invalid();
-}
+    Result castToInterface(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind)
-{
-    CastContext castCtx(castKind);
-    return castAllowedBothWays(sema, castCtx, srcTypeRef, dstTypeRef);
+        if (srcType.isStruct())
+        {
+            const SymbolStruct&    fromStruct = srcType.payloadSymStruct();
+            const SymbolInterface& toItf      = dstType.payloadSymInterface();
+            if (structOrUsingImplementsInterface(sema, fromStruct, toItf))
+                return Result::Continue;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
+    }
 }
 
 Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -801,6 +860,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isReference())
         res = castToReference(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isInterface())
+        res = castToInterface(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyVariadic())
         res = castToVariadic(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isString())
@@ -826,6 +887,21 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     }
 
     return res;
+}
+
+TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
+        return dstTypeRef;
+    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
+        return srcTypeRef;
+    return TypeRef::invalid();
+}
+
+TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind)
+{
+    CastContext castCtx(castKind);
+    return castAllowedBothWays(sema, castCtx, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)

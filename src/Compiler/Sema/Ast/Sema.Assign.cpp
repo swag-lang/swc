@@ -195,10 +195,6 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
 
-    // TODO
-    if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
-        return Result::Continue;
-
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node->is(AstNodeId::AssignList))
     {

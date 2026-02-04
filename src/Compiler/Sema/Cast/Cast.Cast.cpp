@@ -802,8 +802,9 @@ namespace
 
         if (srcType.isStruct())
         {
-            const SymbolStruct&    fromStruct = srcType.payloadSymStruct();
-            const SymbolInterface& toItf      = dstType.payloadSymInterface();
+            const SymbolStruct& fromStruct = srcType.payloadSymStruct();
+            RESULT_VERIFY(sema.waitCompleted(&srcType, castCtx.errorNodeRef));
+            const SymbolInterface& toItf = dstType.payloadSymInterface();
             if (structOrUsingImplementsInterface(sema, fromStruct, toItf))
                 return Result::Continue;
         }

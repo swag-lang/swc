@@ -103,10 +103,10 @@ SWC_NODE_DEF(ClosureArgument, AstNodeIdFlagsE::Zero)
 // ============================================================================
 //  Variables / Bindings
 // ============================================================================
-SWC_NODE_DEF(VarDecl, AstNodeIdFlagsE::SemaJob)
-SWC_NODE_DEF(VarDeclNameList, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(SingleVarDecl, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(MultiVarDecl, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(VarDeclList, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(VarDeclDecomposition, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(VarDeclDestructuring, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(IfVarDecl, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(WithVarDecl, AstNodeIdFlagsE::Zero)
 

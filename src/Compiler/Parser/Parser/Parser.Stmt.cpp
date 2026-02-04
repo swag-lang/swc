@@ -635,7 +635,7 @@ AstNodeRef Parser::parseAssignStmt()
         const auto openRef = consume();
 
         const auto [listRef, listPtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
-        listPtr->addFlag(AstAssignListFlagsE::Decomposition);
+        listPtr->addFlag(AstAssignListFlagsE::Destructuring);
 
         SmallVector<AstNodeRef> affects;
         do

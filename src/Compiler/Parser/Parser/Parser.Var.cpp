@@ -96,7 +96,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymEqual});
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDecomposition>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDestructuring>(ref());
     nodePtr->flags()        = flags;
     nodePtr->nodeInitRef    = parseInitializerExpression();
     nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
@@ -153,7 +153,7 @@ AstNodeRef Parser::parseVarDecl()
 
         if (tokNames.size() == 1)
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDecl>(tokStart);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SingleVarDecl>(tokStart);
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
@@ -164,7 +164,7 @@ AstNodeRef Parser::parseVarDecl()
         }
         else
         {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclNameList>(tokStart);
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiVarDecl>(tokStart);
             nodePtr->flags()        = flags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);

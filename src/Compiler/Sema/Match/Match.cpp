@@ -46,9 +46,9 @@ namespace
     {
         if (!decl)
             return false;
-        if (const auto* var = decl->safeCast<AstVarDecl>())
+        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
             return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const auto* varList = decl->safeCast<AstVarDeclNameList>())
+        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
             return varList->hasFlag(AstVarDeclFlagsE::Using);
         return false;
     }

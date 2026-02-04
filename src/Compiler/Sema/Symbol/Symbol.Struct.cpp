@@ -71,7 +71,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         if (symVar.isIgnored())
             continue;
 
-        SWC_ASSERT(symVar.decl()->is(AstNodeId::VarDecl) || symVar.decl()->is(AstNodeId::VarDeclNameList));
+        SWC_ASSERT(symVar.decl()->is(AstNodeId::SingleVarDecl) || symVar.decl()->is(AstNodeId::MultiVarDecl));
         auto&            type        = symVar.typeInfo(sema.ctx());
         const auto       var         = reinterpret_cast<const AstVarDeclBase*>(symVar.decl());
         const AstNodeRef typeNodeRef = var->typeOrInitRef();

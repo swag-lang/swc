@@ -160,7 +160,7 @@ namespace
     }
 }
 
-Result AstVarDecl::semaPreDecl(Sema& sema) const
+Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
 {
     if (hasFlag(AstVarDeclFlagsE::Const))
         SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
@@ -177,7 +177,7 @@ Result AstVarDecl::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstVarDecl::semaPreNode(Sema& sema) const
+Result AstSingleVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
@@ -185,7 +185,7 @@ Result AstVarDecl::semaPreNode(Sema& sema) const
     return Match::ghosting(sema, sym);
 }
 
-Result AstVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
@@ -198,14 +198,14 @@ Result AstVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     return Result::Continue;
 }
 
-Result AstVarDecl::semaPostNode(Sema& sema) const
+Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
     Symbol* one[] = {&sym};
     return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, flags(), std::span<Symbol*>{one});
 }
 
-Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
+Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
 {
     SmallVector<TokenRef> tokNames;
     sema.ast().tokens(tokNames, spanNamesRef);
@@ -234,7 +234,7 @@ Result AstVarDeclNameList::semaPreDecl(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstVarDeclNameList::semaPreNode(Sema& sema) const
+Result AstMultiVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {
@@ -257,7 +257,7 @@ Result AstVarDeclNameList::semaPreNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstVarDeclNameList::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
@@ -270,13 +270,13 @@ Result AstVarDeclNameList::semaPostNodeChild(Sema& sema, const AstNodeRef& child
     return Result::Continue;
 }
 
-Result AstVarDeclNameList::semaPostNode(Sema& sema) const
+Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
     return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, flags(), symbols);
 }
 
-Result AstVarDeclDecomposition::semaPostNode(Sema& sema) const
+Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeInitView(sema, nodeInitRef);
     if (!nodeInitView.type->isStruct())

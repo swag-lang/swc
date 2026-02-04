@@ -203,7 +203,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (nodeLeftView.node->is(AstNodeId::AssignList))
     {
         const auto* assignList = nodeLeftView.node->cast<AstAssignList>();
-        if (assignList->hasFlag(AstAssignListFlagsE::Decomposition))
+        if (assignList->hasFlag(AstAssignListFlagsE::Destructuring))
             return assignDecomposition(sema, tok, *assignList, nodeRightView);
         return assignMulti(sema, tok, *assignList, nodeRightView);
     }

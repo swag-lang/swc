@@ -1039,7 +1039,7 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
     Using     = 1 << 4,
 };
 
-struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>, AstVarDeclBase
+struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
     Result semaPreDecl(Sema& sema) const;
@@ -1049,7 +1049,7 @@ struct AstVarDecl : AstNamedNodeT<AstNodeId::VarDecl, AstVarDeclFlagsE>, AstVarD
 };
 
 // -----------------------------------------------------------------------------
-struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList, AstVarDeclFlagsE>, AstVarDeclBase
+struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
     SpanRef    spanNamesRef;
 
@@ -1061,7 +1061,7 @@ struct AstVarDeclNameList : AstNodeT<AstNodeId::VarDeclNameList, AstVarDeclFlags
 };
 
 // -----------------------------------------------------------------------------
-struct AstVarDeclDecomposition : AstNodeT<AstNodeId::VarDeclDecomposition, AstVarDeclFlagsE>
+struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVarDeclFlagsE>
 {
     SpanRef    spanNamesRef;
     AstNodeRef nodeInitRef;
@@ -1403,7 +1403,7 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 enum class AstAssignListFlagsE : AstNode::ParserFlags
 {
     Zero          = 0,
-    Decomposition = 1 << 0,
+    Destructuring = 1 << 0,
 };
 
 struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>

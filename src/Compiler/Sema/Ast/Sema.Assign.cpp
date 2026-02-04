@@ -6,6 +6,8 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -61,6 +63,88 @@ namespace
                 return SemaError::raiseInternal(sema, nodeRef);
         }
     }
+
+    Result assignDecomposition(Sema& sema, const Token& tok, const AstAssignList& assignList, const SemaNodeView& nodeRightView)
+    {
+        if (tok.id != TokenId::SymEqual)
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
+
+        SmallVector<AstNodeRef> leftRefs;
+        sema.ast().nodes(leftRefs, assignList.spanChildrenRef);
+
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+
+        if (!nodeRightView.type->isStruct())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        const SymbolStruct& symStruct = nodeRightView.type->payloadSymStruct();
+        const auto&         fields    = symStruct.fields();
+
+        if (leftRefs.size() > fields.size())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (leftRefs.size() < fields.size())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        for (size_t i = 0; i < leftRefs.size(); i++)
+        {
+            const auto leftRef = leftRefs[i];
+            if (leftRef.isInvalid())
+                continue;
+
+            const SemaNodeView leftView(sema, leftRef);
+            RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+
+            CastContext castCtx(CastKind::Assignment);
+            castCtx.errorNodeRef = leftRef;
+            if (Cast::castAllowed(sema, castCtx, fields[i]->typeRef(), leftView.typeRef) != Result::Continue)
+                return Cast::emitCastFailure(sema, castCtx.failure);
+        }
+
+        return Result::Continue;
+    }
+
+    Result assignToList(Sema& sema, const Token& tok, const AstAssignList& assignList, SemaNodeView nodeRightView)
+    {
+        if (tok.id != TokenId::SymEqual)
+            return SemaError::raiseInternal(sema, sema.curNodeRef());
+
+        SmallVector<AstNodeRef> leftRefs;
+        sema.ast().nodes(leftRefs, assignList.spanChildrenRef);
+
+        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
+        for (const auto leftRef : leftRefs)
+        {
+            if (leftRef.isInvalid())
+                return SemaError::raiseInternal(sema, sema.curNodeRef());
+
+            const SemaNodeView leftView(sema, leftRef);
+            RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+
+            CastContext castCtx(CastKind::Assignment);
+            castCtx.errorNodeRef = leftRef;
+            if (Cast::castAllowed(sema, castCtx, nodeRightView.typeRef, leftView.typeRef) != Result::Continue)
+                return Cast::emitCastFailure(sema, castCtx.failure);
+        }
+
+        return Result::Continue;
+    }
+
 }
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
@@ -91,11 +175,15 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
 
-    // TODO
-    if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
-        return Result::Continue;
-
     const Token& tok = sema.token(codeRef());
+    if (nodeLeftView.node->is(AstNodeId::AssignList))
+    {
+        const auto* assignList = nodeLeftView.node->cast<AstAssignList>();
+        if (assignList->hasFlag(AstAssignListFlagsE::Decomposition))
+            return assignDecomposition(sema, tok, *assignList, nodeRightView);
+        return assignToList(sema, tok, *assignList, nodeRightView);
+    }
+
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
 

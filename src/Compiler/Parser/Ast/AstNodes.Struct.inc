@@ -1413,5 +1413,5 @@ enum class AstAssignListFlagsE : AstNode::ParserFlags
 
 struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
+    static Result semaPreNode(Sema&) { return Result::Continue; }
 };

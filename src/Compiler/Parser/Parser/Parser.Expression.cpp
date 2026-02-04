@@ -283,7 +283,7 @@ AstNodeRef Parser::parseExpression()
     {
         const auto tokOp              = consume();
         const auto nodeExpr2          = parseExpression();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BinaryConditionalExpr>(tokOp);
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullCoalescingExpr>(tokOp);
         nodePtr->nodeLeftRef          = nodeExpr1;
         nodePtr->nodeRightRef         = nodeExpr2;
         return nodeRef;

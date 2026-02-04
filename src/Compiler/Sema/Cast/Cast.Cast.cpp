@@ -108,7 +108,7 @@ namespace
 
         const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-        if (!srcType.isPointerLike() && !srcType.isIntLike())
+        if (!srcType.isConvertibleToBool())
         {
             castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             return Result::Error;
@@ -116,14 +116,17 @@ namespace
 
         if (castCtx.isConstantFolding())
         {
-            if (srcType.isIntLike())
+            const ConstantValue& cv = sema.cstMgr().get(castCtx.constantFoldingSrc());
+            if (cv.isNull())
+                castCtx.setConstantFoldingResult(sema.cstMgr().cstFalse());
+            else if (srcType.isIntLike())
             {
                 if (!Cast::foldConstantIntLikeToBool(sema, castCtx))
                     return Result::Error;
             }
             else if (srcType.isString())
             {
-                castCtx.setConstantFoldingResult(sema.cstMgr().cstFalse());
+                castCtx.setConstantFoldingResult(cv.getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
             }
             else
                 SWC_UNREACHABLE();

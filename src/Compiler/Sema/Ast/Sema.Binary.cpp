@@ -15,36 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef makeNonNullableType(Sema& sema, TypeRef typeRef)
-    {
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (!type.isNullable())
-            return typeRef;
-
-        TypeInfoFlags flags = type.flags();
-        flags.remove(TypeInfoFlagsE::Nullable);
-
-        switch (type.kind())
-        {
-            case TypeInfoKind::ValuePointer:
-                return sema.typeMgr().addType(TypeInfo::makeValuePointer(type.payloadTypeRef(), flags));
-            case TypeInfoKind::BlockPointer:
-                return sema.typeMgr().addType(TypeInfo::makeBlockPointer(type.payloadTypeRef(), flags));
-            case TypeInfoKind::Slice:
-                return sema.typeMgr().addType(TypeInfo::makeSlice(type.payloadTypeRef(), flags));
-            case TypeInfoKind::String:
-                return sema.typeMgr().addType(TypeInfo::makeString(flags));
-            case TypeInfoKind::CString:
-                return sema.typeMgr().addType(TypeInfo::makeCString(flags));
-            case TypeInfoKind::Any:
-                return sema.typeMgr().addType(TypeInfo::makeAny(flags));
-            default:
-                break;
-        }
-
-        return typeRef;
-    }
-
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         auto&       ctx         = sema.ctx();
@@ -488,7 +458,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstBinaryConditionalExpr::semaPostNode(Sema& sema)
+Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeLeftView(sema, nodeLeftRef);
     SemaNodeView nodeRightView(sema, nodeRightRef);
@@ -507,15 +477,16 @@ Result AstBinaryConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef.isValid())
     {
-        RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::Implicit));
+        SemaNodeView nodeBoolView(sema, nodeLeftRef);
+        RESULT_VERIFY(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
 
-        const bool leftIsFalse = nodeLeftView.cstRef == sema.cstMgr().cstFalse();
-        const auto selectedRef = leftIsFalse ? nodeRightView.nodeRef : nodeLeftView.nodeRef;
-        sema.setSubstitute(sema.curNodeRef(), selectedRef);
-
+        const bool        leftIsFalse = nodeBoolView.cstRef == sema.cstMgr().cstFalse();
+        const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef : nodeLeftView.nodeRef;
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef : nodeLeftView.cstRef;
         if (selectedCst.isValid())
             sema.setConstant(sema.curNodeRef(), selectedCst);
+        else
+            sema.setSubstitute(sema.curNodeRef(), selectedRef);
     }
 
     return Result::Continue;

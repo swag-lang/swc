@@ -521,7 +521,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstBinaryConditionalExpr : AstNodeT<AstNodeId::BinaryConditionalExpr>
+struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;

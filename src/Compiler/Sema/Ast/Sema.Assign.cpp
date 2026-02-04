@@ -121,15 +121,23 @@ namespace
         return Result::Continue;
     }
 
-    Result assignToList(Sema& sema, const Token& tok, const AstAssignList& assignList, SemaNodeView nodeRightView)
+    Result assignMulti(Sema& sema, const Token& tok, const AstAssignList& assignList, SemaNodeView nodeRightView)
     {
-        if (tok.id != TokenId::SymEqual)
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
-
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().nodes(leftRefs, assignList.spanChildrenRef);
 
-        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
+        if (nodeRightView.cstRef.isValid())
+            RESULT_VERIFY(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
+
+        if (tok.id == TokenId::SymEqual)
+        {
+            RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
+        }
+        else
+        {
+            RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+        }
+
         for (const auto leftRef : leftRefs)
         {
             if (leftRef.isInvalid())
@@ -139,6 +147,12 @@ namespace
 
             const SemaNodeView leftView(sema, leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+
+            if (tok.id != TokenId::SymEqual)
+            {
+                const TokenId binOp = Token::assignToBinary(tok.id);
+                RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef, leftView, nodeRightView));
+            }
 
             CastContext castCtx(CastKind::Assignment);
             castCtx.errorNodeRef = leftRef;
@@ -182,14 +196,14 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     // TODO
     if (nodeLeftView.node->srcView(sema.ctx()).file()->isRuntime())
         return Result::Continue;
-    
+
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node->is(AstNodeId::AssignList))
     {
         const auto* assignList = nodeLeftView.node->cast<AstAssignList>();
         if (assignList->hasFlag(AstAssignListFlagsE::Decomposition))
             return assignDecomposition(sema, tok, *assignList, nodeRightView);
-        return assignToList(sema, tok, *assignList, nodeRightView);
+        return assignMulti(sema, tok, *assignList, nodeRightView);
     }
 
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));

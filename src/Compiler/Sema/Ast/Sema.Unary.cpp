@@ -65,7 +65,7 @@ namespace
         return Result::Error;
     }
 
-    Result constantFoldBang(Sema& sema, ConstantRef& result, const AstUnaryExpr& node, const SemaNodeView& nodeView)
+    Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
         if (nodeView.cst->isBool())
         {
@@ -118,7 +118,7 @@ namespace
             case TokenId::SymPlus:
                 return constantFoldPlus(sema, result, nodeView);
             case TokenId::SymBang:
-                return constantFoldBang(sema, result, node, nodeView);
+                return constantFoldBang(sema, result, nodeView);
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, nodeView);
             default:
@@ -245,7 +245,7 @@ namespace
         return Result::Continue;
     }
 
-    Result checkDRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
+    Result checkDRef(Sema& sema, const SemaNodeView& nodeView)
     {
         if (!nodeView.type->isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
@@ -272,7 +272,7 @@ namespace
         return Result::Continue;
     }
 
-    Result promote(Sema& sema, TokenId op, const AstUnaryExpr& node, SemaNodeView& nodeView)
+    Result promote(Sema& sema, TokenId op, SemaNodeView& nodeView)
     {
         if (op == TokenId::SymTilde)
         {
@@ -302,7 +302,7 @@ namespace
             case TokenId::SymAmpersand:
                 return checkTakeAddress(sema, node, nodeView);
             case TokenId::KwdDRef:
-                return checkDRef(sema, node, nodeView);
+                return checkDRef(sema, nodeView);
             case TokenId::KwdMoveRef:
                 return checkMoveRef(sema, node, nodeView);
             default:
@@ -321,7 +321,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     // Force types
     const Token& tok = sema.token(codeRef());
-    RESULT_VERIFY(promote(sema, tok.id, *this, nodeView));
+    RESULT_VERIFY(promote(sema, tok.id, nodeView));
 
     // Type-check
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));

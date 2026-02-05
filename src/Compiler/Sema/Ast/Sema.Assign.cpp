@@ -32,14 +32,14 @@ namespace
         return Result::Continue;
     }
 
-    Result castAndResultType(Sema& sema, TokenId op, const AstAssignStmt& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
+    Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         const TokenId binOp = Token::assignToBinary(op);
         RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }
 
-    Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstAssignStmt& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef.isValid())
             RESULT_VERIFY(checkRightConstant(sema, op, nodeRef, nodeRightView));
@@ -205,7 +205,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     }
 
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
-    RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
     if (tok.id == TokenId::SymEqual)
     {
@@ -218,7 +218,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, nodeLeftView, nodeRightView));
     }
 
-    RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    RESULT_VERIFY(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
     return Result::Continue;
 }
 

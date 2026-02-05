@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Main/Stats.h"

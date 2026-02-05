@@ -1051,7 +1051,7 @@ struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlag
 // -----------------------------------------------------------------------------
 struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
-    SpanRef    spanNamesRef;
+    SpanRef spanNamesRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
     Result semaPreDecl(Sema& sema) const;

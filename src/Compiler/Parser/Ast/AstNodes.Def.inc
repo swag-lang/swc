@@ -118,6 +118,7 @@ SWC_NODE_DEF(UndefinedExpr, AstNodeIdFlagsE::Zero)
 // ============================================================================
 SWC_NODE_DEF(ParenExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(RangeExpr, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(CountOfExpr, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(UnaryExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(BinaryExpr, AstNodeIdFlagsE::Zero)

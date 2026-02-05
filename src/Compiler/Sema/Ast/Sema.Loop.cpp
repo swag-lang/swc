@@ -10,44 +10,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Result checkForCountExpr(Sema& sema, AstNodeRef nodeRef)
-    {
-        const SemaNodeView nodeView(sema, nodeRef);
-
-        if (nodeView.type && nodeView.type->isInt())
-            return Result::Continue;
-
-        bool countOfOk = false;
-        if (nodeView.type)
-        {
-            if (nodeView.cst && (nodeView.cst->isString() || nodeView.cst->isSlice()))
-                countOfOk = true;
-            else if (nodeView.type->isEnum())
-            {
-                RESULT_VERIFY(sema.waitCompleted(nodeView.type, nodeView.nodeRef));
-                countOfOk = true;
-            }
-            else if (nodeView.type->isAnyString() || nodeView.type->isArray() || nodeView.type->isSlice())
-            {
-                countOfOk = true;
-            }
-        }
-
-        if (countOfOk)
-            return Result::Continue;
-
-        if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeView.nodeRef);
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-}
-
 Result AstForStmt::semaPreNode(Sema& sema) const
 {
     return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
@@ -89,7 +51,25 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeExprRef)
-        RESULT_VERIFY(checkForCountExpr(sema, nodeExprRef));
+    {
+        const SemaNodeView nodeView(sema, nodeExprRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        if (nodeView.node->isNot(AstNodeId::RangeExpr) && !nodeView.type->isInt())
+        {
+            const AstNode& exprNode   = sema.node(nodeExprRef);
+            auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
+            countPtr->nodeExprRef     = nodeExprRef;
+            RESULT_VERIFY(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
+            sema.setSubstitute(nodeExprRef, countRef);
+        }
+        else if (!nodeView.type->isInt())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
 
     if (childRef == nodeWhereRef)
     {

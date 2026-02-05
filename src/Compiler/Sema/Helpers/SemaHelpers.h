@@ -11,7 +11,9 @@ namespace SemaHelpers
 {
     Result checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView);
     Result castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
-    void   handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
+    Result intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
+
+    void handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym);
 
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)

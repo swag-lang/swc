@@ -1385,6 +1385,15 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr, AstRangeExprFlagsE>
     AstNodeRef nodeExprUpRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprDownRef, nodeExprUpRef}); }
+    Result semaPostNode(Sema& sema);
+};
+
+// -----------------------------------------------------------------------------
+struct AstCountOfExpr : AstNodeT<AstNodeId::CountOfExpr>
+{
+    AstNodeRef nodeExprRef;
+
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     Result semaPostNode(Sema& sema) const;
 };
 

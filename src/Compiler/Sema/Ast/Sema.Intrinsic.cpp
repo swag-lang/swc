@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -81,66 +82,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicCountOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    Result semaIntrinsicCountOf(Sema& sema, AstIntrinsicCall&, const SmallVector<AstNodeRef>& children)
     {
-        auto               ctx = sema.ctx();
-        const SemaNodeView nodeView(sema, children[0]);
-
-        if (!nodeView.type)
-            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeView.nodeRef);
-
-        // Compile time
-        if (nodeView.cst)
-        {
-            if (nodeView.cst->isString())
-            {
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getString().length()));
-                return Result::Continue;
-            }
-
-            if (nodeView.cst->isSlice())
-            {
-                sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.cst->getSlice().size()));
-                return Result::Continue;
-            }
-        }
-
-        if (nodeView.type->isEnum())
-        {
-            RESULT_VERIFY(sema.waitCompleted(nodeView.type, nodeView.nodeRef));
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count()));
-            return Result::Continue;
-        }
-
-        if (nodeView.type->isAnyString())
-        {
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
-            sema.setIsValue(node);
-            return Result::Continue;
-        }
-
-        if (nodeView.type->isArray())
-        {
-            const uint64_t  sizeOf     = nodeView.type->sizeOf(ctx);
-            const TypeRef   typeRef    = nodeView.type->payloadArrayElemTypeRef();
-            const TypeInfo& ty         = sema.typeMgr().get(typeRef);
-            const uint64_t  sizeOfElem = ty.sizeOf(ctx);
-            SWC_ASSERT(sizeOfElem > 0);
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(ctx, sizeOf / sizeOfElem));
-            return Result::Continue;
-        }
-
-        if (nodeView.type->isSlice())
-        {
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typeU64());
-            sema.setIsValue(node);
-            return Result::Continue;
-        }
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-        diag.report(ctx);
-        return Result::Error;
+        return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
@@ -251,6 +195,11 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         default:
             return SemaError::raiseInternal(sema, sema.curNodeRef());
     }
+}
+
+Result AstCountOfExpr::semaPostNode(Sema& sema) const
+{
+    return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), nodeExprRef);
 }
 
 SWC_END_NAMESPACE();

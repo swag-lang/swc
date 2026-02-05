@@ -8,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstRangeExpr::semaPostNode(Sema& sema) const
+Result AstRangeExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeDownView(sema, nodeExprDownRef);
     SemaNodeView nodeUpView(sema, nodeExprUpRef);
@@ -41,6 +41,7 @@ Result AstRangeExpr::semaPostNode(Sema& sema) const
 
     SWC_ASSERT(typeRef.isValid());
     sema.setType(sema.curNodeRef(), typeRef);
+    sema.setIsValue(*this);
 
     if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
     {

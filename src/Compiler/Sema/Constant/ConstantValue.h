@@ -152,6 +152,7 @@ public:
     Utf8     toString(const TaskContext& ctx) const;
 
     void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = bytes; }
+    void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = bytes; }
 
 private:
     ConstantKind kind_    = ConstantKind::Invalid;

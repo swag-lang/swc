@@ -17,7 +17,7 @@ AstNodeRef Parser::parseAttributeValue()
 
 AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCall>(consume());
+    const auto tokRef = consume();
 
     const auto              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
@@ -56,6 +56,15 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
 
+    const TokenId tokId = tokRef.isValid() ? ast_->srcView().token(tokRef).id : TokenId::Invalid;
+    if (tokId == TokenId::IntrinsicCountOf)
+    {
+        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CountOfExpr>(tokRef);
+        nodePtr->nodeExprRef    = nodeArgs.empty() ? AstNodeRef::invalid() : nodeArgs[0];
+        return nodeRef;
+    }
+
+    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::IntrinsicCall>(tokRef);
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeArgs.span());
     return nodeRef;
 }

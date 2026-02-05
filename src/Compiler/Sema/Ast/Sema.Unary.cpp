@@ -67,33 +67,35 @@ namespace
 
     Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
+        const auto& cstMgr = sema.cstMgr();
+
         if (nodeView.cst->isBool())
         {
-            result = sema.cstMgr().cstNegBool(nodeView.cstRef);
+            result = cstMgr.cstNegBool(nodeView.cstRef);
             return Result::Continue;
         }
 
         if (nodeView.cst->isInt())
         {
-            result = sema.cstMgr().cstBool(nodeView.cst->getInt().isZero());
+            result = cstMgr.cstBool(nodeView.cst->getInt().isZero());
             return Result::Continue;
         }
 
         if (nodeView.cst->isChar())
         {
-            result = sema.cstMgr().cstBool(nodeView.cst->getChar());
+            result = cstMgr.cstBool(nodeView.cst->getChar());
             return Result::Continue;
         }
 
         if (nodeView.cst->isRune())
         {
-            result = sema.cstMgr().cstBool(nodeView.cst->getRune());
+            result = cstMgr.cstBool(nodeView.cst->getRune());
             return Result::Continue;
         }
 
         if (nodeView.cst->isString())
         {
-            result = sema.cstMgr().cstFalse();
+            result = cstMgr.cstFalse();
             return Result::Continue;
         }
 

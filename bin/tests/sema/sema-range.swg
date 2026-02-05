@@ -12,6 +12,16 @@
 
 #test
 {
+    var a: f32
+    switch(a)
+    {
+    case 1 to 2.0: break
+    case 1.0 to 2: break
+    }
+}
+
+#test
+{
     for 5 until 4 {} // swc-expected-error {{sema_err_range_invalid_bounds}}
 }
 

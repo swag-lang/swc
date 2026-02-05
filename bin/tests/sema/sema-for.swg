@@ -20,6 +20,13 @@
 
 #test
 {
+    for #bit i in 3 // swc-expected-error {{sema_err_modifier_unsupported}}
+    {
+    }
+}
+
+#test
+{
     for 1.5 // swc-expected-error {{sema_err_invalid_countof_type}}
     {
     }

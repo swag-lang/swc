@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -11,6 +12,11 @@ Result AstRangeExpr::semaPostNode(Sema& sema) const
 {
     SemaNodeView nodeDownView(sema, nodeExprDownRef);
     SemaNodeView nodeUpView(sema, nodeExprUpRef);
+
+    if (nodeDownView.nodeRef.isValid())
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef));
+    if (nodeUpView.nodeRef.isValid())
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeUpView.nodeRef));
 
     TypeRef typeRef = TypeRef::invalid();
     if (nodeDownView.typeRef.isValid())

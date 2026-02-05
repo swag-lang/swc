@@ -56,7 +56,7 @@ Result AstForStmt::semaPreNode(Sema& sema) const
 Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     // Body has its own local scope.
-    if (childRef == nodeBodyRef)
+    if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
         // TODO
         if (sema.file()->isRuntime())
@@ -64,8 +64,8 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
-        sema.pushFramePopOnPostChild(frame, childRef);
-        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+        sema.pushFramePopOnPostNode(frame);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
         // Create a variable
         if (tokNameRef.isValid())

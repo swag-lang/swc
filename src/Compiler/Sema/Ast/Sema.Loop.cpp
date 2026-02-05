@@ -52,31 +52,17 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 {
     if (childRef == nodeExprRef)
     {
-        {
-            const SemaNodeView nodeView(sema, nodeExprRef);
-            RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
-            if (nodeView.node->isNot(AstNodeId::RangeExpr) && !nodeView.type->isInt())
-            {
-                const AstNode& exprNode   = sema.node(nodeExprRef);
-                auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
-                countPtr->nodeExprRef     = nodeExprRef;
-                RESULT_VERIFY(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
-                sema.setSubstitute(nodeExprRef, countRef);
-            }
-        }
-
-        // Re-evaluate after possible substitution.
         const SemaNodeView nodeView(sema, nodeExprRef);
-
-        if (nodeView.cst && nodeView.cst->isInt() && nodeView.cst->getInt().isNegative())
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        if (nodeView.node->isNot(AstNodeId::RangeExpr))
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_count_negative, nodeView.nodeRef);
-            diag.addArgument(Diagnostic::ARG_VALUE, nodeView.cst->toString(sema.ctx()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            const AstNode& exprNode   = sema.node(nodeExprRef);
+            auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
+            countPtr->nodeExprRef     = nodeExprRef;
+            RESULT_VERIFY(SemaHelpers::intrinsicCountOf(sema, countRef, nodeExprRef));
+            sema.setSubstitute(nodeExprRef, countRef);
         }
-
-        if (!nodeView.type->isInt())
+        else if (!nodeView.type->isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
             diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);

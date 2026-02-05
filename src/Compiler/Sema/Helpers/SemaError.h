@@ -34,6 +34,7 @@ namespace SemaError
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result     raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef);
     Result     raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
     Result     raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);

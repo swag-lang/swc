@@ -204,17 +204,6 @@ namespace
 
     Result handleRangeCaseExpr(Sema& sema, const AstNodeRef& rangeRef, TypeRef switchTypeRef)
     {
-        const TypeRef   ultimateSwitchTypeRef = sema.typeMgr().get(switchTypeRef).unwrap(sema.ctx(), switchTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& switchType            = sema.typeMgr().get(ultimateSwitchTypeRef);
-
-        if (!switchType.isScalarNumeric())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_range_invalid_type, rangeRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, ultimateSwitchTypeRef);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
         const auto* range = sema.node(rangeRef).cast<AstRangeExpr>();
         if (range->nodeExprDownRef.isValid())
             RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprDownRef, switchTypeRef));

@@ -70,7 +70,7 @@
     var b = "hello"
     switch b
     {
-        case "a" to "z": // swc-expected-error {{sema_err_switch_range_invalid_type}}
+        case "a" to "z": // swc-expected-error {{sema_err_invalid_range_type}}
             break
         default:
             break

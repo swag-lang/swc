@@ -45,6 +45,15 @@ Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef src
     return Result::Error;
 }
 
+Result SemaError::raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef)
+{
+    auto& ctx  = sema.ctx();
+    auto  diag = report(sema, DiagnosticId::sema_err_invalid_range_type, atNodeRef, ReportLocation::Children);
+    diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    diag.report(ctx);
+    return Result::Error;
+}
+
 Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
     auto& ctx  = sema.ctx();

@@ -182,32 +182,41 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
 
 Result AstRangeExpr::semaPostNode(Sema& sema) const
 {
-    SemaNodeView nodeDownView(sema, nodeExprDownRef);
-    SemaNodeView nodeUpView(sema, nodeExprUpRef);
+    const SemaNodeView nodeDownView(sema, nodeExprDownRef);
+    SemaNodeView       nodeUpView(sema, nodeExprUpRef);
 
     TypeRef indexTypeRef = TypeRef::invalid();
     if (nodeDownView.typeRef.isValid())
+    {
+        if (!nodeDownView.type->isScalarNumeric())
+            return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef);
         indexTypeRef = nodeDownView.typeRef;
+    }
     else if (nodeUpView.typeRef.isValid())
+    {
+        if (!nodeUpView.type->isScalarNumeric())
+            return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef);
         indexTypeRef = nodeUpView.typeRef;
-    SWC_ASSERT(indexTypeRef.isValid());
+    }
 
+    SWC_ASSERT(indexTypeRef.isValid());
     sema.setType(sema.curNodeRef(), indexTypeRef);
 
     if (nodeExprDownRef.isValid() && nodeExprUpRef.isValid())
     {
-        const SemaNodeView downView(sema, nodeExprDownRef);
-        const SemaNodeView upView(sema, nodeExprUpRef);
+        RESULT_VERIFY(Cast::cast(sema, nodeUpView, nodeDownView.typeRef, CastKind::Implicit));
+        nodeUpView.compute(sema, nodeExprUpRef);
 
-        if (downView.cstRef.isValid() && upView.cstRef.isValid() && downView.type->isScalarNumeric() && upView.type->isScalarNumeric())
+        if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
         {
-            ConstantRef downCstRef = downView.cstRef;
-            ConstantRef upCstRef   = upView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(sema, downView, upView, downCstRef, upCstRef));
+            ConstantRef downCstRef = nodeDownView.cstRef;
+            ConstantRef upCstRef   = nodeUpView.cstRef;
+            RESULT_VERIFY(Cast::promoteConstants(sema, nodeDownView, nodeUpView, downCstRef, upCstRef));
 
             const ConstantValue& downCst = sema.cstMgr().get(downCstRef);
             const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
-            if (!downCst.lt(upCst))
+            const bool           ok      = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
+            if (!ok)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
                 diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);

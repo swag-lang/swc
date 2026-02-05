@@ -182,48 +182,49 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
 
 Result AstRangeExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeDownView(sema, nodeExprDownRef);
-    SemaNodeView       nodeUpView(sema, nodeExprUpRef);
+    SemaNodeView nodeDownView(sema, nodeExprDownRef);
+    SemaNodeView nodeUpView(sema, nodeExprUpRef);
 
-    TypeRef indexTypeRef = TypeRef::invalid();
+    TypeRef typeRef = TypeRef::invalid();
     if (nodeDownView.typeRef.isValid())
     {
         if (!nodeDownView.type->isScalarNumeric())
             return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef);
-        indexTypeRef = nodeDownView.typeRef;
+        typeRef = nodeDownView.typeRef;
     }
     else if (nodeUpView.typeRef.isValid())
     {
         if (!nodeUpView.type->isScalarNumeric())
             return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef);
-        indexTypeRef = nodeUpView.typeRef;
+        typeRef = nodeUpView.typeRef;
     }
 
-    SWC_ASSERT(indexTypeRef.isValid());
-    sema.setType(sema.curNodeRef(), indexTypeRef);
-
-    if (nodeExprDownRef.isValid() && nodeExprUpRef.isValid())
+    if (nodeDownView.typeRef.isValid() && nodeUpView.typeRef.isValid())
     {
-        RESULT_VERIFY(Cast::cast(sema, nodeUpView, nodeDownView.typeRef, CastKind::Implicit));
-        nodeUpView.compute(sema, nodeExprUpRef);
+        typeRef = sema.typeMgr().promote(nodeDownView.typeRef, nodeUpView.typeRef, false);
+        RESULT_VERIFY(Cast::cast(sema, nodeDownView, typeRef, CastKind::Implicit));
+        RESULT_VERIFY(Cast::cast(sema, nodeUpView, typeRef, CastKind::Implicit));
+    }
 
-        if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
+    SWC_ASSERT(typeRef.isValid());
+    sema.setType(sema.curNodeRef(), typeRef);
+
+    if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
+    {
+        ConstantRef downCstRef = nodeDownView.cstRef;
+        ConstantRef upCstRef   = nodeUpView.cstRef;
+        RESULT_VERIFY(Cast::promoteConstants(sema, nodeDownView, nodeUpView, downCstRef, upCstRef));
+
+        const ConstantValue& downCst = sema.cstMgr().get(downCstRef);
+        const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
+        const bool           ok      = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
+        if (!ok)
         {
-            ConstantRef downCstRef = nodeDownView.cstRef;
-            ConstantRef upCstRef   = nodeUpView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(sema, nodeDownView, nodeUpView, downCstRef, upCstRef));
-
-            const ConstantValue& downCst = sema.cstMgr().get(downCstRef);
-            const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
-            const bool           ok      = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
-            if (!ok)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
-                diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);
-                diag.addArgument(Diagnostic::ARG_RIGHT, upCstRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);
+            diag.addArgument(Diagnostic::ARG_RIGHT, upCstRef);
+            diag.report(sema.ctx());
+            return Result::Error;
         }
     }
 

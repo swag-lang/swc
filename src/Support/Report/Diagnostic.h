@@ -66,10 +66,11 @@ public:
     DiagnosticElement& last() const { return *elements_.back(); }
     void               addArgument(std::string_view name, std::string_view arg);
 
-    static Diagnostic         get(DiagnosticId id, FileRef file = FileRef::invalid());
-    static std::string_view   diagIdMessage(DiagnosticId id);
-    static std::string_view   diagIdName(DiagnosticId id);
-    static DiagnosticSeverity diagIdSeverity(DiagnosticId id);
+    static Diagnostic                        get(DiagnosticId id, FileRef file = FileRef::invalid());
+    static std::string_view                  diagIdMessage(DiagnosticId id);
+    static std::span<const std::string_view> diagIdMessages(DiagnosticId id);
+    static std::string_view                  diagIdName(DiagnosticId id);
+    static DiagnosticSeverity                diagIdSeverity(DiagnosticId id);
 
     static Utf8 tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef);
 

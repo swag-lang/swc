@@ -71,9 +71,11 @@ private:
     void writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeRange& codeRange, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount);
     void writeCodeBlock(const DiagnosticElement& el);
 
-    Utf8 buildMessage(const Utf8& msg, const DiagnosticElement* el = nullptr) const;
-    Utf8 argumentToString(const DiagnosticArgument& arg) const;
-    void expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
+    std::string_view resolveMessageTemplate(DiagnosticId id, const DiagnosticElement* el) const;
+    uint32_t         countReplacedArgs(std::string_view msg, const DiagnosticElement* el) const;
+    Utf8             buildMessage(const Utf8& msg, const DiagnosticElement* el = nullptr) const;
+    Utf8             argumentToString(const DiagnosticArgument& arg) const;
+    void             expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const;
 };
 
 SWC_END_NAMESPACE();

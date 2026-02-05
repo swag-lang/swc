@@ -446,7 +446,8 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 
     // Message
     out_ += partStyle(DiagPart::LabelMsgText, el.severity());
-    writeHighlightedMessage(el.severity(), buildMessage(el.message(), &el), partStyle(DiagPart::LabelMsgText, el.severity()));
+    const Utf8 msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
+    writeHighlightedMessage(el.severity(), msg, partStyle(DiagPart::LabelMsgText, el.severity()));
     out_ += partStyle(DiagPart::Reset);
     out_ += "\n";
 }
@@ -481,7 +482,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
         // Get message
         auto msg = span.message;
         if (msg.empty() && span.messageId != DiagnosticId::None)
-            msg = Diagnostic::diagIdMessage(span.messageId);
+            msg = Utf8(resolveMessageTemplate(span.messageId, &el));
 
         if (!msg.empty())
         {
@@ -717,6 +718,64 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     return result;
 }
 
+uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const DiagnosticElement* el) const
+{
+    std::vector<std::string_view> argNames;
+    argNames.reserve(diag_->arguments().size() + (el ? el->arguments().size() : 0));
+
+    auto addArgs = [&](const DiagnosticArguments& args) {
+        for (const auto& arg : args)
+        {
+            const auto name = arg.name;
+            if (std::ranges::find(argNames, name) == argNames.end())
+                argNames.push_back(name);
+        }
+    };
+
+    if (el)
+        addArgs(el->arguments());
+    addArgs(diag_->arguments());
+
+    uint32_t count = 0;
+    for (const auto name : argNames)
+    {
+        if (msg.find(name) != std::string_view::npos)
+            ++count;
+    }
+
+    return count;
+}
+
+std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, const DiagnosticElement* el) const
+{
+    const auto msgs = Diagnostic::diagIdMessages(id);
+    SWC_ASSERT(!msgs.empty());
+
+    uint32_t bestCount = countReplacedArgs(msgs[0], el);
+    size_t   bestIndex = 0;
+    bool     ambiguous = false;
+
+    for (size_t i = 1; i < msgs.size(); ++i)
+    {
+        const uint32_t count = countReplacedArgs(msgs[i], el);
+        if (count > bestCount)
+        {
+            bestCount = count;
+            bestIndex = i;
+            ambiguous = false;
+        }
+        else if (count == bestCount)
+        {
+            ambiguous = true;
+        }
+    }
+
+    if (msgs.size() > 1 && ambiguous)
+        SWC_ASSERT(false && "Ambiguous diagnostic message selection");
+
+    return msgs[bestIndex];
+}
+
 // Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
 {
@@ -753,7 +812,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     for (size_t idx = elements.size(); idx-- > 0;)
     {
         const auto element = elements[idx].get();
-        const Utf8 msg     = buildMessage(element->message(), element);
+        const Utf8 msg     = buildMessage(Utf8(resolveMessageTemplate(element->id(), element)), element);
         auto       parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part

@@ -1275,7 +1275,9 @@ struct AstForStmt : AstNamedNodeT<AstNodeId::ForStmt>
     AstNodeRef       nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

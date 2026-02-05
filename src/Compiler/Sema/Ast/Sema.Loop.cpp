@@ -46,16 +46,6 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
-
-    TypeRef getForIndexType(Sema& sema, AstNodeRef nodeRef)
-    {
-        const SemaNodeView nodeView(sema, nodeRef);
-
-        if (nodeView.type && nodeView.type->isInt())
-            return nodeView.typeRef;
-
-        return sema.typeMgr().typeU64();
-    }
 }
 
 Result AstForStmt::semaPreNode(Sema& sema) const
@@ -77,17 +67,17 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         sema.pushFramePopOnPostChild(frame, childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
+        // Create a variable
         if (tokNameRef.isValid())
         {
-            const TypeRef indexTypeRef = getForIndexType(sema, nodeExprRef);
-
             auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symVar.registerAttributes(sema);
             symVar.setDeclared(sema.ctx());
             RESULT_VERIFY(Match::ghosting(sema, symVar));
 
+            const SemaNodeView nodeView(sema, nodeExprRef);
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-            symVar.setTypeRef(indexTypeRef);
+            symVar.setTypeRef(nodeView.typeRef);
             symVar.setTyped(sema.ctx());
             symVar.setCompleted(sema.ctx());
         }
@@ -99,20 +89,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeExprRef)
-    {
-        const SemaNodeView nodeView(sema, nodeExprRef);
-        if (const auto* range = nodeView.node->safeCast<AstRangeExpr>())
-        {
-            if (range->nodeExprDownRef.isValid())
-                RESULT_VERIFY(checkForCountExpr(sema, range->nodeExprDownRef));
-            if (range->nodeExprUpRef.isValid())
-                RESULT_VERIFY(checkForCountExpr(sema, range->nodeExprUpRef));
-        }
-        else
-        {
-            RESULT_VERIFY(checkForCountExpr(sema, nodeExprRef));
-        }
-    }
+        RESULT_VERIFY(checkForCountExpr(sema, nodeExprRef));
 
     if (childRef == nodeWhereRef)
     {

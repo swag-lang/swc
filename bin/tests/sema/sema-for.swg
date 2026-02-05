@@ -27,7 +27,7 @@
 
 #test
 {
-    for i in 0.0 to 1.5 // swc-expected-error {{sema_err_invalid_countof_type}}
+    for i in 0.0 to 1.5 // swc1-expected-error {{sema_err_invalid_countof_type}}
     {
         var x = i
     }

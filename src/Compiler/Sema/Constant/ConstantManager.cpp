@@ -80,26 +80,6 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
-    {
-        {
-            std::shared_lock lk(shard.mutex);
-            if (const auto it = shard.map.find(value); it != shard.map.end())
-                return it->second;
-        }
-
-        std::unique_lock lk(shard.mutex);
-        auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
-        if (!inserted)
-            return it->second;
-
-        const uint32_t localIndex = shard.dataSegment.add(value);
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        it->second = result;
-        return addCstFinalize(manager, result);
-    }
-
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         {
@@ -118,6 +98,26 @@ namespace
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
+        return addCstFinalize(manager, result);
+    }
+
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
+    {
+        {
+            std::shared_lock lk(shard.mutex);
+            if (const auto it = shard.map.find(value); it != shard.map.end())
+                return it->second;
+        }
+
+        std::unique_lock lk(shard.mutex);
+        auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
+        if (!inserted)
+            return it->second;
+
+        const uint32_t localIndex = shard.dataSegment.add(value);
+        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        it->second = result;
         return addCstFinalize(manager, result);
     }
 }

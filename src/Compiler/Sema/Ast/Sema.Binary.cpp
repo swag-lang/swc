@@ -413,49 +413,4 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
-{
-    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView       nodeRightView(sema, nodeRightRef);
-
-    // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
-    sema.setIsValue(*this);
-
-    if (!nodeLeftView.type->isConvertibleToBool())
-        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef, nodeRightView.typeRef);
-
-    RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef, CastKind::Implicit));
-    sema.setType(sema.curNodeRef(), nodeLeftView.typeRef);
-
-    // Constant folding
-    if (nodeLeftView.cstRef.isValid())
-    {
-        SemaNodeView nodeBoolView(sema, nodeLeftRef);
-        RESULT_VERIFY(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
-
-        const bool        leftIsFalse = nodeBoolView.cstRef == sema.cstMgr().cstFalse();
-        const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef : nodeLeftView.nodeRef;
-        const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef : nodeLeftView.cstRef;
-        if (selectedCst.isValid())
-            sema.setConstant(sema.curNodeRef(), selectedCst);
-        /*{
-            const TypeRef     resultTypeRef = nodeLeftView.typeRef;
-            ConstantValue     selectedVal   = sema.cstMgr().get(selectedCst);
-            const ConstantRef resultCstRef  = selectedVal.typeRef() == resultTypeRef ?
-                                                  selectedCst :
-                                                  sema.cstMgr().addConstant(sema.ctx(), [&]() {
-                                                      selectedVal.setTypeRef(resultTypeRef);
-                                                      return selectedVal;
-                                                  }());
-            sema.setConstant(sema.curNodeRef(), resultCstRef);
-        }*/
-        else
-            sema.setSubstitute(sema.curNodeRef(), selectedRef);
-    }
-
-    return Result::Continue;
-}
-
 SWC_END_NAMESPACE();

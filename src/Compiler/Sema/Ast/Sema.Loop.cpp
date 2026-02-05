@@ -211,13 +211,11 @@ Result AstRangeExpr::semaPostNode(Sema& sema) const
 
     if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
     {
-        ConstantRef downCstRef = nodeDownView.cstRef;
-        ConstantRef upCstRef   = nodeUpView.cstRef;
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeDownView, nodeUpView, downCstRef, upCstRef));
-
-        const ConstantValue& downCst = sema.cstMgr().get(downCstRef);
-        const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
-        const bool           ok      = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
+        ConstantRef          downCstRef = nodeDownView.cstRef;
+        ConstantRef          upCstRef   = nodeUpView.cstRef;
+        const ConstantValue& downCst    = sema.cstMgr().get(downCstRef);
+        const ConstantValue& upCst      = sema.cstMgr().get(upCstRef);
+        const bool           ok         = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
         if (!ok)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());

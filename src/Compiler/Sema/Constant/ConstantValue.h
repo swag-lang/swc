@@ -151,6 +151,8 @@ public:
     bool     ge(const ConstantValue& rhs) const noexcept;
     Utf8     toString(const TaskContext& ctx) const;
 
+    void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = bytes; }
+
 private:
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeRef      typeRef_ = TypeRef::invalid();

@@ -68,7 +68,8 @@ namespace
     {
         std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-        const auto stored      = ConstantValue::makeSlice(ctx, value.typeRef(), view);
+        ConstantValue stored   = value;
+        stored.setPayloadSlice(view);
 
         const uint32_t localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);

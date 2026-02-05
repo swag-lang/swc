@@ -440,6 +440,17 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef : nodeLeftView.cstRef;
         if (selectedCst.isValid())
             sema.setConstant(sema.curNodeRef(), selectedCst);
+        /*{
+            const TypeRef     resultTypeRef = nodeLeftView.typeRef;
+            ConstantValue     selectedVal   = sema.cstMgr().get(selectedCst);
+            const ConstantRef resultCstRef  = selectedVal.typeRef() == resultTypeRef ?
+                                                  selectedCst :
+                                                  sema.cstMgr().addConstant(sema.ctx(), [&]() {
+                                                      selectedVal.setTypeRef(resultTypeRef);
+                                                      return selectedVal;
+                                                  }());
+            sema.setConstant(sema.curNodeRef(), resultCstRef);
+        }*/
         else
             sema.setSubstitute(sema.curNodeRef(), selectedRef);
     }

@@ -188,6 +188,22 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
             sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, nodeView.cst->getSlice().size()));
             return Result::Continue;
         }
+
+        if (nodeView.cst->isInt())
+        {
+            if (nodeView.cst->getInt().isNegative())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_count_negative, nodeView.nodeRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, nodeView.cst->toString(ctx));
+                diag.report(ctx);
+                return Result::Error;
+            }
+
+            ConstantRef newCstRef;
+            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unsigned));
+            sema.setConstant(targetRef, newCstRef);
+            return Result::Continue;
+        }
     }
 
     if (nodeView.type->isEnum())

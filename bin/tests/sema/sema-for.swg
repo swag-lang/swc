@@ -45,6 +45,14 @@
     }
 }
 
+// Negative constant count
+#test
+{
+    for -1 // swc-expected-error {{sema_err_count_negative}}
+    {
+    }
+}
+
 // Invalid range type
 #test
 {

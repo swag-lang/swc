@@ -8,6 +8,15 @@ enum A { R, G, B }
 const B = "XYZ"
 #assert(@countof(B) == 3)
 
+#test
+{
+    const a = @countof(3)
+    #assert(a == 3)
+    #assert(#typeof(a) == u32)
+
+    const b = @countof(-1) // swc-expected-error {{sema_err_count_negative}}
+}
+
 namespace NS {}
 #assert(@countof(NS) == 3) // swc-expected-error {{sema_err_invalid_countof}}
 #assert(@countof(true) == 1) // swc-expected-error {{sema_err_invalid_countof_type}}

@@ -180,32 +180,26 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstRangeExpr::semaPostNode(Sema& sema)
+Result AstRangeExpr::semaPostNode(Sema& sema) const
 {
+    SemaNodeView nodeDownView(sema, nodeExprDownRef);
+    SemaNodeView nodeUpView(sema, nodeExprUpRef);
+
     TypeRef indexTypeRef = TypeRef::invalid();
-
-    if (nodeExprDownRef.isValid())
-    {
-        indexTypeRef = getForIndexType(sema, nodeExprDownRef);
-    }
-    else if (nodeExprUpRef.isValid())
-    {
-        indexTypeRef = getForIndexType(sema, nodeExprUpRef);
-    }
-
-    if (indexTypeRef.isInvalid())
-        indexTypeRef = sema.typeMgr().typeU64();
+    if (nodeDownView.typeRef.isValid())
+        indexTypeRef = nodeDownView.typeRef;
+    else if (nodeUpView.typeRef.isValid())
+        indexTypeRef = nodeUpView.typeRef;
+    SWC_ASSERT(indexTypeRef.isValid());
 
     sema.setType(sema.curNodeRef(), indexTypeRef);
-    sema.setIsValue(*this);
 
     if (nodeExprDownRef.isValid() && nodeExprUpRef.isValid())
     {
         const SemaNodeView downView(sema, nodeExprDownRef);
         const SemaNodeView upView(sema, nodeExprUpRef);
 
-        if (downView.cstRef.isValid() && upView.cstRef.isValid() && downView.type && upView.type &&
-            downView.type->isScalarNumeric() && upView.type->isScalarNumeric())
+        if (downView.cstRef.isValid() && upView.cstRef.isValid() && downView.type->isScalarNumeric() && upView.type->isScalarNumeric())
         {
             ConstantRef downCstRef = downView.cstRef;
             ConstantRef upCstRef   = upView.cstRef;
@@ -215,7 +209,9 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
             const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
             if (!downCst.lt(upCst))
             {
-                const auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);
+                diag.addArgument(Diagnostic::ARG_RIGHT, upCstRef);
                 diag.report(sema.ctx());
                 return Result::Error;
             }

@@ -27,17 +27,16 @@
 
 #test
 {
-    for i in 0.0 to 1.5 // swc1-expected-error {{sema_err_invalid_countof_type}}
+    for i in 0.0 to 1.5 // swc-expected-error {{sema_err_invalid_countof_type}}
     {
         var x = i
     }
 }
-/*
+
 #test
 {
-    for i in 3 where s32 // swc-expected-error {{sema_err_cannot_cast}}
+    for i in 3 where s32 // swc-expected-error {{sema_err_not_value_expr}}
     {
         var x = i
     }
 }
-*/

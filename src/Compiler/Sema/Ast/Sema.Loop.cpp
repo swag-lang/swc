@@ -94,6 +94,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeWhereRef)
     {
         SemaNodeView nodeView(sema, nodeWhereRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
@@ -134,6 +135,7 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeExprRef)
     {
         SemaNodeView nodeView(sema, nodeExprRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 

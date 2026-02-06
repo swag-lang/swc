@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 
@@ -95,11 +96,13 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView exprView(sema, nodeExprRef);
-        const TypeInfo&    type      = sema.typeMgr().get(exprView.typeRef);
-        const TypeRef      ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo&    finalType = sema.typeMgr().get(ultimate);
-        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString())
+        SemaNodeView exprView(sema, nodeExprRef);
+        RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
+
+        const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef);
+        const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& finalType = sema.typeMgr().get(ultimate);
+        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
         sema.payload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef;

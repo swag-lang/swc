@@ -199,6 +199,13 @@ namespace
     {
         const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+        const uint32_t  dstBits = dstType.payloadFloatBits();
+        const uint32_t  srcBits = srcType.payloadIntLikeBits();
+        const bool      srcIsInt = srcType.isInt();
+        const bool      coerceToF32 = srcIsInt && (srcBits == 0 || srcBits <= 32);
+        const bool      coerceToF64 = srcIsInt;
+        const bool      allowCoerce = (dstBits == 32) ? coerceToF32 : coerceToF64;
 
         switch (castCtx.kind)
         {
@@ -215,6 +222,12 @@ namespace
             case CastKind::Parameter:
             case CastKind::Initialization:
             case CastKind::Assignment:
+                if (!allowCoerce)
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+                break;
             case CastKind::Explicit:
                 break;
 

@@ -2,6 +2,7 @@
 
 func takes_u32(v: u32) {}
 func takes_u8(v: u8) {}
+func takes_s32(v: s32) {}
 
 #test
 {
@@ -71,4 +72,22 @@ func takes_u8(v: u8) {}
     b = a
     var c: u8 = 0
     c = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: f32 = 10.5
+    var b: s32 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: f64 = 10.5
+    takes_u32(a) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: f64 = 10.5
+    takes_s32(a) // swc-expected-error {{sema_err_cannot_cast}}
 }

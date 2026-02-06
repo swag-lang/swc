@@ -16,7 +16,7 @@ namespace
 {
     bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, std::byte* dst, uint64_t dstSize);
 
-    bool lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
+    bool lowerAggregateArrayToBytesInternal(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
     {
         auto&           ctx         = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
@@ -77,7 +77,7 @@ namespace
         {
             if (!cst.isAggregateArray())
                 return false;
-            return lowerAggregateArrayToBytes(sema, cst.getAggregateArray(), dstType, dst, dstSize);
+            return lowerAggregateArrayToBytesInternal(sema, cst.getAggregateArray(), dstType, dst, dstSize);
         }
 
         if (dstType.isBool())
@@ -354,6 +354,11 @@ Result ConstantOps::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t
 bool ConstantOps::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, std::byte* dst, uint64_t dstSize)
 {
     return lowerConstantToBytes(sema, cstRef, dstTypeRef, dst, dstSize);
+}
+
+bool ConstantOps::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
+{
+    return lowerAggregateArrayToBytesInternal(sema, values, dstType, dst, dstSize);
 }
 
 bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)

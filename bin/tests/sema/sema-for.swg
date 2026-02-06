@@ -324,4 +324,8 @@
 {
     var str: string
     for it in @countof(str) {}
+    var v: u32
+    for it in v {}
+    var v1: s32
+    for it in v1 {} // swc-expected-error {{sema_err_invalid_countof_type}}
 }

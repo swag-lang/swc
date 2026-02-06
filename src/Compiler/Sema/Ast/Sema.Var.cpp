@@ -57,8 +57,10 @@ namespace
                                  EnumFlags<AstVarDeclFlagsE> flags,
                                  const std::span<Symbol*>&   symbols)
     {
-        auto&              ctx = sema.ctx();
-        SemaNodeView       nodeInitView(sema, nodeInitRef);
+        SemaNodeView nodeInitView(sema, nodeInitRef);
+        if (nodeInitRef.isValid())
+            RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
+
         const SemaNodeView nodeTypeView(sema, nodeTypeRef);
 
         const bool isConst     = flags.has(AstVarDeclFlagsE::Const);
@@ -100,9 +102,6 @@ namespace
             }
         }
 
-        if (nodeInitRef.isValid())
-            RESULT_VERIFY(SemaCheck::isValue(sema, nodeInitView.nodeRef));
-
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef));
 
@@ -120,7 +119,7 @@ namespace
                 {
                     auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
-                    diag.report(ctx);
+                    diag.report(sema.ctx());
                     return Result::Error;
                 }
             }

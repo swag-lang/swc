@@ -319,3 +319,9 @@
         var x = i
     }
 }
+
+#test
+{
+    var str: string
+    for it in @countof(str) {}
+}

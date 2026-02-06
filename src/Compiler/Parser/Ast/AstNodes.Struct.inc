@@ -1263,7 +1263,9 @@ struct AstForCStyleStmt : AstNodeT<AstNodeId::ForCStyleStmt>
     AstNodeRef nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeVarDeclRef, nodeExprRef, nodePostStmtRef, nodeBodyRef}); }
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
+    static Result semaPreNode(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

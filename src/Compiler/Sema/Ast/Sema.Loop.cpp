@@ -10,6 +10,36 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result AstForCStyleStmt::semaPreNode(Sema& sema)
+{
+    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+    return Result::Continue;
+}
+
+Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodePostStmtRef || (childRef == nodeBodyRef && nodePostStmtRef.isInvalid()))
+    {
+        SemaFrame frame = sema.frame();
+        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        sema.pushFramePopOnPostNode(frame);
+    }
+
+    return Result::Continue;
+}
+
+Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+    {
+        SemaNodeView nodeView(sema, nodeExprRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
+    }
+
+    return Result::Continue;
+}
+
 Result AstForStmt::semaPreNode(Sema& sema) const
 {
     return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);

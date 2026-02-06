@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantExtract.h"
+#include "Compiler/Sema/Constant/ConstantOps.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -99,7 +99,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     // Constant extract
     if (nodeExprView.cst && hasConstIndex)
     {
-        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
+        RESULT_VERIFY(ConstantOps::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
     }
     else
     {

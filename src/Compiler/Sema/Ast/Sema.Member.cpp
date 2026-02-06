@@ -430,10 +430,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    // TODO
-    sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
-    sema.setIsValue(*this);
-    return Result::SkipChildren;
+    return SemaError::raiseInternal(sema, sema.curNodeRef());
 }
 
 SWC_END_NAMESPACE();

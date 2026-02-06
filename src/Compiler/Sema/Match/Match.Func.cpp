@@ -327,12 +327,24 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible, and returns its rank.
-    ConvRank probeImplicitConversion(Sema& sema, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
+    ConvRank probeImplicitConversion(Sema& sema, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
         if (from == to)
             return ConvRank::Exact;
 
-        CastContext castCtx(CastKind::Parameter);
+        CastKind  castKind = CastKind::Parameter;
+        CastFlags castFlags;
+        if (const auto* autoCast = sema.node(argRef).safeCast<AstAutoCastExpr>())
+        {
+            castKind = CastKind::Explicit;
+            if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
+                castFlags.add(CastFlagsE::BitCast);
+            if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
+                castFlags.add(CastFlagsE::UnConst);
+        }
+
+        CastContext castCtx(castKind);
+        castCtx.flags = castFlags;
         if (isUfcsArgument)
             castCtx.flags.add(CastFlagsE::UfcsArgument);
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
@@ -506,7 +518,7 @@ namespace
             }
 
             const bool     isUfcsArgument = ufcsArg.isValid() && i == 0;
-            const ConvRank r              = probeImplicitConversion(sema, argTy, paramTy, cf, isUfcsArgument);
+            const ConvRank r              = probeImplicitConversion(sema, argRef, argTy, paramTy, cf, isUfcsArgument);
             if (r == ConvRank::Bad)
             {
                 failBadType(outFail, i, i, cf);
@@ -537,7 +549,7 @@ namespace
                         const TypeRef    argTy  = sema.typeRefOf(argRef);
                         CastFailure      cf{};
                         const bool       isUfcsArgument = ufcsArg.isValid() && i == 0;
-                        const ConvRank   r              = probeImplicitConversion(sema, argTy, variadicTy, cf, isUfcsArgument);
+                        const ConvRank   r              = probeImplicitConversion(sema, argRef, argTy, variadicTy, cf, isUfcsArgument);
                         if (r == ConvRank::Bad)
                         {
                             // paramIndex points at the variadic parameter

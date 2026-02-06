@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Runtime/Runtime.h"
@@ -675,34 +676,56 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
     {
         case ConstantKind::Bool:
             return getBool() ? "true" : "false";
+            
         case ConstantKind::Char:
             return getChar();
+            
         case ConstantKind::Rune:
             return getRune();
+            
         case ConstantKind::String:
             return getString();
+            
         case ConstantKind::Struct:
             return "<struct>";
         case ConstantKind::AggregateArray:
             return "<array>";
         case ConstantKind::AggregateStruct:
             return "<struct>";
+            
         case ConstantKind::Int:
             return getInt().toString();
+            
         case ConstantKind::Float:
             return getFloat().toString();
+            
         case ConstantKind::TypeValue:
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
+            
         case ConstantKind::EnumValue:
             return ctx.cstMgr().get(payloadEnumValue_.val).toString(ctx);
+            
         case ConstantKind::ValuePointer:
+        {
+            const auto& type = ctx.typeMgr().get(typeRef_);
+            if (type.isAnyTypeInfo(const_cast<TaskContext&>(ctx)))
+            {
+                const auto backType = ctx.typeGen().getBackTypeRef(reinterpret_cast<const void*>(getValuePointer()));
+                if (backType.isValid())
+                    return ctx.typeMgr().get(backType).toName(ctx);
+            }
             return std::format("*0x{:016X}", getValuePointer());
+        }
+            
         case ConstantKind::BlockPointer:
             return std::format("[*] 0x{:016X}", getBlockPointer());
+            
         case ConstantKind::Slice:
             return std::format("[..] (0x{:016X}, {})", reinterpret_cast<uintptr_t>(getSlice().data()), getSlice().size());
+            
         case ConstantKind::Null:
             return "null";
+            
         case ConstantKind::Undefined:
             return "undefined";
 

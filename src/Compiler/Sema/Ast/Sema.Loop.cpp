@@ -82,9 +82,6 @@ Result AstForStmt::semaPreNode(Sema& sema) const
 
 Result AstForeachStmt::semaPreNode(Sema& sema) const
 {
-    // TODO
-    if (sema.file()->isRuntime())
-        return Result::SkipChildren;
     return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
 }
 

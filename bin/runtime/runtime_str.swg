@@ -205,8 +205,6 @@ func @print(params: ...)
             __printS64(cast(s32) v)
         case s64:
             __printS64(v)
-        case s64:
-            __printS64(cast(s64) v)
         case u8:
             __printU64(cast(u8) v)
         case u16:

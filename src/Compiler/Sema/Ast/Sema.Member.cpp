@@ -360,7 +360,7 @@ namespace
         if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(node->nodeRightRef)[0]->isVariable())
         {
             const SymbolVariable& symVar = sema.getSymbolList(node->nodeRightRef)[0]->cast<SymbolVariable>();
-            RESULT_VERIFY(ConstantOps::structMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
+            RESULT_VERIFY(ConstantOps::extractStructMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
             return Result::SkipChildren;
         }
 

@@ -34,7 +34,7 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            if (!lowerConstantToBytes(sema, values[static_cast<size_t>(i)], elemTypeRef, dst + (i * elemSize), elemSize))
+            if (!lowerConstantToBytes(sema, values[i], elemTypeRef, dst + (i * elemSize), elemSize))
                 return false;
         }
 
@@ -184,7 +184,7 @@ namespace
     }
 }
 
-Result ConstantOps::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantOps::extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&    ctx = sema.ctx();
     ByteSpan bytes;
@@ -295,7 +295,7 @@ Result ConstantOps::structMember(Sema& sema, const ConstantValue& cst, const Sym
     return Result::Continue;
 }
 
-Result ConstantOps::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+Result ConstantOps::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
     SWC_ASSERT(cst.isValid());
     const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());

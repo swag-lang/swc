@@ -666,6 +666,78 @@ namespace
         return Result::Error;
     }
 
+    Result castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (!srcType.isArray())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Error;
+        }
+
+        const auto& srcDims = srcType.payloadArrayDims();
+        const auto& dstDims = dstType.payloadArrayDims();
+        if (srcDims.size() != dstDims.size())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Error;
+        }
+
+        for (size_t i = 0; i < srcDims.size(); ++i)
+        {
+            if (srcDims[i] != dstDims[i])
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+        }
+
+        const TypeRef srcElemTypeRef = srcType.payloadArrayElemTypeRef();
+        const TypeRef dstElemTypeRef = dstType.payloadArrayElemTypeRef();
+        if (srcElemTypeRef == dstElemTypeRef)
+            return Result::Continue;
+
+        if (!castCtx.isConstantFolding())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Error;
+        }
+
+        const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+        if (!cst.isAggregateArray())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Error;
+        }
+
+        const auto& values = cst.getAggregateArray();
+        std::vector<ConstantRef> newValues;
+        newValues.reserve(values.size());
+
+        for (const auto& valueRef : values)
+        {
+            CastContext elemCtx(castCtx.kind);
+            elemCtx.flags        = castCtx.flags;
+            elemCtx.errorNodeRef = castCtx.errorNodeRef;
+            elemCtx.setConstantFoldingSrc(valueRef);
+
+            const Result res = Cast::castAllowed(sema, elemCtx, srcElemTypeRef, dstElemTypeRef);
+            if (res != Result::Continue)
+                return res;
+
+            ConstantRef castedRef = elemCtx.constantFoldingResult();
+            if (castedRef.isInvalid())
+                castedRef = valueRef;
+            newValues.push_back(castedRef);
+        }
+
+        const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
+        castCtx.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), result);
+        return Result::Continue;
+    }
+
     Result castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
         const auto& dstType = sema.typeMgr().get(dstTypeRef);
@@ -829,6 +901,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (srcType.isAnyTypeInfo(sema.ctx()) && dstType.isAnyTypeInfo(sema.ctx()))
         res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+    else if (dstType.isArray())
+        res = castToArray(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isSlice())
         res = castToSlice(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())

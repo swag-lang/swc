@@ -36,7 +36,7 @@
 #test
 {
     var arr: [2] s32 = [1, 2]
-    foreach v, i, j in arr {} // swc1-expected-error {{sema_err_foreach_too_many_names}}
+    foreach v, i, j in arr {} // swc-expected-error {{sema_err_foreach_too_many_names}}
 }
 
 #test

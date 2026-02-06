@@ -828,10 +828,96 @@ namespace
         return Result::Error;
     }
 
-    Result castToStruct(Sema&, CastContext&, TypeRef, TypeRef)
+    Result castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        // TODO
-        return Result::Continue;
+        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+
+        if (srcType.isStruct())
+        {
+            RESULT_VERIFY(sema.waitCompleted(&srcType, castCtx.errorNodeRef));
+            RESULT_VERIFY(sema.waitCompleted(&dstType, castCtx.errorNodeRef));
+
+            const auto& srcFields = srcType.payloadSymStruct().fields();
+            const auto& dstFields = dstType.payloadSymStruct().fields();
+            if (srcFields.size() != dstFields.size())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            for (size_t i = 0; i < srcFields.size(); ++i)
+            {
+                if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+            }
+
+            return Result::Continue;
+        }
+
+        if (srcType.isAggregateStruct())
+        {
+            RESULT_VERIFY(sema.waitCompleted(&dstType, castCtx.errorNodeRef));
+
+            const auto& srcTypes  = srcType.payloadAggregateTypes();
+            const auto& dstFields = dstType.payloadSymStruct().fields();
+
+            if (srcTypes.size() > dstFields.size())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            for (size_t i = 0; i < srcTypes.size(); ++i)
+            {
+                CastContext elemCtx(castCtx.kind);
+                elemCtx.flags        = castCtx.flags;
+                elemCtx.errorNodeRef = castCtx.errorNodeRef;
+
+                const Result res = Cast::castAllowed(sema, elemCtx, srcTypes[i], dstFields[i]->typeRef());
+                if (res != Result::Continue)
+                    return res;
+            }
+
+            if (castCtx.isConstantFolding())
+            {
+                const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+                if (cst.isAggregateStruct())
+                {
+                    const auto& values = cst.getAggregateStruct();
+                    std::vector<ConstantRef> newValues;
+                    newValues.reserve(values.size());
+
+                    for (size_t i = 0; i < values.size(); ++i)
+                    {
+                        CastContext elemCtx(castCtx.kind);
+                        elemCtx.flags        = castCtx.flags;
+                        elemCtx.errorNodeRef = castCtx.errorNodeRef;
+                        elemCtx.setConstantFoldingSrc(values[i]);
+
+                        const Result res = Cast::castAllowed(sema, elemCtx, srcTypes[i], dstFields[i]->typeRef());
+                        if (res != Result::Continue)
+                            return res;
+
+                        ConstantRef castedRef = elemCtx.constantFoldingResult();
+                        if (castedRef.isInvalid())
+                            castedRef = values[i];
+                        newValues.push_back(castedRef);
+                    }
+
+                    const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), newValues);
+                    castCtx.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), result);
+                }
+            }
+
+            return Result::Continue;
+        }
+
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
     }
 
     Result castToInterface(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)

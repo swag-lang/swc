@@ -446,7 +446,9 @@ void DiagnosticBuilder::writeLabelMsg(const DiagnosticElement& el)
 
     // Message
     out_ += partStyle(DiagPart::LabelMsgText, el.severity());
-    const Utf8 msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
+    Utf8 msg = el.message();
+    if (msg.empty())
+        msg = buildMessage(Utf8(resolveMessageTemplate(el.id(), &el)), &el);
     writeHighlightedMessage(el.severity(), msg, partStyle(DiagPart::LabelMsgText, el.severity()));
     out_ += partStyle(DiagPart::Reset);
     out_ += "\n";

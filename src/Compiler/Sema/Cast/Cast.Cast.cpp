@@ -197,12 +197,12 @@ namespace
 
     Result castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        const auto&     typeMgr = sema.typeMgr();
-        const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
-        const uint32_t  dstBits = dstType.payloadFloatBits();
-        const uint32_t  srcBits = srcType.payloadIntLikeBits();
-        const bool      srcIsInt = srcType.isInt();
+        const auto&     typeMgr     = sema.typeMgr();
+        const TypeInfo& srcType     = typeMgr.get(srcTypeRef);
+        const TypeInfo& dstType     = typeMgr.get(dstTypeRef);
+        const uint32_t  dstBits     = dstType.payloadFloatBits();
+        const uint32_t  srcBits     = srcType.payloadIntLikeBits();
+        const bool      srcIsInt    = srcType.isInt();
         const bool      coerceToF32 = srcIsInt && (srcBits == 0 || srcBits <= 32);
         const bool      coerceToF64 = srcIsInt;
         const bool      allowCoerce = (dstBits == 32) ? coerceToF32 : coerceToF64;
@@ -779,6 +779,11 @@ namespace
         castCtx.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         return Result::Error;
     }
+
+    Result castFromAny(const Sema&, const CastContext&, TypeRef, TypeRef)
+    {
+        return Result::Continue;
+    }
 }
 
 Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -802,6 +807,8 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     auto res = Result::Error;
     if (srcType.isAlias())
         res = castAllowed(sema, castCtx, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
+    else if (srcType.isAny())
+        res = castFromAny(sema, castCtx, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())
         res = castAllowed(sema, castCtx, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
     else if (castCtx.flags.has(CastFlagsE::BitCast))

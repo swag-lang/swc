@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
@@ -38,6 +39,46 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     else if (cst.isSlice())
     {
         bytes = cst.getSlice();
+    }
+    else if (cst.isAggregateStruct())
+    {
+        const auto& values = cst.getAggregateStruct();
+        const auto* owner  = symVar.ownerSymMap();
+        const auto* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
+        if (!sym)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        size_t fieldIndex = 0;
+        bool   found      = false;
+        for (const auto* field : sym->fields())
+        {
+            if (!field || field->isIgnored())
+                continue;
+
+            if (field == &symVar)
+            {
+                found = true;
+                break;
+            }
+
+            ++fieldIndex;
+        }
+
+        if (!found || std::cmp_greater_equal(fieldIndex, values.size()))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        sema.setConstant(nodeRef, values[fieldIndex]);
+        return Result::Continue;
     }
     else
     {
@@ -86,7 +127,6 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
     SWC_ASSERT(cst.isValid());
     const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
 
-    ////////////////////////////////////////////////////////
     if (cst.isAggregateArray())
     {
         if (typeInfo.payloadArrayDims().size() > 1)
@@ -98,7 +138,6 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         return Result::Continue;
     }
 
-    ////////////////////////////////////////////////////////
     if (cst.isString())
     {
         const std::string_view s = cst.getString();
@@ -109,7 +148,6 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
         return Result::Continue;
     }
 
-    ////////////////////////////////////////////////////////
     if (cst.isSlice())
     {
         auto&          ctx         = sema.ctx();

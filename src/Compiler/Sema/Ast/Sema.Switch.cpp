@@ -285,6 +285,10 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (sema.node(childRef).is(AstNodeId::RangeExpr))
         return handleRangeCaseExpr(sema, childRef, switchTypeRef);
 
+    // Be sure it's a value
+    SemaNodeView exprView(sema, childRef);
+    RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
+   
     RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));
     RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
     RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));

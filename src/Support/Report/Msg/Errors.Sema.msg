@@ -30,6 +30,7 @@ SWC_DIAG_DEF(sema_err_using_member_type, Error, "a 'using' member variable must 
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "the initializer of the decomposition must be a struct (got '{type}')")
 SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many identifiers in the decomposition; the struct has only {count} fields")
 SWC_DIAG_DEF(sema_err_decomposition_not_enough_names, Error, "not enough identifiers in the decomposition; the struct has {count} fields")
+SWC_DIAG_DEF(sema_err_foreach_too_many_names, Error, "too many identifiers in foreach; expected at most 2")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_wait_sym_declared, Error, "the symbol '{sym}' has not been declared")
 SWC_DIAG_DEF(sema_err_wait_impl_registration, Error, "all 'impl' blocks for struct '{sym}' have not been registered")

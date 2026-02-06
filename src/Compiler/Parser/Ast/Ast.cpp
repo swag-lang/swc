@@ -17,7 +17,7 @@ const AstNode& Ast::node(AstNodeRef nodeRef) const
     return *nodePtr(g);
 }
 
-void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
+void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
 {
     if (spanRef.isInvalid())
         return;
@@ -38,12 +38,12 @@ void Ast::nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
 AstNodeRef Ast::oneNode(SpanRef spanRef) const
 {
     SmallVector<AstNodeRef> res;
-    nodes(res, spanRef);
+    appendNodes(res, spanRef);
     SWC_ASSERT(res.size() == 1);
     return res.front();
 }
 
-void Ast::tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
+void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
 {
     if (spanRef.isInvalid())
         return;

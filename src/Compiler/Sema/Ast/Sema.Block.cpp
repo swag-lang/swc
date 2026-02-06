@@ -30,7 +30,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
     auto& ctx = sema.ctx();
 
     SmallVector<TokenRef> namesRef;
-    sema.ast().tokens(namesRef, spanNameRef);
+    sema.ast().appendTokens(namesRef, spanNameRef);
 
     const SourceView& srcView = ctx.compiler().srcView(node->srcViewRef());
     SymbolMap*        symMap  = SemaFrame::currentSymMap(sema);
@@ -72,7 +72,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
 Result AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
 {
     SmallVector<TokenRef> namesRef;
-    sema.ast().tokens(namesRef, spanNameRef);
+    sema.ast().appendTokens(namesRef, spanNameRef);
     for (size_t i = 0; i < namesRef.size(); ++i)
         sema.frame().popNs();
     return Result::Continue;
@@ -101,7 +101,7 @@ Result AstNamespaceDecl::semaPostNode(Sema& sema) const
 Result AstUsingDecl::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> nodeRefs;
-    sema.ast().nodes(nodeRefs, spanChildrenRef);
+    sema.ast().appendNodes(nodeRefs, spanChildrenRef);
     for (const auto& nodeRef : nodeRefs)
     {
         const SemaNodeView nodeView(sema, nodeRef);

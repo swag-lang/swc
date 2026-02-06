@@ -5,6 +5,7 @@
     var arr: [3] s32 = [1, 2, 3]
     foreach v in arr
     {
+        #assert(#typeof(v) == s32)
         var x = v
     }
 }
@@ -14,6 +15,8 @@
     var arr: [2] s32 = [1, 2]
     foreach v, i in arr
     {
+        #assert(#typeof(v) == s32)
+        #assert(#typeof(i) == u64)
         var x = v
         var y = i
     }
@@ -28,6 +31,12 @@
     {
         var x = v
     }
+}
+
+#test
+{
+    var arr: [2] s32 = [1, 2]
+    foreach v, i, j in arr {} // swc1-expected-error {{sema_err_foreach_too_many_names}}
 }
 
 #test

@@ -94,10 +94,14 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
+        // Alias names
         SmallVector<TokenRef> tokNames;
-        sema.ast().tokens(tokNames, spanNamesRef);
+        sema.ast().appendTokens(tokNames, spanNamesRef);
         if (!tokNames.empty())
         {
+            if (tokNames.size() > 2)
+                return SemaError::raise(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{srcViewRef(), tokNames[2]});
+
             const SemaNodeView exprView(sema, nodeExprRef);
             TypeRef            valueTypeRef = TypeRef::invalid();
             TypeRef            indexTypeRef = TypeRef::invalid();

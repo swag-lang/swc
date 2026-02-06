@@ -114,7 +114,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView(sema, nodeExprRef);
 
     SmallVector<AstNodeRef> children;
-    sema.ast().nodes(children, spanChildrenRef);
+    sema.ast().appendNodes(children, spanChildrenRef);
 
     if (nodeExprView.type->isArray())
     {

@@ -207,7 +207,7 @@ Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
 {
     SmallVector<TokenRef> tokNames;
-    sema.ast().tokens(tokNames, spanNamesRef);
+    sema.ast().appendTokens(tokNames, spanNamesRef);
 
     SmallVector<const Symbol*> symbols;
     for (const auto& tokNameRef : tokNames)
@@ -290,7 +290,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     const auto&         fields    = symStruct.fields();
 
     SmallVector<TokenRef> tokNames;
-    sema.ast().tokens(tokNames, spanNamesRef);
+    sema.ast().appendTokens(tokNames, spanNamesRef);
 
     if (tokNames.size() > fields.size())
     {

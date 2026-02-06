@@ -163,7 +163,7 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
 {
     const Token&            tok = sema.token(codeRef());
     SmallVector<AstNodeRef> children;
-    sema.ast().nodes(children, spanChildrenRef);
+    sema.ast().appendNodes(children, spanChildrenRef);
 
     switch (tok.id)
     {

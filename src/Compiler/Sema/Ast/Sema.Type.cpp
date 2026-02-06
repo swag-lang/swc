@@ -270,7 +270,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 
     // Value-check
     SmallVector<AstNodeRef> out;
-    sema.ast().nodes(out, spanDimensionsRef);
+    sema.ast().appendNodes(out, spanDimensionsRef);
 
     std::vector<uint64_t> dims;
     for (const auto& dimRef : out)
@@ -377,7 +377,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     SymbolFunction* const symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
 
     SmallVector<AstNodeRef> params;
-    sema.ast().nodes(params, spanParamsRef);
+    sema.ast().appendNodes(params, spanParamsRef);
 
     for (const auto& paramRef : params)
     {

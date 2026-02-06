@@ -35,9 +35,9 @@ public:
 
     AstNode&       node(AstNodeRef nodeRef);
     const AstNode& node(AstNodeRef nodeRef) const;
-    void           nodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    void           appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
     AstNodeRef     oneNode(SpanRef spanRef) const;
-    void           tokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
+    void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
 
     template<AstNodeId ID>
     auto node(AstNodeRef nodeRef)

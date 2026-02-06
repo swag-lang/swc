@@ -70,7 +70,7 @@ namespace
             return SemaError::raiseInternal(sema, sema.curNodeRef());
 
         SmallVector<AstNodeRef> leftRefs;
-        sema.ast().nodes(leftRefs, assignList.spanChildrenRef);
+        sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
 
@@ -126,7 +126,7 @@ namespace
     Result assignMulti(Sema& sema, const Token& tok, const AstAssignList& assignList, SemaNodeView nodeRightView)
     {
         SmallVector<AstNodeRef> leftRefs;
-        sema.ast().nodes(leftRefs, assignList.spanChildrenRef);
+        sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
 
         if (nodeRightView.cstRef.isValid())
             RESULT_VERIFY(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));

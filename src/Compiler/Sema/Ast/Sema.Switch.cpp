@@ -170,7 +170,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         return Result::Continue;
 
     SmallVector<AstNodeRef> expressions;
-    sema.ast().nodes(expressions, spanExprRef);
+    sema.ast().appendNodes(expressions, spanExprRef);
     const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
     if (!isExprChild)
         return Result::Continue;
@@ -288,7 +288,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     // Be sure it's a value
     SemaNodeView exprView(sema, childRef);
     RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
-   
+
     RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));
     RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
     RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
@@ -309,7 +309,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
     const auto*             caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
     const auto*             caseBody = sema.node(caseStmt->nodeBodyRef).cast<AstSwitchCaseBody>();
 
-    sema.ast().nodes(stmts, caseBody->spanChildrenRef);
+    sema.ast().appendNodes(stmts, caseBody->spanChildrenRef);
     const auto itStmt = std::ranges::find(stmts, sema.curNodeRef());
     if (itStmt == stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
@@ -322,7 +322,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> cases;
-    sema.ast().nodes(cases, switchStmt->spanChildrenRef);
+    sema.ast().appendNodes(cases, switchStmt->spanChildrenRef);
     const auto itCase = std::ranges::find(cases, caseRef);
     if (itCase == cases.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());

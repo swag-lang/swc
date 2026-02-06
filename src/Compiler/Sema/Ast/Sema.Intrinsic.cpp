@@ -101,10 +101,10 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void* or a pointer to the type defined in the right expression
-        const TypeRef typeRefPointee  = nodeViewPtr.type->payloadTypeRef();
-        const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, nodeViewType.cstRef);
-        if (!sema.typeMgr().get(typeRefPointee).isVoid())
+        const TypeRef typeRefPointee = nodeViewPtr.type->payloadTypeRef();
+        if (!sema.typeMgr().get(typeRefPointee).isVoid() && nodeViewType.cstRef.isValid())
         {
+            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, nodeViewType.cstRef);
             if (typeRefPointee != typeRefTypeInfo)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef);

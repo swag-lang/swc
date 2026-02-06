@@ -7,8 +7,43 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
+    {
+        if (!exprView.type)
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, exprView.nodeRef);
+
+        if (exprView.type->isArray())
+            valueTypeRef = exprView.type->payloadArrayElemTypeRef();
+        else if (exprView.type->isSlice())
+            valueTypeRef = exprView.type->payloadTypeRef();
+        else if (exprView.type->isAnyString())
+            valueTypeRef = sema.typeMgr().typeU8();
+        else if (exprView.type->isVariadic())
+            valueTypeRef = sema.typeMgr().typeAny();
+        else if (exprView.type->isTypedVariadic())
+            valueTypeRef = exprView.type->payloadTypeRef();
+        else
+            return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef, exprView.typeRef);
+
+        indexTypeRef = sema.typeMgr().typeU64();
+
+        if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
+        {
+            TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+            if (exprView.type->isConst())
+                typeFlags.add(TypeInfoFlagsE::Const);
+            valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
+        }
+
+        return Result::Continue;
+    }
+}
 
 Result AstForCStyleStmt::semaPreNode(Sema& sema)
 {
@@ -43,6 +78,84 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 Result AstForStmt::semaPreNode(Sema& sema) const
 {
     return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
+}
+
+Result AstForeachStmt::semaPreNode(Sema& sema) const
+{
+    // TODO
+    if (sema.file()->isRuntime())
+        return Result::SkipChildren;
+    return SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Reverse);
+}
+
+Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
+    {
+        SemaFrame frame = sema.frame();
+        frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
+        sema.pushFramePopOnPostNode(frame);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+
+        SmallVector<TokenRef> tokNames;
+        sema.ast().tokens(tokNames, spanNamesRef);
+        if (!tokNames.empty())
+        {
+            const SemaNodeView exprView(sema, nodeExprRef);
+            TypeRef            valueTypeRef = TypeRef::invalid();
+            TypeRef            indexTypeRef = TypeRef::invalid();
+            RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+
+            SmallVector<Symbol*> symbols;
+            symbols.reserve(tokNames.size());
+
+            const size_t count = std::min<size_t>(tokNames.size(), 2);
+            for (size_t i = 0; i < count; i++)
+            {
+                const auto tokNameRef = tokNames[i];
+                if (tokNameRef.isInvalid())
+                    continue;
+
+                SymbolVariable& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+                symVar.registerAttributes(sema);
+                symVar.setDeclared(sema.ctx());
+                RESULT_VERIFY(Match::ghosting(sema, symVar));
+
+                symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+                symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
+                symVar.setTyped(sema.ctx());
+                symVar.setCompleted(sema.ctx());
+                symbols.push_back(&symVar);
+            }
+
+            if (!symbols.empty())
+                sema.setSymbolList(sema.curNodeRef(), symbols.span());
+        }
+    }
+
+    return Result::Continue;
+}
+
+Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+    {
+        const SemaNodeView exprView(sema, nodeExprRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, exprView.nodeRef));
+
+        TypeRef valueTypeRef = TypeRef::invalid();
+        TypeRef indexTypeRef = TypeRef::invalid();
+        RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+    }
+
+    if (childRef == nodeWhereRef)
+    {
+        SemaNodeView nodeView(sema, nodeWhereRef);
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
+    }
+
+    return Result::Continue;
 }
 
 Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const

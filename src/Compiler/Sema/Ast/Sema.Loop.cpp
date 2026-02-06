@@ -20,10 +20,6 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
     // Body has its own local scope.
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
-        // TODO
-        if (sema.file()->isRuntime())
-            return Result::SkipChildren;
-
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         sema.pushFramePopOnPostNode(frame);

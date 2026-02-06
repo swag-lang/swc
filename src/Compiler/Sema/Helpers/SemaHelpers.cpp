@@ -240,6 +240,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 
     if (nodeView.type->isIntUnsigned())
     {
+        sema.setType(targetRef, nodeView.typeRef);
         sema.setIsValue(targetRef);
         return Result::Continue;
     }

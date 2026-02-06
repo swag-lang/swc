@@ -18,7 +18,7 @@ const B = "XYZ"
 }
 
 namespace NS {}
-#assert(@countof(NS) == 3) // swc-expected-error {{sema_err_invalid_countof}}
+#assert(@countof(NS) == 3) // swc-expected-error {{sema_err_not_value_expr}}
 #assert(@countof(true) == 1) // swc-expected-error {{sema_err_invalid_countof_type}}
 
 #test

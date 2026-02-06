@@ -173,7 +173,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     const SemaNodeView nodeView(sema, exprRef);
 
     if (!nodeView.type)
-        return SemaError::raise(sema, DiagnosticId::sema_err_invalid_countof, nodeView.nodeRef);
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
 
     if (nodeView.cst)
     {

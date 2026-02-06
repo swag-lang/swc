@@ -14,9 +14,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, std::byte* dst, uint64_t dstSize);
+    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst);
 
-    bool lowerAggregateArrayToBytesInternal(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
+    bool lowerAggregateArrayToBytesInternal(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
     {
         auto&           ctx         = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
@@ -28,20 +28,20 @@ namespace
         for (const auto dim : dims)
             totalCount *= dim;
 
-        if (elemSize && elemSize * totalCount > dstSize)
+        if (elemSize && elemSize * totalCount > dst.size())
             return false;
 
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            if (!lowerConstantToBytes(sema, values[i], elemTypeRef, dst + (i * elemSize), elemSize))
+            if (!lowerConstantToBytes(sema, values[i], elemTypeRef, ByteSpan{dst.data() + (i * elemSize), elemSize}))
                 return false;
         }
 
         return true;
     }
 
-    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, std::byte* dst, uint64_t dstSize)
+    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
     {
         const ConstantValue& cst     = sema.cstMgr().get(cstRef);
         const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
@@ -52,7 +52,7 @@ namespace
             ConstantRef   enumValueRef      = cstRef;
             if (cst.isEnumValue())
                 enumValueRef = cst.getEnumValue();
-            return lowerConstantToBytes(sema, enumValueRef, underlyingTypeRef, dst, dstSize);
+            return lowerConstantToBytes(sema, enumValueRef, underlyingTypeRef, dst);
         }
 
         if (dstType.isStruct())
@@ -60,15 +60,15 @@ namespace
             if (cst.isStruct())
             {
                 const auto bytes = cst.getStruct();
-                if (bytes.size() != dstSize)
+                if (bytes.size() != dst.size())
                     return false;
-                if (dstSize)
-                    std::memcpy(dst, bytes.data(), dstSize);
+                if (!dst.empty())
+                    std::memcpy(const_cast<std::byte*>(dst.data()), bytes.data(), dst.size());
                 return true;
             }
 
             if (cst.isAggregateStruct())
-                return ConstantOps::lowerAggregateStructToBytes(sema, cst.getAggregateStruct(), dstType, dst, dstSize);
+                return ConstantOps::lowerAggregateStructToBytes(sema, cst.getAggregateStruct(), dstType, dst);
 
             return false;
         }
@@ -77,33 +77,33 @@ namespace
         {
             if (!cst.isAggregateArray())
                 return false;
-            return lowerAggregateArrayToBytesInternal(sema, cst.getAggregateArray(), dstType, dst, dstSize);
+            return lowerAggregateArrayToBytesInternal(sema, cst.getAggregateArray(), dstType, dst);
         }
 
         if (dstType.isBool())
         {
-            if (!cst.isBool() || dstSize != 1)
+            if (!cst.isBool() || dst.size() != 1)
                 return false;
             const uint8_t v = cst.getBool() ? 1 : 0;
-            std::memcpy(dst, &v, sizeof(v));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &v, sizeof(v));
             return true;
         }
 
         if (dstType.isChar())
         {
-            if (!cst.isChar() || dstSize != sizeof(char32_t))
+            if (!cst.isChar() || dst.size() != sizeof(char32_t))
                 return false;
             const char32_t v = cst.getChar();
-            std::memcpy(dst, &v, sizeof(v));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &v, sizeof(v));
             return true;
         }
 
         if (dstType.isRune())
         {
-            if (!cst.isRune() || dstSize != sizeof(char32_t))
+            if (!cst.isRune() || dst.size() != sizeof(char32_t))
                 return false;
             const char32_t v = cst.getRune();
-            std::memcpy(dst, &v, sizeof(v));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &v, sizeof(v));
             return true;
         }
 
@@ -112,9 +112,9 @@ namespace
             if (!cst.isInt())
                 return false;
             const uint64_t v = cst.getInt().as64();
-            if (dstSize > sizeof(v))
+            if (dst.size() > sizeof(v))
                 return false;
-            std::memcpy(dst, &v, static_cast<size_t>(dstSize));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &v, dst.size());
             return true;
         }
 
@@ -125,18 +125,18 @@ namespace
             if (dstType.payloadFloatBits() == 32)
             {
                 const float v = cst.getFloat().asFloat();
-                if (dstSize != sizeof(v))
+                if (dst.size() != sizeof(v))
                     return false;
-                std::memcpy(dst, &v, sizeof(v));
+                std::memcpy(const_cast<std::byte*>(dst.data()), &v, sizeof(v));
                 return true;
             }
 
             if (dstType.payloadFloatBits() == 64)
             {
                 const double v = cst.getFloat().asDouble();
-                if (dstSize != sizeof(v))
+                if (dst.size() != sizeof(v))
                     return false;
-                std::memcpy(dst, &v, sizeof(v));
+                std::memcpy(const_cast<std::byte*>(dst.data()), &v, sizeof(v));
                 return true;
             }
 
@@ -145,27 +145,27 @@ namespace
 
         if (dstType.isString())
         {
-            if (!cst.isString() || dstSize != sizeof(Runtime::String))
+            if (!cst.isString() || dst.size() != sizeof(Runtime::String))
                 return false;
             const std::string_view str = cst.getString();
             const Runtime::String  rt  = {.ptr = str.data(), .length = static_cast<uint64_t>(str.size())};
-            std::memcpy(dst, &rt, sizeof(rt));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &rt, sizeof(rt));
             return true;
         }
 
         if (dstType.isSlice())
         {
-            if (!cst.isSlice() || dstSize != sizeof(Runtime::Slice<uint8_t>))
+            if (!cst.isSlice() || dst.size() != sizeof(Runtime::Slice<uint8_t>))
                 return false;
             const ByteSpan       bytes = cst.getSlice();
             const Runtime::Slice rt    = {.ptr = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data())), .count = bytes.size()};
-            std::memcpy(dst, &rt, sizeof(rt));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &rt, sizeof(rt));
             return true;
         }
 
         if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString())
         {
-            if (dstSize != sizeof(uint64_t))
+            if (dst.size() != sizeof(uint64_t))
                 return false;
             uint64_t ptr = 0;
             if (cst.isNull())
@@ -176,7 +176,7 @@ namespace
                 ptr = cst.getBlockPointer();
             else
                 return false;
-            std::memcpy(dst, &ptr, sizeof(ptr));
+            std::memcpy(const_cast<std::byte*>(dst.data()), &ptr, sizeof(ptr));
             return true;
         }
 
@@ -351,17 +351,17 @@ Result ConstantOps::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t
     return Result::Continue;
 }
 
-bool ConstantOps::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, std::byte* dst, uint64_t dstSize)
+bool ConstantOps::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
 {
-    return lowerConstantToBytes(sema, cstRef, dstTypeRef, dst, dstSize);
+    return lowerConstantToBytes(sema, cstRef, dstTypeRef, dst);
 }
 
-bool ConstantOps::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
+bool ConstantOps::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
 {
-    return lowerAggregateArrayToBytesInternal(sema, values, dstType, dst, dstSize);
+    return lowerAggregateArrayToBytesInternal(sema, values, dstType, dst);
 }
 
-bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, std::byte* dst, uint64_t dstSize)
+bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
 {
     const auto& dstFields = dstType.payloadSymStruct().fields();
     size_t      valueIdx  = 0;
@@ -377,10 +377,10 @@ bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<Cons
         const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
         const uint64_t  fieldSize    = fieldType.sizeOf(sema.ctx());
         const uint64_t  fieldOffset  = field->offset();
-        if (fieldOffset + fieldSize > dstSize)
+        if (fieldOffset + fieldSize > dst.size())
             return false;
 
-        if (!lowerConstantToBytes(sema, values[valueIdx], fieldTypeRef, dst + fieldOffset, fieldSize))
+        if (!lowerConstantToBytes(sema, values[valueIdx], fieldTypeRef, ByteSpan{dst.data() + fieldOffset, fieldSize}))
             return false;
 
         ++valueIdx;

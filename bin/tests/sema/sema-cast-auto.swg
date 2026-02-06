@@ -35,14 +35,13 @@ func takes_s32(v: s32) {}
     #assert(s == 1)
 }
 
-/*
+
 #test
 {
     func ret_u64() -> u64 { return 42 }
-
     var x: s32 = ret_u64() // swc-expected-error {{sema_err_cannot_cast}}
     var y: s32 = cast() ret_u64()
-}*/
+}
 
 #test
 {

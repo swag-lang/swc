@@ -332,9 +332,10 @@ namespace
         if (from == to)
             return ConvRank::Exact;
 
-        CastKind  castKind = CastKind::Parameter;
-        CastFlags castFlags;
-        if (const auto* autoCast = sema.node(argRef).safeCast<AstAutoCastExpr>())
+        const SemaNodeView argNodeView(sema, argRef);
+        auto               castKind = CastKind::Parameter;
+        CastFlags          castFlags;
+        if (const auto* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
         {
             castKind = CastKind::Explicit;
             if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
@@ -345,6 +346,7 @@ namespace
 
         CastContext castCtx(castKind);
         castCtx.flags = castFlags;
+        castCtx.setConstantFoldingSrc(argNodeView.cstRef);
         if (isUfcsArgument)
             castCtx.flags.add(CastFlagsE::UfcsArgument);
         if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)

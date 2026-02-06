@@ -139,6 +139,8 @@ namespace
         const auto&     typeMgr = sema.typeMgr();
         const TypeInfo& srcType = typeMgr.get(srcTypeRef);
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+        const uint32_t  srcBits = srcType.payloadIntLikeBits();
+        const uint32_t  dstBits = dstType.payloadIntLikeBits();
 
         switch (castCtx.kind)
         {
@@ -166,6 +168,17 @@ namespace
             case CastKind::Parameter:
             case CastKind::Initialization:
             case CastKind::Assignment:
+                if (!castCtx.isConstantFolding())
+                {
+                    const bool srcUnsized = srcType.isIntUnsized();
+                    const bool dstUnsized = dstType.isIntUnsized();
+                    if (!srcUnsized && !dstUnsized && srcBits && dstBits && dstBits < srcBits)
+                    {
+                        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                        return Result::Error;
+                    }
+                }
+                break;
             case CastKind::Explicit:
                 break;
 

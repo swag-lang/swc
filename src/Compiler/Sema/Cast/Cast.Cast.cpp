@@ -955,8 +955,8 @@ namespace
             auto       isAutoName = [&](IdentifierRef name, size_t index) -> bool {
                 if (!name.isValid())
                     return true;
-                const Utf8 nameStr = sema.idMgr().get(name).name;
-                const Utf8 expected = "item" + std::to_string(index);
+                const std::string_view nameStr = sema.idMgr().get(name).name;
+                const std::string expected = "item" + std::to_string(index);
                 return nameStr == expected;
             };
 

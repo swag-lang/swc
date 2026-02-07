@@ -13,3 +13,6 @@ const v1 = {x: 10, y: 5, z: 2}
 #assert(v1.x == 10)
 #assert(v1.y == 5)
 #assert(v1.z == 2)
+
+const v2 = {10}
+#assert(v2.item0 == 10)

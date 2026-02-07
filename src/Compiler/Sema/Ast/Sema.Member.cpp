@@ -182,7 +182,12 @@ namespace
         }
 
         if (!found)
-            return SemaError::raise(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node->srcViewRef(), tokNameRef});
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node->srcViewRef(), tokNameRef});
+            diag.addArgument(Diagnostic::ARG_SYM, idRef);
+            diag.report(sema.ctx());
+            return Result::SkipChildren;
+        }
 
         const TypeRef memberTypeRef = types[memberIndex];
         sema.setType(sema.curNodeRef(), memberTypeRef);
@@ -235,7 +240,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Aggregate struct
     if (nodeLeftView.type->isAggregateStruct())
         return memberAggregateStruct(sema, this, nodeLeftView, idRef, tokNameRef, nodeLeftView.type);
-    
+
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
     if (typeInfo->isTypeValue())

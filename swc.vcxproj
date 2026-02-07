@@ -262,6 +262,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp" />
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp"/>

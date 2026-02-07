@@ -64,6 +64,16 @@ namespace
         const auto& fieldRefs = aggregate.fieldRefs;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
 
+        auto failAtField = [&](size_t fieldIndex, DiagnosticId id, std::string_view value = "") {
+            const AstNodeRef previousRef = ctx.castCtx->errorNodeRef;
+            const AstNodeRef fieldRef    = fieldRefs[fieldIndex];
+            if (fieldRef.isValid())
+                ctx.castCtx->errorNodeRef = fieldRef;
+            ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
+            ctx.castCtx->errorNodeRef = previousRef;
+            return Result::Error;
+        };
+
         if (srcTypes.size() > dstFields.size())
         {
             const std::string value = "src=" + std::to_string(srcTypes.size()) + " dst=" + std::to_string(dstFields.size());
@@ -75,17 +85,6 @@ namespace
         SWC_ASSERT(fieldRefs.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
         std::vector dstUsed(dstFields.size(), false);
-
-        auto failAtField = [&](size_t fieldIndex, DiagnosticId id, std::string_view value = "")
-        {
-            const AstNodeRef previousRef = ctx.castCtx->errorNodeRef;
-            const AstNodeRef fieldRef    = fieldRefs[fieldIndex];
-            if (fieldRef.isValid())
-                ctx.castCtx->errorNodeRef = fieldRef;
-            ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
-            ctx.castCtx->errorNodeRef = previousRef;
-            return Result::Error;
-        };
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
@@ -102,7 +101,7 @@ namespace
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                    return failAtField(i, DiagnosticId::sema_err_struct_cast_field_count, "index " + std::to_string(i));
+                    return failAtField(i, DiagnosticId::sema_err_struct_cast_field_count);
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
@@ -218,13 +217,13 @@ namespace
             const uint64_t  fieldOffset  = field->offset();
             if (fieldOffset + fieldSize > bytes.size())
             {
-                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, std::string(field->name(ctx.sema->ctx())) + " exceeds destination size");
+                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
                 return Result::Error;
             }
 
             if (!ConstantHelpers::lowerToBytes(*ctx.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
             {
-                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, std::string(field->name(ctx.sema->ctx())) + " cannot be lowered");
+                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
                 return Result::Error;
             }
         }

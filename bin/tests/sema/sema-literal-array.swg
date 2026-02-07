@@ -19,6 +19,11 @@ const A1: [5] s32 = [1, 2, 3, 4, 5]
 const Af: [2] f64 = [1.0'f64, 2.0]
 #assert(#typeof(Af) == #type [2] f64)
 
+const A2 = [1, true, 3]
+#assert(A2[0] == 1)
+#assert(A2[1] == true)
+#assert(A2[2] == 3)
+
 // -----------------------------------------------------------------------------
 // locals: inference from variables, and float/int mixing rules
 // -----------------------------------------------------------------------------

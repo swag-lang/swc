@@ -207,16 +207,9 @@ namespace
         sema.setIsValue(*node);
         sema.setIsValue(node->nodeRightRef);
 
-        if (nodeLeftView.cst && nodeLeftView.cst->isAggregateStruct())
-        {
-            const auto& values = nodeLeftView.cst->getAggregateStruct();
-            SWC_ASSERT(memberIndex < values.size());
-            sema.setConstant(sema.curNodeRef(), values[memberIndex]);
-            return Result::SkipChildren;
-        }
-
-        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || sema.isLValue(node->nodeLeftRef))
-            sema.setIsLValue(*node);
+        const auto& values = nodeLeftView.cst->getAggregateStruct();
+        SWC_ASSERT(memberIndex < values.size());
+        sema.setConstant(sema.curNodeRef(), values[memberIndex]);
         return Result::SkipChildren;
     }
 }

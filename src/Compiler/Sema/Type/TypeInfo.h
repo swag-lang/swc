@@ -157,13 +157,6 @@ public:
     bool isLambdaMethod() const noexcept;
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
-    struct AggregatePayload
-    {
-        std::vector<TypeRef>       types;
-        std::vector<IdentifierRef> names;
-        std::vector<AstNodeRef>    fieldRefs;
-    };
-
     Sign payloadIntSign() const noexcept
     {
         SWC_ASSERT(isInt());
@@ -242,7 +235,7 @@ public:
         return payloadArray_.typeRef;
     }
 
-    const AggregatePayload& payloadAggregate() const noexcept
+    const auto& payloadAggregate() const noexcept
     {
         SWC_ASSERT(isAggregate());
         return payloadAggregate_;
@@ -335,7 +328,12 @@ private:
             TypeRef               typeRef;
         } payloadArray_;
 
-        AggregatePayload payloadAggregate_;
+        struct
+        {
+            std::vector<TypeRef>       types;
+            std::vector<IdentifierRef> names;
+            std::vector<AstNodeRef>    fieldRefs;
+        } payloadAggregate_;
 
         struct
         {

@@ -311,15 +311,16 @@ public:
     CpuSymbol* getOrAddSymbol(const Utf8& name, CpuSymbolKind kind);
     void       addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
-    Store           concat;
-    BuildParameters buildParams;
-    Module*         module = nullptr;
-    CpuFunction*    cpuFct = nullptr;
+protected:
+    Store           store_;
+    BuildParameters buildParams_;
+    Module*         module_ = nullptr;
+    CpuFunction*    cpuFct_ = nullptr;
 
-    BuildCfgBackendOptim optLevel = BuildCfgBackendOptim::O0;
+    BuildCfgBackendOptim optLevel_ = BuildCfgBackendOptim::O0;
 
-    uint32_t symCsIndex        = 0;
-    uint32_t textSectionOffset = 0;
+    uint32_t symCsIndex_        = 0;
+    uint32_t textSectionOffset_ = 0;
 
 private:
     std::vector<CpuSymbol> symbols_;

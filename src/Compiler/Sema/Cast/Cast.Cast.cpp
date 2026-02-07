@@ -739,18 +739,9 @@ namespace
             return Result::Continue;
         }
 
-        if (srcType.isAggregate())
+        if (srcType.isAggregateArray())
         {
-            const auto& srcNames = srcType.payloadAggregateNames();
             const auto& srcTypes = srcType.payloadAggregateTypes();
-            SWC_ASSERT(srcNames.size() == srcTypes.size());
-
-            const bool isAggregateArray = std::ranges::all_of(srcNames, [](IdentifierRef idRef) { return !idRef.isValid(); });
-            if (!isAggregateArray)
-            {
-                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                return Result::Error;
-            }
 
             uint64_t totalCount = 1;
             for (const auto dim : dstDims)
@@ -814,6 +805,12 @@ namespace
             }
 
             return Result::Continue;
+        }
+        
+        if (srcType.isAggregateStruct())
+        {
+            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return Result::Error;
         }
 
         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

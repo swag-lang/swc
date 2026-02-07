@@ -40,7 +40,8 @@ enum class TypeInfoKind : uint8_t
     Reference,
     Slice,
     Array,
-    Aggregate,
+    AggregateStruct,
+    AggregateArray,
     Struct,
     Interface,
     Alias,
@@ -99,7 +100,8 @@ public:
     void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
-    bool          isAggregateStruct() const noexcept { return isAggregate(); }
+    bool          isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
+    bool          isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
 
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
@@ -122,7 +124,7 @@ public:
     bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
-    bool isAggregate() const noexcept { return kind_ == TypeInfoKind::Aggregate; }
+    bool isAggregate() const noexcept { return isAggregateStruct() || isAggregateArray(); }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
     bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
@@ -235,13 +237,13 @@ public:
     const std::vector<TypeRef>& payloadAggregateTypes() const noexcept
     {
         SWC_ASSERT(isAggregate());
-        return payloadAggregate_.types;
+        return isAggregateStruct() ? payloadAggregateStruct_.types : payloadAggregateArray_.types;
     }
 
     const std::vector<IdentifierRef>& payloadAggregateNames() const noexcept
     {
-        SWC_ASSERT(isAggregate());
-        return payloadAggregate_.names;
+        SWC_ASSERT(isAggregateStruct());
+        return payloadAggregateStruct_.names;
     }
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
@@ -268,7 +270,8 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregate(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types);
+    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types);
+    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
@@ -334,7 +337,12 @@ private:
         {
             std::vector<TypeRef>       types;
             std::vector<IdentifierRef> names;
-        } payloadAggregate_;
+        } payloadAggregateStruct_;
+
+        struct
+        {
+            std::vector<TypeRef> types;
+        } payloadAggregateArray_;
 
         struct
         {

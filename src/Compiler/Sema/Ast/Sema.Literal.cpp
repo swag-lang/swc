@@ -495,7 +495,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberNames, memberTypes));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 
@@ -511,13 +511,11 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     if (elements.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
-    bool    allConstant    = true;
+    bool                     allConstant = true;
     SmallVector<ConstantRef> values;
     SmallVector<TypeRef>     elemTypes;
-    SmallVector<IdentifierRef> elemNames;
     values.reserve(elements.size());
     elemTypes.reserve(elements.size());
-    elemNames.reserve(elements.size());
 
     for (const auto& child : elements)
     {
@@ -525,11 +523,10 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         SWC_ASSERT(nodeView.typeRef.isValid());
         values.push_back(nodeView.cstRef);
         elemTypes.push_back(nodeView.typeRef);
-        elemNames.push_back(IdentifierRef::invalid());
         allConstant = allConstant && nodeView.cstRef.isValid();
     }
 
-    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(elemNames, elemTypes));
+    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
 
     if (allConstant)
     {

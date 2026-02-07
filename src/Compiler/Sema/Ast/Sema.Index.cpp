@@ -45,14 +45,6 @@ namespace
         return Result::Continue;
     }
 
-    bool isAggregateArrayType(const TypeInfo& typeInfo)
-    {
-        if (!typeInfo.isAggregate())
-            return false;
-
-        const auto& names = typeInfo.payloadAggregateNames();
-        return std::ranges::all_of(names, [](IdentifierRef idRef) { return !idRef.isValid(); });
-    }
 }
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
@@ -64,7 +56,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     bool    hasConstIndex = false;
     RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
 
-    if (nodeExprView.type->isAggregate() && isAggregateArrayType(*nodeExprView.type))
+    if (nodeExprView.type->isAggregateArray())
     {
         if (!hasConstIndex)
             return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);

@@ -226,7 +226,7 @@ namespace
     }
 }
 
-Result castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);

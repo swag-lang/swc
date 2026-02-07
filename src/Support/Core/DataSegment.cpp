@@ -5,18 +5,18 @@ SWC_BEGIN_NAMESPACE();
 
 std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value)
 {
-    std::unique_lock lock(mutex_);
-    return store_.pushCopySpan(value);
+    std::unique_lock lock(mutex);
+    return store.pushCopySpan(value);
 }
 
 std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 {
-    std::unique_lock lock(mutex_);
-    if (const auto it = mapString_.find(value); it != mapString_.end())
+    std::unique_lock lock(mutex);
+    if (const auto it = stringMap.find(value); it != stringMap.end())
         return it->second;
-    const auto [span, ref]      = store_.pushCopySpan(asByteSpan(std::string_view(value)));
+    const auto [span, ref]      = store.pushCopySpan(asByteSpan(std::string_view(value)));
     const std::string_view view = asStringView(span);
-    mapString_[value]           = {view, ref};
+    stringMap[value]            = {view, ref};
     return {view, ref};
 }
 
@@ -33,8 +33,8 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
-    std::unique_lock lock(mutex_);
-    relocations_.push_back({.offset = offset, .targetOffset = targetOffset});
+    std::unique_lock lock(mutex);
+    relocations.push_back({.offset = offset, .targetOffset = targetOffset});
 }
 
 SWC_END_NAMESPACE();

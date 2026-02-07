@@ -24,14 +24,14 @@ public:
     Store(Store&& other) noexcept;
     Store& operator=(Store&& other) noexcept;
 
-    uint32_t pageSize() const noexcept { return pageSize_; }
+    uint32_t pageSize() const noexcept { return pageSizeValue; }
 
     void clear() noexcept;
 
     // payload bytes (clamped to 32 bits to match the previous signature)
     uint32_t size() const noexcept;
 
-    uint8_t* seekPtr() const noexcept { return last_ptr_; }
+    uint8_t* seekPtr() const noexcept { return lastPtr; }
 
     template<class T>
     Ref pushBack(const T& v)
@@ -47,8 +47,8 @@ public:
         auto [ref, p] = emplaceUninit<T>();
         (void) ref;
         *p        = v;
-        last_ptr_ = reinterpret_cast<uint8_t*>(p) + sizeof(T);
-        return last_ptr_;
+        lastPtr = reinterpret_cast<uint8_t*>(p) + sizeof(T);
+        return lastPtr;
     }
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
@@ -77,13 +77,13 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        return ptrImpl<T>(pages_, pageSize_, ref);
+        return ptrImpl<T>(pagesStorage, pageSizeValue, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        return ptrImpl<T>(pages_, pageSize_, ref);
+        return ptrImpl<T>(pagesStorage, pageSizeValue, ref);
     }
 
     template<class T>
@@ -113,10 +113,10 @@ public:
     // Span view over stored data (type-erased; elements described by size+alignment).
     class SpanView
     {
-        const Store* store_     = nullptr;
-        Ref          head_      = std::numeric_limits<Ref>::max();
-        uint32_t     elemSize_  = 0;
-        uint32_t     elemAlign_ = 0;
+        const Store* store        = nullptr;
+        Ref          head         = std::numeric_limits<Ref>::max();
+        uint32_t     elementSize  = 0;
+        uint32_t     elementAlign = 0;
 
         static void        decodeRef(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
         static uint32_t    dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
@@ -130,9 +130,9 @@ public:
 
         uint32_t size() const;
         bool     empty() const { return size() == 0; }
-        Ref      ref() const { return head_; }
-        uint32_t elemSize() const { return elemSize_; }
-        uint32_t elemAlign() const { return elemAlign_; }
+        Ref      ref() const { return head; }
+        uint32_t elemSize() const { return elementSize; }
+        uint32_t elemAlign() const { return elementAlign; }
 
         struct Chunk
         {
@@ -197,16 +197,16 @@ private:
         uint32_t total;
     };
 
-    std::vector<std::unique_ptr<Page>> pages_;
+    std::vector<std::unique_ptr<Page>> pagesStorage;
 
-    uint64_t totalBytes_ = 0;
-    uint32_t pageSize_   = K_DEFAULT_PAGE_SIZE;
-    Page*    cur_        = nullptr;
-    uint32_t curIndex_   = 0;
-    uint8_t* last_ptr_   = nullptr;
+    uint64_t totalBytes   = 0;
+    uint32_t pageSizeValue = K_DEFAULT_PAGE_SIZE;
+    Page*    curPage       = nullptr;
+    uint32_t curPageIndex  = 0;
+    uint8_t* lastPtr       = nullptr;
 
     Page*                                     newPage();
-    const std::vector<std::unique_ptr<Page>>& pages() const { return pages_; }
+    const std::vector<std::unique_ptr<Page>>& pages() const { return pagesStorage; }
     static Ref                                makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
     static void                               decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
     std::pair<Ref, void*>                     allocate(uint32_t size, uint32_t align);

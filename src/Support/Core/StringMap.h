@@ -20,31 +20,31 @@ public:
 
     StringMap()
     {
-        rehash_(INIT_CAP);
+        rehash(INIT_CAP);
     }
 
     explicit StringMap(size_t reserve_elems)
     {
-        const size_t cap = next_pow2_(static_cast<size_t>(static_cast<double>(reserve_elems) / MAX_LOAD) + 1);
-        rehash_(cap < 2 ? 2 : cap);
+        const size_t cap = nextPow2(static_cast<size_t>(static_cast<double>(reserve_elems) / MAX_LOAD) + 1);
+        rehash(cap < 2 ? 2 : cap);
     }
 
     // Insert-or-assign with precomputed hash. Returns {ptr, inserted?}.
     std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, const T& value)
     {
-        return upsert_h_(key, hash, [&](T& dst) { dst = value; }, [&](T& dst) { dst = value; });
+        return upsertHashed(key, hash, [&](T& dst) { dst = value; }, [&](T& dst) { dst = value; });
     }
 
     std::pair<T*, bool> insert_or_assign(std::string_view key, uint32_t hash, T&& value)
     {
-        return upsert_h_(key, hash, [&](T& dst) { dst = std::move(value); }, [&](T& dst) { dst = std::move(value); });
+        return upsertHashed(key, hash, [&](T& dst) { dst = std::move(value); }, [&](T& dst) { dst = std::move(value); });
     }
 
     // Try-emplace with precomputed hash. (Construct only if missing.)
     template<class... Args>
     std::pair<T*, bool> try_emplace(std::string_view key, uint32_t hash, Args&&... args)
     {
-        return upsert_h_(key, hash, [&](T& dst) { dst = T(std::forward<Args>(args)...); }, [&](T&) {});
+        return upsertHashed(key, hash, [&](T& dst) { dst = T(std::forward<Args>(args)...); }, [&](T&) {});
     }
 
     // Get existing or create default-constructed (zero-initialized) if missing.
@@ -62,12 +62,12 @@ public:
     // Find with precomputed hash.
     T* find(std::string_view key, uint32_t hash)
     {
-        return find_impl_(key, hash);
+        return findImpl(key, hash);
     }
 
     const T* find(std::string_view key, uint32_t hash) const
     {
-        return const_cast<StringMap*>(this)->find_impl_(key, hash);
+        return const_cast<StringMap*>(this)->findImpl(key, hash);
     }
 
     bool contains(std::string_view key, uint32_t hash) const
@@ -79,18 +79,18 @@ public:
     {
         const size_t need_cap = static_cast<size_t>(static_cast<double>(n_elems) / MAX_LOAD) + 1;
         if (need_cap > capacity())
-            rehash_(next_pow2_(need_cap));
+            rehash(nextPow2(need_cap));
     }
 
     void clear()
     {
-        std::ranges::fill(ctrl_, EMPTY);
-        size_ = 0;
+        std::ranges::fill(ctrl, EMPTY);
+        sizeValue = 0;
     }
 
-    size_t size() const noexcept { return size_; }
-    size_t capacity() const noexcept { return slots_.size(); }
-    bool   empty() const noexcept { return size_ == 0; }
+    size_t size() const noexcept { return sizeValue; }
+    size_t capacity() const noexcept { return slots.size(); }
+    bool   empty() const noexcept { return sizeValue == 0; }
 
 private:
     // Control bytes mirror Abseil/Swiss-table style filtering:
@@ -105,23 +105,23 @@ private:
     struct Slot
     {
         uint16_t         dist = 0; // probe distance (Robin Hood)
-        uint16_t         _pad = 0;
+        uint16_t         pad  = 0;
         uint32_t         hash = 0; // 32-bit hash
         std::string_view key{};
         T                value{}; // POD value; uninitialized bits OK for EMPTY/TOMB
     };
 
-    std::vector<uint8_t> ctrl_;  // control bytes
-    std::vector<Slot>    slots_; // slots
-    size_t               mask_ = 0;
-    size_t               size_ = 0;
+    std::vector<uint8_t> ctrl;  // control bytes
+    std::vector<Slot>    slots; // slots
+    size_t               mask     = 0;
+    size_t               sizeValue = 0;
 
-    static constexpr bool is_occupied_(uint8_t c) noexcept
+    static constexpr bool isOccupied(uint8_t c) noexcept
     {
         return c != EMPTY && c != TOMB;
     }
 
-    static uint8_t fingerprint_(uint32_t h) noexcept
+    static uint8_t fingerprint(uint32_t h) noexcept
     {
         uint8_t fp = static_cast<uint8_t>((h >> 24) | 1u); // ensure non-zero, top 8 bits of 32-bit hash
         if (fp == EMPTY || fp == TOMB)
@@ -129,7 +129,7 @@ private:
         return fp;
     }
 
-    static size_t next_pow2_(size_t x)
+    static size_t nextPow2(size_t x)
     {
         if (x < 2)
             return 2;
@@ -139,89 +139,89 @@ private:
         return x + 1;
     }
 
-    void rehash_(size_t new_cap_pow2)
+    void rehash(size_t newCapPow2)
     {
-        new_cap_pow2 = next_pow2_(new_cap_pow2);
-        std::vector       new_ctrl(new_cap_pow2, EMPTY);
-        std::vector<Slot> new_slots(new_cap_pow2);
-        const size_t      new_mask = new_cap_pow2 - 1;
+        newCapPow2 = nextPow2(newCapPow2);
+        std::vector       newCtrl(newCapPow2, EMPTY);
+        std::vector<Slot> newSlots(newCapPow2);
+        const size_t      newMask = newCapPow2 - 1;
 
         // Move entries
-        for (size_t i = 0; i < slots_.size(); ++i)
+        for (size_t i = 0; i < slots.size(); ++i)
         {
-            if (!is_occupied_(ctrl_[i]))
+            if (!isOccupied(ctrl[i]))
                 continue;
 
             Slot moving;
-            moving.hash  = slots_[i].hash;
-            moving.key   = slots_[i].key;
-            moving.value = std::move(slots_[i].value);
+            moving.hash  = slots[i].hash;
+            moving.key   = slots[i].key;
+            moving.value = std::move(slots[i].value);
             moving.dist  = 0;
 
-            uint8_t  fp   = fingerprint_(moving.hash);
-            size_t   idx  = static_cast<size_t>(moving.hash) & new_mask;
+            uint8_t  fp   = fingerprint(moving.hash);
+            size_t   idx  = static_cast<size_t>(moving.hash) & newMask;
             uint16_t dist = 0;
 
             while (true)
             {
-                if (!is_occupied_(new_ctrl[idx]))
+                if (!isOccupied(newCtrl[idx]))
                 {
-                    new_ctrl[idx]  = fp;
+                    newCtrl[idx]  = fp;
                     moving.dist    = dist;
-                    new_slots[idx] = std::move(moving);
+                    newSlots[idx] = std::move(moving);
                     break;
                 }
-                if (new_slots[idx].dist < dist)
+                if (newSlots[idx].dist < dist)
                 {
-                    std::swap(new_ctrl[idx], fp);
+                    std::swap(newCtrl[idx], fp);
                     moving.dist = dist;
-                    std::swap(new_slots[idx], moving);
+                    std::swap(newSlots[idx], moving);
                     dist = moving.dist;
                 }
                 ++dist;
-                idx = (idx + 1) & new_mask;
+                idx = (idx + 1) & newMask;
             }
         }
 
-        ctrl_.swap(new_ctrl);
-        slots_.swap(new_slots);
-        mask_ = new_mask;
+        ctrl.swap(newCtrl);
+        slots.swap(newSlots);
+        mask = newMask;
     }
 
     template<class FInsert, class FFound>
-    std::pair<T*, bool> upsert_h_(std::string_view key, uint32_t hash, FInsert on_insert, FFound on_found)
+    std::pair<T*, bool> upsertHashed(std::string_view key, uint32_t hash, FInsert on_insert, FFound on_found)
     {
-        if (static_cast<double>(size_ + 1) > MAX_LOAD * static_cast<double>(capacity()))
-            rehash_(capacity() ? capacity() * 2 : INIT_CAP);
+        if (static_cast<double>(sizeValue + 1) > MAX_LOAD * static_cast<double>(capacity()))
+            rehash(capacity() ? capacity() * 2 : INIT_CAP);
 
-        const uint8_t fp         = fingerprint_(hash);
-        size_t        idx        = hash & mask_;
+        const uint8_t fp         = fingerprint(hash);
+        size_t        idx        = hash & mask;
         uint16_t      dist       = 0;
         size_t        first_tomb = INVALID_POS;
 
         while (true)
         {
-            const uint8_t c = ctrl_[idx];
+            const uint8_t c = ctrl[idx];
 
             if (c == EMPTY)
             {
                 size_t target = (first_tomb != INVALID_POS) ? first_tomb : idx;
-                ctrl_[target] = fp;
-                Slot& s       = slots_[target];
+                ctrl[target] = fp;
+                Slot& s       = slots[target];
                 s.hash        = hash;
                 s.key         = key;
                 s.dist        = dist;
                 on_insert(s.value);
-                ++size_;
+                ++sizeValue;
                 return {&s.value, true};
             }
 
             if (c == TOMB && first_tomb == INVALID_POS)
                 first_tomb = idx;
 
-            if (is_occupied_(c))
+            if (isOccupied(c))
             {
-                Slot& s = slots_[idx];
+                Slot& s = slots[idx];
 
                 // Equality check (FOUND)
                 if (c == fp && s.hash == hash && s.key == key)
@@ -244,105 +244,105 @@ private:
                     // If using a tombstone target, place it there first.
                     if (target != idx)
                     {
-                        ctrl_[target]  = fp;
-                        slots_[target] = std::move(moving);
+                        ctrl[target]  = fp;
+                        slots[target] = std::move(moving);
 
                         // Continue by inserting displaced resident
-                        Slot    carry    = std::move(slots_[idx]);
+                        Slot    carry    = std::move(slots[idx]);
                         uint8_t carry_fp = c;
-                        ctrl_[idx]       = TOMB;
+                        ctrl[idx]        = TOMB;
 
-                        const size_t base  = carry.hash & mask_;
-                        size_t       ins   = (target + 1) & mask_;
+                        const size_t base  = carry.hash & mask;
+                        size_t       ins   = (target + 1) & mask;
                         uint16_t     idist = static_cast<uint16_t>(((target >= base) ? (target - base) : (target + capacity() - base)) + 1);
 
                         while (true)
                         {
-                            const uint8_t cc = ctrl_[ins];
+                            const uint8_t cc = ctrl[ins];
                             if (cc == EMPTY || cc == TOMB)
                             {
-                                ctrl_[ins]  = carry_fp;
+                                ctrl[ins]  = carry_fp;
                                 carry.dist  = idist;
-                                slots_[ins] = std::move(carry);
+                                slots[ins] = std::move(carry);
                                 if (cc == EMPTY)
-                                    ++size_;
-                                return {&slots_[target].value, true};
+                                    ++sizeValue;
+                                return {&slots[target].value, true};
                             }
 
-                            if (slots_[ins].dist < idist)
+                            if (slots[ins].dist < idist)
                             {
                                 carry.dist = idist;
-                                std::swap(ctrl_[ins], carry_fp);
-                                std::swap(slots_[ins], carry);
+                                std::swap(ctrl[ins], carry_fp);
+                                std::swap(slots[ins], carry);
                                 idist = carry.dist;
                             }
                             ++idist;
-                            ins = (ins + 1) & mask_;
+                            ins = (ins + 1) & mask;
                         }
                     }
 
                     // Swap with resident at idx
                     uint8_t new_fp = fp;
-                    std::swap(ctrl_[idx], new_fp);
+                    std::swap(ctrl[idx], new_fp);
 
-                    Slot carry       = std::move(slots_[idx]);
-                    slots_[idx].hash = hash;
-                    slots_[idx].key  = key;
-                    slots_[idx].dist = dist;
-                    on_insert(slots_[idx].value);
+                    Slot carry      = std::move(slots[idx]);
+                    slots[idx].hash = hash;
+                    slots[idx].key  = key;
+                    slots[idx].dist = dist;
+                    on_insert(slots[idx].value);
 
-                    size_t   ins   = (idx + 1) & mask_;
+                    size_t   ins   = (idx + 1) & mask;
                     uint16_t idist = static_cast<uint16_t>(carry.dist + 1);
 
                     while (true)
                     {
-                        const uint8_t cc = ctrl_[ins];
+                        const uint8_t cc = ctrl[ins];
                         if (cc == EMPTY || cc == TOMB)
                         {
-                            ctrl_[ins]  = new_fp;
+                            ctrl[ins]  = new_fp;
                             carry.dist  = idist;
-                            slots_[ins] = std::move(carry);
+                            slots[ins] = std::move(carry);
                             if (cc == EMPTY)
-                                ++size_;
-                            return {&slots_[idx].value, true};
+                                ++sizeValue;
+                            return {&slots[idx].value, true};
                         }
 
-                        if (slots_[ins].dist < idist)
+                        if (slots[ins].dist < idist)
                         {
                             carry.dist = idist;
-                            std::swap(ctrl_[ins], new_fp);
-                            std::swap(slots_[ins], carry);
+                            std::swap(ctrl[ins], new_fp);
+                            std::swap(slots[ins], carry);
                             idist = carry.dist;
                         }
 
                         ++idist;
-                        ins = (ins + 1) & mask_;
+                        ins = (ins + 1) & mask;
                     }
                 }
             }
 
             ++dist;
-            idx = (idx + 1) & mask_;
+            idx = (idx + 1) & mask;
         }
     }
 
-    bool find_index_(std::string_view key, uint32_t hash, size_t& out_idx)
+    bool findIndex(std::string_view key, uint32_t hash, size_t& out_idx)
     {
-        if (slots_.empty())
+        if (slots.empty())
             return false;
 
-        const uint8_t fp   = fingerprint_(hash);
-        size_t        idx  = hash & mask_;
+        const uint8_t fp   = fingerprint(hash);
+        size_t        idx  = hash & mask;
         uint16_t      dist = 0;
 
         while (true)
         {
-            const uint8_t c = ctrl_[idx];
+            const uint8_t c = ctrl[idx];
             if (c == EMPTY)
                 return false;
-            if (is_occupied_(c))
+            if (isOccupied(c))
             {
-                Slot& s = slots_[idx];
+                Slot& s = slots[idx];
 
                 if (c == fp && s.hash == hash && s.key == key)
                 {
@@ -355,16 +355,16 @@ private:
             }
 
             ++dist;
-            idx = (idx + 1) & mask_;
+            idx = (idx + 1) & mask;
         }
     }
 
-    T* find_impl_(std::string_view key, uint32_t hash)
+    T* findImpl(std::string_view key, uint32_t hash)
     {
         size_t idx;
-        if (!find_index_(key, hash, idx))
+        if (!findIndex(key, hash, idx))
             return nullptr;
-        return &slots_[idx].value;
+        return &slots[idx].value;
     }
 
     static constexpr size_t INVALID_POS = static_cast<size_t>(-1);

@@ -111,7 +111,7 @@ public:
         if (this == &other)
             return *this;
 
-        clearHeapIfNeeded(); // frees heap if we own it
+        clearHeapIfNeeded();
 
         if (other.isInline())
         {

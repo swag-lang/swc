@@ -14,9 +14,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst);
+    bool lowerConstantToBytes(Sema& sema, ByteSpan dst, TypeRef dstTypeRef, ConstantRef cstRef);
 
-    bool lowerAggregateArrayToBytesInternal(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
+    bool lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpan dst, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
         auto&           ctx         = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
@@ -34,14 +34,14 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            if (!lowerConstantToBytes(sema, values[i], elemTypeRef, ByteSpan{dst.data() + (i * elemSize), elemSize}))
+            if (!lowerConstantToBytes(sema, ByteSpan{dst.data() + (i * elemSize), elemSize}, elemTypeRef, values[i]))
                 return false;
         }
 
         return true;
     }
 
-    bool lowerConstantToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
+    bool lowerConstantToBytes(Sema& sema, ByteSpan dst, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst     = sema.cstMgr().get(cstRef);
         const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
@@ -52,7 +52,7 @@ namespace
             ConstantRef   enumValueRef      = cstRef;
             if (cst.isEnumValue())
                 enumValueRef = cst.getEnumValue();
-            return lowerConstantToBytes(sema, enumValueRef, underlyingTypeRef, dst);
+            return lowerConstantToBytes(sema, dst, underlyingTypeRef, enumValueRef);
         }
 
         if (dstType.isStruct())
@@ -68,7 +68,7 @@ namespace
             }
 
             if (cst.isAggregateStruct())
-                return ConstantHelpers::lowerAggregateStructToBytes(sema, cst.getAggregateStruct(), dstType, dst);
+                return ConstantHelpers::lowerAggregateStructToBytes(sema, dst, dstType, cst.getAggregateStruct());
 
             return false;
         }
@@ -77,7 +77,7 @@ namespace
         {
             if (!cst.isAggregateArray())
                 return false;
-            return lowerAggregateArrayToBytesInternal(sema, cst.getAggregateArray(), dstType, dst);
+            return lowerAggregateArrayToBytesInternal(sema, dst, dstType, cst.getAggregateArray());
         }
 
         if (dstType.isBool())
@@ -351,17 +351,17 @@ Result ConstantHelpers::extractAtIndex(Sema& sema, const ConstantValue& cst, int
     return Result::Continue;
 }
 
-bool ConstantHelpers::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
+bool ConstantHelpers::lowerToBytes(Sema& sema, ByteSpan dst, ConstantRef cstRef, TypeRef dstTypeRef)
 {
-    return lowerConstantToBytes(sema, cstRef, dstTypeRef, dst);
+    return lowerConstantToBytes(sema, dst, dstTypeRef, cstRef);
 }
 
-bool ConstantHelpers::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
+bool ConstantHelpers::lowerAggregateArrayToBytes(Sema& sema, ByteSpan dst, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
-    return lowerAggregateArrayToBytesInternal(sema, values, dstType, dst);
+    return lowerAggregateArrayToBytesInternal(sema, dst, dstType, values);
 }
 
-bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
+bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, ByteSpan dst, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
     const auto& dstFields = dstType.payloadSymStruct().fields();
     size_t      valueIdx  = 0;
@@ -380,7 +380,7 @@ bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, const std::vector<
         if (fieldOffset + fieldSize > dst.size())
             return false;
 
-        if (!lowerConstantToBytes(sema, values[valueIdx], fieldTypeRef, ByteSpan{dst.data() + fieldOffset, fieldSize}))
+        if (!lowerConstantToBytes(sema, ByteSpan{dst.data() + fieldOffset, fieldSize}, fieldTypeRef, values[valueIdx]))
             return false;
 
         ++valueIdx;

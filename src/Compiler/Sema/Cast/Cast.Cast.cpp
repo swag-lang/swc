@@ -914,7 +914,7 @@ namespace
                     if (structSize)
                         std::ranges::fill(buffer, std::byte{0});
 
-                    const bool ok = ConstantHelpers::lowerAggregateStructToBytes(sema, newValues, dstType, ByteSpan{buffer.data(), buffer.size()});
+                    const bool ok = ConstantHelpers::lowerAggregateStructToBytes(sema, ByteSpan{buffer.data(), buffer.size()}, dstType, newValues);
                     if (!ok)
                     {
                         castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

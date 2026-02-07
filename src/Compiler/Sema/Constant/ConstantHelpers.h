@@ -11,9 +11,9 @@ namespace ConstantHelpers
 {
     Result      extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef);
     Result      extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef);
-    bool        lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst);
-    bool        lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst);
-    bool        lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst);
+    bool        lowerToBytes(Sema& sema, ByteSpan dst, ConstantRef cstRef, TypeRef dstTypeRef);
+    bool        lowerAggregateArrayToBytes(Sema& sema, ByteSpan dst, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
+    bool        lowerAggregateStructToBytes(Sema& sema, ByteSpan dst, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
 }
 

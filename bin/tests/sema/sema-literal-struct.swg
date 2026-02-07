@@ -45,5 +45,10 @@ struct W {x, y, z: s32}
 
 #test
 {
-    const w: W = {x: 1, q: 2, z: 3} // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
+    const w: W = {x: 1, q: 2, z: 3} // swc-expected-error {{sema_err_missing_struct_member}}
+}
+
+#test
+{
+    const w: W = {x: 1, x: 2, z: 3} // swc-expected-error {{sema_err_cannot_cast}}
 }

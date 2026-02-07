@@ -125,7 +125,7 @@ namespace
             }
 
             if (!found)
-                return failAtField(i, DiagnosticId::sema_err_auto_scope_missing_struct_member, ctx.sema->idMgr().get(name).name);
+                return failAtField(i, DiagnosticId::sema_err_missing_struct_member, ctx.sema->idMgr().get(name).name);
 
             if (dstUsed[dstIndex])
                 return failAtField(i, DiagnosticId::sema_err_cannot_cast);

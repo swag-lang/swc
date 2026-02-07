@@ -36,7 +36,7 @@ namespace
 
     Result failStructField(const CastStructContext& ctx, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
     {
-        const auto&    fieldRefs   = ctx.srcType->payloadAggregate().fieldRefs;
+        const auto&      fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
         const AstNodeRef previous  = ctx.castCtx->errorNodeRef;
         const AstNodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
@@ -48,7 +48,7 @@ namespace
 
     Result failStructFieldCountAt(const CastStructContext& ctx, size_t fieldIndex, size_t srcCount, size_t dstCount)
     {
-        const auto&    fieldRefs   = ctx.srcType->payloadAggregate().fieldRefs;
+        const auto&      fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
         const AstNodeRef previous  = ctx.castCtx->errorNodeRef;
         const AstNodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
@@ -153,9 +153,7 @@ namespace
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                {
                     return failStructFieldCountAt(ctx, i, srcTypes.size(), dstFields.size());
-                }
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
@@ -181,7 +179,6 @@ namespace
 
             if (!found)
                 return failStructField(ctx, i, DiagnosticId::sema_err_missing_struct_member, ctx.sema->idMgr().get(name).name);
-
             if (dstUsed[dstIndex])
                 return failStructField(ctx, i, DiagnosticId::sema_err_struct_cast_duplicate_field, ctx.sema->idMgr().get(name).name);
 
@@ -216,7 +213,7 @@ namespace
         for (size_t i = 0; i < values.size(); ++i)
         {
             const size_t dstIndex = srcToDst[i];
-            ConstantRef castedRef;
+            ConstantRef  castedRef;
             RESULT_VERIFY(foldElemCast(ctx, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i], values[i], castedRef));
             castedByDst[dstIndex] = castedRef;
         }

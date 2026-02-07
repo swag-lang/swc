@@ -33,10 +33,13 @@
 // ReSharper disable CppInconsistentNaming
 namespace fs = std::filesystem;
 
-// clang-format off
-#define SWC_BEGIN_NAMESPACE(); namespace swc {
-#define SWC_END_NAMESPACE(); }
-// clang-format on
+#define SWC_BEGIN_NAMESPACE() \
+    ;                         \
+    namespace swc             \
+    {
+#define SWC_END_NAMESPACE() \
+    ;                       \
+    }
 
 #ifdef SWC_DEV_MODE
 #define SWC_FORCE_STATS

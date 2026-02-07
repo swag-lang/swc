@@ -7,17 +7,47 @@ SWC_BEGIN_NAMESPACE();
 class Utf8 : public std::string
 {
 public:
-    // clang-format off
     Utf8() = default;
-    Utf8(const char* from) : std::string(from){}
-    Utf8(const char* from, size_t count) : std::string(from, count){}
-    Utf8(uint32_t count, char c) : std::string(count, c) {}
-    Utf8(const Utf8& other) : std::string(other) {}
-    Utf8(Utf8&& other) noexcept : std::string(other) {}
-    Utf8(std::string&& other) : std::string(std::move(other)) {}
-    Utf8(const std::string_view& other) : std::string(other) {}
-    Utf8(char32_t c) { push_back_uni(c); }
-    // clang-format on
+
+    Utf8(const char* from) :
+        std::string(from)
+    {
+    }
+
+    Utf8(const char* from, size_t count) :
+        std::string(from, count)
+    {
+    }
+
+    Utf8(uint32_t count, char c) :
+        std::string(count, c)
+    {
+    }
+
+    Utf8(const Utf8& other) :
+        std::string(other)
+    {
+    }
+
+    Utf8(Utf8&& other) noexcept :
+        std::string(other)
+    {
+    }
+
+    Utf8(std::string&& other) :
+        std::string(std::move(other))
+    {
+    }
+
+    Utf8(const std::string_view& other) :
+        std::string(other)
+    {
+    }
+
+    Utf8(char32_t c)
+    {
+        push_back_uni(c);
+    }
 
     Utf8& operator=(const Utf8& other)
     {

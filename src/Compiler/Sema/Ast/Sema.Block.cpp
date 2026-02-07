@@ -119,4 +119,10 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstNamedArgument::semaPostNode(Sema& sema)
+{
+    sema.inheritSema(*this, nodeArgRef);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

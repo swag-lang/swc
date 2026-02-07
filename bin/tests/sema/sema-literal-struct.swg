@@ -9,7 +9,7 @@ const v: V = {10, 5, 2}
 #assert(v.z == 2)
 #assert(#typeof(v) == V)
 
-const v1 = {10, 5, 2}
+const v1 = {x: 10, 5, 2}
 /*#assert(v1.x == 10)
 #assert(v1.y == 5)
 #assert(v1.z == 2)*/

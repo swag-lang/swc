@@ -465,7 +465,8 @@ struct AstNamedArgument : AstNodeT<AstNodeId::NamedArgument>
 {
     AstNodeRef nodeArgRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------

@@ -459,13 +459,13 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
 
-    std::vector<TypeRef>       memberTypes;
-    std::vector<IdentifierRef> memberNames;
+    SmallVector<TypeRef>       memberTypes;
+    SmallVector<IdentifierRef> memberNames;
     memberTypes.reserve(children.size());
     memberNames.reserve(children.size());
 
     bool                     allConstant = true;
-    std::vector<ConstantRef> values;
+    SmallVector<ConstantRef> values;
     values.reserve(children.size());
 
     for (const AstNodeRef& child : children)

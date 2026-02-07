@@ -49,8 +49,8 @@ public:
         SmallVector(a)
     {
         reserve(il.size());
-        for (const auto& v : il)
-            emplace_back(v);
+        uninitializedCopyN(il.begin(), il.size(), ptr_);
+        sizeValue_ = il.size();
     }
 
     SmallVector(const SmallVector& other) :
@@ -268,7 +268,7 @@ public:
 
     void pop_back()
     {
-        assert(sizeValue > 0);
+        assert(sizeValue_ > 0);
         std::destroy_at(ptr_ + sizeValue_ - 1);
         --sizeValue_;
     }
@@ -311,7 +311,8 @@ public:
 
         if (idx == sizeValue_)
         {
-            emplace_back(std::forward<Args>(args)...);
+            std::construct_at(ptr_ + sizeValue_, std::forward<Args>(args)...);
+            ++sizeValue_;
         }
         else
         {
@@ -362,8 +363,11 @@ private:
 
     static void destroyN(T* p, size_type n) noexcept
     {
-        for (size_type i = 0; i < n; ++i)
-            std::destroy_at(p + i);
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        {
+            for (size_type i = 0; i < n; ++i)
+                std::destroy_at(p + i);
+        }
     }
 
     static void uninitializedMoveN(T* src, size_type n, T* dst)

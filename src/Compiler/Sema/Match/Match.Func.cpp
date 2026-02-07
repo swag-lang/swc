@@ -159,14 +159,7 @@ namespace
 
     DiagnosticId addCastFailureArgs(DiagnosticElement& e, const CastFailure& cf)
     {
-        if (cf.srcTypeRef.isValid())
-            e.addArgument(Diagnostic::ARG_TYPE, cf.srcTypeRef);
-        if (cf.dstTypeRef.isValid())
-            e.addArgument(Diagnostic::ARG_REQUESTED_TYPE, cf.dstTypeRef);
-        if (cf.optTypeRef.isValid())
-            e.addArgument(Diagnostic::ARG_OPT_TYPE, cf.optTypeRef);
-
-        e.addArgument(Diagnostic::ARG_VALUE, cf.valueStr);
+        cf.applyArguments(e);
         return cf.noteId;
     }
 

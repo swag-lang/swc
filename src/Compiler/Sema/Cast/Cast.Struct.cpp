@@ -30,8 +30,9 @@ namespace
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
         if (srcFields.size() != dstFields.size())
         {
-            const std::string value = "src=" + std::to_string(srcFields.size()) + " dst=" + std::to_string(dstFields.size());
-            ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_count, ctx.srcTypeRef, ctx.dstTypeRef, value);
+            ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_count, ctx.srcTypeRef, ctx.dstTypeRef);
+            ctx.castCtx->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcFields.size()));
+            ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstFields.size()));
             return Result::Error;
         }
 
@@ -76,8 +77,9 @@ namespace
 
         if (srcTypes.size() > dstFields.size())
         {
-            const std::string value = "src=" + std::to_string(srcTypes.size()) + " dst=" + std::to_string(dstFields.size());
-            ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_count, ctx.srcTypeRef, ctx.dstTypeRef, value);
+            ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_count, ctx.srcTypeRef, ctx.dstTypeRef);
+            ctx.castCtx->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcTypes.size()));
+            ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstFields.size()));
             return Result::Error;
         }
 
@@ -101,7 +103,12 @@ namespace
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                    return failAtField(i, DiagnosticId::sema_err_struct_cast_field_count);
+                {
+                    const Result res = failAtField(i, DiagnosticId::sema_err_struct_cast_field_count);
+                    ctx.castCtx->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcTypes.size()));
+                    ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstFields.size()));
+                    return res;
+                }
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;

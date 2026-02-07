@@ -18,6 +18,44 @@ void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, T
     noteId     = note;
 }
 
+bool CastFailure::hasArgument(std::string_view name) const
+{
+    for (const auto& a : arguments)
+    {
+        if (a.name == name)
+            return true;
+    }
+    return false;
+}
+
+void CastFailure::applyArguments(Diagnostic& diag) const
+{
+    if (srcTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    if (dstTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, dstTypeRef);
+    if (optTypeRef.isValid())
+        diag.addArgument(Diagnostic::ARG_OPT_TYPE, optTypeRef);
+    if (!valueStr.empty() && !hasArgument(Diagnostic::ARG_VALUE))
+        diag.addArgument(Diagnostic::ARG_VALUE, valueStr);
+    for (const auto& arg : arguments)
+        diag.addArgument(arg.name, arg.val);
+}
+
+void CastFailure::applyArguments(DiagnosticElement& element) const
+{
+    if (srcTypeRef.isValid())
+        element.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+    if (dstTypeRef.isValid())
+        element.addArgument(Diagnostic::ARG_REQUESTED_TYPE, dstTypeRef);
+    if (optTypeRef.isValid())
+        element.addArgument(Diagnostic::ARG_OPT_TYPE, optTypeRef);
+    if (!valueStr.empty() && !hasArgument(Diagnostic::ARG_VALUE))
+        element.addArgument(Diagnostic::ARG_VALUE, valueStr);
+    for (const auto& arg : arguments)
+        element.addArgument(arg.name, arg.val);
+}
+
 CastContext::CastContext(CastKind kind) :
     kind(kind)
 {
@@ -32,13 +70,7 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
     SWC_ASSERT(f.nodeRef.isValid());
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
-    if (f.srcTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);
-    if (f.dstTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, f.dstTypeRef);
-    if (f.optTypeRef.isValid())
-        diag.addArgument(Diagnostic::ARG_OPT_TYPE, f.optTypeRef);
-    diag.addArgument(Diagnostic::ARG_VALUE, f.valueStr);
+    f.applyArguments(diag);
     diag.addNote(f.noteId);
     diag.report(sema.ctx());
     return Result::Error;

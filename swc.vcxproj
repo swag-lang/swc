@@ -280,6 +280,7 @@
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp"/>
@@ -384,6 +385,7 @@
         <ClInclude Include="src\Runtime\Runtime.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
+        <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h"/>

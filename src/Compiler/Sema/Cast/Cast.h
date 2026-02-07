@@ -1,8 +1,6 @@
 #pragma once
-#include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Support/Report/DiagnosticDef.h"
-#include "Support/Report/DiagnosticElement.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -31,38 +29,6 @@ enum class CastFlagsE : uint32_t
     UfcsArgument = 1 << 3,
 };
 using CastFlags = EnumFlags<CastFlagsE>;
-
-struct CastFailure
-{
-    DiagnosticId        diagId     = DiagnosticId::None;
-    DiagnosticId        noteId     = DiagnosticId::None;
-    AstNodeRef          nodeRef    = AstNodeRef::invalid();
-    TypeRef             srcTypeRef = TypeRef::invalid();
-    TypeRef             dstTypeRef = TypeRef::invalid();
-    TypeRef             optTypeRef = TypeRef::invalid();
-    Utf8                valueStr{};
-    DiagnosticArguments arguments{};
-
-    void set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note);
-
-    template<typename T>
-    void addArgument(std::string_view name, T&& arg)
-    {
-        for (auto& a : arguments)
-        {
-            if (a.name == name)
-            {
-                a.val = std::forward<T>(arg);
-                return;
-            }
-        }
-        arguments.emplace_back(DiagnosticArgument{name, std::forward<T>(arg)});
-    }
-
-    bool hasArgument(std::string_view name) const;
-    void applyArguments(Diagnostic& diag) const;
-    void applyArguments(DiagnosticElement& element) const;
-};
 
 struct CastContext
 {

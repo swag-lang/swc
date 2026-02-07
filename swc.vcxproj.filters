@@ -93,6 +93,7 @@
     <ClCompile Include="src\Sema\Cast\Cast.Cast.cpp" />
     <ClCompile Include="src\Sema\Cast\Cast.Const.cpp" />
     <ClCompile Include="src\Sema\Cast\Cast.Convert.cpp" />
+    <ClCompile Include="src\Sema\Cast\CastFailure.cpp" />
     <ClCompile Include="src\Sema\Cast\Cast.Struct.cpp" />
     <ClCompile Include="src\Sema\Cast\Cast.cpp" />
     <ClCompile Include="src\Sema\Core\Sema.cpp" />
@@ -199,6 +200,7 @@
     <ClInclude Include="src\Runtime\Runtime.h" />
     <ClInclude Include="src\Sema\Ast\Sema.Payload.h" />
     <ClInclude Include="src\Sema\Cast\Cast.h" />
+    <ClInclude Include="src\Sema\Cast\CastFailure.h" />
     <ClInclude Include="src\Sema\Core\AttributeList.h" />
     <ClInclude Include="src\Sema\Core\Sema.h" />
     <ClInclude Include="src\Sema\Core\SemaFrame.h" />

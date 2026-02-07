@@ -21,6 +21,10 @@ const v2 = {10, y: 5, 2}
 #assert(v2.item2 != 20)
 
 struct W {x, y, z: s32}
+struct S1 {x: s32, y: s32}
+struct S2 {x: s32, y: s32, z: s32}
+struct T1 {x: s32}
+struct T2 {x: f32}
 
 #test
 {
@@ -50,5 +54,22 @@ struct W {x, y, z: s32}
 
 #test
 {
-    const w: W = {x: 1, x: 2, z: 3} // swc-expected-error {{sema_err_cannot_cast}}
+    const w: W = {x: 1, x: 2, z: 3} // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
+}
+
+#test
+{
+    const w: W = {1, 2, 3, 4} // swc-expected-error {{sema_err_struct_cast_field_count}}
+}
+
+#test
+{
+    const a: S1 = {1, 2}
+    const b: S2 = a // swc-expected-error {{sema_err_struct_cast_field_count}}
+}
+
+#test
+{
+    const a: T1 = {1}
+    const b: T2 = a // swc-expected-error {{sema_err_struct_cast_field_type}}
 }

@@ -162,6 +162,46 @@ namespace
             sema.setIsLValue(*node);
         return Result::SkipChildren;
     }
+
+    Result memberAggregateStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, const TypeInfo* typeInfo)
+    {
+        const auto& names = typeInfo->payloadAggregateNames();
+        const auto& types = typeInfo->payloadAggregateTypes();
+        SWC_ASSERT(names.size() == types.size());
+
+        size_t memberIndex = 0;
+        bool   found       = false;
+        for (size_t i = 0; i < names.size(); ++i)
+        {
+            if (names[i] == idRef)
+            {
+                memberIndex = i;
+                found       = true;
+                break;
+            }
+        }
+
+        if (!found)
+            return SemaError::raise(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node->srcViewRef(), tokNameRef});
+
+        const TypeRef memberTypeRef = types[memberIndex];
+        sema.setType(sema.curNodeRef(), memberTypeRef);
+        sema.setType(node->nodeRightRef, memberTypeRef);
+        sema.setIsValue(*node);
+        sema.setIsValue(node->nodeRightRef);
+
+        if (nodeLeftView.cst && nodeLeftView.cst->isAggregateStruct())
+        {
+            const auto& values = nodeLeftView.cst->getAggregateStruct();
+            SWC_ASSERT(memberIndex < values.size());
+            sema.setConstant(sema.curNodeRef(), values[memberIndex]);
+            return Result::SkipChildren;
+        }
+
+        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || sema.isLValue(node->nodeLeftRef))
+            sema.setIsLValue(*node);
+        return Result::SkipChildren;
+    }
 }
 
 Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
@@ -192,6 +232,10 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (nodeLeftView.type->isInterface())
         return memberInterface(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
+    // Aggregate struct
+    if (nodeLeftView.type->isAggregateStruct())
+        return memberAggregateStruct(sema, this, nodeLeftView, idRef, tokNameRef, nodeLeftView.type);
+    
     // Dereference pointer
     const TypeInfo* typeInfo = nodeLeftView.type;
     if (typeInfo->isTypeValue())

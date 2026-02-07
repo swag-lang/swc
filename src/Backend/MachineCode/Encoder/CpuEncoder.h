@@ -1,8 +1,8 @@
 #pragma once
-#include "Wmf/Module.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/Store.h"
 #include "Support/Core/Utf8.h"
+#include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -170,11 +170,11 @@ enum class CpuEmitFlagsE : uint8_t
 
 using CpuEmitFlags = EnumFlags<CpuEmitFlagsE>;
 
-constexpr auto EMIT_Zero      = CpuEmitFlags{};
-constexpr auto EMIT_Overflow  = CpuEmitFlagsE::Overflow;
-constexpr auto EMIT_Lock      = CpuEmitFlagsE::Lock;
-constexpr auto EMIT_B64       = CpuEmitFlagsE::B64;
-constexpr auto EMIT_CanEncode = CpuEmitFlagsE::CanEncode;
+constexpr auto EMIT_ZERO       = CpuEmitFlags{};
+constexpr auto EMIT_OVERFLOW   = CpuEmitFlagsE::Overflow;
+constexpr auto EMIT_LOCK       = CpuEmitFlagsE::Lock;
+constexpr auto EMIT_B64        = CpuEmitFlagsE::B64;
+constexpr auto EMIT_CAN_ENCODE = CpuEmitFlagsE::CanEncode;
 
 enum class CpuEncodeResult : uint32_t
 {
@@ -309,47 +309,47 @@ public:
     virtual CpuEncodeResult encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags)                                                     = 0;
     virtual CpuEncodeResult encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags)                                                             = 0;
 
-    void emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeLoadSymbolRelocAddress(reg, symbolIndex, offset, emitFlags);
     }
 
-    void emitJumpReg(CpuReg reg, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitJumpReg(CpuReg reg, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeJumpReg(reg, emitFlags);
     }
 
-    void emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeOpBinaryRegReg(regDst, regSrc, op, opBits, emitFlags);
     }
 
-    void emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeOpBinaryRegImm(reg, value, op, opBits, emitFlags);
     }
 
-    void emitLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBits opBits, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeLoadRegReg(regDst, regSrc, opBits, emitFlags);
     }
 
-    void emitLoadRegImm(CpuReg reg, uint64_t value, OpBits opBits, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitLoadRegImm(CpuReg reg, uint64_t value, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeLoadRegImm(reg, value, opBits, emitFlags);
     }
 
-    void emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeLoadSignedExtendRegReg(regDst, regSrc, numBitsDst, numBitsSrc, emitFlags);
     }
 
-    void emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeLoadZeroExtendRegReg(regDst, regSrc, numBitsDst, numBitsSrc, emitFlags);
     }
 
-    void emitClearReg(CpuReg reg, OpBits opBits, CpuEmitFlags emitFlags = EMIT_Zero)
+    void emitClearReg(CpuReg reg, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO)
     {
         encodeClearReg(reg, opBits, emitFlags);
     }
@@ -371,7 +371,7 @@ public:
 
     BuildCfgBackendOptim optLevel = BuildCfgBackendOptim::O0;
 
-    uint32_t symCSIndex        = 0;
+    uint32_t symCsIndex        = 0;
     uint32_t textSectionOffset = 0;
 
 private:
@@ -386,4 +386,3 @@ private:
 #endif
 
 SWC_END_NAMESPACE();
-

@@ -469,6 +469,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     for (const AstNodeRef& child : children)
     {
         SemaNodeView nodeView(sema, child);
+        SWC_ASSERT(nodeView.typeRef.isValid());
         memberTypes.push_back(nodeView.typeRef);
         allConstant = allConstant && nodeView.cstRef.isValid();
         values.push_back(nodeView.cstRef);

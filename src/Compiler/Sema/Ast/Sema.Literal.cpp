@@ -461,11 +461,9 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
     SmallVector<TypeRef>       memberTypes;
     SmallVector<IdentifierRef> memberNames;
-    std::vector<bool>          memberAutoNames;
     SmallVector<SourceCodeRef> memberCodeRefs;
     memberTypes.reserve(children.size());
     memberNames.reserve(children.size());
-    memberAutoNames.reserve(children.size());
     memberCodeRefs.reserve(children.size());
 
     bool                     allConstant = true;
@@ -476,16 +474,9 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     {
         const AstNode& childNode = sema.node(child);
         if (childNode.is(AstNodeId::NamedArgument))
-        {
             memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
-            memberAutoNames.push_back(false);
-        }
         else
-        {
-            const Utf8 name = "item" + std::to_string(memberNames.size());
-            memberNames.push_back(sema.idMgr().addIdentifierOwned(name));
-            memberAutoNames.push_back(true);
-        }
+            memberNames.push_back(IdentifierRef::invalid());
 
         SemaNodeView nodeView(sema, child);
         SWC_ASSERT(nodeView.typeRef.isValid());
@@ -497,12 +488,12 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs, memberAutoNames);
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs, memberAutoNames));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 

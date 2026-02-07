@@ -118,10 +118,9 @@ namespace
     Result mapAggregateStructFields(const CastStructContext& ctx, std::vector<size_t>& srcToDst)
     {
         const auto& aggregate = ctx.srcType->payloadAggregate();
-        const auto& srcTypes   = aggregate.types;
-        const auto& srcNames   = aggregate.names;
-        const auto& fieldRefs  = aggregate.fieldRefs;
-        const auto& autoNames  = aggregate.autoNames;
+        const auto& srcTypes  = aggregate.types;
+        const auto& srcNames  = aggregate.names;
+        const auto& fieldRefs = aggregate.fieldRefs;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
 
         if (srcTypes.size() > dstFields.size())
@@ -137,7 +136,7 @@ namespace
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const IdentifierRef name       = srcNames[i];
-            const bool          positional = name.isInvalid() || (i < autoNames.size() && autoNames[i]);
+            const bool          positional = name.isInvalid();
 
             if (positional)
             {

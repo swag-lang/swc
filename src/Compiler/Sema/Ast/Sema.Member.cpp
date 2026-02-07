@@ -172,9 +172,20 @@ namespace
 
         size_t memberIndex = 0;
         bool   found       = false;
+
+        const std::string_view idName = sema.idMgr().get(idRef).name;
         for (size_t i = 0; i < names.size(); ++i)
         {
-            if (names[i] == idRef)
+            if (names[i].isValid())
+            {
+                if (names[i] == idRef)
+                {
+                    memberIndex = i;
+                    found       = true;
+                    break;
+                }
+            }
+            else if (idName == ("item" + std::to_string(i)))
             {
                 memberIndex = i;
                 found       = true;

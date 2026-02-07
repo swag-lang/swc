@@ -8,8 +8,8 @@ struct MicroInstruction;
 
 struct X64Encoder final : CpuEncoder
 {
-    RegisterSet getReadRegisters(MicroInstruction* inst) override;
-    RegisterSet getWriteRegisters(MicroInstruction* inst) override;
+    RegisterSet getReadRegisters(MicroInstruction& inst) override;
+    RegisterSet getWriteRegisters(MicroInstruction& inst) override;
 
     CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags) override;
     CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags) override;

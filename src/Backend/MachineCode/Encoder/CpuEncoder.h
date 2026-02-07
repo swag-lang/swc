@@ -252,8 +252,8 @@ public:
     static bool isFloat(CpuReg reg) { return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3; }
     static bool isInt(CpuReg reg) { return !isFloat(reg); }
 
-    virtual RegisterSet getReadRegisters(MicroInstruction*) { return {}; }
-    virtual RegisterSet getWriteRegisters(MicroInstruction*) { return {}; }
+    virtual RegisterSet getReadRegisters(MicroInstruction&) { return {}; }
+    virtual RegisterSet getWriteRegisters(MicroInstruction&) { return {}; }
 
     virtual CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags)                                                                      = 0;
     virtual CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags)                                                            = 0;

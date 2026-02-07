@@ -2878,30 +2878,30 @@ CpuEncodeResult X64Encoder::encodeNop(CpuEmitFlags emitFlags)
     return CpuEncodeResult::Zero;
 }
 
-RegisterSet X64Encoder::getReadRegisters(MicroInstruction* inst)
+RegisterSet X64Encoder::getReadRegisters(MicroInstruction& inst)
 {
     auto result = CpuEncoder::getReadRegisters(inst);
 
-    if (inst->op == MicroOp::OpBinaryRi ||
-        inst->op == MicroOp::OpBinaryRr ||
-        inst->op == MicroOp::OpBinaryMi ||
-        inst->op == MicroOp::OpBinaryRm ||
-        inst->op == MicroOp::OpBinaryMr)
+    if (inst.op == MicroOp::OpBinaryRi ||
+        inst.op == MicroOp::OpBinaryRr ||
+        inst.op == MicroOp::OpBinaryMi ||
+        inst.op == MicroOp::OpBinaryRm ||
+        inst.op == MicroOp::OpBinaryMr)
     {
-        if (inst->cpuOp == CpuOp::ROL ||
-            inst->cpuOp == CpuOp::ROR ||
-            inst->cpuOp == CpuOp::SAL ||
-            inst->cpuOp == CpuOp::SAR ||
-            inst->cpuOp == CpuOp::SHL ||
-            inst->cpuOp == CpuOp::SHR)
+        if (inst.cpuOp == CpuOp::ROL ||
+            inst.cpuOp == CpuOp::ROR ||
+            inst.cpuOp == CpuOp::SAL ||
+            inst.cpuOp == CpuOp::SAR ||
+            inst.cpuOp == CpuOp::SHL ||
+            inst.cpuOp == CpuOp::SHR)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rcx));
         }
-        else if (inst->cpuOp == CpuOp::MUL ||
-                 inst->cpuOp == CpuOp::DIV ||
-                 inst->cpuOp == CpuOp::MOD ||
-                 inst->cpuOp == CpuOp::IDIV ||
-                 inst->cpuOp == CpuOp::IMOD)
+        else if (inst.cpuOp == CpuOp::MUL ||
+                 inst.cpuOp == CpuOp::DIV ||
+                 inst.cpuOp == CpuOp::MOD ||
+                 inst.cpuOp == CpuOp::IDIV ||
+                 inst.cpuOp == CpuOp::IMOD)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rdx));
         }
@@ -2910,21 +2910,21 @@ RegisterSet X64Encoder::getReadRegisters(MicroInstruction* inst)
     return result;
 }
 
-RegisterSet X64Encoder::getWriteRegisters(MicroInstruction* inst)
+RegisterSet X64Encoder::getWriteRegisters(MicroInstruction& inst)
 {
     auto result = CpuEncoder::getWriteRegisters(inst);
 
-    if (inst->op == MicroOp::OpBinaryRi ||
-        inst->op == MicroOp::OpBinaryRr ||
-        inst->op == MicroOp::OpBinaryMi ||
-        inst->op == MicroOp::OpBinaryRm ||
-        inst->op == MicroOp::OpBinaryMr)
+    if (inst.op == MicroOp::OpBinaryRi ||
+        inst.op == MicroOp::OpBinaryRr ||
+        inst.op == MicroOp::OpBinaryMi ||
+        inst.op == MicroOp::OpBinaryRm ||
+        inst.op == MicroOp::OpBinaryMr)
     {
-        if (inst->cpuOp == CpuOp::MUL ||
-            inst->cpuOp == CpuOp::DIV ||
-            inst->cpuOp == CpuOp::MOD ||
-            inst->cpuOp == CpuOp::IDIV ||
-            inst->cpuOp == CpuOp::IMOD)
+        if (inst.cpuOp == CpuOp::MUL ||
+            inst.cpuOp == CpuOp::DIV ||
+            inst.cpuOp == CpuOp::MOD ||
+            inst.cpuOp == CpuOp::IDIV ||
+            inst.cpuOp == CpuOp::IMOD)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rdx));
         }

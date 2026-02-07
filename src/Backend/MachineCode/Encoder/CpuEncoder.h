@@ -252,18 +252,18 @@ struct BackendEncoder
 };
 
 struct CallConv;
-struct ScbeMicroInstruction;
+struct MicroInstruction;
 
-class ScbeCpu : public BackendEncoder
+class CpuEncoder : public BackendEncoder
 {
 public:
-    virtual ~ScbeCpu() = default;
+    virtual ~CpuEncoder() = default;
 
     static bool isFloat(CpuReg reg) { return swc::isFloat(reg); }
     static bool isInt(CpuReg reg) { return swc::isInt(reg); }
 
-    virtual RegisterSet getReadRegisters(ScbeMicroInstruction*) { return {}; }
-    virtual RegisterSet getWriteRegisters(ScbeMicroInstruction*) { return {}; }
+    virtual RegisterSet getReadRegisters(MicroInstruction*) { return {}; }
+    virtual RegisterSet getWriteRegisters(MicroInstruction*) { return {}; }
 
     virtual CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags)                                                                      = 0;
     virtual CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags)                                                            = 0;
@@ -386,3 +386,4 @@ private:
 #endif
 
 SWC_END_NAMESPACE();
+

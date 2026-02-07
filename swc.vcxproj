@@ -186,7 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\SCBE\Encoder\X64\ScbeX64.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
@@ -322,11 +322,11 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\SCBE\Encoder\Micro\ScbeMicroInstruction.h"/>
-        <ClInclude Include="src\Backend\SCBE\Encoder\ScbeCpu.h"/>
-        <ClInclude Include="src\Backend\SCBE\Encoder\X64\ScbeX64.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\CpuEncoder.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>
-        <ClInclude Include="src\Backend\Support\Report.h"/>
+        <ClInclude Include="src\Backend\Diagnostics\BackendReport.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
@@ -454,3 +454,4 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
+

@@ -1,15 +1,15 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
-#include "Backend/SCBE/Encoder/ScbeCpu.h"
+#include "Backend/MachineCode/Encoder/CpuEncoder.h"
 
 SWC_BEGIN_NAMESPACE();
 
-struct ScbeMicroInstruction;
+struct MicroInstruction;
 
-struct ScbeX64 final : ScbeCpu
+struct X64Encoder final : CpuEncoder
 {
-    RegisterSet getReadRegisters(ScbeMicroInstruction* inst) override;
-    RegisterSet getWriteRegisters(ScbeMicroInstruction* inst) override;
+    RegisterSet getReadRegisters(MicroInstruction* inst) override;
+    RegisterSet getWriteRegisters(MicroInstruction* inst) override;
 
     CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags) override;
     CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags) override;
@@ -57,3 +57,4 @@ struct ScbeX64 final : ScbeCpu
 };
 
 SWC_END_NAMESPACE();
+

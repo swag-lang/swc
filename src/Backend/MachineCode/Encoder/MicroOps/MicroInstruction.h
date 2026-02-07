@@ -1,9 +1,9 @@
 #pragma once
-#include "Backend/SCBE/Encoder/ScbeCpu.h"
+#include "Backend/MachineCode/Encoder/CpuEncoder.h"
 
 SWC_BEGIN_NAMESPACE();
 
-enum class ScbeMicroOp : uint8_t
+enum class MicroOp : uint8_t
 {
     OpBinaryRI,
     OpBinaryRR,
@@ -12,10 +12,11 @@ enum class ScbeMicroOp : uint8_t
     OpBinaryMR,
 };
 
-struct ScbeMicroInstruction
+struct MicroInstruction
 {
-    ScbeMicroOp op    = ScbeMicroOp::OpBinaryRI;
+    MicroOp op    = MicroOp::OpBinaryRI;
     CpuOp       cpuOp = CpuOp::ADD;
 };
 
 SWC_END_NAMESPACE();
+

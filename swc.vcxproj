@@ -263,7 +263,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp"/>
@@ -325,7 +325,7 @@
         <ClInclude Include="src\Backend\SCBE\Encoder\Micro\ScbeMicroInstruction.h"/>
         <ClInclude Include="src\Backend\SCBE\Encoder\ScbeCpu.h"/>
         <ClInclude Include="src\Backend\SCBE\Encoder\X64\ScbeX64.h"/>
-        <ClInclude Include="src\Backend\Support\Module.h"/>
+        <ClInclude Include="src\Wmf\Module.h"/>
         <ClInclude Include="src\Backend\Support\Report.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>

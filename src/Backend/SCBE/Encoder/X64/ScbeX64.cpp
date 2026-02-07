@@ -2635,8 +2635,7 @@ CpuEncodeResult ScbeX64::encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuR
 
 CpuEncodeResult ScbeX64::encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, CpuEmitFlags emitFlags)
 {
-    uint8_t*   addrConstant        = nullptr;
-    const auto offsetTableConstant = buildParams.module->constantSegment.reserve(numEntries * sizeof(uint32_t), &addrConstant);
+    const auto [offsetTableConstant, addrConstant] = buildParams.module->constantSegment.reserveSpan<uint32_t>(numEntries);
     emitLoadSymRelocAddress(tableReg, symCSIndex, offsetTableConstant);
 
     // movsxd table, dword ptr [table + offset*4]
@@ -2650,7 +2649,7 @@ CpuEncodeResult ScbeX64::encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int3
     const auto endIdx = concat.size();
     *patchPtr += endIdx - startIdx;
 
-    const auto tableCompiler = reinterpret_cast<int32_t*>(buildParams.module->compilerSegment.address(offsetTable));
+    const auto tableCompiler = buildParams.module->compilerSegment.ptr<int32_t>(offsetTable);
     const auto currentOffset = static_cast<int32_t>(concat.size());
 
     CpuLabelToSolve label;
@@ -2659,7 +2658,7 @@ CpuEncodeResult ScbeX64::encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int3
         label.ipDest               = tableCompiler[idx] + currentIp + 1;
         label.jump.opBits          = OpBits::B32;
         label.jump.offsetStart     = currentOffset;
-        label.jump.patchOffsetAddr = addrConstant + idx * sizeof(uint32_t);
+        label.jump.patchOffsetAddr = addrConstant + idx;
         cpuFct->labelsToSolve.push_back(label);
     }
 
@@ -2936,4 +2935,3 @@ RegisterSet ScbeX64::getWriteRegisters(ScbeMicroInstruction* inst)
 }
 
 SWC_END_NAMESPACE();
-

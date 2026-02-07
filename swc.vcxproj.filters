@@ -126,7 +126,7 @@
     <ClInclude Include="src\Backend\SCBE\Encoder\Micro\ScbeMicroInstruction.h" />
     <ClInclude Include="src\Backend\SCBE\Encoder\ScbeCpu.h" />
     <ClInclude Include="src\Backend\SCBE\Encoder\X64\ScbeX64.h" />
-    <ClInclude Include="src\Backend\Support\Module.h" />
+    <ClInclude Include="src\Wmf\Module.h" />
     <ClInclude Include="src\Backend\Support\Report.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Core\Flags.h" />

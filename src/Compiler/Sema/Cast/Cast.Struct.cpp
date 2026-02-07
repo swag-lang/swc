@@ -130,10 +130,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validateAggregateStructElementCasts(const CastStructContext&            ctx,
-                                               const std::vector<TypeRef>&         srcTypes,
-                                               const std::vector<SymbolVariable*>& dstFields,
-                                               const std::vector<size_t>&          srcToDst)
+    Result validateAggregateStructElementCasts(const CastStructContext& ctx, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
@@ -153,17 +150,16 @@ namespace
         return Result::Continue;
     }
 
-    Result foldAggregateStructConstant(const CastStructContext&   ctx,
-                                       const std::vector<size_t>& srcToDst)
+    Result foldAggregateStructConstant(const CastStructContext& ctx, const std::vector<size_t>& srcToDst)
     {
         const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
         if (!cst.isAggregateStruct())
             return Result::Continue;
 
-        const auto&              values    = cst.getAggregateStruct();
-        const auto&              srcTypes  = ctx.srcType->payloadAggregateTypes();
-        const auto&              dstFields = ctx.dstType->payloadSymStruct().fields();
-        std::vector<ConstantRef> castedByDst(dstFields.size(), ConstantRef::invalid());
+        const auto& values    = cst.getAggregateStruct();
+        const auto& srcTypes  = ctx.srcType->payloadAggregateTypes();
+        const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
+        std::vector castedByDst(dstFields.size(), ConstantRef::invalid());
 
         for (size_t i = 0; i < values.size(); ++i)
         {
@@ -238,23 +234,14 @@ Result Cast::castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
         RESULT_VERIFY(sema.waitCompleted(&dstType, castCtx.errorNodeRef));
 
         std::vector<size_t> srcToDst;
-        Result              res = mapAggregateStructFields(ctx, srcToDst);
-        if (res != Result::Continue)
-            return res;
+        RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
 
         const auto& srcTypes  = srcType.payloadAggregateTypes();
         const auto& dstFields = dstType.payloadSymStruct().fields();
-
-        res = validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst);
-        if (res != Result::Continue)
-            return res;
+        RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
 
         if (castCtx.isConstantFolding())
-        {
-            res = foldAggregateStructConstant(ctx, srcToDst);
-            if (res != Result::Continue)
-                return res;
-        }
+            RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst));
 
         return Result::Continue;
     }

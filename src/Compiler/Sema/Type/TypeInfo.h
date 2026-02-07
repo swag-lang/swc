@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -264,8 +264,8 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs = {});
-    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs = {});
+    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs = {});
+    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs = {});
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
@@ -331,7 +331,7 @@ private:
         {
             std::vector<TypeRef>       types;
             std::vector<IdentifierRef> names;
-            std::vector<AstNodeRef>    fieldRefs;
+            std::vector<SourceCodeRef> fieldRefs;
         } payloadAggregate_;
 
         struct

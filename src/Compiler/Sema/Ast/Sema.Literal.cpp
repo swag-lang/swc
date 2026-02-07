@@ -461,10 +461,10 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
     SmallVector<TypeRef>       memberTypes;
     SmallVector<IdentifierRef> memberNames;
-    SmallVector<AstNodeRef>    memberNodeRefs;
+    SmallVector<SourceCodeRef> memberCodeRefs;
     memberTypes.reserve(children.size());
     memberNames.reserve(children.size());
-    memberNodeRefs.reserve(children.size());
+    memberCodeRefs.reserve(children.size());
 
     bool                     allConstant = true;
     SmallVector<ConstantRef> values;
@@ -486,19 +486,19 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
         SemaNodeView nodeView(sema, child);
         SWC_ASSERT(nodeView.typeRef.isValid());
         memberTypes.push_back(nodeView.typeRef);
-        memberNodeRefs.push_back(child);
+        memberCodeRefs.push_back(childNode.codeRef());
         allConstant = allConstant && nodeView.cstRef.isValid();
         values.push_back(nodeView.cstRef);
     }
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberNodeRefs);
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberNodeRefs));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 
@@ -529,11 +529,16 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         allConstant = allConstant && nodeView.cstRef.isValid();
     }
 
-    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes, elements));
+    SmallVector<SourceCodeRef> elementCodeRefs;
+    elementCodeRefs.reserve(elements.size());
+    for (const auto& element : elements)
+        elementCodeRefs.push_back(sema.node(element).codeRef());
+
+    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes, elementCodeRefs));
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values, elements);
+        const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values, elementCodeRefs);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else

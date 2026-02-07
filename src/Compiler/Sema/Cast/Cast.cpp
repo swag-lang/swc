@@ -9,8 +9,14 @@ SWC_BEGIN_NAMESPACE();
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
-    SWC_ASSERT(f.nodeRef.isValid());
-    auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
+    Diagnostic diag;
+    if (f.codeRef.isValid())
+        diag = SemaError::report(sema, f.diagId, f.codeRef);
+    else
+    {
+        SWC_ASSERT(f.nodeRef.isValid());
+        diag = SemaError::report(sema, f.diagId, f.nodeRef);
+    }
     f.applyArguments(diag);
     diag.addNote(f.noteId);
     diag.report(sema.ctx());
@@ -29,4 +35,3 @@ AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef n
 }
 
 SWC_END_NAMESPACE();
-

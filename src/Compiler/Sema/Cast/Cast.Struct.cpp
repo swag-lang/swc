@@ -36,25 +36,25 @@ namespace
 
     Result failStructField(const CastStructContext& ctx, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
     {
-        const auto&      fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const AstNodeRef previous  = ctx.castCtx->errorNodeRef;
-        const AstNodeRef fieldRef  = fieldRefs[fieldIndex];
+        const auto&         fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
+        const SourceCodeRef previous  = ctx.castCtx->errorCodeRef;
+        const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
-            ctx.castCtx->errorNodeRef = fieldRef;
+            ctx.castCtx->errorCodeRef = fieldRef;
         const Result res          = ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
-        ctx.castCtx->errorNodeRef = previous;
+        ctx.castCtx->errorCodeRef = previous;
         return res;
     }
 
     Result failStructFieldCountAt(const CastStructContext& ctx, size_t fieldIndex, size_t srcCount, size_t dstCount)
     {
-        const auto&      fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const AstNodeRef previous  = ctx.castCtx->errorNodeRef;
-        const AstNodeRef fieldRef  = fieldRefs[fieldIndex];
+        const auto&         fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
+        const SourceCodeRef previous  = ctx.castCtx->errorCodeRef;
+        const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
-            ctx.castCtx->errorNodeRef = fieldRef;
+            ctx.castCtx->errorCodeRef = fieldRef;
         const Result res          = failStructFieldCount(ctx, srcCount, dstCount);
-        ctx.castCtx->errorNodeRef = previous;
+        ctx.castCtx->errorCodeRef = previous;
         return res;
     }
 
@@ -63,26 +63,28 @@ namespace
         return ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
     }
 
-    Result checkElemCast(const CastStructContext& ctx, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldRef)
+    Result checkElemCast(const CastStructContext& ctx, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef)
     {
         CastContext elemCtx(ctx.castCtx->kind);
         elemCtx.flags        = ctx.castCtx->flags;
         elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+        elemCtx.errorCodeRef = ctx.castCtx->errorCodeRef;
         if (fieldRef.isValid())
-            elemCtx.errorNodeRef = fieldRef;
+            elemCtx.errorCodeRef = fieldRef;
         const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             ctx.castCtx->failure = elemCtx.failure;
         return res;
     }
 
-    Result foldElemCast(const CastStructContext& ctx, TypeRef srcElemType, TypeRef dstElemType, AstNodeRef fieldRef, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastStructContext& ctx, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastContext elemCtx(ctx.castCtx->kind);
         elemCtx.flags        = ctx.castCtx->flags;
         elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+        elemCtx.errorCodeRef = ctx.castCtx->errorCodeRef;
         if (fieldRef.isValid())
-            elemCtx.errorNodeRef = fieldRef;
+            elemCtx.errorCodeRef = fieldRef;
         elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)

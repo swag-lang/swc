@@ -11,6 +11,8 @@ CastContext::CastContext(CastKind kind) :
 Result CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
+    if (errorCodeRef.isValid())
+        failure.codeRef = errorCodeRef;
     return Result::Error;
 }
 
@@ -26,4 +28,3 @@ void CastContext::setConstantFoldingResult(ConstantRef v)
 }
 
 SWC_END_NAMESPACE();
-

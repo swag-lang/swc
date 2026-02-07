@@ -29,12 +29,13 @@ using CastFlags = EnumFlags<CastFlagsE>;
 
 struct CastContext
 {
-    CastKind    kind         = CastKind::Implicit;
-    CastFlags   flags        = CastFlagsE::Zero;
-    AstNodeRef  errorNodeRef = AstNodeRef::invalid();
-    ConstantRef srcConstRef  = ConstantRef::invalid();
-    ConstantRef outConstRef  = ConstantRef::invalid();
-    CastFailure failure{};
+    CastKind      kind         = CastKind::Implicit;
+    CastFlags     flags        = CastFlagsE::Zero;
+    AstNodeRef    errorNodeRef = AstNodeRef::invalid();
+    SourceCodeRef errorCodeRef = SourceCodeRef::invalid();
+    ConstantRef   srcConstRef  = ConstantRef::invalid();
+    ConstantRef   outConstRef  = ConstantRef::invalid();
+    CastFailure   failure{};
 
     CastContext() = delete;
     explicit CastContext(CastKind kind);

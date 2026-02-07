@@ -712,13 +712,13 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
+TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(types.size() == names.size());
-    TypeInfo                ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
-    std::vector<AstNodeRef> refs;
+    TypeInfo                   ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
+    std::vector<SourceCodeRef> refs;
     if (fieldRefs.empty())
-        refs.assign(types.size(), AstNodeRef::invalid());
+        refs.assign(types.size(), SourceCodeRef::invalid());
     else
     {
         SWC_ASSERT(fieldRefs.size() == types.size());
@@ -731,12 +731,12 @@ TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, co
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
+TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs)
 {
-    TypeInfo                ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
-    std::vector<AstNodeRef> refs;
+    TypeInfo                   ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
+    std::vector<SourceCodeRef> refs;
     if (fieldRefs.empty())
-        refs.assign(types.size(), AstNodeRef::invalid());
+        refs.assign(types.size(), SourceCodeRef::invalid());
     else
     {
         SWC_ASSERT(fieldRefs.size() == types.size());

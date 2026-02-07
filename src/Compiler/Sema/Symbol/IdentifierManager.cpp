@@ -145,7 +145,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     std::string_view storedName = name;
     if (copyName && !name.empty())
     {
-        const auto [span, _] = shard.stringStore.push_copy_span(asByteSpan(name));
+        const auto [span, _] = shard.stringStore.pushCopySpan(asByteSpan(name));
         storedName           = asStringView(span);
     }
 
@@ -157,7 +157,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     Stats::get().numIdentifiers.fetch_add(1);
 #endif
 
-    const uint32_t localIndex = shard.store.push_back(Identifier{storedName});
+    const uint32_t localIndex = shard.store.pushBack(Identifier{storedName});
     SWC_ASSERT(localIndex < LOCAL_MASK);
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};

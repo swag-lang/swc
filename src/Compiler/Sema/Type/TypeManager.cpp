@@ -167,7 +167,7 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().memTypes.fetch_add(sizeof(TypeInfo), std::memory_order_relaxed);
 #endif
 
-    const uint32_t localIndex = shard.store.push_back(typeInfo);
+    const uint32_t localIndex = shard.store.pushBack(typeInfo);
     SWC_ASSERT(localIndex < LOCAL_MASK);
 
     TypeInfo* ptr = shard.store.ptr<TypeInfo>(localIndex);

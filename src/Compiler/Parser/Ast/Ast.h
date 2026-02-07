@@ -55,7 +55,7 @@ public:
 
         {
             std::unique_lock lock(shards_[shard].mutex);
-            local = shards_[shard].store.push_span(s);
+            local = shards_[shard].store.pushSpan(s);
         }
 
         return SpanRef(packRef(shard, local.get()));
@@ -72,7 +72,7 @@ public:
 
         {
             std::unique_lock lock(shards_[shard].mutex);
-            local = shards_[shard].store.emplace_uninit<NodeType>();
+            local = shards_[shard].store.emplaceUninit<NodeType>();
 
             const uint32_t localByteRef = local.first;
             globalRef                   = AstNodeRef{packRef(shard, localByteRef)};

@@ -28,9 +28,9 @@ void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
 
     std::shared_lock      lk(shards_[s].mutex);
     const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-    for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
+    for (Store::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
-        const Store::SpanView::chunk& c = *it;
+        const Store::SpanView::Chunk& c = *it;
         out.append(static_cast<const AstNodeRef*>(c.ptr), c.count);
     }
 }
@@ -54,9 +54,9 @@ void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
 
     std::shared_lock      lk(shards_[s].mutex);
     const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-    for (Store::SpanView::chunk_iterator it = view.chunks_begin(); it != view.chunks_end(); ++it)
+    for (Store::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
-        const Store::SpanView::chunk& c = *it;
+        const Store::SpanView::Chunk& c = *it;
         out.append(static_cast<const TokenRef*>(c.ptr), c.count);
     }
 }

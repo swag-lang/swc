@@ -211,7 +211,7 @@ void SemaContext::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     setSemaKind(node, NodeSemaKind::SymbolRef);
     setSemaShard(node, shardIdx);
 
-    const Ref value = shard.store.push_back(symbol);
+    const Ref value = shard.store.pushBack(symbol);
     node.setSemaRef(value);
     updateSemaFlags(node, std::span{&symbol, 1});
 }
@@ -235,7 +235,7 @@ std::span<const Symbol*> SemaContext::getSymbolListImpl(AstNodeRef nodeRef) cons
     if (spanView.empty())
         return {};
 
-    const auto  it    = spanView.chunks_begin();
+    const auto  it    = spanView.chunksBegin();
     const auto& chunk = *it;
     SWC_ASSERT(chunk.count == spanView.size());
     return std::span{static_cast<const Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
@@ -262,7 +262,7 @@ void SemaContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*>
     setSemaKind(node, NodeSemaKind::SymbolList);
     setSemaShard(node, shardIdx);
 
-    const Ref value = shard.store.push_span(symbols).get();
+    const Ref value = shard.store.pushSpan(symbols).get();
     node.setSemaRef(value);
     updateSemaFlags(node, symbols);
 }
@@ -277,7 +277,7 @@ void SemaContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbo
     setSemaKind(node, NodeSemaKind::SymbolList);
     setSemaShard(node, shardIdx);
 
-    const Ref value = shard.store.push_span(symbols).get();
+    const Ref value = shard.store.pushSpan(symbols).get();
     node.setSemaRef(value);
 
     SmallVector<const Symbol*> tmp;
@@ -340,7 +340,7 @@ void SemaContext::setPayload(AstNodeRef nodeRef, void* payload)
     setSemaKind(node, NodeSemaKind::Payload);
     setSemaShard(node, shardIdx);
 
-    const Ref value = shard.store.push_back(payload);
+    const Ref value = shard.store.pushBack(payload);
     node.setSemaRef(value);
 }
 

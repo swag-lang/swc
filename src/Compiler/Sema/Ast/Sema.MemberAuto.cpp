@@ -129,18 +129,13 @@ namespace
         return Result::Continue;
     }
 
-    Result probeAutoMemberCandidates(Sema&                                sema,
-                                     SourceViewRef                        srcViewRef,
-                                     TokenRef                             tokNameRef,
-                                     IdentifierRef                        idRef,
-                                     std::span<const AutoMemberCandidate> candidates,
-                                     SmallVector<AutoMemberMatch, 2>&     outMatches)
+    Result probeAutoMemberCandidates(Sema& sema, const SourceCodeRef& codeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, SmallVector<AutoMemberMatch, 2>& outMatches)
     {
         outMatches.clear();
         for (const AutoMemberCandidate& candidate : candidates)
         {
             MatchContext lookUpCxt;
-            lookUpCxt.codeRef       = SourceCodeRef{srcViewRef, tokNameRef};
+            lookUpCxt.codeRef       = codeRef;
             lookUpCxt.noWaitOnEmpty = true;
             lookUpCxt.symMapHint    = candidate.symMap;
 
@@ -186,13 +181,13 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     }
 
     const SemaNodeView  nodeRightView(sema, nodeIdentRef);
-    const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
+    const SourceCodeRef codeRef = nodeRightView.node->codeRef();
+    const IdentifierRef idRef   = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
     SmallVector<AutoMemberMatch, 2> matches;
-    RESULT_VERIFY(probeAutoMemberCandidates(sema, srcViewRef(), tokNameRef, idRef, candidates, matches));
+    RESULT_VERIFY(probeAutoMemberCandidates(sema, codeRef, idRef, candidates, matches));
 
     // If nothing matched, report a smart error.
     if (matches.empty())

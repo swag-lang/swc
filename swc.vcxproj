@@ -280,6 +280,7 @@
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp"/>

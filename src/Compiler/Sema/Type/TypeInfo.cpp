@@ -1038,8 +1038,6 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
             sub = ty.payloadEnum_.sym->underlyingTypeRef();
         else if (expandFlags.has(TypeExpandE::Pointer) && ty.isAnyPointer())
             sub = ty.payloadTypeRef_.typeRef;
-        else if (expandFlags.has(TypeExpandE::Aggregate) && ty.isAggregate())
-            sub = TypeRef::invalid();
         else if (expandFlags.has(TypeExpandE::Array) && ty.isArray())
             sub = ty.payloadArray_.typeRef;
         else if (expandFlags.has(TypeExpandE::Slice) && ty.isSlice())

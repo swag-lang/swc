@@ -57,16 +57,15 @@ using TypeRef = StrongRef<TypeInfo>;
 
 enum class TypeExpandE : uint32_t
 {
-    None      = 0,
-    Alias     = 1 << 0,
-    Enum      = 1 << 1,
-    Pointer   = 1 << 2,
-    Function  = 1 << 3,
-    Array     = 1 << 4,
-    Slice     = 1 << 5,
-    Variadic  = 1 << 6,
-    Aggregate = 1 << 7,
-    All       = 0xFFFFFFFF,
+    None     = 0,
+    Alias    = 1 << 0,
+    Enum     = 1 << 1,
+    Pointer  = 1 << 2,
+    Function = 1 << 3,
+    Array    = 1 << 4,
+    Slice    = 1 << 5,
+    Variadic = 1 << 6,
+    All      = 0xFFFFFFFF,
 };
 using TypeExpand = EnumFlags<TypeExpandE>;
 

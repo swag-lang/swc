@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Constant/ConstantOps.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -68,7 +68,7 @@ namespace
             }
 
             if (cst.isAggregateStruct())
-                return ConstantOps::lowerAggregateStructToBytes(sema, cst.getAggregateStruct(), dstType, dst);
+                return ConstantHelpers::lowerAggregateStructToBytes(sema, cst.getAggregateStruct(), dstType, dst);
 
             return false;
         }
@@ -184,7 +184,7 @@ namespace
     }
 }
 
-Result ConstantOps::extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantHelpers::extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&    ctx = sema.ctx();
     ByteSpan bytes;
@@ -295,7 +295,7 @@ Result ConstantOps::extractStructMember(Sema& sema, const ConstantValue& cst, co
     return Result::Continue;
 }
 
-Result ConstantOps::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+Result ConstantHelpers::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
     SWC_ASSERT(cst.isValid());
     const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
@@ -351,17 +351,17 @@ Result ConstantOps::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t
     return Result::Continue;
 }
 
-bool ConstantOps::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
+bool ConstantHelpers::lowerToBytes(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef, ByteSpan dst)
 {
     return lowerConstantToBytes(sema, cstRef, dstTypeRef, dst);
 }
 
-bool ConstantOps::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
+bool ConstantHelpers::lowerAggregateArrayToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
 {
     return lowerAggregateArrayToBytesInternal(sema, values, dstType, dst);
 }
 
-bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
+bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, const std::vector<ConstantRef>& values, const TypeInfo& dstType, ByteSpan dst)
 {
     const auto& dstFields = dstType.payloadSymStruct().fields();
     size_t      valueIdx  = 0;
@@ -389,7 +389,7 @@ bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<Cons
     return true;
 }
 
-ConstantRef ConstantOps::makeConstantLocation(Sema& sema, const AstNode& node)
+ConstantRef ConstantHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 {
     auto&                 ctx       = sema.ctx();
     const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());

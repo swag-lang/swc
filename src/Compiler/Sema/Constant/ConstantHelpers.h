@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolVariable;
 class TypeInfo;
 
-namespace ConstantOps
+namespace ConstantHelpers
 {
     Result      extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef);
     Result      extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef);

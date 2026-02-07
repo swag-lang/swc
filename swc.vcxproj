@@ -282,7 +282,7 @@
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantOps.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaContext.cpp"/>
@@ -384,7 +384,7 @@
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantOps.h"/>
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\Sema.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h"/>

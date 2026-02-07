@@ -466,13 +466,12 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
     std::vector<ConstantRef> values;
     values.reserve(children.size());
 
-    for (const auto& child : children)
+    for (const AstNodeRef& child : children)
     {
-        memberTypes.push_back(sema.typeRefOf(child));
-        if (!sema.hasConstant(child))
-            allConstant = false;
-        else
-            values.push_back(sema.constantRefOf(child));
+        SemaNodeView nodeView(sema, child);
+        memberTypes.push_back(nodeView.typeRef);
+        allConstant = allConstant && nodeView.cstRef.isValid();
+        values.push_back(nodeView.cstRef);
     }
 
     if (allConstant)

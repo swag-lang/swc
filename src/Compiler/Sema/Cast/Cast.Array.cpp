@@ -9,44 +9,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result failCannotCast(CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    struct CastArrayContext
     {
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-    }
+        Sema*           sema;
+        CastContext*    castCtx;
+        TypeRef         srcTypeRef;
+        TypeRef         dstTypeRef;
+        const TypeInfo* srcType;
+        const TypeInfo* dstType;
+    };
 
-    void setupElemCtx(CastContext& elemCtx, const CastContext& castCtx)
+    Result checkElemCast(const CastArrayContext& ctx, TypeRef srcElemType, TypeRef dstElemType)
     {
-        elemCtx.flags        = castCtx.flags;
-        elemCtx.errorNodeRef = castCtx.errorNodeRef;
-    }
-
-    Result checkElemCast(Sema& sema,
-                         CastContext& castCtx,
-                         TypeRef srcElemType,
-                         TypeRef dstElemType)
-    {
-        CastContext elemCtx(castCtx.kind);
-        setupElemCtx(elemCtx, castCtx);
-        const Result res = Cast::castAllowed(sema, elemCtx, srcElemType, dstElemType);
+        CastContext elemCtx(ctx.castCtx->kind);
+        elemCtx.flags        = ctx.castCtx->flags;
+        elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+        const Result res     = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
-            castCtx.failure = elemCtx.failure;
+            ctx.castCtx->failure = elemCtx.failure;
         return res;
     }
 
-    Result foldElemCast(Sema& sema,
-                        CastContext& castCtx,
-                        TypeRef srcElemType,
-                        TypeRef dstElemType,
-                        ConstantRef valueRef,
-                        ConstantRef& outRef)
+    Result foldElemCast(const CastArrayContext& ctx, TypeRef srcElemType, TypeRef dstElemType, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastContext elemCtx(castCtx.kind);
-        setupElemCtx(elemCtx, castCtx);
+        CastContext elemCtx(ctx.castCtx->kind);
+        elemCtx.flags        = ctx.castCtx->flags;
+        elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
         elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res = Cast::castAllowed(sema, elemCtx, srcElemType, dstElemType);
+        const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
         {
-            castCtx.failure = elemCtx.failure;
+            ctx.castCtx->failure = elemCtx.failure;
             return res;
         }
 
@@ -56,36 +49,31 @@ namespace
         return Result::Continue;
     }
 
-    Result castArrayToArray(Sema& sema,
-                            CastContext& castCtx,
-                            TypeRef srcTypeRef,
-                            TypeRef dstTypeRef,
-                            const TypeInfo& srcType,
-                            const TypeInfo& dstType)
+    Result castArrayToArray(const CastArrayContext& ctx)
     {
-        const auto&   dstDims        = dstType.payloadArrayDims();
-        const TypeRef dstElemTypeRef = dstType.payloadArrayElemTypeRef();
+        const auto&   dstDims        = ctx.dstType->payloadArrayDims();
+        const TypeRef dstElemTypeRef = ctx.dstType->payloadArrayElemTypeRef();
 
-        const auto& srcDims = srcType.payloadArrayDims();
+        const auto& srcDims = ctx.srcType->payloadArrayDims();
         if (srcDims.size() != dstDims.size())
-            return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+            return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
 
         for (size_t i = 0; i < srcDims.size(); ++i)
         {
             if (srcDims[i] != dstDims[i])
-                return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+                return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
         }
 
-        const TypeRef srcElemTypeRef = srcType.payloadArrayElemTypeRef();
+        const TypeRef srcElemTypeRef = ctx.srcType->payloadArrayElemTypeRef();
         if (srcElemTypeRef == dstElemTypeRef)
             return Result::Continue;
 
-        if (!castCtx.isConstantFolding())
-            return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+        if (!ctx.castCtx->isConstantFolding())
+            return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
 
-        const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
         if (!cst.isAggregateArray())
-            return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+            return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
 
         const auto&              values = cst.getAggregateArray();
         std::vector<ConstantRef> newValues;
@@ -93,50 +81,44 @@ namespace
 
         for (const auto& valueRef : values)
         {
-            ConstantRef castedRef;
-            const Result res = foldElemCast(sema, castCtx, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef);
+            ConstantRef  castedRef;
+            const Result res = foldElemCast(ctx, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef);
             if (res != Result::Continue)
                 return res;
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
-        castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), result);
+        const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
+        ctx.castCtx->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 
-    Result castAggregateToArray(Sema& sema,
-                                CastContext& castCtx,
-                                TypeRef srcTypeRef,
-                                TypeRef dstTypeRef,
-                                const TypeInfo& srcType,
-                                const TypeInfo& dstType)
+    Result castAggregateToArray(const CastArrayContext& ctx)
     {
-        const auto&   dstDims        = dstType.payloadArrayDims();
-        const TypeRef dstElemTypeRef = dstType.payloadArrayElemTypeRef();
-
-        const auto& srcTypes = srcType.payloadAggregate().types;
+        const auto&   dstDims        = ctx.dstType->payloadArrayDims();
+        const TypeRef dstElemTypeRef = ctx.dstType->payloadArrayElemTypeRef();
+        const auto&   srcTypes       = ctx.srcType->payloadAggregate().types;
 
         uint64_t totalCount = 1;
         for (const auto dim : dstDims)
             totalCount *= dim;
 
         if (srcTypes.size() > totalCount)
-            return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+            return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
 
         for (const auto srcElemTypeRef : srcTypes)
         {
-            const Result res = checkElemCast(sema, castCtx, srcElemTypeRef, dstElemTypeRef);
+            const Result res = checkElemCast(ctx, srcElemTypeRef, dstElemTypeRef);
             if (res != Result::Continue)
                 return res;
         }
 
-        if (!castCtx.isConstantFolding())
+        if (!ctx.castCtx->isConstantFolding())
             return Result::Continue;
 
-        const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
         if (!cst.isAggregateArray())
-            return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+            return ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
 
         const auto&              values = cst.getAggregateArray();
         std::vector<ConstantRef> newValues;
@@ -144,31 +126,32 @@ namespace
 
         for (size_t i = 0; i < values.size(); ++i)
         {
-            ConstantRef castedRef;
-            const Result res = foldElemCast(sema, castCtx, srcTypes[i], dstElemTypeRef, values[i], castedRef);
+            ConstantRef  castedRef;
+            const Result res = foldElemCast(ctx, srcTypes[i], dstElemTypeRef, values[i], castedRef);
             if (res != Result::Continue)
                 return res;
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
-        castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), result);
+        const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
+        ctx.castCtx->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 }
 
 Result Cast::castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo&        srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&        dstType = sema.typeMgr().get(dstTypeRef);
+    const CastArrayContext ctx{&sema, &castCtx, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     if (srcType.isArray())
-        return castArrayToArray(sema, castCtx, srcTypeRef, dstTypeRef, srcType, dstType);
+        return castArrayToArray(ctx);
 
     if (srcType.isAggregateArray())
-        return castAggregateToArray(sema, castCtx, srcTypeRef, dstTypeRef, srcType, dstType);
+        return castAggregateToArray(ctx);
 
-    return failCannotCast(castCtx, srcTypeRef, dstTypeRef);
+    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
 SWC_END_NAMESPACE();

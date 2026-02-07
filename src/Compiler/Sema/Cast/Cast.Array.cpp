@@ -112,10 +112,8 @@ namespace
 
         for (const auto& valueRef : values)
         {
-            ConstantRef  castedRef;
-            const Result res = foldElemCast(ctx, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef);
-            if (res != Result::Continue)
-                return res;
+            ConstantRef castedRef;
+            RESULT_VERIFY(foldElemCast(ctx, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -139,9 +137,7 @@ namespace
 
         for (const auto srcElemTypeRef : srcTypes)
         {
-            const Result res = checkElemCast(ctx, srcElemTypeRef, dstElemTypeRef);
-            if (res != Result::Continue)
-                return res;
+            RESULT_VERIFY(checkElemCast(ctx, srcElemTypeRef, dstElemTypeRef));
         }
 
         if (!ctx.castCtx->isConstantFolding())
@@ -157,10 +153,8 @@ namespace
 
         for (size_t i = 0; i < values.size(); ++i)
         {
-            ConstantRef  castedRef;
-            const Result res = foldElemCast(ctx, srcTypes[i], dstElemTypeRef, values[i], castedRef);
-            if (res != Result::Continue)
-                return res;
+            ConstantRef castedRef;
+            RESULT_VERIFY(foldElemCast(ctx, srcTypes[i], dstElemTypeRef, values[i], castedRef));
             newValues.push_back(castedRef);
         }
 

@@ -3,11 +3,10 @@
 #include "Backend/MachineCode/Encoder/X64/X64Encoder.h"
 #include "Backend/Diagnostics/BackendReport.h"
 #include "Backend/MachineCode/Encoder/MicroOps/MicroInstruction.h"
-#pragma warning(disable : 4063)
 
 SWC_BEGIN_NAMESPACE();
 
-enum class ModRMMode : uint8_t
+enum class ModRmMode : uint8_t
 {
     Memory         = 0b00,
     Displacement8  = 0b01,
@@ -199,7 +198,7 @@ namespace
                (opBits == OpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
     }
 
-    uint8_t getREX(bool w, bool r, bool x, bool b)
+    uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
         if (w) // 64 bits
@@ -214,15 +213,15 @@ namespace
     }
 
     // Addressing mode
-    uint8_t getModRM(ModRMMode mod, uint8_t reg, uint8_t rm)
+    uint8_t getModRm(ModRmMode mod, uint8_t reg, uint8_t rm)
     {
         const auto result = static_cast<uint32_t>(mod) << 6 | ((reg & 0b111) << 3) | (rm & 0b111);
         return static_cast<uint8_t>(result);
     }
 
-    uint8_t getModRM(ModRMMode mod, CpuReg reg, uint8_t rm)
+    uint8_t getModRm(ModRmMode mod, CpuReg reg, uint8_t rm)
     {
-        return getModRM(mod, encodeReg(reg), rm);
+        return getModRm(mod, encodeReg(reg), rm);
     }
 
     void emitPrefixF64(Store& concat, OpBits opBits)
@@ -237,7 +236,7 @@ namespace
         concat.push_u8(value);
     }
 
-    void emitREX(Store& concat, OpBits opBits, CpuReg reg0 = REX_REG_NONE, CpuReg reg1 = REX_REG_NONE)
+    void emitRex(Store& concat, OpBits opBits, CpuReg reg0 = REX_REG_NONE, CpuReg reg1 = REX_REG_NONE)
     {
         if (opBits == OpBits::B16)
             concat.push_u8(0x66);
@@ -249,7 +248,7 @@ namespace
             reg0 == CpuReg::Rsi || reg1 == CpuReg::Rsi ||
             reg0 == CpuReg::Rdi || reg1 == CpuReg::Rdi)
         {
-            const auto value = getREX(opBits == OpBits::B64, b1, false, b2);
+            const auto value = getRex(opBits == OpBits::B64, b1, false, b2);
             concat.push_u8(value);
         }
     }
@@ -266,15 +265,15 @@ namespace
             concat.push_u64(value);
     }
 
-    void emitModRM(Store& concat, ModRMMode mod, CpuReg reg, uint8_t rm)
+    void emitModRM(Store& concat, ModRmMode mod, CpuReg reg, uint8_t rm)
     {
-        const auto value = getModRM(mod, reg, rm);
+        const auto value = getModRm(mod, reg, rm);
         concat.push_u8(value);
     }
 
     void emitModRM(Store& concat, CpuReg reg, CpuReg memReg)
     {
-        emitModRM(concat, ModRMMode::Register, reg, encodeReg(memReg));
+        emitModRM(concat, ModRmMode::Register, reg, encodeReg(memReg));
     }
 
     void emitModRM(Store& concat, uint64_t memOffset, CpuReg reg, CpuReg memReg)
@@ -283,13 +282,13 @@ namespace
         {
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
-                const auto modRM = getModRM(ModRMMode::Memory, reg, MODRM_RM_SIB);
+                const auto modRM = getModRm(ModRmMode::Memory, reg, MODRM_RM_SIB);
                 concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
-                const auto modRM = getModRM(ModRMMode::Memory, reg, encodeReg(memReg));
+                const auto modRM = getModRm(ModRmMode::Memory, reg, encodeReg(memReg));
                 concat.push_u8(modRM);
             }
         }
@@ -297,13 +296,13 @@ namespace
         {
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
-                const auto modRM = getModRM(ModRMMode::Displacement8, reg, MODRM_RM_SIB);
+                const auto modRM = getModRm(ModRmMode::Displacement8, reg, MODRM_RM_SIB);
                 concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
-                const auto modRM = getModRM(ModRMMode::Displacement8, reg, encodeReg(memReg));
+                const auto modRM = getModRm(ModRmMode::Displacement8, reg, encodeReg(memReg));
                 concat.push_u8(modRM);
             }
 
@@ -313,13 +312,13 @@ namespace
         {
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
-                const auto modRM = getModRM(ModRMMode::Displacement32, reg, MODRM_RM_SIB);
+                const auto modRM = getModRm(ModRmMode::Displacement32, reg, MODRM_RM_SIB);
                 concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
-                const auto modRM = getModRM(ModRMMode::Displacement32, reg, encodeReg(memReg));
+                const auto modRM = getModRm(ModRmMode::Displacement32, reg, encodeReg(memReg));
                 concat.push_u8(modRM);
             }
 
@@ -374,9 +373,9 @@ namespace
 
 CpuEncodeResult X64Encoder::encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags)
 {
-    emitREX(concat, OpBits::B64, reg);
+    emitRex(concat, OpBits::B64, reg);
     emitCPUOp(concat, 0x8D); // LEA
-    emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
+    emitModRM(concat, ModRmMode::Memory, reg, MODRM_RM_RIP);
     addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
     concat.push_u32(offset);
     return CpuEncodeResult::Zero;
@@ -391,7 +390,7 @@ CpuEncodeResult X64Encoder::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolI
         emitSpecF64(concat, 0xF3, opBits);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x10);
-        emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
+        emitModRM(concat, ModRmMode::Memory, reg, MODRM_RM_RIP);
         addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
         concat.push_u32(offset);
     }
@@ -400,7 +399,7 @@ CpuEncodeResult X64Encoder::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolI
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         SWC_ASSERT(opBits == OpBits::B64);
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0xB8, reg); // MOV
         addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_ADDR64);
         concat.push_u64(offset);
@@ -410,9 +409,9 @@ CpuEncodeResult X64Encoder::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolI
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         SWC_ASSERT(opBits == OpBits::B64);
-        emitREX(concat, opBits, reg);
+        emitRex(concat, opBits, reg);
         emitCPUOp(concat, 0x8B); // MOV
-        emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
+        emitModRM(concat, ModRmMode::Memory, reg, MODRM_RM_RIP);
         addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
         concat.push_u32(offset);
     }
@@ -424,14 +423,14 @@ CpuEncodeResult X64Encoder::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolI
 
 CpuEncodeResult X64Encoder::encodePush(CpuReg reg, CpuEmitFlags emitFlags)
 {
-    emitREX(concat, OpBits::Zero, REX_REG_NONE, reg);
+    emitRex(concat, OpBits::Zero, REX_REG_NONE, reg);
     emitCPUOp(concat, 0x50, reg);
     return CpuEncodeResult::Zero;
 }
 
 CpuEncodeResult X64Encoder::encodePop(CpuReg reg, CpuEmitFlags emitFlags)
 {
-    emitREX(concat, OpBits::Zero, REX_REG_NONE, reg);
+    emitRex(concat, OpBits::Zero, REX_REG_NONE, reg);
     emitCPUOp(concat, 0x58, reg);
     return CpuEncodeResult::Zero;
 }
@@ -460,7 +459,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBit
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         emitPrefixF64(concat, OpBits::B64);
-        emitREX(concat, opBits, regDst, regSrc);
+        emitRex(concat, opBits, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x6E);
         emitModRM(concat, regDst, regSrc);
@@ -470,7 +469,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBit
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         emitPrefixF64(concat, OpBits::B64);
-        emitREX(concat, opBits, regSrc, regDst);
+        emitRex(concat, opBits, regSrc, regDst);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x7E);
         emitModRM(concat, regSrc, regDst);
@@ -479,7 +478,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBit
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regSrc, regDst);
+        emitRex(concat, opBits, regSrc, regDst);
         emitSpecCPUOp(concat, 0x89, opBits);
         emitModRM(concat, regSrc, regDst);
     }
@@ -499,7 +498,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegImm(CpuReg reg, uint64_t value, OpBits 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0xB0, reg);
         emitValue(concat, value, opBits);
     }
@@ -507,7 +506,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegImm(CpuReg reg, uint64_t value, OpBits 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0xB8, reg);
         emitValue(concat, value, opBits);
     }
@@ -534,7 +533,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegMem(CpuReg reg, CpuReg memReg, uint64_t
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         emitSpecF64(concat, 0xF3, opBits);
-        emitREX(concat, OpBits::Zero, reg, memReg);
+        emitRex(concat, OpBits::Zero, reg, memReg);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x10);
         emitModRM(concat, memOffset, reg, memReg);
@@ -543,7 +542,7 @@ CpuEncodeResult X64Encoder::encodeLoadRegMem(CpuReg reg, CpuReg memReg, uint64_t
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, reg, memReg);
+        emitRex(concat, opBits, reg, memReg);
         emitSpecCPUOp(concat, 0x8B, opBits);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -571,7 +570,7 @@ CpuEncodeResult X64Encoder::encodeLoadZeroExtendRegMem(CpuReg reg, CpuReg memReg
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, reg, memReg);
+        emitRex(concat, numBitsDst, reg, memReg);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xB6);
         emitModRM(concat, memOffset, reg, memReg);
@@ -580,7 +579,7 @@ CpuEncodeResult X64Encoder::encodeLoadZeroExtendRegMem(CpuReg reg, CpuReg memReg
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, reg, memReg);
+        emitRex(concat, numBitsDst, reg, memReg);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xB7);
         emitModRM(concat, memOffset, reg, memReg);
@@ -613,7 +612,7 @@ CpuEncodeResult X64Encoder::encodeLoadZeroExtendRegReg(CpuReg regDst, CpuReg reg
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, regDst, regSrc);
+        emitRex(concat, numBitsDst, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xB6);
         emitModRM(concat, regDst, regSrc);
@@ -622,7 +621,7 @@ CpuEncodeResult X64Encoder::encodeLoadZeroExtendRegReg(CpuReg regDst, CpuReg reg
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, OpBits::B64, regDst, regSrc);
+        emitRex(concat, OpBits::B64, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xB7);
         emitModRM(concat, regDst, regSrc);
@@ -661,7 +660,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memR
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, reg, memReg);
+        emitRex(concat, numBitsDst, reg, memReg);
         concat.push_u8(0x0F);
         concat.push_u8(0xBE);
         emitModRM(concat, memOffset, reg, memReg);
@@ -670,7 +669,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memR
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, reg, memReg);
+        emitRex(concat, numBitsDst, reg, memReg);
         concat.push_u8(0x0F);
         concat.push_u8(0xBF);
         emitModRM(concat, memOffset, reg, memReg);
@@ -680,7 +679,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memR
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         SWC_ASSERT(numBitsDst == OpBits::B64);
-        emitREX(concat, OpBits::B64, reg, memReg);
+        emitRex(concat, OpBits::B64, reg, memReg);
         emitCPUOp(concat, 0x63);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -708,7 +707,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg r
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, regDst, regSrc);
+        emitRex(concat, numBitsDst, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xBE);
         emitModRM(concat, regDst, regSrc);
@@ -717,7 +716,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg r
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, regDst, regSrc);
+        emitRex(concat, numBitsDst, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xBF);
         emitModRM(concat, regDst, regSrc);
@@ -726,7 +725,7 @@ CpuEncodeResult X64Encoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg r
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, numBitsDst, regDst, regSrc);
+        emitRex(concat, numBitsDst, regDst, regSrc);
         emitCPUOp(concat, 0x63);
         emitModRM(concat, regDst, regSrc);
     }
@@ -767,9 +766,9 @@ CpuEncodeResult X64Encoder::encodeLoadAddressRegMem(CpuReg reg, CpuReg memReg, u
         SWC_ASSERT(memOffset == 0);
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, OpBits::B64, reg, memReg);
+        emitRex(concat, OpBits::B64, reg, memReg);
         emitCPUOp(concat, 0x8D);
-        emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
+        emitModRM(concat, ModRmMode::Memory, reg, MODRM_RM_RIP);
     }
     else if (memOffset == 0)
     {
@@ -779,7 +778,7 @@ CpuEncodeResult X64Encoder::encodeLoadAddressRegMem(CpuReg reg, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, OpBits::B64, reg, memReg);
+        emitRex(concat, OpBits::B64, reg, memReg);
         emitCPUOp(concat, 0x8D);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -825,7 +824,7 @@ namespace
         const bool b2 = (regBase >= CpuReg::R8 && regBase <= CpuReg::R15);
         if (opBitsValue == OpBits::B64 || b1 || b2)
         {
-            const auto val = getREX(opBitsValue == OpBits::B64, false, b1, b2);
+            const auto val = getRex(opBitsValue == OpBits::B64, false, b1, b2);
             concat.push_u8(val);
         }
 
@@ -834,11 +833,11 @@ namespace
 
         // ModRM
         if (regBase == CpuReg::R13)
-            emitModRM(concat, addValue <= 0x7F ? ModRMMode::Displacement8 : ModRMMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
+            emitModRM(concat, addValue <= 0x7F ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
         else if (addValue == 0 || regBase == CpuReg::Max)
-            emitModRM(concat, ModRMMode::Memory, MODRM_REG_0, MODRM_RM_SIB);
+            emitModRM(concat, ModRmMode::Memory, MODRM_REG_0, MODRM_RM_SIB);
         else
-            emitModRM(concat, addValue <= 0x7F ? ModRMMode::Displacement8 : ModRMMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
+            emitModRM(concat, addValue <= 0x7F ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
@@ -906,7 +905,7 @@ namespace
         const bool needREX = opBitsReg == OpBits::B64 || reg == CpuReg::Rsi || reg == CpuReg::Rdi || reg == CpuReg::Rbp;
         if (needREX || b0 || b1 || b2)
         {
-            const auto value = getREX(opBitsReg == OpBits::B64, b0, b1, b2);
+            const auto value = getRex(opBitsReg == OpBits::B64, b0, b1, b2);
             concat.push_u8(value);
         }
 
@@ -937,11 +936,11 @@ namespace
 
         // ModRM
         if (regBase == CpuReg::R13)
-            emitModRM(concat, addValue <= 0x7F ? ModRMMode::Displacement8 : ModRMMode::Displacement32, reg, MODRM_RM_SIB);
+            emitModRM(concat, addValue <= 0x7F ? ModRmMode::Displacement8 : ModRmMode::Displacement32, reg, MODRM_RM_SIB);
         else if (addValue == 0 || regBase == CpuReg::Max)
-            emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_SIB);
+            emitModRM(concat, ModRmMode::Memory, reg, MODRM_RM_SIB);
         else
-            emitModRM(concat, addValue <= 0x7F ? ModRMMode::Displacement8 : ModRMMode::Displacement32, reg, MODRM_RM_SIB);
+            emitModRM(concat, addValue <= 0x7F ? ModRmMode::Displacement8 : ModRmMode::Displacement32, reg, MODRM_RM_SIB);
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
@@ -1003,7 +1002,7 @@ CpuEncodeResult X64Encoder::encodeLoadMemReg(CpuReg memReg, uint64_t memOffset, 
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
         emitSpecF64(concat, 0xF3, opBits);
-        emitREX(concat, OpBits::Zero, reg, memReg);
+        emitRex(concat, OpBits::Zero, reg, memReg);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x11);
         emitModRM(concat, memOffset, reg, memReg);
@@ -1012,7 +1011,7 @@ CpuEncodeResult X64Encoder::encodeLoadMemReg(CpuReg memReg, uint64_t memOffset, 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, reg, memReg);
+        emitRex(concat, opBits, reg, memReg);
         emitSpecCPUOp(concat, 0x89, opBits);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -1050,7 +1049,7 @@ CpuEncodeResult X64Encoder::encodeLoadMemImm(CpuReg memReg, uint64_t memOffset, 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, memReg);
+        emitRex(concat, opBits, REX_REG_NONE, memReg);
         emitSpecB8(concat, 0xC7, opBits);
         emitModRM(concat, memOffset, MODRM_REG_0, memReg);
         emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -1075,7 +1074,7 @@ CpuEncodeResult X64Encoder::encodeClearReg(CpuReg reg, OpBits opBits, CpuEmitFla
     }
     else
     {
-        emitREX(concat, opBits, reg, reg);
+        emitRex(concat, opBits, reg, reg);
         emitSpecCPUOp(concat, CpuOp::XOR, opBits);
         emitModRM(concat, reg, reg);
     }
@@ -1090,7 +1089,7 @@ CpuEncodeResult X64Encoder::encodeSetCondReg(CpuReg reg, CpuCond cpuCond, CpuEmi
     if (emitFlags.has(EMIT_CAN_ENCODE))
         return CpuEncodeResult::Zero;
 
-    emitREX(concat, OpBits::B8, REX_REG_NONE, reg);
+    emitRex(concat, OpBits::B8, REX_REG_NONE, reg);
     emitCPUOp(concat, 0x0F);
 
     switch (cpuCond)
@@ -1152,7 +1151,7 @@ CpuEncodeResult X64Encoder::encodeLoadCondRegReg(CpuReg regDst, CpuReg regSrc, C
         return CpuEncodeResult::Zero;
 
     opBits = std::max(opBits, OpBits::B32);
-    emitREX(concat, opBits, regDst, regSrc);
+    emitRex(concat, opBits, regDst, regSrc);
     emitCPUOp(concat, 0x0F);
 
     switch (setType)
@@ -1213,7 +1212,7 @@ CpuEncodeResult X64Encoder::encodeCmpRegReg(CpuReg reg0, CpuReg reg1, OpBits opB
             return CpuEncodeResult::Zero;
         }
 
-        emitREX(concat, opBits, reg1, reg0);
+        emitRex(concat, opBits, reg1, reg0);
         emitSpecCPUOp(concat, 0x39, opBits);
         emitModRM(concat, reg1, reg0);
     }
@@ -1233,7 +1232,7 @@ CpuEncodeResult X64Encoder::encodeCmpRegImm(CpuReg reg, uint64_t value, OpBits o
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0x80);
         emitModRM(concat, MODRM_REG_7, reg);
         emitValue(concat, value, OpBits::B8);
@@ -1242,7 +1241,7 @@ CpuEncodeResult X64Encoder::encodeCmpRegImm(CpuReg reg, uint64_t value, OpBits o
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0x83);
         emitModRM(concat, MODRM_REG_7, reg);
         emitValue(concat, value, OpBits::B8);
@@ -1251,7 +1250,7 @@ CpuEncodeResult X64Encoder::encodeCmpRegImm(CpuReg reg, uint64_t value, OpBits o
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0x81);
         emitModRM(concat, MODRM_REG_7, reg);
         emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -1290,7 +1289,7 @@ CpuEncodeResult X64Encoder::encodeCmpMemReg(CpuReg memReg, uint64_t memOffset, C
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, reg, memReg);
+        emitRex(concat, opBits, reg, memReg);
         emitSpecCPUOp(concat, 0x39, opBits);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -1316,7 +1315,7 @@ CpuEncodeResult X64Encoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, memReg);
+        emitRex(concat, opBits, REX_REG_NONE, memReg);
         emitCPUOp(concat, 0x80);
         emitModRM(concat, memOffset, MODRM_REG_7, memReg);
         emitValue(concat, value, OpBits::B8);
@@ -1325,7 +1324,7 @@ CpuEncodeResult X64Encoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, memReg);
+        emitRex(concat, opBits, REX_REG_NONE, memReg);
         emitCPUOp(concat, 0x83);
         emitModRM(concat, memOffset, MODRM_REG_7, memReg);
         emitValue(concat, value, OpBits::B8);
@@ -1334,7 +1333,7 @@ CpuEncodeResult X64Encoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, memReg);
+        emitRex(concat, opBits, REX_REG_NONE, memReg);
         emitCPUOp(concat, 0x81);
         emitModRM(concat, memOffset, MODRM_REG_7, memReg);
         emitValue(concat, value, opBits == OpBits::B16 ? opBits : OpBits::B32);
@@ -1372,7 +1371,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryMem(CpuReg memReg, uint64_t memOffset, 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits);
+        emitRex(concat, opBits);
         emitSpecCPUOp(concat, 0xF7, opBits);
         emitModRM(concat, memOffset, MODRM_REG_2, memReg);
     }
@@ -1383,7 +1382,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryMem(CpuReg memReg, uint64_t memOffset, 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits);
+        emitRex(concat, opBits);
         emitSpecCPUOp(concat, 0xF7, opBits);
         emitModRM(concat, memOffset, MODRM_REG_3, memReg);
     }
@@ -1415,7 +1414,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, OpBits opBits
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, REX_REG_NONE, reg);
+        emitRex(concat, opBits, REX_REG_NONE, reg);
         emitSpecCPUOp(concat, 0xF7, opBits);
         emitModRM(concat, MODRM_REG_2, reg);
     }
@@ -1434,7 +1433,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, OpBits opBits
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xF7, opBits);
             emitModRM(concat, MODRM_REG_3, reg);
         }
@@ -1449,7 +1448,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, OpBits opBits
         if (opBits == OpBits::B16)
         {
             // rol ax, 0x8
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0xC1);
             emitCPUOp(concat, 0xC0);
             emitValue(concat, 0x08, OpBits::B8);
@@ -1457,7 +1456,7 @@ CpuEncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, OpBits opBits
         else
         {
             SWC_ASSERT(opBits == OpBits::B16 || opBits == OpBits::B32 || opBits == OpBits::B64);
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x0F);
             emitCPUOp(concat, 0xC8, reg);
         }
@@ -1496,7 +1495,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitSpecCPUOp(concat, 0x03, opBits);
         emitModRM(concat, memOffset, regDst, memReg);
     }
@@ -1507,7 +1506,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitSpecCPUOp(concat, 0x2B, opBits);
         emitModRM(concat, memOffset, regDst, memReg);
     }
@@ -1518,7 +1517,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitSpecCPUOp(concat, 0x23, opBits);
         emitModRM(concat, memOffset, regDst, memReg);
     }
@@ -1529,7 +1528,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitSpecCPUOp(concat, 0x0B, opBits);
         emitModRM(concat, memOffset, regDst, memReg);
     }
@@ -1540,7 +1539,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitSpecCPUOp(concat, 0x33, opBits);
         emitModRM(concat, memOffset, regDst, memReg);
     }
@@ -1553,7 +1552,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, u
             return CpuEncodeResult::Zero;
         if (opBits == OpBits::B8)
             emitLoadSignedExtendRegReg(regDst, regDst, OpBits::B32, opBits);
-        emitREX(concat, opBits, regDst, memReg);
+        emitRex(concat, opBits, regDst, memReg);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xAF);
         emitModRM(concat, memOffset, regDst, memReg);
@@ -1594,7 +1593,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
         }
 
         emitSpecF64(concat, 0xF3, opBits);
-        emitREX(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
+        emitRex(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, op);
         emitModRM(concat, regDst, regSrc);
@@ -1610,7 +1609,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
         }
 
         emitSpecF64(concat, 0xF3, opBits);
-        emitREX(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
+        emitRex(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, op);
         emitModRM(concat, regDst, regSrc);
@@ -1624,7 +1623,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
         if (op != CpuOp::FSQRT && op != CpuOp::FAND && op != CpuOp::FXOR)
         {
             emitSpecF64(concat, 0xF3, opBits);
-            emitREX(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
+            emitRex(concat, emitFlags.has(EMIT_B64) ? OpBits::B64 : OpBits::B32, regDst, regSrc);
         }
         else
         {
@@ -1664,11 +1663,11 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
             emitClearReg(x64Reg2CpuReg(X64Reg::Rdx), opBits);
         else
         {
-            emitREX(concat, opBits);
+            emitRex(concat, opBits);
             emitCPUOp(concat, 0x99); // cdq
         }
 
-        emitREX(concat, opBits, rax, regSrc);
+        emitRex(concat, opBits, rax, regSrc);
         emitSpecCPUOp(concat, 0xF7, opBits);
         if (op == CpuOp::DIV || op == CpuOp::MOD)
             emitModRM(concat, MODRM_REG_6, regSrc);
@@ -1698,7 +1697,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
             return CpuEncodeResult::Zero;
         }
 
-        emitREX(concat, opBits, rax, regSrc);
+        emitRex(concat, opBits, rax, regSrc);
         emitSpecCPUOp(concat, 0xF7, opBits);
         emitModRM(concat, MODRM_REG_4, regSrc);
     }
@@ -1716,7 +1715,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
             emitLoadSignedExtendRegReg(regSrc, regSrc, OpBits::B32, opBits);
         }
 
-        emitREX(concat, opBits, regDst, regSrc);
+        emitRex(concat, opBits, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xAF);
         emitModRM(concat, regDst, regSrc);
@@ -1743,7 +1742,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
         }
 
         SWC_ASSERT(cpuRegToX64Reg(regSrc) == X64Reg::Rcx);
-        emitREX(concat, opBits, REX_REG_NONE, regDst);
+        emitRex(concat, opBits, REX_REG_NONE, regDst);
         emitSpecCPUOp(concat, 0xD3, opBits);
         if (op == CpuOp::ROL)
             emitModRM(concat, MODRM_REG_0, regDst);
@@ -1767,7 +1766,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regSrc, regDst);
+        emitRex(concat, opBits, regSrc, regDst);
         emitSpecCPUOp(concat, op, opBits);
         emitModRM(concat, regSrc, regDst);
     }
@@ -1778,7 +1777,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return CpuEncodeResult::Zero;
-        emitREX(concat, opBits, regSrc, regDst);
+        emitRex(concat, opBits, regSrc, regDst);
         emitSpecCPUOp(concat, 0x87, opBits);
         emitModRM(concat, regSrc, regDst);
     }
@@ -1794,7 +1793,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
             return CpuEncodeResult::Zero;
         }
 
-        emitREX(concat, opBits, regDst, regSrc);
+        emitRex(concat, opBits, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, op == CpuOp::BSF ? 0xBC : 0xBD);
         emitModRM(concat, regDst, regSrc);
@@ -1811,7 +1810,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, C
             return CpuEncodeResult::Zero;
         }
         emitCPUOp(concat, 0xF3);
-        emitREX(concat, opBits, regDst, regSrc);
+        emitRex(concat, opBits, regDst, regSrc);
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0xB8);
         emitModRM(concat, regDst, regSrc);
@@ -1886,7 +1885,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffs
 
         if (emitFlags.has(EMIT_LOCK))
             concat.push_u8(0xF0);
-        emitREX(concat, opBits, REX_REG_NONE, memReg);
+        emitRex(concat, opBits, REX_REG_NONE, memReg);
         emitSpecCPUOp(concat, 0xD3, opBits);
         if (op == CpuOp::SHL)
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
@@ -1904,7 +1903,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffs
             return CpuEncodeResult::Zero;
         if (emitFlags.has(EMIT_LOCK))
             concat.push_u8(0xF0);
-        emitREX(concat, opBits, reg, memReg);
+        emitRex(concat, opBits, reg, memReg);
         emitSpecCPUOp(concat, op, opBits);
         emitModRM(concat, memOffset, reg, memReg);
     }
@@ -1922,7 +1921,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, MODRM_REG_6, reg);
             emitValue(concat, value, OpBits::B8);
@@ -1931,7 +1930,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, MODRM_REG_6, reg);
             emitValue(concat, value, OpBits::B8);
@@ -1940,7 +1939,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, MODRM_REG_6, reg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -1961,7 +1960,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, MODRM_REG_1, reg);
             emitValue(concat, value, OpBits::B8);
@@ -1970,7 +1969,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, MODRM_REG_1, reg);
             emitValue(concat, value, OpBits::B8);
@@ -1979,7 +1978,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, MODRM_REG_1, reg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2000,7 +1999,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, MODRM_REG_4, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2009,7 +2008,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, MODRM_REG_4, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2018,7 +2017,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, MODRM_REG_4, reg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2039,7 +2038,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xFF, opBits);
             emitModRM(concat, MODRM_REG_0, reg);
         }
@@ -2047,7 +2046,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, MODRM_REG_0, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2056,7 +2055,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, MODRM_REG_0, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2065,7 +2064,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, MODRM_REG_0, reg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2086,7 +2085,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xFF, opBits);
             emitModRM(concat, MODRM_REG_1, reg);
         }
@@ -2094,7 +2093,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, MODRM_REG_5, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2103,7 +2102,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, MODRM_REG_5, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2112,7 +2111,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, MODRM_REG_5, reg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2148,7 +2147,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
                 return CpuEncodeResult::Zero;
             if (opBits == OpBits::B8)
                 emitLoadSignedExtendRegReg(reg, reg, OpBits::B32, opBits);
-            emitREX(concat, opBits, reg, reg);
+            emitRex(concat, opBits, reg, reg);
             emitCPUOp(concat, 0x6B);
             emitModRM(concat, reg, reg);
             emitValue(concat, value, OpBits::B8);
@@ -2159,7 +2158,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
                 return CpuEncodeResult::Zero;
             if (opBits == OpBits::B8 || opBits == OpBits::B16)
                 emitLoadSignedExtendRegReg(reg, reg, OpBits::B32, opBits);
-            emitREX(concat, opBits, reg, reg);
+            emitRex(concat, opBits, reg, reg);
             emitCPUOp(concat, 0x69);
             emitModRM(concat, reg, reg);
             emitValue(concat, value, OpBits::B32);
@@ -2182,13 +2181,13 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, MODRM_REG_4, reg);
         }
         else
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, MODRM_REG_4, reg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2205,13 +2204,13 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, MODRM_REG_5, reg);
         }
         else
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, MODRM_REG_5, reg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2228,13 +2227,13 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
         SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, MODRM_REG_7, reg);
         }
         else
         {
-            emitREX(concat, opBits, REX_REG_NONE, reg);
+            emitRex(concat, opBits, REX_REG_NONE, reg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, MODRM_REG_7, reg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2291,14 +2290,14 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
 
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_7, memReg);
         }
         else
         {
             SWC_ASSERT(value <= 0x7F);
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_7, memReg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2314,14 +2313,14 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
 
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_5, memReg);
         }
         else
         {
             SWC_ASSERT(value <= 0x7F);
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_5, memReg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2337,14 +2336,14 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
 
         if (value == 1)
         {
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xD1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
         }
         else
         {
             SWC_ASSERT(value <= 0x7F);
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xC1, opBits);
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
             emitValue(concat, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
@@ -2359,7 +2358,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xFF, opBits);
             emitModRM(concat, memOffset, MODRM_REG_0, memReg);
         }
@@ -2367,7 +2366,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, memOffset, MODRM_REG_0, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2376,7 +2375,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, memOffset, MODRM_REG_0, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2385,7 +2384,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, memOffset, MODRM_REG_0, memReg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2406,7 +2405,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitSpecCPUOp(concat, 0xFF, opBits);
             emitModRM(concat, memOffset, MODRM_REG_1, memReg);
         }
@@ -2414,7 +2413,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, memOffset, MODRM_REG_5, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2423,7 +2422,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, memOffset, MODRM_REG_5, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2432,7 +2431,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, memOffset, MODRM_REG_5, memReg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2453,7 +2452,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, memOffset, MODRM_REG_1, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2462,7 +2461,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, memOffset, MODRM_REG_1, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2471,7 +2470,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, memOffset, MODRM_REG_1, memReg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2492,7 +2491,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2501,7 +2500,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2510,7 +2509,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, memOffset, MODRM_REG_4, memReg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2531,7 +2530,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x80);
             emitModRM(concat, memOffset, MODRM_REG_6, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2540,7 +2539,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x83);
             emitModRM(concat, memOffset, MODRM_REG_6, memReg);
             emitValue(concat, value, OpBits::B8);
@@ -2549,7 +2548,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
-            emitREX(concat, opBits, REX_REG_NONE, memReg);
+            emitRex(concat, opBits, REX_REG_NONE, memReg);
             emitCPUOp(concat, 0x81);
             emitModRM(concat, memOffset, MODRM_REG_6, memReg);
             emitValue(concat, value, std::min(opBits, OpBits::B32));
@@ -2617,7 +2616,7 @@ CpuEncodeResult X64Encoder::encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, C
 
         if (emitFlags.has(EMIT_LOCK))
             emitCPUOp(concat, 0xF0);
-        emitREX(concat, opBits, reg2, reg1);
+        emitRex(concat, opBits, reg2, reg1);
         emitCPUOp(concat, 0x0F);
         emitSpecCPUOp(concat, 0xB1, opBits);
         emitModRM(concat, 0, reg2, reg1);
@@ -2828,9 +2827,9 @@ CpuEncodeResult X64Encoder::encodePatchJump(const CpuJump& jump, CpuEmitFlags em
 
 CpuEncodeResult X64Encoder::encodeJumpReg(CpuReg reg, CpuEmitFlags emitFlags)
 {
-    emitREX(concat, OpBits::Zero, REX_REG_NONE, reg);
+    emitRex(concat, OpBits::Zero, REX_REG_NONE, reg);
     emitCPUOp(concat, 0xFF);
-    emitModRM(concat, ModRMMode::Register, MODRM_REG_4, encodeReg(reg));
+    emitModRM(concat, ModRmMode::Register, MODRM_REG_4, encodeReg(reg));
     return CpuEncodeResult::Zero;
 }
 
@@ -2839,7 +2838,7 @@ CpuEncodeResult X64Encoder::encodeJumpReg(CpuReg reg, CpuEmitFlags emitFlags)
 CpuEncodeResult X64Encoder::encodeCallExtern(const Utf8& symbolName, const CallConv* callConv, CpuEmitFlags emitFlags)
 {
     emitCPUOp(concat, 0xFF);
-    emitModRM(concat, ModRMMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
+    emitModRM(concat, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
 
     const auto callSym = getOrAddSymbol(symbolName, CpuSymbolKind::Extern);
     addSymbolRelocation(concat.size() - textSectionOffset, callSym->index, IMAGE_REL_AMD64_REL32);
@@ -2867,7 +2866,7 @@ CpuEncodeResult X64Encoder::encodeCallLocal(const Utf8& symbolName, const CallCo
 
 CpuEncodeResult X64Encoder::encodeCallReg(CpuReg reg, const CallConv* callConv, CpuEmitFlags emitFlags)
 {
-    emitREX(concat, OpBits::Zero, REX_REG_NONE, reg);
+    emitRex(concat, OpBits::Zero, REX_REG_NONE, reg);
     emitCPUOp(concat, 0xFF);
     emitModRM(concat, MODRM_REG_2, reg);
     return CpuEncodeResult::Zero;
@@ -2883,11 +2882,11 @@ RegisterSet X64Encoder::getReadRegisters(MicroInstruction* inst)
 {
     auto result = CpuEncoder::getReadRegisters(inst);
 
-    if (inst->op == MicroOp::OpBinaryRI ||
-        inst->op == MicroOp::OpBinaryRR ||
-        inst->op == MicroOp::OpBinaryMI ||
-        inst->op == MicroOp::OpBinaryRM ||
-        inst->op == MicroOp::OpBinaryMR)
+    if (inst->op == MicroOp::OpBinaryRi ||
+        inst->op == MicroOp::OpBinaryRr ||
+        inst->op == MicroOp::OpBinaryMi ||
+        inst->op == MicroOp::OpBinaryRm ||
+        inst->op == MicroOp::OpBinaryMr)
     {
         if (inst->cpuOp == CpuOp::ROL ||
             inst->cpuOp == CpuOp::ROR ||
@@ -2915,11 +2914,11 @@ RegisterSet X64Encoder::getWriteRegisters(MicroInstruction* inst)
 {
     auto result = CpuEncoder::getWriteRegisters(inst);
 
-    if (inst->op == MicroOp::OpBinaryRI ||
-        inst->op == MicroOp::OpBinaryRR ||
-        inst->op == MicroOp::OpBinaryMI ||
-        inst->op == MicroOp::OpBinaryRM ||
-        inst->op == MicroOp::OpBinaryMR)
+    if (inst->op == MicroOp::OpBinaryRi ||
+        inst->op == MicroOp::OpBinaryRr ||
+        inst->op == MicroOp::OpBinaryMi ||
+        inst->op == MicroOp::OpBinaryRm ||
+        inst->op == MicroOp::OpBinaryMr)
     {
         if (inst->cpuOp == CpuOp::MUL ||
             inst->cpuOp == CpuOp::DIV ||

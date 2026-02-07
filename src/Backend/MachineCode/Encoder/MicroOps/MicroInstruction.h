@@ -5,18 +5,17 @@ SWC_BEGIN_NAMESPACE();
 
 enum class MicroOp : uint8_t
 {
-    OpBinaryRI,
-    OpBinaryRR,
-    OpBinaryMI,
-    OpBinaryRM,
-    OpBinaryMR,
+    OpBinaryRi,
+    OpBinaryRr,
+    OpBinaryMi,
+    OpBinaryRm,
+    OpBinaryMr,
 };
 
 struct MicroInstruction
 {
-    MicroOp op    = MicroOp::OpBinaryRI;
-    CpuOp       cpuOp = CpuOp::ADD;
+    MicroOp op    = MicroOp::OpBinaryRi;
+    CpuOp   cpuOp = CpuOp::ADD;
 };
 
 SWC_END_NAMESPACE();
-

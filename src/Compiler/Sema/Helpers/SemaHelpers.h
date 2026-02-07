@@ -79,8 +79,6 @@ namespace SemaHelpers
         sym.registerAttributes(sema);
         sym.setDeclared(sema.ctx());
     }
-
-    ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
 }
 
 SWC_END_NAMESPACE();

@@ -142,31 +142,6 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     return Result::Continue;
 }
 
-ConstantRef SemaHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
-{
-    auto&                 ctx       = sema.ctx();
-    const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());
-    const TypeRef         typeRef   = sema.typeMgr().structSourceCodeLocation();
-
-    Runtime::SourceCodeLocation rtLoc;
-
-    const std::string_view nameView = sema.cstMgr().addString(ctx, codeRange.srcView->file()->path().string());
-    rtLoc.fileName.ptr              = nameView.data();
-    rtLoc.fileName.length           = nameView.size();
-
-    rtLoc.funcName.ptr    = nullptr;
-    rtLoc.funcName.length = 0;
-
-    rtLoc.lineStart = codeRange.line;
-    rtLoc.colStart  = codeRange.column;
-    rtLoc.lineEnd   = codeRange.line;
-    rtLoc.colEnd    = codeRange.column + codeRange.len;
-
-    const auto view   = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
-    const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, view);
-    return sema.cstMgr().addConstant(ctx, cstVal);
-}
-
 Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
 {
     auto               ctx = sema.ctx();

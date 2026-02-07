@@ -148,7 +148,7 @@ namespace
             if (!cst.isString() || dst.size() != sizeof(Runtime::String))
                 return false;
             const std::string_view str = cst.getString();
-            const Runtime::String  rt  = {.ptr = str.data(), .length = static_cast<uint64_t>(str.size())};
+            const Runtime::String  rt  = {.ptr = str.data(), .length = str.size()};
             std::memcpy(const_cast<std::byte*>(dst.data()), &rt, sizeof(rt));
             return true;
         }
@@ -387,6 +387,31 @@ bool ConstantOps::lowerAggregateStructToBytes(Sema& sema, const std::vector<Cons
     }
 
     return true;
+}
+
+ConstantRef ConstantOps::makeConstantLocation(Sema& sema, const AstNode& node)
+{
+    auto&                 ctx       = sema.ctx();
+    const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());
+    const TypeRef         typeRef   = sema.typeMgr().structSourceCodeLocation();
+
+    Runtime::SourceCodeLocation rtLoc;
+
+    const std::string_view nameView = sema.cstMgr().addString(ctx, codeRange.srcView->file()->path().string());
+    rtLoc.fileName.ptr              = nameView.data();
+    rtLoc.fileName.length           = nameView.size();
+
+    rtLoc.funcName.ptr    = nullptr;
+    rtLoc.funcName.length = 0;
+
+    rtLoc.lineStart = codeRange.line;
+    rtLoc.colStart  = codeRange.column;
+    rtLoc.lineEnd   = codeRange.line;
+    rtLoc.colEnd    = codeRange.column + codeRange.len;
+
+    const auto view   = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
+    const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, view);
+    return sema.cstMgr().addConstant(ctx, cstVal);
 }
 
 SWC_END_NAMESPACE();

@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantOps.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -237,7 +238,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
             if (typeRef.isInvalid())
                 return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), codeRef());
-            sema.setConstant(sema.curNodeRef(), SemaHelpers::makeConstantLocation(sema, *this));
+            sema.setConstant(sema.curNodeRef(), ConstantOps::makeConstantLocation(sema, *this));
             break;
         }
 

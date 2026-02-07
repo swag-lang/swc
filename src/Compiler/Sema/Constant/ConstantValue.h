@@ -200,8 +200,8 @@ public:
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
-    static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values);
-    static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
+    static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<AstNodeRef>& fieldRefs = {});
+    static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<AstNodeRef>& fieldRefs = {});
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, ByteSpan bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

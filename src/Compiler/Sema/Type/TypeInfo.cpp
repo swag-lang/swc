@@ -15,11 +15,10 @@ TypeInfo::~TypeInfo()
             std::destroy_at(&payloadArray_.dims);
             break;
         case TypeInfoKind::AggregateStruct:
-            std::destroy_at(&payloadAggregateStruct_.types);
-            std::destroy_at(&payloadAggregateStruct_.names);
-            break;
         case TypeInfoKind::AggregateArray:
-            std::destroy_at(&payloadAggregateArray_.types);
+            std::destroy_at(&payloadAggregate_.types);
+            std::destroy_at(&payloadAggregate_.names);
+            std::destroy_at(&payloadAggregate_.fieldRefs);
             break;
         default:
             break;
@@ -63,11 +62,10 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             break;
 
         case TypeInfoKind::AggregateStruct:
-            std::construct_at(&payloadAggregateStruct_.types, other.payloadAggregateStruct_.types);
-            std::construct_at(&payloadAggregateStruct_.names, other.payloadAggregateStruct_.names);
-            break;
         case TypeInfoKind::AggregateArray:
-            std::construct_at(&payloadAggregateArray_.types, other.payloadAggregateArray_.types);
+            std::construct_at(&payloadAggregate_.types, other.payloadAggregate_.types);
+            std::construct_at(&payloadAggregate_.names, other.payloadAggregate_.names);
+            std::construct_at(&payloadAggregate_.fieldRefs, other.payloadAggregate_.fieldRefs);
             break;
 
         case TypeInfoKind::Enum:
@@ -133,11 +131,10 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
             break;
 
         case TypeInfoKind::AggregateStruct:
-            std::construct_at(&payloadAggregateStruct_.types, std::move(other.payloadAggregateStruct_.types));
-            std::construct_at(&payloadAggregateStruct_.names, std::move(other.payloadAggregateStruct_.names));
-            break;
         case TypeInfoKind::AggregateArray:
-            std::construct_at(&payloadAggregateArray_.types, std::move(other.payloadAggregateArray_.types));
+            std::construct_at(&payloadAggregate_.types, std::move(other.payloadAggregate_.types));
+            std::construct_at(&payloadAggregate_.names, std::move(other.payloadAggregate_.names));
+            std::construct_at(&payloadAggregate_.fieldRefs, std::move(other.payloadAggregate_.fieldRefs));
             break;
 
         case TypeInfoKind::Enum:
@@ -221,18 +218,18 @@ uint32_t TypeInfo::hash() const
             return h;
 
         case TypeInfoKind::AggregateStruct:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregateStruct_.types.size()));
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregateStruct_.names.size()));
-            for (uint32_t i = 0; i < payloadAggregateStruct_.types.size(); ++i)
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.names.size()));
+            for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
             {
-                h = Math::hashCombine(h, payloadAggregateStruct_.types[i].get());
-                if (i < payloadAggregateStruct_.names.size())
-                    h = Math::hashCombine(h, payloadAggregateStruct_.names[i].get());
+                h = Math::hashCombine(h, payloadAggregate_.types[i].get());
+                if (i < payloadAggregate_.names.size())
+                    h = Math::hashCombine(h, payloadAggregate_.names[i].get());
             }
             return h;
         case TypeInfoKind::AggregateArray:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregateArray_.types.size()));
-            for (const auto typeRef : payloadAggregateArray_.types)
+            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
+            for (const auto typeRef : payloadAggregate_.types)
                 h = Math::hashCombine(h, typeRef.get());
             return h;
         case TypeInfoKind::Enum:
@@ -295,20 +292,20 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
             return payloadTypeRef_.typeRef == other.payloadTypeRef_.typeRef;
 
         case TypeInfoKind::AggregateStruct:
-            if (payloadAggregateStruct_.types.size() != other.payloadAggregateStruct_.types.size())
+            if (payloadAggregate_.types.size() != other.payloadAggregate_.types.size())
                 return false;
-            if (payloadAggregateStruct_.names.size() != other.payloadAggregateStruct_.names.size())
+            if (payloadAggregate_.names.size() != other.payloadAggregate_.names.size())
                 return false;
-            for (uint32_t i = 0; i < payloadAggregateStruct_.types.size(); ++i)
-                if (payloadAggregateStruct_.types[i] != other.payloadAggregateStruct_.types[i] ||
-                    payloadAggregateStruct_.names[i] != other.payloadAggregateStruct_.names[i])
+            for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
+                if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i] ||
+                    payloadAggregate_.names[i] != other.payloadAggregate_.names[i])
                     return false;
             return true;
         case TypeInfoKind::AggregateArray:
-            if (payloadAggregateArray_.types.size() != other.payloadAggregateArray_.types.size())
+            if (payloadAggregate_.types.size() != other.payloadAggregate_.types.size())
                 return false;
-            for (uint32_t i = 0; i < payloadAggregateArray_.types.size(); ++i)
-                if (payloadAggregateArray_.types[i] != other.payloadAggregateArray_.types[i])
+            for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
+                if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i])
                     return false;
             return true;
 
@@ -404,33 +401,33 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 
         case TypeInfoKind::AggregateStruct:
             out += "aggregate";
-            if (!payloadAggregateStruct_.types.empty())
+            if (!payloadAggregate_.types.empty())
             {
                 out += "{";
-                for (uint32_t i = 0; i < payloadAggregateStruct_.types.size(); ++i)
+                for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 {
                     if (i)
                         out += ", ";
-                    if (payloadAggregateStruct_.names.size() == payloadAggregateStruct_.types.size() && payloadAggregateStruct_.names[i].isValid())
+                    if (payloadAggregate_.names.size() == payloadAggregate_.types.size() && payloadAggregate_.names[i].isValid())
                     {
-                        out += ctx.idMgr().get(payloadAggregateStruct_.names[i]).name;
+                        out += ctx.idMgr().get(payloadAggregate_.names[i]).name;
                         out += ": ";
                     }
-                    out += ctx.typeMgr().get(payloadAggregateStruct_.types[i]).toName(ctx);
+                    out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
                 }
                 out += "}";
             }
             break;
         case TypeInfoKind::AggregateArray:
             out += "aggregate";
-            if (!payloadAggregateArray_.types.empty())
+            if (!payloadAggregate_.types.empty())
             {
                 out += "{";
-                for (uint32_t i = 0; i < payloadAggregateArray_.types.size(); ++i)
+                for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 {
                     if (i)
                         out += ", ";
-                    out += ctx.typeMgr().get(payloadAggregateArray_.types[i]).toName(ctx);
+                    out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
                 }
                 out += "}";
             }
@@ -740,20 +737,39 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
 {
     SWC_ASSERT(types.size() == names.size());
     TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
-    std::construct_at(&ti.payloadAggregateStruct_.types, types.begin(), types.end());
-    std::construct_at(&ti.payloadAggregateStruct_.names, names.begin(), names.end());
+    std::vector<AstNodeRef> refs;
+    if (fieldRefs.empty())
+        refs.assign(types.size(), AstNodeRef::invalid());
+    else
+    {
+        SWC_ASSERT(fieldRefs.size() == types.size());
+        refs.assign(fieldRefs.begin(), fieldRefs.end());
+    }
+    std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
+    std::construct_at(&ti.payloadAggregate_.names, names.begin(), names.end());
+    std::construct_at(&ti.payloadAggregate_.fieldRefs, refs.begin(), refs.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types)
+TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
 {
     TypeInfo ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
-    std::construct_at(&ti.payloadAggregateArray_.types, types.begin(), types.end());
+    std::vector<AstNodeRef> refs;
+    if (fieldRefs.empty())
+        refs.assign(types.size(), AstNodeRef::invalid());
+    else
+    {
+        SWC_ASSERT(fieldRefs.size() == types.size());
+        refs.assign(fieldRefs.begin(), fieldRefs.end());
+    }
+    std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
+    std::construct_at(&ti.payloadAggregate_.names);
+    std::construct_at(&ti.payloadAggregate_.fieldRefs, refs.begin(), refs.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -843,7 +859,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         {
             uint64_t size  = 0;
             uint32_t align = 1;
-            for (const TypeRef tr : payloadAggregateTypes())
+            for (const TypeRef tr : payloadAggregate_.types)
             {
                 const TypeInfo& ty = ctx.typeMgr().get(tr);
                 const uint32_t  a  = ty.alignOf(ctx);
@@ -895,7 +911,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::AggregateArray:
         {
             uint32_t align = 1;
-            for (const TypeRef tr : payloadAggregateTypes())
+            for (const TypeRef tr : payloadAggregate_.types)
                 align = std::max(align, ctx.typeMgr().get(tr).alignOf(ctx));
             return align;
         }
@@ -948,7 +964,7 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
-            for (const TypeRef tr : payloadAggregateTypes())
+            for (const TypeRef tr : payloadAggregate_.types)
                 if (!ctx.typeMgr().get(tr).isCompleted(ctx))
                     return false;
             return true;
@@ -992,7 +1008,7 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
-            for (const TypeRef tr : payloadAggregateTypes())
+            for (const TypeRef tr : payloadAggregate_.types)
                 if (auto* sym = ctx.typeMgr().get(tr).getSymbolDependency(ctx))
                     return sym;
             return nullptr;

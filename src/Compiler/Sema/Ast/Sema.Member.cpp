@@ -165,8 +165,9 @@ namespace
 
     Result memberAggregateStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, IdentifierRef idRef, TokenRef tokNameRef, const TypeInfo* typeInfo)
     {
-        const auto& names = typeInfo->payloadAggregateNames();
-        const auto& types = typeInfo->payloadAggregateTypes();
+        const auto& aggregate = typeInfo->payloadAggregate();
+        const auto& names     = aggregate.names;
+        const auto& types     = aggregate.types;
         SWC_ASSERT(names.size() == types.size());
 
         size_t memberIndex = 0;

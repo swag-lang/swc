@@ -57,8 +57,9 @@ namespace
 
     Result mapAggregateStructFields(const CastStructContext& ctx, std::vector<size_t>& srcToDst)
     {
-        const auto& srcTypes  = ctx.srcType->payloadAggregateTypes();
-        const auto& srcNames  = ctx.srcType->payloadAggregateNames();
+        const auto& aggregate = ctx.srcType->payloadAggregate();
+        const auto& srcTypes  = aggregate.types;
+        const auto& srcNames  = aggregate.names;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
 
         if (srcTypes.size() > dstFields.size())
@@ -162,7 +163,7 @@ namespace
             return Result::Continue;
 
         const auto& values    = cst.getAggregateStruct();
-        const auto& srcTypes  = ctx.srcType->payloadAggregateTypes();
+        const auto& srcTypes  = ctx.srcType->payloadAggregate().types;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
         std::vector castedByDst(dstFields.size(), ConstantRef::invalid());
 
@@ -241,7 +242,7 @@ Result Cast::castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
         std::vector<size_t> srcToDst;
         RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
 
-        const auto& srcTypes  = srcType.payloadAggregateTypes();
+        const auto& srcTypes  = srcType.payloadAggregate().types;
         const auto& dstFields = dstType.payloadSymStruct().fields();
         RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
 

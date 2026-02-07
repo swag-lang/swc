@@ -739,7 +739,7 @@ Result Cast::castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
     if (srcType.isAggregateArray())
     {
-        const auto& srcTypes = srcType.payloadAggregateTypes();
+        const auto& srcTypes = srcType.payloadAggregate().types;
 
         uint64_t totalCount = 1;
         for (const auto dim : dstDims)

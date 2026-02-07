@@ -443,7 +443,7 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef type
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values)
+ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<AstNodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
     ConstantValue        cv;
@@ -452,14 +452,14 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
     for (const auto& v : values)
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateStruct(names, memberTypes));
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateStruct(names, memberTypes, fieldRefs));
     cv.kind_    = ConstantKind::AggregateStruct;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values)
+ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<AstNodeRef>& fieldRefs)
 {
     SWC_ASSERT(!values.empty());
 
@@ -469,7 +469,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
     for (const auto& v : values)
         elemTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes, fieldRefs));
     cv.kind_    = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -156,6 +157,13 @@ public:
     bool isLambdaMethod() const noexcept;
     bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
 
+    struct AggregatePayload
+    {
+        std::vector<TypeRef>       types;
+        std::vector<IdentifierRef> names;
+        std::vector<AstNodeRef>    fieldRefs;
+    };
+
     Sign payloadIntSign() const noexcept
     {
         SWC_ASSERT(isInt());
@@ -234,16 +242,10 @@ public:
         return payloadArray_.typeRef;
     }
 
-    const std::vector<TypeRef>& payloadAggregateTypes() const noexcept
+    const AggregatePayload& payloadAggregate() const noexcept
     {
         SWC_ASSERT(isAggregate());
-        return isAggregateStruct() ? payloadAggregateStruct_.types : payloadAggregateArray_.types;
-    }
-
-    const std::vector<IdentifierRef>& payloadAggregateNames() const noexcept
-    {
-        SWC_ASSERT(isAggregateStruct());
-        return payloadAggregateStruct_.names;
+        return payloadAggregate_;
     }
 
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
@@ -270,8 +272,8 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types);
-    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types);
+    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs = {});
+    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs = {});
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
@@ -333,16 +335,7 @@ private:
             TypeRef               typeRef;
         } payloadArray_;
 
-        struct
-        {
-            std::vector<TypeRef>       types;
-            std::vector<IdentifierRef> names;
-        } payloadAggregateStruct_;
-
-        struct
-        {
-            std::vector<TypeRef> types;
-        } payloadAggregateArray_;
+        AggregatePayload payloadAggregate_;
 
         struct
         {

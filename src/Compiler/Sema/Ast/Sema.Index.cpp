@@ -61,7 +61,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         if (!hasConstIndex)
             return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
 
-        const auto& elemTypes = nodeExprView.type->payloadAggregateTypes();
+        const auto& elemTypes = nodeExprView.type->payloadAggregate().types;
         if (std::cmp_greater_equal(constIndex, elemTypes.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, elemTypes.size());
 

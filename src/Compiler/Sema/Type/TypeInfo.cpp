@@ -703,7 +703,7 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
     return ti;
 }
 
-TypeInfo TypeInfo::makeAggregate(const std::span<TypeRef>& types, const std::span<IdentifierRef>& names)
+TypeInfo TypeInfo::makeAggregate(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types)
 {
     SWC_ASSERT(types.size() == names.size());
     TypeInfo ti{TypeInfoKind::Aggregate, TypeInfoFlagsE::Const};

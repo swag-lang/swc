@@ -490,12 +490,12 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), values, memberNames);
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, memberNames));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(memberNames, memberTypes));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 

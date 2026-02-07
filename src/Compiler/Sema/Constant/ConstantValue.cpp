@@ -443,7 +443,7 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef type
     return cv;
 }
 
-ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<IdentifierRef>& names)
+ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values)
 {
     SWC_ASSERT(values.size() == names.size());
     ConstantValue        cv;
@@ -452,7 +452,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
     for (const auto& v : values)
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(memberTypes, names));
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregate(names, memberTypes));
     cv.kind_    = ConstantKind::AggregateStruct;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -677,35 +677,35 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
     {
         case ConstantKind::Bool:
             return getBool() ? "true" : "false";
-            
+
         case ConstantKind::Char:
             return getChar();
-            
+
         case ConstantKind::Rune:
             return getRune();
-            
+
         case ConstantKind::String:
             return getString();
-            
+
         case ConstantKind::Struct:
             return "<struct>";
         case ConstantKind::AggregateArray:
             return "<array>";
         case ConstantKind::AggregateStruct:
             return "<struct>";
-            
+
         case ConstantKind::Int:
             return getInt().toString();
-            
+
         case ConstantKind::Float:
             return getFloat().toString();
-            
+
         case ConstantKind::TypeValue:
             return ctx.typeMgr().get(getTypeValue()).toName(ctx);
-            
+
         case ConstantKind::EnumValue:
             return ctx.cstMgr().get(payloadEnumValue_.val).toString(ctx);
-            
+
         case ConstantKind::ValuePointer:
         {
             const auto& type = ctx.typeMgr().get(typeRef_);
@@ -717,16 +717,16 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             }
             return std::format("*0x{:016X}", getValuePointer());
         }
-            
+
         case ConstantKind::BlockPointer:
             return std::format("[*] 0x{:016X}", getBlockPointer());
-            
+
         case ConstantKind::Slice:
             return std::format("[..] (0x{:016X}, {})", reinterpret_cast<uintptr_t>(getSlice().data()), getSlice().size());
-            
+
         case ConstantKind::Null:
             return "null";
-            
+
         case ConstantKind::Undefined:
             return "undefined";
 

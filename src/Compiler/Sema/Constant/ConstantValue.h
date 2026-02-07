@@ -86,23 +86,95 @@ public:
         return payloadBorrowed_;
     }
 
-    // clang-format off
-    bool getBool() const { SWC_ASSERT(isBool()); return payloadBool_.val; }
-    char32_t getChar() const { SWC_ASSERT(isChar()); return payloadCharRune_.val; }
-    char32_t getRune() const { SWC_ASSERT(isRune()); return payloadCharRune_.val; }
-    std::string_view getString() const { SWC_ASSERT(isString()); return payloadString_.val; }
-    const ApsInt& getInt() const { SWC_ASSERT(isInt()); return payloadInt_.val; }
-    const ApFloat& getFloat() const { SWC_ASSERT(isFloat()); return payloadFloat_.val; }
-    uint64_t getValuePointer() const { SWC_ASSERT(isValuePointer()); return payloadPointer_.val; }
-    uint64_t getBlockPointer() const { SWC_ASSERT(isBlockPointer()); return payloadPointer_.val; }
-    ByteSpan getSlice() const { SWC_ASSERT(isSlice()); return payloadSlice_.val; }
-    TypeRef getTypeValue() const { SWC_ASSERT(isTypeValue()); return payloadTypeValue_.val; }
-    ConstantRef getEnumValue() const { SWC_ASSERT(isEnumValue()); return payloadEnumValue_.val; }
-    ByteSpan getStruct() const { SWC_ASSERT(isStruct()); return payloadStruct_.val; }
-    const std::vector<ConstantRef>& getAggregate() const { SWC_ASSERT(isAggregate()); return payloadAggregate_.val; }
-    const std::vector<ConstantRef>& getAggregateArray() const { SWC_ASSERT(isAggregateArray()); return payloadAggregate_.val; }
-    const std::vector<ConstantRef>& getAggregateStruct() const { SWC_ASSERT(isAggregateStruct()); return payloadAggregate_.val; }
-    // clang-format on
+    bool getBool() const
+    {
+        SWC_ASSERT(isBool());
+        return payloadBool_.val;
+    }
+
+    char32_t getChar() const
+    {
+        SWC_ASSERT(isChar());
+        return payloadCharRune_.val;
+    }
+
+    char32_t getRune() const
+    {
+        SWC_ASSERT(isRune());
+        return payloadCharRune_.val;
+    }
+
+    std::string_view getString() const
+    {
+        SWC_ASSERT(isString());
+        return payloadString_.val;
+    }
+
+    const ApsInt& getInt() const
+    {
+        SWC_ASSERT(isInt());
+        return payloadInt_.val;
+    }
+
+    const ApFloat& getFloat() const
+    {
+        SWC_ASSERT(isFloat());
+        return payloadFloat_.val;
+    }
+
+    uint64_t getValuePointer() const
+    {
+        SWC_ASSERT(isValuePointer());
+        return payloadPointer_.val;
+    }
+
+    uint64_t getBlockPointer() const
+    {
+        SWC_ASSERT(isBlockPointer());
+        return payloadPointer_.val;
+    }
+
+    ByteSpan getSlice() const
+    {
+        SWC_ASSERT(isSlice());
+        return payloadSlice_.val;
+    }
+
+    TypeRef getTypeValue() const
+    {
+        SWC_ASSERT(isTypeValue());
+        return payloadTypeValue_.val;
+    }
+
+    ConstantRef getEnumValue() const
+    {
+        SWC_ASSERT(isEnumValue());
+        return payloadEnumValue_.val;
+    }
+
+    ByteSpan getStruct() const
+    {
+        SWC_ASSERT(isStruct());
+        return payloadStruct_.val;
+    }
+
+    const std::vector<ConstantRef>& getAggregate() const
+    {
+        SWC_ASSERT(isAggregate());
+        return payloadAggregate_.val;
+    }
+
+    const std::vector<ConstantRef>& getAggregateArray() const
+    {
+        SWC_ASSERT(isAggregateArray());
+        return payloadAggregate_.val;
+    }
+
+    const std::vector<ConstantRef>& getAggregateStruct() const
+    {
+        SWC_ASSERT(isAggregateStruct());
+        return payloadAggregate_.val;
+    }
 
     template<typename T>
     const T* getStruct(TypeRef typeRef) const
@@ -128,7 +200,7 @@ public:
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
-    static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<IdentifierRef>& names);
+    static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values);
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values);
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

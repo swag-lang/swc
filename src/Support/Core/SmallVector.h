@@ -65,7 +65,7 @@ public:
         alloc_(std::move(other.alloc_)),
         ptr_(inlineData())
     {
-        if (other.is_inline())
+        if (other.isInline())
         {
             reserve(other.sizeValue_);
             uninitializedMoveN(other.ptr_, other.sizeValue_, ptr_);
@@ -113,7 +113,7 @@ public:
 
         clearHeapIfNeeded(); // frees heap if we own it
 
-        if (other.is_inline())
+        if (other.isInline())
         {
             ptr_           = inlineData();
             capacityValue_ = InlineCapacity;
@@ -151,22 +151,13 @@ public:
     const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
     const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
-    size_type size() const noexcept { return sizeValue_; }
-    uint32_t  size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
-    size_type capacity() const noexcept { return capacityValue_; }
-    bool      empty() const noexcept { return sizeValue_ == 0; }
-    bool      is_inline() const noexcept { return ptr_ == inlineData(); }
-
-    // span accessors
-    std::span<T> span() noexcept
-    {
-        return std::span<T>(ptr_, sizeValue_);
-    }
-
-    std::span<const T> span() const noexcept
-    {
-        return std::span<const T>(ptr_, sizeValue_);
-    }
+    size_type          size() const noexcept { return sizeValue_; }
+    uint32_t           size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
+    size_type          capacity() const noexcept { return capacityValue_; }
+    bool               empty() const noexcept { return sizeValue_ == 0; }
+    bool               isInline() const noexcept { return ptr_ == inlineData(); }
+    std::span<T>       span() noexcept { return std::span<T>(ptr_, sizeValue_); }
+    std::span<const T> span() const noexcept { return std::span<const T>(ptr_, sizeValue_); }
 
     void reserve(size_type newCapacityValue)
     {
@@ -177,12 +168,11 @@ public:
 
     void shrink_to_fit()
     {
-        if (is_inline() || sizeValue_ == capacityValue_)
+        if (isInline() || sizeValue_ == capacityValue_)
             return;
 
         if (sizeValue_ <= InlineCapacity)
         {
-            // move back to inline
             T* dst = inlineData();
             uninitializedMoveN(ptr_, sizeValue_, dst);
             destroyN(ptr_, sizeValue_);
@@ -215,10 +205,8 @@ public:
 
     T&       front() { return ptr_[0]; }
     const T& front() const { return ptr_[0]; }
-
     T&       back() { return ptr_[sizeValue_ - 1]; }
     const T& back() const { return ptr_[sizeValue_ - 1]; }
-
     T*       data() noexcept { return ptr_; }
     const T* data() const noexcept { return ptr_; }
 
@@ -400,15 +388,10 @@ private:
     void reallocate(size_type newCapacityValue)
     {
         T* new_mem = std::allocator_traits<Alloc>::allocate(alloc_, newCapacityValue);
-        // move/copy existing into a new buffer
         uninitializedMoveN(ptr_, sizeValue_, new_mem);
-
-        // destroy old, then free if heap
         destroyN(ptr_, sizeValue_);
-        if (!is_inline())
-        {
+        if (!isInline())
             std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
-        }
 
         ptr_           = new_mem;
         capacityValue_ = newCapacityValue;
@@ -417,7 +400,7 @@ private:
     void clearHeapIfNeeded()
     {
         destroyN(ptr_, sizeValue_);
-        if (!is_inline())
+        if (!isInline())
         {
             std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
         }

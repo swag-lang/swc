@@ -28,8 +28,8 @@ public:
     }
 
     explicit SmallVector(const Alloc& a) noexcept :
-        alloc(a),
-        ptr(inlineData())
+        alloc_(a),
+        ptr_(inlineData())
     {
     }
 
@@ -54,32 +54,32 @@ public:
     }
 
     SmallVector(const SmallVector& other) :
-        SmallVector(std::allocator_traits<Alloc>::select_on_container_copy_construction(other.alloc))
+        SmallVector(std::allocator_traits<Alloc>::select_on_container_copy_construction(other.alloc_))
     {
-        reserve(other.sizeValue);
-            uninitializedCopyN(other.ptr, other.sizeValue, ptr);
-        sizeValue = other.sizeValue;
+        reserve(other.sizeValue_);
+        uninitializedCopyN(other.ptr_, other.sizeValue_, ptr_);
+        sizeValue_ = other.sizeValue_;
     }
 
     SmallVector(SmallVector&& other) noexcept :
-        alloc(std::move(other.alloc)),
-        ptr(inlineData())
+        alloc_(std::move(other.alloc_)),
+        ptr_(inlineData())
     {
         if (other.is_inline())
         {
-            reserve(other.sizeValue);
-            uninitializedMoveN(other.ptr, other.sizeValue, ptr);
-            sizeValue = other.sizeValue;
+            reserve(other.sizeValue_);
+            uninitializedMoveN(other.ptr_, other.sizeValue_, ptr_);
+            sizeValue_ = other.sizeValue_;
             other.clear();
         }
         else
         {
-            ptr        = other.ptr;
-            sizeValue       = other.sizeValue;
-            capacityValue        = other.capacityValue;
-            other.ptr  = other.inlineData();
-            other.sizeValue = 0;
-            other.capacityValue  = InlineCapacity;
+            ptr_                 = other.ptr_;
+            sizeValue_           = other.sizeValue_;
+            capacityValue_       = other.capacityValue_;
+            other.ptr_           = other.inlineData();
+            other.sizeValue_     = 0;
+            other.capacityValue_ = InlineCapacity;
         }
     }
 
@@ -96,10 +96,10 @@ public:
         if constexpr (!std::allocator_traits<Alloc>::is_always_equal::value)
         {
             if (std::allocator_traits<Alloc>::propagate_on_container_copy_assignment::value &&
-                alloc != other.alloc)
+                alloc_ != other.alloc_)
             {
                 clearHeapIfNeeded();
-                alloc = other.alloc;
+                alloc_ = other.alloc_;
             }
         }
         assign(other.begin(), other.end());
@@ -115,34 +115,34 @@ public:
 
         if (other.is_inline())
         {
-            ptr  = inlineData();
-            capacityValue  = InlineCapacity;
-            sizeValue = 0;
-            reserve(other.sizeValue);
-            uninitializedMoveN(other.ptr, other.sizeValue, ptr);
-            sizeValue = other.sizeValue;
+            ptr_           = inlineData();
+            capacityValue_ = InlineCapacity;
+            sizeValue_     = 0;
+            reserve(other.sizeValue_);
+            uninitializedMoveN(other.ptr_, other.sizeValue_, ptr_);
+            sizeValue_ = other.sizeValue_;
             other.clear();
         }
         else
         {
-            alloc      = std::move(other.alloc);
-            ptr        = other.ptr;
-            sizeValue       = other.sizeValue;
-            capacityValue        = other.capacityValue;
-            other.ptr  = other.inlineData();
-            other.sizeValue = 0;
-            other.capacityValue  = InlineCapacity;
+            alloc_               = std::move(other.alloc_);
+            ptr_                 = other.ptr_;
+            sizeValue_           = other.sizeValue_;
+            capacityValue_       = other.capacityValue_;
+            other.ptr_           = other.inlineData();
+            other.sizeValue_     = 0;
+            other.capacityValue_ = InlineCapacity;
         }
         return *this;
     }
 
-    iterator       begin() noexcept { return ptr; }
-    const_iterator begin() const noexcept { return ptr; }
-    const_iterator cbegin() const noexcept { return ptr; }
+    iterator       begin() noexcept { return ptr_; }
+    const_iterator begin() const noexcept { return ptr_; }
+    const_iterator cbegin() const noexcept { return ptr_; }
 
-    iterator       end() noexcept { return ptr + sizeValue; }
-    const_iterator end() const noexcept { return ptr + sizeValue; }
-    const_iterator cend() const noexcept { return ptr + sizeValue; }
+    iterator       end() noexcept { return ptr_ + sizeValue_; }
+    const_iterator end() const noexcept { return ptr_ + sizeValue_; }
+    const_iterator cend() const noexcept { return ptr_ + sizeValue_; }
 
     reverse_iterator       rbegin() noexcept { return reverse_iterator(end()); }
     const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
@@ -151,120 +151,120 @@ public:
     const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
     const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
-    size_type size() const noexcept { return sizeValue; }
-    uint32_t  size32() const noexcept { return static_cast<uint32_t>(sizeValue); }
-    size_type capacity() const noexcept { return capacityValue; }
-    bool      empty() const noexcept { return sizeValue == 0; }
-    bool      is_inline() const noexcept { return ptr == inlineData(); }
+    size_type size() const noexcept { return sizeValue_; }
+    uint32_t  size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
+    size_type capacity() const noexcept { return capacityValue_; }
+    bool      empty() const noexcept { return sizeValue_ == 0; }
+    bool      is_inline() const noexcept { return ptr_ == inlineData(); }
 
     // span accessors
     std::span<T> span() noexcept
     {
-        return std::span<T>(ptr, sizeValue);
+        return std::span<T>(ptr_, sizeValue_);
     }
 
     std::span<const T> span() const noexcept
     {
-        return std::span<const T>(ptr, sizeValue);
+        return std::span<const T>(ptr_, sizeValue_);
     }
 
     void reserve(size_type newCapacityValue)
     {
-        if (newCapacityValue <= capacityValue)
+        if (newCapacityValue <= capacityValue_)
             return;
         reallocate(growTo(newCapacityValue));
     }
 
     void shrink_to_fit()
     {
-        if (is_inline() || sizeValue == capacityValue)
+        if (is_inline() || sizeValue_ == capacityValue_)
             return;
 
-        if (sizeValue <= InlineCapacity)
+        if (sizeValue_ <= InlineCapacity)
         {
             // move back to inline
             T* dst = inlineData();
-            uninitializedMoveN(ptr, sizeValue, dst);
-            destroyN(ptr, sizeValue);
-            std::allocator_traits<Alloc>::deallocate(alloc, ptr, capacityValue);
-            ptr = dst;
-            capacityValue = InlineCapacity;
+            uninitializedMoveN(ptr_, sizeValue_, dst);
+            destroyN(ptr_, sizeValue_);
+            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
+            ptr_           = dst;
+            capacityValue_ = InlineCapacity;
         }
         else
         {
-            reallocate(sizeValue);
+            reallocate(sizeValue_);
         }
     }
 
-    T&       operator[](size_type i) noexcept { return ptr[i]; }
-    const T& operator[](size_type i) const noexcept { return ptr[i]; }
+    T&       operator[](size_type i) noexcept { return ptr_[i]; }
+    const T& operator[](size_type i) const noexcept { return ptr_[i]; }
 
     T& at(size_type i)
     {
-        if (i >= sizeValue)
+        if (i >= sizeValue_)
             throw std::out_of_range("SmallVector::at");
-        return ptr[i];
+        return ptr_[i];
     }
 
     const T& at(size_type i) const
     {
-        if (i >= sizeValue)
+        if (i >= sizeValue_)
             throw std::out_of_range("SmallVector::at");
-        return ptr[i];
+        return ptr_[i];
     }
 
-    T&       front() { return ptr[0]; }
-    const T& front() const { return ptr[0]; }
+    T&       front() { return ptr_[0]; }
+    const T& front() const { return ptr_[0]; }
 
-    T&       back() { return ptr[sizeValue - 1]; }
-    const T& back() const { return ptr[sizeValue - 1]; }
+    T&       back() { return ptr_[sizeValue_ - 1]; }
+    const T& back() const { return ptr_[sizeValue_ - 1]; }
 
-    T*       data() noexcept { return ptr; }
-    const T* data() const noexcept { return ptr; }
+    T*       data() noexcept { return ptr_; }
+    const T* data() const noexcept { return ptr_; }
 
     void clear() noexcept
     {
-        destroyN(ptr, sizeValue);
-        sizeValue = 0;
+        destroyN(ptr_, sizeValue_);
+        sizeValue_ = 0;
     }
 
     void resize(size_type n)
     {
-        if (n < sizeValue)
+        if (n < sizeValue_)
         {
-            destroyN(ptr + n, sizeValue - n);
-            sizeValue = n;
+            destroyN(ptr_ + n, sizeValue_ - n);
+            sizeValue_ = n;
         }
-        else if (n > sizeValue)
+        else if (n > sizeValue_)
         {
             reserve(n);
-            for (; sizeValue < n; ++sizeValue)
-                std::construct_at(ptr + sizeValue);
+            for (; sizeValue_ < n; ++sizeValue_)
+                std::construct_at(ptr_ + sizeValue_);
         }
     }
 
     void resize(size_type n, const T& value)
     {
-        if (n < sizeValue)
+        if (n < sizeValue_)
         {
-            destroyN(ptr + n, sizeValue - n);
-            sizeValue = n;
+            destroyN(ptr_ + n, sizeValue_ - n);
+            sizeValue_ = n;
         }
-        else if (n > sizeValue)
+        else if (n > sizeValue_)
         {
             reserve(n);
-            for (; sizeValue < n; ++sizeValue)
-                std::construct_at(ptr + sizeValue, value);
+            for (; sizeValue_ < n; ++sizeValue_)
+                std::construct_at(ptr_ + sizeValue_, value);
         }
     }
 
     template<class... Args>
     T& emplace_back(Args&&... args)
     {
-        if (sizeValue == capacityValue)
-            reallocate(growTo(sizeValue + 1));
-        T* p = std::construct_at(ptr + sizeValue, std::forward<Args>(args)...);
-        ++sizeValue;
+        if (sizeValue_ == capacityValue_)
+            reallocate(growTo(sizeValue_ + 1));
+        T* p = std::construct_at(ptr_ + sizeValue_, std::forward<Args>(args)...);
+        ++sizeValue_;
         return *p;
     }
 
@@ -281,8 +281,8 @@ public:
     void pop_back()
     {
         assert(sizeValue > 0);
-        std::destroy_at(ptr + sizeValue - 1);
-        --sizeValue;
+        std::destroy_at(ptr_ + sizeValue_ - 1);
+        --sizeValue_;
     }
 
     void append(const T* data, size_type count)
@@ -290,9 +290,9 @@ public:
         if (count == 0)
             return;
 
-        reserve(sizeValue + count);
-        uninitializedCopyN(data, count, ptr + sizeValue);
-        sizeValue += count;
+        reserve(sizeValue_ + count);
+        uninitializedCopyN(data, count, ptr_ + sizeValue_);
+        sizeValue_ += count;
     }
 
     template<class It>
@@ -318,22 +318,22 @@ public:
     iterator emplace(const_iterator cpos, Args&&... args)
     {
         size_type idx = static_cast<size_type>(cpos - cbegin());
-        if (sizeValue == capacityValue)
-            reallocate(growTo(sizeValue + 1));
+        if (sizeValue_ == capacityValue_)
+            reallocate(growTo(sizeValue_ + 1));
 
-        if (idx == sizeValue)
+        if (idx == sizeValue_)
         {
             emplace_back(std::forward<Args>(args)...);
         }
         else
         {
             // make room: move-construct new last, then shift via move-assign
-            std::construct_at(ptr + sizeValue, std::move(ptr[sizeValue - 1]));
-            for (size_type i = sizeValue - 1; i > idx; --i)
-                ptr[i] = std::move(ptr[i - 1]);
-            std::destroy_at(ptr + idx);
-            std::construct_at(ptr + idx, std::forward<Args>(args)...);
-            ++sizeValue;
+            std::construct_at(ptr_ + sizeValue_, std::move(ptr_[sizeValue_ - 1]));
+            for (size_type i = sizeValue_ - 1; i > idx; --i)
+                ptr_[i] = std::move(ptr_[i - 1]);
+            std::destroy_at(ptr_ + idx);
+            std::construct_at(ptr_ + idx, std::forward<Args>(args)...);
+            ++sizeValue_;
         }
         return begin() + idx;
     }
@@ -341,36 +341,35 @@ public:
     iterator erase(const_iterator cpos)
     {
         size_type idx = static_cast<size_type>(cpos - cbegin());
-        for (size_type i = idx; i + 1 < sizeValue; ++i)
-            ptr[i] = std::move(ptr[i + 1]);
-        std::destroy_at(ptr + sizeValue - 1);
-        --sizeValue;
+        for (size_type i = idx; i + 1 < sizeValue_; ++i)
+            ptr_[i] = std::move(ptr_[i + 1]);
+        std::destroy_at(ptr_ + sizeValue_ - 1);
+        --sizeValue_;
         return begin() + idx;
     }
 
-    // O(1) erase, order not preserved
     iterator erase_unordered(const_iterator cpos)
     {
         size_type idx = static_cast<size_type>(cpos - cbegin());
-        std::destroy_at(ptr + idx);
-        if (idx != sizeValue - 1)
+        std::destroy_at(ptr_ + idx);
+        if (idx != sizeValue_ - 1)
         {
-            std::construct_at(ptr + idx, std::move(back()));
-            std::destroy_at(ptr + sizeValue - 1);
+            std::construct_at(ptr_ + idx, std::move(back()));
+            std::destroy_at(ptr_ + sizeValue_ - 1);
         }
-        --sizeValue;
+        --sizeValue_;
         return begin() + idx;
     }
 
 private:
     T* inlineData() noexcept
     {
-        return std::launder(reinterpret_cast<T*>(&inlineDataStorage[0]));
+        return std::launder(reinterpret_cast<T*>(&inlineDataStorage_[0]));
     }
 
     const T* inlineData() const noexcept
     {
-        return std::launder(reinterpret_cast<const T*>(&inlineDataStorage[0]));
+        return std::launder(reinterpret_cast<const T*>(&inlineDataStorage_[0]));
     }
 
     static void destroyN(T* p, size_type n) noexcept
@@ -393,38 +392,38 @@ private:
 
     size_type growTo(size_type minCapacityValue) const
     {
-        size_type newCapacityValue = capacityValue ? capacityValue * 2 : InlineCapacity;
+        size_type newCapacityValue = capacityValue_ ? capacityValue_ * 2 : InlineCapacity;
         newCapacityValue           = std::max(newCapacityValue, minCapacityValue);
         return newCapacityValue;
     }
 
     void reallocate(size_type newCapacityValue)
     {
-        T* new_mem = std::allocator_traits<Alloc>::allocate(alloc, newCapacityValue);
+        T* new_mem = std::allocator_traits<Alloc>::allocate(alloc_, newCapacityValue);
         // move/copy existing into a new buffer
-        uninitializedMoveN(ptr, sizeValue, new_mem);
+        uninitializedMoveN(ptr_, sizeValue_, new_mem);
 
         // destroy old, then free if heap
-        destroyN(ptr, sizeValue);
+        destroyN(ptr_, sizeValue_);
         if (!is_inline())
         {
-            std::allocator_traits<Alloc>::deallocate(alloc, ptr, capacityValue);
+            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
         }
 
-        ptr = new_mem;
-        capacityValue = newCapacityValue;
+        ptr_           = new_mem;
+        capacityValue_ = newCapacityValue;
     }
 
     void clearHeapIfNeeded()
     {
-        destroyN(ptr, sizeValue);
+        destroyN(ptr_, sizeValue_);
         if (!is_inline())
         {
-            std::allocator_traits<Alloc>::deallocate(alloc, ptr, capacityValue);
+            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
         }
-        ptr  = inlineData();
-        sizeValue = 0;
-        capacityValue  = InlineCapacity;
+        ptr_           = inlineData();
+        sizeValue_     = 0;
+        capacityValue_ = InlineCapacity;
     }
 
     template<class It>
@@ -443,13 +442,11 @@ private:
             emplace_back(*first);
     }
 
-    Alloc     alloc{};
-    T*        ptr  = nullptr;
-    size_type sizeValue = 0;
-    size_type capacityValue  = InlineCapacity;
-
-    alignas(T) std::byte inlineDataStorage[sizeof(T) * InlineCapacity]{};
+    Alloc     alloc_{};
+    T*        ptr_           = nullptr;
+    size_type sizeValue_     = 0;
+    size_type capacityValue_ = InlineCapacity;
+    alignas(T) std::byte inlineDataStorage_[sizeof(T) * InlineCapacity]{};
 };
 
 SWC_END_NAMESPACE();
-

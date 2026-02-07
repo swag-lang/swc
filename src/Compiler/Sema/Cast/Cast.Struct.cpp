@@ -167,15 +167,12 @@ namespace
 
     Result foldAggregateStructConstant(const CastStructContext& ctx, const std::vector<size_t>& srcToDst)
     {
-        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
-        if (!cst.isAggregateStruct())
-            return Result::Continue;
-
-        const auto& values    = cst.getAggregateStruct();
-        const auto& srcTypes  = ctx.srcType->payloadAggregate().types;
-        const auto& fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
-        std::vector castedByDst(dstFields.size(), ConstantRef::invalid());
+        const ConstantValue& cst       = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
+        const auto&          values    = cst.getAggregateStruct();
+        const auto&          srcTypes  = ctx.srcType->payloadAggregate().types;
+        const auto&          fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
+        const auto&          dstFields = ctx.dstType->payloadSymStruct().fields();
+        std::vector          castedByDst(dstFields.size(), ConstantRef::invalid());
 
         for (size_t i = 0; i < values.size(); ++i)
         {

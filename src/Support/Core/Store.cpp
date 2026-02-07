@@ -5,61 +5,61 @@
 SWC_BEGIN_NAMESPACE();
 
 Store::Store(uint32_t pageSize) :
-    pageSizeValue(pageSize)
+    pageSizeValue_(pageSize)
 {
-    SWC_ASSERT(pageSizeValue > 0 && (pageSizeValue & (pageSizeValue - 1)) == 0);
+    SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
 }
 
 Store::Store(Store&& other) noexcept :
-    pagesStorage(std::move(other.pagesStorage)),
-    totalBytes(other.totalBytes),
-    pageSizeValue(other.pageSizeValue),
-    curPage(other.curPage),
-    curPageIndex(other.curPageIndex),
-    lastPtr(other.lastPtr)
+    pagesStorage_(std::move(other.pagesStorage_)),
+    totalBytes_(other.totalBytes_),
+    pageSizeValue_(other.pageSizeValue_),
+    curPage_(other.curPage_),
+    curPageIndex_(other.curPageIndex_),
+    lastPtr_(other.lastPtr_)
 {
-    other.totalBytes   = 0;
-    other.curPage      = nullptr;
-    other.curPageIndex = 0;
-    other.lastPtr      = nullptr;
+    other.totalBytes_   = 0;
+    other.curPage_      = nullptr;
+    other.curPageIndex_ = 0;
+    other.lastPtr_      = nullptr;
 }
 
 Store& Store::operator=(Store&& other) noexcept
 {
     if (this != &other)
     {
-        std::swap(pagesStorage, other.pagesStorage);
-        std::swap(totalBytes, other.totalBytes);
-        std::swap(pageSizeValue, other.pageSizeValue);
-        std::swap(curPage, other.curPage);
-        std::swap(curPageIndex, other.curPageIndex);
-        std::swap(lastPtr, other.lastPtr);
+        std::swap(pagesStorage_, other.pagesStorage_);
+        std::swap(totalBytes_, other.totalBytes_);
+        std::swap(pageSizeValue_, other.pageSizeValue_);
+        std::swap(curPage_, other.curPage_);
+        std::swap(curPageIndex_, other.curPageIndex_);
+        std::swap(lastPtr_, other.lastPtr_);
     }
     return *this;
 }
 
 void Store::clear() noexcept
 {
-    for (const auto& up : pagesStorage)
+    for (const auto& up : pagesStorage_)
         up->used = 0;
-    totalBytes = 0;
+    totalBytes_ = 0;
 
-    if (!pagesStorage.empty())
+    if (!pagesStorage_.empty())
     {
-        curPage      = pagesStorage.back().get();
-        curPageIndex = static_cast<uint32_t>(pagesStorage.size() - 1);
+        curPage_      = pagesStorage_.back().get();
+        curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
     }
     else
     {
-        curPage      = nullptr;
-        curPageIndex = 0;
+        curPage_      = nullptr;
+        curPageIndex_ = 0;
     }
-    lastPtr = nullptr;
+    lastPtr_ = nullptr;
 }
 
 uint32_t Store::size() const noexcept
 {
-    return static_cast<uint32_t>(std::min<uint64_t>(totalBytes, std::numeric_limits<uint32_t>::max()));
+    return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
 std::pair<SpanRef, uint32_t> Store::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
@@ -67,10 +67,10 @@ std::pair<SpanRef, uint32_t> Store::writeChunkRaw(const uint8_t* src, uint32_t e
     SWC_ASSERT(elemSize > 0);
     SWC_ASSERT((elemAlign & (elemAlign - 1)) == 0 && elemAlign <= alignof(std::max_align_t));
 
-    Page* page = curPage ? curPage : newPage();
+    Page* page = curPage_ ? curPage_ : newPage();
 
     uint32_t       off        = page->used;
-    const uint32_t bytesAvail = pageSizeValue - off;
+    const uint32_t bytesAvail = pageSizeValue_ - off;
 
     constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
     const uint32_t     dataOffset = alignUpU32(off + hdrSize, elemAlign);
@@ -83,16 +83,16 @@ std::pair<SpanRef, uint32_t> Store::writeChunkRaw(const uint8_t* src, uint32_t e
     }
 
     const uint32_t dataOffsetF = alignUpU32(off + hdrSize, elemAlign);
-    const uint32_t maxData     = pageSizeValue - dataOffsetF;
+    const uint32_t maxData     = pageSizeValue_ - dataOffsetF;
     const uint32_t cap         = maxData / elemSize;
     const uint32_t fit         = std::min<uint32_t>(remaining, cap);
     SWC_ASSERT(fit > 0);
 
-    const SpanRef  hdrRef{makeRef(pageSizeValue, curPageIndex, off)};
+    const SpanRef  hdrRef{makeRef(pageSizeValue_, curPageIndex_, off)};
     const uint32_t newUsed = dataOffsetF + fit * elemSize;
-    SWC_ASSERT(newUsed <= pageSizeValue);
+    SWC_ASSERT(newUsed <= pageSizeValue_);
     page->used = newUsed;
-    totalBytes += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
+    totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
 
     auto* hdr  = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
     hdr->total = totalElems;
@@ -106,15 +106,15 @@ SpanRef Store::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAli
 {
     if (count == 0)
     {
-        Page*              page = curPage ? curPage : newPage();
+        Page*              page = curPage_ ? curPage_ : newPage();
         constexpr uint32_t need = sizeof(SpanHdrRaw);
-        if (page->used + need > pageSizeValue)
+        if (page->used + need > pageSizeValue_)
             page = newPage();
-        const SpanRef hdrRef{makeRef(pageSizeValue, curPageIndex, page->used)};
+        const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, page->used)};
         auto*         hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
         hdr->total        = 0;
         page->used += need;
-        totalBytes += need;
+        totalBytes_ += need;
         return hdrRef;
     }
 
@@ -154,7 +154,7 @@ const void* Store::SpanView::dataPtr(const Store* st, Ref hdrRef, uint32_t elemA
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
-    return st->pagesStorage[pageIndex]->bytes() + dataOffset;
+    return st->pagesStorage_[pageIndex]->bytes() + dataOffset;
 }
 
 uint32_t Store::SpanView::totalElems(const Store* st, Ref hdrRef)
@@ -276,22 +276,22 @@ Store::Page::~Page()
 
 Store::Page* Store::newPage()
 {
-    pagesStorage.emplace_back(std::make_unique<Page>(pageSizeValue));
-    curPage      = pagesStorage.back().get();
-    curPageIndex = static_cast<uint32_t>(pagesStorage.size() - 1);
-    return curPage;
+    pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_));
+    curPage_      = pagesStorage_.back().get();
+    curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
+    return curPage_;
 }
 
 Ref Store::findRef(const void* ptr) const noexcept
 {
     const auto bPtr = static_cast<const uint8_t*>(ptr);
-    for (uint32_t j = 0; j < pagesStorage.size(); j++)
+    for (uint32_t j = 0; j < pagesStorage_.size(); j++)
     {
-        const auto& page = pagesStorage[j];
-        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue)
+        const auto& page = pagesStorage_[j];
+        if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
         {
             const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
-            return makeRef(pageSizeValue, j, offset);
+            return makeRef(pageSizeValue_, j, offset);
         }
     }
 
@@ -313,20 +313,20 @@ void Store::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t&
 
 std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
 {
-    SWC_ASSERT(size <= pageSizeValue && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
+    SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
 
-    Page*    page   = curPage ? curPage : newPage();
+    Page*    page   = curPage_ ? curPage_ : newPage();
     uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
-    if (offset + size > pageSizeValue)
+    if (offset + size > pageSizeValue_)
     {
         page   = newPage();
         offset = 0;
     }
 
     page->used = offset + size;
-    totalBytes += size;
+    totalBytes_ += size;
 
-    const Ref r = makeRef(pageSizeValue, curPageIndex, offset);
+    const Ref r = makeRef(pageSizeValue_, curPageIndex_, offset);
     return {r, static_cast<void*>(page->bytes() + offset)};
 }
 

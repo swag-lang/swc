@@ -24,14 +24,14 @@ public:
     Store(Store&& other) noexcept;
     Store& operator=(Store&& other) noexcept;
 
-    uint32_t pageSize() const noexcept { return pageSizeValue; }
+    uint32_t pageSize() const noexcept { return pageSizeValue_; }
 
     void clear() noexcept;
 
     // payload bytes (clamped to 32 bits to match the previous signature)
     uint32_t size() const noexcept;
 
-    uint8_t* seekPtr() const noexcept { return lastPtr; }
+    uint8_t* seekPtr() const noexcept { return lastPtr_; }
 
     template<class T>
     Ref pushBack(const T& v)
@@ -46,9 +46,9 @@ public:
     {
         auto [ref, p] = emplaceUninit<T>();
         (void) ref;
-        *p        = v;
-        lastPtr = reinterpret_cast<uint8_t*>(p) + sizeof(T);
-        return lastPtr;
+        *p       = v;
+        lastPtr_ = reinterpret_cast<uint8_t*>(p) + sizeof(T);
+        return lastPtr_;
     }
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
@@ -77,13 +77,13 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        return ptrImpl<T>(pagesStorage, pageSizeValue, ref);
+        return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        return ptrImpl<T>(pagesStorage, pageSizeValue, ref);
+        return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
     }
 
     template<class T>
@@ -197,16 +197,8 @@ private:
         uint32_t total;
     };
 
-    std::vector<std::unique_ptr<Page>> pagesStorage;
-
-    uint64_t totalBytes   = 0;
-    uint32_t pageSizeValue = K_DEFAULT_PAGE_SIZE;
-    Page*    curPage       = nullptr;
-    uint32_t curPageIndex  = 0;
-    uint8_t* lastPtr       = nullptr;
-
     Page*                                     newPage();
-    const std::vector<std::unique_ptr<Page>>& pages() const { return pagesStorage; }
+    const std::vector<std::unique_ptr<Page>>& pages() const { return pagesStorage_; }
     static Ref                                makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
     static void                               decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
     std::pair<Ref, void*>                     allocate(uint32_t size, uint32_t align);
@@ -222,6 +214,13 @@ private:
         SWC_ASSERT(offset + sizeof(T) <= pageSize);
         return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
     }
+
+    std::vector<std::unique_ptr<Page>> pagesStorage_;
+    uint64_t                           totalBytes_    = 0;
+    uint32_t                           pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+    Page*                              curPage_       = nullptr;
+    uint32_t                           curPageIndex_  = 0;
+    uint8_t*                           lastPtr_       = nullptr;
 };
 
 SWC_END_NAMESPACE();

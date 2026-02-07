@@ -252,8 +252,8 @@ public:
     static bool isFloat(CpuReg reg) { return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3; }
     static bool isInt(CpuReg reg) { return !isFloat(reg); }
 
-    virtual RegisterSet getReadRegisters(MicroInstruction&) { return {}; }
-    virtual RegisterSet getWriteRegisters(MicroInstruction&) { return {}; }
+    virtual RegisterSet getReadRegisters(const MicroInstruction&) { return {}; }
+    virtual RegisterSet getWriteRegisters(const MicroInstruction&) { return {}; }
 
     virtual CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags)                                                                      = 0;
     virtual CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags)                                                            = 0;
@@ -312,15 +312,13 @@ public:
     void       addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:
-    Store           store_;
-    BuildParameters buildParams_;
-    Module*         module_ = nullptr;
-    CpuFunction*    cpuFct_ = nullptr;
-
-    BuildCfgBackendOptim optLevel_ = BuildCfgBackendOptim::O0;
-
-    uint32_t symCsIndex_        = 0;
-    uint32_t textSectionOffset_ = 0;
+    Store                store_;
+    BuildParameters      buildParams_;
+    Module*              module_            = nullptr;
+    CpuFunction*         cpuFct_            = nullptr;
+    BuildCfgBackendOptim optLevel_          = BuildCfgBackendOptim::O0;
+    uint32_t             symCsIndex_        = 0;
+    uint32_t             textSectionOffset_ = 0;
 
 private:
     std::vector<CpuSymbol> symbols_;

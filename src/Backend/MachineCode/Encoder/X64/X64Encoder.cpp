@@ -2878,7 +2878,7 @@ CpuEncodeResult X64Encoder::encodeNop(CpuEmitFlags emitFlags)
     return CpuEncodeResult::Zero;
 }
 
-RegisterSet X64Encoder::getReadRegisters(MicroInstruction& inst)
+RegisterSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
 {
     auto result = CpuEncoder::getReadRegisters(inst);
 
@@ -2910,7 +2910,7 @@ RegisterSet X64Encoder::getReadRegisters(MicroInstruction& inst)
     return result;
 }
 
-RegisterSet X64Encoder::getWriteRegisters(MicroInstruction& inst)
+RegisterSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 {
     auto result = CpuEncoder::getWriteRegisters(inst);
 

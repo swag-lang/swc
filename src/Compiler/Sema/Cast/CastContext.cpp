@@ -13,4 +13,15 @@ void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::stri
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
 }
 
+void CastContext::setConstantFoldingSrc(ConstantRef v)
+{
+    srcConstRef = v;
+    outConstRef = v;
+}
+
+void CastContext::setConstantFoldingResult(ConstantRef v)
+{
+    outConstRef = v;
+}
+
 SWC_END_NAMESPACE();

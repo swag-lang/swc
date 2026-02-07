@@ -43,17 +43,8 @@ struct CastContext
     bool        isConstantFolding() const { return srcConstRef.isValid(); }
     ConstantRef constantFoldingSrc() const { return srcConstRef; }
     ConstantRef constantFoldingResult() const { return outConstRef; }
-
-    void setConstantFoldingSrc(ConstantRef v)
-    {
-        srcConstRef = v;
-        outConstRef = v;
-    }
-
-    void setConstantFoldingResult(ConstantRef v)
-    {
-        outConstRef = v;
-    }
+    void        setConstantFoldingSrc(ConstantRef v);
+    void        setConstantFoldingResult(ConstantRef v);
 };
 
 SWC_END_NAMESPACE();

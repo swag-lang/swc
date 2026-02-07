@@ -15,11 +15,13 @@ Store::Store(Store&& other) noexcept :
     totalBytes_(other.totalBytes_),
     pageSize_(other.pageSize_),
     cur_(other.cur_),
-    curIndex_(other.curIndex_)
+    curIndex_(other.curIndex_),
+    last_ptr_(other.last_ptr_)
 {
     other.totalBytes_ = 0;
     other.cur_        = nullptr;
     other.curIndex_   = 0;
+    other.last_ptr_   = nullptr;
 }
 
 Store& Store::operator=(Store&& other) noexcept
@@ -31,6 +33,7 @@ Store& Store::operator=(Store&& other) noexcept
         std::swap(pageSize_, other.pageSize_);
         std::swap(cur_, other.cur_);
         std::swap(curIndex_, other.curIndex_);
+        std::swap(last_ptr_, other.last_ptr_);
     }
     return *this;
 }
@@ -51,6 +54,7 @@ void Store::clear() noexcept
         cur_      = nullptr;
         curIndex_ = 0;
     }
+    last_ptr_ = nullptr;
 }
 
 uint32_t Store::size() const noexcept

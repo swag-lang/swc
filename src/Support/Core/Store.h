@@ -32,6 +32,8 @@ public:
     // payload bytes (clamped to 32 bits to match the previous signature)
     uint32_t size() const noexcept;
 
+    uint8_t* seek_ptr() const noexcept { return last_ptr_; }
+
     // Allocate and copy a POD value (bitwise)
     template<class T>
     Ref push_back(const T& v)
@@ -40,6 +42,22 @@ public:
         *static_cast<T*>(p) = v;
         return r;
     }
+
+    template<class T>
+    uint8_t* push_pod(const T& v)
+    {
+        auto [ref, p] = emplace_uninit<T>();
+        (void) ref;
+        *p        = v;
+        last_ptr_ = reinterpret_cast<uint8_t*>(p) + sizeof(T);
+        return last_ptr_;
+    }
+
+    uint8_t* push_u8(uint8_t v) { return push_pod(v); }
+    uint8_t* push_u16(uint16_t v) { return push_pod(v); }
+    uint8_t* push_u32(uint32_t v) { return push_pod(v); }
+    uint8_t* push_u64(uint64_t v) { return push_pod(v); }
+    uint8_t* push_s32(int32_t v) { return push_pod(v); }
 
     // Allocate uninitialized storage for T; returns a pointer to fill in-place.
     template<class T>
@@ -187,6 +205,7 @@ private:
     uint32_t pageSize_   = kDefaultPageSize;
     Page*    cur_        = nullptr;
     uint32_t curIndex_   = 0;
+    uint8_t* last_ptr_   = nullptr;
 
     Page*                                     newPage();
     const std::vector<std::unique_ptr<Page>>& pages() const { return pages_; }

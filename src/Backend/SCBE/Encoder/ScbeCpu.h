@@ -1,7 +1,7 @@
 #pragma once
-#include "Backend/Support/Concat.h"
 #include "Backend/Support/Module.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/Store.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -364,7 +364,7 @@ public:
     {
     }
 
-    Concat          concat;
+    Store           concat;
     BuildParameters buildParams;
     Module*         module = nullptr;
     CpuFunction*    cpuFct = nullptr;

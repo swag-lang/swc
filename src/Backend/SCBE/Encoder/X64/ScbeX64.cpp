@@ -225,22 +225,22 @@ namespace
         return getModRM(mod, encodeReg(reg), rm);
     }
 
-    void emitPrefixF64(Concat& concat, OpBits opBits)
+    void emitPrefixF64(Store& concat, OpBits opBits)
     {
         if (opBits == OpBits::B64)
-            concat.addU8(0x66);
+            concat.push_u8(0x66);
     }
 
-    void emitSIB(Concat& concat, uint8_t scale, uint8_t index, uint8_t base)
+    void emitSIB(Store& concat, uint8_t scale, uint8_t index, uint8_t base)
     {
         const uint8_t value = (scale << 6) | (index << 3) | base;
-        concat.addU8(value);
+        concat.push_u8(value);
     }
 
-    void emitREX(Concat& concat, OpBits opBits, CpuReg reg0 = REX_REG_NONE, CpuReg reg1 = REX_REG_NONE)
+    void emitREX(Store& concat, OpBits opBits, CpuReg reg0 = REX_REG_NONE, CpuReg reg1 = REX_REG_NONE)
     {
         if (opBits == OpBits::B16)
-            concat.addU8(0x66);
+            concat.push_u8(0x66);
 
         const bool b1 = (reg0 >= CpuReg::R8 && reg0 <= CpuReg::R15);
         const bool b2 = (reg1 >= CpuReg::R8 && reg1 <= CpuReg::R15);
@@ -250,47 +250,47 @@ namespace
             reg0 == CpuReg::Rdi || reg1 == CpuReg::Rdi)
         {
             const auto value = getREX(opBits == OpBits::B64, b1, false, b2);
-            concat.addU8(value);
+            concat.push_u8(value);
         }
     }
 
-    void emitValue(Concat& concat, uint64_t value, OpBits opBits)
+    void emitValue(Store& concat, uint64_t value, OpBits opBits)
     {
         if (opBits == OpBits::B8)
-            concat.addU8(static_cast<uint8_t>(value));
+            concat.push_u8(static_cast<uint8_t>(value));
         else if (opBits == OpBits::B16)
-            concat.addU16(static_cast<uint16_t>(value));
+            concat.push_u16(static_cast<uint16_t>(value));
         else if (opBits == OpBits::B32)
-            concat.addU32(static_cast<uint32_t>(value));
+            concat.push_u32(static_cast<uint32_t>(value));
         else
-            concat.addU64(value);
+            concat.push_u64(value);
     }
 
-    void emitModRM(Concat& concat, ModRMMode mod, CpuReg reg, uint8_t rm)
+    void emitModRM(Store& concat, ModRMMode mod, CpuReg reg, uint8_t rm)
     {
         const auto value = getModRM(mod, reg, rm);
-        concat.addU8(value);
+        concat.push_u8(value);
     }
 
-    void emitModRM(Concat& concat, CpuReg reg, CpuReg memReg)
+    void emitModRM(Store& concat, CpuReg reg, CpuReg memReg)
     {
         emitModRM(concat, ModRMMode::Register, reg, encodeReg(memReg));
     }
 
-    void emitModRM(Concat& concat, uint64_t memOffset, CpuReg reg, CpuReg memReg)
+    void emitModRM(Store& concat, uint64_t memOffset, CpuReg reg, CpuReg memReg)
     {
         if (memOffset == 0 && memReg != CpuReg::R13)
         {
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
                 const auto modRM = getModRM(ModRMMode::Memory, reg, MODRM_RM_SIB);
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
                 const auto modRM = getModRM(ModRMMode::Memory, reg, encodeReg(memReg));
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
             }
         }
         else if (memOffset <= 0x7F)
@@ -298,13 +298,13 @@ namespace
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
                 const auto modRM = getModRM(ModRMMode::Displacement8, reg, MODRM_RM_SIB);
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
                 const auto modRM = getModRM(ModRMMode::Displacement8, reg, encodeReg(memReg));
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
             }
 
             emitValue(concat, memOffset, OpBits::B8);
@@ -314,13 +314,13 @@ namespace
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
                 const auto modRM = getModRM(ModRMMode::Displacement32, reg, MODRM_RM_SIB);
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
                 emitSIB(concat, 0, MODRM_RM_SIB, encodeReg(memReg) & 0b111);
             }
             else
             {
                 const auto modRM = getModRM(ModRMMode::Displacement32, reg, encodeReg(memReg));
-                concat.addU8(modRM);
+                concat.push_u8(modRM);
             }
 
             SWC_ASSERT(memOffset <= 0x7FFFFFFF);
@@ -328,43 +328,43 @@ namespace
         }
     }
 
-    void emitSpecB8(Concat& concat, uint8_t value, OpBits opBits)
+    void emitSpecB8(Store& concat, uint8_t value, OpBits opBits)
     {
         if (opBits == OpBits::B8)
-            concat.addU8(value & ~1);
+            concat.push_u8(value & ~1);
         else
-            concat.addU8(value);
+            concat.push_u8(value);
     }
 
-    void emitSpecF64(Concat& concat, uint8_t value, OpBits opBits)
+    void emitSpecF64(Store& concat, uint8_t value, OpBits opBits)
     {
         if (opBits == OpBits::B64)
-            concat.addU8(value & ~1);
+            concat.push_u8(value & ~1);
         else if (opBits == OpBits::B32)
-            concat.addU8(value);
+            concat.push_u8(value);
     }
 
-    void emitCPUOp(Concat& concat, CpuOp op)
+    void emitCPUOp(Store& concat, CpuOp op)
     {
-        concat.addU8(static_cast<uint8_t>(op));
+        concat.push_u8(static_cast<uint8_t>(op));
     }
 
-    void emitCPUOp(Concat& concat, uint8_t op)
+    void emitCPUOp(Store& concat, uint8_t op)
     {
-        concat.addU8(op);
+        concat.push_u8(op);
     }
 
-    void emitCPUOp(Concat& concat, uint8_t op, CpuReg reg)
+    void emitCPUOp(Store& concat, uint8_t op, CpuReg reg)
     {
-        concat.addU8(op | (encodeReg(reg) & 0b111));
+        concat.push_u8(op | (encodeReg(reg) & 0b111));
     }
 
-    void emitSpecCPUOp(Concat& concat, CpuOp op, OpBits opBits)
+    void emitSpecCPUOp(Store& concat, CpuOp op, OpBits opBits)
     {
         emitSpecB8(concat, static_cast<uint8_t>(op), opBits);
     }
 
-    void emitSpecCPUOp(Concat& concat, uint8_t op, OpBits opBits)
+    void emitSpecCPUOp(Store& concat, uint8_t op, OpBits opBits)
     {
         emitSpecB8(concat, op, opBits);
     }
@@ -377,8 +377,8 @@ CpuEncodeResult ScbeX64::encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbo
     emitREX(concat, OpBits::B64, reg);
     emitCPUOp(concat, 0x8D); // LEA
     emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
-    addSymbolRelocation(concat.totalCount() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
-    concat.addU32(offset);
+    addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
+    concat.push_u32(offset);
     return CpuEncodeResult::Zero;
 }
 
@@ -392,8 +392,8 @@ CpuEncodeResult ScbeX64::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolInde
         emitCPUOp(concat, 0x0F);
         emitCPUOp(concat, 0x10);
         emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
-        addSymbolRelocation(concat.totalCount() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
-        concat.addU32(offset);
+        addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
+        concat.push_u32(offset);
     }
     else if (emitFlags.has(EMIT_B64))
     {
@@ -402,8 +402,8 @@ CpuEncodeResult ScbeX64::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolInde
         SWC_ASSERT(opBits == OpBits::B64);
         emitREX(concat, opBits, REX_REG_NONE, reg);
         emitCPUOp(concat, 0xB8, reg); // MOV
-        addSymbolRelocation(concat.totalCount() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_ADDR64);
-        concat.addU64(offset);
+        addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_ADDR64);
+        concat.push_u64(offset);
     }
     else
     {
@@ -413,8 +413,8 @@ CpuEncodeResult ScbeX64::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolInde
         emitREX(concat, opBits, reg);
         emitCPUOp(concat, 0x8B); // MOV
         emitModRM(concat, ModRMMode::Memory, reg, MODRM_RM_RIP);
-        addSymbolRelocation(concat.totalCount() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
-        concat.addU32(offset);
+        addSymbolRelocation(concat.size() - textSectionOffset, symbolIndex, IMAGE_REL_AMD64_REL32);
+        concat.push_u32(offset);
     }
 
     return CpuEncodeResult::Zero;
@@ -662,8 +662,8 @@ CpuEncodeResult ScbeX64::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memReg,
         if (emitFlags.has(EMIT_CanEncode))
             return CpuEncodeResult::Zero;
         emitREX(concat, numBitsDst, reg, memReg);
-        concat.addU8(0x0F);
-        concat.addU8(0xBE);
+        concat.push_u8(0x0F);
+        concat.push_u8(0xBE);
         emitModRM(concat, memOffset, reg, memReg);
     }
     else if (numBitsSrc == OpBits::B16)
@@ -671,8 +671,8 @@ CpuEncodeResult ScbeX64::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memReg,
         if (emitFlags.has(EMIT_CanEncode))
             return CpuEncodeResult::Zero;
         emitREX(concat, numBitsDst, reg, memReg);
-        concat.addU8(0x0F);
-        concat.addU8(0xBF);
+        concat.push_u8(0x0F);
+        concat.push_u8(0xBF);
         emitModRM(concat, memOffset, reg, memReg);
     }
     else if (numBitsSrc == OpBits::B32)
@@ -789,7 +789,7 @@ CpuEncodeResult ScbeX64::encodeLoadAddressRegMem(CpuReg reg, CpuReg memReg, uint
 
 namespace
 {
-    CpuEncodeResult encodeAmcImm(Concat& concat, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, OpBits opBitsBaseMul, uint64_t value, OpBits opBitsValue, CpuEmitFlags emitFlags)
+    CpuEncodeResult encodeAmcImm(Store& concat, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, OpBits opBitsBaseMul, uint64_t value, OpBits opBitsValue, CpuEmitFlags emitFlags)
     {
         if (emitFlags.has(EMIT_CanEncode))
         {
@@ -818,7 +818,7 @@ namespace
 
         // Prefixes
         if (opBitsValue == OpBits::B16)
-            concat.addU8(0x66);
+            concat.push_u8(0x66);
 
         // REX prefix
         const bool b1 = (regMul >= CpuReg::R8 && regMul <= CpuReg::R15);
@@ -826,7 +826,7 @@ namespace
         if (opBitsValue == OpBits::B64 || b1 || b2)
         {
             const auto val = getREX(opBitsValue == OpBits::B64, false, b1, b2);
-            concat.addU8(val);
+            concat.push_u8(val);
         }
 
         // OpCode
@@ -860,7 +860,7 @@ namespace
         return CpuEncodeResult::Zero;
     }
 
-    CpuEncodeResult encodeAmcReg(Concat& concat, CpuReg reg, OpBits opBitsReg, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, OpBits opBitsBaseMul, CpuOp op, CpuEmitFlags emitFlags, bool mr)
+    CpuEncodeResult encodeAmcReg(Store& concat, CpuReg reg, OpBits opBitsReg, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, OpBits opBitsBaseMul, CpuOp op, CpuEmitFlags emitFlags, bool mr)
     {
         if (emitFlags.has(EMIT_CanEncode))
         {
@@ -895,9 +895,9 @@ namespace
 
         // Prefixes
         if (opBitsBaseMul == OpBits::B32)
-            concat.addU8(0x67);
+            concat.push_u8(0x67);
         if (opBitsReg == OpBits::B16 || ScbeCpu::isFloat(reg))
-            concat.addU8(0x66);
+            concat.push_u8(0x66);
 
         // REX prefix
         const bool b0      = (reg >= CpuReg::R8 && reg <= CpuReg::R15);
@@ -907,7 +907,7 @@ namespace
         if (needREX || b0 || b1 || b2)
         {
             const auto value = getREX(opBitsReg == OpBits::B64, b0, b1, b2);
-            concat.addU8(value);
+            concat.push_u8(value);
         }
 
         // Opcode
@@ -1885,7 +1885,7 @@ CpuEncodeResult ScbeX64::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset,
         }
 
         if (emitFlags.has(EMIT_Lock))
-            concat.addU8(0xF0);
+            concat.push_u8(0xF0);
         emitREX(concat, opBits, REX_REG_NONE, memReg);
         emitSpecCPUOp(concat, 0xD3, opBits);
         if (op == CpuOp::SHL)
@@ -1903,7 +1903,7 @@ CpuEncodeResult ScbeX64::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset,
         if (emitFlags.has(EMIT_CanEncode))
             return CpuEncodeResult::Zero;
         if (emitFlags.has(EMIT_Lock))
-            concat.addU8(0xF0);
+            concat.push_u8(0xF0);
         emitREX(concat, opBits, reg, memReg);
         emitSpecCPUOp(concat, op, opBits);
         emitModRM(concat, memOffset, reg, memReg);
@@ -2642,16 +2642,16 @@ CpuEncodeResult ScbeX64::encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int3
     // movsxd table, dword ptr [table + offset*4]
     encodeAmcReg(concat, tableReg, OpBits::B64, tableReg, offsetReg, 4, 0, OpBits::B64, CpuOp::MOVSXD, emitFlags, false);
 
-    const auto startIdx = concat.totalCount();
-    emitLoadSymRelocAddress(offsetReg, cpuFct->symbolIndex, concat.totalCount() - cpuFct->startAddress);
-    const auto patchPtr = reinterpret_cast<uint32_t*>(concat.currentSP) - 1;
+    const auto startIdx = concat.size();
+    emitLoadSymRelocAddress(offsetReg, cpuFct->symbolIndex, concat.size() - cpuFct->startAddress);
+    const auto patchPtr = reinterpret_cast<uint32_t*>(concat.seek_ptr()) - 1;
     emitOpBinaryRegReg(offsetReg, tableReg, CpuOp::ADD, OpBits::B64, emitFlags);
     emitJumpReg(offsetReg);
-    const auto endIdx = concat.totalCount();
+    const auto endIdx = concat.size();
     *patchPtr += endIdx - startIdx;
 
     const auto tableCompiler = reinterpret_cast<int32_t*>(buildParams.module->compilerSegment.address(offsetTable));
-    const auto currentOffset = static_cast<int32_t>(concat.totalCount());
+    const auto currentOffset = static_cast<int32_t>(concat.size());
 
     CpuLabelToSolve label;
     for (uint32_t idx = 0; idx < numEntries; idx++)
@@ -2693,7 +2693,7 @@ CpuEncodeResult ScbeX64::encodeJump(CpuJump& jump, CpuCondJump jumpType, OpBits 
                 emitCPUOp(concat, 0x76);
                 break;
             case CpuCondJump::JA:
-                concat.addU8(0x77);
+                concat.push_u8(0x77);
                 break;
             case CpuCondJump::JS:
                 emitCPUOp(concat, 0x78);
@@ -2724,10 +2724,10 @@ CpuEncodeResult ScbeX64::encodeJump(CpuJump& jump, CpuCondJump jumpType, OpBits 
                 break;
         }
 
-        concat.addU8(0);
+        concat.push_u8(0);
 
-        jump.patchOffsetAddr = concat.getSeekPtr() - 1;
-        jump.offsetStart     = concat.totalCount();
+        jump.patchOffsetAddr = concat.seek_ptr() - 1;
+        jump.offsetStart     = concat.size();
         jump.opBits          = opBits;
         return CpuEncodeResult::Zero;
     }
@@ -2798,10 +2798,10 @@ CpuEncodeResult ScbeX64::encodeJump(CpuJump& jump, CpuCondJump jumpType, OpBits 
             break;
     }
 
-    concat.addU32(0);
+    concat.push_u32(0);
 
-    jump.patchOffsetAddr = concat.getSeekPtr() - sizeof(uint32_t);
-    jump.offsetStart     = concat.totalCount();
+    jump.patchOffsetAddr = concat.seek_ptr() - sizeof(uint32_t);
+    jump.offsetStart     = concat.size();
     jump.opBits          = opBits;
     return CpuEncodeResult::Zero;
 }
@@ -2824,7 +2824,7 @@ CpuEncodeResult ScbeX64::encodePatchJump(const CpuJump& jump, uint64_t offsetDes
 
 CpuEncodeResult ScbeX64::encodePatchJump(const CpuJump& jump, CpuEmitFlags emitFlags)
 {
-    return encodePatchJump(jump, concat.totalCount(), emitFlags);
+    return encodePatchJump(jump, concat.size(), emitFlags);
 }
 
 CpuEncodeResult ScbeX64::encodeJumpReg(CpuReg reg, CpuEmitFlags emitFlags)
@@ -2843,8 +2843,8 @@ CpuEncodeResult ScbeX64::encodeCallExtern(const Utf8& symbolName, const CallConv
     emitModRM(concat, ModRMMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
 
     const auto callSym = getOrAddSymbol(symbolName, CpuSymbolKind::Extern);
-    addSymbolRelocation(concat.totalCount() - textSectionOffset, callSym->index, IMAGE_REL_AMD64_REL32);
-    concat.addU32(0);
+    addSymbolRelocation(concat.size() - textSectionOffset, callSym->index, IMAGE_REL_AMD64_REL32);
+    concat.push_u32(0);
     return CpuEncodeResult::Zero;
 }
 
@@ -2855,12 +2855,12 @@ CpuEncodeResult ScbeX64::encodeCallLocal(const Utf8& symbolName, const CallConv*
     const auto callSym = getOrAddSymbol(symbolName, CpuSymbolKind::Extern);
     if (callSym->kind == CpuSymbolKind::Function)
     {
-        concat.addS32(static_cast<int32_t>(callSym->value + textSectionOffset - (concat.totalCount() + 4)));
+        concat.push_s32(static_cast<int32_t>(callSym->value + textSectionOffset - (concat.size() + 4)));
     }
     else
     {
-        addSymbolRelocation(concat.totalCount() - textSectionOffset, callSym->index, IMAGE_REL_AMD64_REL32);
-        concat.addU32(0);
+        addSymbolRelocation(concat.size() - textSectionOffset, callSym->index, IMAGE_REL_AMD64_REL32);
+        concat.push_u32(0);
     }
 
     return CpuEncodeResult::Zero;
@@ -2936,3 +2936,4 @@ RegisterSet ScbeX64::getWriteRegisters(ScbeMicroInstruction* inst)
 }
 
 SWC_END_NAMESPACE();
+

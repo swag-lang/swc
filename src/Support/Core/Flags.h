@@ -124,7 +124,7 @@ struct AtomicEnumFlags
     Self& operator=(const Self& other) noexcept
     {
         if (this != &other)
-            flags.store(other.flags.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            flags.store_(other.flags.load(std::memory_order_relaxed), std::memory_order_relaxed);
         return *this;
     }
 
@@ -135,12 +135,12 @@ struct AtomicEnumFlags
 
     void store(U v, std::memory_order mo = std::memory_order_release) noexcept
     {
-        flags.store(v, mo);
+        flags.store_(v, mo);
     }
 
     void store(T v, std::memory_order mo = std::memory_order_release) noexcept
     {
-        flags.store(static_cast<U>(v), mo);
+        flags.store_(static_cast<U>(v), mo);
     }
 
     EnumFlags<T> snapshot(std::memory_order mo = std::memory_order_acquire) const noexcept
@@ -228,7 +228,7 @@ struct AtomicEnumFlags
 
     void clear(std::memory_order mo = std::memory_order_acq_rel) noexcept
     {
-        flags.store(0, mo);
+        flags.store_(0, mo);
     }
 
     void clearMask(T fl, std::memory_order mo = std::memory_order_acq_rel) noexcept

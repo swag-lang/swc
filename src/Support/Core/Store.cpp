@@ -1,4 +1,3 @@
-// ReSharper disable CppInconsistentNaming
 #include "pch.h"
 #include "Support/Core/Store.h"
 

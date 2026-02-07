@@ -10,7 +10,7 @@ SWC_DIAG_DEF(sema_err_struct_cast_field_type, Error, "cannot cast from '{type}' 
 SWC_DIAG_DEF(sema_err_struct_cast_duplicate_field, Error, "cannot cast from '{type}' to '{requested-type}'; field '{value}' specified more than once")
 SWC_DIAG_DEF(sema_err_struct_cast_const, Error, "cannot cast from '{type}' to '{requested-type}'; struct constant lowering failed: {value}")
 SWC_DIAG_DEF(sema_err_array_cast_num_dims, Error, "cannot cast from '{type}' to '{requested-type}'; array dimension count mismatch: src = '{count}' dst = '{value}'")
-SWC_DIAG_DEF(sema_err_array_cast_dim_mismatch, Error, "cannot cast from '{type}' to '{requested-type}'; array dimension mismatch ({value})")
+SWC_DIAG_DEF(sema_err_array_cast_dim_mismatch, Error, "cannot cast from '{type}' to '{requested-type}'; array dimension mismatch: src = '{left}' dst = '{right}'")
 SWC_DIAG_DEF(sema_err_array_cast_too_many_values, Error, "cannot cast from '{type}' to '{requested-type}'; too many elements: src = '{count}' dst = '{value}'")
 SWC_DIAG_DEF(sema_err_array_cast_const, Error, "cannot cast from '{type}' to '{requested-type}'; {value}")
 SWC_DIAG_DEF(sema_err_cannot_cast_const, Error, "cannot cast from '{type}' to '{requested-type}' (const mismatch)")

@@ -29,16 +29,9 @@ namespace
 
     Result failArrayDimMismatch(const CastArrayContext& ctx, size_t dimIndex, uint64_t srcDim, uint64_t dstDim)
     {
-        Utf8 detail = "dim ";
-        detail += std::to_string(dimIndex + 1);
-        detail += ": src = '";
-        detail += std::to_string(srcDim);
-        detail += "' dst = '";
-        detail += std::to_string(dstDim);
-        detail += "'";
-
         const Result res = ctx.castCtx->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, detail);
+        ctx.castCtx->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
+        ctx.castCtx->failure.addArgument(Diagnostic::ARG_RIGHT, dstDim);
         return res;
     }
 

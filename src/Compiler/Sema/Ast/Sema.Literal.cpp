@@ -478,7 +478,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
         else
         {
             const Utf8 name = "item" + std::to_string(memberNames.size());
-            memberNames.push_back(sema.idMgr().addIdentifier(name));
+            memberNames.push_back(sema.idMgr().addIdentifierOwned(name));
         }
 
         SemaNodeView nodeView(sema, child);

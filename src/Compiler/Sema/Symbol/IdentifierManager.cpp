@@ -5,6 +5,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/ByteSpan.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -108,10 +109,25 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const Sou
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name)
 {
-    return addIdentifier(name, Math::hash(name));
+    return addIdentifierInternal(name, Math::hash(name), false);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t hash)
+{
+    return addIdentifierInternal(name, hash, false);
+}
+
+IdentifierRef IdentifierManager::addIdentifierOwned(std::string_view name)
+{
+    return addIdentifierInternal(name, Math::hash(name), true);
+}
+
+IdentifierRef IdentifierManager::addIdentifierOwned(std::string_view name, uint32_t hash)
+{
+    return addIdentifierInternal(name, hash, true);
+}
+
+IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, uint32_t hash, bool copyName)
 {
     const uint32_t shardIndex = hash & (SHARD_COUNT - 1);
     auto&          shard      = shards_[shardIndex];
@@ -123,7 +139,17 @@ IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t h
     }
 
     std::unique_lock lk(shard.mutex);
-    const auto [it, inserted] = shard.map.try_emplace(name, hash, IdentifierRef{});
+    if (const auto it = shard.map.find(name, hash))
+        return *it;
+
+    std::string_view storedName = name;
+    if (copyName && !name.empty())
+    {
+        const auto [span, _] = shard.stringStore.push_copy_span(asByteSpan(name));
+        storedName           = asStringView(span);
+    }
+
+    const auto [it, inserted] = shard.map.try_emplace(storedName, hash, IdentifierRef{});
     if (!inserted)
         return *it;
 
@@ -131,7 +157,7 @@ IdentifierRef IdentifierManager::addIdentifier(std::string_view name, uint32_t h
     Stats::get().numIdentifiers.fetch_add(1);
 #endif
 
-    const uint32_t localIndex = shard.store.push_back(Identifier{name});
+    const uint32_t localIndex = shard.store.push_back(Identifier{storedName});
     SWC_ASSERT(localIndex < LOCAL_MASK);
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};

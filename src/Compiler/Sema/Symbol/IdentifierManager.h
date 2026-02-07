@@ -91,15 +91,20 @@ public:
     IdentifierRef     addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef);
     IdentifierRef     addIdentifier(std::string_view name);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);
+    IdentifierRef     addIdentifierOwned(std::string_view name);
+    IdentifierRef     addIdentifierOwned(std::string_view name, uint32_t hash);
     const Identifier& getNoLock(IdentifierRef idRef) const;
     const Identifier& get(IdentifierRef idRef) const;
 
     IdentifierRef predefined(PredefinedName name) const { return predefined_[static_cast<size_t>(name)]; }
 
 private:
+    IdentifierRef addIdentifierInternal(std::string_view name, uint32_t hash, bool copyName);
+
     struct Shard
     {
         Store                     store;
+        Store                     stringStore;
         StringMap<IdentifierRef>  map;
         mutable std::shared_mutex mutex;
     };

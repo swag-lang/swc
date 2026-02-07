@@ -115,7 +115,7 @@ const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err
 
     // assignment requires exact size
     // (if your language reports a different diagnostic name, adjust expected error)
-    var L: [3] s32 = K // swc-expected-error {{sema_err_cannot_cast}}
+    var L: [3] s32 = K // swc-expected-error {{sema_err_array_cast_dim_mismatch}}
 }
 
 #test
@@ -131,7 +131,7 @@ const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err
     // jagged via local vars still invalid
     var x = [1, 2]
     var y = [3, 4, 5]
-    var N: [2] [2] s32 = [x, y] // swc-expected-error {{sema_err_cannot_cast}}
+    var N: [2] [2] s32 = [x, y] // swc-expected-error {{sema_err_array_cast_too_many_values}}
 }
 
 const AB: [2] u32 = [1, 2]

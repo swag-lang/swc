@@ -60,6 +60,7 @@ namespace
         const auto& aggregate = ctx.srcType->payloadAggregate();
         const auto& srcTypes  = aggregate.types;
         const auto& srcNames  = aggregate.names;
+        const auto& fieldRefs = aggregate.fieldRefs;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
 
         if (srcTypes.size() > dstFields.size())
@@ -69,8 +70,20 @@ namespace
         }
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
+        SWC_ASSERT(fieldRefs.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
         std::vector dstUsed(dstFields.size(), false);
+
+        auto failAtField = [&](size_t fieldIndex, DiagnosticId id, std::string_view value = "")
+        {
+            const AstNodeRef previousRef = ctx.castCtx->errorNodeRef;
+            const AstNodeRef fieldRef    = fieldRefs[fieldIndex];
+            if (fieldRef.isValid())
+                ctx.castCtx->errorNodeRef = fieldRef;
+            ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
+            ctx.castCtx->errorNodeRef = previousRef;
+            return Result::Error;
+        };
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
@@ -82,18 +95,12 @@ namespace
             if (positional)
             {
                 if (seenNamed)
-                {
-                    ctx.castCtx->fail(DiagnosticId::sema_err_unnamed_parameter, ctx.srcTypeRef, ctx.dstTypeRef);
-                    return Result::Error;
-                }
+                    return failAtField(i, DiagnosticId::sema_err_unnamed_parameter);
 
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                {
-                    ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
-                    return Result::Error;
-                }
+                    return failAtField(i, DiagnosticId::sema_err_cannot_cast);
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
@@ -118,16 +125,10 @@ namespace
             }
 
             if (!found)
-            {
-                ctx.castCtx->fail(DiagnosticId::sema_err_auto_scope_missing_struct_member, ctx.srcTypeRef, ctx.dstTypeRef, ctx.sema->idMgr().get(name).name);
-                return Result::Error;
-            }
+                return failAtField(i, DiagnosticId::sema_err_auto_scope_missing_struct_member, ctx.sema->idMgr().get(name).name);
 
             if (dstUsed[dstIndex])
-            {
-                ctx.castCtx->fail(DiagnosticId::sema_err_cannot_cast, ctx.srcTypeRef, ctx.dstTypeRef);
-                return Result::Error;
-            }
+                return failAtField(i, DiagnosticId::sema_err_cannot_cast);
 
             srcToDst[i]       = dstIndex;
             dstUsed[dstIndex] = true;
@@ -138,11 +139,14 @@ namespace
 
     Result validateAggregateStructElementCasts(const CastStructContext& ctx, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
+        const auto& fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             CastContext elemCtx(ctx.castCtx->kind);
             elemCtx.flags        = ctx.castCtx->flags;
             elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+            if (fieldRefs[i].isValid())
+                elemCtx.errorNodeRef = fieldRefs[i];
 
             const size_t dstIndex = srcToDst[i];
             const Result res      = Cast::castAllowed(*ctx.sema, elemCtx, srcTypes[i], dstFields[dstIndex]->typeRef());
@@ -164,6 +168,7 @@ namespace
 
         const auto& values    = cst.getAggregateStruct();
         const auto& srcTypes  = ctx.srcType->payloadAggregate().types;
+        const auto& fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
         std::vector castedByDst(dstFields.size(), ConstantRef::invalid());
 
@@ -172,6 +177,8 @@ namespace
             CastContext elemCtx(ctx.castCtx->kind);
             elemCtx.flags        = ctx.castCtx->flags;
             elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+            if (fieldRefs[i].isValid())
+                elemCtx.errorNodeRef = fieldRefs[i];
             elemCtx.setConstantFoldingSrc(values[i]);
 
             const size_t dstIndex = srcToDst[i];

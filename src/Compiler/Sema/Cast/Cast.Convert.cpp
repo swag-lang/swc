@@ -23,3 +23,4 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 }
 
 SWC_END_NAMESPACE();
+

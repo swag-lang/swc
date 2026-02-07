@@ -133,4 +133,3 @@ Result Cast::castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 }
 
 SWC_END_NAMESPACE();
-

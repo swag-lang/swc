@@ -36,9 +36,7 @@ namespace
         for (size_t i = 0; i < srcFields.size(); ++i)
         {
             if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
-            {
                 return ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, dstFields[i]->name(ctx.sema->ctx()));
-            }
         }
 
         return Result::Continue;
@@ -66,7 +64,7 @@ namespace
             const AstNodeRef fieldRef    = fieldRefs[fieldIndex];
             if (fieldRef.isValid())
                 ctx.castCtx->errorNodeRef = fieldRef;
-            const Result res = ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
+            const Result res          = ctx.castCtx->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
             ctx.castCtx->errorNodeRef = previousRef;
             return res;
         };
@@ -216,14 +214,10 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(ctx.sema->ctx());
             const uint64_t  fieldOffset  = field->offset();
             if (fieldOffset + fieldSize > bytes.size())
-            {
                 return ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
-            }
 
             if (!ConstantHelpers::lowerToBytes(*ctx.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
-            {
                 return ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
-            }
         }
 
         const auto result        = ConstantValue::makeStruct(ctx.sema->ctx(), ctx.dstTypeRef, bytes);
@@ -264,4 +258,3 @@ Result Cast::castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
 }
 
 SWC_END_NAMESPACE();
-

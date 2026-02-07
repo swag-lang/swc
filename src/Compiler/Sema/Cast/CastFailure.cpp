@@ -54,3 +54,4 @@ void CastFailure::applyArguments(DiagnosticElement& element) const
 }
 
 SWC_END_NAMESPACE();
+

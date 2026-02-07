@@ -26,3 +26,4 @@ void CastContext::setConstantFoldingResult(ConstantRef v)
 }
 
 SWC_END_NAMESPACE();
+

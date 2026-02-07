@@ -157,9 +157,7 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcT
                 const bool srcUnsized = srcType.isIntUnsized();
                 const bool dstUnsized = dstType.isIntUnsized();
                 if (!srcUnsized && !dstUnsized && srcBits && dstBits && dstBits < srcBits)
-                {
                     return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                }
             }
             break;
         case CastKind::Explicit:
@@ -194,9 +192,7 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
     {
         case CastKind::LiteralSuffix:
             if (!srcType.isIntUnsized())
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            }
             break;
 
         case CastKind::Promotion:
@@ -205,9 +201,7 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
         case CastKind::Initialization:
         case CastKind::Assignment:
             if (!allowCoerce)
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            }
             break;
         case CastKind::Explicit:
             break;
@@ -228,9 +222,7 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
 Result Cast::castFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (castCtx.kind != CastKind::Explicit)
-    {
         return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-    }
 
     if (castCtx.isConstantFolding())
     {
@@ -290,9 +282,7 @@ Result Cast::castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeR
         case CastKind::Initialization:
         case CastKind::Assignment:
             if (narrowing)
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            }
             break;
 
         case CastKind::Explicit:
@@ -327,9 +317,7 @@ Result Cast::castToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 Result Cast::castFromEnum(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (castCtx.kind != CastKind::Explicit)
-    {
         return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-    }
 
     const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
     const SymbolEnum& enumSym = type.payloadSymEnum();
@@ -378,9 +366,7 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     if (srcType.isReference())
     {
         if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        }
 
         const auto  srcPointeeTypeRef = srcType.payloadTypeRef();
         const auto& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
@@ -403,14 +389,10 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     if (srcType.isAnyPointer())
     {
         if (srcType.isNullable())
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        }
 
         if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        }
 
         if (srcType.payloadTypeRef() == dstPointeeTypeRef)
             return Result::Continue;
@@ -428,9 +410,7 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstPointeeTypeRef == srcTypeRef)
     {
         if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        }
 
         return Result::Continue;
     }
@@ -487,9 +467,7 @@ Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
     if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
     {
         if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        }
 
         return Result::Continue;
     }
@@ -525,9 +503,7 @@ Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
             dstElemTypeRef == sema.typeMgr().typeVoid())
         {
             if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-            }
 
             return Result::Continue;
         }
@@ -576,9 +552,7 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         if (castCtx.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
         {
             if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-            }
 
             if (srcElemTypeRef != dstElemTypeRef)
             {
@@ -587,9 +561,7 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
                 const uint64_t  d           = srcType.sizeOf(ctx);
                 const bool      match       = s == 0 || (d / s * s == d);
                 if (!match)
-                {
                     return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-                }
             }
 
             return Result::Continue;
@@ -602,9 +574,7 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         if (castCtx.kind == CastKind::Explicit)
         {
             if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            {
                 return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-            }
 
             return Result::Continue;
         }
@@ -614,9 +584,7 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     if (srcType.isSlice())
     {
         if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-        }
 
         if (castCtx.kind == CastKind::Explicit || srcType.payloadTypeRef() == dstType.payloadTypeRef())
             return Result::Continue;
@@ -654,14 +622,10 @@ Result Cast::castToString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
     if (srcType.isSlice())
     {
         if (castCtx.kind != CastKind::Explicit)
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        }
 
         if (srcType.payloadTypeRef() != typeMgr.typeU8())
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        }
 
         return Result::Continue;
     }
@@ -743,9 +707,7 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     if (srcType.isAlias() || dstType.isAlias())
     {
         if (castCtx.kind != CastKind::Explicit)
-        {
             return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-        }
     }
 
     auto res = Result::Error;
@@ -878,4 +840,3 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 }
 
 SWC_END_NAMESPACE();
-

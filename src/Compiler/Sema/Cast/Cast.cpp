@@ -29,3 +29,4 @@ AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef n
 }
 
 SWC_END_NAMESPACE();
+

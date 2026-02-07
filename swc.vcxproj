@@ -277,6 +277,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Type.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Array.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp"/>

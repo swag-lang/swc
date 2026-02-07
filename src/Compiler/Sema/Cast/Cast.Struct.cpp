@@ -67,16 +67,16 @@ namespace
             return Result::Error;
         }
 
-        const bool hasNames = srcNames.size() == srcTypes.size();
+        SWC_ASSERT(srcNames.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
-        std::vector<bool> dstUsed(dstFields.size(), false);
+        std::vector dstUsed(dstFields.size(), false);
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            const IdentifierRef name       = hasNames ? srcNames[i] : IdentifierRef::invalid();
-            const bool          positional = !name.isValid() || isAutoName(*ctx.sema, name, i);
+            const IdentifierRef name       = srcNames[i];
+            const bool          positional = name.isInvalid() || isAutoName(*ctx.sema, name, i);
 
             if (positional)
             {

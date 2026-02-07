@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Backend\SCBE\Encoder\X64\ScbeX64.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
@@ -321,6 +322,12 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Backend\SCBE\Encoder\Micro\ScbeMicroInstruction.h"/>
+        <ClInclude Include="src\Backend\SCBE\Encoder\ScbeCpu.h"/>
+        <ClInclude Include="src\Backend\SCBE\Encoder\X64\ScbeX64.h"/>
+        <ClInclude Include="src\Backend\Support\Concat.h"/>
+        <ClInclude Include="src\Backend\Support\Module.h"/>
+        <ClInclude Include="src\Backend\Support\Report.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>

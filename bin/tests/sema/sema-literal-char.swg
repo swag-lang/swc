@@ -75,5 +75,3 @@
 #assert('a''s16 == 97)  // swc-expected-error {{sema_err_cannot_cast}}
 #assert('a''s32 == 97)  // swc-expected-error {{sema_err_cannot_cast}}
 #assert('a''s64 == 97)  // swc-expected-error {{sema_err_cannot_cast}}
-
-

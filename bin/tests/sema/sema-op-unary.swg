@@ -1,6 +1,5 @@
 #global internal
 
-// --- Unary Plus (+) ---
 #assert(+1 == 1)
 #assert(+1 == +1)
 #assert(125 == +125)
@@ -9,7 +8,6 @@
 #assert(+"text")             // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(-"text")             // swc-expected-error {{sema_err_unary_operand_type}}
 
-// --- Bitwise NOT (~) ---
 #assert(~0 == -1)
 #assert(~1 == -2)
 #assert(~2 == -3)
@@ -22,7 +20,6 @@
 #assert(~"true")             // swc-expected-error {{sema_err_unary_operand_type}}
 #assert(~3.14)               // swc-expected-error {{sema_err_unary_operand_type}}
 
-// --- Unary Minus (-) ---
 #assert(-1 == -1)
 #assert(-(-1) == 1)
 #assert(-(-1) == +1)
@@ -36,7 +33,6 @@
 #assert(-128's8 == -128)
 #assert(-true)               // swc-expected-error {{sema_err_unary_operand_type}}
 
-// --- Logical NOT (!) ---
 #assert(!true == false)
 #assert(!false == true)
 

@@ -28,7 +28,6 @@ func tata(a: const &A) {}
     const b: const &A // swc-expected-error {{sema_err_const_ref_type}}
 }
 
-
 #test
 {
     var a: A

@@ -2,7 +2,6 @@
 
 #test
 {
-    // A switch with an expression requires constant case values
     var v = 1
     switch v
     {
@@ -15,7 +14,6 @@
 
 #test
 {
-    // A constant case value can only appear once in a value-switch
     switch 1
     {
         case 1:
@@ -29,7 +27,6 @@
 
 #test
 {
-    // Range case bounds must also be constant
     var v = 2
     switch v
     {
@@ -42,7 +39,6 @@
 
 #test
 {
-    // A switch without an expression is a condition-switch; each case expression must be bool-compatible
     var a : [4] s32
     switch
     {
@@ -55,7 +51,6 @@
 
 #test
 {
-    // Invalid switch expr type
     var a : [4] s32
     switch a // swc-expected-error {{sema_err_switch_invalid_type}}
     {
@@ -66,7 +61,6 @@
 
 #test
 {
-    // Invalid range type
     var b = "hello"
     switch b
     {
@@ -89,7 +83,6 @@
     }
 }
 
-
 #test
 {
     switch 1
@@ -103,8 +96,6 @@
 
 #test
 {
-    // Only unconditional defaults participate in duplicate-default checks.
-    // `default where true` is unconditional.
     switch 1
     {
         default where true:
@@ -116,7 +107,6 @@
 
 #test
 {
-    // `default where false` is conditional, so it should not be considered a duplicate default.
     switch 1
     {
         default where false:
@@ -128,7 +118,6 @@
 
 #test
 {
-    // Two conditional defaults are allowed.
     switch 1
     {
         default where false:
@@ -152,7 +141,6 @@
 
 #test
 {
-    // A complete switch should only reject an unconditional default.
     #[Swag.Complete]
     switch 1
     {

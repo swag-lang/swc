@@ -2,7 +2,6 @@
 
 #test
 {
-    // int-like switch
     var v = 2
     switch v
     {
@@ -17,7 +16,6 @@
 
 #test
 {
-    // Duplicate-case tracking must be per-switch (no leakage across switches).
     switch 1
     {
         case 1:
@@ -37,7 +35,6 @@
 
 #test
 {
-    // enum is valid if its underlying type is supported
     enum E : s32
     {
         A = 1,
@@ -80,7 +77,6 @@
 
 #test
 {
-    // enum is valid if its underlying type is supported
     enum E : s32
     {
         A = 1,
@@ -101,7 +97,6 @@
 
 #test
 {
-    // type alias is valid if its underlying type is supported
     alias MyInt = s32
     var v : MyInt = 3
     switch v
@@ -117,7 +112,6 @@
 
 #test
 {
-    // float switch
     var v = 1.5
     switch v
     {
@@ -130,7 +124,6 @@
 
 #test
 {
-    // bool switch
     var v = true
     switch v
     {
@@ -143,7 +136,6 @@
 
 #test
 {
-    // string switch
     var v = "hello"
     switch v
     {
@@ -156,7 +148,6 @@
 
 #test
 {
-    // Range case only for numeric
     var v = 2
     switch v
     {

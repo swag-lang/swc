@@ -2,7 +2,6 @@
 
 #test
 {
-    // Valid: fallthrough as last statement, and there is a following case
     var v = 1
     switch v
     {

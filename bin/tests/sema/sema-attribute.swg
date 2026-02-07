@@ -66,4 +66,3 @@ attr Over(a: s16)
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 attr Over1(a: s8)
 attr Over1(a: s8)
-

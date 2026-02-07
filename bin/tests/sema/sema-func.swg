@@ -40,9 +40,7 @@ func F1(x: s32) {}
 func F2(a, b, c: s32) {}
 func F2(x, y, z: s32) {}
 
-
 func F4(a: s32 = 0, b: s32) {} // swc-expected-error {{sema_err_parameter_default_value_not_last}}
 
 func F5(a: s32, b: s32 = 0) {}
 func F6(a, b: s32 = 0) {}
-

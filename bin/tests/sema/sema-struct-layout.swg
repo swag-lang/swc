@@ -26,7 +26,6 @@ struct B
 #assert(#offsetof(A) == 4) // swc-expected-error {{sema_err_invalid_offsetof}}
 #assert(#offsetof(5) == 4) // swc-expected-error {{sema_err_invalid_offsetof}}
 
-// Simple padding test: u8 + u32 + u8
 struct C
 {
     a: u8
@@ -39,7 +38,6 @@ struct C
 #assert(#offsetof(C.c) == 8)
 #assert(#sizeof(C) == 12)   // padded to multiple of 4
 
-// Tail padding test: u32 + u8 + u8
 struct D
 {
     a: u32
@@ -52,8 +50,6 @@ struct D
 #assert(#offsetof(D.c) == 5)
 #assert(#sizeof(D) == 8)    // tail padding to alignment of 4
 
-
-// Nested-struct layout
 struct Inner
 {
     x: u32
@@ -76,8 +72,6 @@ struct Outer
 #assert(#offsetof(Outer.c) == 12)
 #assert(#sizeof(Outer) == 16)
 
-
-// offsetof on a non-existent field
 struct E
 {
     a: u32
@@ -86,8 +80,6 @@ struct E
 #assert(#offsetof(E.a) == 0)
 #assert(#offsetof(E.b) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
 
-
-// Conditional field in the middle of a struct
 struct F
 {
     a: u32

@@ -33,14 +33,12 @@ const base_from_m_ok: s32 = cast(s32) m
 var m_from_base: Meters = cast(Meters) base_from_m_ok
 var m_from_base_ok: Meters = cast(Meters) base_from_m_ok
 
-// Seconds <-> base
 var base_from_s: s32 = s2              // swc-expected-error {{sema_err_cannot_cast}}
 const base_from_s_ok: s32 = cast(s32) s2
 
 var s_from_base: Seconds = cast(Seconds) base_from_s_ok
 var s_from_base_ok: Seconds = cast(Seconds) base_from_s_ok
 
-// Cross strict aliases
 var s3: Seconds = m                    // swc-expected-error {{sema_err_cannot_cast}}
 var s4: Seconds = cast(Seconds) m
 

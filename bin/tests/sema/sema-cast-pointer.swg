@@ -23,7 +23,6 @@
     var v2 = cast(*s32) b
     #assert(#typeof(v2) == *s32)
 
-    /*var b2: [*]s32 = x // swc-expected-error {{sema_err_cannot_cast}} @compatibility*/
 }
 
 #test
@@ -119,11 +118,3 @@
     var b = cast(const *u8) a
     var c = cast(const *void) a
 }
-/*
-#test
-{
-    var a: [*] u8
-    var b: *void
-    var c = a == b
-}
-*/

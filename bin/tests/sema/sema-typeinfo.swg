@@ -49,7 +49,6 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     const c: typeinfo = #typeof(s32)
     #assert(c == s32)
 
-    // Compare two different typeinfos
     const e: typeinfo = #typeof(f32)
     #assert(a != e)
     #assert(e != s32)

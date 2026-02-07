@@ -38,7 +38,6 @@ impl I0 for S0 { mtd impl toto() {} }
 interface I1 { mtd toto(); }
 struct T {}
 
-// Force `T` completion through another type before the interface impl is registered.
 struct U { t: T }
 impl T
 {

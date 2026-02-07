@@ -71,7 +71,6 @@ enum PP : u16 { A, B, C }
 enum QQ : u64 { A, B, C }
 #assert(#kindof(QQ) == u64)
 
-// Check that auto-generated flags for u8 cover all bits and stop at 0x80
 #[Swag.EnumFlags]
 enum RR : u8
 {

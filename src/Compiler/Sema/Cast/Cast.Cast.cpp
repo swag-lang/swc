@@ -672,71 +672,152 @@ namespace
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-        if (!srcType.isArray())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Error;
-        }
+        const auto&   dstDims        = dstType.payloadArrayDims();
+        const TypeRef dstElemTypeRef = dstType.payloadArrayElemTypeRef();
 
-        const auto& srcDims = srcType.payloadArrayDims();
-        const auto& dstDims = dstType.payloadArrayDims();
-        if (srcDims.size() != dstDims.size())
+        if (srcType.isArray())
         {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Error;
-        }
-
-        for (size_t i = 0; i < srcDims.size(); ++i)
-        {
-            if (srcDims[i] != dstDims[i])
+            const auto& srcDims = srcType.payloadArrayDims();
+            if (srcDims.size() != dstDims.size())
             {
                 castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
                 return Result::Error;
             }
-        }
 
-        const TypeRef srcElemTypeRef = srcType.payloadArrayElemTypeRef();
-        const TypeRef dstElemTypeRef = dstType.payloadArrayElemTypeRef();
-        if (srcElemTypeRef == dstElemTypeRef)
+            for (size_t i = 0; i < srcDims.size(); ++i)
+            {
+                if (srcDims[i] != dstDims[i])
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+            }
+
+            const TypeRef srcElemTypeRef = srcType.payloadArrayElemTypeRef();
+            if (srcElemTypeRef == dstElemTypeRef)
+                return Result::Continue;
+
+            if (!castCtx.isConstantFolding())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+            if (!cst.isAggregateArray())
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            const auto&              values = cst.getAggregateArray();
+            std::vector<ConstantRef> newValues;
+            newValues.reserve(values.size());
+
+            for (const auto& valueRef : values)
+            {
+                CastContext elemCtx(castCtx.kind);
+                elemCtx.flags        = castCtx.flags;
+                elemCtx.errorNodeRef = castCtx.errorNodeRef;
+                elemCtx.setConstantFoldingSrc(valueRef);
+
+                const Result res = Cast::castAllowed(sema, elemCtx, srcElemTypeRef, dstElemTypeRef);
+                if (res != Result::Continue)
+                {
+                    castCtx.failure = elemCtx.failure;
+                    return res;
+                }
+
+                ConstantRef castedRef = elemCtx.constantFoldingResult();
+                if (castedRef.isInvalid())
+                    castedRef = valueRef;
+                newValues.push_back(castedRef);
+            }
+
+            const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
+            castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), result);
             return Result::Continue;
-
-        if (!castCtx.isConstantFolding())
-        {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Error;
         }
 
-        const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
-        if (!cst.isAggregateArray())
+        if (srcType.isAggregate())
         {
-            castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-            return Result::Error;
+            const auto& srcNames = srcType.payloadAggregateNames();
+            const auto& srcTypes = srcType.payloadAggregateTypes();
+            SWC_ASSERT(srcNames.size() == srcTypes.size());
+
+            const bool isAggregateArray = std::ranges::all_of(srcNames, [](IdentifierRef idRef) { return !idRef.isValid(); });
+            if (!isAggregateArray)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            uint64_t totalCount = 1;
+            for (const auto dim : dstDims)
+                totalCount *= dim;
+
+            if (srcTypes.size() > totalCount)
+            {
+                castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return Result::Error;
+            }
+
+            for (const auto srcElemTypeRef : srcTypes)
+            {
+                CastContext elemCtx(castCtx.kind);
+                elemCtx.flags        = castCtx.flags;
+                elemCtx.errorNodeRef = castCtx.errorNodeRef;
+
+                const Result res = Cast::castAllowed(sema, elemCtx, srcElemTypeRef, dstElemTypeRef);
+                if (res != Result::Continue)
+                {
+                    castCtx.failure = elemCtx.failure;
+                    return res;
+                }
+            }
+
+            if (castCtx.isConstantFolding())
+            {
+                const ConstantValue& cst = sema.cstMgr().get(castCtx.constantFoldingSrc());
+                if (!cst.isAggregateArray())
+                {
+                    castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return Result::Error;
+                }
+
+                const auto&              values = cst.getAggregateArray();
+                std::vector<ConstantRef> newValues;
+                newValues.reserve(values.size());
+
+                for (size_t i = 0; i < values.size(); ++i)
+                {
+                    CastContext elemCtx(castCtx.kind);
+                    elemCtx.flags        = castCtx.flags;
+                    elemCtx.errorNodeRef = castCtx.errorNodeRef;
+                    elemCtx.setConstantFoldingSrc(values[i]);
+
+                    const Result res = Cast::castAllowed(sema, elemCtx, srcTypes[i], dstElemTypeRef);
+                    if (res != Result::Continue)
+                    {
+                        castCtx.failure = elemCtx.failure;
+                        return res;
+                    }
+
+                    ConstantRef castedRef = elemCtx.constantFoldingResult();
+                    if (castedRef.isInvalid())
+                        castedRef = values[i];
+                    newValues.push_back(castedRef);
+                }
+
+                const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
+                castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), result);
+            }
+
+            return Result::Continue;
         }
 
-        const auto&              values = cst.getAggregateArray();
-        std::vector<ConstantRef> newValues;
-        newValues.reserve(values.size());
-
-        for (const auto& valueRef : values)
-        {
-            CastContext elemCtx(castCtx.kind);
-            elemCtx.flags        = castCtx.flags;
-            elemCtx.errorNodeRef = castCtx.errorNodeRef;
-            elemCtx.setConstantFoldingSrc(valueRef);
-
-            const Result res = Cast::castAllowed(sema, elemCtx, srcElemTypeRef, dstElemTypeRef);
-            if (res != Result::Continue)
-                return res;
-
-            ConstantRef castedRef = elemCtx.constantFoldingResult();
-            if (castedRef.isInvalid())
-                castedRef = valueRef;
-            newValues.push_back(castedRef);
-        }
-
-        const ConstantValue result = ConstantValue::makeAggregateArray(sema.ctx(), newValues);
-        castCtx.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), result);
-        return Result::Continue;
+        castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return Result::Error;
     }
 
     Result castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -880,7 +961,10 @@ namespace
 
                 const Result res = Cast::castAllowed(sema, elemCtx, srcTypes[i], dstFields[i]->typeRef());
                 if (res != Result::Continue)
+                {
+                    castCtx.failure = elemCtx.failure;
                     return res;
+                }
             }
 
             if (castCtx.isConstantFolding())
@@ -901,7 +985,10 @@ namespace
 
                         const Result res = Cast::castAllowed(sema, elemCtx, srcTypes[i], dstFields[i]->typeRef());
                         if (res != Result::Continue)
+                        {
+                            castCtx.failure = elemCtx.failure;
                             return res;
+                        }
 
                         ConstantRef castedRef = elemCtx.constantFoldingResult();
                         if (castedRef.isInvalid())
@@ -1061,7 +1148,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
     // and apply its modifiers.
-    if (const auto* autoCast = sema.node(view.nodeRef).safeCast<AstAutoCastExpr>())
+    if (const auto* autoCast = view.node->safeCast<AstAutoCastExpr>())
     {
         effectiveKind = CastKind::Explicit;
         if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))

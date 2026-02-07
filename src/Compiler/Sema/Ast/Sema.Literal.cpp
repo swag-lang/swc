@@ -511,54 +511,34 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     if (elements.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
-    // Take the first element as the reference type and ensure all other elements are castable/casted to it.
     bool    allConstant    = true;
-    TypeRef refElemTypeRef = TypeRef::invalid();
-    for (const auto& child : elements)
-    {
-        SemaNodeView nodeView(sema, child);
-        allConstant = allConstant && nodeView.cstRef.isValid();
-        if (nodeView.type->isScalarNumeric() && !nodeView.type->isScalarUnsized())
-        {
-            if (refElemTypeRef.isValid() && refElemTypeRef != nodeView.typeRef)
-                return SemaError::raise(sema, DiagnosticId::sema_err_ambiguous_array_type, sema.curNodeRef());
-            refElemTypeRef = nodeView.typeRef;
-        }
-    }
-
-    if (!refElemTypeRef.isValid())
-    {
-        SemaNodeView firstView(sema, elements[0]);
-        if (firstView.cstRef.isValid())
-        {
-            ConstantRef cstResult = ConstantRef::invalid();
-            RESULT_VERIFY(Cast::concretizeConstant(sema, cstResult, elements.front(), firstView.cstRef, TypeInfo::Sign::Unknown, true));
-            refElemTypeRef = sema.cstMgr().get(cstResult).typeRef();
-        }
-        else
-        {
-            refElemTypeRef = firstView.typeRef;
-        }
-    }
-
     SmallVector<ConstantRef> values;
+    SmallVector<TypeRef>     elemTypes;
+    SmallVector<IdentifierRef> elemNames;
     values.reserve(elements.size());
+    elemTypes.reserve(elements.size());
+    elemNames.reserve(elements.size());
 
     for (const auto& child : elements)
     {
         SemaNodeView nodeView(sema, child);
-        RESULT_VERIFY(Cast::cast(sema, nodeView, refElemTypeRef, CastKind::Initialization));
+        SWC_ASSERT(nodeView.typeRef.isValid());
         values.push_back(nodeView.cstRef);
+        elemTypes.push_back(nodeView.typeRef);
+        elemNames.push_back(IdentifierRef::invalid());
+        allConstant = allConstant && nodeView.cstRef.isValid();
     }
 
-    SmallVector   dims         = {elements.size()};
-    const TypeRef arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, refElemTypeRef));
-    sema.setType(sema.curNodeRef(), arrayTypeRef);
+    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregate(elemNames, elemTypes));
 
     if (allConstant)
     {
         const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+    }
+    else
+    {
+        sema.setType(sema.curNodeRef(), aggregateTypeRef);
     }
 
     sema.setIsValue(*this);

@@ -45,6 +45,14 @@ namespace
         return Result::Continue;
     }
 
+    bool isAggregateArrayType(const TypeInfo& typeInfo)
+    {
+        if (!typeInfo.isAggregate())
+            return false;
+
+        const auto& names = typeInfo.payloadAggregateNames();
+        return std::ranges::all_of(names, [](IdentifierRef idRef) { return !idRef.isValid(); });
+    }
 }
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
@@ -55,6 +63,29 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
     RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
+
+    if (nodeExprView.type->isAggregate() && isAggregateArrayType(*nodeExprView.type))
+    {
+        if (!hasConstIndex)
+            return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef);
+
+        const auto& elemTypes = nodeExprView.type->payloadAggregateTypes();
+        if (std::cmp_greater_equal(constIndex, elemTypes.size()))
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, elemTypes.size());
+
+        sema.setType(sema.curNodeRef(), elemTypes[constIndex]);
+        sema.setIsValue(*this);
+
+        if (nodeExprView.cst && nodeExprView.cst->isAggregateArray())
+        {
+            const auto& values = nodeExprView.cst->getAggregateArray();
+            if (std::cmp_greater_equal(constIndex, values.size()))
+                return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
+            sema.setConstant(sema.curNodeRef(), values[constIndex]);
+        }
+
+        return Result::Continue;
+    }
 
     if (nodeExprView.type->isArray())
     {

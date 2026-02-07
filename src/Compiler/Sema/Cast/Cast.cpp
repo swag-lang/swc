@@ -30,6 +30,7 @@ void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::stri
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
+    SWC_ASSERT(f.nodeRef.isValid());
     auto diag = SemaError::report(sema, f.diagId, f.nodeRef);
     if (f.srcTypeRef.isValid())
         diag.addArgument(Diagnostic::ARG_TYPE, f.srcTypeRef);

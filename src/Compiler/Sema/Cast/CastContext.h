@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -38,7 +39,7 @@ struct CastContext
     CastContext() = delete;
     explicit CastContext(CastKind kind);
 
-    void fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
+    Result fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
     bool        isConstantFolding() const { return srcConstRef.isValid(); }
     ConstantRef constantFoldingSrc() const { return srcConstRef; }

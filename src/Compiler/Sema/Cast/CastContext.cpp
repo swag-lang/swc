@@ -8,9 +8,10 @@ CastContext::CastContext(CastKind kind) :
 {
 }
 
-void CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
+Result CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
+    return Result::Error;
 }
 
 void CastContext::setConstantFoldingSrc(ConstantRef v)

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Backend/SCBE/Encoder/ScbeCpu.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,7 +14,7 @@ enum class ScbeMicroOp : uint8_t
 
 struct ScbeMicroInstruction
 {
-    ScbeMicroOp op = ScbeMicroOp::OpBinaryRI;
+    ScbeMicroOp op    = ScbeMicroOp::OpBinaryRI;
     CpuOp       cpuOp = CpuOp::ADD;
 };
 

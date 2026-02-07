@@ -101,17 +101,22 @@ namespace
             }
 
             seenNamed       = true;
-            size_t dstIndex = static_cast<size_t>(-1);
+            bool   found    = false;
+            size_t dstIndex = 0;
             for (size_t j = 0; j < dstFields.size(); ++j)
             {
-                if (dstFields[j] && !dstFields[j]->isIgnored() && dstFields[j]->idRef() == name)
+                const SymbolVariable* symbolVariable = dstFields[j];
+                if (!symbolVariable || symbolVariable->isIgnored())
+                    continue;
+                if (symbolVariable->idRef() == name)
                 {
+                    found    = true;
                     dstIndex = j;
                     break;
                 }
             }
 
-            if (dstIndex == static_cast<size_t>(-1))
+            if (!found)
             {
                 ctx.castCtx->fail(DiagnosticId::sema_err_auto_scope_missing_struct_member, ctx.srcTypeRef, ctx.dstTypeRef, ctx.sema->idMgr().get(name).name);
                 return Result::Error;

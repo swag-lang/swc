@@ -21,13 +21,6 @@ namespace
         const TypeInfo* dstType;
     };
 
-    std::string fieldLabel(const CastStructContext& ctx, const SymbolVariable* field, size_t index)
-    {
-        if (field && field->idRef().isValid())
-            return std::string(ctx.sema->idMgr().get(field->idRef()).name);
-        return "index " + std::to_string(index);
-    }
-
     Result castStructToStruct(const CastStructContext& ctx)
     {
         RESULT_VERIFY(ctx.sema->waitCompleted(ctx.srcType, ctx.castCtx->errorNodeRef));
@@ -46,7 +39,7 @@ namespace
         {
             if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
             {
-                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldLabel(ctx, dstFields[i], i));
+                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, dstFields[i]->name(ctx.sema->ctx()));
                 return Result::Error;
             }
         }
@@ -225,13 +218,13 @@ namespace
             const uint64_t  fieldOffset  = field->offset();
             if (fieldOffset + fieldSize > bytes.size())
             {
-                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, fieldLabel(ctx, field, i) + " exceeds destination size");
+                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, std::string(field->name(ctx.sema->ctx())) + " exceeds destination size");
                 return Result::Error;
             }
 
             if (!ConstantHelpers::lowerToBytes(*ctx.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
             {
-                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, fieldLabel(ctx, field, i) + " cannot be lowered");
+                ctx.castCtx->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef, std::string(field->name(ctx.sema->ctx())) + " cannot be lowered");
                 return Result::Error;
             }
         }

@@ -373,6 +373,16 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
         case TypeInfoKind::CString:
             out += "cstring";
             break;
+        case TypeInfoKind::TypeInfo:
+            out += "typeinfo";
+            break;
+        case TypeInfoKind::AggregateStruct:
+            out = "struct literal";
+            break;
+        case TypeInfoKind::AggregateArray:
+            out = "array literal";
+            break;
+
         case TypeInfoKind::Enum:
             out += payloadEnum_.sym->name(ctx);
             break;
@@ -389,9 +399,6 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += payloadFunction_.sym->computeName(ctx);
             break;
 
-        case TypeInfoKind::TypeInfo:
-            out += "typeinfo";
-            break;
         case TypeInfoKind::TypeValue:
         {
             const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
@@ -399,52 +406,20 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             break;
         }
 
-        case TypeInfoKind::AggregateStruct:
-            out += "aggregate";
-            if (!payloadAggregate_.types.empty())
-            {
-                out += "{";
-                for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
-                {
-                    if (i)
-                        out += ", ";
-                    if (payloadAggregate_.names.size() == payloadAggregate_.types.size() && payloadAggregate_.names[i].isValid())
-                    {
-                        out += ctx.idMgr().get(payloadAggregate_.names[i]).name;
-                        out += ": ";
-                    }
-                    out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
-                }
-                out += "}";
-            }
-            break;
-        case TypeInfoKind::AggregateArray:
-            out += "aggregate";
-            if (!payloadAggregate_.types.empty())
-            {
-                out += "{";
-                for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
-                {
-                    if (i)
-                        out += ", ";
-                    out += ctx.typeMgr().get(payloadAggregate_.types[i]).toName(ctx);
-                }
-                out += "}";
-            }
-            break;
-
         case TypeInfoKind::ValuePointer:
         {
             const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("*{}", type.toName(ctx));
             break;
         }
+
         case TypeInfoKind::BlockPointer:
         {
             const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
             out += std::format("[*] {}", type.toName(ctx));
             break;
         }
+
         case TypeInfoKind::Reference:
         {
             const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
@@ -740,7 +715,7 @@ TypeInfo TypeInfo::makeArray(const std::span<uint64_t>& dims, TypeRef elementTyp
 TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
 {
     SWC_ASSERT(types.size() == names.size());
-    TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
+    TypeInfo                ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
     std::vector<AstNodeRef> refs;
     if (fieldRefs.empty())
         refs.assign(types.size(), AstNodeRef::invalid());
@@ -758,7 +733,7 @@ TypeInfo TypeInfo::makeAggregateStruct(const std::span<IdentifierRef>& names, co
 
 TypeInfo TypeInfo::makeAggregateArray(const std::span<TypeRef>& types, const std::span<AstNodeRef>& fieldRefs)
 {
-    TypeInfo ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
+    TypeInfo                ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
     std::vector<AstNodeRef> refs;
     if (fieldRefs.empty())
         refs.assign(types.size(), AstNodeRef::invalid());

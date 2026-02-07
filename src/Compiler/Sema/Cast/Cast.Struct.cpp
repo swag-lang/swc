@@ -23,9 +23,6 @@ namespace
 
     Result castStructToStruct(const CastStructContext& ctx)
     {
-        RESULT_VERIFY(ctx.sema->waitCompleted(ctx.srcType, ctx.castCtx->errorNodeRef));
-        RESULT_VERIFY(ctx.sema->waitCompleted(ctx.dstType, ctx.castCtx->errorNodeRef));
-
         const auto& srcFields = ctx.srcType->payloadSymStruct().fields();
         const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
         if (srcFields.size() != dstFields.size())
@@ -247,20 +244,22 @@ Result Cast::castToStruct(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
     const TypeInfo&         dstType = sema.typeMgr().get(dstTypeRef);
     const CastStructContext ctx{&sema, &castCtx, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
+    RESULT_VERIFY(sema.waitCompleted(&dstType, castCtx.errorNodeRef));
+
     if (srcType.isStruct())
+    {
+        RESULT_VERIFY(ctx.sema->waitCompleted(ctx.srcType, ctx.castCtx->errorNodeRef));
         return castStructToStruct(ctx);
+    }
 
     if (srcType.isAggregateStruct())
     {
-        RESULT_VERIFY(sema.waitCompleted(&dstType, castCtx.errorNodeRef));
-
         std::vector<size_t> srcToDst;
+        const auto&         srcTypes  = srcType.payloadAggregate().types;
+        const auto&         dstFields = dstType.payloadSymStruct().fields();
+
         RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
-
-        const auto& srcTypes  = srcType.payloadAggregate().types;
-        const auto& dstFields = dstType.payloadSymStruct().fields();
         RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
-
         if (castCtx.isConstantFolding())
             RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst));
 

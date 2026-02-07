@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Backend\MachineCode\Encoder\CpuEncoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>

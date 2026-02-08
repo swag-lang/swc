@@ -85,7 +85,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         const uint64_t numExpected = arrayDims.size();
         if (numExpected > 1)
         {
-            std::vector<uint64_t> dims;
+            SmallVector4<uint64_t> dims;
             for (size_t i = 1; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());

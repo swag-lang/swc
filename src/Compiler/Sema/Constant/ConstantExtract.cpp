@@ -292,7 +292,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
     if (cst.isSlice())
         return extractAtIndexSlice(sema, cst, constIndex, nodeArgRef);
 
-    return Result::Continue;
+    return SemaError::raiseTypeNotIndexable(sema, sema.curNodeRef(), cst.typeRef());
 }
 
 SWC_END_NAMESPACE();

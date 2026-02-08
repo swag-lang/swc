@@ -14,6 +14,7 @@ namespace ConstantHelpers
     bool        lowerToBytes(Sema& sema, ByteSpan dstBytes, ConstantRef cstRef, TypeRef dstTypeRef);
     bool        lowerAggregateArrayToBytes(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     bool        lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
+    ConstantRef makeDefaultStruct(Sema& sema, TypeRef typeRef);
     ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
 }
 

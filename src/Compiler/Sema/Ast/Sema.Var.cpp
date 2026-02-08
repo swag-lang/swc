@@ -66,21 +66,6 @@ namespace
         }
     }
 
-    ConstantRef makeDefaultStructConstant(Sema& sema, TypeRef typeRef, const TypeInfo& type)
-    {
-        const uint64_t         structSize = type.sizeOf(sema.ctx());
-        std::vector<std::byte> buffer(structSize);
-        if (structSize)
-            std::memset(buffer.data(), 0, buffer.size());
-
-        const auto                         bytes  = ByteSpan{buffer.data(), buffer.size()};
-        constexpr std::vector<ConstantRef> values = {};
-        if (!ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, type, values))
-            return ConstantRef::invalid();
-        const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);
-        return sema.cstMgr().addConstant(sema.ctx(), cstVal);
-    }
-
     Result semaPostVarDeclCommon(Sema&                       sema,
                                  const AstNode&              owner,
                                  TokenRef                    tokDiag,
@@ -164,7 +149,7 @@ namespace
         if (nodeInitRef.isInvalid() && nodeTypeView.typeRef.isValid() && nodeTypeView.type->isStruct() && (isConst || isLet))
         {
             RESULT_VERIFY(sema.waitCompleted(nodeTypeView.type, nodeTypeRef));
-            implicitStructCstRef = makeDefaultStructConstant(sema, nodeTypeView.typeRef, *nodeTypeView.type);
+            implicitStructCstRef = ConstantHelpers::makeDefaultStruct(sema, nodeTypeView.typeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
 

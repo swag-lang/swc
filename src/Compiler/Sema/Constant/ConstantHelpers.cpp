@@ -403,6 +403,24 @@ bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes,
     return true;
 }
 
+ConstantRef ConstantHelpers::makeDefaultStruct(Sema& sema, TypeRef typeRef)
+{
+    const auto& type = sema.typeMgr().get(typeRef);
+    SWC_ASSERT(type.isStruct());
+
+    const uint64_t structSize = type.sizeOf(sema.ctx());
+    SWC_ASSERT(structSize);
+
+    std::vector<std::byte> buffer(structSize);
+    std::memset(buffer.data(), 0, buffer.size());
+
+    const auto bytes = ByteSpan{buffer.data(), buffer.size()};
+    if (!lowerAggregateStructToBytes(sema, bytes, type, {}))
+        return ConstantRef::invalid();
+    const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);
+    return sema.cstMgr().addConstant(sema.ctx(), cstVal);
+}
+
 ConstantRef ConstantHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
 {
     auto&                 ctx       = sema.ctx();

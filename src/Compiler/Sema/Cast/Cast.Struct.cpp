@@ -246,8 +246,7 @@ namespace
             if (fieldOffset + fieldSize > bytes.size())
                 return failStructConst(args);
 
-            if (!ConstantHelpers::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
-                return failStructConst(args);
+            ConstantHelpers::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }
 
         const auto result             = ConstantValue::makeStruct(args.sema->ctx(), args.dstTypeRef, bytes);

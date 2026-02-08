@@ -12,16 +12,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result Cast::castIdentity(Sema&, CastContext& castCtx, TypeRef, TypeRef)
+Result Cast::castIdentity(Sema&, CastRequest& castRequest, TypeRef, TypeRef)
 {
-    if (castCtx.isConstantFolding())
-        foldConstantIdentity(castCtx);
+    if (castRequest.isConstantFolding())
+        foldConstantIdentity(castRequest);
     return Result::Continue;
 }
 
-Result Cast::castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_ASSERT(castCtx.kind == CastKind::Explicit);
+    SWC_ASSERT(castRequest.kind == CastKind::Explicit);
 
     auto&              ctx     = sema.ctx();
     const TypeManager& typeMgr = ctx.typeMgr();
@@ -35,10 +35,10 @@ Result Cast::castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeR
     {
         srcTypeRef = srcType->payloadSymEnum().underlyingTypeRef();
         srcType    = &typeMgr.get(srcTypeRef);
-        if (castCtx.isConstantFolding())
+        if (castRequest.isConstantFolding())
         {
-            const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
-            castCtx.srcConstRef      = cst.getEnumValue();
+            const ConstantValue& cst = sema.cstMgr().get(castRequest.srcConstRef);
+            castRequest.srcConstRef      = cst.getEnumValue();
         }
     }
 
@@ -46,11 +46,11 @@ Result Cast::castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeR
     const bool dstScalar = dstType.isScalarNumeric();
     if (!srcScalar || !dstScalar)
     {
-        const Result res = castCtx.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
+        const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
         if (isEnum)
         {
-            castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-            castCtx.failure.optTypeRef = srcTypeRef;
+            castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+            castRequest.failure.optTypeRef = srcTypeRef;
         }
 
         return res;
@@ -60,62 +60,62 @@ Result Cast::castBit(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeR
     const uint32_t db = dstType.payloadScalarNumericBits();
     if (!(sb == db || !sb))
     {
-        const Result res = castCtx.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
+        const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
         if (isEnum)
         {
-            castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-            castCtx.failure.optTypeRef = srcTypeRef;
+            castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+            castRequest.failure.optTypeRef = srcTypeRef;
         }
 
         return res;
     }
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantBitCast(sema, castCtx, dstTypeRef, dstType, *srcType))
+        if (!foldConstantBitCast(sema, castRequest, dstTypeRef, dstType, *srcType))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castCtx.kind != CastKind::Explicit)
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantBoolToIntLike(sema, castCtx, dstTypeRef))
+        if (!foldConstantBoolToIntLike(sema, castRequest, dstTypeRef))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castCtx.kind != CastKind::Explicit && castCtx.kind != CastKind::Condition)
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    if (castRequest.kind != CastKind::Explicit && castRequest.kind != CastKind::Condition)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     if (!srcType.isConvertibleToBool())
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        const ConstantValue& cv = sema.cstMgr().get(castCtx.constantFoldingSrc());
+        const ConstantValue& cv = sema.cstMgr().get(castRequest.constantFoldingSrc());
         if (cv.isNull())
-            castCtx.setConstantFoldingResult(sema.cstMgr().cstFalse());
+            castRequest.setConstantFoldingResult(sema.cstMgr().cstFalse());
         else if (srcType.isIntLike())
         {
-            if (!foldConstantIntLikeToBool(sema, castCtx))
+            if (!foldConstantIntLikeToBool(sema, castRequest))
                 return Result::Error;
         }
         else if (srcType.isString())
         {
-            castCtx.setConstantFoldingResult(cv.getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
+            castRequest.setConstantFoldingResult(cv.getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
         }
         else
             SWC_UNREACHABLE();
@@ -124,7 +124,7 @@ Result Cast::castToBool(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, Ty
     return Result::Continue;
 }
 
-Result Cast::castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
@@ -132,18 +132,18 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcT
     const uint32_t  srcBits = srcType.payloadIntLikeBits();
     const uint32_t  dstBits = dstType.payloadIntLikeBits();
 
-    switch (castCtx.kind)
+    switch (castRequest.kind)
     {
         case CastKind::LiteralSuffix:
             if (srcType.isChar())
             {
                 if (!(dstType.isIntUnsigned() || dstType.isRune()))
-                    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
             else
             {
                 if (!(srcType.isInt() && dstType.isInt()))
-                    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
             break;
 
@@ -152,12 +152,12 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcT
         case CastKind::Parameter:
         case CastKind::Initialization:
         case CastKind::Assignment:
-            if (!castCtx.isConstantFolding())
+            if (!castRequest.isConstantFolding())
             {
                 const bool srcUnsized = srcType.isIntUnsized();
                 const bool dstUnsized = dstType.isIntUnsized();
                 if (!srcUnsized && !dstUnsized && srcBits && dstBits && dstBits < srcBits)
-                    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
             break;
         case CastKind::Explicit:
@@ -167,16 +167,16 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcT
             SWC_UNREACHABLE();
     }
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
+        if (!foldConstantIntLikeToIntLike(sema, castRequest, srcTypeRef, dstTypeRef))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto&     typeMgr     = sema.typeMgr();
     const TypeInfo& srcType     = typeMgr.get(srcTypeRef);
@@ -188,11 +188,11 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
     const bool      coerceToF64 = srcIsInt;
     const bool      allowCoerce = (dstBits == 32) ? coerceToF32 : coerceToF64;
 
-    switch (castCtx.kind)
+    switch (castRequest.kind)
     {
         case CastKind::LiteralSuffix:
             if (!srcType.isIntUnsized())
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             break;
 
         case CastKind::Promotion:
@@ -201,7 +201,7 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
         case CastKind::Initialization:
         case CastKind::Assignment:
             if (!allowCoerce)
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             break;
         case CastKind::Explicit:
             break;
@@ -210,56 +210,56 @@ Result Cast::castIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTyp
             SWC_UNREACHABLE();
     }
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
+        if (!foldConstantIntLikeToFloat(sema, castRequest, srcTypeRef, dstTypeRef))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castCtx.kind != CastKind::Explicit)
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef))
+        if (!foldConstantFloatToIntLike(sema, castRequest, srcTypeRef, dstTypeRef))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
 
     if (srcType.isBool())
-        return castBoolToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castBoolToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
     if (srcType.isIntLike())
-        return castIntLikeToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castIntLikeToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
     if (srcType.isFloat())
-        return castFloatToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castFloatToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
 
-    if (castCtx.kind == CastKind::Explicit)
+    if (castRequest.kind == CastKind::Explicit)
     {
         // From pointer
         if (srcType.isAnyPointer() && dstTypeRef == sema.typeMgr().typeU64())
         {
-            if (castCtx.isConstantFolding())
-                foldConstantIdentity(castCtx);
+            if (castRequest.isConstantFolding())
+                foldConstantIdentity(castRequest);
             return Result::Continue;
         }
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
@@ -269,7 +269,7 @@ Result Cast::castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeR
     const uint32_t db        = dstType.payloadFloatBits();
     const bool     narrowing = db < sb;
 
-    switch (castCtx.kind)
+    switch (castRequest.kind)
     {
         case CastKind::LiteralSuffix:
             break;
@@ -282,7 +282,7 @@ Result Cast::castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeR
         case CastKind::Initialization:
         case CastKind::Assignment:
             if (narrowing)
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             break;
 
         case CastKind::Explicit:
@@ -292,69 +292,69 @@ Result Cast::castFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeR
             SWC_UNREACHABLE();
     }
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        if (!foldConstantFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef))
+        if (!foldConstantFloatToFloat(sema, castRequest, srcTypeRef, dstTypeRef))
             return Result::Error;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
 
     if (srcType.isFloat())
-        return castFloatToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castFloatToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
     if (srcType.isIntLike())
-        return castIntLikeToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castIntLikeToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromEnum(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castCtx.kind != CastKind::Explicit)
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
     const SymbolEnum& enumSym = type.payloadSymEnum();
 
-    if (castCtx.isConstantFolding())
+    if (castRequest.isConstantFolding())
     {
-        const ConstantValue& cst = sema.cstMgr().get(castCtx.srcConstRef);
-        castCtx.srcConstRef      = cst.getEnumValue();
+        const ConstantValue& cst = sema.cstMgr().get(castRequest.srcConstRef);
+        castRequest.srcConstRef      = cst.getEnumValue();
     }
 
-    const auto res = castAllowed(sema, castCtx, enumSym.underlyingTypeRef(), dstTypeRef);
+    const auto res = castAllowed(sema, castRequest, enumSym.underlyingTypeRef(), dstTypeRef);
     if (res != Result::Continue)
     {
-        castCtx.failure.srcTypeRef = srcTypeRef;
-        castCtx.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-        castCtx.failure.optTypeRef = enumSym.underlyingTypeRef();
+        castRequest.failure.srcTypeRef = srcTypeRef;
+        castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
+        castRequest.failure.optTypeRef = enumSym.underlyingTypeRef();
         return res;
     }
 
     return Result::Continue;
 }
 
-Result Cast::castFromNull(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     if (dstType.isPointerLike())
         return Result::Continue;
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromUndefined(Sema&, CastContext&, TypeRef, TypeRef)
+Result Cast::castFromUndefined(Sema&, CastRequest&, TypeRef, TypeRef)
 {
     return Result::Continue;
 }
 
-Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
@@ -365,8 +365,8 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     // Ref to ref
     if (srcType.isReference())
     {
-        if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         const auto  srcPointeeTypeRef = srcType.payloadTypeRef();
         const auto& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
@@ -381,7 +381,7 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
             const auto& toItf      = dstPointeeType.payloadSymInterface();
             if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
                 return Result::Continue;
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         }
     }
 
@@ -389,10 +389,10 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     if (srcType.isAnyPointer())
     {
         if (srcType.isNullable())
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         if (srcType.payloadTypeRef() == dstPointeeTypeRef)
             return Result::Continue;
@@ -407,18 +407,18 @@ Result Cast::castToReference(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
 
     // UFCS receiver: allow taking the address to bind a value to a reference.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-    if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstPointeeTypeRef == srcTypeRef)
+    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && dstPointeeTypeRef == srcTypeRef)
     {
-        if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castPointerToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
@@ -426,14 +426,14 @@ Result Cast::castPointerToPointer(Sema& sema, CastContext& castCtx, TypeRef srcT
     const bool sameUnderlying = srcType.payloadTypeRef() == dstType.payloadTypeRef();
     const bool srcIsVoid      = srcType.payloadTypeRef() == sema.typeMgr().typeVoid();
     const bool dstIsVoid      = dstType.payloadTypeRef() == sema.typeMgr().typeVoid();
-    if (sameUnderlying || srcIsVoid || dstIsVoid || castCtx.kind == CastKind::Explicit)
+    if (sameUnderlying || srcIsVoid || dstIsVoid || castRequest.kind == CastKind::Explicit)
     {
         bool ok = false;
         if (srcType.kind() == dstType.kind())
             ok = true;
         else if (srcType.isBlockPointer() && dstType.isValuePointer())
             ok = true;
-        else if (srcType.isValuePointer() && dstType.isBlockPointer() && castCtx.kind == CastKind::Explicit)
+        else if (srcType.isValuePointer() && dstType.isBlockPointer() && castRequest.kind == CastKind::Explicit)
             ok = true;
         // TODO @legacy
         else if (sameUnderlying || srcIsVoid || dstIsVoid)
@@ -445,39 +445,39 @@ Result Cast::castPointerToPointer(Sema& sema, CastContext& castCtx, TypeRef srcT
             if (dstType.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Pointer) == sema.typeMgr().typeVoid())
             {
             }
-            else if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
+            else if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             {
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
             }
 
             return Result::Continue;
         }
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
     // UFCS receiver: allow taking the address to get a pointer.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-    if (castCtx.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
+    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
     {
-        if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         return Result::Continue;
     }
 
     if (srcType.isAnyPointer())
-        return castPointerToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castPointerToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
 
     if (srcType.isTypeInfo())
     {
-        if (castCtx.kind == CastKind::Explicit)
+        if (castRequest.kind == CastKind::Explicit)
         {
             if (dstTypeRef == sema.typeMgr().typeConstValuePtrU8() ||
                 dstTypeRef == sema.typeMgr().typeConstValuePtrVoid())
@@ -489,7 +489,7 @@ Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
 
     if (srcTypeRef == sema.typeMgr().typeU64())
     {
-        if (castCtx.kind == CastKind::Explicit)
+        if (castRequest.kind == CastKind::Explicit)
             return Result::Continue;
     }
 
@@ -498,12 +498,12 @@ Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
         const auto srcElemTypeRef = srcType.payloadArrayElemTypeRef();
         const auto dstElemTypeRef = dstType.payloadTypeRef();
 
-        if (castCtx.kind == CastKind::Explicit ||
+        if (castRequest.kind == CastKind::Explicit ||
             srcElemTypeRef == dstElemTypeRef ||
             dstElemTypeRef == sema.typeMgr().typeVoid())
         {
-            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             return Result::Continue;
         }
@@ -517,10 +517,10 @@ Result Cast::castToPointer(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
             return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto&           ctx     = sema.ctx();
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -531,13 +531,13 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     {
         if (dstType.isConst() && dstType.payloadTypeRef() == sema.typeMgr().typeU8())
         {
-            if (castCtx.isConstantFolding())
+            if (castRequest.isConstantFolding())
             {
-                const ConstantValue&   cst  = sema.cstMgr().get(castCtx.srcConstRef);
+                const ConstantValue&   cst  = sema.cstMgr().get(castRequest.srcConstRef);
                 const std::string_view str  = cst.getString();
                 const ByteSpan         span = asByteSpan(str);
                 const ConstantValue    cv   = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
-                castCtx.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), cv);
+                castRequest.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), cv);
             }
 
             return Result::Continue;
@@ -549,10 +549,10 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
         const auto srcElemTypeRef = srcType.payloadArrayElemTypeRef();
         const auto dstElemTypeRef = dstType.payloadTypeRef();
 
-        if (castCtx.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
+        if (castRequest.kind == CastKind::Explicit || srcElemTypeRef == dstElemTypeRef)
         {
-            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             if (srcElemTypeRef != dstElemTypeRef)
             {
@@ -561,7 +561,7 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
                 const uint64_t  d           = srcType.sizeOf(ctx);
                 const bool      match       = s == 0 || (d / s * s == d);
                 if (!match)
-                    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             }
 
             return Result::Continue;
@@ -571,10 +571,10 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     // void* -> slice (explicit only)
     if (srcType.isAnyPointer() && srcType.payloadTypeRef() == sema.typeMgr().typeVoid())
     {
-        if (castCtx.kind == CastKind::Explicit)
+        if (castRequest.kind == CastKind::Explicit)
         {
-            if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-                return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             return Result::Continue;
         }
@@ -583,49 +583,49 @@ Result Cast::castToSlice(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     // slice -> slice
     if (srcType.isSlice())
     {
-        if (srcType.isConst() && !dstType.isConst() && !castCtx.flags.has(CastFlagsE::UnConst))
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        if (castCtx.kind == CastKind::Explicit || srcType.payloadTypeRef() == dstType.payloadTypeRef())
+        if (castRequest.kind == CastKind::Explicit || srcType.payloadTypeRef() == dstType.payloadTypeRef())
             return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromTypeValue(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& dstType = sema.typeMgr().get(dstTypeRef);
     if (dstType.isAnyTypeInfo(sema.ctx()))
     {
-        if (castCtx.isConstantFolding())
+        if (castRequest.isConstantFolding())
         {
-            const auto cst = sema.cstMgr().get(castCtx.srcConstRef);
-            RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castCtx.outConstRef, cst.getTypeValue(), castCtx.errorNodeRef));
+            const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
+            RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
         }
 
         return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToFromTypeInfo(Sema&, CastContext&, TypeRef, TypeRef)
+Result Cast::castToFromTypeInfo(Sema&, CastRequest&, TypeRef, TypeRef)
 {
     return Result::Continue;
 }
 
-Result Cast::castToString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& typeMgr = sema.typeMgr();
     const auto& srcType = typeMgr.get(srcTypeRef);
     if (srcType.isSlice())
     {
-        if (castCtx.kind != CastKind::Explicit)
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (castRequest.kind != CastKind::Explicit)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         if (srcType.payloadTypeRef() != typeMgr.typeU8())
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         return Result::Continue;
     }
@@ -636,10 +636,10 @@ Result Cast::castToString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, 
             return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToCString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& typeMgr = sema.typeMgr();
     const auto& srcType = typeMgr.get(srcTypeRef);
@@ -656,10 +656,10 @@ Result Cast::castToCString(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef,
             return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToVariadic(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToVariadic(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const auto& typeMgr = sema.typeMgr();
     const auto& dstType = typeMgr.get(dstTypeRef);
@@ -668,12 +668,12 @@ Result Cast::castToVariadic(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef
         return Result::Continue;
 
     if (dstType.isTypedVariadic())
-        return castAllowed(sema, castCtx, srcTypeRef, dstType.payloadTypeRef());
+        return castAllowed(sema, castRequest, srcTypeRef, dstType.payloadTypeRef());
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToInterface(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
@@ -681,24 +681,24 @@ Result Cast::castToInterface(Sema& sema, CastContext& castCtx, TypeRef srcTypeRe
     if (srcType.isStruct())
     {
         const SymbolStruct& fromStruct = srcType.payloadSymStruct();
-        RESULT_VERIFY(sema.waitCompleted(&srcType, castCtx.errorNodeRef));
+        RESULT_VERIFY(sema.waitCompleted(&srcType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
             return Result::Continue;
     }
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromAny(const Sema&, const CastContext&, TypeRef, TypeRef)
+Result Cast::castFromAny(const Sema&, const CastRequest&, TypeRef, TypeRef)
 {
     return Result::Continue;
 }
 
-Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (srcTypeRef == dstTypeRef)
-        return castIdentity(sema, castCtx, srcTypeRef, dstTypeRef);
+        return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
 
     const auto&     typeMgr = sema.typeMgr();
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
@@ -706,84 +706,84 @@ Result Cast::castAllowed(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        if (castCtx.kind != CastKind::Explicit)
-            return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (castRequest.kind != CastKind::Explicit)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
     auto res = Result::Error;
     if (srcType.isAlias())
-        res = castAllowed(sema, castCtx, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
+        res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (srcType.isAny())
-        res = castFromAny(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())
-        res = castAllowed(sema, castCtx, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
-    else if (castCtx.flags.has(CastFlagsE::BitCast))
-        res = castBit(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
+    else if (castRequest.flags.has(CastFlagsE::BitCast))
+        res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isEnum() && !dstType.isEnum())
-        res = castFromEnum(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
-        res = castFromNull(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isUndefined())
-        res = castFromUndefined(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromUndefined(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isBool())
-        res = castToBool(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToBool(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isIntLike())
-        res = castToIntLike(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isFloat())
-        res = castToFloat(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isTypeValue())
-        res = castFromTypeValue(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castFromTypeValue(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAnyTypeInfo(sema.ctx()) && dstType.isAnyTypeInfo(sema.ctx()))
-        res = castToFromTypeInfo(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToFromTypeInfo(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isArray())
-        res = castToArray(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToArray(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isSlice())
-        res = castToSlice(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToSlice(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
-        res = castToPointer(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isReference())
-        res = castToReference(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isInterface())
-        res = castToInterface(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToInterface(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyVariadic())
-        res = castToVariadic(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToVariadic(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isString())
-        res = castToString(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToString(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isCString())
-        res = castToCString(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToCString(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isStruct())
-        res = castToStruct(sema, castCtx, srcTypeRef, dstTypeRef);
+        res = castToStruct(sema, castRequest, srcTypeRef, dstTypeRef);
     else
     {
-        return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
-    if (res == Result::Continue && castCtx.isConstantFolding())
+    if (res == Result::Continue && castRequest.isConstantFolding())
     {
-        ConstantValue resCst = sema.cstMgr().get(castCtx.outConstRef);
+        ConstantValue resCst = sema.cstMgr().get(castRequest.outConstRef);
         if (resCst.typeRef() != dstTypeRef)
         {
             resCst.setTypeRef(dstTypeRef);
-            castCtx.outConstRef = sema.cstMgr().addConstant(sema.ctx(), resCst);
+            castRequest.outConstRef = sema.cstMgr().addConstant(sema.ctx(), resCst);
         }
     }
 
     return res;
 }
 
-TypeRef Cast::castAllowedBothWays(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+TypeRef Cast::castAllowedBothWays(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castAllowed(sema, castCtx, srcTypeRef, dstTypeRef) == Result::Continue)
+    if (castAllowed(sema, castRequest, srcTypeRef, dstTypeRef) == Result::Continue)
         return dstTypeRef;
-    if (castAllowed(sema, castCtx, dstTypeRef, srcTypeRef) == Result::Continue)
+    if (castAllowed(sema, castRequest, dstTypeRef, srcTypeRef) == Result::Continue)
         return srcTypeRef;
     return TypeRef::invalid();
 }
 
 TypeRef Cast::castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind)
 {
-    CastContext castCtx(castKind);
-    return castAllowedBothWays(sema, castCtx, srcTypeRef, dstTypeRef);
+    CastRequest castRequest(castKind);
+    return castAllowedBothWays(sema, castRequest, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
@@ -806,23 +806,23 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (view.typeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;
 
-    CastContext castCtx(effectiveKind);
-    castCtx.flags        = effectiveFlags;
-    castCtx.errorNodeRef = view.nodeRef;
-    castCtx.setConstantFoldingSrc(view.cstRef);
+    CastRequest castRequest(effectiveKind);
+    castRequest.flags        = effectiveFlags;
+    castRequest.errorNodeRef = view.nodeRef;
+    castRequest.setConstantFoldingSrc(view.cstRef);
 
-    const Result result = castAllowed(sema, castCtx, view.typeRef, dstTypeRef);
+    const Result result = castAllowed(sema, castRequest, view.typeRef, dstTypeRef);
     if (result == Result::Pause)
         return result;
 
     if (result == Result::Continue)
     {
-        if (castCtx.constantFoldingResult().isInvalid())
+        if (castRequest.constantFoldingResult().isInvalid())
             view.nodeRef = createImplicitCast(sema, dstTypeRef, view.nodeRef);
         else
         {
-            view.setCstRef(sema, castCtx.constantFoldingResult());
-            sema.setConstant(view.nodeRef, castCtx.constantFoldingResult());
+            view.setCstRef(sema, castRequest.constantFoldingResult());
+            sema.setConstant(view.nodeRef, castRequest.constantFoldingResult());
         }
 
         return Result::Continue;
@@ -830,13 +830,13 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
     if (effectiveKind != CastKind::Explicit)
     {
-        CastContext explicitCtx(CastKind::Explicit);
+        CastRequest explicitCtx(CastKind::Explicit);
         explicitCtx.errorNodeRef = view.nodeRef;
         if (castAllowed(sema, explicitCtx, view.typeRef, dstTypeRef) == Result::Continue)
-            castCtx.failure.noteId = DiagnosticId::sema_note_cast_explicit;
+            castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
-    return emitCastFailure(sema, castCtx.failure);
+    return emitCastFailure(sema, castRequest.failure);
 }
 
 SWC_END_NAMESPACE();

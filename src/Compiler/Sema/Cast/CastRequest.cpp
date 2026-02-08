@@ -1,14 +1,14 @@
 #include "pch.h"
-#include "Compiler/Sema/Cast/CastContext.h"
+#include "Compiler/Sema/Cast/CastRequest.h"
 
 SWC_BEGIN_NAMESPACE();
 
-CastContext::CastContext(CastKind kind) :
+CastRequest::CastRequest(CastKind kind) :
     kind(kind)
 {
 }
 
-Result CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
+Result CastRequest::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value, DiagnosticId note)
 {
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
     if (errorCodeRef.isValid())
@@ -16,13 +16,13 @@ Result CastContext::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::st
     return Result::Error;
 }
 
-void CastContext::setConstantFoldingSrc(ConstantRef v)
+void CastRequest::setConstantFoldingSrc(ConstantRef v)
 {
     srcConstRef = v;
     outConstRef = v;
 }
 
-void CastContext::setConstantFoldingResult(ConstantRef v)
+void CastRequest::setConstantFoldingResult(ConstantRef v)
 {
     outConstRef = v;
 }

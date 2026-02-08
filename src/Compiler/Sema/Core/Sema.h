@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct CastContext;
+struct CastRequest;
 struct SemaNodeView;
 class SymbolNamespace;
 class MatchContext;

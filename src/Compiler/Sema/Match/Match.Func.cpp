@@ -337,15 +337,15 @@ namespace
                 castFlags.add(CastFlagsE::UnConst);
         }
 
-        CastContext castCtx(castKind);
-        castCtx.flags = castFlags;
-        castCtx.setConstantFoldingSrc(argNodeView.cstRef);
+        CastRequest castRequest(castKind);
+        castRequest.flags = castFlags;
+        castRequest.setConstantFoldingSrc(argNodeView.cstRef);
         if (isUfcsArgument)
-            castCtx.flags.add(CastFlagsE::UfcsArgument);
-        if (Cast::castAllowed(sema, castCtx, from, to) == Result::Continue)
+            castRequest.flags.add(CastFlagsE::UfcsArgument);
+        if (Cast::castAllowed(sema, castRequest, from, to) == Result::Continue)
             return ConvRank::Standard;
 
-        outCastFailure = castCtx.failure;
+        outCastFailure = castRequest.failure;
         return ConvRank::Bad;
     }
 

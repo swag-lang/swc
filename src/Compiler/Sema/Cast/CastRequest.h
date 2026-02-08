@@ -27,7 +27,7 @@ enum class CastFlagsE : uint32_t
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 
-struct CastContext
+struct CastRequest
 {
     CastKind      kind         = CastKind::Implicit;
     CastFlags     flags        = CastFlagsE::Zero;
@@ -37,8 +37,8 @@ struct CastContext
     ConstantRef   outConstRef  = ConstantRef::invalid();
     CastFailure   failure{};
 
-    CastContext() = delete;
-    explicit CastContext(CastKind kind);
+    CastRequest() = delete;
+    explicit CastRequest(CastKind kind);
 
     Result fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 

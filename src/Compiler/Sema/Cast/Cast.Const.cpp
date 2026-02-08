@@ -9,12 +9,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void Cast::foldConstantIdentity(CastContext& castCtx)
+void Cast::foldConstantIdentity(CastRequest& castRequest)
 {
-    castCtx.setConstantFoldingResult(castCtx.constantFoldingSrc());
+    castRequest.setConstantFoldingResult(castRequest.constantFoldingSrc());
 }
 
-bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
+bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
     auto& ctx = sema.ctx();
 
@@ -22,27 +22,27 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     if (dstType.isInt())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx.constantFoldingSrc(), dstType.payloadIntSign()))
+        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), dstType.payloadIntSign()))
         {
-            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
+            castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castRequest.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
         }
 
-        castCtx.setConstantFoldingSrc(newCstRef);
+        castRequest.setConstantFoldingSrc(newCstRef);
     }
     else if (dstType.isFloat())
     {
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castCtx.constantFoldingSrc(), TypeInfo::Sign::Signed))
+        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), TypeInfo::Sign::Signed))
         {
-            castCtx.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castCtx.constantFoldingSrc()).typeRef(), TypeRef::invalid());
+            castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castRequest.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
         }
 
-        castCtx.setConstantFoldingSrc(newCstRef);
+        castRequest.setConstantFoldingSrc(newCstRef);
     }
 
-    const ConstantValue& src = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src = sema.cstMgr().get(castRequest.constantFoldingSrc());
 
     const bool srcInt   = srcType.isIntLike();
     const bool srcFloat = srcType.isFloat();
@@ -63,7 +63,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
             value.setUnsigned(dstType.isIntLikeUnsigned());
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -71,7 +71,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         const ApFloat&      value  = src.getFloat();
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
-        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -79,7 +79,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
-        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
@@ -87,51 +87,51 @@ bool Cast::foldConstantBitCast(Sema& sema, CastContext& castCtx, TypeRef dstType
     {
         ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
-        castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
     }
 
     // Should be unreachable given earlier asserts, but keep consistent error behavior.
-    castCtx.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
+    castRequest.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
     return false;
 }
 
-bool Cast::foldConstantBoolToIntLike(Sema& sema, CastContext& castCtx, TypeRef dstTypeRef)
+bool Cast::foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
 {
     auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType        = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src            = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src            = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const bool           b              = src.getBool();
     const auto           targetBits     = dstType.payloadIntLikeBits();
     const bool           targetUnsigned = dstType.isIntLikeUnsigned();
 
     const ApsInt        value(b ? 1 : 0, targetBits, targetUnsigned);
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
 
     return true;
 }
 
-bool Cast::foldConstantIntLikeToBool(Sema& sema, CastContext& castCtx)
+bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
 {
     auto&                ctx   = sema.ctx();
-    const ConstantValue& src   = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src   = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApsInt         value = src.getIntLike();
     const bool           b     = !value.isZero();
 
     const ConstantValue result = ConstantValue::makeBool(ctx, b);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
 
     return true;
 }
 
-bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto& ctx = sema.ctx();
 
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src     = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
     ApsInt               value   = src.getIntLike();
 
     const uint32_t targetBits     = dstType.payloadIntLikeBits();
@@ -143,9 +143,9 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
 
     if (targetUnsigned)
     {
-        if (!value.isUnsigned() && value.isNegative() && !castCtx.flags.has(CastFlagsE::NoOverflow) && targetBits != 0 && castCtx.kind != CastKind::Promotion)
+        if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && targetBits != 0 && castRequest.kind != CastKind::Promotion)
         {
-            castCtx.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
+            castRequest.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
             return false;
         }
 
@@ -198,18 +198,18 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
             }
             else if (vCheck.gt(maxSignedU))
             {
-                if (!castCtx.flags.has(CastFlagsE::NoOverflow))
+                if (!castRequest.flags.has(CastFlagsE::NoOverflow))
                 {
-                    castCtx.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_unsigned_signed);
+                    castRequest.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_unsigned_signed);
                     return false;
                 }
             }
         }
     }
 
-    if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+    if (overflow && !castRequest.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, value.toString());
+        castRequest.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, value.toString());
         return false;
     }
 
@@ -238,15 +238,15 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastContext& castCtx, TypeRe
     }
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
-bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto&                ctx        = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApsInt         intVal     = src.getIntLike();
     const uint32_t       targetBits = dstType.payloadFloatBits();
 
@@ -255,22 +255,22 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastContext& castCtx, TypeRef 
     bool    overflow = false;
     value.set(intVal, targetBits, isExact, overflow);
 
-    if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+    if (overflow && !castRequest.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, intVal.toString());
+        castRequest.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, intVal.toString());
         return false;
     }
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
-bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto&                ctx        = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApFloat&       srcVal     = src.getFloat();
     const uint32_t       targetBits = dstType.payloadIntLikeBits();
     const bool           isUnsigned = dstType.isIntLikeUnsigned();
@@ -279,22 +279,22 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastContext& castCtx, TypeRef 
     bool         overflow = false;
     const ApsInt value    = srcVal.toInt(targetBits, isUnsigned, isExact, overflow);
 
-    if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+    if (overflow && !castRequest.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, srcVal.toString());
+        castRequest.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, srcVal.toString());
         return false;
     }
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
-bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+bool Cast::foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     auto&                ctx        = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
-    const ConstantValue& src        = sema.cstMgr().get(castCtx.constantFoldingSrc());
+    const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApFloat&       floatVal   = src.getFloat();
     const uint32_t       targetBits = dstType.payloadFloatBits();
 
@@ -302,40 +302,40 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastContext& castCtx, TypeRef sr
     bool          overflow = false;
     const ApFloat value    = floatVal.toFloat(targetBits, isExact, overflow);
 
-    if (overflow && !castCtx.flags.has(CastFlagsE::NoOverflow))
+    if (overflow && !castRequest.flags.has(CastFlagsE::NoOverflow))
     {
-        castCtx.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, floatVal.toString());
+        castRequest.fail(DiagnosticId::sema_err_literal_overflow, srcTypeRef, dstTypeRef, floatVal.toString());
         return false;
     }
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
-    castCtx.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
     return true;
 }
 
-Result Cast::castConstant(Sema& sema, ConstantRef& result, CastContext& castCtx, ConstantRef cstRef, TypeRef targetTypeRef)
+Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef)
 {
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
-    castCtx.srcConstRef             = cstRef;
+    castRequest.srcConstRef             = cstRef;
 
-    const auto res = castAllowed(sema, castCtx, srcTypeRef, targetTypeRef);
+    const auto res = castAllowed(sema, castRequest, srcTypeRef, targetTypeRef);
     if (res != Result::Continue)
     {
         if (res == Result::Error)
-            return emitCastFailure(sema, castCtx.failure);
+            return emitCastFailure(sema, castRequest.failure);
         return res;
     }
 
-    result = castCtx.outConstRef;
+    result = castRequest.outConstRef;
     return Result::Continue;
 }
 
 Result Cast::castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind)
 {
-    CastContext castCtx(castKind);
-    castCtx.errorNodeRef = errorNodeRef;
-    return castConstant(sema, result, castCtx, cstRef, targetTypeRef);
+    CastRequest castRequest(castKind);
+    castRequest.errorNodeRef = errorNodeRef;
+    return castConstant(sema, result, castRequest, cstRef, targetTypeRef);
 }
 
 Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)

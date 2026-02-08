@@ -114,10 +114,10 @@ namespace
             const SemaNodeView leftView(sema, leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
 
-            CastContext castCtx(CastKind::Assignment);
-            castCtx.errorNodeRef = leftRef;
-            if (Cast::castAllowed(sema, castCtx, fields[i]->typeRef(), leftView.typeRef) != Result::Continue)
-                return Cast::emitCastFailure(sema, castCtx.failure);
+            CastRequest castRequest(CastKind::Assignment);
+            castRequest.errorNodeRef = leftRef;
+            if (Cast::castAllowed(sema, castRequest, fields[i]->typeRef(), leftView.typeRef) != Result::Continue)
+                return Cast::emitCastFailure(sema, castRequest.failure);
         }
 
         return Result::Continue;
@@ -156,10 +156,10 @@ namespace
                 RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef, leftView, nodeRightView));
             }
 
-            CastContext castCtx(CastKind::Assignment);
-            castCtx.errorNodeRef = leftRef;
-            if (Cast::castAllowed(sema, castCtx, nodeRightView.typeRef, leftView.typeRef) != Result::Continue)
-                return Cast::emitCastFailure(sema, castCtx.failure);
+            CastRequest castRequest(CastKind::Assignment);
+            castRequest.errorNodeRef = leftRef;
+            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef, leftView.typeRef) != Result::Continue)
+                return Cast::emitCastFailure(sema, castRequest.failure);
         }
 
         return Result::Continue;

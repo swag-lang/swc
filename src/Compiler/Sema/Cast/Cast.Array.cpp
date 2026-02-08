@@ -12,7 +12,7 @@ namespace
     struct CastArrayArgs
     {
         Sema*           sema;
-        CastContext*    castCtx;
+        CastRequest*    castRequest;
         TypeRef         srcTypeRef;
         TypeRef         dstTypeRef;
         const TypeInfo* srcType;
@@ -21,56 +21,56 @@ namespace
 
     Result failArrayDimCount(const CastArrayArgs& ctx, size_t srcCount, size_t dstCount)
     {
-        const Result res = ctx.castCtx->fail(DiagnosticId::sema_err_array_cast_num_dims, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(dstCount));
+        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_array_cast_num_dims, ctx.srcTypeRef, ctx.dstTypeRef);
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(dstCount));
         return res;
     }
 
     Result failArrayDimMismatch(const CastArrayArgs& ctx, size_t dimIndex, uint64_t srcDim, uint64_t dstDim)
     {
-        const Result res = ctx.castCtx->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_RIGHT, dstDim);
+        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, ctx.srcTypeRef, ctx.dstTypeRef);
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_RIGHT, dstDim);
         return res;
     }
 
     Result failArrayTooManyValues(const CastArrayArgs& ctx, size_t srcCount, uint64_t dstCount)
     {
-        const Result res = ctx.castCtx->fail(DiagnosticId::sema_err_array_cast_too_many_values, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, dstCount);
+        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_array_cast_too_many_values, ctx.srcTypeRef, ctx.dstTypeRef);
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, dstCount);
         return res;
     }
 
     Result failArrayConst(const CastArrayArgs& ctx, std::string_view reason)
     {
-        const Result res = ctx.castCtx->fail(DiagnosticId::sema_err_array_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castCtx->failure.addArgument(Diagnostic::ARG_VALUE, reason);
+        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_array_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
+        ctx.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, reason);
         return res;
     }
 
     Result checkElemCast(const CastArrayArgs& ctx, TypeRef srcElemType, TypeRef dstElemType)
     {
-        CastContext elemCtx(ctx.castCtx->kind);
-        elemCtx.flags        = ctx.castCtx->flags;
-        elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+        CastRequest elemCtx(ctx.castRequest->kind);
+        elemCtx.flags        = ctx.castRequest->flags;
+        elemCtx.errorNodeRef = ctx.castRequest->errorNodeRef;
         const Result res     = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
-            ctx.castCtx->failure = elemCtx.failure;
+            ctx.castRequest->failure = elemCtx.failure;
         return res;
     }
 
     Result foldElemCast(const CastArrayArgs& ctx, TypeRef srcElemType, TypeRef dstElemType, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastContext elemCtx(ctx.castCtx->kind);
-        elemCtx.flags        = ctx.castCtx->flags;
-        elemCtx.errorNodeRef = ctx.castCtx->errorNodeRef;
+        CastRequest elemCtx(ctx.castRequest->kind);
+        elemCtx.flags        = ctx.castRequest->flags;
+        elemCtx.errorNodeRef = ctx.castRequest->errorNodeRef;
         elemCtx.setConstantFoldingSrc(valueRef);
         const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
         {
-            ctx.castCtx->failure = elemCtx.failure;
+            ctx.castRequest->failure = elemCtx.failure;
             return res;
         }
 
@@ -99,10 +99,10 @@ namespace
         if (srcElemTypeRef == dstElemTypeRef)
             return Result::Continue;
 
-        if (!ctx.castCtx->isConstantFolding())
+        if (!ctx.castRequest->isConstantFolding())
             return failArrayConst(ctx, "array element cast requires constant folding");
 
-        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
+        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castRequest->constantFoldingSrc());
         if (!cst.isAggregateArray())
             return failArrayConst(ctx, "expected an array constant");
 
@@ -118,7 +118,7 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
-        ctx.castCtx->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
+        ctx.castRequest->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 
@@ -140,10 +140,10 @@ namespace
             RESULT_VERIFY(checkElemCast(ctx, srcElemTypeRef, dstElemTypeRef));
         }
 
-        if (!ctx.castCtx->isConstantFolding())
+        if (!ctx.castRequest->isConstantFolding())
             return Result::Continue;
 
-        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castCtx->constantFoldingSrc());
+        const ConstantValue& cst = ctx.sema->cstMgr().get(ctx.castRequest->constantFoldingSrc());
         if (!cst.isAggregateArray())
             return failArrayConst(ctx, "expected an array constant");
 
@@ -159,16 +159,16 @@ namespace
         }
 
         const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
-        ctx.castCtx->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
+        ctx.castRequest->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 }
 
-Result Cast::castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeInfo&        srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&        dstType = sema.typeMgr().get(dstTypeRef);
-    const CastArrayArgs ctx{&sema, &castCtx, srcTypeRef, dstTypeRef, &srcType, &dstType};
+    const CastArrayArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     if (srcType.isArray())
         return castArrayToArray(ctx);
@@ -176,7 +176,7 @@ Result Cast::castToArray(Sema& sema, CastContext& castCtx, TypeRef srcTypeRef, T
     if (srcType.isAggregateArray())
         return castAggregateToArray(ctx);
 
-    return castCtx.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
 SWC_END_NAMESPACE();

@@ -55,25 +55,25 @@ namespace
             case SpecialFuncKind::OpCmp:
                 return "func opCmp(me, value: <type>) -> s32";
             case SpecialFuncKind::OpBinary:
-                return "func opBinary(me, other: <type>) -> <struct>";
+                return "func(op: string) opBinary(me, other: <type>) -> <struct>";
             case SpecialFuncKind::OpUnary:
-                return "func opUnary(me) -> <struct>";
+                return "func(op: string) opUnary(me) -> <struct>";
             case SpecialFuncKind::OpAssign:
-                return "func opAssign(me, value: <type>) -> void";
+                return "func(op: string) opAssign(me, value: <type>) -> void";
             case SpecialFuncKind::OpAffect:
                 return "func opAffect(me, value: <type>) -> void";
             case SpecialFuncKind::OpAffectLiteral:
-                return "func opAffectLiteral(me, value: <type>) -> void";
+                return "func(suffix: string) opAffectLiteral(me, value: <type>) -> void";
             case SpecialFuncKind::OpSlice:
                 return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
             case SpecialFuncKind::OpIndex:
                 return "func opIndex(me, index: <type>) -> <type>";
             case SpecialFuncKind::OpIndexAssign:
-                return "func opIndexAssign(me, index: <type>, value: <type>) -> void";
+                return "func(op: string) opIndexAssign(me, index: <type>, value: <type>) -> void";
             case SpecialFuncKind::OpIndexAffect:
-                return "func opIndexAffect(me, index: <type>, value: <type>) -> void";
+                return "func(op: string) opIndexAffect(me, index: <type>, value: <type>) -> void";
             case SpecialFuncKind::OpVisit:
-                return "func opVisit(me, stmt: #code) -> void";
+                return "func(ptr: bool, back: bool) opVisit(me, stmt: #code) -> void";
             default:
                 return "valid special function signature";
         }
@@ -84,59 +84,52 @@ namespace
         if (idRef.isInvalid())
             return false;
 
-        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpVisit))
+        using Pn = IdentifierManager::PredefinedName;
+        struct Entry
+        {
+            Pn              pn;
+            SpecialFuncKind kind;
+        };
+
+        static constexpr Entry K_MAP[] = {
+            {Pn::OpVisit, SpecialFuncKind::OpVisit},
+            {Pn::OpBinary, SpecialFuncKind::OpBinary},
+            {Pn::OpUnary, SpecialFuncKind::OpUnary},
+            {Pn::OpAssign, SpecialFuncKind::OpAssign},
+            {Pn::OpIndexAssign, SpecialFuncKind::OpIndexAssign},
+            {Pn::OpCast, SpecialFuncKind::OpCast},
+            {Pn::OpEquals, SpecialFuncKind::OpEquals},
+            {Pn::OpCmp, SpecialFuncKind::OpCmp},
+            {Pn::OpPostCopy, SpecialFuncKind::OpPostCopy},
+            {Pn::OpPostMove, SpecialFuncKind::OpPostMove},
+            {Pn::OpDrop, SpecialFuncKind::OpDrop},
+            {Pn::OpCount, SpecialFuncKind::OpCount},
+            {Pn::OpData, SpecialFuncKind::OpData},
+            {Pn::OpAffect, SpecialFuncKind::OpAffect},
+            {Pn::OpAffectLiteral, SpecialFuncKind::OpAffectLiteral},
+            {Pn::OpSlice, SpecialFuncKind::OpSlice},
+            {Pn::OpIndex, SpecialFuncKind::OpIndex},
+            {Pn::OpIndexAffect, SpecialFuncKind::OpIndexAffect},
+        };
+
+        for (const auto& e : K_MAP)
+        {
+            if (idRef == idMgr.predefined(e.pn))
+            {
+                outKind = e.kind;
+                return true;
+            }
+        }
+
+        // Slow/fallback path: name-based visit operator.
+        const std::string_view name = idMgr.get(idRef).name;
+        if (LangSpec::isOpVisitName(name))
         {
             outKind = SpecialFuncKind::OpVisit;
             return true;
         }
 
-        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpBinary))
-            outKind = SpecialFuncKind::OpBinary;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpUnary))
-            outKind = SpecialFuncKind::OpUnary;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAssign))
-            outKind = SpecialFuncKind::OpAssign;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAssign))
-            outKind = SpecialFuncKind::OpIndexAssign;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCast))
-            outKind = SpecialFuncKind::OpCast;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpEquals))
-            outKind = SpecialFuncKind::OpEquals;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCmp))
-            outKind = SpecialFuncKind::OpCmp;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostCopy))
-            outKind = SpecialFuncKind::OpPostCopy;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
-            outKind = SpecialFuncKind::OpPostMove;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpDrop))
-            outKind = SpecialFuncKind::OpDrop;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCount))
-            outKind = SpecialFuncKind::OpCount;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpData))
-            outKind = SpecialFuncKind::OpData;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffect))
-            outKind = SpecialFuncKind::OpAffect;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffectLiteral))
-            outKind = SpecialFuncKind::OpAffectLiteral;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpSlice))
-            outKind = SpecialFuncKind::OpSlice;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndex))
-            outKind = SpecialFuncKind::OpIndex;
-        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAffect))
-            outKind = SpecialFuncKind::OpIndexAffect;
-        else
-        {
-            const std::string_view name = idMgr.get(idRef).name;
-            if (LangSpec::isOpVisitName(name))
-            {
-                outKind = SpecialFuncKind::OpVisit;
-                return true;
-            }
-
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)

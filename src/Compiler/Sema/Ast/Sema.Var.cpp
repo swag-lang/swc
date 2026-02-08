@@ -1,5 +1,3 @@
-#include <ranges>
-
 #include "pch.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -20,7 +18,7 @@ namespace
 {
     void markExplicitUndefined(const std::span<Symbol*>& symbols)
     {
-        for (auto* s : symbols)
+        for (const auto& s : symbols)
         {
             if (const auto symVar = s->safeCast<SymbolVariable>())
                 symVar->addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);

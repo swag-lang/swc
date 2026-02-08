@@ -82,7 +82,7 @@ struct MicroInstruction
     MicroOp   op        = MicroOp::OpBinaryRI;
     EmitFlags emitFlags = EMIT_ZERO;
 
-    union Payload
+    union
     {
         struct CallName
         {

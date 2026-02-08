@@ -3,6 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// ReSharper disable CppInconsistentNaming
 enum class MicroOp : uint8_t
 {
     End,
@@ -73,13 +74,8 @@ enum class MicroOp : uint8_t
     OpBinaryMI,
 
     OpTernaryRRR,
-
-    OpBinaryRi = OpBinaryRI,
-    OpBinaryRr = OpBinaryRR,
-    OpBinaryRm = OpBinaryRM,
-    OpBinaryMr = OpBinaryMR,
-    OpBinaryMi = OpBinaryMI,
 };
+// ReSharper restore CppInconsistentNaming
 
 struct MicroInstruction
 {
@@ -94,9 +90,9 @@ struct MicroInstruction
     uint64_t valueB = 0;
     uint64_t valueC = 0;
 
-    MicroOp    op       = MicroOp::OpBinaryRi;
-    CpuOp      cpuOp    = CpuOp::ADD;
-    CpuCond    cpuCond  = CpuCond::A;
+    MicroOp     op       = MicroOp::OpBinaryRI;
+    CpuOp       cpuOp    = CpuOp::ADD;
+    CpuCond     cpuCond  = CpuCond::A;
     CpuCondJump jumpType = CpuCondJump::JUMP;
 
     OpBits       opBitsA   = OpBits::Zero;

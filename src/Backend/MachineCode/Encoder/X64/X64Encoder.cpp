@@ -2884,11 +2884,11 @@ RegisterSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
 {
     auto result = CpuEncoder::getReadRegisters(inst);
 
-    if (inst.op == MicroOp::OpBinaryRi ||
-        inst.op == MicroOp::OpBinaryRr ||
-        inst.op == MicroOp::OpBinaryMi ||
-        inst.op == MicroOp::OpBinaryRm ||
-        inst.op == MicroOp::OpBinaryMr)
+    if (inst.op == MicroOp::OpBinaryRI ||
+        inst.op == MicroOp::OpBinaryRR ||
+        inst.op == MicroOp::OpBinaryMI ||
+        inst.op == MicroOp::OpBinaryRM ||
+        inst.op == MicroOp::OpBinaryMR)
     {
         if (inst.cpuOp == CpuOp::ROL ||
             inst.cpuOp == CpuOp::ROR ||
@@ -2916,11 +2916,11 @@ RegisterSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 {
     auto result = CpuEncoder::getWriteRegisters(inst);
 
-    if (inst.op == MicroOp::OpBinaryRi ||
-        inst.op == MicroOp::OpBinaryRr ||
-        inst.op == MicroOp::OpBinaryMi ||
-        inst.op == MicroOp::OpBinaryRm ||
-        inst.op == MicroOp::OpBinaryMr)
+    if (inst.op == MicroOp::OpBinaryRI ||
+        inst.op == MicroOp::OpBinaryRR ||
+        inst.op == MicroOp::OpBinaryMI ||
+        inst.op == MicroOp::OpBinaryRM ||
+        inst.op == MicroOp::OpBinaryMR)
     {
         if (inst.cpuOp == CpuOp::MUL ||
             inst.cpuOp == CpuOp::DIV ||

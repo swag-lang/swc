@@ -7,7 +7,7 @@ SWC_DIAG_DEF(sema_note_previous_default_case, Note, "previous default case is he
 SWC_DIAG_DEF(sema_note_switch_missing_enum_value, Note, "missing enum value '{value}'")
 SWC_DIAG_DEF(sema_note_other_implementation, Note, "the other implementation is here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
-SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "waiting ...")
+SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "waiting for dependency resolution")
 SWC_DIAG_DEF(sema_note_strict_alias, Note, "the attribute '#[Swag.Strict]' can only be applied to a type alias")
 SWC_DIAG_DEF(sema_note_overload_candidate_failed, Note, "candidate '{sym}' is not viable: {what}")
 SWC_DIAG_DEF(sema_note_too_many_arguments, Note, "too many arguments")

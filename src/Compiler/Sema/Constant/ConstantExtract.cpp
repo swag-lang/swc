@@ -163,6 +163,16 @@ namespace
         return Result::Continue;
     }
 
+    Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    {
+        const std::string_view s = cst.getString();
+        if (std::cmp_greater_equal(constIndex, s.size()))
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
+        const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cstInt));
+        return Result::Continue;
+    }
+
     Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
     {
         if (typeInfo.payloadArrayDims().size() > 1)
@@ -209,16 +219,6 @@ namespace
             return Result::Continue;
 
         sema.setConstant(sema.curNodeRef(), elemCstRef);
-        return Result::Continue;
-    }
-
-    Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
-    {
-        const std::string_view s = cst.getString();
-        if (std::cmp_greater_equal(constIndex, s.size()))
-            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
-        const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cstInt));
         return Result::Continue;
     }
 

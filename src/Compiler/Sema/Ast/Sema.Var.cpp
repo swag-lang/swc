@@ -59,8 +59,8 @@ namespace
         if (!explicitType.isArray() || !explicitType.payloadArrayDims().empty())
             return TypeRef::invalid();
 
-        const TypeInfo& initType = sema.typeMgr().get(initView.typeRef);
-        std::vector<uint64_t> dims;
+        const TypeInfo&       initType = sema.typeMgr().get(initView.typeRef);
+        SmallVector<uint64_t> dims;
         if (initType.isArray())
         {
             const auto& initDims = initType.payloadArrayDims();

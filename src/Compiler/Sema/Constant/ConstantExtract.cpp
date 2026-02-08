@@ -173,22 +173,17 @@ namespace
         return Result::Continue;
     }
 
-    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef)
     {
-        if (typeInfo.payloadArrayDims().size() > 1)
-            return Result::Continue;
-
-        auto&          ctx         = sema.ctx();
-        const TypeRef  elemTypeRef = typeInfo.payloadArrayElemTypeRef();
-        const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
-        const uint64_t elemSize    = elemType.sizeOf(ctx);
+        auto&          ctx      = sema.ctx();
+        const TypeInfo elemType = sema.typeMgr().get(elemTypeRef);
+        const uint64_t elemSize = elemType.sizeOf(ctx);
         SWC_ASSERT(elemSize);
 
-        const uint64_t count = typeInfo.payloadArrayDims().empty() ? 0 : typeInfo.payloadArrayDims()[0];
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto  elemBytes  = ByteSpan{cst.getArray().data() + (constIndex * elemSize), elemSize};
+        const auto  elemBytes  = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
         ConstantRef elemCstRef = ConstantRef::invalid();
 
         if (elemType.isArray())
@@ -222,31 +217,19 @@ namespace
         return Result::Continue;
     }
 
-    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
     {
-        auto&          ctx         = sema.ctx();
-        const TypeRef  elemTypeRef = typeInfo.payloadTypeRef();
-        const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
-        const uint64_t elemSize    = elemType.sizeOf(ctx);
-        SWC_ASSERT(elemSize);
-
-        const ByteSpan bytes      = cst.getSlice();
-        const uint64_t numEntries = bytes.size();
-        if (std::cmp_greater_equal(constIndex, numEntries))
-            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, numEntries);
-
-        const auto elemBytes = ByteSpan{bytes.data() + (constIndex * elemSize), elemSize};
-
-        TypeRef valueTypeRef = elemTypeRef;
-        if (elemType.isEnum())
-            valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
-
-        const ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-        if (!cv.isValid())
+        if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cv));
-        return Result::Continue;
+        const uint64_t count = typeInfo.payloadArrayDims().empty() ? 0 : typeInfo.payloadArrayDims()[0];
+        return extractAtIndexBytes(sema, cst.getArray(), typeInfo.payloadArrayElemTypeRef(), constIndex, count, nodeArgRef);
+    }
+
+    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    {
+        const ByteSpan bytes = cst.getSlice();
+        return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, bytes.size(), nodeArgRef);
     }
 }
 

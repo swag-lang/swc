@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

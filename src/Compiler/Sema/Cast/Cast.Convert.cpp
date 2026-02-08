@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 

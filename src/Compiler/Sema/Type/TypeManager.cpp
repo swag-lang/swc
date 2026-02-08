@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();

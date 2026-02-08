@@ -122,7 +122,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     // Constant extract
     if (nodeExprView.cst && hasConstIndex)
     {
-        RESULT_VERIFY(ConstantExtract::extractAtIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
+        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst, constIndex, nodeArgRef));
     }
     else
     {

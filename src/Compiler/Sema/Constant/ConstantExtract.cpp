@@ -24,7 +24,7 @@ namespace
     }
 }
 
-Result ConstantExtract::extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
     auto&    ctx = sema.ctx();
     ByteSpan bytes;
@@ -150,12 +150,9 @@ Result ConstantExtract::extractStructMember(Sema& sema, const ConstantValue& cst
     return Result::Continue;
 }
 
-Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+namespace
 {
-    SWC_ASSERT(cst.isValid());
-    const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
-
-    if (cst.isAggregateArray())
+    Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
     {
         if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
@@ -166,7 +163,7 @@ Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         return Result::Continue;
     }
 
-    if (cst.isArray())
+    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
     {
         if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
@@ -181,7 +178,7 @@ Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
-        const auto elemBytes = ByteSpan{cst.getArray().data() + (constIndex * elemSize), elemSize};
+        const auto  elemBytes  = ByteSpan{cst.getArray().data() + (constIndex * elemSize), elemSize};
         ConstantRef elemCstRef = ConstantRef::invalid();
 
         if (elemType.isArray())
@@ -215,7 +212,7 @@ Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         return Result::Continue;
     }
 
-    if (cst.isString())
+    Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
     {
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
@@ -225,7 +222,7 @@ Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         return Result::Continue;
     }
 
-    if (cst.isSlice())
+    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
     {
         auto&          ctx         = sema.ctx();
         const TypeRef  elemTypeRef = typeInfo.payloadTypeRef();
@@ -251,6 +248,24 @@ Result ConstantExtract::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cv));
         return Result::Continue;
     }
+}
+
+Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+{
+    SWC_ASSERT(cst.isValid());
+    const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+
+    if (cst.isAggregateArray())
+        return extractAtIndexAggregateArray(sema, cst, typeInfo, constIndex, nodeArgRef);
+
+    if (cst.isArray())
+        return extractAtIndexArray(sema, cst, typeInfo, constIndex, nodeArgRef);
+
+    if (cst.isString())
+        return extractAtIndexString(sema, cst, constIndex, nodeArgRef);
+
+    if (cst.isSlice())
+        return extractAtIndexSlice(sema, cst, typeInfo, constIndex, nodeArgRef);
 
     return Result::Continue;
 }

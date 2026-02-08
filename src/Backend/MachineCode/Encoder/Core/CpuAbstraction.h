@@ -1,5 +1,4 @@
 #pragma once
-#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -171,7 +170,7 @@ enum class CpuSymbolKind
 
 struct CpuSymbol
 {
-    Utf8          name;
+    IdentifierRef name;
     CpuSymbolKind kind  = CpuSymbolKind::Custom;
     uint32_t      value = 0;
     uint32_t      index = 0;

@@ -2836,7 +2836,7 @@ EncodeResult X64Encoder::encodeJumpReg(CpuReg reg, EmitFlags emitFlags)
 
 /////////////////////////////////////////////////////////////////////
 
-EncodeResult X64Encoder::encodeCallExtern(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
@@ -2847,7 +2847,7 @@ EncodeResult X64Encoder::encodeCallExtern(const Utf8& symbolName, const CallConv
     return EncodeResult::Zero;
 }
 
-EncodeResult X64Encoder::encodeCallLocal(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
     emitCpuOp(store_, 0xE8);
 

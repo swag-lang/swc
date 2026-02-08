@@ -86,7 +86,7 @@ struct MicroInstruction
     {
         struct
         {
-            uint32_t        nameIndex;
+            IdentifierRef   name;
             const CallConv* cc;
         } callName;
 

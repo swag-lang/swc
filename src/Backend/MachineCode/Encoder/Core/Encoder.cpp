@@ -48,7 +48,7 @@ void Encoder::emitClearReg(CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
     encodeClearReg(reg, opBits, emitFlags);
 }
 
-CpuSymbol* Encoder::getOrAddSymbol(const Utf8& name, CpuSymbolKind kind)
+CpuSymbol* Encoder::getOrAddSymbol(IdentifierRef name, CpuSymbolKind kind)
 {
     symbols_.push_back(CpuSymbol{name, kind, 0, static_cast<uint32_t>(symbols_.size())});
     return &symbols_.back();

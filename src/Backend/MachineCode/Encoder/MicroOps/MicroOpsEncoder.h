@@ -15,8 +15,8 @@ public:
     EncodeResult encodePop(CpuReg reg, EmitFlags emitFlags) override;
     EncodeResult encodeNop(EmitFlags emitFlags) override;
     EncodeResult encodeRet(EmitFlags emitFlags) override;
-    EncodeResult encodeCallLocal(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags) override;
-    EncodeResult encodeCallExtern(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags) override;
+    EncodeResult encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags) override;
+    EncodeResult encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags) override;
     EncodeResult encodeCallReg(CpuReg reg, const CallConv* callConv, EmitFlags emitFlags) override;
     EncodeResult encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EmitFlags emitFlags) override;
     EncodeResult encodeJump(CpuJump& jump, CpuCondJump jumpType, CpuOpBits opBits, EmitFlags emitFlags) override;
@@ -57,7 +57,6 @@ private:
     MicroInstruction& addInstruction(MicroOp op, EmitFlags emitFlags = EMIT_ZERO);
 
     std::vector<MicroInstruction> instructions_;
-    std::vector<Utf8>             callNames_;
 };
 
 SWC_END_NAMESPACE();

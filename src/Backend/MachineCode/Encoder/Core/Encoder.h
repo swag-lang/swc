@@ -72,8 +72,8 @@ public:
     virtual EncodeResult encodePop(CpuReg reg, EmitFlags emitFlags)                                                                                                                                      = 0;
     virtual EncodeResult encodeNop(EmitFlags emitFlags)                                                                                                                                                  = 0;
     virtual EncodeResult encodeRet(EmitFlags emitFlags)                                                                                                                                                  = 0;
-    virtual EncodeResult encodeCallLocal(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)                                                                                          = 0;
-    virtual EncodeResult encodeCallExtern(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)                                                                                         = 0;
+    virtual EncodeResult encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)                                                                                        = 0;
+    virtual EncodeResult encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)                                                                                       = 0;
     virtual EncodeResult encodeCallReg(CpuReg reg, const CallConv* callConv, EmitFlags emitFlags)                                                                                                        = 0;
     virtual EncodeResult encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EmitFlags emitFlags)                                           = 0;
     virtual EncodeResult encodeJump(CpuJump& jump, CpuCondJump jumpType, CpuOpBits opBits, EmitFlags emitFlags)                                                                                          = 0;
@@ -119,7 +119,7 @@ public:
     void        emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
     void        emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
     void        emitClearReg(CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
-    CpuSymbol*  getOrAddSymbol(const Utf8& name, CpuSymbolKind kind);
+    CpuSymbol*  getOrAddSymbol(IdentifierRef name, CpuSymbolKind kind);
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:

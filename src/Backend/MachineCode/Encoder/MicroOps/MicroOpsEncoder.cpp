@@ -57,23 +57,19 @@ EncodeResult MicroOpsEncoder::encodeRet(EmitFlags emitFlags)
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroOpsEncoder::encodeCallLocal(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult MicroOpsEncoder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
-    auto&      inst      = addInstruction(MicroOp::CallLocal, emitFlags);
-    const auto nameIndex = static_cast<uint32_t>(callNames_.size());
-    callNames_.push_back(symbolName);
-    inst.payload.callName.nameIndex = nameIndex;
-    inst.payload.callName.cc        = callConv;
+    auto& inst                 = addInstruction(MicroOp::CallLocal, emitFlags);
+    inst.payload.callName.name = symbolName;
+    inst.payload.callName.cc   = callConv;
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroOpsEncoder::encodeCallExtern(const Utf8& symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult MicroOpsEncoder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
-    auto&      inst      = addInstruction(MicroOp::CallExtern, emitFlags);
-    const auto nameIndex = static_cast<uint32_t>(callNames_.size());
-    callNames_.push_back(symbolName);
-    inst.payload.callName.nameIndex = nameIndex;
-    inst.payload.callName.cc        = callConv;
+    auto& inst                 = addInstruction(MicroOp::CallExtern, emitFlags);
+    inst.payload.callName.name = symbolName;
+    inst.payload.callName.cc   = callConv;
     return EncodeResult::Zero;
 }
 
@@ -498,10 +494,10 @@ void MicroOpsEncoder::encode(Encoder& encoder) const
                 encoder.encodeRet(inst.emitFlags);
                 break;
             case MicroOp::CallLocal:
-                encoder.encodeCallLocal(callNames_[payload.callName.nameIndex], payload.callName.cc, inst.emitFlags);
+                encoder.encodeCallLocal(payload.callName.name, payload.callName.cc, inst.emitFlags);
                 break;
             case MicroOp::CallExtern:
-                encoder.encodeCallExtern(callNames_[payload.callName.nameIndex], payload.callName.cc, inst.emitFlags);
+                encoder.encodeCallExtern(payload.callName.name, payload.callName.cc, inst.emitFlags);
                 break;
             case MicroOp::CallIndirect:
                 encoder.encodeCallReg(payload.callReg.regA, payload.callReg.cc, inst.emitFlags);

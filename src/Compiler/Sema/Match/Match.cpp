@@ -88,9 +88,6 @@ namespace
 
         for (const auto* field : symStruct.fields())
         {
-            if (!field || field->isIgnored())
-                continue;
-
             const auto& symVar = field->cast<SymbolVariable>();
             if (!isUsingMemberDecl(symVar.decl()))
                 continue;

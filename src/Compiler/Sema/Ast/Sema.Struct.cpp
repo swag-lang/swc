@@ -57,6 +57,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     if (sema.compiler().pendingImplRegistrations() != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
+    sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
 
@@ -111,6 +112,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     if (sema.compiler().pendingImplRegistrations() != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
+    sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.computeLayout(sema);
     sym.setCompleted(sema.ctx());

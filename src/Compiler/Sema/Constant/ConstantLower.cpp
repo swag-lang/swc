@@ -202,7 +202,7 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes, c
 
     for (const auto* field : dstFields)
     {
-        if (!field || field->isIgnored())
+        if (!field)
             continue;
 
         const TypeRef   fieldTypeRef = field->typeRef();

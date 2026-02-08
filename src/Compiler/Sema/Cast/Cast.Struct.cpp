@@ -138,7 +138,7 @@ namespace
                 if (seenNamed)
                     return failStructField(args, i, DiagnosticId::sema_err_unnamed_parameter);
 
-                while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
+                while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos]))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
                     return failStructFieldCountAt(args, i, srcTypes.size(), dstFields.size());
@@ -155,8 +155,6 @@ namespace
             for (size_t j = 0; j < dstFields.size(); ++j)
             {
                 const SymbolVariable* symbolVariable = dstFields[j];
-                if (!symbolVariable || symbolVariable->isIgnored())
-                    continue;
                 if (symbolVariable->idRef() == name)
                 {
                     found    = true;
@@ -214,7 +212,7 @@ namespace
             if (castedByDst[i].isValid())
                 continue;
             const auto* field = dstFields[i];
-            if (!field || field->isIgnored())
+            if (!field)
                 continue;
             castedByDst[i] = field->defaultValueRef();
         }
@@ -231,7 +229,7 @@ namespace
                 continue;
 
             const auto* field = dstFields[i];
-            if (!field || field->isIgnored())
+            if (!field)
                 continue;
 
             const TypeRef   fieldTypeRef = field->typeRef();

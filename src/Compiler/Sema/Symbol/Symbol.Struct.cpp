@@ -67,6 +67,14 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
     return interfaces_;
 }
 
+void SymbolStruct::removeIgnoredFields()
+{
+    fields_.erase(std::ranges::remove_if(fields_, [](const auto* field) {
+                      return field->isIgnored();
+                  }).begin(),
+                  fields_.end());
+}
+
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     std::call_once(defaultStructOnce_, [&] {
@@ -119,7 +127,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 
     for (const auto* field : fields_)
     {
-        if (!field || field->isIgnored())
+        if (!field)
             continue;
 
         const auto& symVar = field->cast<SymbolVariable>();
@@ -153,8 +161,6 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     for (const auto field : fields_)
     {
         auto& symVar = field->cast<SymbolVariable>();
-        if (symVar.isIgnored())
-            continue;
 
         SWC_ASSERT(symVar.decl()->is(AstNodeId::SingleVarDecl) || symVar.decl()->is(AstNodeId::MultiVarDecl));
         auto&            type        = symVar.typeInfo(sema.ctx());
@@ -181,8 +187,6 @@ void SymbolStruct::computeLayout(Sema& sema)
     for (const auto field : fields_)
     {
         auto& symVar = field->cast<SymbolVariable>();
-        if (symVar.isIgnored())
-            continue;
 
         auto& type = symVar.typeInfo(ctx);
 

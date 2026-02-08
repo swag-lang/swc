@@ -94,8 +94,6 @@ namespace
         size_t      fieldIndex = 0;
         const auto& fields     = sym->fields();
         const auto  it         = std::ranges::find_if(fields, [&](const auto* field) {
-            if (field->isIgnored())
-                return false;
             return field == &symVar;
         });
 

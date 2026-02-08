@@ -84,50 +84,50 @@ struct MicroInstruction
 
     union
     {
-        struct CallName
+        struct
         {
             uint32_t        nameIndex;
             const CallConv* cc;
         } callName;
 
-        struct CallReg
+        struct
         {
             CpuReg          regA;
             const CallConv* cc;
         } callReg;
 
-        struct Reg
+        struct
         {
             CpuReg regA;
         } reg;
 
-        struct RegOpBits
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
         } regOpBits;
 
-        struct RegValue
+        struct
         {
             CpuReg   regA;
             uint64_t valueA;
         } regValue;
 
-        struct RegValueOpBits
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
             uint64_t  valueA;
         } regValueOpBits;
 
-        struct RegValue2
+        struct
         {
             CpuReg   regA;
             uint64_t valueA;
             uint64_t valueB;
         } regValue2;
 
-        struct RegValue2OpBits
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
@@ -135,20 +135,20 @@ struct MicroInstruction
             uint64_t  valueB;
         } regValue2OpBits;
 
-        struct RegReg
+        struct
         {
             CpuReg regA;
             CpuReg regB;
         } regReg;
 
-        struct RegRegOpBits
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
             CpuOpBits opBitsA;
         } regRegOpBits;
 
-        struct RegRegOpBits2
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -156,7 +156,7 @@ struct MicroInstruction
             CpuOpBits opBitsB;
         } regRegOpBits2;
 
-        struct RegRegValueOpBits
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -164,7 +164,7 @@ struct MicroInstruction
             uint64_t  valueA;
         } regRegValueOpBits;
 
-        struct RegRegValueOpBits2
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -173,13 +173,13 @@ struct MicroInstruction
             uint64_t  valueA;
         } regRegValueOpBits2;
 
-        struct RegCond
+        struct
         {
             CpuReg  regA;
             CpuCond cpuCond;
         } regCond;
 
-        struct RegRegCondOpBits
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -187,14 +187,14 @@ struct MicroInstruction
             CpuOpBits opBitsA;
         } regRegCondOpBits;
 
-        struct RegOpBitsCpuOp
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
             CpuOp     cpuOp;
         } regOpBitsCpuOp;
 
-        struct RegValueOpBitsCpuOp
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
@@ -202,7 +202,7 @@ struct MicroInstruction
             uint64_t  valueA;
         } regValueOpBitsCpuOp;
 
-        struct RegValue2OpBitsCpuOp
+        struct
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
@@ -211,7 +211,7 @@ struct MicroInstruction
             uint64_t  valueB;
         } regValue2OpBitsCpuOp;
 
-        struct RegRegOpBitsCpuOp
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -219,7 +219,7 @@ struct MicroInstruction
             CpuOp     cpuOp;
         } regRegOpBitsCpuOp;
 
-        struct RegRegValueOpBitsCpuOp
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -228,20 +228,20 @@ struct MicroInstruction
             uint64_t  valueA;
         } regRegValueOpBitsCpuOp;
 
-        struct JumpCond
+        struct
         {
             CpuCondJump jumpType;
             CpuOpBits   opBitsA;
         } jumpCond;
 
-        struct JumpCondImm
+        struct
         {
             CpuCondJump jumpType;
             CpuOpBits   opBitsA;
             uint64_t    valueA;
         } jumpCondImm;
 
-        struct JumpTable
+        struct
         {
             CpuReg   regA;
             CpuReg   regB;
@@ -250,14 +250,14 @@ struct MicroInstruction
             uint64_t valueC;
         } jumpTable;
 
-        struct PatchJump
+        struct
         {
             uint64_t valueA;
             uint64_t valueB;
             uint64_t valueC;
         } patchJump;
 
-        struct Amc
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;
@@ -269,7 +269,7 @@ struct MicroInstruction
             uint64_t  valueC;
         } amc;
 
-        struct Ternary
+        struct
         {
             CpuReg    regA;
             CpuReg    regB;

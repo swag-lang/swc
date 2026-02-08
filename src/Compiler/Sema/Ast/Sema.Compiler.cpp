@@ -497,7 +497,6 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
 
         default:
             SWC_INTERNAL_ERROR();
-            return Result::Error;
     }
 }
 

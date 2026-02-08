@@ -61,7 +61,6 @@ namespace
 
             default:
                 SWC_INTERNAL_ERROR();
-                return Result::Error;
         }
     }
 
@@ -70,7 +69,6 @@ namespace
         if (tok.id != TokenId::SymEqual)
         {
             SWC_INTERNAL_ERROR();
-            return Result::Error;
         }
 
         SmallVector<AstNodeRef> leftRefs;
@@ -147,10 +145,7 @@ namespace
         for (const auto leftRef : leftRefs)
         {
             if (leftRef.isInvalid())
-            {
                 SWC_INTERNAL_ERROR();
-                return Result::Error;
-            }
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 

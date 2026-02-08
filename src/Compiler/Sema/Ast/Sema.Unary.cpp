@@ -100,7 +100,6 @@ namespace
         }
 
         SWC_INTERNAL_ERROR();
-        return Result::Error;
     }
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& nodeView)
@@ -310,7 +309,6 @@ namespace
                 return checkMoveRef(sema, node, nodeView);
             default:
                 SWC_INTERNAL_ERROR();
-                return Result::Error;
         }
     }
 }

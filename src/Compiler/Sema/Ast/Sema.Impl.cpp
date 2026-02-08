@@ -39,11 +39,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView identView(sema, nodeIdentRef);
         if (!identView.sym)
-        {
             SWC_INTERNAL_ERROR();
-            return Result::Error;
-        }
-
         Symbol& sym = *identView.sym;
         if (hasFlag(AstImplFlagsE::Enum))
         {
@@ -75,7 +71,6 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         if (!forView.sym)
         {
             SWC_INTERNAL_ERROR();
-            return Result::Error;
         }
         if (!forView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);

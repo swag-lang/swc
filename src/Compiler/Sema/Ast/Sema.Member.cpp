@@ -279,7 +279,6 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     }
 
     SWC_INTERNAL_ERROR();
-    return Result::Error;
 }
 
 SWC_END_NAMESPACE();

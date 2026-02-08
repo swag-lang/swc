@@ -377,7 +377,6 @@ namespace
 
             default:
                 SWC_INTERNAL_ERROR();
-                return Result::Error;
         }
     }
 }

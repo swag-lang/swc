@@ -58,12 +58,7 @@ namespace
         return res;
     }
 
-    Result failStructConst(const CastStructArgs& args)
-    {
-        return args.castRequest->fail(DiagnosticId::sema_err_struct_cast_const, args.srcTypeRef, args.dstTypeRef);
-    }
-
-    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef)
+    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, const SourceCodeRef& fieldRef)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
@@ -77,7 +72,7 @@ namespace
         return res;
     }
 
-    Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, const SourceCodeRef& fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
@@ -243,9 +238,7 @@ namespace
             const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = field->offset();
-            if (fieldOffset + fieldSize > bytes.size())
-                return failStructConst(args);
-
+            SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
             ConstantHelpers::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }
 

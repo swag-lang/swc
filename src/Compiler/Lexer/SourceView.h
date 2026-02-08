@@ -16,9 +16,6 @@ struct SourceIdentifier
     uint32_t byteStart = 0; // Byte offset in the source file buffer
 };
 
-class SourceView;
-using SourceViewRef = StrongRef<SourceView>;
-
 class SourceView
 {
 public:

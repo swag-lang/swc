@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Compiler/Lexer/Token.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/DiagnosticDef.h"

@@ -1,12 +1,9 @@
 #pragma once
+#include "Compiler/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class SourceView;
 class TaskContext;
-struct Token;
-using SourceViewRef = StrongRef<SourceView>;
-using TokenRef      = StrongRef<Token>;
 
 struct SourceCodeRange
 {

@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -51,9 +50,6 @@ enum class TypeInfoKind : uint8_t
     TypedVariadic,
     TypeInfo,
 };
-
-class TypeInfo;
-using TypeRef = StrongRef<TypeInfo>;
 
 enum class TypeExpandE : uint32_t
 {

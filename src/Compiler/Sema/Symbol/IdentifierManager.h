@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Store.h"
 #include "Support/Core/StringMap.h"
 
@@ -11,8 +11,6 @@ struct Identifier
 {
     std::string_view name;
 };
-
-using IdentifierRef = StrongRef<Identifier>;
 
 class IdentifierManager
 {

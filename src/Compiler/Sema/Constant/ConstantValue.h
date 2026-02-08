@@ -7,9 +7,6 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 class TypeInfo;
 
-class ConstantValue;
-using ConstantRef = StrongRef<ConstantValue>;
-
 enum class ConstantKind
 {
     Invalid,

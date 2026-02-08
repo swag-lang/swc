@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Store.h"
@@ -32,9 +32,6 @@ enum class AstModifierFlagsE : uint32_t
     Count,
 };
 using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
-
-struct AstNode;
-using AstNodeRef = StrongRef<AstNode>;
 
 struct AstNode
 {

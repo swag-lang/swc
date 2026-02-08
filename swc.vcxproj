@@ -270,6 +270,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.FunctionSpec.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp"/>

@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -63,6 +64,21 @@ namespace
                 continue;
             symVar->setDefaultValueRef(cstRef);
         }
+    }
+
+    ConstantRef makeDefaultStructConstant(Sema& sema, TypeRef typeRef, const TypeInfo& type)
+    {
+        const uint64_t         structSize = type.sizeOf(sema.ctx());
+        std::vector<std::byte> buffer(structSize);
+        if (structSize)
+            std::memset(buffer.data(), 0, buffer.size());
+
+        const auto                         bytes  = ByteSpan{buffer.data(), buffer.size()};
+        constexpr std::vector<ConstantRef> values = {};
+        if (!ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, type, values))
+            return ConstantRef::invalid();
+        const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);
+        return sema.cstMgr().addConstant(sema.ctx(), cstVal);
     }
 
     Result semaPostVarDeclCommon(Sema&                       sema,
@@ -144,11 +160,24 @@ namespace
             }
         }
 
+        ConstantRef implicitStructCstRef = ConstantRef::invalid();
+        if (nodeInitRef.isInvalid() && nodeTypeView.typeRef.isValid() && nodeTypeView.type->isStruct() && (isConst || isLet))
+        {
+            RESULT_VERIFY(sema.waitCompleted(nodeTypeView.type, nodeTypeRef));
+            implicitStructCstRef = makeDefaultStructConstant(sema, nodeTypeView.typeRef, *nodeTypeView.type);
+        }
+        const bool hasImplicitStructInit = implicitStructCstRef.isValid();
+
         // Constant
         if (isConst)
         {
             if (nodeInitRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+            {
+                if (!hasImplicitStructInit)
+                    return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+                completeConst(sema, symbols, implicitStructCstRef, nodeTypeView.typeRef);
+                return Result::Continue;
+            }
             if (nodeInitView.cstRef.isInvalid())
                 return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef);
 
@@ -157,15 +186,14 @@ namespace
         }
 
         // Variable
-        if (isLet && nodeInitRef.isInvalid())
+        if (isLet && nodeInitRef.isInvalid() && !hasImplicitStructInit)
             return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
-
         if (!isLet && !isParameter && isRefType && nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
 
         completeVar(sema, symbols, nodeTypeView.typeRef.isValid() ? nodeTypeView.typeRef : nodeInitView.typeRef);
 
-        if (nodeInitRef.isValid())
+        if (nodeInitRef.isValid() || hasImplicitStructInit)
         {
             for (auto* s : symbols)
             {

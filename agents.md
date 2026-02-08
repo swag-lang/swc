@@ -12,14 +12,14 @@
 
   ## Test Instructions
 
-- Run all tests:
+- Run all semantic tests:
   ```bash
-  swc_devmode sema --verify --runtime -d ../bin/tests/sema
+  swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema
   ```
 
 - Run a specific test:
   ```bash
-  swc_devmode sema --verify --runtime -d ../bin/tests/sema -ff <filename>
+  swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema -ff <filename>
   ```
 
 ## Writing news tests

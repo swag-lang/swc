@@ -166,18 +166,6 @@ constexpr auto EMIT_LOCK       = CpuEmitFlagsE::Lock;
 constexpr auto EMIT_B64        = CpuEmitFlagsE::B64;
 constexpr auto EMIT_CAN_ENCODE = CpuEmitFlagsE::CanEncode;
 
-enum class CpuEncodeResult : uint32_t
-{
-    Zero,
-    Left2Reg,
-    Left2Rax,
-    Right2Reg,
-    Right2Rcx,
-    Right2Cst,
-    ForceZero32,
-    NotSupported,
-};
-
 struct CpuJump
 {
     void*    patchOffsetAddr = nullptr;
@@ -213,8 +201,6 @@ struct CpuFunction
     uint32_t                     startAddress = 0;
     std::vector<CpuLabelToSolve> labelsToSolve;
 };
-
-struct CallConv;
 
 #ifndef IMAGE_REL_AMD64_ADDR64
 #define IMAGE_REL_AMD64_ADDR64 0x0001

@@ -67,7 +67,7 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
     return interfaces_;
 }
 
-ConstantRef SymbolStruct::defaultValue(Sema& sema, TypeRef typeRef)
+ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     std::call_once(defaultStructOnce_, [&] {
         auto            ctx        = sema.ctx();

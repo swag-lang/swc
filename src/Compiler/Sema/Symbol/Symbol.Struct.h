@@ -26,22 +26,26 @@ public:
     {
     }
 
-    uint64_t                            sizeOf() const { return sizeInBytes_; }
-    uint32_t                            alignment() const { return alignment_; }
+    SymbolStructFlags structFlags() const noexcept { return extraFlags(); }
+    uint64_t          sizeOf() const { return sizeInBytes_; }
+    uint32_t          alignment() const { return alignment_; }
+    Result            canBeCompleted(Sema& sema) const;
+
+    void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }
-    Result                              canBeCompleted(Sema& sema) const;
-    void                                computeLayout(Sema& sema);
-    void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
-    void                                addImpl(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*>            impls() const;
-    void                                addInterface(SymbolImpl& symImpl);
-    Result                              addInterface(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*>            interfaces() const;
-    bool                                implementsInterface(const SymbolInterface& itf) const;
-    bool                                implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
-    SymbolStructFlags                   structFlags() const noexcept { return extraFlags(); }
-    ConstantRef                         defaultValue(Sema& sema, TypeRef typeRef);
+
+    void                     addImpl(Sema& sema, SymbolImpl& symImpl);
+    std::vector<SymbolImpl*> impls() const;
+
+    void                     addInterface(SymbolImpl& symImpl);
+    Result                   addInterface(Sema& sema, SymbolImpl& symImpl);
+    std::vector<SymbolImpl*> interfaces() const;
+    bool                     implementsInterface(const SymbolInterface& itf) const;
+    bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
+
+    void        computeLayout(Sema& sema);
+    ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
 
 private:
     std::vector<SymbolVariable*> fields_;

@@ -405,7 +405,7 @@ ConstantRef ConstantHelpers::makeDefaultStruct(Sema& sema, TypeRef typeRef)
     return sema.cstMgr().addConstant(sema.ctx(), cstVal);
 }
 
-ConstantRef ConstantHelpers::makeConstantLocation(Sema& sema, const AstNode& node)
+ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const AstNode& node)
 {
     auto&                 ctx       = sema.ctx();
     const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());

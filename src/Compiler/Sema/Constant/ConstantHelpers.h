@@ -15,7 +15,7 @@ namespace ConstantHelpers
     void        lowerAggregateArrayToBytes(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     void        lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values);
     ConstantRef makeDefaultStruct(Sema& sema, TypeRef typeRef);
-    ConstantRef makeConstantLocation(Sema& sema, const AstNode& node);
+    ConstantRef makeSourceCodeLocation(Sema& sema, const AstNode& node);
 }
 
 SWC_END_NAMESPACE();

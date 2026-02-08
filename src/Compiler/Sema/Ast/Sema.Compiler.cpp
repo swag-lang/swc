@@ -238,7 +238,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
             if (typeRef.isInvalid())
                 return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), codeRef());
-            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeConstantLocation(sema, *this));
+            sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this));
             break;
         }
 

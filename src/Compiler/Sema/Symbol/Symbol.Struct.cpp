@@ -209,19 +209,49 @@ void SymbolStruct::computeLayout(Sema& sema)
     }
 }
 
-Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc)
+namespace
 {
-    (void) sema;
-    std::unique_lock lk(mutexSpecialFuncs_);
-    if (std::ranges::find(specialFuncs_, &symFunc) == specialFuncs_.end())
-        specialFuncs_.push_back(&symFunc);
-    return Result::Continue;
+    bool allowsSpecialFunctionOverload(SpecialFuncKind kind)
+    {
+        switch (kind)
+        {
+            case SpecialFuncKind::OpCast:
+            case SpecialFuncKind::OpEquals:
+            case SpecialFuncKind::OpCmp:
+            case SpecialFuncKind::OpBinary:
+            case SpecialFuncKind::OpAssign:
+            case SpecialFuncKind::OpAffect:
+            case SpecialFuncKind::OpAffectLiteral:
+            case SpecialFuncKind::OpIndex:
+            case SpecialFuncKind::OpIndexAssign:
+            case SpecialFuncKind::OpIndexAffect:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 
-std::vector<SymbolFunction*> SymbolStruct::specialFunctions() const
+Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc, SpecialFuncKind kind)
 {
-    std::shared_lock lk(mutexSpecialFuncs_);
-    return specialFuncs_;
+    std::unique_lock lk(mutexSpecialFuncs_);
+    if (std::ranges::find(specialFuncs_, &symFunc) != specialFuncs_.end())
+        return Result::Continue;
+
+    if (!allowsSpecialFunctionOverload(kind))
+    {
+        for (const auto* existing : specialFuncs_)
+        {
+            if (existing && existing->idRef() == symFunc.idRef())
+            {
+                SemaError::raiseAlreadyDefined(sema, &symFunc, existing);
+                return Result::Error;
+            }
+        }
+    }
+
+    specialFuncs_.push_back(&symFunc);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

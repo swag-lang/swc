@@ -9,6 +9,28 @@ class SymbolFunction;
 class SymbolInterface;
 class Sema;
 
+enum class SpecialFuncKind : uint8_t
+{
+    OpBinary,
+    OpUnary,
+    OpAssign,
+    OpIndexAssign,
+    OpCast,
+    OpEquals,
+    OpCmp,
+    OpPostCopy,
+    OpPostMove,
+    OpDrop,
+    OpCount,
+    OpData,
+    OpAffect,
+    OpAffectLiteral,
+    OpSlice,
+    OpIndex,
+    OpIndexAffect,
+    OpVisit,
+};
+
 enum class SymbolStructFlagsE : uint8_t
 {
     Zero     = 0,
@@ -47,21 +69,20 @@ public:
 
     void        computeLayout(Sema& sema);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
-    Result      registerSpecialFunction(Sema& sema, SymbolFunction& symFunc);
-    std::vector<SymbolFunction*> specialFunctions() const;
+    Result      registerSpecialFunction(Sema& sema, SymbolFunction& symFunc, SpecialFuncKind kind);
 
 private:
-    std::vector<SymbolVariable*>                       fields_;
-    mutable std::shared_mutex                          mutexImpls_;
-    std::vector<SymbolImpl*>                           impls_;
-    mutable std::shared_mutex                          mutexInterfaces_;
-    std::vector<SymbolImpl*>                           interfaces_;
-    mutable std::shared_mutex                          mutexSpecialFuncs_;
-    std::vector<SymbolFunction*>                       specialFuncs_;
-    std::once_flag                                     defaultStructOnce_;
-    ConstantRef                                        defaultStructCst_ = ConstantRef::invalid();
-    uint64_t                                           sizeInBytes_      = 0;
-    uint32_t                                           alignment_        = 0;
+    std::vector<SymbolVariable*> fields_;
+    mutable std::shared_mutex    mutexImpls_;
+    std::vector<SymbolImpl*>     impls_;
+    mutable std::shared_mutex    mutexInterfaces_;
+    std::vector<SymbolImpl*>     interfaces_;
+    mutable std::shared_mutex    mutexSpecialFuncs_;
+    std::vector<SymbolFunction*> specialFuncs_;
+    std::once_flag               defaultStructOnce_;
+    ConstantRef                  defaultStructCst_ = ConstantRef::invalid();
+    uint64_t                     sizeInBytes_      = 0;
+    uint32_t                     alignment_        = 0;
 };
 
 SWC_END_NAMESPACE();

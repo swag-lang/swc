@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -76,7 +76,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         SWC_ASSERT(structSize);
         const std::vector<std::byte> buffer(structSize);
         const ByteSpan               bytes = asByteSpan(buffer);
-        ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, ty, {});
+        ConstantLower::lowerAggregateStructToBytes(sema, bytes, ty, {});
         const ConstantValue cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
         defaultStructCst_          = sema.cstMgr().addConstant(ctx, cstVal);
     });

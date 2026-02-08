@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -239,7 +239,7 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = field->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
-            ConstantHelpers::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
+            ConstantLower::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }
 
         const auto result             = ConstantValue::makeStruct(args.sema->ctx(), args.dstTypeRef, bytes);

@@ -10,10 +10,6 @@ struct AstEnumDecl;
 enum class TokenId : uint16_t;
 enum class SpecialFuncKind : uint8_t
 {
-    OpInitGenerated,
-    OpDropGenerated,
-    OpPostCopyGenerated,
-    OpPostMoveGenerated,
     OpBinary,
     OpUnary,
     OpAssign,
@@ -31,7 +27,6 @@ enum class SpecialFuncKind : uint8_t
     OpSlice,
     OpIndex,
     OpIndexAffect,
-    OpInit,
     OpVisit,
 };
 
@@ -78,10 +73,10 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
-    static bool isReservedNamespace(std::string_view ns);
-    static bool isSpecialFunctionName(std::string_view name);
-    static bool isOpVisitName(std::string_view name);
-    static bool matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind);
+    static bool             isReservedNamespace(std::string_view ns);
+    static bool             isSpecialFunctionName(std::string_view name);
+    static bool             isOpVisitName(std::string_view name);
+    static bool             matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind);
     static std::string_view specialFunctionSignatureHint(SpecialFuncKind kind);
 
 private:

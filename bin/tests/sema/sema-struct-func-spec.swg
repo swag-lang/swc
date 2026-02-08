@@ -27,7 +27,6 @@ struct SpecB
 
 impl SpecB
 {
-    mtd opInit() {}
     mtd opDrop() {}
     mtd opPostCopy() {}
     mtd opPostMove() {}

@@ -107,11 +107,6 @@ namespace
 
         switch (kind)
         {
-            case SpecialFuncKind::OpInitGenerated:
-            case SpecialFuncKind::OpInit:
-            case SpecialFuncKind::OpDropGenerated:
-            case SpecialFuncKind::OpPostCopyGenerated:
-            case SpecialFuncKind::OpPostMoveGenerated:
             case SpecialFuncKind::OpDrop:
             case SpecialFuncKind::OpPostCopy:
             case SpecialFuncKind::OpPostMove:

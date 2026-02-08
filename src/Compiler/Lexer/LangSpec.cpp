@@ -158,15 +158,7 @@ bool LangSpec::matchSpecialFunction(std::string_view name, SpecialFuncKind& outK
         return true;
     }
 
-    if (name == "opInitGenerated")
-        outKind = SpecialFuncKind::OpInitGenerated;
-    else if (name == "opDropGenerated")
-        outKind = SpecialFuncKind::OpDropGenerated;
-    else if (name == "opPostCopyGenerated")
-        outKind = SpecialFuncKind::OpPostCopyGenerated;
-    else if (name == "opPostMoveGenerated")
-        outKind = SpecialFuncKind::OpPostMoveGenerated;
-    else if (name == "opBinary")
+    if (name == "opBinary")
         outKind = SpecialFuncKind::OpBinary;
     else if (name == "opUnary")
         outKind = SpecialFuncKind::OpUnary;
@@ -200,8 +192,6 @@ bool LangSpec::matchSpecialFunction(std::string_view name, SpecialFuncKind& outK
         outKind = SpecialFuncKind::OpIndex;
     else if (name == "opIndexAffect")
         outKind = SpecialFuncKind::OpIndexAffect;
-    else if (name == "opInit")
-        outKind = SpecialFuncKind::OpInit;
     else
         return false;
 
@@ -212,16 +202,6 @@ std::string_view LangSpec::specialFunctionSignatureHint(SpecialFuncKind kind)
 {
     switch (kind)
     {
-        case SpecialFuncKind::OpInitGenerated:
-            return "func opInitGenerated(me) -> void";
-        case SpecialFuncKind::OpInit:
-            return "func opInit(me) -> void";
-        case SpecialFuncKind::OpDropGenerated:
-            return "func opDropGenerated(me) -> void";
-        case SpecialFuncKind::OpPostCopyGenerated:
-            return "func opPostCopyGenerated(me) -> void";
-        case SpecialFuncKind::OpPostMoveGenerated:
-            return "func opPostMoveGenerated(me) -> void";
         case SpecialFuncKind::OpDrop:
             return "func opDrop(me) -> void";
         case SpecialFuncKind::OpPostCopy:

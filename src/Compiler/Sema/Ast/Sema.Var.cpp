@@ -149,7 +149,7 @@ namespace
         if (nodeInitRef.isInvalid() && nodeTypeView.typeRef.isValid() && nodeTypeView.type->isStruct() && (isConst || isLet))
         {
             RESULT_VERIFY(sema.waitCompleted(nodeTypeView.type, nodeTypeRef));
-            implicitStructCstRef = ConstantHelpers::makeDefaultStruct(sema, nodeTypeView.typeRef);
+            implicitStructCstRef = nodeTypeView.type->payloadSymStruct().defaultValue(sema, nodeTypeView.typeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
 

@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -63,6 +65,26 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 {
     std::shared_lock lk(mutexInterfaces_);
     return interfaces_;
+}
+
+ConstantRef SymbolStruct::defaultValue(Sema& sema, TypeRef typeRef)
+{
+    std::call_once(defaultStructOnce_, [&] {
+        const auto& type = sema.typeMgr().get(typeRef);
+        SWC_ASSERT(type.isStruct());
+        SWC_ASSERT(&type.payloadSymStruct() == this);
+
+        const uint64_t structSize = type.sizeOf(sema.ctx());
+        SWC_ASSERT(structSize);
+
+        const std::vector<std::byte> buffer(structSize);
+        const auto                   bytes = asByteSpan(buffer);
+        ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, type, {});
+        const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);
+        defaultStructCst_ = sema.cstMgr().addConstant(sema.ctx(), cstVal);
+    });
+
+    return defaultStructCst_;
 }
 
 namespace

@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -40,6 +41,7 @@ public:
     bool                                implementsInterface(const SymbolInterface& itf) const;
     bool                                implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
     SymbolStructFlags                   structFlags() const noexcept { return extraFlags(); }
+    ConstantRef                         defaultValue(Sema& sema, TypeRef typeRef);
 
 private:
     std::vector<SymbolVariable*> fields_;
@@ -47,8 +49,10 @@ private:
     std::vector<SymbolImpl*>     impls_;
     mutable std::shared_mutex    mutexInterfaces_;
     std::vector<SymbolImpl*>     interfaces_;
-    uint64_t                     sizeInBytes_ = 0;
-    uint32_t                     alignment_   = 0;
+    std::once_flag               defaultStructOnce_;
+    ConstantRef                  defaultStructCst_ = ConstantRef::invalid();
+    uint64_t                     sizeInBytes_      = 0;
+    uint32_t                     alignment_        = 0;
 };
 
 SWC_END_NAMESPACE();

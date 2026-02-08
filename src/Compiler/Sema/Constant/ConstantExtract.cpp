@@ -191,8 +191,9 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
 namespace
 {
-    Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
     {
+        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
         if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
         const auto& values = cst.getAggregateArray();
@@ -260,8 +261,9 @@ namespace
         return Result::Continue;
     }
 
-    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
     {
+        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
         if (typeInfo.payloadArrayDims().size() > 1)
             return Result::Continue;
 
@@ -269,9 +271,10 @@ namespace
         return extractAtIndexBytes(sema, cst.getArray(), typeInfo.payloadArrayElemTypeRef(), constIndex, count, nodeArgRef);
     }
 
-    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, const TypeInfo& typeInfo, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
     {
-        const ByteSpan bytes = cst.getSlice();
+        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+        const ByteSpan  bytes    = cst.getSlice();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, bytes.size(), nodeArgRef);
     }
 }
@@ -279,19 +282,15 @@ namespace
 Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
     SWC_ASSERT(cst.isValid());
-    const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
 
     if (cst.isAggregateArray())
-        return extractAtIndexAggregateArray(sema, cst, typeInfo, constIndex, nodeArgRef);
-
+        return extractAtIndexAggregateArray(sema, cst, constIndex, nodeArgRef);
     if (cst.isArray())
-        return extractAtIndexArray(sema, cst, typeInfo, constIndex, nodeArgRef);
-
+        return extractAtIndexArray(sema, cst, constIndex, nodeArgRef);
     if (cst.isString())
         return extractAtIndexString(sema, cst, constIndex, nodeArgRef);
-
     if (cst.isSlice())
-        return extractAtIndexSlice(sema, cst, typeInfo, constIndex, nodeArgRef);
+        return extractAtIndexSlice(sema, cst, constIndex, nodeArgRef);
 
     return Result::Continue;
 }

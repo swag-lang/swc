@@ -42,10 +42,22 @@ struct T2 {x: f32}
     #assert(w.z == 3)
 }
 
+#test
+{
+    const w: W = {1, 2}
+    #assert(w.x == 1)
+    #assert(w.y == 2)
+    #assert(w.z == 0)
+}
+
 #test { const w: W = {x: 1, 2, z: 3} } // swc-expected-error {{sema_err_unnamed_parameter}}
 #test { const w: W = {x: 1, q: 2, z: 3} } // swc-expected-error {{sema_err_missing_struct_member}}
 #test { const w: W = {x: 1, x: 2, z: 3} } // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
+#test { const w: W = {1, x: 2, y: 3} } // swc-expected-error {{sema_err_struct_cast_duplicate_field}}
 #test { const w: W = {1, 2, 3, 4} } // swc-expected-error {{sema_err_struct_cast_field_count}}
+
+struct U {x: s32, y: s32}
+#test { const u: U = {1, "no"} } // swc-expected-error {{sema_err_cannot_cast}}
 
 #test
 {
@@ -62,3 +74,8 @@ struct T2 {x: f32}
 struct V2 {x, y, z: f32 = 10}
 const V3: V2 = {x: 1, y: 1}
 #assert(V3.z == 10)
+
+const V4: V2 = {1, 2}
+#assert(V4.x == 1)
+#assert(V4.y == 2)
+#assert(V4.z == 10)

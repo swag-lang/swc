@@ -79,6 +79,9 @@ private:
     std::vector<SymbolImpl*>     interfaces_;
     mutable std::shared_mutex    mutexSpecialFuncs_;
     std::vector<SymbolFunction*> specialFuncs_;
+    SymbolFunction*              opDrop_     = nullptr;
+    SymbolFunction*              opPostCopy_ = nullptr;
+    SymbolFunction*              opPostMove_ = nullptr;
     std::once_flag               defaultStructOnce_;
     ConstantRef                  defaultStructCst_ = ConstantRef::invalid();
     uint64_t                     sizeInBytes_      = 0;

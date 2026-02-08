@@ -250,6 +250,13 @@ Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc
         }
     }
 
+    if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpDrop))
+        opDrop_ = &symFunc;
+    else if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpPostCopy))
+        opPostCopy_ = &symFunc;
+    else if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpPostMove))
+        opPostMove_ = &symFunc;
+
     specialFuncs_.push_back(&symFunc);
     return Result::Continue;
 }

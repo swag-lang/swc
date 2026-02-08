@@ -14,7 +14,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void lowerConstantToBytes(Sema& sema, ByteSpan dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    void        lowerConstantToBytes(Sema& sema, ByteSpan dstBytes, TypeRef dstTypeRef, ConstantRef cstRef);
+    ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes);
 
     void lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
@@ -176,6 +177,67 @@ namespace
                    dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString());
         return;
     }
+
+    ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes)
+    {
+        auto&           ctx       = sema.ctx();
+        const TypeInfo& arrayType = sema.typeMgr().get(arrayTypeRef);
+        SWC_ASSERT(arrayType.isArray());
+
+        const auto& dims  = arrayType.payloadArrayDims();
+        uint64_t    count = 1;
+        for (const auto dim : dims)
+            count *= dim;
+
+        const TypeRef   elemTypeRef = arrayType.payloadArrayElemTypeRef();
+        const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
+        const uint64_t  elemSize    = elemType.sizeOf(ctx);
+        SWC_ASSERT(!elemSize || elemSize * count <= bytes.size());
+
+        std::vector<ConstantRef> values;
+        values.reserve(count);
+
+        for (uint64_t i = 0; i < count; ++i)
+        {
+            const auto  elemBytes  = ByteSpan{bytes.data() + (i * elemSize), elemSize};
+            ConstantRef elemCstRef = ConstantRef::invalid();
+
+            if (elemType.isArray())
+            {
+                elemCstRef = makeArrayConstantFromBytes(sema, elemTypeRef, elemBytes);
+            }
+            else
+            {
+                TypeRef valueTypeRef = elemTypeRef;
+
+                if (elemType.isEnum())
+                {
+                    valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
+                }
+
+                ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+                if (!cv.isValid())
+                    return ConstantRef::invalid();
+
+                elemCstRef = sema.cstMgr().addConstant(ctx, cv);
+
+                if (elemType.isEnum())
+                {
+                    ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, elemCstRef, elemTypeRef);
+                    enumCv.setTypeRef(elemTypeRef);
+                    elemCstRef = sema.cstMgr().addConstant(ctx, enumCv);
+                }
+            }
+
+            if (elemCstRef.isInvalid())
+                return ConstantRef::invalid();
+            values.push_back(elemCstRef);
+        }
+
+        ConstantValue cv = ConstantValue::makeAggregateArray(ctx, values);
+        cv.setTypeRef(arrayTypeRef);
+        return sema.cstMgr().addConstant(ctx, cv);
+    }
 }
 
 Result ConstantHelpers::extractStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
@@ -259,6 +321,21 @@ Result ConstantHelpers::extractStructMember(Sema& sema, const ConstantValue& cst
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
     const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
+
+    if (typeField->isArray())
+    {
+        const ConstantRef arrayCstRef = makeArrayConstantFromBytes(sema, symVar.typeRef(), fieldBytes);
+        if (arrayCstRef.isInvalid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        sema.setConstant(nodeRef, arrayCstRef);
+        return Result::Continue;
+    }
 
     TypeRef valueTypeRef = symVar.typeRef();
     if (typeField->isEnum())

@@ -1,9 +1,18 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Core/CpuAbstraction.h"
+#include "Runtime/Runtime.h"
+#include "Support/Core/Store.h"
 
 SWC_BEGIN_NAMESPACE();
 
 struct MicroInstruction;
+struct Module;
+
+struct BuildParameters
+{
+    Module*                       module   = nullptr;
+    Runtime::BuildCfgBackendOptim optLevel = Runtime::BuildCfgBackendOptim::O0;
+};
 
 class CpuEncoder
 {

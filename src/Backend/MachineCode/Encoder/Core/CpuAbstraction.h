@@ -1,8 +1,6 @@
 #pragma once
-#include "Runtime/Runtime.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/Utf8.h"
-#include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -214,12 +212,6 @@ struct CpuFunction
     uint32_t                     symbolIndex  = 0;
     uint32_t                     startAddress = 0;
     std::vector<CpuLabelToSolve> labelsToSolve;
-};
-
-struct BuildParameters
-{
-    Module*                       module   = nullptr;
-    Runtime::BuildCfgBackendOptim optLevel = Runtime::BuildCfgBackendOptim::O0;
 };
 
 struct CallConv;

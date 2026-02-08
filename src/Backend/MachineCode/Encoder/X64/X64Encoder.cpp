@@ -1,8 +1,8 @@
-// ReSharper disable CommentTypo
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64/X64Encoder.h"
 #include "Backend/Diagnostics/BackendReport.h"
 #include "Backend/MachineCode/Encoder/MicroOps/MicroInstruction.h"
+#include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
 

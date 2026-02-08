@@ -11,6 +11,11 @@ inline ByteSpan asByteSpan(std::string_view v) noexcept
     return {reinterpret_cast<const std::byte*>(v.data()), v.size()};
 }
 
+inline ByteSpan asByteSpan(const std::vector<std::byte>& v) noexcept
+{
+    return {v.data(), v.size()};
+}
+
 inline std::string_view asStringView(ByteSpan v) noexcept
 {
     return {reinterpret_cast<const char*>(v.data()), v.size()};

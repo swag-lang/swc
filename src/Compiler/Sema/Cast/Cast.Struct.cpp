@@ -227,8 +227,8 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        std::vector<std::byte> buffer(structSize);
-        const auto             bytes = ByteSpan{buffer.data(), buffer.size()};
+        const std::vector<std::byte> buffer(structSize);
+        const auto                   bytes = asByteSpan(buffer);
 
         for (size_t i = 0; i < dstFields.size(); ++i)
         {

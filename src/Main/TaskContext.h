@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
-#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();

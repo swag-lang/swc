@@ -192,8 +192,8 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
-    SemaNodeView nodeLeftView(sema, nodeLeftRef);
-    SemaNodeView nodeRightView(sema, nodeRightRef);
+    const SemaNodeView nodeLeftView(sema, nodeLeftRef);
+    SemaNodeView       nodeRightView(sema, nodeRightRef);
 
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node->is(AstNodeId::AssignList))

@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 class DataSegment;

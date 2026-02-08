@@ -902,8 +902,8 @@ namespace
         const bool b0      = (reg >= CpuReg::R8 && reg <= CpuReg::R15);
         const bool b1      = (regMul >= CpuReg::R8 && regMul <= CpuReg::R15);
         const bool b2      = (regBase >= CpuReg::R8 && regBase <= CpuReg::R15);
-        const bool needREX = opBitsReg == OpBits::B64 || reg == CpuReg::Rsi || reg == CpuReg::Rdi || reg == CpuReg::Rbp;
-        if (needREX || b0 || b1 || b2)
+        const bool needRex = opBitsReg == OpBits::B64 || reg == CpuReg::Rsi || reg == CpuReg::Rdi || reg == CpuReg::Rbp;
+        if (needRex || b0 || b1 || b2)
         {
             const auto value = getRex(opBitsReg == OpBits::B64, b0, b1, b2);
             store.pushU8(value);
@@ -2190,7 +2190,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
             emitRex(store_, opBits, REX_REG_NONE, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 
@@ -2213,7 +2213,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
             emitRex(store_, opBits, REX_REG_NONE, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 
@@ -2236,7 +2236,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
             emitRex(store_, opBits, REX_REG_NONE, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_7, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 
@@ -2300,7 +2300,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
             emitRex(store_, opBits, REX_REG_NONE, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_7, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 
@@ -2323,7 +2323,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
             emitRex(store_, opBits, REX_REG_NONE, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 
@@ -2346,7 +2346,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
             emitRex(store_, opBits, REX_REG_NONE, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), BackendEncoder::getNumBits(opBits) - 1), OpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), OpBits::B8);
         }
     }
 

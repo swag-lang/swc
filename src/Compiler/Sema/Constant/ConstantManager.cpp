@@ -52,7 +52,7 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
     {
         ConstantValue stored = value;
 
@@ -66,7 +66,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
     {
         ConstantValue stored = value;
 
@@ -80,7 +80,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext&, const ConstantValue& value)
     {
         ConstantValue stored = value;
 

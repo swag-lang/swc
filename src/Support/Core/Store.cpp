@@ -172,18 +172,18 @@ uint32_t Store::SpanView::chunkCountFromLayout(const Store* st, Ref hdrRef, uint
 }
 
 Store::SpanView::SpanView(const Store* s, Ref r, uint32_t elemSize, uint32_t elemAlign) :
-    store(s),
-    head(r),
-    elementSize(elemSize),
-    elementAlign(elemAlign)
+    store_(s),
+    head_(r),
+    elementSize_(elemSize),
+    elementAlign_(elemAlign)
 {
 }
 
 uint32_t Store::SpanView::size() const
 {
-    if (!store || head == std::numeric_limits<Ref>::max())
+    if (!store_ || head_ == std::numeric_limits<Ref>::max())
         return 0;
-    return totalElems(store, head);
+    return totalElems(store_, head_);
 }
 
 bool Store::SpanView::ChunkIterator::operator!=(const ChunkIterator& o) const
@@ -217,12 +217,12 @@ Store::SpanView::ChunkIterator& Store::SpanView::ChunkIterator::operator++()
 Store::SpanView::ChunkIterator Store::SpanView::chunksBegin() const
 {
     ChunkIterator it;
-    it.store     = store;
-    it.hdrRef    = head;
+    it.store     = store_;
+    it.hdrRef    = head_;
     it.total     = size();
     it.done      = 0;
-    it.elemSize  = elementSize;
-    it.elemAlign = elementAlign;
+    it.elemSize  = elementSize_;
+    it.elemAlign = elementAlign_;
 
     if (it.total == 0)
     {
@@ -231,20 +231,20 @@ Store::SpanView::ChunkIterator Store::SpanView::chunksBegin() const
         return it;
     }
 
-    const uint32_t cnt = chunkCountFromLayout(store, head, it.total, elementSize, elementAlign);
-    const void*    p   = dataPtr(store, head, elementAlign);
+    const uint32_t cnt = chunkCountFromLayout(store_, head_, it.total, elementSize_, elementAlign_);
+    const void*    p   = dataPtr(store_, head_, elementAlign_);
     it.current         = {.ptr = p, .count = cnt};
     return it;
 }
 
 Store::SpanView::ChunkIterator Store::SpanView::chunksEnd() const
 {
-    return {.store     = store,
+    return {.store     = store_,
             .hdrRef    = std::numeric_limits<Ref>::max(),
             .total     = 0,
             .done      = 0,
-            .elemSize  = elementSize,
-            .elemAlign = elementAlign,
+            .elemSize  = elementSize_,
+            .elemAlign = elementAlign_,
             .current   = {.ptr = nullptr, .count = 0}};
 }
 

@@ -1,11 +1,9 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
-#include "Compiler/Sema/Symbol/IdentifierManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
 struct SemaNodeView;
-
 class Symbol;
 class Sema;
 class MatchContext;

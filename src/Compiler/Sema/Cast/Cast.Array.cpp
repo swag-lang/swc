@@ -27,7 +27,7 @@ namespace
         return res;
     }
 
-    Result failArrayDimMismatch(const CastArrayArgs& args, size_t dimIndex, uint64_t srcDim, uint64_t dstDim)
+    Result failArrayDimMismatch(const CastArrayArgs& args, size_t, uint64_t srcDim, uint64_t dstDim)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);

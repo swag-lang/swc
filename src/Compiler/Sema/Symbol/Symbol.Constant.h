@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();

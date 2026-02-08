@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Sema/Cast/CastFailure.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -64,6 +64,7 @@ private:
     std::bitset<64> bits_{};
 };
 
+// ReSharper disable CppInconsistentNaming
 enum class CpuOp : uint8_t
 {
     ADD      = 0x01,
@@ -148,6 +149,7 @@ enum class CpuCondJump : uint8_t
     JNP,
     JUMP,
 };
+// ReSharper restore CppInconsistentNaming
 
 enum class CpuEmitFlagsE : uint8_t
 {
@@ -299,17 +301,17 @@ public:
     virtual CpuEncodeResult encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags)                                                     = 0;
     virtual CpuEncodeResult encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags)                                                             = 0;
 
-    void       emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitJumpReg(CpuReg reg, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitLoadRegImm(CpuReg reg, uint64_t value, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void       emitClearReg(CpuReg reg, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
-    CpuSymbol* getOrAddSymbol(const Utf8& name, CpuSymbolKind kind);
-    void       addSymbolRelocation(uint32_t, uint32_t, uint16_t);
+    void        emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitJumpReg(CpuReg reg, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitLoadRegReg(CpuReg regDst, CpuReg regSrc, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitLoadRegImm(CpuReg reg, uint64_t value, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, OpBits numBitsDst, OpBits numBitsSrc, CpuEmitFlags emitFlags = EMIT_ZERO);
+    void        emitClearReg(CpuReg reg, OpBits opBits, CpuEmitFlags emitFlags = EMIT_ZERO);
+    CpuSymbol*  getOrAddSymbol(const Utf8& name, CpuSymbolKind kind);
+    static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:
     Store                store_;

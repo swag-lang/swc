@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Cast/CastRequest.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

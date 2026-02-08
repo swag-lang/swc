@@ -1,8 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

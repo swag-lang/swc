@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -9,8 +8,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Runtime/Runtime.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

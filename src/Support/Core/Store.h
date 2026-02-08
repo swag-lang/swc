@@ -113,10 +113,10 @@ public:
     // Span view over stored data (type-erased; elements described by size+alignment).
     class SpanView
     {
-        const Store* store        = nullptr;
-        Ref          head         = std::numeric_limits<Ref>::max();
-        uint32_t     elementSize  = 0;
-        uint32_t     elementAlign = 0;
+        const Store* store_        = nullptr;
+        Ref          head_         = std::numeric_limits<Ref>::max();
+        uint32_t     elementSize_  = 0;
+        uint32_t     elementAlign_ = 0;
 
         static void        decodeRef(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
         static uint32_t    dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
@@ -130,9 +130,9 @@ public:
 
         uint32_t size() const;
         bool     empty() const { return size() == 0; }
-        Ref      ref() const { return head; }
-        uint32_t elemSize() const { return elementSize; }
-        uint32_t elemAlign() const { return elementAlign; }
+        Ref      ref() const { return head_; }
+        uint32_t elemSize() const { return elementSize_; }
+        uint32_t elemAlign() const { return elementAlign_; }
 
         struct Chunk
         {

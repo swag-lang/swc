@@ -124,6 +124,8 @@ TokenId Token::assignToBinary(TokenId op)
             return TokenId::SymGreaterGreater;
         case TokenId::SymEqual:
             return TokenId::SymEqual;
+        default:
+            break;
     }
 
     SWC_UNREACHABLE();

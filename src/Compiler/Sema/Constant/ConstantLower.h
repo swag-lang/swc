@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -2889,20 +2889,40 @@ CpuRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
         inst.op == MicroOp::OpBinaryRM ||
         inst.op == MicroOp::OpBinaryMR)
     {
-        if (inst.cpuOp == CpuOp::ROL ||
-            inst.cpuOp == CpuOp::ROR ||
-            inst.cpuOp == CpuOp::SAL ||
-            inst.cpuOp == CpuOp::SAR ||
-            inst.cpuOp == CpuOp::SHL ||
-            inst.cpuOp == CpuOp::SHR)
+        auto cpuOp = CpuOp::ADD;
+        switch (inst.op)
+        {
+            case MicroOp::OpBinaryRI:
+                cpuOp = inst.payload.regValueOpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryRR:
+                cpuOp = inst.payload.regRegOpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryMI:
+                cpuOp = inst.payload.regValue2OpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryRM:
+            case MicroOp::OpBinaryMR:
+                cpuOp = inst.payload.regRegValueOpBitsCpuOp.cpuOp;
+                break;
+            default:
+                break;
+        }
+
+        if (cpuOp == CpuOp::ROL ||
+            cpuOp == CpuOp::ROR ||
+            cpuOp == CpuOp::SAL ||
+            cpuOp == CpuOp::SAR ||
+            cpuOp == CpuOp::SHL ||
+            cpuOp == CpuOp::SHR)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rcx));
         }
-        else if (inst.cpuOp == CpuOp::MUL ||
-                 inst.cpuOp == CpuOp::DIV ||
-                 inst.cpuOp == CpuOp::MOD ||
-                 inst.cpuOp == CpuOp::IDIV ||
-                 inst.cpuOp == CpuOp::IMOD)
+        else if (cpuOp == CpuOp::MUL ||
+                 cpuOp == CpuOp::DIV ||
+                 cpuOp == CpuOp::MOD ||
+                 cpuOp == CpuOp::IDIV ||
+                 cpuOp == CpuOp::IMOD)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rdx));
         }
@@ -2921,11 +2941,31 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
         inst.op == MicroOp::OpBinaryRM ||
         inst.op == MicroOp::OpBinaryMR)
     {
-        if (inst.cpuOp == CpuOp::MUL ||
-            inst.cpuOp == CpuOp::DIV ||
-            inst.cpuOp == CpuOp::MOD ||
-            inst.cpuOp == CpuOp::IDIV ||
-            inst.cpuOp == CpuOp::IMOD)
+        auto cpuOp = CpuOp::ADD;
+        switch (inst.op)
+        {
+            case MicroOp::OpBinaryRI:
+                cpuOp = inst.payload.regValueOpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryRR:
+                cpuOp = inst.payload.regRegOpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryMI:
+                cpuOp = inst.payload.regValue2OpBitsCpuOp.cpuOp;
+                break;
+            case MicroOp::OpBinaryRM:
+            case MicroOp::OpBinaryMR:
+                cpuOp = inst.payload.regRegValueOpBitsCpuOp.cpuOp;
+                break;
+            default:
+                break;
+        }
+
+        if (cpuOp == CpuOp::MUL ||
+            cpuOp == CpuOp::DIV ||
+            cpuOp == CpuOp::MOD ||
+            cpuOp == CpuOp::IDIV ||
+            cpuOp == CpuOp::IMOD)
         {
             result.add(x64Reg2CpuReg(X64Reg::Rdx));
         }
@@ -2935,4 +2975,3 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 }
 
 SWC_END_NAMESPACE();
-

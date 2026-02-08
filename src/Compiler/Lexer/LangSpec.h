@@ -53,9 +53,9 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_OPTION   = "swc-option";
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
-    static bool             isReservedNamespace(std::string_view ns);
-    static bool             isSpecialFunctionName(std::string_view name);
-    static bool             isOpVisitName(std::string_view name);
+    static bool isReservedNamespace(std::string_view ns);
+    static bool isSpecialFunctionName(std::string_view name);
+    static bool isOpVisitName(std::string_view name);
 
 private:
     CharFlags                                     charFlags_[256];

@@ -57,6 +57,7 @@ private:
     MicroInstruction& addInstruction(MicroOp op, EmitFlags emitFlags = EMIT_ZERO);
 
     std::vector<MicroInstruction> instructions_;
+    std::vector<Utf8>             callNames_;
 };
 
 SWC_END_NAMESPACE();

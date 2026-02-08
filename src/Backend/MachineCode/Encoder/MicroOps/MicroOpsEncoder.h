@@ -7,13 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroOpsEncoder : public CpuEncoder
 {
 public:
-    MicroInstruction& addInstruction(MicroOp op, CpuEmitFlags emitFlags = EMIT_ZERO);
-    void              encode(CpuEncoder& encoder) const;
-
-    void                                 clear() { instructions_.clear(); }
-    void                                 reserve(size_t count) { instructions_.reserve(count); }
-    std::vector<MicroInstruction>&       instructions() { return instructions_; }
-    const std::vector<MicroInstruction>& instructions() const { return instructions_; }
+    void encode(CpuEncoder& encoder) const;
 
     CpuEncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuEmitFlags emitFlags) override;
     CpuEncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, OpBits opBits, CpuEmitFlags emitFlags) override;
@@ -60,6 +54,8 @@ public:
     CpuEncodeResult encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, OpBits opBits, CpuEmitFlags emitFlags) override;
 
 private:
+    MicroInstruction& addInstruction(MicroOp op, CpuEmitFlags emitFlags = EMIT_ZERO);
+
     std::vector<MicroInstruction> instructions_;
 };
 

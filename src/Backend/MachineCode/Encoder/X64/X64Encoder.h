@@ -1,4 +1,3 @@
-// ReSharper disable CppInconsistentNaming
 #pragma once
 #include "Backend/MachineCode/Encoder/CpuEncoder.h"
 
@@ -6,8 +5,9 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroInstruction;
 
-struct X64Encoder final : CpuEncoder
+class X64Encoder : CpuEncoder
 {
+public:
     RegisterSet getReadRegisters(const MicroInstruction& inst) override;
     RegisterSet getWriteRegisters(const MicroInstruction& inst) override;
 

@@ -16,7 +16,7 @@ std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
         return it->second;
     const auto [span, ref]      = store_.pushCopySpan(asByteSpan(std::string_view(value)));
     const std::string_view view = asStringView(span);
-    stringMap_[value]            = {view, ref};
+    stringMap_[value]           = {view, ref};
     return {view, ref};
 }
 

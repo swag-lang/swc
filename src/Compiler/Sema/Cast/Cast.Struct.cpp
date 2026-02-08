@@ -41,7 +41,7 @@ namespace
         const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
             ctx.castRequest->errorCodeRef = fieldRef;
-        const Result res          = ctx.castRequest->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
+        const Result res              = ctx.castRequest->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
         ctx.castRequest->errorCodeRef = previous;
         return res;
     }
@@ -53,7 +53,7 @@ namespace
         const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
             ctx.castRequest->errorCodeRef = fieldRef;
-        const Result res          = failStructFieldCount(ctx, srcCount, dstCount);
+        const Result res              = failStructFieldCount(ctx, srcCount, dstCount);
         ctx.castRequest->errorCodeRef = previous;
         return res;
     }
@@ -250,7 +250,7 @@ namespace
                 return failStructConst(ctx);
         }
 
-        const auto result        = ConstantValue::makeStruct(ctx.sema->ctx(), ctx.dstTypeRef, bytes);
+        const auto result            = ConstantValue::makeStruct(ctx.sema->ctx(), ctx.dstTypeRef, bytes);
         ctx.castRequest->outConstRef = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
@@ -258,8 +258,8 @@ namespace
 
 Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&         srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&         dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo&      srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const CastStructArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     RESULT_VERIFY(sema.waitCompleted(&dstType, castRequest.errorNodeRef));

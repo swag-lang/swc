@@ -317,7 +317,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
 {
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
-    castRequest.srcConstRef             = cstRef;
+    castRequest.srcConstRef         = cstRef;
 
     const auto res = castAllowed(sema, castRequest, srcTypeRef, targetTypeRef);
     if (res != Result::Continue)

@@ -117,8 +117,8 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
-        ctx.castRequest->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
+        const ConstantValue result   = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
+        ctx.castRequest->outConstRef = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 
@@ -158,16 +158,16 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
-        ctx.castRequest->outConstRef   = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
+        const ConstantValue result   = ConstantValue::makeAggregateArray(ctx.sema->ctx(), newValues);
+        ctx.castRequest->outConstRef = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
         return Result::Continue;
     }
 }
 
 Result Cast::castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&        srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&        dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo&     srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
     const CastArrayArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
     if (srcType.isArray())

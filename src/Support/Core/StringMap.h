@@ -113,7 +113,7 @@ private:
 
     std::vector<uint8_t> ctrl;  // control bytes
     std::vector<Slot>    slots; // slots
-    size_t               mask     = 0;
+    size_t               mask      = 0;
     size_t               sizeValue = 0;
 
     static constexpr bool isOccupied(uint8_t c) noexcept
@@ -167,7 +167,7 @@ private:
                 if (!isOccupied(newCtrl[idx]))
                 {
                     newCtrl[idx]  = fp;
-                    moving.dist    = dist;
+                    moving.dist   = dist;
                     newSlots[idx] = std::move(moving);
                     break;
                 }
@@ -206,7 +206,7 @@ private:
             if (c == EMPTY)
             {
                 size_t target = (first_tomb != INVALID_POS) ? first_tomb : idx;
-                ctrl[target] = fp;
+                ctrl[target]  = fp;
                 Slot& s       = slots[target];
                 s.hash        = hash;
                 s.key         = key;
@@ -262,7 +262,7 @@ private:
                             if (cc == EMPTY || cc == TOMB)
                             {
                                 ctrl[ins]  = carry_fp;
-                                carry.dist  = idist;
+                                carry.dist = idist;
                                 slots[ins] = std::move(carry);
                                 if (cc == EMPTY)
                                     ++sizeValue;
@@ -300,7 +300,7 @@ private:
                         if (cc == EMPTY || cc == TOMB)
                         {
                             ctrl[ins]  = new_fp;
-                            carry.dist  = idist;
+                            carry.dist = idist;
                             slots[ins] = std::move(carry);
                             if (cc == EMPTY)
                                 ++sizeValue;

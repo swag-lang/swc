@@ -38,7 +38,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
         if (castRequest.isConstantFolding())
         {
             const ConstantValue& cst = sema.cstMgr().get(castRequest.srcConstRef);
-            castRequest.srcConstRef      = cst.getEnumValue();
+            castRequest.srcConstRef  = cst.getEnumValue();
         }
     }
 
@@ -325,7 +325,7 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     if (castRequest.isConstantFolding())
     {
         const ConstantValue& cst = sema.cstMgr().get(castRequest.srcConstRef);
-        castRequest.srcConstRef      = cst.getEnumValue();
+        castRequest.srcConstRef  = cst.getEnumValue();
     }
 
     const auto res = castAllowed(sema, castRequest, enumSym.underlyingTypeRef(), dstTypeRef);
@@ -537,7 +537,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
                 const std::string_view str  = cst.getString();
                 const ByteSpan         span = asByteSpan(str);
                 const ConstantValue    cv   = ConstantValue::makeSlice(ctx, dstType.payloadTypeRef(), span, TypeInfoFlagsE::Const);
-                castRequest.outConstRef         = sema.cstMgr().addConstant(sema.ctx(), cv);
+                castRequest.outConstRef     = sema.cstMgr().addConstant(sema.ctx(), cv);
             }
 
             return Result::Continue;

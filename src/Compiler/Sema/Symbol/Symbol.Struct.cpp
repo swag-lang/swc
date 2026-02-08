@@ -211,15 +211,17 @@ void SymbolStruct::computeLayout(Sema& sema)
 
 Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc)
 {
+    (void) sema;
     std::unique_lock lk(mutexSpecialFuncs_);
-    const auto [it, inserted] = specialFuncs_.try_emplace(symFunc.idRef(), &symFunc);
-    if (!inserted)
-    {
-        if (it->second == &symFunc)
-            return Result::Continue;
-        return SemaError::raiseAlreadyDefined(sema, &symFunc, it->second);
-    }
+    if (std::ranges::find(specialFuncs_, &symFunc) == specialFuncs_.end())
+        specialFuncs_.push_back(&symFunc);
     return Result::Continue;
+}
+
+std::vector<SymbolFunction*> SymbolStruct::specialFunctions() const
+{
+    std::shared_lock lk(mutexSpecialFuncs_);
+    return specialFuncs_;
 }
 
 SWC_END_NAMESPACE();

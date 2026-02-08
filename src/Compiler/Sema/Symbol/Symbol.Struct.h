@@ -48,6 +48,7 @@ public:
     void        computeLayout(Sema& sema);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
     Result      registerSpecialFunction(Sema& sema, SymbolFunction& symFunc);
+    std::vector<SymbolFunction*> specialFunctions() const;
 
 private:
     std::vector<SymbolVariable*>                       fields_;
@@ -56,7 +57,7 @@ private:
     mutable std::shared_mutex                          mutexInterfaces_;
     std::vector<SymbolImpl*>                           interfaces_;
     mutable std::shared_mutex                          mutexSpecialFuncs_;
-    std::unordered_map<IdentifierRef, SymbolFunction*> specialFuncs_;
+    std::vector<SymbolFunction*>                       specialFuncs_;
     std::once_flag                                     defaultStructOnce_;
     ConstantRef                                        defaultStructCst_ = ConstantRef::invalid();
     uint64_t                                           sizeInBytes_      = 0;

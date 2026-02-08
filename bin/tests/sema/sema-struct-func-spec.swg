@@ -9,7 +9,6 @@ impl SpecA
 {
     mtd opDrop() {}
 
-    // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
     mtd opEquals(value: s32) -> bool { return true; }
     mtd opEquals(value: f32) -> bool { return false; }
 

@@ -315,6 +315,43 @@ namespace
 
         return Result::Continue;
     }
+
+    bool allowsSpecialFunctionOverload(SpecialFuncKind kind)
+    {
+        switch (kind)
+        {
+            case SpecialFuncKind::OpCast:
+            case SpecialFuncKind::OpEquals:
+            case SpecialFuncKind::OpCmp:
+            case SpecialFuncKind::OpBinary:
+            case SpecialFuncKind::OpAssign:
+            case SpecialFuncKind::OpAffect:
+            case SpecialFuncKind::OpAffectLiteral:
+            case SpecialFuncKind::OpIndex:
+            case SpecialFuncKind::OpIndexAssign:
+            case SpecialFuncKind::OpIndexAffect:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    Result validateSpecialFunctionOverload(Sema& sema, SymbolStruct& owner, SymbolFunction& sym, SpecialFuncKind kind)
+    {
+        if (allowsSpecialFunctionOverload(kind))
+            return Result::Continue;
+
+        for (const auto* existing : owner.specialFunctions())
+        {
+            if (!existing || existing == &sym)
+                continue;
+            if (existing->idRef() != sym.idRef())
+                continue;
+            return SemaError::raiseAlreadyDefined(sema, &sym, existing);
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
@@ -357,6 +394,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_special_function_outside_impl, sym);
 
     RESULT_VERIFY(validateSpecialFunctionSignature(sema, *ownerStruct, sym, kind));
+    RESULT_VERIFY(validateSpecialFunctionOverload(sema, *ownerStruct, sym, kind));
     return ownerStruct->registerSpecialFunction(sema, sym);
 }
 

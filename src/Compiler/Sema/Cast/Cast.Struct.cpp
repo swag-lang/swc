@@ -21,11 +21,11 @@ namespace
         const TypeInfo* dstType;
     };
 
-    Result failStructFieldCount(const CastStructArgs& ctx, size_t srcCount, size_t dstCount)
+    Result failStructFieldCount(const CastStructArgs& args, size_t srcCount, size_t dstCount)
     {
-        const Result res = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_count, ctx.srcTypeRef, ctx.dstTypeRef);
-        ctx.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcCount));
-        ctx.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstCount));
+        const Result res = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_count, args.srcTypeRef, args.dstTypeRef);
+        args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcCount));
+        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstCount));
         return res;
     }
 
@@ -34,62 +34,62 @@ namespace
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
-    Result failStructField(const CastStructArgs& ctx, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
+    Result failStructField(const CastStructArgs& args, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
     {
-        const auto&         fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const SourceCodeRef previous  = ctx.castRequest->errorCodeRef;
+        const auto&         fieldRefs = args.srcType->payloadAggregate().fieldRefs;
+        const SourceCodeRef previous  = args.castRequest->errorCodeRef;
         const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
-            ctx.castRequest->errorCodeRef = fieldRef;
-        const Result res              = ctx.castRequest->fail(id, ctx.srcTypeRef, ctx.dstTypeRef, value);
-        ctx.castRequest->errorCodeRef = previous;
+            args.castRequest->errorCodeRef = fieldRef;
+        const Result res               = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
+        args.castRequest->errorCodeRef = previous;
         return res;
     }
 
-    Result failStructFieldCountAt(const CastStructArgs& ctx, size_t fieldIndex, size_t srcCount, size_t dstCount)
+    Result failStructFieldCountAt(const CastStructArgs& args, size_t fieldIndex, size_t srcCount, size_t dstCount)
     {
-        const auto&         fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const SourceCodeRef previous  = ctx.castRequest->errorCodeRef;
+        const auto&         fieldRefs = args.srcType->payloadAggregate().fieldRefs;
+        const SourceCodeRef previous  = args.castRequest->errorCodeRef;
         const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
         if (fieldRef.isValid())
-            ctx.castRequest->errorCodeRef = fieldRef;
-        const Result res              = failStructFieldCount(ctx, srcCount, dstCount);
-        ctx.castRequest->errorCodeRef = previous;
+            args.castRequest->errorCodeRef = fieldRef;
+        const Result res               = failStructFieldCount(args, srcCount, dstCount);
+        args.castRequest->errorCodeRef = previous;
         return res;
     }
 
-    Result failStructConst(const CastStructArgs& ctx)
+    Result failStructConst(const CastStructArgs& args)
     {
-        return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_const, ctx.srcTypeRef, ctx.dstTypeRef);
+        return args.castRequest->fail(DiagnosticId::sema_err_struct_cast_const, args.srcTypeRef, args.dstTypeRef);
     }
 
-    Result checkElemCast(const CastStructArgs& ctx, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef)
+    Result checkElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef)
     {
-        CastRequest elemCtx(ctx.castRequest->kind);
-        elemCtx.flags        = ctx.castRequest->flags;
-        elemCtx.errorNodeRef = ctx.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = ctx.castRequest->errorCodeRef;
+        CastRequest elemCtx(args.castRequest->kind);
+        elemCtx.flags        = args.castRequest->flags;
+        elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+        elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
         if (fieldRef.isValid())
             elemCtx.errorCodeRef = fieldRef;
-        const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
+        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
-            ctx.castRequest->failure = elemCtx.failure;
+            args.castRequest->failure = elemCtx.failure;
         return res;
     }
 
-    Result foldElemCast(const CastStructArgs& ctx, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef, ConstantRef valueRef, ConstantRef& outRef)
+    Result foldElemCast(const CastStructArgs& args, TypeRef srcElemType, TypeRef dstElemType, SourceCodeRef fieldRef, ConstantRef valueRef, ConstantRef& outRef)
     {
-        CastRequest elemCtx(ctx.castRequest->kind);
-        elemCtx.flags        = ctx.castRequest->flags;
-        elemCtx.errorNodeRef = ctx.castRequest->errorNodeRef;
-        elemCtx.errorCodeRef = ctx.castRequest->errorCodeRef;
+        CastRequest elemCtx(args.castRequest->kind);
+        elemCtx.flags        = args.castRequest->flags;
+        elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
+        elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
         if (fieldRef.isValid())
             elemCtx.errorCodeRef = fieldRef;
         elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res = Cast::castAllowed(*ctx.sema, elemCtx, srcElemType, dstElemType);
+        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
         {
-            ctx.castRequest->failure = elemCtx.failure;
+            args.castRequest->failure = elemCtx.failure;
             return res;
         }
 
@@ -99,32 +99,32 @@ namespace
         return Result::Continue;
     }
 
-    Result castStructToStruct(const CastStructArgs& ctx)
+    Result castStructToStruct(const CastStructArgs& args)
     {
-        const auto& srcFields = ctx.srcType->payloadSymStruct().fields();
-        const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
+        const auto& srcFields = args.srcType->payloadSymStruct().fields();
+        const auto& dstFields = args.dstType->payloadSymStruct().fields();
         if (srcFields.size() != dstFields.size())
-            return failStructFieldCount(ctx, srcFields.size(), dstFields.size());
+            return failStructFieldCount(args, srcFields.size(), dstFields.size());
 
         for (size_t i = 0; i < srcFields.size(); ++i)
         {
             if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
-                return failStructFieldType(ctx, dstFields[i]->name(ctx.sema->ctx()));
+                return failStructFieldType(args, dstFields[i]->name(args.sema->ctx()));
         }
 
         return Result::Continue;
     }
 
-    Result mapAggregateStructFields(const CastStructArgs& ctx, std::vector<size_t>& srcToDst)
+    Result mapAggregateStructFields(const CastStructArgs& args, std::vector<size_t>& srcToDst)
     {
-        const auto& aggregate = ctx.srcType->payloadAggregate();
+        const auto& aggregate = args.srcType->payloadAggregate();
         const auto& srcTypes  = aggregate.types;
         const auto& srcNames  = aggregate.names;
         const auto& fieldRefs = aggregate.fieldRefs;
-        const auto& dstFields = ctx.dstType->payloadSymStruct().fields();
+        const auto& dstFields = args.dstType->payloadSymStruct().fields();
 
         if (srcTypes.size() > dstFields.size())
-            return failStructFieldCount(ctx, srcTypes.size(), dstFields.size());
+            return failStructFieldCount(args, srcTypes.size(), dstFields.size());
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
         SWC_ASSERT(fieldRefs.size() == srcTypes.size());
@@ -141,12 +141,12 @@ namespace
             if (positional)
             {
                 if (seenNamed)
-                    return failStructField(ctx, i, DiagnosticId::sema_err_unnamed_parameter);
+                    return failStructField(args, i, DiagnosticId::sema_err_unnamed_parameter);
 
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos] || dstFields[nextPos]->isIgnored()))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                    return failStructFieldCountAt(ctx, i, srcTypes.size(), dstFields.size());
+                    return failStructFieldCountAt(args, i, srcTypes.size(), dstFields.size());
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
@@ -171,9 +171,9 @@ namespace
             }
 
             if (!found)
-                return failStructField(ctx, i, DiagnosticId::sema_err_missing_struct_member, ctx.sema->idMgr().get(name).name);
+                return failStructField(args, i, DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             if (dstUsed[dstIndex])
-                return failStructField(ctx, i, DiagnosticId::sema_err_struct_cast_duplicate_field, ctx.sema->idMgr().get(name).name);
+                return failStructField(args, i, DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
 
             srcToDst[i]       = dstIndex;
             dstUsed[dstIndex] = true;
@@ -182,35 +182,35 @@ namespace
         return Result::Continue;
     }
 
-    Result validateAggregateStructElementCasts(const CastStructArgs& ctx, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
+    Result validateAggregateStructElementCasts(const CastStructArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
-        const auto& fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
+        const auto& fieldRefs = args.srcType->payloadAggregate().fieldRefs;
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const size_t dstIndex = srcToDst[i];
-            RESULT_VERIFY(checkElemCast(ctx, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i]));
+            RESULT_VERIFY(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i]));
         }
 
         return Result::Continue;
     }
 
-    Result foldAggregateStructConstant(const CastStructArgs& ctx, const std::vector<size_t>& srcToDst)
+    Result foldAggregateStructConstant(const CastStructArgs& args, const std::vector<size_t>& srcToDst)
     {
-        if (!ctx.castRequest->isConstantFolding())
+        if (!args.castRequest->isConstantFolding())
             return Result::Continue;
 
-        const ConstantValue& cst       = ctx.sema->cstMgr().get(ctx.castRequest->constantFoldingSrc());
+        const ConstantValue& cst       = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
         const auto&          values    = cst.getAggregateStruct();
-        const auto&          srcTypes  = ctx.srcType->payloadAggregate().types;
-        const auto&          fieldRefs = ctx.srcType->payloadAggregate().fieldRefs;
-        const auto&          dstFields = ctx.dstType->payloadSymStruct().fields();
+        const auto&          srcTypes  = args.srcType->payloadAggregate().types;
+        const auto&          fieldRefs = args.srcType->payloadAggregate().fieldRefs;
+        const auto&          dstFields = args.dstType->payloadSymStruct().fields();
         std::vector          castedByDst(dstFields.size(), ConstantRef::invalid());
 
         for (size_t i = 0; i < values.size(); ++i)
         {
             const size_t dstIndex = srcToDst[i];
             ConstantRef  castedRef;
-            RESULT_VERIFY(foldElemCast(ctx, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i], values[i], castedRef));
+            RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i], values[i], castedRef));
             castedByDst[dstIndex] = castedRef;
         }
 
@@ -224,7 +224,7 @@ namespace
             castedByDst[i] = field->defaultValueRef();
         }
 
-        const uint64_t         structSize = ctx.dstType->sizeOf(ctx.sema->ctx());
+        const uint64_t         structSize = args.dstType->sizeOf(args.sema->ctx());
         std::vector<std::byte> buffer(structSize);
         if (structSize)
             std::ranges::fill(buffer, std::byte{0});
@@ -240,18 +240,18 @@ namespace
                 continue;
 
             const TypeRef   fieldTypeRef = field->typeRef();
-            const TypeInfo& fieldType    = ctx.sema->typeMgr().get(fieldTypeRef);
-            const uint64_t  fieldSize    = fieldType.sizeOf(ctx.sema->ctx());
+            const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = field->offset();
             if (fieldOffset + fieldSize > bytes.size())
-                return failStructConst(ctx);
+                return failStructConst(args);
 
-            if (!ConstantHelpers::lowerToBytes(*ctx.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
-                return failStructConst(ctx);
+            if (!ConstantHelpers::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef))
+                return failStructConst(args);
         }
 
-        const auto result            = ConstantValue::makeStruct(ctx.sema->ctx(), ctx.dstTypeRef, bytes);
-        ctx.castRequest->outConstRef = ctx.sema->cstMgr().addConstant(ctx.sema->ctx(), result);
+        const auto result             = ConstantValue::makeStruct(args.sema->ctx(), args.dstTypeRef, bytes);
+        args.castRequest->outConstRef = args.sema->cstMgr().addConstant(args.sema->ctx(), result);
         return Result::Continue;
     }
 }

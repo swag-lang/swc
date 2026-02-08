@@ -5,17 +5,109 @@ SWC_BEGIN_NAMESPACE();
 
 enum class MicroOp : uint8_t
 {
-    OpBinaryRi,
-    OpBinaryRr,
-    OpBinaryMi,
-    OpBinaryRm,
-    OpBinaryMr,
+    End,
+    Enter,
+    Leave,
+    Ignore,
+    Label,
+    Debug,
+
+    Push,
+    Pop,
+    Nop,
+    Ret,
+
+    SymbolRelocAddr,
+    SymbolRelocValue,
+
+    LoadCallParam,
+    LoadCallAddrParam,
+    LoadCallZeroExtParam,
+    StoreCallParam,
+
+    CallLocal,
+    CallExtern,
+    CallIndirect,
+
+    JumpTable,
+    JumpCond,
+    JumpM,
+    JumpCondI,
+    PatchJump,
+
+    LoadRR,
+    LoadRI,
+    LoadRM,
+    LoadMR,
+    LoadMI,
+
+    LoadSignedExtRM,
+    LoadZeroExtRM,
+    LoadSignedExtRR,
+    LoadZeroExtRR,
+
+    LoadAddrRM,
+
+    LoadAmcRM,
+    LoadAmcMR,
+    LoadAmcMI,
+    LoadAddrAmcRM,
+
+    CmpRR,
+    CmpRI,
+    CmpMR,
+    CmpMI,
+
+    SetCondR,
+    ClearR,
+
+    OpUnaryM,
+    OpUnaryR,
+
+    LoadCondRR,
+
+    OpBinaryRR,
+    OpBinaryRI,
+    OpBinaryRM,
+    OpBinaryMR,
+    OpBinaryMI,
+
+    OpTernaryRRR,
+
+    OpBinaryRi = OpBinaryRI,
+    OpBinaryRr = OpBinaryRR,
+    OpBinaryRm = OpBinaryRM,
+    OpBinaryMr = OpBinaryMR,
+    OpBinaryMi = OpBinaryMI,
 };
 
 struct MicroInstruction
 {
-    MicroOp op    = MicroOp::OpBinaryRi;
-    CpuOp   cpuOp = CpuOp::ADD;
+    Utf8 name;
+
+    union
+    {
+        uint64_t        valueA = 0;
+        const CallConv* cc;
+    };
+
+    uint64_t valueB = 0;
+    uint64_t valueC = 0;
+
+    MicroOp    op       = MicroOp::OpBinaryRi;
+    CpuOp      cpuOp    = CpuOp::ADD;
+    CpuCond    cpuCond  = CpuCond::A;
+    CpuCondJump jumpType = CpuCondJump::JUMP;
+
+    OpBits       opBitsA   = OpBits::Zero;
+    OpBits       opBitsB   = OpBits::Zero;
+    CpuEmitFlags emitFlags = EMIT_ZERO;
+
+    CpuReg regA = CpuReg::Rax;
+    CpuReg regB = CpuReg::Rax;
+    CpuReg regC = CpuReg::Rax;
+
+    bool isEnd() const { return op == MicroOp::End; }
 };
 
 SWC_END_NAMESPACE();

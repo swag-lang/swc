@@ -62,12 +62,12 @@ namespace
         return false;
     }
 
-    bool getStructBytesFromConstant(Sema& sema, const ConstantValue& cst, ByteSpan& bytes)
+    Result getStructBytesFromConstant(Sema& sema, ByteSpan& bytes, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         if (cst.isStruct())
         {
             bytes = cst.getStruct();
-            return true;
+            return Result::Continue;
         }
 
         if (cst.isValuePointer() || cst.isBlockPointer())
@@ -86,16 +86,16 @@ namespace
             const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
             SWC_ASSERT(ptr);
             bytes = ByteSpan{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
-            return true;
+            return Result::Continue;
         }
 
         if (cst.isSlice())
         {
             bytes = cst.getSlice();
-            return true;
+            return Result::Continue;
         }
 
-        return false;
+        return failStructMemberType(sema, symVar, nodeMemberRef);
     }
 
     void extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
@@ -125,13 +125,23 @@ namespace
         sema.setConstant(nodeRef, values[fieldIndex]);
     }
 
-    ConstantRef makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes)
+    Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         auto& ctx = sema.ctx();
         if (typeField.isArray())
-            return makeArrayConstantFromBytes(sema, fieldTypeRef, bytes);
+        {
+            outCstRef = makeArrayConstantFromBytes(sema, fieldTypeRef, bytes);
+            if (outCstRef.isInvalid())
+                return failStructMemberType(sema, symVar, nodeMemberRef);
+            return Result::Continue;
+        }
         if (typeField.isStruct())
-            return makeStructConstantFromBytes(sema, fieldTypeRef, bytes);
+        {
+            outCstRef = makeStructConstantFromBytes(sema, fieldTypeRef, bytes);
+            if (outCstRef.isInvalid())
+                return failStructMemberType(sema, symVar, nodeMemberRef);
+            return Result::Continue;
+        }
 
         TypeRef valueTypeRef = fieldTypeRef;
         if (typeField.isEnum())
@@ -139,7 +149,7 @@ namespace
 
         ConstantValue cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (!cv.isValid())
-            return ConstantRef::invalid();
+            return failStructMemberType(sema, symVar, nodeMemberRef);
 
         ConstantRef cstRef = sema.cstMgr().addConstant(ctx, cv);
         if (typeField.isEnum())
@@ -149,7 +159,8 @@ namespace
             cstRef = sema.cstMgr().addConstant(ctx, enumCv);
         }
 
-        return cstRef;
+        outCstRef = cstRef;
+        return Result::Continue;
     }
 }
 
@@ -164,17 +175,15 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
     }
 
     ByteSpan bytes;
-    if (!getStructBytesFromConstant(sema, cst, bytes))
-        return failStructMemberType(sema, symVar, nodeMemberRef);
+    RESULT_VERIFY(getStructBytesFromConstant(sema, bytes, cst, symVar, nodeMemberRef));
 
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
     const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
-    const ConstantRef cstRef = makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes);
-    if (cstRef.isInvalid())
-        return failStructMemberType(sema, symVar, nodeMemberRef);
+    ConstantRef cstRef = ConstantRef::invalid();
+    RESULT_VERIFY(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
 
     sema.setConstant(nodeRef, cstRef);
     return Result::Continue;

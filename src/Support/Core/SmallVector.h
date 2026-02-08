@@ -263,7 +263,7 @@ public:
 
     void pop_back()
     {
-        assert(sizeValue_ > 0);
+        SWC_ASSERT(sizeValue_ > 0);
         std::destroy_at(ptr_ + sizeValue_ - 1);
         --sizeValue_;
     }

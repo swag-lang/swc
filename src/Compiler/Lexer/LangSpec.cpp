@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
-#include "Main/TaskContext.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -150,50 +150,62 @@ bool LangSpec::isOpVisitName(std::string_view name)
     return name.rfind("opVisit", 0) == 0;
 }
 
-bool LangSpec::matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind)
+bool LangSpec::matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecialFuncKind& outKind)
 {
-    if (isOpVisitName(name))
+    if (idRef.isInvalid())
+        return false;
+
+    if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpVisit))
     {
         outKind = SpecialFuncKind::OpVisit;
         return true;
     }
 
-    if (name == "opBinary")
+    if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpBinary))
         outKind = SpecialFuncKind::OpBinary;
-    else if (name == "opUnary")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpUnary))
         outKind = SpecialFuncKind::OpUnary;
-    else if (name == "opAssign")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAssign))
         outKind = SpecialFuncKind::OpAssign;
-    else if (name == "opIndexAssign")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAssign))
         outKind = SpecialFuncKind::OpIndexAssign;
-    else if (name == "opCast")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCast))
         outKind = SpecialFuncKind::OpCast;
-    else if (name == "opEquals")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpEquals))
         outKind = SpecialFuncKind::OpEquals;
-    else if (name == "opCmp")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCmp))
         outKind = SpecialFuncKind::OpCmp;
-    else if (name == "opPostCopy")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostCopy))
         outKind = SpecialFuncKind::OpPostCopy;
-    else if (name == "opPostMove")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
         outKind = SpecialFuncKind::OpPostMove;
-    else if (name == "opDrop")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpDrop))
         outKind = SpecialFuncKind::OpDrop;
-    else if (name == "opCount")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCount))
         outKind = SpecialFuncKind::OpCount;
-    else if (name == "opData")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpData))
         outKind = SpecialFuncKind::OpData;
-    else if (name == "opAffect")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffect))
         outKind = SpecialFuncKind::OpAffect;
-    else if (name == "opAffectLiteral")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffectLiteral))
         outKind = SpecialFuncKind::OpAffectLiteral;
-    else if (name == "opSlice")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpSlice))
         outKind = SpecialFuncKind::OpSlice;
-    else if (name == "opIndex")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndex))
         outKind = SpecialFuncKind::OpIndex;
-    else if (name == "opIndexAffect")
+    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAffect))
         outKind = SpecialFuncKind::OpIndexAffect;
     else
+    {
+        const std::string_view name = idMgr.get(idRef).name;
+        if (isOpVisitName(name))
+        {
+            outKind = SpecialFuncKind::OpVisit;
+            return true;
+        }
+
         return false;
+    }
 
     return true;
 }

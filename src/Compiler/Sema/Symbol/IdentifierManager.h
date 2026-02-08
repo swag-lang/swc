@@ -19,7 +19,6 @@ public:
     {
         Swag,
         AttributeUsage,
-
         AttrMulti,
         ConstExpr,
         PrintBc,
@@ -50,7 +49,24 @@ public:
         Global,
         Me,
         TargetOs,
-
+        OpBinary,
+        OpUnary,
+        OpAssign,
+        OpIndexAssign,
+        OpCast,
+        OpEquals,
+        OpCmp,
+        OpPostCopy,
+        OpPostMove,
+        OpDrop,
+        OpCount,
+        OpData,
+        OpAffect,
+        OpAffectLiteral,
+        OpSlice,
+        OpIndex,
+        OpIndexAffect,
+        OpVisit,
         TypeInfo,
         TypeInfoNative,
         TypeInfoPointer,
@@ -67,7 +83,6 @@ public:
         TypeInfoKind,
         TypeInfoNativeKind,
         TypeInfoFlags,
-
         TypeValue,
         TypeValueFlags,
         Attribute,
@@ -81,7 +96,6 @@ public:
         Module,
         ProcessInfos,
         Gvtd,
-
         Count,
     };
 

@@ -196,12 +196,13 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
     if (idRef.isInvalid())
         return Result::Continue;
 
-    const std::string_view name = sema.idMgr().get(idRef).name;
+    auto&                  idMgr = sema.idMgr();
+    const std::string_view name  = idMgr.get(idRef).name;
     if (!LangSpec::isSpecialFunctionName(name))
         return Result::Continue;
 
     SpecialFuncKind kind{};
-    if (!LangSpec::matchSpecialFunction(name, kind))
+    if (!LangSpec::matchSpecialFunction(idRef, idMgr, kind))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
         diag.addNote(DiagnosticId::sema_note_special_function_reserved);

@@ -1,10 +1,12 @@
 #pragma once
 #include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+class IdentifierManager;
 struct AstEnumDecl;
 
 enum class TokenId : uint16_t;
@@ -76,7 +78,7 @@ public:
     static bool             isReservedNamespace(std::string_view ns);
     static bool             isSpecialFunctionName(std::string_view name);
     static bool             isOpVisitName(std::string_view name);
-    static bool             matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind);
+    static bool             matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecialFuncKind& outKind);
     static std::string_view specialFunctionSignatureHint(SpecialFuncKind kind);
 
 private:

@@ -23,7 +23,6 @@ void IdentifierManager::setup(TaskContext&)
     static constexpr PredefinedEntry PREDEFINED_NAMES[] = {
         {.name = PredefinedName::Swag, .str = "Swag"},
         {.name = PredefinedName::AttributeUsage, .str = "AttributeUsage"},
-
         {.name = PredefinedName::AttrMulti, .str = "AttrMulti"},
         {.name = PredefinedName::ConstExpr, .str = "ConstExpr"},
         {.name = PredefinedName::PrintBc, .str = "PrintBc"},
@@ -53,9 +52,25 @@ void IdentifierManager::setup(TaskContext&)
         {.name = PredefinedName::Strict, .str = "Strict"},
         {.name = PredefinedName::Global, .str = "Global"},
         {.name = PredefinedName::Me, .str = "me"},
-
         {.name = PredefinedName::TargetOs, .str = "TargetOs"},
-
+        {.name = PredefinedName::OpBinary, .str = "opBinary"},
+        {.name = PredefinedName::OpUnary, .str = "opUnary"},
+        {.name = PredefinedName::OpAssign, .str = "opAssign"},
+        {.name = PredefinedName::OpIndexAssign, .str = "opIndexAssign"},
+        {.name = PredefinedName::OpCast, .str = "opCast"},
+        {.name = PredefinedName::OpEquals, .str = "opEquals"},
+        {.name = PredefinedName::OpCmp, .str = "opCmp"},
+        {.name = PredefinedName::OpPostCopy, .str = "opPostCopy"},
+        {.name = PredefinedName::OpPostMove, .str = "opPostMove"},
+        {.name = PredefinedName::OpDrop, .str = "opDrop"},
+        {.name = PredefinedName::OpCount, .str = "opCount"},
+        {.name = PredefinedName::OpData, .str = "opData"},
+        {.name = PredefinedName::OpAffect, .str = "opAffect"},
+        {.name = PredefinedName::OpAffectLiteral, .str = "opAffectLiteral"},
+        {.name = PredefinedName::OpSlice, .str = "opSlice"},
+        {.name = PredefinedName::OpIndex, .str = "opIndex"},
+        {.name = PredefinedName::OpIndexAffect, .str = "opIndexAffect"},
+        {.name = PredefinedName::OpVisit, .str = "opVisit"},
         {.name = PredefinedName::TypeInfo, .str = "TypeInfo"},
         {.name = PredefinedName::TypeInfoNative, .str = "TypeInfoNative"},
         {.name = PredefinedName::TypeInfoPointer, .str = "TypeInfoPointer"},
@@ -72,7 +87,6 @@ void IdentifierManager::setup(TaskContext&)
         {.name = PredefinedName::TypeInfoKind, .str = "TypeInfoKind"},
         {.name = PredefinedName::TypeInfoNativeKind, .str = "TypeInfoNativeKind"},
         {.name = PredefinedName::TypeInfoFlags, .str = "TypeInfoFlags"},
-
         {.name = PredefinedName::TypeValue, .str = "TypeValue"},
         {.name = PredefinedName::TypeValueFlags, .str = "TypeValueFlags"},
         {.name = PredefinedName::Attribute, .str = "Attribute"},

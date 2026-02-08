@@ -84,26 +84,6 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
     return defaultStructCst_;
 }
 
-bool SymbolStruct::findAggregateStructFieldIndex(const SymbolVariable& symVar, size_t& fieldIndex) const
-{
-    size_t index = 0;
-    for (const auto* field : fields_)
-    {
-        if (!field || field->isIgnored())
-            continue;
-
-        if (field == &symVar)
-        {
-            fieldIndex = index;
-            return true;
-        }
-
-        ++index;
-    }
-
-    return false;
-}
-
 namespace
 {
     bool isUsingMemberDecl(const AstNode* decl)

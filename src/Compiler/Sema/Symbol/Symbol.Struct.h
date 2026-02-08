@@ -45,7 +45,6 @@ public:
 
     void        computeLayout(Sema& sema);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
-    bool        findAggregateStructFieldIndex(const SymbolVariable& symVar, size_t& fieldIndex) const;
 
 private:
     std::vector<SymbolVariable*> fields_;

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -89,13 +91,21 @@ namespace
             return;
         }
 
-        size_t fieldIndex = 0;
-        if (!sym->findAggregateStructFieldIndex(symVar, fieldIndex))
+        size_t      fieldIndex = 0;
+        const auto& fields     = sym->fields();
+        const auto  it         = std::ranges::find_if(fields, [&](const auto* field) {
+            if (field->isIgnored())
+                return false;
+            return field == &symVar;
+        });
+
+        if (it == fields.end())
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
 
+        fieldIndex = static_cast<size_t>(std::distance(fields.begin(), it));
         if (std::cmp_greater_equal(fieldIndex, values.size()))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);

@@ -214,7 +214,11 @@ Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc
     std::unique_lock lk(mutexSpecialFuncs_);
     const auto [it, inserted] = specialFuncs_.try_emplace(symFunc.idRef(), &symFunc);
     if (!inserted)
+    {
+        if (it->second == &symFunc)
+            return Result::Continue;
         return SemaError::raiseAlreadyDefined(sema, &symFunc, it->second);
+    }
     return Result::Continue;
 }
 

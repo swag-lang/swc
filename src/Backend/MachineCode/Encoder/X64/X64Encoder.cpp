@@ -2036,7 +2036,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
 
     else if (op == CpuOp::ADD)
     {
-        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && optLevel_ >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && buildParams_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
@@ -2083,7 +2083,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, Cpu
 
     else if (op == CpuOp::SUB)
     {
-        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && optLevel_ >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && buildParams_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
@@ -2356,7 +2356,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
 
     else if (op == CpuOp::ADD)
     {
-        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && optLevel_ >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && buildParams_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;
@@ -2403,7 +2403,7 @@ CpuEncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffs
 
     else if (op == CpuOp::SUB)
     {
-        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && optLevel_ >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EMIT_OVERFLOW) && buildParams_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return CpuEncodeResult::Zero;

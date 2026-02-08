@@ -85,13 +85,12 @@ public:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:
-    Store                         store_;
-    BuildParameters               buildParams_;
-    Module*                       module_            = nullptr;
-    CpuFunction*                  cpuFct_            = nullptr;
-    Runtime::BuildCfgBackendOptim optLevel_          = Runtime::BuildCfgBackendOptim::O0;
-    uint32_t                      symCsIndex_        = 0;
-    uint32_t                      textSectionOffset_ = 0;
+    Store           store_;
+    BuildParameters buildParams_;
+    Module*         module_            = nullptr;
+    CpuFunction*    cpuFct_            = nullptr;
+    uint32_t        symCsIndex_        = 0;
+    uint32_t        textSectionOffset_ = 0;
 
 private:
     std::vector<CpuSymbol> symbols_;

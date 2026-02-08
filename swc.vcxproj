@@ -329,6 +329,7 @@
     <ItemGroup>
         <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroOpsEncoder.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuAbstraction.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>

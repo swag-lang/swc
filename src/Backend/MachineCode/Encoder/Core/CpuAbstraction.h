@@ -1,6 +1,6 @@
 #pragma once
+#include "Runtime/Runtime.h"
 #include "Support/Core/Flags.h"
-#include "Support/Core/Store.h"
 #include "Support/Core/Utf8.h"
 #include "Wmf/Module.h"
 
@@ -216,31 +216,10 @@ struct CpuFunction
     std::vector<CpuLabelToSolve> labelsToSolve;
 };
 
-enum class BuildCfgBackendOptim : uint8_t
-{
-    O0,
-    O1,
-};
-
 struct BuildParameters
 {
-    Module*              module   = nullptr;
-    BuildCfgBackendOptim optLevel = BuildCfgBackendOptim::O0;
-};
-
-struct BackendEncoder
-{
-    static uint32_t getNumBits(OpBits opBits)
-    {
-        switch (opBits)
-        {
-            case OpBits::B8: return 8;
-            case OpBits::B16: return 16;
-            case OpBits::B32: return 32;
-            case OpBits::B64: return 64;
-            default: return 0;
-        }
-    }
+    Module*                       module   = nullptr;
+    Runtime::BuildCfgBackendOptim optLevel = Runtime::BuildCfgBackendOptim::O0;
 };
 
 struct CallConv;

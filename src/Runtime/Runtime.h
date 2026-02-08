@@ -323,6 +323,16 @@ namespace Runtime
         uint32_t traceIndex;
         uint32_t hasError;
     };
+
+    enum BuildCfgBackendOptim
+    {
+        O0,
+        O1,
+        O2,
+        O3,
+        Os,
+        Oz,
+    };
 }
 
 SWC_END_NAMESPACE();

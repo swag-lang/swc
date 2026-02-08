@@ -5,13 +5,25 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroInstruction;
 
-class CpuEncoder : public BackendEncoder
+class CpuEncoder
 {
 public:
     virtual ~CpuEncoder() = default;
 
     static bool isFloat(CpuReg reg) { return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3; }
     static bool isInt(CpuReg reg) { return !isFloat(reg); }
+
+    static uint32_t getNumBits(OpBits opBits)
+    {
+        switch (opBits)
+        {
+            case OpBits::B8: return 8;
+            case OpBits::B16: return 16;
+            case OpBits::B32: return 32;
+            case OpBits::B64: return 64;
+            default: return 0;
+        }
+    }
 
     virtual RegisterSet getReadRegisters(const MicroInstruction&) { return {}; }
     virtual RegisterSet getWriteRegisters(const MicroInstruction&) { return {}; }
@@ -73,13 +85,13 @@ public:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:
-    Store                store_;
-    BuildParameters      buildParams_;
-    Module*              module_            = nullptr;
-    CpuFunction*         cpuFct_            = nullptr;
-    BuildCfgBackendOptim optLevel_          = BuildCfgBackendOptim::O0;
-    uint32_t             symCsIndex_        = 0;
-    uint32_t             textSectionOffset_ = 0;
+    Store                         store_;
+    BuildParameters               buildParams_;
+    Module*                       module_            = nullptr;
+    CpuFunction*                  cpuFct_            = nullptr;
+    Runtime::BuildCfgBackendOptim optLevel_          = Runtime::BuildCfgBackendOptim::O0;
+    uint32_t                      symCsIndex_        = 0;
+    uint32_t                      textSectionOffset_ = 0;
 
 private:
     std::vector<CpuSymbol> symbols_;

@@ -238,11 +238,12 @@ Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc
     if (std::ranges::find(specialFuncs_, &symFunc) != specialFuncs_.end())
         return Result::Continue;
 
+    const IdentifierRef identifierRef = symFunc.idRef();
     if (!allowsSpecialFunctionOverload(kind))
     {
         for (const auto* existing : specialFuncs_)
         {
-            if (existing && existing->idRef() == symFunc.idRef())
+            if (existing && existing->idRef() == identifierRef)
             {
                 SemaError::raiseAlreadyDefined(sema, &symFunc, existing);
                 return Result::Error;
@@ -250,11 +251,12 @@ Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc
         }
     }
 
-    if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpDrop))
+    const auto& idMgr = sema.idMgr();
+    if (identifierRef == idMgr.predefined(IdentifierManager::PredefinedName::OpDrop))
         opDrop_ = &symFunc;
-    else if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpPostCopy))
+    else if (identifierRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostCopy))
         opPostCopy_ = &symFunc;
-    else if (symFunc.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpPostMove))
+    else if (identifierRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
         opPostMove_ = &symFunc;
 
     specialFuncs_.push_back(&symFunc);

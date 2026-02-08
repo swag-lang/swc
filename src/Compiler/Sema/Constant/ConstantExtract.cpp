@@ -201,8 +201,9 @@ namespace
 
     Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef)
     {
-        auto&          ctx      = sema.ctx();
-        const TypeInfo elemType = sema.typeMgr().get(elemTypeRef);
+        auto&           ctx      = sema.ctx();
+        const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+        RESULT_VERIFY(sema.waitCompleted(&elemType, nodeArgRef));
         const uint64_t elemSize = elemType.sizeOf(ctx);
         SWC_ASSERT(elemSize);
 

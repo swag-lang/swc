@@ -211,6 +211,16 @@ namespace
             castedByDst[dstIndex] = castedRef;
         }
 
+        for (size_t i = 0; i < dstFields.size(); ++i)
+        {
+            if (castedByDst[i].isValid())
+                continue;
+            const auto* field = dstFields[i];
+            if (!field || field->isIgnored())
+                continue;
+            castedByDst[i] = field->defaultValueRef();
+        }
+
         const uint64_t         structSize = ctx.dstType->sizeOf(ctx.sema->ctx());
         std::vector<std::byte> buffer(structSize);
         if (structSize)

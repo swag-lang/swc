@@ -49,6 +49,22 @@ namespace
         }
     }
 
+    void storeFieldDefaultConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)
+    {
+        if (cstRef.isInvalid())
+            return;
+
+        for (auto* s : symbols)
+        {
+            auto* symVar = s->safeCast<SymbolVariable>();
+            if (!symVar)
+                continue;
+            if (!symVar->ownerSymMap() || !symVar->ownerSymMap()->safeCast<SymbolStruct>())
+                continue;
+            symVar->setDefaultValueRef(cstRef);
+        }
+    }
+
     Result semaPostVarDeclCommon(Sema&                       sema,
                                  const AstNode&              owner,
                                  TokenRef                    tokDiag,
@@ -101,6 +117,9 @@ namespace
                 RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
             }
         }
+
+        if (nodeInitRef.isValid())
+            storeFieldDefaultConstants(symbols, nodeInitView.cstRef);
 
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef));

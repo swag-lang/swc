@@ -370,8 +370,6 @@ bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes,
     {
         if (!field || field->isIgnored())
             continue;
-        if (valueIdx >= values.size())
-            break;
 
         const TypeRef   fieldTypeRef = field->typeRef();
         const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
@@ -380,10 +378,26 @@ bool ConstantHelpers::lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes,
         if (fieldOffset + fieldSize > dstBytes.size())
             return false;
 
-        if (!lowerConstantToBytes(sema, ByteSpan{dstBytes.data() + fieldOffset, fieldSize}, fieldTypeRef, values[valueIdx]))
-            return false;
+        ConstantRef valueRef = ConstantRef::invalid();
+        if (valueIdx < values.size())
+        {
+            valueRef = values[valueIdx];
+            ++valueIdx;
+        }
+        else
+        {
+            valueRef = field->defaultValueRef();
+        }
 
-        ++valueIdx;
+        if (valueRef.isValid())
+        {
+            if (!lowerConstantToBytes(sema, ByteSpan{dstBytes.data() + fieldOffset, fieldSize}, fieldTypeRef, valueRef))
+                return false;
+        }
+        else if (fieldSize)
+        {
+            std::memset(const_cast<std::byte*>(dstBytes.data()) + fieldOffset, 0, fieldSize);
+        }
     }
 
     return true;

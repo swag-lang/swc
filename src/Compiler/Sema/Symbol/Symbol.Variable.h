@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -22,11 +23,14 @@ public:
     {
     }
 
-    uint32_t offset() const { return offset_; }
-    void     setOffset(uint32_t offset) { offset_ = offset; }
+    uint32_t    offset() const { return offset_; }
+    void        setOffset(uint32_t offset) { offset_ = offset; }
+    ConstantRef defaultValueRef() const { return defaultValueRef_; }
+    void        setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
 
 private:
-    uint32_t offset_ = 0;
+    uint32_t    offset_          = 0;
+    ConstantRef defaultValueRef_ = ConstantRef::invalid();
 };
 
 SWC_END_NAMESPACE();

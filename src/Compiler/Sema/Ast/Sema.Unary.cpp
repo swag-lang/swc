@@ -99,7 +99,8 @@ namespace
             return Result::Continue;
         }
 
-        return SemaError::raiseInternal(sema, sema.curNodeRef());
+        SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+        return Result::Error;
     }
 
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& nodeView)
@@ -308,7 +309,8 @@ namespace
             case TokenId::KwdMoveRef:
                 return checkMoveRef(sema, node, nodeView);
             default:
-                return SemaError::raiseInternal(sema, sema.curNodeRef());
+                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                return Result::Error;
         }
     }
 }

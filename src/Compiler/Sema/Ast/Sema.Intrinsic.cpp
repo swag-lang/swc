@@ -22,7 +22,8 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
+            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            return Result::Error;
     }
 }
 
@@ -193,7 +194,8 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
+            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            return Result::Error;
     }
 }
 

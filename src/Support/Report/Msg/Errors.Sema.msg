@@ -17,7 +17,6 @@ SWC_DIAG_DEF(sema_err_cannot_cast_to_interface, Error, "cannot cast from '{type}
 SWC_DIAG_DEF(sema_err_enum_underlying_cast, Error, "enum cast uses wrong type; expected underlying type '{opt-type}'")
 SWC_DIAG_DEF(sema_err_compiler_error, Error, "compiler error: {because}")
 SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compiler assertion failed")
-SWC_DIAG_DEF(sema_err_internal, Error, "internal error")
 SWC_DIAG_DEF(sema_err_cannot_compute_auto_scope, Error, "cannot compute auto scope")
 SWC_DIAG_DEF(sema_err_auto_scope_missing_enum_value, Error, "the enum value '{value}' does not exist in the enum '{requested-type}'")
 SWC_DIAG_DEF(sema_err_auto_scope_missing_struct_member, Error, "the field '{value}' does not exist in the struct '{requested-type}'")

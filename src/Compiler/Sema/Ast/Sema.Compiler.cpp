@@ -496,7 +496,8 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
             return Result::SkipChildren;
 
         default:
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
+            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            return Result::Error;
     }
 }
 

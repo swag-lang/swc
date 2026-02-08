@@ -60,14 +60,18 @@ namespace
                 return Result::Continue;
 
             default:
-                return SemaError::raiseInternal(sema, nodeRef);
+                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                return Result::Error;
         }
     }
 
     Result assignDecomposition(Sema& sema, const Token& tok, const AstAssignList& assignList, const SemaNodeView& nodeRightView)
     {
         if (tok.id != TokenId::SymEqual)
-            return SemaError::raiseInternal(sema, sema.curNodeRef());
+        {
+            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            return Result::Error;
+        }
 
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
@@ -143,7 +147,10 @@ namespace
         for (const auto leftRef : leftRefs)
         {
             if (leftRef.isInvalid())
-                return SemaError::raiseInternal(sema, sema.curNodeRef());
+            {
+                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                return Result::Error;
+            }
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64/X64Encoder.h"
-#include "Backend/Diagnostics/BackendReport.h"
 #include "Backend/MachineCode/Encoder/MicroOps/MicroInstruction.h"
 #include "Wmf/Module.h"
 
@@ -494,7 +493,7 @@ EncodeResult X64Encoder::encodeLoadRegImm(CpuReg reg, uint64_t value, CpuOpBits 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Cst;
-        Report::internalError(module_, "emitLoadRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("emitLoadRegImm, cannot encode");
     }
     else if (opBits == CpuOpBits::B8)
     {
@@ -522,13 +521,13 @@ EncodeResult X64Encoder::encodeLoadRegMem(CpuReg reg, CpuReg memReg, uint64_t me
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadRegMem, cannot encode");
     }
     else if (isFloat(reg))
     {
@@ -560,13 +559,13 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegMem(CpuReg reg, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadZeroExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadZeroExtendRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadZeroExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadZeroExtendRegMem, cannot encode");
     }
     else if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
     {
@@ -594,7 +593,7 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegMem(CpuReg reg, CpuReg memReg, u
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadZeroExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadZeroExtendRegMem, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -608,7 +607,7 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadZeroExtendRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadZeroExtendRegReg, cannot encode");
     }
     else if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
     {
@@ -636,7 +635,7 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadZeroExtendRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadZeroExtendRegReg, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -650,13 +649,13 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memReg,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadSignedExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadSignedExtendRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadSignedExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadSignedExtendRegMem, cannot encode");
     }
     else if (numBitsSrc == CpuOpBits::B8)
     {
@@ -689,7 +688,7 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memReg,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadSignedExtendRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadSignedExtendRegMem, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -703,7 +702,7 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg regS
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadSignedExtendRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadSignedExtendRegReg, cannot encode");
     }
     else if (numBitsSrc == CpuOpBits::B8)
     {
@@ -735,7 +734,7 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg regS
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadSignedExtendRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadSignedExtendRegReg, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -755,13 +754,13 @@ EncodeResult X64Encoder::encodeLoadAddressRegMem(CpuReg reg, CpuReg memReg, uint
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadAddressRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadAddressRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadAddressRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadAddressRegMem, cannot encode");
     }
     else if (memReg == CpuReg::Rip)
     {
@@ -991,13 +990,13 @@ EncodeResult X64Encoder::encodeLoadMemReg(CpuReg memReg, uint64_t memOffset, Cpu
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadMemReg, cannot encode");
     }
     else if (isFloat(reg))
     {
@@ -1027,25 +1026,25 @@ EncodeResult X64Encoder::encodeLoadMemImm(CpuReg memReg, uint64_t memOffset, uin
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadMemImm, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeLoadMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadMemImm, cannot encode");
     }
     else if (opBits == CpuOpBits::B128)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeLoadMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadMemImm, cannot encode");
     }
     else if (opBits == CpuOpBits::B64 && value > 0x7FFFFFFF && value >> 32 != 0xFFFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeLoadMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeLoadMemImm, cannot encode");
     }
     else
     {
@@ -1195,7 +1194,7 @@ EncodeResult X64Encoder::encodeCmpRegReg(CpuReg reg0, CpuReg reg1, CpuOpBits opB
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeCmpRegReg, cannot encode");
+            SWC_INTERNAL_ERROR("encodeCmpRegReg, cannot encode");
         }
 
         if (emitFlags.has(EMIT_CAN_ENCODE))
@@ -1228,7 +1227,7 @@ EncodeResult X64Encoder::encodeCmpRegImm(CpuReg reg, uint64_t value, CpuOpBits o
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeCmpRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpRegImm, cannot encode");
     }
     else if (opBits == CpuOpBits::B8)
     {
@@ -1261,7 +1260,7 @@ EncodeResult X64Encoder::encodeCmpRegImm(CpuReg reg, uint64_t value, CpuOpBits o
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeCmpRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpRegImm, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1273,19 +1272,19 @@ EncodeResult X64Encoder::encodeCmpMemReg(CpuReg memReg, uint64_t memOffset, CpuR
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeCmpMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpMemReg, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeCmpMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpMemReg, cannot encode");
     }
     else if (isFloat(reg))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Left2Reg;
-        Report::internalError(module_, "encodeCmpMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpMemReg, cannot encode");
     }
     else
     {
@@ -1305,13 +1304,13 @@ EncodeResult X64Encoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, uint
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeCmpMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpMemImm, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeCmpMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpMemImm, cannot encode");
     }
     else if (opBits == CpuOpBits::B8)
     {
@@ -1344,7 +1343,7 @@ EncodeResult X64Encoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, uint
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeCmpRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeCmpRegImm, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1358,13 +1357,13 @@ EncodeResult X64Encoder::encodeOpUnaryMem(CpuReg memReg, uint64_t memOffset, Cpu
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpUnaryMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpUnaryMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpUnaryMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpUnaryMem, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1395,7 +1394,7 @@ EncodeResult X64Encoder::encodeOpUnaryMem(CpuReg memReg, uint64_t memOffset, Cpu
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpUnaryMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpUnaryMem, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1429,7 +1428,7 @@ EncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, CpuOpBits opBits
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::NotSupported;
-            Report::internalError(module_, "encodeOpUnaryReg, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpUnaryReg, cannot encode");
         }
         else
         {
@@ -1470,7 +1469,7 @@ EncodeResult X64Encoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, CpuOpBits opBits
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpUnaryReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpUnaryReg, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1482,13 +1481,13 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, uint
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegMem, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegMem, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1566,7 +1565,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, uint
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeOpBinaryRegMem, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegMem, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1580,7 +1579,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuO
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegReg, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1824,7 +1823,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuO
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegReg, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -1836,13 +1835,13 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemReg, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemReg, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1851,7 +1850,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Left2Reg;
-        Report::internalError(module_, "encodeOpBinaryMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemReg, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1865,7 +1864,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Left2Reg;
-        Report::internalError(module_, "encodeOpBinaryMemReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemReg, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -1950,7 +1949,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -1989,7 +1988,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -2028,7 +2027,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -2075,7 +2074,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -2122,7 +2121,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -2136,7 +2135,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -2169,7 +2168,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
         }
     }
 
@@ -2248,7 +2247,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp 
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryRegImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryRegImm, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -2260,13 +2259,13 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
     }
     else if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
-        Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -2280,7 +2279,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
-        Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
     }
 
     ///////////////////////////////////////////
@@ -2395,7 +2394,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
         }
     }
 
@@ -2442,7 +2441,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
         }
     }
 
@@ -2481,7 +2480,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
         }
     }
 
@@ -2520,7 +2519,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
         }
     }
 
@@ -2559,7 +2558,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
         {
             if (emitFlags.has(EMIT_CAN_ENCODE))
                 return EncodeResult::Right2Reg;
-            Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+            SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
         }
     }
 
@@ -2567,7 +2566,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset,
 
     else
     {
-        Report::internalError(module_, "encodeOpBinaryMemImm, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpBinaryMemImm, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -2628,7 +2627,7 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuR
 
     else
     {
-        Report::internalError(module_, "encodeOpTernaryRegRegReg, cannot encode");
+        SWC_INTERNAL_ERROR("encodeOpTernaryRegRegReg, cannot encode");
     }
 
     return EncodeResult::Zero;
@@ -2936,3 +2935,4 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 }
 
 SWC_END_NAMESPACE();
+

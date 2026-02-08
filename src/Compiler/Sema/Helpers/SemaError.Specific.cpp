@@ -123,11 +123,6 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
     return Result::Error;
 }
 
-Result SemaError::raiseInternal(Sema& sema, AstNodeRef atNodeRef)
-{
-    return raise(sema, DiagnosticId::sema_err_internal, atNodeRef, ReportLocation::Token);
-}
-
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)
 {
     auto& ctx  = sema.ctx();

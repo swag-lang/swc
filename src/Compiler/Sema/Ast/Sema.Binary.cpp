@@ -376,7 +376,8 @@ namespace
                 return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
 
             default:
-                return SemaError::raiseInternal(sema, nodeRef);
+                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                return Result::Error;
         }
     }
 }

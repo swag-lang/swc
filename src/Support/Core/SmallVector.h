@@ -3,14 +3,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
-template<class T, std::size_t InlineCapacity = 16, class Alloc = std::allocator<T>>
+template<class T, std::size_t InlineCapacity = 16>
 class SmallVector
 {
     static_assert(InlineCapacity > 0, "InlineCapacity must be > 0");
 
 public:
     using value_type             = T;
-    using allocator_type         = Alloc;
+    using allocator_type         = std::allocator<T>;
     using size_type              = std::size_t;
     using difference_type        = std::ptrdiff_t;
     using reference              = T&;
@@ -22,31 +22,25 @@ public:
     using reverse_iterator       = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    SmallVector() noexcept(std::is_nothrow_default_constructible_v<Alloc>) :
-        SmallVector(Alloc{})
-    {
-    }
-
-    explicit SmallVector(const Alloc& a) noexcept :
-        alloc_(a),
+    SmallVector() noexcept :
         ptr_(inlineData())
     {
     }
 
-    SmallVector(size_type n, const T& value, const Alloc& a = Alloc{}) :
-        SmallVector(a)
+    SmallVector(size_type n, const T& value) :
+        SmallVector()
     {
         resize(n, value);
     }
 
-    explicit SmallVector(size_type n, const Alloc& a = Alloc{}) :
-        SmallVector(a)
+    explicit SmallVector(size_type n) :
+        SmallVector()
     {
         resize(n);
     }
 
-    SmallVector(std::initializer_list<T> il, const Alloc& a = Alloc{}) :
-        SmallVector(a)
+    SmallVector(std::initializer_list<T> il) :
+        SmallVector()
     {
         reserve(il.size());
         uninitializedCopyN(il.begin(), il.size(), ptr_);
@@ -54,17 +48,18 @@ public:
     }
 
     SmallVector(const SmallVector& other) :
-        SmallVector(std::allocator_traits<Alloc>::select_on_container_copy_construction(other.alloc_))
+        SmallVector()
     {
+        alloc_ = std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.alloc_);
         reserve(other.sizeValue_);
         uninitializedCopyN(other.ptr_, other.sizeValue_, ptr_);
         sizeValue_ = other.sizeValue_;
     }
 
     SmallVector(SmallVector&& other) noexcept :
-        alloc_(std::move(other.alloc_)),
         ptr_(inlineData())
     {
+        alloc_ = std::move(other.alloc_);
         if (other.isInline())
         {
             reserve(other.sizeValue_);
@@ -93,9 +88,9 @@ public:
         if (this == &other)
             return *this;
 
-        if constexpr (!std::allocator_traits<Alloc>::is_always_equal::value)
+        if constexpr (!std::allocator_traits<allocator_type>::is_always_equal::value)
         {
-            if (std::allocator_traits<Alloc>::propagate_on_container_copy_assignment::value &&
+            if (std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment::value &&
                 alloc_ != other.alloc_)
             {
                 clearHeapIfNeeded();
@@ -176,7 +171,7 @@ public:
             T* dst = inlineData();
             uninitializedMoveN(ptr_, sizeValue_, dst);
             destroyN(ptr_, sizeValue_);
-            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
+            std::allocator_traits<allocator_type>::deallocate(alloc_, ptr_, capacityValue_);
             ptr_           = dst;
             capacityValue_ = InlineCapacity;
         }
@@ -305,7 +300,7 @@ public:
     template<class It>
     iterator insert(const_iterator pos, It first, It last)
     {
-        using category = typename std::iterator_traits<It>::iterator_category;
+        using category = std::iterator_traits<It>::iterator_category;
         return insertImpl(pos, first, last, category{});
     }
 
@@ -398,11 +393,11 @@ private:
 
     void reallocate(size_type newCapacityValue)
     {
-        T* new_mem = std::allocator_traits<Alloc>::allocate(alloc_, newCapacityValue);
+        T* new_mem = std::allocator_traits<allocator_type>::allocate(alloc_, newCapacityValue);
         uninitializedMoveN(ptr_, sizeValue_, new_mem);
         destroyN(ptr_, sizeValue_);
         if (!isInline())
-            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
+            std::allocator_traits<allocator_type>::deallocate(alloc_, ptr_, capacityValue_);
 
         ptr_           = new_mem;
         capacityValue_ = newCapacityValue;
@@ -413,7 +408,7 @@ private:
         destroyN(ptr_, sizeValue_);
         if (!isInline())
         {
-            std::allocator_traits<Alloc>::deallocate(alloc_, ptr_, capacityValue_);
+            std::allocator_traits<allocator_type>::deallocate(alloc_, ptr_, capacityValue_);
         }
         ptr_           = inlineData();
         sizeValue_     = 0;
@@ -487,20 +482,20 @@ private:
         return begin() + idx;
     }
 
-    Alloc     alloc_{};
-    T*        ptr_           = nullptr;
-    size_type sizeValue_     = 0;
-    size_type capacityValue_ = InlineCapacity;
+    allocator_type alloc_{};
+    T*             ptr_           = nullptr;
+    size_type      sizeValue_     = 0;
+    size_type      capacityValue_ = InlineCapacity;
     alignas(T) std::byte inlineDataStorage_[sizeof(T) * InlineCapacity]{};
 };
 
-template<class T, class Alloc = std::allocator<T>>
-using SmallVector2 = SmallVector<T, 2, Alloc>;
+template<class T>
+using SmallVector2 = SmallVector<T, 2>;
 
-template<class T, class Alloc = std::allocator<T>>
-using SmallVector4 = SmallVector<T, 4, Alloc>;
+template<class T>
+using SmallVector4 = SmallVector<T, 4>;
 
-template<class T, class Alloc = std::allocator<T>>
-using SmallVector8 = SmallVector<T, 8, Alloc>;
+template<class T>
+using SmallVector8 = SmallVector<T, 8>;
 
 SWC_END_NAMESPACE();

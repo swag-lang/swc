@@ -95,6 +95,7 @@ CpuEncodeResult MicroOpsEncoder::encodeJumpTable(CpuReg tableReg, CpuReg offsetR
 CpuEncodeResult MicroOpsEncoder::encodeJump(CpuJump& jump, CpuCondJump jumpType, OpBits opBits, CpuEmitFlags emitFlags)
 {
     jump.offsetStart = instructions_.size() * sizeof(MicroInstruction);
+    jump.opBits      = opBits;
     auto& inst       = addInstruction(MicroOp::JumpCond, emitFlags);
     inst.jumpType    = jumpType;
     inst.opBitsA     = opBits;
@@ -518,7 +519,8 @@ void MicroOpsEncoder::encode(CpuEncoder& encoder) const
             case MicroOp::JumpCondI:
             {
                 CpuJump jump;
-                encoder.encodeJump(jump, inst.jumpType, inst.opBitsA, inst.emitFlags);
+                const auto opBits = inst.opBitsA == OpBits::Zero ? OpBits::B32 : inst.opBitsA;
+                encoder.encodeJump(jump, inst.jumpType, opBits, inst.emitFlags);
                 encoder.encodePatchJump(jump, inst.valueA, inst.emitFlags);
                 break;
             }

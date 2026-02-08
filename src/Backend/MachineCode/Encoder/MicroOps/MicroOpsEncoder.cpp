@@ -441,7 +441,7 @@ namespace
     }
 }
 
-void MicroOpsEncoder::encode(CpuEncoder& encoder) const
+void MicroOpsEncoder::encode(Encoder& encoder) const
 {
     std::vector<CpuJump> jumps(instructions_.size());
     std::vector          jumpValid(instructions_.size(), false);

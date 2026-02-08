@@ -186,7 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Encoder\Core\Encoder.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Encoder\MicroOps\MicroOpsEncoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
@@ -330,7 +330,7 @@
         <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroOpsEncoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuAbstraction.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\Core\Encoder.h" />
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>

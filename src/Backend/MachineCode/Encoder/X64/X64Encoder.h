@@ -1,11 +1,11 @@
 #pragma once
-#include "Backend/MachineCode/Encoder/Core/CpuEncoder.h"
+#include "Backend/MachineCode/Encoder/Core/Encoder.h"
 
 SWC_BEGIN_NAMESPACE();
 
 struct MicroInstruction;
 
-class X64Encoder : CpuEncoder
+class X64Encoder : Encoder
 {
 public:
     CpuRegSet getReadRegisters(const MicroInstruction& inst) override;

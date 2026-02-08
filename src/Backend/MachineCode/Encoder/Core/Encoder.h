@@ -43,10 +43,10 @@ enum class EncodeResult : uint32_t
     NotSupported,
 };
 
-class CpuEncoder
+class Encoder
 {
 public:
-    virtual ~CpuEncoder() = default;
+    virtual ~Encoder() = default;
 
     static bool isFloat(CpuReg reg) { return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3; }
     static bool isInt(CpuReg reg) { return !isFloat(reg); }

@@ -1,13 +1,13 @@
 #pragma once
-#include "Backend/MachineCode/Encoder/Core/CpuEncoder.h"
+#include "Backend/MachineCode/Encoder/Core/Encoder.h"
 #include "Backend/MachineCode/Encoder/MicroOps/MicroInstruction.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroOpsEncoder : public CpuEncoder
+class MicroOpsEncoder : public Encoder
 {
 public:
-    void encode(CpuEncoder& encoder) const;
+    void encode(Encoder& encoder) const;
 
     EncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags) override;
     EncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuOpBits opBits, EmitFlags emitFlags) override;

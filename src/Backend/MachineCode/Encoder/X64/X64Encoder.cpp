@@ -801,7 +801,7 @@ namespace
                 return EncodeResult::NotSupported;
             if (value > 0x7FFFFFFF)
                 return EncodeResult::NotSupported;
-            if (CpuEncoder::isFloat(regBase) || CpuEncoder::isFloat(regMul))
+            if (Encoder::isFloat(regBase) || Encoder::isFloat(regMul))
                 return EncodeResult::NotSupported;
             if (opBitsBaseMul != CpuOpBits::B64 && (regBase == CpuReg::Rsp || regMul == CpuReg::Rsp))
                 return EncodeResult::NotSupported;
@@ -872,13 +872,13 @@ namespace
                 return EncodeResult::NotSupported;
             if (addValue > 0x7FFFFFFF)
                 return EncodeResult::NotSupported;
-            if (CpuEncoder::isFloat(regBase) || CpuEncoder::isFloat(regMul))
+            if (Encoder::isFloat(regBase) || Encoder::isFloat(regMul))
                 return EncodeResult::NotSupported;
-            if (CpuEncoder::isFloat(reg) && op == CpuOp::LEA)
+            if (Encoder::isFloat(reg) && op == CpuOp::LEA)
                 return EncodeResult::NotSupported;
-            if (CpuEncoder::isFloat(reg) && op == CpuOp::MOVSXD)
+            if (Encoder::isFloat(reg) && op == CpuOp::MOVSXD)
                 return EncodeResult::NotSupported;
-            if (CpuEncoder::isFloat(reg) && opBitsReg != CpuOpBits::B32 && opBitsReg != CpuOpBits::B64)
+            if (Encoder::isFloat(reg) && opBitsReg != CpuOpBits::B32 && opBitsReg != CpuOpBits::B64)
                 return EncodeResult::NotSupported;
             if (opBitsBaseMul != CpuOpBits::B64 && (regBase == CpuReg::Rsp || regMul == CpuReg::Rsp))
                 return EncodeResult::NotSupported;
@@ -896,7 +896,7 @@ namespace
         // Prefixes
         if (opBitsBaseMul == CpuOpBits::B32)
             store.pushU8(0x67);
-        if (opBitsReg == CpuOpBits::B16 || CpuEncoder::isFloat(reg))
+        if (opBitsReg == CpuOpBits::B16 || Encoder::isFloat(reg))
             store.pushU8(0x66);
 
         // REX prefix
@@ -920,7 +920,7 @@ namespace
                 emitSpecCpuOp(store, 0x63, opBitsReg);
                 break;
             case CpuOp::MOV:
-                if (CpuEncoder::isFloat(reg))
+                if (Encoder::isFloat(reg))
                 {
                     emitCpuOp(store, 0x0F);
                     emitCpuOp(store, mr ? 0x7E : 0x6E);
@@ -2881,7 +2881,7 @@ EncodeResult X64Encoder::encodeNop(EmitFlags emitFlags)
 
 CpuRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
 {
-    auto result = CpuEncoder::getReadRegisters(inst);
+    auto result = Encoder::getReadRegisters(inst);
 
     if (inst.op == MicroOp::OpBinaryRI ||
         inst.op == MicroOp::OpBinaryRR ||
@@ -2933,7 +2933,7 @@ CpuRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
 
 CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 {
-    auto result = CpuEncoder::getWriteRegisters(inst);
+    auto result = Encoder::getWriteRegisters(inst);
 
     if (inst.op == MicroOp::OpBinaryRI ||
         inst.op == MicroOp::OpBinaryRR ||

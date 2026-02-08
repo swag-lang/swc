@@ -1,9 +1,11 @@
+#include <ranges>
+
 #include "pch.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -50,36 +52,167 @@ namespace
         }
     }
 
+    struct ExplicitArrayNode
+    {
+        std::vector<uint64_t> dims;
+        TypeInfoFlags         flags;
+    };
+
+    bool deduceArrayDimsFromType(Sema& sema, TypeRef typeRef, std::vector<uint64_t>& outDims)
+    {
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isArray())
+        {
+            const auto& dims = type.payloadArrayDims();
+            outDims.insert(outDims.end(), dims.begin(), dims.end());
+
+            const TypeRef   elemTypeRef = type.payloadArrayElemTypeRef();
+            const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
+            if (elemType.isArray() || elemType.isAggregateArray())
+                return deduceArrayDimsFromType(sema, elemTypeRef, outDims);
+            return true;
+        }
+
+        if (type.isAggregateArray())
+        {
+            const auto& elemTypes = type.payloadAggregate().types;
+            if (elemTypes.empty())
+                return false;
+
+            outDims.push_back(elemTypes.size());
+
+            std::vector<uint64_t> innerDims;
+            bool                  hasInner = false;
+            for (const auto elemTypeRef : elemTypes)
+            {
+                const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+                if (!elemType.isArray() && !elemType.isAggregateArray())
+                {
+                    if (hasInner)
+                        return false;
+                    continue;
+                }
+
+                std::vector<uint64_t> nextInner;
+                if (!deduceArrayDimsFromType(sema, elemTypeRef, nextInner))
+                    return false;
+
+                if (!hasInner)
+                {
+                    innerDims = std::move(nextInner);
+                    hasInner  = true;
+                }
+                else if (nextInner != innerDims)
+                {
+                    return false;
+                }
+            }
+
+            if (hasInner)
+                outDims.insert(outDims.end(), innerDims.begin(), innerDims.end());
+            return true;
+        }
+
+        return false;
+    }
+
+    bool collectExplicitArrayNodes(Sema& sema, TypeRef typeRef, std::vector<ExplicitArrayNode>& outNodes, TypeRef& outBaseTypeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& type = sema.typeMgr().get(typeRef);
+            if (!type.isArray())
+                break;
+            outNodes.push_back({std::vector(type.payloadArrayDims().begin(), type.payloadArrayDims().end()), type.flags()});
+            typeRef = type.payloadArrayElemTypeRef();
+        }
+
+        outBaseTypeRef = typeRef;
+        return !outNodes.empty();
+    }
+
     TypeRef deduceArrayTypeFromInit(Sema& sema, TypeRef explicitTypeRef, const SemaNodeView& initView)
     {
         if (explicitTypeRef.isInvalid() || initView.typeRef.isInvalid())
             return TypeRef::invalid();
 
-        const TypeInfo& explicitType = sema.typeMgr().get(explicitTypeRef);
-        if (!explicitType.isArray() || !explicitType.payloadArrayDims().empty())
+        std::vector<ExplicitArrayNode> nodes;
+        TypeRef                        baseTypeRef = TypeRef::invalid();
+        if (!collectExplicitArrayNodes(sema, explicitTypeRef, nodes, baseTypeRef))
             return TypeRef::invalid();
 
-        const TypeInfo&       initType = sema.typeMgr().get(initView.typeRef);
-        SmallVector<uint64_t> dims;
-        if (initType.isArray())
+        bool   hasUnknown       = false;
+        size_t explicitDimCount = 0;
+        for (const auto& node : nodes)
         {
-            const auto& initDims = initType.payloadArrayDims();
-            dims.assign(initDims.begin(), initDims.end());
+            if (node.dims.empty())
+            {
+                hasUnknown = true;
+                explicitDimCount += 1;
+            }
+            else
+            {
+                explicitDimCount += node.dims.size();
+            }
         }
-        else if (initType.isAggregateArray())
+
+        if (!hasUnknown)
+            return TypeRef::invalid();
+
+        std::vector<uint64_t> initDims;
+        if (!deduceArrayDimsFromType(sema, initView.typeRef, initDims))
+            return TypeRef::invalid();
+
+        if (nodes.size() == 1 && nodes[0].dims.empty())
         {
-            dims.push_back(initType.payloadAggregate().types.size());
+            if (initDims.empty())
+                return TypeRef::invalid();
+            if (initDims.size() > 1)
+            {
+                TypeRef elemTypeRef = baseTypeRef;
+                for (unsigned long long& initDim : std::ranges::reverse_view(initDims))
+                {
+                    std::vector<uint64_t> oneDim;
+                    oneDim.push_back(initDim);
+                    const TypeInfo arrayType = TypeInfo::makeArray(oneDim, elemTypeRef, nodes[0].flags);
+                    elemTypeRef              = sema.typeMgr().addType(arrayType);
+                }
+
+                return elemTypeRef;
+            }
+
+            nodes[0].dims = std::move(initDims);
         }
         else
         {
-            return TypeRef::invalid();
+            if (initDims.size() != explicitDimCount)
+                return TypeRef::invalid();
+
+            size_t dimIndex = 0;
+            for (auto& node : nodes)
+            {
+                if (node.dims.empty())
+                {
+                    node.dims.push_back(initDims[dimIndex++]);
+                    continue;
+                }
+
+                for (auto dim : node.dims)
+                {
+                    if (initDims[dimIndex++] != dim)
+                        return TypeRef::invalid();
+                }
+            }
         }
 
-        if (dims.empty())
-            return TypeRef::invalid();
+        TypeRef elemTypeRef = baseTypeRef;
+        for (auto& node : std::ranges::reverse_view(nodes))
+        {
+            const TypeInfo arrayType = TypeInfo::makeArray(node.dims, elemTypeRef, node.flags);
+            elemTypeRef              = sema.typeMgr().addType(arrayType);
+        }
 
-        const TypeInfo deducedType = TypeInfo::makeArray(dims, explicitType.payloadArrayElemTypeRef(), explicitType.flags());
-        return sema.typeMgr().addType(deducedType);
+        return elemTypeRef;
     }
 
     void storeFieldDefaultConstants(const std::span<Symbol*>& symbols, ConstantRef cstRef)

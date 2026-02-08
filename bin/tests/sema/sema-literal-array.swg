@@ -99,3 +99,6 @@ const J: [2] s32 = [cast(f32) 1, cast(s32) 2.2] // swc-expected-error {{sema_err
 const AB: [2] u32 = [1, 2]
 const AB1: [?] u32 = [1, 2]
 #assert(#typeof(AB1) == #type [2] u32)
+
+const AB2: [?] u32 = [[1], [2]]
+#assert(#typeof(AB2) == #type [2] [1] u32)

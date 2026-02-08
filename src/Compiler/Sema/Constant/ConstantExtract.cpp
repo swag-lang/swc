@@ -12,6 +12,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    ConstantRef makeStructConstantFromBytes(Sema& sema, TypeRef structTypeRef, ByteSpan bytes)
+    {
+        auto&           ctx        = sema.ctx();
+        const TypeInfo& structType = sema.typeMgr().get(structTypeRef);
+        SWC_ASSERT(structType.isStruct());
+        SWC_ASSERT(structType.sizeOf(ctx) <= bytes.size());
+
+        const ConstantValue cv = ConstantValue::makeStructBorrowed(ctx, structTypeRef, bytes);
+        return sema.cstMgr().addConstant(ctx, cv);
+    }
+
     ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes)
     {
         auto&           ctx       = sema.ctx();
@@ -120,6 +131,20 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
         sema.setConstant(nodeRef, arrayCstRef);
         return Result::Continue;
     }
+    if (typeField->isStruct())
+    {
+        const ConstantRef structCstRef = makeStructConstantFromBytes(sema, symVar.typeRef(), fieldBytes);
+        if (structCstRef.isInvalid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        sema.setConstant(nodeRef, structCstRef);
+        return Result::Continue;
+    }
 
     TypeRef valueTypeRef = symVar.typeRef();
     if (typeField->isEnum())
@@ -189,6 +214,10 @@ namespace
         if (elemType.isArray())
         {
             elemCstRef = makeArrayConstantFromBytes(sema, elemTypeRef, elemBytes);
+        }
+        else if (elemType.isStruct())
+        {
+            elemCstRef = makeStructConstantFromBytes(sema, elemTypeRef, elemBytes);
         }
         else
         {

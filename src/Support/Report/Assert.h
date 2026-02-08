@@ -4,14 +4,9 @@ SWC_BEGIN_NAMESPACE();
 void              swcAssert(const char* expr, const char* file, int line);
 [[noreturn]] void swcInternalError(const char* file, int line);
 
-#define SWC_INTERNAL_ERROR()              \
-    do                                    \
-    {                                     \
-        swcInternalError(__FILE__, __LINE__); \
-        std::unreachable();               \
-    } while (0)
-
-#define SWC_FORCE_ASSERT(__expr)                    \
+// Only enable assertions in debug builds
+#if SWC_HAS_ASSERT
+#define SWC_ASSERT(__expr)                          \
     do                                              \
     {                                               \
         if (!(__expr))                              \
@@ -19,10 +14,21 @@ void              swcAssert(const char* expr, const char* file, int line);
             swcAssert(#__expr, __FILE__, __LINE__); \
         }                                           \
     } while (0)
+#else
+#define SWC_ASSERT(__expr) \
+    do                     \
+    {                      \
+    } while (0)
+#endif // SWC_HAS_ASSERT
 
-// Only enable assertions in debug builds
-#if SWC_HAS_ASSERT
-#define SWC_ASSERT(__expr)                          \
+#define SWC_INTERNAL_ERROR()                  \
+    do                                        \
+    {                                         \
+        swcInternalError(__FILE__, __LINE__); \
+        std::unreachable();                   \
+    } while (0)
+
+#define SWC_FORCE_ASSERT(__expr)                    \
     do                                              \
     {                                               \
         if (!(__expr))                              \
@@ -37,17 +43,5 @@ void              swcAssert(const char* expr, const char* file, int line);
         SWC_ASSERT(false);  \
         std::unreachable(); \
     } while (0)
-
-#else
-
-#define SWC_ASSERT(__expr) \
-    do                     \
-    {                      \
-    } while (0)
-
-#define SWC_UNREACHABLE() \
-    std::unreachable();
-
-#endif // SWC_HAS_ASSERT
 
 SWC_END_NAMESPACE();

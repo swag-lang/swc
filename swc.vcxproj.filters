@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\Backend\MachineCode\Encoder\CpuEncoder.cpp" />
+    <ClCompile Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.cpp" />
     <ClCompile Include="src\Backend\MachineCode\Encoder\MicroOps\ScbeMicro.cpp" />
     <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp" />
     <ClCompile Include="src\pch.cpp" />
@@ -127,7 +127,7 @@
   <ItemGroup>
     <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h" />
     <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\ScbeMicro.h" />
-    <ClInclude Include="src\Backend\MachineCode\Encoder\CpuEncoder.h" />
+    <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.h" />
     <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h" />
     <ClInclude Include="src\Wmf\Module.h" />
     <ClInclude Include="src\Backend\Diagnostics\BackendReport.h" />

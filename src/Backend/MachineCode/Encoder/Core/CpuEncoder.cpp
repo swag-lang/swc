@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/MachineCode/Encoder/CpuEncoder.h"
+#include "Backend/MachineCode/Encoder/Core/CpuEncoder.h"
 
 SWC_BEGIN_NAMESPACE();
 

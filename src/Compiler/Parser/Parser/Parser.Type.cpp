@@ -244,8 +244,8 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         }
 
         // Array with a dimension
-        SmallVector<AstNodeRef> dimensions;
-        const auto              firstDim = parseExpression();
+        SmallVector4<AstNodeRef> dimensions;
+        const auto               firstDim = parseExpression();
         if (firstDim.isInvalid())
             return AstNodeRef::invalid();
         dimensions.push_back(firstDim);

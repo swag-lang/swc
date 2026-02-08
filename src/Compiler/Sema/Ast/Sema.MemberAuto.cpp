@@ -72,7 +72,7 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    Result collectAutoMemberCandidates(Sema& sema, SmallVector<AutoMemberCandidate, 4>& outCandidates)
+    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates)
     {
         outCandidates.clear();
 
@@ -129,7 +129,7 @@ namespace
         return Result::Continue;
     }
 
-    Result probeAutoMemberCandidates(Sema& sema, const SourceCodeRef& codeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, SmallVector<AutoMemberMatch, 2>& outMatches)
+    Result probeAutoMemberCandidates(Sema& sema, const SourceCodeRef& codeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, SmallVector2<AutoMemberMatch>& outMatches)
     {
         outMatches.clear();
         for (const AutoMemberCandidate& candidate : candidates)
@@ -168,7 +168,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     // Parser tags the callee expression when building a call: `.foo()`.
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
-    SmallVector<AutoMemberCandidate, 4> candidates;
+    SmallVector4<AutoMemberCandidate> candidates;
     RESULT_VERIFY(collectAutoMemberCandidates(sema, candidates));
     if (candidates.empty())
     {
@@ -186,7 +186,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef&) 
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
-    SmallVector<AutoMemberMatch, 2> matches;
+    SmallVector2<AutoMemberMatch> matches;
     RESULT_VERIFY(probeAutoMemberCandidates(sema, codeRef, idRef, candidates, matches));
 
     // If nothing matched, report a smart error.

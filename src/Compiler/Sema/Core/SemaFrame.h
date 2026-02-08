@@ -73,18 +73,18 @@ public:
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                    access_ = SymbolAccess::Private;
-    AttributeList                   attributes_;
-    SmallVector<IdentifierRef, 8>   nsPath_;
-    SemaCompilerIf*                 compilerIf_ = nullptr;
-    SymbolImpl*                     impl_       = nullptr;
-    SymbolInterface*                interface_  = nullptr;
-    SymbolFunction*                 function_   = nullptr;
-    BreakContext                    breakable_;
-    AstNodeRef                      currentSwitch_     = AstNodeRef::invalid();
-    AstNodeRef                      currentSwitchCase_ = AstNodeRef::invalid();
-    SmallVector<TypeRef, 2>         bindingTypes_;
-    SmallVector<SymbolVariable*, 2> bindingVars_;
+    SymbolAccess                  access_ = SymbolAccess::Private;
+    AttributeList                 attributes_;
+    SmallVector8<IdentifierRef>   nsPath_;
+    SemaCompilerIf*               compilerIf_ = nullptr;
+    SymbolImpl*                   impl_       = nullptr;
+    SymbolInterface*              interface_  = nullptr;
+    SymbolFunction*               function_   = nullptr;
+    BreakContext                  breakable_;
+    AstNodeRef                    currentSwitch_     = AstNodeRef::invalid();
+    AstNodeRef                    currentSwitchCase_ = AstNodeRef::invalid();
+    SmallVector2<TypeRef>         bindingTypes_;
+    SmallVector2<SymbolVariable*> bindingVars_;
 };
 
 SWC_END_NAMESPACE();

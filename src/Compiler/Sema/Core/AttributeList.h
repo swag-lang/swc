@@ -49,8 +49,8 @@ struct AttributeInstance
 // A list of attributes
 struct AttributeList
 {
-    SmallVector<AttributeInstance, 4> attributes;
-    RtAttributeFlags                  rtFlags = RtAttributeFlagsE::Zero;
+    SmallVector4<AttributeInstance> attributes;
+    RtAttributeFlags                rtFlags = RtAttributeFlagsE::Zero;
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }

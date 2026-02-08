@@ -494,4 +494,13 @@ private:
     alignas(T) std::byte inlineDataStorage_[sizeof(T) * InlineCapacity]{};
 };
 
+template<class T, class Alloc = std::allocator<T>>
+using SmallVector2 = SmallVector<T, 2, Alloc>;
+
+template<class T, class Alloc = std::allocator<T>>
+using SmallVector4 = SmallVector<T, 4, Alloc>;
+
+template<class T, class Alloc = std::allocator<T>>
+using SmallVector8 = SmallVector<T, 8, Alloc>;
+
 SWC_END_NAMESPACE();

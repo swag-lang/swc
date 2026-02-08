@@ -128,7 +128,7 @@ Utf8 Symbol::getFullScopedName(const TaskContext& ctx) const
 void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
 {
     // Walk scopes from inner → outer
-    SmallVector<const Symbol*, 8> scopeChain;
+    SmallVector8<const Symbol*> scopeChain;
 
     // Add the symbol itself
     scopeChain.push_back(this);

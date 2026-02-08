@@ -32,6 +32,8 @@ namespace
                 return lhs.getString() == rhs.getString();
             case ConstantKind::Struct:
                 return lhs.getStruct().data() == rhs.getStruct().data();
+            case ConstantKind::Array:
+                return lhs.getArray().data() == rhs.getArray().data();
             case ConstantKind::AggregateArray:
             case ConstantKind::AggregateStruct:
                 return lhs.getAggregate() == rhs.getAggregate();
@@ -86,6 +88,9 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
         case ConstantKind::Struct:
             payloadStruct_ = other.payloadStruct_;
             break;
+        case ConstantKind::Array:
+            payloadArray_ = other.payloadArray_;
+            break;
         case ConstantKind::Int:
             payloadInt_ = other.payloadInt_;
             break;
@@ -137,6 +142,9 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
             break;
         case ConstantKind::Struct:
             payloadStruct_ = other.payloadStruct_;
+            break;
+        case ConstantKind::Array:
+            payloadArray_ = other.payloadArray_;
             break;
         case ConstantKind::Int:
             payloadInt_ = other.payloadInt_;
@@ -443,6 +451,28 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef type
     return cv;
 }
 
+ConstantValue ConstantValue::makeArray(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+{
+    ConstantValue cv;
+    cv.typeRef_          = typeRef;
+    cv.kind_             = ConstantKind::Array;
+    cv.payloadArray_.val = bytes;
+    cv.payloadBorrowed_  = false;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
+ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+{
+    ConstantValue cv;
+    cv.typeRef_          = typeRef;
+    cv.kind_             = ConstantKind::Array;
+    cv.payloadArray_.val = bytes;
+    cv.payloadBorrowed_  = true;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return cv;
+}
+
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
@@ -541,6 +571,14 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
         return makeStruct(ctx, typeRef, bytes);
     }
 
+    if (ty.isArray())
+    {
+        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        if (ownership == PayloadOwnership::Borrowed)
+            return makeArrayBorrowed(ctx, typeRef, bytes);
+        return makeArray(ctx, typeRef, bytes);
+    }
+
     if (ty.isBool())
     {
         return makeBool(ctx, *static_cast<const bool*>(valuePtr));
@@ -606,6 +644,9 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::Struct:
             h = Math::hashCombine(h, Math::hash(payloadStruct_.val));
+            break;
+        case ConstantKind::Array:
+            h = Math::hashCombine(h, Math::hash(payloadArray_.val));
             break;
         case ConstantKind::Slice:
             h = Math::hashCombine(h, Math::hash(payloadSlice_.val));
@@ -692,6 +733,8 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
 
         case ConstantKind::Struct:
             return "<struct>";
+        case ConstantKind::Array:
+            return "<array>";
         case ConstantKind::AggregateArray:
             return "<array>";
         case ConstantKind::AggregateStruct:

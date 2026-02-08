@@ -78,6 +78,15 @@ namespace
 
         if (dstType.isArray())
         {
+            if (cst.isArray())
+            {
+                const auto bytes = cst.getArray();
+                SWC_ASSERT(bytes.size() == dstBytes.size());
+                if (!dstBytes.empty())
+                    std::memcpy(const_cast<std::byte*>(dstBytes.data()), bytes.data(), dstBytes.size());
+                return;
+            }
+
             SWC_ASSERT(cst.isAggregateArray());
             lowerAggregateArrayToBytesInternal(sema, dstBytes, dstType, cst.getAggregateArray());
             return;
@@ -183,59 +192,9 @@ namespace
         auto&           ctx       = sema.ctx();
         const TypeInfo& arrayType = sema.typeMgr().get(arrayTypeRef);
         SWC_ASSERT(arrayType.isArray());
+        SWC_ASSERT(arrayType.sizeOf(ctx) <= bytes.size());
 
-        const auto& dims  = arrayType.payloadArrayDims();
-        uint64_t    count = 1;
-        for (const auto dim : dims)
-            count *= dim;
-
-        const TypeRef   elemTypeRef = arrayType.payloadArrayElemTypeRef();
-        const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
-        const uint64_t  elemSize    = elemType.sizeOf(ctx);
-        SWC_ASSERT(!elemSize || elemSize * count <= bytes.size());
-
-        std::vector<ConstantRef> values;
-        values.reserve(count);
-
-        for (uint64_t i = 0; i < count; ++i)
-        {
-            const auto  elemBytes  = ByteSpan{bytes.data() + (i * elemSize), elemSize};
-            ConstantRef elemCstRef = ConstantRef::invalid();
-
-            if (elemType.isArray())
-            {
-                elemCstRef = makeArrayConstantFromBytes(sema, elemTypeRef, elemBytes);
-            }
-            else
-            {
-                TypeRef valueTypeRef = elemTypeRef;
-
-                if (elemType.isEnum())
-                {
-                    valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
-                }
-
-                ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-                if (!cv.isValid())
-                    return ConstantRef::invalid();
-
-                elemCstRef = sema.cstMgr().addConstant(ctx, cv);
-
-                if (elemType.isEnum())
-                {
-                    ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, elemCstRef, elemTypeRef);
-                    enumCv.setTypeRef(elemTypeRef);
-                    elemCstRef = sema.cstMgr().addConstant(ctx, enumCv);
-                }
-            }
-
-            if (elemCstRef.isInvalid())
-                return ConstantRef::invalid();
-            values.push_back(elemCstRef);
-        }
-
-        ConstantValue cv = ConstantValue::makeAggregateArray(ctx, values);
-        cv.setTypeRef(arrayTypeRef);
+        const ConstantValue cv = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, bytes);
         return sema.cstMgr().addConstant(ctx, cv);
     }
 }
@@ -379,6 +338,55 @@ Result ConstantHelpers::extractAtIndex(Sema& sema, const ConstantValue& cst, int
         if (std::cmp_greater_equal(constIndex, values.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
         sema.setConstant(sema.curNodeRef(), values[constIndex]);
+        return Result::Continue;
+    }
+
+    if (cst.isArray())
+    {
+        if (typeInfo.payloadArrayDims().size() > 1)
+            return Result::Continue;
+
+        auto&          ctx         = sema.ctx();
+        const TypeRef  elemTypeRef = typeInfo.payloadArrayElemTypeRef();
+        const TypeInfo elemType    = sema.typeMgr().get(elemTypeRef);
+        const uint64_t elemSize    = elemType.sizeOf(ctx);
+        SWC_ASSERT(elemSize);
+
+        const uint64_t count = typeInfo.payloadArrayDims().empty() ? 0 : typeInfo.payloadArrayDims()[0];
+        if (std::cmp_greater_equal(constIndex, count))
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
+
+        const auto elemBytes = ByteSpan{cst.getArray().data() + (constIndex * elemSize), elemSize};
+        ConstantRef elemCstRef = ConstantRef::invalid();
+
+        if (elemType.isArray())
+        {
+            elemCstRef = makeArrayConstantFromBytes(sema, elemTypeRef, elemBytes);
+        }
+        else
+        {
+            TypeRef valueTypeRef = elemTypeRef;
+            if (elemType.isEnum())
+                valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
+
+            ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            if (!cv.isValid())
+                return Result::Continue;
+
+            elemCstRef = sema.cstMgr().addConstant(ctx, cv);
+
+            if (elemType.isEnum())
+            {
+                ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, elemCstRef, elemTypeRef);
+                enumCv.setTypeRef(elemTypeRef);
+                elemCstRef = sema.cstMgr().addConstant(ctx, enumCv);
+            }
+        }
+
+        if (elemCstRef.isInvalid())
+            return Result::Continue;
+
+        sema.setConstant(sema.curNodeRef(), elemCstRef);
         return Result::Continue;
     }
 

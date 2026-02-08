@@ -66,6 +66,20 @@ namespace
         return addCstFinalize(manager, result);
     }
 
+    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    {
+        ConstantValue stored = value;
+
+        std::unique_lock lk(shard.mutex);
+        const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
+        stored.setPayloadArray(view);
+
+        const uint32_t localIndex = shard.dataSegment.add(stored);
+        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        return addCstFinalize(manager, result);
+    }
+
     ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
     {
         ConstantValue stored = value;
@@ -132,6 +146,12 @@ ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& 
         if (value.isPayloadBorrowed())
             return addCstOther(*this, shard, shardIndex, ctx, value);
         return addCstStruct(*this, shard, shardIndex, ctx, value);
+    }
+    if (value.isArray())
+    {
+        if (value.isPayloadBorrowed())
+            return addCstOther(*this, shard, shardIndex, ctx, value);
+        return addCstArray(*this, shard, shardIndex, ctx, value);
     }
     if (value.isSlice())
     {

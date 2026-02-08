@@ -27,6 +27,7 @@ enum class ConstantKind
     TypeValue,
     EnumValue,
     Struct,
+    Array,
     AggregateArray,
     AggregateStruct,
 };
@@ -76,13 +77,14 @@ public:
     bool         isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
     bool         isStruct() const { return kind_ == ConstantKind::Struct; }
     bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
+    bool         isArray() const { return kind_ == ConstantKind::Array; }
     bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
     bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
     bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
 
     bool isPayloadBorrowed() const
     {
-        SWC_ASSERT(isStruct() || isSlice());
+        SWC_ASSERT(isStruct() || isArray() || isSlice());
         return payloadBorrowed_;
     }
 
@@ -158,6 +160,12 @@ public:
         return payloadStruct_.val;
     }
 
+    ByteSpan getArray() const
+    {
+        SWC_ASSERT(isArray());
+        return payloadArray_.val;
+    }
+
     const std::vector<ConstantRef>& getAggregate() const
     {
         SWC_ASSERT(isAggregate());
@@ -200,6 +208,8 @@ public:
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
+    static ConstantValue makeArray(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
+    static ConstantValue makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs = {});
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs = {});
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -225,12 +235,13 @@ public:
 
     void setPayloadSlice(ByteSpan bytes) { payloadSlice_.val = bytes; }
     void setPayloadStruct(ByteSpan bytes) { payloadStruct_.val = bytes; }
+    void setPayloadArray(ByteSpan bytes) { payloadArray_.val = bytes; }
 
 private:
     ConstantKind kind_    = ConstantKind::Invalid;
     TypeRef      typeRef_ = TypeRef::invalid();
 
-    // For Struct/Slice only. When borrowed, the ByteSpan points to external storage whose lifetime must outlive
+    // For Struct/Array/Slice only. When borrowed, the ByteSpan points to external storage whose lifetime must outlive
     // the constant (typically memory already stored in a `DataSegment`).
     bool payloadBorrowed_ = false;
 
@@ -245,6 +256,11 @@ private:
         {
             ByteSpan val;
         } payloadStruct_;
+
+        struct
+        {
+            ByteSpan val;
+        } payloadArray_;
 
         struct
         {

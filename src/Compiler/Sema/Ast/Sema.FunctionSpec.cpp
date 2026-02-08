@@ -209,7 +209,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
     if (!LangSpec::matchSpecialFunction(name, kind))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, "function names starting with 'op' followed by an uppercase letter are reserved for struct special functions");
+        diag.addNote(DiagnosticId::sema_note_special_function_reserved);
         diag.report(sema.ctx());
         return Result::Error;
     }

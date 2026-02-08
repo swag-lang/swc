@@ -6,31 +6,9 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
-class IdentifierManager;
 struct AstEnumDecl;
 
 enum class TokenId : uint16_t;
-enum class SpecialFuncKind : uint8_t
-{
-    OpBinary,
-    OpUnary,
-    OpAssign,
-    OpIndexAssign,
-    OpCast,
-    OpEquals,
-    OpCmp,
-    OpPostCopy,
-    OpPostMove,
-    OpDrop,
-    OpCount,
-    OpData,
-    OpAffect,
-    OpAffectLiteral,
-    OpSlice,
-    OpIndex,
-    OpIndexAffect,
-    OpVisit,
-};
 
 enum class CharFlagsE : uint32_t
 {
@@ -78,8 +56,6 @@ public:
     static bool             isReservedNamespace(std::string_view ns);
     static bool             isSpecialFunctionName(std::string_view name);
     static bool             isOpVisitName(std::string_view name);
-    static bool             matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecialFuncKind& outKind);
-    static std::string_view specialFunctionSignatureHint(SpecialFuncKind kind);
 
 private:
     CharFlags                                     charFlags_[256];

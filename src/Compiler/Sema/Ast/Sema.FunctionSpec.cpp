@@ -12,6 +12,133 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class SpecialFuncKind : uint8_t
+    {
+        OpBinary,
+        OpUnary,
+        OpAssign,
+        OpIndexAssign,
+        OpCast,
+        OpEquals,
+        OpCmp,
+        OpPostCopy,
+        OpPostMove,
+        OpDrop,
+        OpCount,
+        OpData,
+        OpAffect,
+        OpAffectLiteral,
+        OpSlice,
+        OpIndex,
+        OpIndexAffect,
+        OpVisit,
+    };
+
+    std::string_view specialFunctionSignatureHint(SpecialFuncKind kind)
+    {
+        switch (kind)
+        {
+            case SpecialFuncKind::OpDrop:
+                return "func opDrop(me) -> void";
+            case SpecialFuncKind::OpPostCopy:
+                return "func opPostCopy(me) -> void";
+            case SpecialFuncKind::OpPostMove:
+                return "func opPostMove(me) -> void";
+            case SpecialFuncKind::OpCount:
+                return "func opCount(me) -> u64";
+            case SpecialFuncKind::OpData:
+                return "func opData(me) -> *<type>";
+            case SpecialFuncKind::OpCast:
+                return "func opCast(me) -> <type>";
+            case SpecialFuncKind::OpEquals:
+                return "func opEquals(me, value: <type>) -> bool";
+            case SpecialFuncKind::OpCmp:
+                return "func opCmp(me, value: <type>) -> s32";
+            case SpecialFuncKind::OpBinary:
+                return "func opBinary(me, other: <type>) -> <struct>";
+            case SpecialFuncKind::OpUnary:
+                return "func opUnary(me) -> <struct>";
+            case SpecialFuncKind::OpAssign:
+                return "func opAssign(me, value: <type>) -> void";
+            case SpecialFuncKind::OpAffect:
+                return "func opAffect(me, value: <type>) -> void";
+            case SpecialFuncKind::OpAffectLiteral:
+                return "func opAffectLiteral(me, value: <type>) -> void";
+            case SpecialFuncKind::OpSlice:
+                return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
+            case SpecialFuncKind::OpIndex:
+                return "func opIndex(me, index: <type>) -> <type>";
+            case SpecialFuncKind::OpIndexAssign:
+                return "func opIndexAssign(me, index: <type>, value: <type>) -> void";
+            case SpecialFuncKind::OpIndexAffect:
+                return "func opIndexAffect(me, index: <type>, value: <type>) -> void";
+            case SpecialFuncKind::OpVisit:
+                return "func opVisit(me, stmt: #code) -> void";
+            default:
+                return "valid special function signature";
+        }
+    }
+
+    bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecialFuncKind& outKind)
+    {
+        if (idRef.isInvalid())
+            return false;
+
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpVisit))
+        {
+            outKind = SpecialFuncKind::OpVisit;
+            return true;
+        }
+
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpBinary))
+            outKind = SpecialFuncKind::OpBinary;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpUnary))
+            outKind = SpecialFuncKind::OpUnary;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAssign))
+            outKind = SpecialFuncKind::OpAssign;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAssign))
+            outKind = SpecialFuncKind::OpIndexAssign;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCast))
+            outKind = SpecialFuncKind::OpCast;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpEquals))
+            outKind = SpecialFuncKind::OpEquals;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCmp))
+            outKind = SpecialFuncKind::OpCmp;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostCopy))
+            outKind = SpecialFuncKind::OpPostCopy;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
+            outKind = SpecialFuncKind::OpPostMove;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpDrop))
+            outKind = SpecialFuncKind::OpDrop;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpCount))
+            outKind = SpecialFuncKind::OpCount;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpData))
+            outKind = SpecialFuncKind::OpData;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffect))
+            outKind = SpecialFuncKind::OpAffect;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpAffectLiteral))
+            outKind = SpecialFuncKind::OpAffectLiteral;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpSlice))
+            outKind = SpecialFuncKind::OpSlice;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndex))
+            outKind = SpecialFuncKind::OpIndex;
+        else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpIndexAffect))
+            outKind = SpecialFuncKind::OpIndexAffect;
+        else
+        {
+            const std::string_view name = idMgr.get(idRef).name;
+            if (LangSpec::isOpVisitName(name))
+            {
+                outKind = SpecialFuncKind::OpVisit;
+                return true;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -30,7 +157,7 @@ namespace
     Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecialFuncKind kind)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_signature, sym);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, LangSpec::specialFunctionSignatureHint(kind));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, specialFunctionSignatureHint(kind));
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -202,7 +329,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
         return Result::Continue;
 
     SpecialFuncKind kind{};
-    if (!LangSpec::matchSpecialFunction(idRef, idMgr, kind))
+    if (!matchSpecialFunction(idRef, idMgr, kind))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
         diag.addNote(DiagnosticId::sema_note_special_function_reserved);

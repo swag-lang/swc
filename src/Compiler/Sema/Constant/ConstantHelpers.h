@@ -1,8 +1,8 @@
 #pragma once
-#include "Compiler/Parser/Ast/AstNode.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 
 SWC_BEGIN_NAMESPACE();
+class Sema;
+struct AstNode;
 
 namespace ConstantHelpers
 {

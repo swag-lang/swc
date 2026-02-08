@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

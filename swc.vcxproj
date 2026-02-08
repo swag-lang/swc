@@ -349,7 +349,7 @@
         <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h"/>
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>
         <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
-        <ClInclude Include="src\Compiler\RefTypes.h"/>
+        <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\CommandLine.h"/>
         <ClInclude Include="src\Main\CommandLineParser.h"/>
         <ClInclude Include="src\Main\Command.h"/>

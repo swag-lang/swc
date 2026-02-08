@@ -65,6 +65,7 @@ namespace fs = std::filesystem;
 
 #include "Support/Core/ByteSpan.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/StrongRef.h"
 #include "Support/Core/Utf8.h"

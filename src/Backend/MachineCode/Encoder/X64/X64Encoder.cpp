@@ -2893,17 +2893,17 @@ CpuRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
         switch (inst.op)
         {
             case MicroOp::OpBinaryRI:
-                cpuOp = inst.payload.regValueOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regValOpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryRR:
-                cpuOp = inst.payload.regRegOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regRegOpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryMI:
-                cpuOp = inst.payload.regValue2OpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regVal2OpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryRM:
             case MicroOp::OpBinaryMR:
-                cpuOp = inst.payload.regRegValueOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regRegValOpCpu.cpuOp;
                 break;
             default:
                 break;
@@ -2945,17 +2945,17 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
         switch (inst.op)
         {
             case MicroOp::OpBinaryRI:
-                cpuOp = inst.payload.regValueOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regValOpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryRR:
-                cpuOp = inst.payload.regRegOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regRegOpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryMI:
-                cpuOp = inst.payload.regValue2OpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regVal2OpCpu.cpuOp;
                 break;
             case MicroOp::OpBinaryRM:
             case MicroOp::OpBinaryMR:
-                cpuOp = inst.payload.regRegValueOpBitsCpuOp.cpuOp;
+                cpuOp = inst.payload.regRegValOpCpu.cpuOp;
                 break;
             default:
                 break;

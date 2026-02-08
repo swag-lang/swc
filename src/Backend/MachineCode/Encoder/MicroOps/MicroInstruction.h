@@ -105,7 +105,7 @@ struct MicroInstruction
         {
             CpuReg    regA;
             CpuOpBits opBitsA;
-        } regOpBits;
+        } regOp;
 
         struct
         {
@@ -118,7 +118,7 @@ struct MicroInstruction
             CpuReg    regA;
             CpuOpBits opBitsA;
             uint64_t  valueA;
-        } regValueOpBits;
+        } regValOp;
 
         struct
         {
@@ -133,7 +133,7 @@ struct MicroInstruction
             CpuOpBits opBitsA;
             uint64_t  valueA;
             uint64_t  valueB;
-        } regValue2OpBits;
+        } regVal2Op;
 
         struct
         {
@@ -146,7 +146,7 @@ struct MicroInstruction
             CpuReg    regA;
             CpuReg    regB;
             CpuOpBits opBitsA;
-        } regRegOpBits;
+        } regRegOp;
 
         struct
         {
@@ -154,7 +154,7 @@ struct MicroInstruction
             CpuReg    regB;
             CpuOpBits opBitsA;
             CpuOpBits opBitsB;
-        } regRegOpBits2;
+        } regRegOp2;
 
         struct
         {
@@ -162,7 +162,7 @@ struct MicroInstruction
             CpuReg    regB;
             CpuOpBits opBitsA;
             uint64_t  valueA;
-        } regRegValueOpBits;
+        } regRegValOp;
 
         struct
         {
@@ -171,7 +171,7 @@ struct MicroInstruction
             CpuOpBits opBitsA;
             CpuOpBits opBitsB;
             uint64_t  valueA;
-        } regRegValueOpBits2;
+        } regRegValOp2;
 
         struct
         {
@@ -192,7 +192,7 @@ struct MicroInstruction
             CpuReg    regA;
             CpuOpBits opBitsA;
             CpuOp     cpuOp;
-        } regOpBitsCpuOp;
+        } regOpCpu;
 
         struct
         {
@@ -200,7 +200,7 @@ struct MicroInstruction
             CpuOpBits opBitsA;
             CpuOp     cpuOp;
             uint64_t  valueA;
-        } regValueOpBitsCpuOp;
+        } regValOpCpu;
 
         struct
         {
@@ -209,7 +209,7 @@ struct MicroInstruction
             CpuOp     cpuOp;
             uint64_t  valueA;
             uint64_t  valueB;
-        } regValue2OpBitsCpuOp;
+        } regVal2OpCpu;
 
         struct
         {
@@ -217,7 +217,7 @@ struct MicroInstruction
             CpuReg    regB;
             CpuOpBits opBitsA;
             CpuOp     cpuOp;
-        } regRegOpBitsCpuOp;
+        } regRegOpCpu;
 
         struct
         {
@@ -226,7 +226,7 @@ struct MicroInstruction
             CpuOpBits opBitsA;
             CpuOp     cpuOp;
             uint64_t  valueA;
-        } regRegValueOpBitsCpuOp;
+        } regRegValOpCpu;
 
         struct
         {

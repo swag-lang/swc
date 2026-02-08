@@ -34,8 +34,8 @@ namespace
                 return lhs.getStruct().data() == rhs.getStruct().data();
             case ConstantKind::Array:
                 return lhs.getArray().data() == rhs.getArray().data();
-            case ConstantKind::AggregateArray:
             case ConstantKind::AggregateStruct:
+            case ConstantKind::AggregateArray:
                 return lhs.getAggregate() == rhs.getAggregate();
             case ConstantKind::Int:
                 return numericCmp == NumericCmp::Same ? lhs.getInt().same(rhs.getInt()) : lhs.getInt().eq(rhs.getInt());
@@ -113,8 +113,8 @@ ConstantValue::ConstantValue(const ConstantValue& other) :
         case ConstantKind::EnumValue:
             payloadEnumValue_ = other.payloadEnumValue_;
             break;
-        case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
+        case ConstantKind::AggregateArray:
             std::construct_at(&payloadAggregate_.val, other.payloadAggregate_.val);
             break;
         default:
@@ -168,8 +168,8 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
         case ConstantKind::EnumValue:
             payloadEnumValue_ = other.payloadEnumValue_;
             break;
-        case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
+        case ConstantKind::AggregateArray:
             std::construct_at(&payloadAggregate_.val, std::move(other.payloadAggregate_.val));
             break;
         default:
@@ -184,8 +184,8 @@ ConstantValue::~ConstantValue()
 {
     switch (kind_)
     {
-        case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
+        case ConstantKind::AggregateArray:
             std::destroy_at(&payloadAggregate_.val);
             break;
         default:
@@ -651,8 +651,8 @@ uint32_t ConstantValue::hash() const noexcept
         case ConstantKind::Slice:
             h = Math::hashCombine(h, Math::hash(payloadSlice_.val));
             break;
-        case ConstantKind::AggregateArray:
         case ConstantKind::AggregateStruct:
+        case ConstantKind::AggregateArray:
             for (auto& v : getAggregate())
                 h = Math::hashCombine(h, v.get());
             break;
@@ -732,13 +732,11 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
             return getString();
 
         case ConstantKind::Struct:
-            return "<struct>";
-        case ConstantKind::Array:
-            return "<array>";
-        case ConstantKind::AggregateArray:
-            return "<array>";
         case ConstantKind::AggregateStruct:
             return "<struct>";
+        case ConstantKind::Array:
+        case ConstantKind::AggregateArray:
+            return "<array>";
 
         case ConstantKind::Int:
             return getInt().toString();

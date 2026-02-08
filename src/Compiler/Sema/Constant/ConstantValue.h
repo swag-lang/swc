@@ -27,9 +27,9 @@ enum class ConstantKind
     TypeValue,
     EnumValue,
     Struct,
+    AggregateStruct,
     Array,
     AggregateArray,
-    AggregateStruct,
 };
 
 class ConstantValue
@@ -79,8 +79,8 @@ public:
     bool         isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
     bool         isArray() const { return kind_ == ConstantKind::Array; }
     bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
-    bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
     bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
+    bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
 
     bool isPayloadBorrowed() const
     {

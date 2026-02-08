@@ -302,6 +302,13 @@ public:
         return emplace(pos, std::move(value));
     }
 
+    template<class It>
+    iterator insert(const_iterator pos, It first, It last)
+    {
+        using category = typename std::iterator_traits<It>::iterator_category;
+        return insertImpl(pos, first, last, category{});
+    }
+
     template<class... Args>
     iterator emplace(const_iterator cpos, Args&&... args)
     {
@@ -427,6 +434,57 @@ private:
         reserve(n);
         for (; first != last; ++first)
             emplace_back(*first);
+    }
+
+    template<class It>
+    iterator insertImpl(const_iterator cpos, It first, It last, std::input_iterator_tag)
+    {
+        size_type idx       = static_cast<size_type>(cpos - cbegin());
+        size_type insertIdx = idx;
+        for (; first != last; ++first, ++insertIdx)
+            emplace(begin() + insertIdx, *first);
+        return begin() + idx;
+    }
+
+    template<class It>
+    iterator insertImpl(const_iterator cpos, It first, It last, std::forward_iterator_tag)
+    {
+        size_type idx   = static_cast<size_type>(cpos - cbegin());
+        size_type count = static_cast<size_type>(std::distance(first, last));
+        if (count == 0)
+            return begin() + idx;
+
+        reserve(sizeValue_ + count);
+
+        if (idx == sizeValue_)
+        {
+            for (; first != last; ++first)
+                std::construct_at(ptr_ + sizeValue_++, *first);
+            return begin() + idx;
+        }
+
+        const size_type tail = sizeValue_ - idx;
+        if (count < tail)
+        {
+            uninitializedMoveN(ptr_ + sizeValue_ - count, count, ptr_ + sizeValue_);
+            for (size_type i = tail - count; i > 0; --i)
+                ptr_[idx + count + i - 1] = std::move(ptr_[idx + i - 1]);
+            sizeValue_ += count;
+            for (size_type i = 0; i < count; ++i, ++first)
+                ptr_[idx + i] = *first;
+        }
+        else
+        {
+            uninitializedMoveN(ptr_ + idx, tail, ptr_ + idx + count);
+            sizeValue_ += count;
+            size_type i = 0;
+            for (; i < tail; ++i, ++first)
+                ptr_[idx + i] = *first;
+            for (; first != last; ++first, ++i)
+                std::construct_at(ptr_ + idx + i, *first);
+        }
+
+        return begin() + idx;
     }
 
     Alloc     alloc_{};

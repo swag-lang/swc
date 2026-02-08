@@ -50,7 +50,7 @@ namespace
         }
     }
 
-    bool deduceArrayDimsFromType(Sema& sema, TypeRef typeRef, std::vector<uint64_t>& outDims)
+    bool deduceArrayDimsFromType(Sema& sema, TypeRef typeRef, SmallVector<uint64_t>& outDims)
     {
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isArray())
@@ -73,7 +73,7 @@ namespace
 
             outDims.push_back(elemTypes.size());
 
-            std::vector<uint64_t> innerDims;
+            SmallVector<uint64_t> innerDims;
             bool                  hasInner = false;
             for (const auto elemTypeRef : elemTypes)
             {
@@ -85,7 +85,7 @@ namespace
                     continue;
                 }
 
-                std::vector<uint64_t> nextInner;
+                SmallVector<uint64_t> nextInner;
                 if (!deduceArrayDimsFromType(sema, elemTypeRef, nextInner))
                     return false;
 
@@ -94,7 +94,7 @@ namespace
                     innerDims = std::move(nextInner);
                     hasInner  = true;
                 }
-                else if (nextInner != innerDims)
+                else if (nextInner.size() != innerDims.size() || !std::equal(nextInner.begin(), nextInner.end(), innerDims.begin()))
                 {
                     return false;
                 }
@@ -110,7 +110,7 @@ namespace
 
     struct ExplicitArrayNode
     {
-        std::vector<uint64_t> dims;
+        SmallVector<uint64_t> dims;
         TypeInfoFlags         flags;
     };
 
@@ -121,7 +121,10 @@ namespace
             const TypeInfo& type = sema.typeMgr().get(typeRef);
             if (!type.isArray())
                 break;
-            outNodes.push_back({std::vector(type.payloadArrayDims().begin(), type.payloadArrayDims().end()), type.flags()});
+            SmallVector<uint64_t> dims;
+            const auto&           payloadDims = type.payloadArrayDims();
+            dims.insert(dims.end(), payloadDims.begin(), payloadDims.end());
+            outNodes.push_back({std::move(dims), type.flags()});
             typeRef = type.payloadArrayElemTypeRef();
         }
 
@@ -157,7 +160,7 @@ namespace
         if (!hasUnknown)
             return TypeRef::invalid();
 
-        std::vector<uint64_t> initDims;
+        SmallVector<uint64_t> initDims;
         if (!deduceArrayDimsFromType(sema, initView.typeRef, initDims))
             return TypeRef::invalid();
 
@@ -168,11 +171,11 @@ namespace
             if (initDims.size() > 1)
             {
                 TypeRef elemTypeRef = baseTypeRef;
-                for (unsigned long long& initDim : std::ranges::reverse_view(initDims))
+                for (uint64_t& initDim : std::ranges::reverse_view(initDims))
                 {
-                    std::vector<uint64_t> oneDim;
+                    SmallVector<uint64_t> oneDim;
                     oneDim.push_back(initDim);
-                    const TypeInfo arrayType = TypeInfo::makeArray(oneDim, elemTypeRef, nodes[0].flags);
+                    const TypeInfo arrayType = TypeInfo::makeArray(oneDim.span(), elemTypeRef, nodes[0].flags);
                     elemTypeRef              = sema.typeMgr().addType(arrayType);
                 }
 
@@ -206,7 +209,7 @@ namespace
         TypeRef elemTypeRef = baseTypeRef;
         for (auto& node : std::ranges::reverse_view(nodes))
         {
-            const TypeInfo arrayType = TypeInfo::makeArray(node.dims, elemTypeRef, node.flags);
+            const TypeInfo arrayType = TypeInfo::makeArray(node.dims.span(), elemTypeRef, node.flags);
             elemTypeRef              = sema.typeMgr().addType(arrayType);
         }
 

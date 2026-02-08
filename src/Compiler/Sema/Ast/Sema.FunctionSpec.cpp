@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -11,105 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class SpecialFuncKind : uint8_t
-    {
-        OpInitGenerated,
-        OpDropGenerated,
-        OpPostCopyGenerated,
-        OpPostMoveGenerated,
-        OpBinary,
-        OpUnary,
-        OpAssign,
-        OpIndexAssign,
-        OpCast,
-        OpEquals,
-        OpCmp,
-        OpPostCopy,
-        OpPostMove,
-        OpDrop,
-        OpCount,
-        OpData,
-        OpAffect,
-        OpAffectLiteral,
-        OpSlice,
-        OpIndex,
-        OpIndexAffect,
-        OpInit,
-        OpVisit,
-    };
-
-    bool isSpecialFunctionName(std::string_view name)
-    {
-        if (name.size() < 3)
-            return false;
-        if (name[0] != 'o' || name[1] != 'p')
-            return false;
-        return std::isupper(static_cast<unsigned char>(name[2])) != 0;
-    }
-
-    bool isOpVisitName(std::string_view name)
-    {
-        return name.rfind("opVisit", 0) == 0;
-    }
-
-    bool matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind)
-    {
-        if (isOpVisitName(name))
-        {
-            outKind = SpecialFuncKind::OpVisit;
-            return true;
-        }
-
-        if (name == "opInitGenerated")
-            outKind = SpecialFuncKind::OpInitGenerated;
-        else if (name == "opDropGenerated")
-            outKind = SpecialFuncKind::OpDropGenerated;
-        else if (name == "opPostCopyGenerated")
-            outKind = SpecialFuncKind::OpPostCopyGenerated;
-        else if (name == "opPostMoveGenerated")
-            outKind = SpecialFuncKind::OpPostMoveGenerated;
-        else if (name == "opBinary")
-            outKind = SpecialFuncKind::OpBinary;
-        else if (name == "opUnary")
-            outKind = SpecialFuncKind::OpUnary;
-        else if (name == "opAssign")
-            outKind = SpecialFuncKind::OpAssign;
-        else if (name == "opIndexAssign")
-            outKind = SpecialFuncKind::OpIndexAssign;
-        else if (name == "opCast")
-            outKind = SpecialFuncKind::OpCast;
-        else if (name == "opEquals")
-            outKind = SpecialFuncKind::OpEquals;
-        else if (name == "opCmp")
-            outKind = SpecialFuncKind::OpCmp;
-        else if (name == "opPostCopy")
-            outKind = SpecialFuncKind::OpPostCopy;
-        else if (name == "opPostMove")
-            outKind = SpecialFuncKind::OpPostMove;
-        else if (name == "opDrop")
-            outKind = SpecialFuncKind::OpDrop;
-        else if (name == "opCount")
-            outKind = SpecialFuncKind::OpCount;
-        else if (name == "opData")
-            outKind = SpecialFuncKind::OpData;
-        else if (name == "opAffect")
-            outKind = SpecialFuncKind::OpAffect;
-        else if (name == "opAffectLiteral")
-            outKind = SpecialFuncKind::OpAffectLiteral;
-        else if (name == "opSlice")
-            outKind = SpecialFuncKind::OpSlice;
-        else if (name == "opIndex")
-            outKind = SpecialFuncKind::OpIndex;
-        else if (name == "opIndexAffect")
-            outKind = SpecialFuncKind::OpIndexAffect;
-        else if (name == "opInit")
-            outKind = SpecialFuncKind::OpInit;
-        else
-            return false;
-
-        return true;
-    }
-
     std::string_view specialFunctionSignatureHint(SpecialFuncKind kind)
     {
         switch (kind)
@@ -355,11 +257,11 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
         return Result::Continue;
 
     const std::string_view name = sema.idMgr().get(idRef).name;
-    if (!isSpecialFunctionName(name))
+    if (!LangSpec::isSpecialFunctionName(name))
         return Result::Continue;
 
     SpecialFuncKind kind{};
-    if (!matchSpecialFunction(name, kind))
+    if (!LangSpec::matchSpecialFunction(name, kind))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
         diag.addArgument(Diagnostic::ARG_BECAUSE, "function names starting with 'op' followed by an uppercase letter are reserved for struct special functions");

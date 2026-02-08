@@ -8,6 +8,7 @@ class TaskContext;
 struct AstEnumDecl;
 
 enum class TokenId : uint16_t;
+enum class SpecialFuncKind : uint8_t;
 
 enum class CharFlagsE : uint32_t
 {
@@ -53,6 +54,9 @@ public:
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
     static bool isReservedNamespace(std::string_view ns);
+    static bool isSpecialFunctionName(std::string_view name);
+    static bool isOpVisitName(std::string_view name);
+    static bool matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind);
 
 private:
     CharFlags                                     charFlags_[256];

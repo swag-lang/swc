@@ -246,7 +246,9 @@ namespace
         if (opBits == OpBits::B64 ||
             b1 || b2 ||
             reg0 == CpuReg::Rsi || reg1 == CpuReg::Rsi ||
-            reg0 == CpuReg::Rdi || reg1 == CpuReg::Rdi)
+            reg0 == CpuReg::Rdi || reg1 == CpuReg::Rdi ||
+            reg0 == CpuReg::Rsp || reg1 == CpuReg::Rsp ||
+            reg0 == CpuReg::Rbp || reg1 == CpuReg::Rbp)
         {
             const auto value = getRex(opBits == OpBits::B64, b1, false, b2);
             store.pushU8(value);
@@ -278,7 +280,7 @@ namespace
 
     void emitModRm(Store& store, uint64_t memOffset, CpuReg reg, CpuReg memReg)
     {
-        if (memOffset == 0 && memReg != CpuReg::R13)
+        if (memOffset == 0 && memReg != CpuReg::R13 && memReg != CpuReg::Rbp)
         {
             if (memReg == CpuReg::Rsp || memReg == CpuReg::R12)
             {
@@ -902,7 +904,7 @@ namespace
         const bool b0      = (reg >= CpuReg::R8 && reg <= CpuReg::R15);
         const bool b1      = (regMul >= CpuReg::R8 && regMul <= CpuReg::R15);
         const bool b2      = (regBase >= CpuReg::R8 && regBase <= CpuReg::R15);
-        const bool needRex = opBitsReg == OpBits::B64 || reg == CpuReg::Rsi || reg == CpuReg::Rdi || reg == CpuReg::Rbp;
+        const bool needRex = opBitsReg == OpBits::B64 || reg == CpuReg::Rsi || reg == CpuReg::Rdi || reg == CpuReg::Rsp || reg == CpuReg::Rbp;
         if (needRex || b0 || b1 || b2)
         {
             const auto value = getRex(opBitsReg == OpBits::B64, b0, b1, b2);
@@ -2809,7 +2811,7 @@ CpuEncodeResult X64Encoder::encodePatchJump(const CpuJump& jump, uint64_t offset
     const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
     if (jump.opBits == OpBits::B8)
     {
-        SWC_ASSERT(offset >= -127 && offset <= 128);
+        SWC_ASSERT(offset >= -128 && offset <= 127);
         *static_cast<uint8_t*>(jump.patchOffsetAddr) = static_cast<int8_t>(offset);
     }
     else

@@ -16,33 +16,6 @@ enum class SymbolStructFlagsE : uint8_t
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
-enum class SpecialFuncKind : uint8_t
-{
-    OpInitGenerated,
-    OpDropGenerated,
-    OpPostCopyGenerated,
-    OpPostMoveGenerated,
-    OpBinary,
-    OpUnary,
-    OpAssign,
-    OpIndexAssign,
-    OpCast,
-    OpEquals,
-    OpCmp,
-    OpPostCopy,
-    OpPostMove,
-    OpDrop,
-    OpCount,
-    OpData,
-    OpAffect,
-    OpAffectLiteral,
-    OpSlice,
-    OpIndex,
-    OpIndexAffect,
-    OpInit,
-    OpVisit,
-};
-
 class SymbolStruct : public SymbolMapT<SymbolKind::Struct, SymbolStructFlagsE>
 {
 public:

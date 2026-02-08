@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -12,61 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string_view specialFunctionSignatureHint(SpecialFuncKind kind)
-    {
-        switch (kind)
-        {
-            case SpecialFuncKind::OpInitGenerated:
-                return "func opInitGenerated(me) -> void";
-            case SpecialFuncKind::OpInit:
-                return "func opInit(me) -> void";
-            case SpecialFuncKind::OpDropGenerated:
-                return "func opDropGenerated(me) -> void";
-            case SpecialFuncKind::OpPostCopyGenerated:
-                return "func opPostCopyGenerated(me) -> void";
-            case SpecialFuncKind::OpPostMoveGenerated:
-                return "func opPostMoveGenerated(me) -> void";
-            case SpecialFuncKind::OpDrop:
-                return "func opDrop(me) -> void";
-            case SpecialFuncKind::OpPostCopy:
-                return "func opPostCopy(me) -> void";
-            case SpecialFuncKind::OpPostMove:
-                return "func opPostMove(me) -> void";
-            case SpecialFuncKind::OpCount:
-                return "func opCount(me) -> u64";
-            case SpecialFuncKind::OpData:
-                return "func opData(me) -> *<type>";
-            case SpecialFuncKind::OpCast:
-                return "func opCast(me) -> <type>";
-            case SpecialFuncKind::OpEquals:
-                return "func opEquals(me, value: <type>) -> bool";
-            case SpecialFuncKind::OpCmp:
-                return "func opCmp(me, value: <type>) -> s32";
-            case SpecialFuncKind::OpBinary:
-                return "func opBinary(me, other: <type>) -> <struct>";
-            case SpecialFuncKind::OpUnary:
-                return "func opUnary(me) -> <struct>";
-            case SpecialFuncKind::OpAssign:
-                return "func opAssign(me, value: <type>) -> void";
-            case SpecialFuncKind::OpAffect:
-                return "func opAffect(me, value: <type>) -> void";
-            case SpecialFuncKind::OpAffectLiteral:
-                return "func opAffectLiteral(me, value: <type>) -> void";
-            case SpecialFuncKind::OpSlice:
-                return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
-            case SpecialFuncKind::OpIndex:
-                return "func opIndex(me, index: <type>) -> <type>";
-            case SpecialFuncKind::OpIndexAssign:
-                return "func opIndexAssign(me, index: <type>, value: <type>) -> void";
-            case SpecialFuncKind::OpIndexAffect:
-                return "func opIndexAffect(me, index: <type>, value: <type>) -> void";
-            case SpecialFuncKind::OpVisit:
-                return "func opVisit(me, stmt: #code) -> void";
-            default:
-                return "valid special function signature";
-        }
-    }
-
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -85,15 +30,15 @@ namespace
     Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecialFuncKind kind)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_signature, sym);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, specialFunctionSignatureHint(kind));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, LangSpec::specialFunctionSignatureHint(kind));
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result validateSpecialFunctionSignature(Sema& sema, SymbolStruct& owner, SymbolFunction& sym, SpecialFuncKind kind)
+    Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecialFuncKind kind)
     {
         auto&       ctx     = sema.ctx();
-        auto&       typeMgr = sema.typeMgr();
+        const auto& typeMgr = sema.typeMgr();
         const auto& params  = sym.parameters();
 
         if (params.empty())

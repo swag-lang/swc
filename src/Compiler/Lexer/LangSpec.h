@@ -8,7 +8,32 @@ class TaskContext;
 struct AstEnumDecl;
 
 enum class TokenId : uint16_t;
-enum class SpecialFuncKind : uint8_t;
+enum class SpecialFuncKind : uint8_t
+{
+    OpInitGenerated,
+    OpDropGenerated,
+    OpPostCopyGenerated,
+    OpPostMoveGenerated,
+    OpBinary,
+    OpUnary,
+    OpAssign,
+    OpIndexAssign,
+    OpCast,
+    OpEquals,
+    OpCmp,
+    OpPostCopy,
+    OpPostMove,
+    OpDrop,
+    OpCount,
+    OpData,
+    OpAffect,
+    OpAffectLiteral,
+    OpSlice,
+    OpIndex,
+    OpIndexAffect,
+    OpInit,
+    OpVisit,
+};
 
 enum class CharFlagsE : uint32_t
 {
@@ -57,6 +82,7 @@ public:
     static bool isSpecialFunctionName(std::string_view name);
     static bool isOpVisitName(std::string_view name);
     static bool matchSpecialFunction(std::string_view name, SpecialFuncKind& outKind);
+    static std::string_view specialFunctionSignatureHint(SpecialFuncKind kind);
 
 private:
     CharFlags                                     charFlags_[256];

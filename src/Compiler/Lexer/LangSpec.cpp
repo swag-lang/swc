@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
-#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
 
@@ -207,6 +206,61 @@ bool LangSpec::matchSpecialFunction(std::string_view name, SpecialFuncKind& outK
         return false;
 
     return true;
+}
+
+std::string_view LangSpec::specialFunctionSignatureHint(SpecialFuncKind kind)
+{
+    switch (kind)
+    {
+        case SpecialFuncKind::OpInitGenerated:
+            return "func opInitGenerated(me) -> void";
+        case SpecialFuncKind::OpInit:
+            return "func opInit(me) -> void";
+        case SpecialFuncKind::OpDropGenerated:
+            return "func opDropGenerated(me) -> void";
+        case SpecialFuncKind::OpPostCopyGenerated:
+            return "func opPostCopyGenerated(me) -> void";
+        case SpecialFuncKind::OpPostMoveGenerated:
+            return "func opPostMoveGenerated(me) -> void";
+        case SpecialFuncKind::OpDrop:
+            return "func opDrop(me) -> void";
+        case SpecialFuncKind::OpPostCopy:
+            return "func opPostCopy(me) -> void";
+        case SpecialFuncKind::OpPostMove:
+            return "func opPostMove(me) -> void";
+        case SpecialFuncKind::OpCount:
+            return "func opCount(me) -> u64";
+        case SpecialFuncKind::OpData:
+            return "func opData(me) -> *<type>";
+        case SpecialFuncKind::OpCast:
+            return "func opCast(me) -> <type>";
+        case SpecialFuncKind::OpEquals:
+            return "func opEquals(me, value: <type>) -> bool";
+        case SpecialFuncKind::OpCmp:
+            return "func opCmp(me, value: <type>) -> s32";
+        case SpecialFuncKind::OpBinary:
+            return "func opBinary(me, other: <type>) -> <struct>";
+        case SpecialFuncKind::OpUnary:
+            return "func opUnary(me) -> <struct>";
+        case SpecialFuncKind::OpAssign:
+            return "func opAssign(me, value: <type>) -> void";
+        case SpecialFuncKind::OpAffect:
+            return "func opAffect(me, value: <type>) -> void";
+        case SpecialFuncKind::OpAffectLiteral:
+            return "func opAffectLiteral(me, value: <type>) -> void";
+        case SpecialFuncKind::OpSlice:
+            return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
+        case SpecialFuncKind::OpIndex:
+            return "func opIndex(me, index: <type>) -> <type>";
+        case SpecialFuncKind::OpIndexAssign:
+            return "func opIndexAssign(me, index: <type>, value: <type>) -> void";
+        case SpecialFuncKind::OpIndexAffect:
+            return "func opIndexAffect(me, index: <type>, value: <type>) -> void";
+        case SpecialFuncKind::OpVisit:
+            return "func opVisit(me, stmt: #code) -> void";
+        default:
+            return "valid special function signature";
+    }
 }
 
 SWC_END_NAMESPACE();

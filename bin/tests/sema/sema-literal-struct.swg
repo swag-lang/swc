@@ -79,3 +79,8 @@ const V4: V2 = {1, 2}
 #assert(V4.x == 1)
 #assert(V4.y == 2)
 #assert(V4.z == 10)
+
+const V5: V2
+#assert(V5.x == 10)
+#assert(V5.y == 10)
+#assert(V5.z == 10)

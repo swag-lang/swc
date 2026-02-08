@@ -109,6 +109,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx.global().jobMgr().waitingJobs(jobs, clientId);
 
     ctx_ = &ctx;
+    std::unordered_set<const Symbol*> reportedSymbols;
 
     for (const auto job : jobs)
     {
@@ -156,6 +157,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitSymDeclared:
             {
                 SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
                 auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_declared, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
@@ -165,6 +168,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitSymTyped:
             {
                 SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
                 auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_typed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
@@ -175,6 +180,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
                 auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);

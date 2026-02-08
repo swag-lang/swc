@@ -1,10 +1,9 @@
 #pragma once
-#include "Support/Core/Flags.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
-enum class OpBits : uint8_t
+enum class CpuOpBits : uint8_t
 {
     Zero = 0,
     B8   = 8,
@@ -40,7 +39,7 @@ enum class CpuReg : uint8_t
     Max,
 };
 
-class RegisterSet
+class CpuRegSet
 {
 public:
     void add(CpuReg reg)
@@ -149,28 +148,11 @@ enum class CpuCondJump : uint8_t
 };
 // ReSharper restore CppInconsistentNaming
 
-enum class CpuEmitFlagsE : uint8_t
-{
-    Zero      = 0,
-    Overflow  = 1 << 0,
-    Lock      = 1 << 1,
-    B64       = 1 << 2,
-    CanEncode = 1 << 3,
-};
-
-using CpuEmitFlags = EnumFlags<CpuEmitFlagsE>;
-
-constexpr auto EMIT_ZERO       = CpuEmitFlags{};
-constexpr auto EMIT_OVERFLOW   = CpuEmitFlagsE::Overflow;
-constexpr auto EMIT_LOCK       = CpuEmitFlagsE::Lock;
-constexpr auto EMIT_B64        = CpuEmitFlagsE::B64;
-constexpr auto EMIT_CAN_ENCODE = CpuEmitFlagsE::CanEncode;
-
 struct CpuJump
 {
-    void*    patchOffsetAddr = nullptr;
-    uint64_t offsetStart     = 0;
-    OpBits   opBits          = OpBits::Zero;
+    void*     patchOffsetAddr = nullptr;
+    uint64_t  offsetStart     = 0;
+    CpuOpBits opBits          = CpuOpBits::Zero;
 };
 
 struct CpuLabelToSolve

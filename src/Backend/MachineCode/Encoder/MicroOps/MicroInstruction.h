@@ -95,9 +95,9 @@ struct MicroInstruction
     CpuCond     cpuCond  = CpuCond::A;
     CpuCondJump jumpType = CpuCondJump::JUMP;
 
-    OpBits       opBitsA   = OpBits::Zero;
-    OpBits       opBitsB   = OpBits::Zero;
-    CpuEmitFlags emitFlags = EMIT_ZERO;
+    CpuOpBits opBitsA   = CpuOpBits::Zero;
+    CpuOpBits opBitsB   = CpuOpBits::Zero;
+    EmitFlags emitFlags = EMIT_ZERO;
 
     CpuReg regA = CpuReg::Rax;
     CpuReg regB = CpuReg::Rax;

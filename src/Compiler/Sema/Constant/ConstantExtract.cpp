@@ -12,6 +12,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result failStructMemberType(Sema& sema, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     ConstantRef makeStructConstantFromBytes(Sema& sema, TypeRef structTypeRef, ByteSpan bytes)
     {
         auto&           ctx        = sema.ctx();
@@ -33,143 +41,140 @@ namespace
         const ConstantValue cv = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, bytes);
         return sema.cstMgr().addConstant(ctx, cv);
     }
-}
 
-Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
-{
-    auto&    ctx = sema.ctx();
-    ByteSpan bytes;
-    if (cst.isStruct())
+    bool findAggregateStructFieldIndex(const SymbolStruct& sym, const SymbolVariable& symVar, size_t& fieldIndex)
     {
-        bytes = cst.getStruct();
-    }
-    else if (cst.isValuePointer() || cst.isBlockPointer())
-    {
-        const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
-        TypeRef         pointedTypeRef;
-        if (cstType.isAnyPointer())
-            pointedTypeRef = cstType.payloadTypeRef();
-        else if (cstType.isTypeInfo())
-            pointedTypeRef = sema.typeMgr().structTypeInfo();
-        else
-            SWC_UNREACHABLE();
-
-        const TypeInfo& pointedType = sema.typeMgr().get(pointedTypeRef);
-        SWC_ASSERT(pointedType.isStruct());
-        const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
-        SWC_ASSERT(ptr);
-        bytes = ByteSpan{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(ctx)};
-    }
-    else if (cst.isSlice())
-    {
-        bytes = cst.getSlice();
-    }
-    else if (cst.isAggregateStruct())
-    {
-        const auto& values = cst.getAggregateStruct();
-        const auto* owner  = symVar.ownerSymMap();
-        const auto* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
-        if (!sym)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        size_t fieldIndex = 0;
-        bool   found      = false;
-        for (const auto* field : sym->fields())
+        size_t index = 0;
+        for (const auto* field : sym.fields())
         {
             if (!field || field->isIgnored())
                 continue;
 
             if (field == &symVar)
             {
-                found = true;
-                break;
+                fieldIndex = index;
+                return true;
             }
 
-            ++fieldIndex;
+            ++index;
         }
 
-        if (!found || std::cmp_greater_equal(fieldIndex, values.size()))
+        return false;
+    }
+
+    bool getStructBytesFromConstant(Sema& sema, const ConstantValue& cst, ByteSpan& bytes)
+    {
+        if (cst.isStruct())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-            diag.report(ctx);
-            return Result::Error;
+            bytes = cst.getStruct();
+            return true;
+        }
+
+        if (cst.isValuePointer() || cst.isBlockPointer())
+        {
+            const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
+            TypeRef         pointedTypeRef;
+            if (cstType.isAnyPointer())
+                pointedTypeRef = cstType.payloadTypeRef();
+            else if (cstType.isTypeInfo())
+                pointedTypeRef = sema.typeMgr().structTypeInfo();
+            else
+                SWC_UNREACHABLE();
+
+            const TypeInfo& pointedType = sema.typeMgr().get(pointedTypeRef);
+            SWC_ASSERT(pointedType.isStruct());
+            const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
+            SWC_ASSERT(ptr);
+            bytes = ByteSpan{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
+            return true;
+        }
+
+        if (cst.isSlice())
+        {
+            bytes = cst.getSlice();
+            return true;
+        }
+
+        return false;
+    }
+
+    void extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+    {
+        const auto& values = cst.getAggregateStruct();
+        const auto* owner  = symVar.ownerSymMap();
+        const auto* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
+        if (!sym)
+        {
+            failStructMemberType(sema, symVar, nodeMemberRef);
+            return;
+        }
+
+        size_t fieldIndex = 0;
+        if (!findAggregateStructFieldIndex(*sym, symVar, fieldIndex))
+        {
+            failStructMemberType(sema, symVar, nodeMemberRef);
+            return;
+        }
+
+        if (std::cmp_greater_equal(fieldIndex, values.size()))
+        {
+            failStructMemberType(sema, symVar, nodeMemberRef);
+            return;
         }
 
         sema.setConstant(nodeRef, values[fieldIndex]);
+    }
+
+    ConstantRef makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes)
+    {
+        auto& ctx = sema.ctx();
+        if (typeField.isArray())
+            return makeArrayConstantFromBytes(sema, fieldTypeRef, bytes);
+        if (typeField.isStruct())
+            return makeStructConstantFromBytes(sema, fieldTypeRef, bytes);
+
+        TypeRef valueTypeRef = fieldTypeRef;
+        if (typeField.isEnum())
+            valueTypeRef = typeField.payloadSymEnum().underlyingTypeRef();
+
+        ConstantValue cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        if (!cv.isValid())
+            return ConstantRef::invalid();
+
+        ConstantRef cstRef = sema.cstMgr().addConstant(ctx, cv);
+        if (typeField.isEnum())
+        {
+            ConstantValue enumCv = ConstantValue::makeEnumValue(ctx, cstRef, valueTypeRef);
+            enumCv.setTypeRef(fieldTypeRef);
+            cstRef = sema.cstMgr().addConstant(ctx, enumCv);
+        }
+
+        return cstRef;
+    }
+}
+
+Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+{
+    auto& ctx = sema.ctx();
+
+    if (cst.isAggregateStruct())
+    {
+        extractAggregateStructMember(sema, cst, symVar, nodeRef, nodeMemberRef);
         return Result::Continue;
     }
-    else
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-        diag.report(ctx);
-        return Result::Error;
-    }
+
+    ByteSpan bytes;
+    if (!getStructBytesFromConstant(sema, cst, bytes))
+        return failStructMemberType(sema, symVar, nodeMemberRef);
 
     const TypeInfo& typeVar   = symVar.typeInfo(ctx);
     const TypeInfo* typeField = &typeVar;
     SWC_ASSERT(symVar.offset() + typeField->sizeOf(ctx) <= bytes.size());
     const auto fieldBytes = ByteSpan{bytes.data() + symVar.offset(), typeField->sizeOf(ctx)};
 
-    if (typeField->isArray())
-    {
-        const ConstantRef arrayCstRef = makeArrayConstantFromBytes(sema, symVar.typeRef(), fieldBytes);
-        if (arrayCstRef.isInvalid())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        sema.setConstant(nodeRef, arrayCstRef);
-        return Result::Continue;
-    }
-    if (typeField->isStruct())
-    {
-        const ConstantRef structCstRef = makeStructConstantFromBytes(sema, symVar.typeRef(), fieldBytes);
-        if (structCstRef.isInvalid())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        sema.setConstant(nodeRef, structCstRef);
-        return Result::Continue;
-    }
-
-    TypeRef valueTypeRef = symVar.typeRef();
-    if (typeField->isEnum())
-    {
-        valueTypeRef = typeField->payloadSymEnum().underlyingTypeRef();
-        typeField    = &sema.typeMgr().get(typeField->payloadSymEnum().underlyingTypeRef());
-    }
-
-    ConstantValue cv = ConstantValue::make(ctx, fieldBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-    if (!cv.isValid())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_cst_struct_member_type, nodeMemberRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, symVar.typeRef());
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    ConstantRef cstRef = sema.cstMgr().addConstant(ctx, cv);
-
-    if (typeVar.isEnum())
-    {
-        cv = ConstantValue::makeEnumValue(ctx, cstRef, typeVar.payloadSymEnum().underlyingTypeRef());
-        cv.setTypeRef(symVar.typeRef());
-        cstRef = sema.cstMgr().addConstant(ctx, cv);
-    }
+    const ConstantRef cstRef = makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes);
+    if (cstRef.isInvalid())
+        return failStructMemberType(sema, symVar, nodeMemberRef);
 
     sema.setConstant(nodeRef, cstRef);
     return Result::Continue;

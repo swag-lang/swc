@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -206,6 +207,15 @@ void SymbolStruct::computeLayout(Sema& sema)
         const auto padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
         sizeInBytes_ += padding;
     }
+}
+
+Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc)
+{
+    std::unique_lock lk(mutexSpecialFuncs_);
+    const auto [it, inserted] = specialFuncs_.try_emplace(symFunc.idRef(), &symFunc);
+    if (!inserted)
+        return SemaError::raiseAlreadyDefined(sema, &symFunc, it->second);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

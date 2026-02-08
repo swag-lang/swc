@@ -224,12 +224,12 @@ namespace
             castedByDst[i] = field->defaultValueRef();
         }
 
-        const uint64_t         structSize = args.dstType->sizeOf(args.sema->ctx());
-        std::vector<std::byte> buffer(structSize);
-        if (structSize)
-            std::ranges::fill(buffer, std::byte{0});
+        const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
+        SWC_ASSERT(structSize);
 
-        const auto bytes = ByteSpan{buffer.data(), buffer.size()};
+        std::vector<std::byte> buffer(structSize);
+        const auto             bytes = ByteSpan{buffer.data(), buffer.size()};
+
         for (size_t i = 0; i < dstFields.size(); ++i)
         {
             if (!castedByDst[i].isValid())

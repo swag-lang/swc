@@ -412,9 +412,7 @@ ConstantRef ConstantHelpers::makeDefaultStruct(Sema& sema, TypeRef typeRef)
     SWC_ASSERT(structSize);
 
     std::vector<std::byte> buffer(structSize);
-    std::memset(buffer.data(), 0, buffer.size());
-
-    const auto bytes = ByteSpan{buffer.data(), buffer.size()};
+    const auto             bytes = ByteSpan{buffer.data(), buffer.size()};
     if (!lowerAggregateStructToBytes(sema, bytes, type, {}))
         return ConstantRef::invalid();
     const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);

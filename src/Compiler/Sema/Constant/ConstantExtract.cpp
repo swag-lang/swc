@@ -42,26 +42,6 @@ namespace
         return sema.cstMgr().addConstant(ctx, cv);
     }
 
-    bool findAggregateStructFieldIndex(const SymbolStruct& sym, const SymbolVariable& symVar, size_t& fieldIndex)
-    {
-        size_t index = 0;
-        for (const auto* field : sym.fields())
-        {
-            if (!field || field->isIgnored())
-                continue;
-
-            if (field == &symVar)
-            {
-                fieldIndex = index;
-                return true;
-            }
-
-            ++index;
-        }
-
-        return false;
-    }
-
     Result getStructBytesFromConstant(Sema& sema, ByteSpan& bytes, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
         if (cst.isStruct())
@@ -110,7 +90,7 @@ namespace
         }
 
         size_t fieldIndex = 0;
-        if (!findAggregateStructFieldIndex(*sym, symVar, fieldIndex))
+        if (!sym->findAggregateStructFieldIndex(symVar, fieldIndex))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;

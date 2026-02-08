@@ -70,18 +70,15 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 ConstantRef SymbolStruct::defaultValue(Sema& sema, TypeRef typeRef)
 {
     std::call_once(defaultStructOnce_, [&] {
-        const auto& type = sema.typeMgr().get(typeRef);
-        SWC_ASSERT(type.isStruct());
-        SWC_ASSERT(&type.payloadSymStruct() == this);
-
-        const uint64_t structSize = type.sizeOf(sema.ctx());
+        auto            ctx        = sema.ctx();
+        const TypeInfo& ty         = type(ctx);
+        const uint64_t  structSize = ty.sizeOf(ctx);
         SWC_ASSERT(structSize);
-
         const std::vector<std::byte> buffer(structSize);
-        const auto                   bytes = asByteSpan(buffer);
-        ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, type, {});
-        const auto cstVal = ConstantValue::makeStruct(sema.ctx(), typeRef, bytes);
-        defaultStructCst_ = sema.cstMgr().addConstant(sema.ctx(), cstVal);
+        const ByteSpan               bytes = asByteSpan(buffer);
+        ConstantHelpers::lowerAggregateStructToBytes(sema, bytes, ty, {});
+        const ConstantValue cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
+        defaultStructCst_          = sema.cstMgr().addConstant(ctx, cstVal);
     });
 
     return defaultStructCst_;

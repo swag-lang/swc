@@ -99,7 +99,7 @@ namespace
             return Result::Continue;
         }
 
-        SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+        SWC_INTERNAL_ERROR();
         return Result::Error;
     }
 
@@ -309,7 +309,7 @@ namespace
             case TokenId::KwdMoveRef:
                 return checkMoveRef(sema, node, nodeView);
             default:
-                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                SWC_INTERNAL_ERROR();
                 return Result::Error;
         }
     }

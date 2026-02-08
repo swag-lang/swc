@@ -60,7 +60,7 @@ namespace
                 return Result::Continue;
 
             default:
-                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                SWC_INTERNAL_ERROR();
                 return Result::Error;
         }
     }
@@ -69,7 +69,7 @@ namespace
     {
         if (tok.id != TokenId::SymEqual)
         {
-            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            SWC_INTERNAL_ERROR();
             return Result::Error;
         }
 
@@ -148,7 +148,7 @@ namespace
         {
             if (leftRef.isInvalid())
             {
-                SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+                SWC_INTERNAL_ERROR();
                 return Result::Error;
             }
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))

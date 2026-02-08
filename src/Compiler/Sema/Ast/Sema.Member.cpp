@@ -278,7 +278,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return Result::SkipChildren;
     }
 
-    SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+    SWC_INTERNAL_ERROR();
     return Result::Error;
 }
 

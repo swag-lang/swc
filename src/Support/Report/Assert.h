@@ -1,11 +1,15 @@
 #pragma once
 SWC_BEGIN_NAMESPACE();
 
-class TaskContext;
-
 void              swcAssert(const char* expr, const char* file, int line);
-[[noreturn]] void swcInternalError(const char* message, const char* file, int line);
-[[noreturn]] void swcInternalError(const TaskContext& ctx, const char* message, const char* file, int line);
+[[noreturn]] void swcInternalError(const char* file, int line);
+
+#define SWC_INTERNAL_ERROR()              \
+    do                                    \
+    {                                     \
+        swcInternalError(__FILE__, __LINE__); \
+        std::unreachable();               \
+    } while (0)
 
 #define SWC_FORCE_ASSERT(__expr)                    \
     do                                              \
@@ -34,18 +38,6 @@ void              swcAssert(const char* expr, const char* file, int line);
         std::unreachable(); \
     } while (0)
 
-#define SWC_INTERNAL_ERROR(__message)                    \
-    do                                                   \
-    {                                                    \
-        swcInternalError(__message, __FILE__, __LINE__); \
-    } while (0)
-
-#define SWC_INTERNAL_ERROR_CTX(__ctx, __message)                \
-    do                                                          \
-    {                                                           \
-        swcInternalError(__ctx, __message, __FILE__, __LINE__); \
-    } while (0)
-
 #else
 
 #define SWC_ASSERT(__expr) \
@@ -55,18 +47,6 @@ void              swcAssert(const char* expr, const char* file, int line);
 
 #define SWC_UNREACHABLE() \
     std::unreachable();
-
-#define SWC_INTERNAL_ERROR(__message)                    \
-    do                                                   \
-    {                                                    \
-        swcInternalError(__message, __FILE__, __LINE__); \
-    } while (0)
-
-#define SWC_INTERNAL_ERROR_CTX(__ctx, __message)                \
-    do                                                          \
-    {                                                           \
-        swcInternalError(__ctx, __message, __FILE__, __LINE__); \
-    } while (0)
 
 #endif // SWC_HAS_ASSERT
 

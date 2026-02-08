@@ -40,7 +40,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         const SemaNodeView identView(sema, nodeIdentRef);
         if (!identView.sym)
         {
-            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            SWC_INTERNAL_ERROR();
             return Result::Error;
         }
 
@@ -74,7 +74,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         const SemaNodeView forView(sema, nodeForRef);
         if (!forView.sym)
         {
-            SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+            SWC_INTERNAL_ERROR();
             return Result::Error;
         }
         if (!forView.sym->isStruct())

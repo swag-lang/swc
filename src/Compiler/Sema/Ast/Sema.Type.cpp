@@ -81,7 +81,7 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
             break;
     }
 
-    SWC_INTERNAL_ERROR_CTX(sema.ctx(), "Sema internal error");
+    SWC_INTERNAL_ERROR();
     return Result::Error;
 }
 

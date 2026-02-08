@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DiagnosticElement.h"
-#include "Diagnostic.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Diagnostic.h"
 #include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -107,6 +107,7 @@ struct MicroJump
     void*       patchOffsetAddr = nullptr;
     uint64_t    offsetStart     = 0;
     MicroOpBits opBits          = MicroOpBits::Zero;
+    bool        valid           = false;
 };
 
 SWC_END_NAMESPACE();

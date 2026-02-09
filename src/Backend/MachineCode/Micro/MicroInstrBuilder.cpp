@@ -546,15 +546,15 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
         {
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].jumpType, ops[1].opBits, inst.emitFlags);
-            jumps_[idx]     = jump;
-            jumpValid_[idx] = true;
+            jump.valid = true;
+            jumps_[idx] = jump;
             break;
         }
         case MicroInstrOpcode::PatchJump:
         {
             const size_t jumpIndex = resolveJumpIndex(ops[0].valueU64);
-            SWC_ASSERT(jumpIndex < jumpValid_.size());
-            SWC_ASSERT(jumpValid_[jumpIndex]);
+            SWC_ASSERT(jumpIndex < jumps_.size());
+            SWC_ASSERT(jumps_[jumpIndex].valid);
             if (ops[2].valueU64 == 1)
                 encoder.encodePatchJump(jumps_[jumpIndex], ops[1].valueU64, inst.emitFlags);
             else
@@ -668,8 +668,7 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
 void MicroInstrBuilder::encode(Encoder& encoder)
 {
     SWC_ASSERT(jumps_.empty());
-    jumps_.reserve(instructionCount_);
-    jumpValid_.reserve(instructionCount_);
+    jumps_.resize(instructionCount_);
 
     size_t idx = 0;
     for (const auto& inst : instructions_.typedView<MicroInstr>())

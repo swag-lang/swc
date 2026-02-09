@@ -70,10 +70,9 @@ private:
 
     TaskContext*            ctx_ = nullptr;
     Store                   instructions_;
-    uint32_t                instructionCount_ = 0;
     Store                   operands_;
     std::vector<MicroJump>  jumps_;
-    std::vector<bool>       jumpValid_;
+    uint32_t                instructionCount_ = 0;
 };
 
 SWC_END_NAMESPACE();

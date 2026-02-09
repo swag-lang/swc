@@ -40,7 +40,6 @@ namespace Cpu
         Max,
     };
 
-    // ReSharper disable CppInconsistentNaming
     enum class Op : uint8_t
     {
         ADD      = 0x01,
@@ -89,24 +88,23 @@ namespace Cpu
 
     enum class Cond : uint8_t
     {
-        A,
-        O,
-        AE,
-        G,
-        B,
-        BE,
-        E,
-        GE,
-        L,
-        LE,
-        NA,
-        NE,
-        P,
-        NP,
-        EP,
-        NEP,
+        Above,
+        Overflow,
+        AboveOrEqual,
+        Greater,
+        Below,
+        BelowOrEqual,
+        Equal,
+        GreaterOrEqual,
+        Less,
+        LessOrEqual,
+        NotAbove,
+        NotEqual,
+        Parity,
+        NotParity,
+        EvenParity,
+        NotEvenParity,
     };
-    // ReSharper restore CppInconsistentNaming
 
     enum class CondJump : uint8_t
     {

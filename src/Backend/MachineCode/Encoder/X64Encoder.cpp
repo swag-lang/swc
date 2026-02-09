@@ -1109,46 +1109,46 @@ EncodeResult X64Encoder::encodeSetCondReg(Cpu::Reg reg, Cpu::Cond cpuCond, EmitF
 
     switch (cpuCond)
     {
-        case Cpu::Cond::A:
+        case Cpu::Cond::Above:
             emitCpuOp(store_, 0x97);
             break;
-        case Cpu::Cond::O:
+        case Cpu::Cond::Overflow:
             emitCpuOp(store_, 0x90);
             break;
-        case Cpu::Cond::AE:
+        case Cpu::Cond::AboveOrEqual:
             emitCpuOp(store_, 0x93);
             break;
-        case Cpu::Cond::G:
+        case Cpu::Cond::Greater:
             emitCpuOp(store_, 0x9F);
             break;
-        case Cpu::Cond::NE:
+        case Cpu::Cond::NotEqual:
             emitCpuOp(store_, 0x95);
             break;
-        case Cpu::Cond::NA:
+        case Cpu::Cond::NotAbove:
             emitCpuOp(store_, 0x96);
             break;
-        case Cpu::Cond::B:
+        case Cpu::Cond::Below:
             emitCpuOp(store_, 0x92);
             break;
-        case Cpu::Cond::BE:
+        case Cpu::Cond::BelowOrEqual:
             emitCpuOp(store_, 0x96);
             break;
-        case Cpu::Cond::E:
+        case Cpu::Cond::Equal:
             emitCpuOp(store_, 0x94);
             break;
-        case Cpu::Cond::GE:
+        case Cpu::Cond::GreaterOrEqual:
             emitCpuOp(store_, 0x9D);
             break;
-        case Cpu::Cond::L:
+        case Cpu::Cond::Less:
             emitCpuOp(store_, 0x9C);
             break;
-        case Cpu::Cond::LE:
+        case Cpu::Cond::LessOrEqual:
             emitCpuOp(store_, 0x9E);
             break;
-        case Cpu::Cond::P:
+        case Cpu::Cond::Parity:
             emitCpuOp(store_, 0x9A);
             break;
-        case Cpu::Cond::NP:
+        case Cpu::Cond::NotParity:
             emitCpuOp(store_, 0x9B);
             break;
         default:
@@ -1171,22 +1171,22 @@ EncodeResult X64Encoder::encodeLoadCondRegReg(Cpu::Reg regDst, Cpu::Reg regSrc, 
 
     switch (setType)
     {
-        case Cpu::Cond::B:
+        case Cpu::Cond::Below:
             emitCpuOp(store_, 0x42);
             break;
-        case Cpu::Cond::E:
+        case Cpu::Cond::Equal:
             emitCpuOp(store_, 0x44);
             break;
-        case Cpu::Cond::G:
+        case Cpu::Cond::Greater:
             emitCpuOp(store_, 0x4F);
             break;
-        case Cpu::Cond::L:
+        case Cpu::Cond::Less:
             emitCpuOp(store_, 0x4C);
             break;
-        case Cpu::Cond::BE:
+        case Cpu::Cond::BelowOrEqual:
             emitCpuOp(store_, 0x46);
             break;
-        case Cpu::Cond::GE:
+        case Cpu::Cond::GreaterOrEqual:
             emitCpuOp(store_, 0x4D);
             break;
         default:

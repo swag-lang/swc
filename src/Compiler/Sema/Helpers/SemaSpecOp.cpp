@@ -323,10 +323,7 @@ namespace
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 {
-    const IdentifierRef idRef = sym.idRef();
-    if (idRef.isInvalid())
-        return Result::Continue;
-
+    const IdentifierRef    idRef = sym.idRef();
     const auto&            idMgr = sema.idMgr();
     const std::string_view name  = idMgr.get(idRef).name;
     if (!LangSpec::isSpecOpName(name))

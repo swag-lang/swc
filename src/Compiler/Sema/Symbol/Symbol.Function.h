@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Symbol/Symbol.SpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -42,10 +43,13 @@ public:
     bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    SpecOpKind specOpKind() const noexcept { return specOpKind_; }
+    void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
 private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
+    SpecOpKind                   specOpKind_ = SpecOpKind::Invalid;
 };
 
 SWC_END_NAMESPACE();

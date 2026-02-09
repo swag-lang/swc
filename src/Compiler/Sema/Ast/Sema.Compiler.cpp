@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
@@ -549,7 +550,8 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             break;
     }
 
-    SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
+    auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
+    sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     return Result::SkipChildren;
 }
 

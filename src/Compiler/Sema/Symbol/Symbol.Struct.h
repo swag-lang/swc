@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Symbol/Symbol.SpecOpKind.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -8,28 +9,6 @@ class SymbolImpl;
 class SymbolFunction;
 class SymbolInterface;
 class Sema;
-
-enum class SpecOpKind : uint8_t
-{
-    OpBinary,
-    OpUnary,
-    OpAssign,
-    OpIndexAssign,
-    OpCast,
-    OpEquals,
-    OpCmp,
-    OpPostCopy,
-    OpPostMove,
-    OpDrop,
-    OpCount,
-    OpData,
-    OpAffect,
-    OpAffectLiteral,
-    OpSlice,
-    OpIndex,
-    OpIndexAffect,
-    OpVisit,
-};
 
 enum class SymbolStructFlagsE : uint8_t
 {

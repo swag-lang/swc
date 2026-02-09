@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Symbol.Function.h"
 
@@ -34,8 +33,9 @@ void SymbolImpl::setSymEnum(SymbolEnum* sym)
 
 void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
 {
+    (void) ctx;
     std::unique_lock lk(mutex_);
-    if (LangSpec::isSpecOpName(sym->name(ctx)))
+    if (sym->specOpKind() != SpecOpKind::Invalid)
         specOps_.push_back(sym);
 }
 

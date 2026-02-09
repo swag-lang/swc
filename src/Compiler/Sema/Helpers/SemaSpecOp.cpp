@@ -52,6 +52,7 @@ namespace
                 return "func(op: string) opIndexAffect(me, index: <type>, value: <type>) -> void";
             case SpecOpKind::OpVisit:
                 return "func(ptr: bool, back: bool) opVisit(me, stmt: #code) -> void";
+            case SpecOpKind::Invalid:
             default:
                 return "valid special function signature";
         }
@@ -107,6 +108,14 @@ namespace
         }
 
         return false;
+    }
+
+    SpecOpKind computeSpecOpKind(IdentifierRef idRef, const IdentifierManager& idMgr)
+    {
+        SpecOpKind kind = SpecOpKind::Invalid;
+        if (matchSpecOp(idRef, idMgr, kind))
+            return kind;
+        return SpecOpKind::Invalid;
     }
 
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
@@ -204,6 +213,8 @@ namespace
 
         switch (kind)
         {
+            case SpecOpKind::Invalid:
+                return reportSpecOpError(sema, sym, kind);
             case SpecOpKind::OpDrop:
             case SpecOpKind::OpPostCopy:
             case SpecOpKind::OpPostMove:
@@ -329,8 +340,8 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     if (!LangSpec::isSpecOpName(name))
         return Result::Continue;
 
-    SpecOpKind kind{};
-    if (!matchSpecOp(idRef, idMgr, kind))
+    const SpecOpKind kind = sym.specOpKind();
+    if (kind == SpecOpKind::Invalid)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_unknown, sym);
         diag.addNote(DiagnosticId::sema_note_spec_op_reserved);
@@ -360,16 +371,11 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     if (idRef.isInvalid())
         return Result::Continue;
 
-    const auto&            idMgr = sema.idMgr();
-    const std::string_view name  = idMgr.get(idRef).name;
-    if (!LangSpec::isSpecOpName(name))
-        return Result::Continue;
-
     if (!sym.hasExtraFlag(SymbolFunctionFlagsE::SpecOpValidated))
         return Result::Continue;
 
-    SpecOpKind kind{};
-    if (!matchSpecOp(idRef, idMgr, kind))
+    const SpecOpKind kind = sym.specOpKind();
+    if (kind == SpecOpKind::Invalid)
         return Result::Continue;
 
     SymbolStruct* ownerStruct = ownerStructFor(sym);
@@ -384,6 +390,11 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     }
 
     return ownerStruct->registerSpecOp(sym, kind);
+}
+
+SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction& sym)
+{
+    return computeSpecOpKind(sym.idRef(), sema.idMgr());
 }
 
 SWC_END_NAMESPACE();

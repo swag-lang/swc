@@ -260,8 +260,8 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs = {});
-    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types, const std::span<SourceCodeRef>& fieldRefs = {});
+    static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types);
+    static TypeInfo makeAggregateArray(const std::span<TypeRef>& types);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);

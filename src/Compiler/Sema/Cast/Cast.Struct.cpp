@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
@@ -34,11 +35,10 @@ namespace
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
-    Result failStructField(const CastStructArgs& args, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
+    Result failStructField(const CastStructArgs& args, std::span<const SourceCodeRef> fieldRefs, size_t fieldIndex, DiagnosticId id, std::string_view value = "")
     {
-        const auto&         fieldRefs = args.srcType->payloadAggregate().fieldRefs;
-        const SourceCodeRef previous  = args.castRequest->errorCodeRef;
-        const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
+        const SourceCodeRef previous = args.castRequest->errorCodeRef;
+        const SourceCodeRef fieldRef = fieldIndex < fieldRefs.size() ? fieldRefs[fieldIndex] : SourceCodeRef::invalid();
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
         const Result res               = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
@@ -46,11 +46,10 @@ namespace
         return res;
     }
 
-    Result failStructFieldCountAt(const CastStructArgs& args, size_t fieldIndex, size_t srcCount, size_t dstCount)
+    Result failStructFieldCountAt(const CastStructArgs& args, std::span<const SourceCodeRef> fieldRefs, size_t fieldIndex, size_t srcCount, size_t dstCount)
     {
-        const auto&         fieldRefs = args.srcType->payloadAggregate().fieldRefs;
-        const SourceCodeRef previous  = args.castRequest->errorCodeRef;
-        const SourceCodeRef fieldRef  = fieldRefs[fieldIndex];
+        const SourceCodeRef previous = args.castRequest->errorCodeRef;
+        const SourceCodeRef fieldRef = fieldIndex < fieldRefs.size() ? fieldRefs[fieldIndex] : SourceCodeRef::invalid();
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
         const Result res               = failStructFieldCount(args, srcCount, dstCount);
@@ -110,19 +109,17 @@ namespace
         return Result::Continue;
     }
 
-    Result mapAggregateStructFields(const CastStructArgs& args, std::vector<size_t>& srcToDst)
+    Result mapAggregateStructFields(const CastStructArgs& args, std::span<const SourceCodeRef> fieldRefs, std::vector<size_t>& srcToDst)
     {
         const auto& aggregate = args.srcType->payloadAggregate();
         const auto& srcTypes  = aggregate.types;
         const auto& srcNames  = aggregate.names;
-        const auto& fieldRefs = aggregate.fieldRefs;
         const auto& dstFields = args.dstType->payloadSymStruct().fields();
 
         if (srcTypes.size() > dstFields.size())
             return failStructFieldCount(args, srcTypes.size(), dstFields.size());
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
-        SWC_ASSERT(fieldRefs.size() == srcTypes.size());
         srcToDst.assign(srcTypes.size(), static_cast<size_t>(-1));
         std::vector dstUsed(dstFields.size(), false);
 
@@ -136,12 +133,12 @@ namespace
             if (positional)
             {
                 if (seenNamed)
-                    return failStructField(args, i, DiagnosticId::sema_err_unnamed_parameter);
+                    return failStructField(args, fieldRefs, i, DiagnosticId::sema_err_unnamed_parameter);
 
                 while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos]))
                     ++nextPos;
                 if (nextPos >= dstFields.size())
-                    return failStructFieldCountAt(args, i, srcTypes.size(), dstFields.size());
+                    return failStructFieldCountAt(args, fieldRefs, i, srcTypes.size(), dstFields.size());
 
                 srcToDst[i]      = nextPos;
                 dstUsed[nextPos] = true;
@@ -164,9 +161,9 @@ namespace
             }
 
             if (!found)
-                return failStructField(args, i, DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
+                return failStructField(args, fieldRefs, i, DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             if (dstUsed[dstIndex])
-                return failStructField(args, i, DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
+                return failStructField(args, fieldRefs, i, DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
 
             srcToDst[i]       = dstIndex;
             dstUsed[dstIndex] = true;
@@ -175,19 +172,19 @@ namespace
         return Result::Continue;
     }
 
-    Result validateAggregateStructElementCasts(const CastStructArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
+    Result validateAggregateStructElementCasts(const CastStructArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst, std::span<const SourceCodeRef> fieldRefs)
     {
-        const auto& fieldRefs = args.srcType->payloadAggregate().fieldRefs;
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            const size_t dstIndex = srcToDst[i];
-            RESULT_VERIFY(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i]));
+            const size_t        dstIndex = srcToDst[i];
+            const SourceCodeRef fieldRef = i < fieldRefs.size() ? fieldRefs[i] : SourceCodeRef::invalid();
+            RESULT_VERIFY(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRef));
         }
 
         return Result::Continue;
     }
 
-    Result foldAggregateStructConstant(const CastStructArgs& args, const std::vector<size_t>& srcToDst)
+    Result foldAggregateStructConstant(const CastStructArgs& args, const std::vector<size_t>& srcToDst, std::span<const SourceCodeRef> fieldRefs)
     {
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;
@@ -195,15 +192,15 @@ namespace
         const ConstantValue& cst       = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
         const auto&          values    = cst.getAggregateStruct();
         const auto&          srcTypes  = args.srcType->payloadAggregate().types;
-        const auto&          fieldRefs = args.srcType->payloadAggregate().fieldRefs;
         const auto&          dstFields = args.dstType->payloadSymStruct().fields();
         std::vector          castedByDst(dstFields.size(), ConstantRef::invalid());
 
         for (size_t i = 0; i < values.size(); ++i)
         {
-            const size_t dstIndex = srcToDst[i];
-            ConstantRef  castedRef;
-            RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRefs[i], values[i], castedRef));
+            const size_t        dstIndex = srcToDst[i];
+            ConstantRef         castedRef;
+            const SourceCodeRef fieldRef = i < fieldRefs.size() ? fieldRefs[i] : SourceCodeRef::invalid();
+            RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldRef, values[i], castedRef));
             castedByDst[dstIndex] = castedRef;
         }
 
@@ -244,6 +241,23 @@ namespace
         args.castRequest->outConstRef = args.sema->cstMgr().addConstant(args.sema->ctx(), result);
         return Result::Continue;
     }
+
+    std::vector<SourceCodeRef> collectAggregateFieldRefs(const CastStructArgs& args, size_t expectedCount)
+    {
+        std::vector fieldRefs(expectedCount, SourceCodeRef::invalid());
+        if (!args.castRequest->errorNodeRef.isValid())
+            return fieldRefs;
+
+        SmallVector<AstNodeRef> children;
+        const AstNode&          node = args.sema->node(args.castRequest->errorNodeRef);
+        Ast::nodeIdInfos(node.id()).collectChildren(children, args.sema->ast(), node);
+        if (children.size() != expectedCount)
+            return fieldRefs;
+        for (size_t i = 0; i < expectedCount; ++i)
+            fieldRefs[i] = args.sema->node(children[i]).codeRef();
+
+        return fieldRefs;
+    }
 }
 
 Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -265,10 +279,11 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         std::vector<size_t> srcToDst;
         const auto&         srcTypes  = srcType.payloadAggregate().types;
         const auto&         dstFields = dstType.payloadSymStruct().fields();
+        const auto          fieldRefs = collectAggregateFieldRefs(ctx, srcTypes.size());
 
-        RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
-        RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
-        RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst));
+        RESULT_VERIFY(mapAggregateStructFields(ctx, fieldRefs, srcToDst));
+        RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst, fieldRefs));
+        RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst, fieldRefs));
         return Result::Continue;
     }
 

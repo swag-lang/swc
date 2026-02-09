@@ -476,13 +476,14 @@ ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext&, TypeRef typeR
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
+    (void) fieldRefs;
     ConstantValue        cv;
     std::vector<TypeRef> memberTypes;
     memberTypes.reserve(values.size());
     for (const auto& v : values)
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateStruct(names, memberTypes, fieldRefs));
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateStruct(names, memberTypes));
     cv.kind_    = ConstantKind::AggregateStruct;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -492,6 +493,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
 ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(!values.empty());
+    (void) fieldRefs;
 
     ConstantValue        cv;
     std::vector<TypeRef> elemTypes;
@@ -499,7 +501,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
     for (const auto& v : values)
         elemTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes, fieldRefs));
+    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
     cv.kind_    = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

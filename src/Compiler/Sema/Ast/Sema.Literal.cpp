@@ -484,16 +484,11 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         allConstant = allConstant && nodeView.cstRef.isValid();
     }
 
-    SmallVector<SourceCodeRef> elementCodeRefs;
-    elementCodeRefs.reserve(elements.size());
-    for (const auto& element : elements)
-        elementCodeRefs.push_back(sema.node(element).codeRef());
-
-    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes, elementCodeRefs));
+    const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values, elementCodeRefs);
+        const auto val = ConstantValue::makeAggregateArray(sema.ctx(), values);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else

@@ -230,10 +230,8 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
 {
     SmallVector<TypeRef>       memberTypes;
     SmallVector<IdentifierRef> memberNames;
-    SmallVector<SourceCodeRef> memberCodeRefs;
     memberTypes.reserve(children.size());
     memberNames.reserve(children.size());
-    memberCodeRefs.reserve(children.size());
 
     bool                     allConstant = true;
     SmallVector<ConstantRef> values;
@@ -250,19 +248,18 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         SemaNodeView nodeView(sema, child);
         SWC_ASSERT(nodeView.typeRef.isValid());
         memberTypes.push_back(nodeView.typeRef);
-        memberCodeRefs.push_back(childNode.codeRef());
         allConstant = allConstant && nodeView.cstRef.isValid();
         values.push_back(nodeView.cstRef);
     }
 
     if (allConstant)
     {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes));
         sema.setType(sema.curNodeRef(), typeRef);
     }
 

@@ -22,7 +22,7 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            SWC_INTERNAL_ERROR();
+            SWC_INTERNAL_ERROR(sema.ctx());
     }
 }
 
@@ -193,7 +193,7 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return Result::Continue;
 
         default:
-            SWC_INTERNAL_ERROR();
+            SWC_INTERNAL_ERROR(sema.ctx());
     }
 }
 

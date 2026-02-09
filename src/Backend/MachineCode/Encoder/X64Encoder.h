@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct MicroInstruction;
+struct MicroInstr;
 
 class X64Encoder : public Encoder
 {
@@ -21,8 +21,8 @@ public:
     }
 
 private:
-    MicroRegSet getReadRegisters(const MicroInstruction& inst) override;
-    MicroRegSet getWriteRegisters(const MicroInstruction& inst) override;
+    MicroRegSet getReadRegisters(const MicroInstr& inst) override;
+    MicroRegSet getWriteRegisters(const MicroInstr& inst) override;
 
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags) override;
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EmitFlags emitFlags) override;

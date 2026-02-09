@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
-#include "Backend/MachineCode/Micro/MicroInstruction.h"
+#include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -3059,30 +3059,30 @@ EncodeResult X64Encoder::encodeNop(EmitFlags emitFlags)
     return EncodeResult::Zero;
 }
 
-MicroRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
+MicroRegSet X64Encoder::getReadRegisters(const MicroInstr& inst)
 {
     auto result = Encoder::getReadRegisters(inst);
 
-    if (inst.op == MicroInstructionKind::OpBinaryRI ||
-        inst.op == MicroInstructionKind::OpBinaryRR ||
-        inst.op == MicroInstructionKind::OpBinaryMI ||
-        inst.op == MicroInstructionKind::OpBinaryRM ||
-        inst.op == MicroInstructionKind::OpBinaryMR)
+    if (inst.op == MicroInstrKind::OpBinaryRI ||
+        inst.op == MicroInstrKind::OpBinaryRR ||
+        inst.op == MicroInstrKind::OpBinaryMI ||
+        inst.op == MicroInstrKind::OpBinaryRM ||
+        inst.op == MicroInstrKind::OpBinaryMR)
     {
         auto cpuOp = MicroOp::Add;
         switch (inst.op)
         {
-            case MicroInstructionKind::OpBinaryRI:
+            case MicroInstrKind::OpBinaryRI:
                 cpuOp = inst.ops[2].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryRR:
+            case MicroInstrKind::OpBinaryRR:
                 cpuOp = inst.ops[3].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryMI:
+            case MicroInstrKind::OpBinaryMI:
                 cpuOp = inst.ops[2].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryRM:
-            case MicroInstructionKind::OpBinaryMR:
+            case MicroInstrKind::OpBinaryRM:
+            case MicroInstrKind::OpBinaryMR:
                 cpuOp = inst.ops[3].cpuOp;
                 break;
             default:
@@ -3111,30 +3111,30 @@ MicroRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
     return result;
 }
 
-MicroRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
+MicroRegSet X64Encoder::getWriteRegisters(const MicroInstr& inst)
 {
     auto result = Encoder::getWriteRegisters(inst);
 
-    if (inst.op == MicroInstructionKind::OpBinaryRI ||
-        inst.op == MicroInstructionKind::OpBinaryRR ||
-        inst.op == MicroInstructionKind::OpBinaryMI ||
-        inst.op == MicroInstructionKind::OpBinaryRM ||
-        inst.op == MicroInstructionKind::OpBinaryMR)
+    if (inst.op == MicroInstrKind::OpBinaryRI ||
+        inst.op == MicroInstrKind::OpBinaryRR ||
+        inst.op == MicroInstrKind::OpBinaryMI ||
+        inst.op == MicroInstrKind::OpBinaryRM ||
+        inst.op == MicroInstrKind::OpBinaryMR)
     {
         auto cpuOp = MicroOp::Add;
         switch (inst.op)
         {
-            case MicroInstructionKind::OpBinaryRI:
+            case MicroInstrKind::OpBinaryRI:
                 cpuOp = inst.ops[2].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryRR:
+            case MicroInstrKind::OpBinaryRR:
                 cpuOp = inst.ops[3].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryMI:
+            case MicroInstrKind::OpBinaryMI:
                 cpuOp = inst.ops[2].cpuOp;
                 break;
-            case MicroInstructionKind::OpBinaryRM:
-            case MicroInstructionKind::OpBinaryMR:
+            case MicroInstrKind::OpBinaryRM:
+            case MicroInstrKind::OpBinaryMR:
                 cpuOp = inst.ops[3].cpuOp;
                 break;
             default:
@@ -3155,4 +3155,3 @@ MicroRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 }
 
 SWC_END_NAMESPACE();
-

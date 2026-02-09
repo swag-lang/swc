@@ -1,13 +1,13 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
-#include "Backend/MachineCode/Micro/MicroInstruction.h"
+#include "Backend/MachineCode/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroInstructionBuilder
+class MicroInstrBuilder
 {
 public:
-    explicit MicroInstructionBuilder(TaskContext& ctx) :
+    explicit MicroInstrBuilder(TaskContext& ctx) :
         ctx_(&ctx)
     {
     }
@@ -59,13 +59,13 @@ public:
     EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EmitFlags emitFlags);
 
 private:
-    void              encodeInstruction(Encoder& encoder, const MicroInstruction& inst, size_t idx);
-    MicroInstruction& addInstruction(MicroInstructionKind op, EmitFlags emitFlags, uint8_t numOperands);
+    void        encodeInstruction(Encoder& encoder, const MicroInstr& inst, size_t idx);
+    MicroInstr& addInstruction(MicroInstrKind op, EmitFlags emitFlags, uint8_t numOperands);
 
-    TaskContext*                  ctx_ = nullptr;
-    std::vector<MicroInstruction> instructions_;
-    std::vector<MicroJump> jumps_;
-    std::vector<bool>             jumpValid_;
+    TaskContext*            ctx_ = nullptr;
+    std::vector<MicroInstr> instructions_;
+    std::vector<MicroJump>  jumps_;
+    std::vector<bool>       jumpValid_;
 };
 
 SWC_END_NAMESPACE();

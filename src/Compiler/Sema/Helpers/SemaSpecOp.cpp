@@ -5,8 +5,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -338,7 +338,7 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
         return SpecOpKind::None;
 
     auto kind = SpecOpKind::Invalid;
-    using Pn = IdentifierManager::PredefinedName;
+    using Pn  = IdentifierManager::PredefinedName;
     struct Entry
     {
         Pn         pn;

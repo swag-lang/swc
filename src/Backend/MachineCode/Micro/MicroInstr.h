@@ -4,7 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 // ReSharper disable CppInconsistentNaming
-enum class MicroInstructionKind : uint8_t
+enum class MicroInstrKind : uint8_t
 {
     End,
     Enter,
@@ -77,56 +77,56 @@ enum class MicroInstructionKind : uint8_t
 };
 // ReSharper restore CppInconsistentNaming
 
-struct MicroInstructionOperand
+struct MicroInstrOperand
 {
     union
     {
-        IdentifierRef        name;
-        const CallConv*      callConv;
-        MicroReg      reg;
-        MicroOpBits   opBits;
-        MicroCond     cpuCond;
-        MicroCondJump jumpType;
-        MicroOp       cpuOp;
-        uint32_t             valueU32;
-        int32_t              valueI32;
-        uint64_t             valueU64;
+        IdentifierRef   name;
+        const CallConv* callConv;
+        MicroReg        reg;
+        MicroOpBits     opBits;
+        MicroCond       cpuCond;
+        MicroCondJump   jumpType;
+        MicroOp         cpuOp;
+        uint32_t        valueU32;
+        int32_t         valueI32;
+        uint64_t        valueU64;
     };
 
-    MicroInstructionOperand() :
+    MicroInstrOperand() :
         valueU64(0)
     {
     }
 
-    MicroInstructionOperand(const MicroInstructionOperand& other)
+    MicroInstrOperand(const MicroInstrOperand& other)
     {
-        std::memcpy(this, &other, sizeof(MicroInstructionOperand));
+        std::memcpy(this, &other, sizeof(MicroInstrOperand));
     }
 
-    MicroInstructionOperand& operator=(const MicroInstructionOperand& other)
+    MicroInstrOperand& operator=(const MicroInstrOperand& other)
     {
         if (this != &other)
-            std::memcpy(this, &other, sizeof(MicroInstructionOperand));
+            std::memcpy(this, &other, sizeof(MicroInstrOperand));
         return *this;
     }
 };
 
-struct MicroInstruction
+struct MicroInstr
 {
-    MicroInstructionOperand* ops         = nullptr;
-    MicroInstructionKind     op          = MicroInstructionKind::OpBinaryRI;
-    EmitFlags                emitFlags   = EMIT_ZERO;
-    uint8_t                  numOperands = 0;
+    MicroInstrOperand* ops         = nullptr;
+    MicroInstrKind     op          = MicroInstrKind::OpBinaryRI;
+    EmitFlags          emitFlags   = EMIT_ZERO;
+    uint8_t            numOperands = 0;
 
-    MicroInstruction() = default;
-    ~MicroInstruction() { delete[] ops; }
+    MicroInstr() = default;
+    ~MicroInstr() { delete[] ops; }
 
-    MicroInstruction(const MicroInstruction& other)
+    MicroInstr(const MicroInstr& other)
     {
         copyFrom(other);
     }
 
-    MicroInstruction& operator=(const MicroInstruction& other)
+    MicroInstr& operator=(const MicroInstr& other)
     {
         if (this != &other)
         {
@@ -137,12 +137,12 @@ struct MicroInstruction
         return *this;
     }
 
-    MicroInstruction(MicroInstruction&& other) noexcept
+    MicroInstr(MicroInstr&& other) noexcept
     {
         moveFrom(other);
     }
 
-    MicroInstruction& operator=(MicroInstruction&& other) noexcept
+    MicroInstr& operator=(MicroInstr&& other) noexcept
     {
         if (this != &other)
         {
@@ -157,10 +157,10 @@ struct MicroInstruction
     {
         SWC_ASSERT(!ops);
         numOperands = count;
-        ops         = count ? new MicroInstructionOperand[count] : nullptr;
+        ops         = count ? new MicroInstrOperand[count] : nullptr;
     }
 
-    bool isEnd() const { return op == MicroInstructionKind::End; }
+    bool isEnd() const { return op == MicroInstrKind::End; }
 
 private:
     void clear()
@@ -170,14 +170,14 @@ private:
         numOperands = 0;
     }
 
-    void copyFrom(const MicroInstruction& other)
+    void copyFrom(const MicroInstr& other)
     {
         op          = other.op;
         emitFlags   = other.emitFlags;
         numOperands = other.numOperands;
         if (numOperands)
         {
-            ops = new MicroInstructionOperand[numOperands];
+            ops = new MicroInstrOperand[numOperands];
             for (uint8_t idx = 0; idx < numOperands; ++idx)
                 ops[idx] = other.ops[idx];
         }
@@ -187,7 +187,7 @@ private:
         }
     }
 
-    void moveFrom(MicroInstruction& other)
+    void moveFrom(MicroInstr& other)
     {
         op                = other.op;
         emitFlags         = other.emitFlags;

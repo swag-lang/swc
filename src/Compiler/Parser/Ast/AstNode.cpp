@@ -20,6 +20,11 @@ void AstNode::collectChildren(SmallVector<AstNodeRef>& out, std::initializer_lis
     }
 }
 
+void AstNode::collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const
+{
+    Ast::nodeIdInfos(id_).collectChildren(out, ast, *this);
+}
+
 SourceCodeRange AstNode::codeRange(const TaskContext& ctx) const
 {
     const SourceView& view  = srcView(ctx);

@@ -3,7 +3,6 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
@@ -250,7 +249,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         const AstNode&          node = args.sema->node(args.castRequest->errorNodeRef);
-        Ast::nodeIdInfos(node.id()).collectChildren(children, args.sema->ast(), node);
+        node.collectChildrenFromAst(children, args.sema->ast());
         if (children.size() != expectedCount)
             return fieldRefs;
         for (size_t i = 0; i < expectedCount; ++i)

@@ -7,6 +7,7 @@ class SymbolFunction;
 
 namespace SemaSpecOp
 {
+    Result validateSymbol(Sema& sema, SymbolFunction& sym);
     Result registerSymbol(Sema& sema, SymbolFunction& sym);
 }
 

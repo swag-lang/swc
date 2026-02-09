@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -179,9 +180,28 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
-void SymbolStruct::computeLayout(Sema& sema)
+Result SymbolStruct::computeLayout(Sema& sema)
 {
     auto& ctx = sema.ctx();
+
+    auto registerSpecOps = [&](const std::vector<SymbolImpl*>& impls) -> Result {
+        for (auto* symImpl : impls)
+        {
+            if (!symImpl)
+                continue;
+            for (auto* symFunc : symImpl->specOps())
+            {
+                if (!symFunc)
+                    continue;
+                RESULT_VERIFY(SemaSpecOp::registerSymbol(sema, *symFunc));
+            }
+        }
+
+        return Result::Continue;
+    };
+
+    RESULT_VERIFY(registerSpecOps(impls()));
+    RESULT_VERIFY(registerSpecOps(interfaces()));
 
     sizeInBytes_ = 0;
     alignment_   = 1;
@@ -207,6 +227,8 @@ void SymbolStruct::computeLayout(Sema& sema)
         const uint64_t padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
         sizeInBytes_ += padding;
     }
+
+    return Result::Continue;
 }
 
 SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef) const

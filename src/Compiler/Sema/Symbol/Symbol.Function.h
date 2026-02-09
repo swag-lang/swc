@@ -14,6 +14,7 @@ enum class SymbolFunctionFlagsE : uint8_t
     Throwable = 1 << 2,
     Const     = 1 << 3,
     Empty     = 1 << 4,
+    SpecOpValidated = 1 << 5,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 

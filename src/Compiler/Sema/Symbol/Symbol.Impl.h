@@ -36,6 +36,7 @@ public:
     void          setSymEnum(SymbolEnum* sym);
 
     void addFunction(const TaskContext& ctx, SymbolFunction* sym);
+    std::vector<SymbolFunction*> specOps() const;
 
 private:
     std::vector<SymbolFunction*> specOps_;

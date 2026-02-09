@@ -39,4 +39,10 @@ void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
         specOps_.push_back(sym);
 }
 
+std::vector<SymbolFunction*> SymbolImpl::specOps() const
+{
+    std::shared_lock lk(mutex_);
+    return specOps_;
+}
+
 SWC_END_NAMESPACE();

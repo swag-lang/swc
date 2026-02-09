@@ -305,9 +305,23 @@ namespace
                 return false;
         }
     }
+
+    SymbolStruct* ownerStructFor(SymbolFunction& sym)
+    {
+        SymbolStruct* ownerStruct = nullptr;
+        if (auto* symMap = sym.ownerSymMap())
+        {
+            if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+                ownerStruct = symImpl->symStruct();
+            else
+                ownerStruct = symMap->safeCast<SymbolStruct>();
+        }
+
+        return ownerStruct;
+    }
 }
 
-Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
+Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 {
     const IdentifierRef idRef = sym.idRef();
     if (idRef.isInvalid())
@@ -334,19 +348,36 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
             return reportSpecOpError(sema, sym, kind);
     }
 
-    SymbolStruct* ownerStruct = nullptr;
-    if (auto* symMap = sym.ownerSymMap())
-    {
-        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
-            ownerStruct = symImpl->symStruct();
-        else
-            ownerStruct = symMap->safeCast<SymbolStruct>();
-    }
-
+    SymbolStruct* ownerStruct = ownerStructFor(sym);
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
     RESULT_VERIFY(validateSpecOpSignature(sema, *ownerStruct, sym, kind));
+    sym.addExtraFlag(SymbolFunctionFlagsE::SpecOpValidated);
+    return Result::Continue;
+}
+
+Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
+{
+    const IdentifierRef idRef = sym.idRef();
+    if (idRef.isInvalid())
+        return Result::Continue;
+
+    auto&                  idMgr = sema.idMgr();
+    const std::string_view name  = idMgr.get(idRef).name;
+    if (!LangSpec::isSpecOpName(name))
+        return Result::Continue;
+
+    if (!sym.hasExtraFlag(SymbolFunctionFlagsE::SpecOpValidated))
+        return Result::Continue;
+
+    SpecOpKind kind{};
+    if (!matchSpecOp(idRef, idMgr, kind))
+        return Result::Continue;
+
+    SymbolStruct* ownerStruct = ownerStructFor(sym);
+    if (!ownerStruct)
+        return Result::Continue;
 
     if (!allowsSpecOpOverload(kind))
     {

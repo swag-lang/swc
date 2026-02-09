@@ -310,7 +310,7 @@ struct AstNodeIdInfo
     using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
-    using SemaErrorCleanup   = void (*)(Sema&, AstNode&);
+    using SemaErrorCleanup   = void (*)(Sema&, AstNode&, AstNodeRef);
 
     AstCollectChildren collectChildren;
 
@@ -394,10 +394,10 @@ Result semaPostNode(Sema& sema, AstNode& node)
 }
 
 template<AstNodeId ID>
-void semaErrorCleanup(Sema& sema, AstNode& node)
+void semaErrorCleanup(Sema& sema, AstNode& node, AstNodeRef nodeRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    node.cast<NodeType>()->semaErrorCleanup(sema);
+    node.cast<NodeType>()->semaErrorCleanup(sema, nodeRef);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

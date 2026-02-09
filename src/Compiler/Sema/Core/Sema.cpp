@@ -362,10 +362,10 @@ Result Sema::postNode(AstNode& node)
     return result;
 }
 
-void Sema::errorCleanupNode(AstNode& node)
+void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    info.semaErrorCleanup(*this, node);
+    info.semaErrorCleanup(*this, node, nodeRef);
 }
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
@@ -473,13 +473,13 @@ JobResult Sema::exec()
         {
             // Visiting has stopped. Clean up remaining active nodes.
             if (visit_.currentNodeRef().isValid())
-                errorCleanupNode(ast().node(visit_.currentNodeRef()));
+                errorCleanupNode(visit_.currentNodeRef(), ast().node(visit_.currentNodeRef()));
             for (size_t up = 0;; up++)
             {
                 const AstNodeRef parentRef = visit_.parentNodeRef(up);
                 if (parentRef.isInvalid())
                     break;
-                errorCleanupNode(ast().node(parentRef));
+                errorCleanupNode(parentRef, ast().node(parentRef));
             }
 
             jobResult = JobResult::Done;

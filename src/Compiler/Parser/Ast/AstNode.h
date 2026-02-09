@@ -62,7 +62,7 @@ struct AstNode
     static Result semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNode(Sema&) { return Result::Continue; }
-    static void   semaErrorCleanup(Sema&) {}
+    static void   semaErrorCleanup(Sema&, AstNodeRef) {}
 
     uint16_t&       semaBits() { return semaBits_; }
     const uint16_t& semaBits() const { return semaBits_; }

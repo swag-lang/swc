@@ -103,9 +103,11 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     return Result::Continue;
 }
 
-void AstImpl::semaErrorCleanup(Sema& sema)
+void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 {
-    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    if (!sema.hasSymbol(nodeRef))
+        return;
+    SymbolImpl& symImpl = sema.symbolOf(nodeRef).cast<SymbolImpl>();
     if (!symImpl.isPendingRegistrationResolved())
     {
         symImpl.setPendingRegistrationResolved();

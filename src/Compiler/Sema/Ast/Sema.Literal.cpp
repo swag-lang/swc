@@ -503,14 +503,6 @@ Result AstStructLiteral::semaPostNode(Sema& sema)
 
 Result AstStructInitializerList::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeWhatView(sema, nodeWhatRef);
-
-    TypeRef targetTypeRef = nodeWhatView.typeRef;
-    if (targetTypeRef.isInvalid() && nodeWhatView.sym && nodeWhatView.sym->isType())
-        targetTypeRef = nodeWhatView.sym->typeRef();
-    if (targetTypeRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeWhatRef);
-
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
@@ -554,8 +546,10 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 
     sema.setIsValue(sema.curNodeRef());
 
-    SemaNodeView initView(sema, sema.curNodeRef());
-    RESULT_VERIFY(Cast::cast(sema, initView, targetTypeRef, CastKind::Initialization));
+    const SemaNodeView nodeWhatView(sema, nodeWhatRef);
+    SemaNodeView       initView(sema, sema.curNodeRef());
+    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef, CastKind::Initialization));
+
     return Result::Continue;
 }
 

@@ -72,7 +72,6 @@ private:
     TypedStore<MicroInstr>        instructions_;
     TypedStore<MicroInstrOperand> operands_;
     std::vector<MicroJump>        jumps_;
-    uint32_t                      instructionCount_ = 0;
 };
 
 SWC_END_NAMESPACE();

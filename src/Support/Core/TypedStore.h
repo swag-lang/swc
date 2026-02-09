@@ -18,30 +18,41 @@ public:
     TypedStore(TypedStore&&) noexcept            = default;
     TypedStore& operator=(TypedStore&&) noexcept = default;
 
-    uint32_t pageSize() const noexcept { return store_.pageSize(); }
-    void     clear() noexcept { store_.clear(); }
-    uint32_t size() const noexcept { return store_.size(); }
-    uint8_t* seekPtr() const noexcept { return store_.seekPtr(); }
-
-    Ref                pushBack(const T& v) { return store_.pushBack<T>(v); }
-    std::pair<Ref, T*> emplaceUninit() { return store_.emplaceUninit<T>(); }
-    std::pair<Ref, T*> emplaceUninitArray(uint32_t count) { return store_.emplaceUninitArray<T>(count); }
-
-    T*       ptr(Ref ref) noexcept { return store_.ptr<T>(ref); }
-    const T* ptr(Ref ref) const noexcept { return store_.ptr<T>(ref); }
-    T&       at(Ref ref) noexcept { return store_.at<T>(ref); }
-    const T& at(Ref ref) const noexcept { return store_.at<T>(ref); }
-
-    uint32_t count() const noexcept
-    {
-        uint32_t total = 0;
-        for (uint32_t idx = 0; idx < pageCount(); ++idx)
-            total += pageUsed(idx) / static_cast<uint32_t>(sizeof(T));
-        return total;
-    }
-
+    uint32_t     pageSize() const noexcept { return store_.pageSize(); }
+    uint32_t     size() const noexcept { return store_.size(); }
+    uint8_t*     seekPtr() const noexcept { return store_.seekPtr(); }
+    uint32_t     count() const noexcept { return count_; }
+    T*           ptr(Ref ref) noexcept { return store_.ptr<T>(ref); }
+    const T*     ptr(Ref ref) const noexcept { return store_.ptr<T>(ref); }
+    T&           at(Ref ref) noexcept { return store_.at<T>(ref); }
+    const T&     at(Ref ref) const noexcept { return store_.at<T>(ref); }
     Store&       store() noexcept { return store_; }
     const Store& store() const noexcept { return store_; }
+
+    void clear() noexcept
+    {
+        store_.clear();
+        count_ = 0;
+    }
+
+    Ref pushBack(const T& v)
+    {
+        ++count_;
+        return store_.pushBack<T>(v);
+    }
+
+    std::pair<Ref, T*> emplaceUninit()
+    {
+        ++count_;
+        return store_.emplaceUninit<T>();
+    }
+
+    std::pair<Ref, T*> emplaceUninitArray(uint32_t count)
+    {
+        if (count)
+            count_ += count;
+        return store_.emplaceUninitArray<T>(count);
+    }
 
     class View
     {
@@ -110,6 +121,7 @@ private:
     uint32_t       pageUsed(uint32_t index) const noexcept { return store_.pagesStorage_[index]->used; }
     const uint8_t* pageBytes(uint32_t index) const noexcept { return store_.pagesStorage_[index]->bytes(); }
     Store          store_;
+    uint32_t       count_ = 0;
 };
 
 SWC_END_NAMESPACE();

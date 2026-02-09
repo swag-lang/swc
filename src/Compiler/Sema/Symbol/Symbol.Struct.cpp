@@ -212,7 +212,7 @@ void SymbolStruct::computeLayout(Sema& sema)
 
 namespace
 {
-    bool allowsSpecialFunctionOverload(SpecOpKind kind)
+    bool allowsSpecOpOverload(SpecOpKind kind)
     {
         switch (kind)
         {
@@ -240,7 +240,7 @@ Result SymbolStruct::registerSpecOp(Sema& sema, SymbolFunction& symFunc, SpecOpK
         return Result::Continue;
 
     const IdentifierRef idRef = symFunc.idRef();
-    if (!allowsSpecialFunctionOverload(kind))
+    if (!allowsSpecOpOverload(kind))
     {
         for (const auto* existing : specOps_)
         {

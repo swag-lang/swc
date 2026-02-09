@@ -135,7 +135,7 @@ bool LangSpec::isReservedNamespace(std::string_view ns)
     return name == "swag";
 }
 
-bool LangSpec::isSpecialFunctionName(std::string_view name)
+bool LangSpec::isSpecOpName(std::string_view name)
 {
     if (name.size() < 3)
         return false;

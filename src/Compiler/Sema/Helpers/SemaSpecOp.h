@@ -7,7 +7,7 @@ class SymbolFunction;
 
 namespace SemaSpecOp
 {
-    Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym);
+    Result registerSymbol(Sema& sema, SymbolFunction& sym);
 }
 
 SWC_END_NAMESPACE();

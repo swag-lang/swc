@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string_view specialFunctionSignatureHint(SpecOpKind kind)
+    std::string_view specOpSignatureHint(SpecOpKind kind)
     {
         switch (kind)
         {
@@ -57,7 +57,7 @@ namespace
         }
     }
 
-    bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
+    bool matchSpecOp(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
     {
         if (idRef.isInvalid())
             return false;
@@ -124,35 +124,35 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
+    Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_signature, sym);
-        diag.addArgument(Diagnostic::ARG_BECAUSE, specialFunctionSignatureHint(kind));
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_signature, sym);
+        diag.addArgument(Diagnostic::ARG_BECAUSE, specOpSignatureHint(kind));
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
+    Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
     {
         auto&       ctx     = sema.ctx();
         const auto& typeMgr = sema.typeMgr();
         const auto& params  = sym.parameters();
 
         if (params.empty())
-            return reportSpecialFunctionError(sema, sym, kind);
+            return reportSpecOpError(sema, sym, kind);
 
         const TypeInfo& firstType = typeMgr.get(params[0]->typeRef());
         if (!firstType.isReference())
-            return reportSpecialFunctionError(sema, sym, kind);
+            return reportSpecOpError(sema, sym, kind);
 
         const TypeRef ownerTypeRef = unwrapAlias(ctx, owner.typeRef());
         const TypeRef firstPointee = unwrapAlias(ctx, firstType.payloadTypeRef());
         if (firstPointee != ownerTypeRef)
-            return reportSpecialFunctionError(sema, sym, kind);
+            return reportSpecOpError(sema, sym, kind);
 
         const TypeRef returnTypeRef = unwrapAlias(ctx, sym.returnTypeRef());
         if (returnTypeRef.isInvalid())
-            return reportSpecialFunctionError(sema, sym, kind);
+            return reportSpecOpError(sema, sym, kind);
 
         const TypeInfo& returnType = typeMgr.get(returnTypeRef);
 
@@ -208,78 +208,78 @@ namespace
             case SpecOpKind::OpPostCopy:
             case SpecOpKind::OpPostMove:
                 if (!requireExactParams(1) || !requireReturnVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCount:
                 if (!requireExactParams(1) || !requireReturnType(typeMgr.typeU64()))
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpData:
                 if (!requireExactParams(1) || !requireReturnPointer())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCast:
                 if (!requireExactParams(1) || !requireReturnNotVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpEquals:
                 if (!requireExactParams(2) || !requireReturnType(typeMgr.typeBool()))
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpCmp:
                 if (!requireExactParams(2) || !requireReturnType(typeMgr.typeS32()))
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpBinary:
                 if (!requireExactParams(2) || !requireReturnStruct())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpUnary:
                 if (!requireExactParams(1) || !requireReturnStruct())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpAssign:
                 if (!requireExactParams(2) || !requireReturnVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpAffect:
                 if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpAffectLiteral:
                 if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpSlice:
                 if (!requireExactParams(3) || !requireReturnStringOrSlice() || !requireU64Param(1) || !requireU64Param(2))
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpIndex:
                 if (!requireMinParams(2) || !requireReturnNotVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexAffect:
                 if (!requireMinParams(3) || !requireReturnVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpVisit:
                 if (!requireExactParams(2) || !requireReturnVoid())
-                    return reportSpecialFunctionError(sema, sym, kind);
+                    return reportSpecOpError(sema, sym, kind);
                 break;
         }
 
@@ -287,7 +287,7 @@ namespace
     }
 }
 
-Result SemaSpecOp::registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
+Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
 {
     const IdentifierRef idRef = sym.idRef();
     if (idRef.isInvalid())
@@ -295,14 +295,14 @@ Result SemaSpecOp::registerStructSpecialFunction(Sema& sema, SymbolFunction& sym
 
     auto&                  idMgr = sema.idMgr();
     const std::string_view name  = idMgr.get(idRef).name;
-    if (!LangSpec::isSpecialFunctionName(name))
+    if (!LangSpec::isSpecOpName(name))
         return Result::Continue;
 
     SpecOpKind kind{};
-    if (!matchSpecialFunction(idRef, idMgr, kind))
+    if (!matchSpecOp(idRef, idMgr, kind))
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
-        diag.addNote(DiagnosticId::sema_note_special_function_reserved);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_unknown, sym);
+        diag.addNote(DiagnosticId::sema_note_spec_op_reserved);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -311,7 +311,7 @@ Result SemaSpecOp::registerStructSpecialFunction(Sema& sema, SymbolFunction& sym
     {
         const char variantStart = name[std::string_view("opVisit").size()];
         if (std::isupper(static_cast<unsigned char>(variantStart)) == 0)
-            return reportSpecialFunctionError(sema, sym, kind);
+            return reportSpecOpError(sema, sym, kind);
     }
 
     SymbolStruct* ownerStruct = nullptr;
@@ -324,9 +324,9 @@ Result SemaSpecOp::registerStructSpecialFunction(Sema& sema, SymbolFunction& sym
     }
 
     if (!ownerStruct)
-        return SemaError::raise(sema, DiagnosticId::sema_err_special_function_outside_impl, sym);
+        return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
-    RESULT_VERIFY(validateSpecialFunctionSignature(sema, *ownerStruct, sym, kind));
+    RESULT_VERIFY(validateSpecOpSignature(sema, *ownerStruct, sym, kind));
     return ownerStruct->registerSpecOp(sema, sym, kind);
 }
 

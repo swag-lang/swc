@@ -129,7 +129,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
-        RESULT_VERIFY(SemaSpecOp::registerStructSpecialFunction(sema, sym));
+        RESULT_VERIFY(SemaSpecOp::registerSymbol(sema, sym));
         if (!sym.isEmpty())
             RESULT_VERIFY(Match::ghosting(sema, sym));
     }

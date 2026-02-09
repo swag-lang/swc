@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/MachineCode/Encoder/Core/Encoder.h"
+#include "Backend/MachineCode/Encoder/Encoder.h"
 
 SWC_BEGIN_NAMESPACE();
 

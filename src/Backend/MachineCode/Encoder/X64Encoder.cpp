@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/MachineCode/Encoder/X64/X64Encoder.h"
-#include "Backend/MachineCode/Encoder/Micro/MicroInstruction.h"
+#include "Backend/MachineCode/Encoder/X64Encoder.h"
+#include "Backend/MachineCode/Micro/MicroInstruction.h"
 #include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();

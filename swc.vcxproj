@@ -186,9 +186,9 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\MachineCode\Encoder\Core\Encoder.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstructionBuilder.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
@@ -327,11 +327,11 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\Micro\MicroInstruction.h"/>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstruction.h"/>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstructionBuilder.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuAbstraction.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\Core\Encoder.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\CpuAbstraction.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>

@@ -495,7 +495,8 @@ EncodeResult X64Encoder::encodeLoadRegImm(TaskContext& ctx, CpuReg reg, uint64_t
             return EncodeResult::Right2Cst;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (opBits == CpuOpBits::B8)
+
+    if (opBits == CpuOpBits::B8)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -523,13 +524,15 @@ EncodeResult X64Encoder::encodeLoadRegMem(TaskContext& ctx, CpuReg reg, CpuReg m
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (isFloat(reg))
+
+    if (isFloat(reg))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -561,13 +564,15 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegMem(TaskContext& ctx, CpuReg reg
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
+
+    if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -609,7 +614,8 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegReg(TaskContext& ctx, CpuReg reg
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
+
+    if (numBitsSrc == CpuOpBits::B8 && (numBitsDst == CpuOpBits::B32 || numBitsDst == CpuOpBits::B64))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -651,13 +657,15 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegMem(TaskContext& ctx, CpuReg r
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (numBitsSrc == CpuOpBits::B8)
+
+    if (numBitsSrc == CpuOpBits::B8)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -704,7 +712,8 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegReg(TaskContext& ctx, CpuReg r
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (numBitsSrc == CpuOpBits::B8)
+
+    if (numBitsSrc == CpuOpBits::B8)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -756,13 +765,15 @@ EncodeResult X64Encoder::encodeLoadAddressRegMem(TaskContext& ctx, CpuReg reg, C
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memReg == CpuReg::Rip)
+
+    if (memReg == CpuReg::Rip)
     {
         SWC_ASSERT(memOffset == 0);
         if (emitFlags.has(EMIT_CAN_ENCODE))
@@ -992,13 +1003,15 @@ EncodeResult X64Encoder::encodeLoadMemReg(TaskContext& ctx, CpuReg memReg, uint6
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (isFloat(reg))
+
+    if (isFloat(reg))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -1028,33 +1041,34 @@ EncodeResult X64Encoder::encodeLoadMemImm(TaskContext& ctx, CpuReg memReg, uint6
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (opBits == CpuOpBits::B128)
+
+    if (opBits == CpuOpBits::B128)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (opBits == CpuOpBits::B64 && value > 0x7FFFFFFF && value >> 32 != 0xFFFFFFFF)
+
+    if (opBits == CpuOpBits::B64 && value > 0x7FFFFFFF && value >> 32 != 0xFFFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Right2Reg;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else
-    {
-        if (emitFlags.has(EMIT_CAN_ENCODE))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, REX_REG_NONE, memReg);
-        emitSpecB8(store_, 0xC7, opBits);
-        emitModRm(store_, memOffset, MODRM_REG_0, memReg);
-        emitValue(store_, value, std::min(opBits, CpuOpBits::B32));
-    }
+
+    if (emitFlags.has(EMIT_CAN_ENCODE))
+        return EncodeResult::Zero;
+    emitRex(store_, opBits, REX_REG_NONE, memReg);
+    emitSpecB8(store_, 0xC7, opBits);
+    emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+    emitValue(store_, value, std::min(opBits, CpuOpBits::B32));
 
     return EncodeResult::Zero;
 }
@@ -1229,7 +1243,8 @@ EncodeResult X64Encoder::encodeCmpRegImm(TaskContext& ctx, CpuReg reg, uint64_t 
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (opBits == CpuOpBits::B8)
+
+    if (opBits == CpuOpBits::B8)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -1274,26 +1289,26 @@ EncodeResult X64Encoder::encodeCmpMemReg(TaskContext& ctx, CpuReg memReg, uint64
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (isFloat(reg))
+
+    if (isFloat(reg))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Left2Reg;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else
-    {
-        if (emitFlags.has(EMIT_CAN_ENCODE))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, reg, memReg);
-        emitSpecCpuOp(store_, 0x39, opBits);
-        emitModRm(store_, memOffset, reg, memReg);
-    }
+
+    if (emitFlags.has(EMIT_CAN_ENCODE))
+        return EncodeResult::Zero;
+    emitRex(store_, opBits, reg, memReg);
+    emitSpecCpuOp(store_, 0x39, opBits);
+    emitModRm(store_, memOffset, reg, memReg);
 
     return EncodeResult::Zero;
 }
@@ -1306,13 +1321,15 @@ EncodeResult X64Encoder::encodeCmpMemImm(TaskContext& ctx, CpuReg memReg, uint64
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (opBits == CpuOpBits::B8)
+
+    if (opBits == CpuOpBits::B8)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -1359,7 +1376,8 @@ EncodeResult X64Encoder::encodeOpUnaryMem(TaskContext& ctx, CpuReg memReg, uint6
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
@@ -1367,8 +1385,7 @@ EncodeResult X64Encoder::encodeOpUnaryMem(TaskContext& ctx, CpuReg memReg, uint6
     }
 
     ///////////////////////////////////////////
-
-    else if (op == CpuOp::NOT)
+    if (op == CpuOp::NOT)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -1430,14 +1447,12 @@ EncodeResult X64Encoder::encodeOpUnaryReg(TaskContext& ctx, CpuReg reg, CpuOp op
                 return EncodeResult::NotSupported;
             SWC_INTERNAL_ERROR(ctx);
         }
-        else
-        {
-            if (emitFlags.has(EMIT_CAN_ENCODE))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, REX_REG_NONE, reg);
-            emitSpecCpuOp(store_, 0xF7, opBits);
-            emitModRm(store_, MODRM_REG_3, reg);
-        }
+
+        if (emitFlags.has(EMIT_CAN_ENCODE))
+            return EncodeResult::Zero;
+        emitRex(store_, opBits, REX_REG_NONE, reg);
+        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitModRm(store_, MODRM_REG_3, reg);
     }
 
     ///////////////////////////////////////////
@@ -1483,7 +1498,8 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(TaskContext& ctx, CpuReg regDst, C
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
@@ -1491,8 +1507,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(TaskContext& ctx, CpuReg regDst, C
     }
 
     ///////////////////////////////////////////
-
-    else if (op == CpuOp::ADD)
+    if (op == CpuOp::ADD)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -1583,8 +1598,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(TaskContext& ctx, CpuReg regDst, C
     }
 
     ///////////////////////////////////////////
-
-    else if (isFloat(regDst) && isInt(regSrc))
+    if (isFloat(regDst) && isInt(regSrc))
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
         {
@@ -1837,7 +1851,8 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(TaskContext& ctx, CpuReg memReg, u
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
@@ -1854,13 +1869,12 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(TaskContext& ctx, CpuReg memReg, u
     }
 
     ///////////////////////////////////////////
-
-    else if (op == CpuOp::DIV ||
-             op == CpuOp::IDIV ||
-             op == CpuOp::MOD ||
-             op == CpuOp::IMOD ||
-             op == CpuOp::IMUL ||
-             op == CpuOp::MUL)
+    if (op == CpuOp::DIV ||
+        op == CpuOp::IDIV ||
+        op == CpuOp::MOD ||
+        op == CpuOp::IMOD ||
+        op == CpuOp::IMUL ||
+        op == CpuOp::MUL)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Left2Reg;
@@ -2261,7 +2275,8 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(TaskContext& ctx, CpuReg memReg, u
             return EncodeResult::NotSupported;
         SWC_INTERNAL_ERROR(ctx);
     }
-    else if (memOffset > 0x7FFFFFFF)
+
+    if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::NotSupported;
@@ -2283,8 +2298,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(TaskContext& ctx, CpuReg memReg, u
     }
 
     ///////////////////////////////////////////
-
-    else if (op == CpuOp::SAR)
+    if (op == CpuOp::SAR)
     {
         if (emitFlags.has(EMIT_CAN_ENCODE))
             return EncodeResult::Zero;
@@ -2638,7 +2652,7 @@ EncodeResult X64Encoder::encodeJumpTable(TaskContext& ctx, CpuReg tableReg, CpuR
     const auto [offsetTableConstant, addrConstant] = buildParams_.module->constantSegment.reserveSpan<uint32_t>(numEntries);
     emitLoadSymRelocAddress(tableReg, symCsIndex_, offsetTableConstant);
 
-    // movsxd table, dword ptr [table + offset*4]
+    // 'movsxd' table, dword ptr [table + offset*4]
     encodeAmcReg(store_, tableReg, CpuOpBits::B64, tableReg, offsetReg, 4, 0, CpuOpBits::B64, CpuOp::MOVSXD, emitFlags, false);
 
     const auto startIdx = store_.size();

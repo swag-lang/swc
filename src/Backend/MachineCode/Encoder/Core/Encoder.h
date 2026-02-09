@@ -118,15 +118,16 @@ public:
     virtual EncodeResult encodeOpBinaryMemImm(TaskContext& ctx, CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)                                                        = 0;
     virtual EncodeResult encodeOpTernaryRegRegReg(TaskContext& ctx, CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)                                                                = 0;
 
-    void        emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitJumpReg(CpuReg reg, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitLoadRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitLoadRegImm(CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
-    void        emitClearReg(CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+    void emitLoadSymRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags = EMIT_ZERO);
+    void emitJumpReg(CpuReg reg, EmitFlags emitFlags = EMIT_ZERO);
+    void emitOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+    void emitOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+    void emitLoadRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+    void emitLoadRegImm(CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+    void emitLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
+    void emitLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
+    void emitClearReg(CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
+
     CpuSymbol*  getOrAddSymbol(IdentifierRef name, CpuSymbolKind kind);
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 

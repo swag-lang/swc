@@ -37,6 +37,8 @@ public:
     AstNode&       node(AstNodeRef nodeRef);
     const AstNode& node(AstNodeRef nodeRef) const;
     void           appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    size_t         spanSize(SpanRef spanRef) const;
+    AstNodeRef     nthNode(SpanRef spanRef, size_t index) const;
     AstNodeRef     oneNode(SpanRef spanRef) const;
     void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
 

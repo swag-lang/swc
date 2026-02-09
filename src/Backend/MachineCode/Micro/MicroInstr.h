@@ -3,8 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// ReSharper disable CppInconsistentNaming
-enum class MicroInstrKind : uint8_t
+enum class MicroInstrOpcode : uint8_t
 {
     End,
     Enter,
@@ -32,50 +31,49 @@ enum class MicroInstrKind : uint8_t
 
     JumpTable,
     JumpCond,
-    JumpM,
-    JumpCondI,
+    JumpReg,
+    JumpCondImm,
     PatchJump,
 
-    LoadRR,
-    LoadRI,
-    LoadRM,
-    LoadMR,
-    LoadMI,
+    LoadRegReg,
+    LoadRegImm,
+    LoadRegMem,
+    LoadMemReg,
+    LoadMemImm,
 
-    LoadSignedExtRM,
-    LoadZeroExtRM,
-    LoadSignedExtRR,
-    LoadZeroExtRR,
+    LoadSignedExtRegMem,
+    LoadZeroExtRegMem,
+    LoadSignedExtRegReg,
+    LoadZeroExtRegReg,
 
-    LoadAddrRM,
+    LoadAddrRegMem,
 
-    LoadAmcRM,
-    LoadAmcMR,
-    LoadAmcMI,
-    LoadAddrAmcRM,
+    LoadAmcRegMem,
+    LoadAmcMemReg,
+    LoadAmcMemImm,
+    LoadAddrAmcRegMem,
 
-    CmpRR,
-    CmpRI,
-    CmpMR,
-    CmpMI,
+    CmpRegReg,
+    CmpRegImm,
+    CmpMemReg,
+    CmpMemImm,
 
-    SetCondR,
-    ClearR,
+    SetCondReg,
+    ClearReg,
 
-    OpUnaryM,
-    OpUnaryR,
+    OpUnaryMem,
+    OpUnaryReg,
 
-    LoadCondRR,
+    LoadCondRegReg,
 
-    OpBinaryRR,
-    OpBinaryRI,
-    OpBinaryRM,
-    OpBinaryMR,
-    OpBinaryMI,
+    OpBinaryRegReg,
+    OpBinaryRegImm,
+    OpBinaryRegMem,
+    OpBinaryMemReg,
+    OpBinaryMemImm,
 
-    OpTernaryRRR,
+    OpTernaryRegRegReg,
 };
-// ReSharper restore CppInconsistentNaming
 
 struct MicroInstrOperand
 {
@@ -114,7 +112,7 @@ struct MicroInstrOperand
 struct MicroInstr
 {
     MicroInstrOperand* ops         = nullptr;
-    MicroInstrKind     op          = MicroInstrKind::OpBinaryRI;
+    MicroInstrOpcode     op          = MicroInstrOpcode::OpBinaryRegImm;
     EncodeFlags        emitFlags   = EMIT_ZERO;
     uint8_t            numOperands = 0;
 
@@ -160,7 +158,7 @@ struct MicroInstr
         ops         = count ? new MicroInstrOperand[count] : nullptr;
     }
 
-    bool isEnd() const { return op == MicroInstrKind::End; }
+    bool isEnd() const { return op == MicroInstrOpcode::End; }
 
 private:
     void clear()
@@ -199,3 +197,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

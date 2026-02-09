@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrKind op, EncodeFlags emitFlags, uint8_t numOperands)
+MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
 {
     instructions_.emplace_back();
     auto& inst     = instructions_.back();
@@ -15,7 +15,7 @@ MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrKind op, EncodeFlags emi
 
 EncodeResult MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::SymbolRelocAddr, emitFlags, 3);
+    const auto& inst     = addInstruction(MicroInstrOpcode::SymbolRelocAddr, emitFlags, 3);
     inst.ops[0].reg      = reg;
     inst.ops[1].valueU32 = symbolIndex;
     inst.ops[2].valueU32 = offset;
@@ -24,7 +24,7 @@ EncodeResult MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint3
 
 EncodeResult MicroInstrBuilder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::SymbolRelocValue, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::SymbolRelocValue, emitFlags, 4);
     inst.ops[0].reg      = reg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].valueU32 = symbolIndex;
@@ -34,33 +34,33 @@ EncodeResult MicroInstrBuilder::encodeLoadSymRelocValue(MicroReg reg, uint32_t s
 
 EncodeResult MicroInstrBuilder::encodePush(MicroReg reg, EncodeFlags emitFlags)
 {
-    const auto& inst = addInstruction(MicroInstrKind::Push, emitFlags, 1);
+    const auto& inst = addInstruction(MicroInstrOpcode::Push, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodePop(MicroReg reg, EncodeFlags emitFlags)
 {
-    const auto& inst = addInstruction(MicroInstrKind::Pop, emitFlags, 1);
+    const auto& inst = addInstruction(MicroInstrOpcode::Pop, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodeNop(EncodeFlags emitFlags)
 {
-    addInstruction(MicroInstrKind::Nop, emitFlags, 0);
+    addInstruction(MicroInstrOpcode::Nop, emitFlags, 0);
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
 {
-    addInstruction(MicroInstrKind::Ret, emitFlags, 0);
+    addInstruction(MicroInstrOpcode::Ret, emitFlags, 0);
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CallLocal, emitFlags, 2);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 2);
     inst.ops[0].name     = symbolName;
     inst.ops[1].callConv = callConv;
     return EncodeResult::Zero;
@@ -68,7 +68,7 @@ EncodeResult MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, const 
 
 EncodeResult MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CallExtern, emitFlags, 2);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 2);
     inst.ops[0].name     = symbolName;
     inst.ops[1].callConv = callConv;
     return EncodeResult::Zero;
@@ -76,7 +76,7 @@ EncodeResult MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, const
 
 EncodeResult MicroInstrBuilder::encodeCallReg(MicroReg reg, const CallConv* callConv, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CallIndirect, emitFlags, 2);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CallIndirect, emitFlags, 2);
     inst.ops[0].reg      = reg;
     inst.ops[1].callConv = callConv;
     return EncodeResult::Zero;
@@ -84,7 +84,7 @@ EncodeResult MicroInstrBuilder::encodeCallReg(MicroReg reg, const CallConv* call
 
 EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::JumpTable, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::JumpTable, emitFlags, 5);
     inst.ops[0].reg      = tableReg;
     inst.ops[1].reg      = offsetReg;
     inst.ops[2].valueI32 = currentIp;
@@ -97,7 +97,7 @@ EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpTy
 {
     jump.offsetStart     = instructions_.size() * sizeof(MicroInstr);
     jump.opBits          = opBits;
-    const auto& inst     = addInstruction(MicroInstrKind::JumpCond, emitFlags, 2);
+    const auto& inst     = addInstruction(MicroInstrOpcode::JumpCond, emitFlags, 2);
     inst.ops[0].jumpType = jumpType;
     inst.ops[1].opBits   = opBits;
     return EncodeResult::Zero;
@@ -105,7 +105,7 @@ EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpTy
 
 EncodeResult MicroInstrBuilder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::PatchJump, emitFlags, 3);
+    const auto& inst     = addInstruction(MicroInstrOpcode::PatchJump, emitFlags, 3);
     inst.ops[0].valueU64 = jump.offsetStart;
     inst.ops[1].valueU64 = offsetDestination;
     inst.ops[2].valueU64 = 1;
@@ -114,21 +114,21 @@ EncodeResult MicroInstrBuilder::encodePatchJump(const MicroJump& jump, uint64_t 
 
 EncodeResult MicroInstrBuilder::encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::PatchJump, emitFlags, 3);
+    const auto& inst     = addInstruction(MicroInstrOpcode::PatchJump, emitFlags, 3);
     inst.ops[0].valueU64 = jump.offsetStart;
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 {
-    const auto& inst = addInstruction(MicroInstrKind::JumpM, emitFlags, 1);
+    const auto& inst = addInstruction(MicroInstrOpcode::JumpReg, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
 EncodeResult MicroInstrBuilder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadRM, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadRegMem, emitFlags, 4);
     inst.ops[0].reg      = reg;
     inst.ops[1].reg      = memReg;
     inst.ops[2].opBits   = opBits;
@@ -138,7 +138,7 @@ EncodeResult MicroInstrBuilder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, 
 
 EncodeResult MicroInstrBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadRI, emitFlags, 3);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadRegImm, emitFlags, 3);
     inst.ops[0].reg      = reg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].valueU64 = value;
@@ -147,7 +147,7 @@ EncodeResult MicroInstrBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, M
 
 EncodeResult MicroInstrBuilder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::LoadRR, emitFlags, 3);
+    const auto& inst   = addInstruction(MicroInstrOpcode::LoadRegReg, emitFlags, 3);
     inst.ops[0].reg    = regDst;
     inst.ops[1].reg    = regSrc;
     inst.ops[2].opBits = opBits;
@@ -156,7 +156,7 @@ EncodeResult MicroInstrBuilder::encodeLoadRegReg(MicroReg regDst, MicroReg regSr
 
 EncodeResult MicroInstrBuilder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadSignedExtRM, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadSignedExtRegMem, emitFlags, 5);
     inst.ops[0].reg      = reg;
     inst.ops[1].reg      = memReg;
     inst.ops[2].opBits   = numBitsDst;
@@ -167,7 +167,7 @@ EncodeResult MicroInstrBuilder::encodeLoadSignedExtendRegMem(MicroReg reg, Micro
 
 EncodeResult MicroInstrBuilder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::LoadSignedExtRR, emitFlags, 4);
+    const auto& inst   = addInstruction(MicroInstrOpcode::LoadSignedExtRegReg, emitFlags, 4);
     inst.ops[0].reg    = regDst;
     inst.ops[1].reg    = regSrc;
     inst.ops[2].opBits = numBitsDst;
@@ -177,7 +177,7 @@ EncodeResult MicroInstrBuilder::encodeLoadSignedExtendRegReg(MicroReg regDst, Mi
 
 EncodeResult MicroInstrBuilder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadZeroExtRM, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadZeroExtRegMem, emitFlags, 5);
     inst.ops[0].reg      = reg;
     inst.ops[1].reg      = memReg;
     inst.ops[2].opBits   = numBitsDst;
@@ -188,7 +188,7 @@ EncodeResult MicroInstrBuilder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroRe
 
 EncodeResult MicroInstrBuilder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::LoadZeroExtRR, emitFlags, 4);
+    const auto& inst   = addInstruction(MicroInstrOpcode::LoadZeroExtRegReg, emitFlags, 4);
     inst.ops[0].reg    = regDst;
     inst.ops[1].reg    = regSrc;
     inst.ops[2].opBits = numBitsDst;
@@ -198,7 +198,7 @@ EncodeResult MicroInstrBuilder::encodeLoadZeroExtendRegReg(MicroReg regDst, Micr
 
 EncodeResult MicroInstrBuilder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadAddrRM, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadAddrRegMem, emitFlags, 4);
     inst.ops[0].reg      = reg;
     inst.ops[1].reg      = memReg;
     inst.ops[2].opBits   = opBits;
@@ -208,7 +208,7 @@ EncodeResult MicroInstrBuilder::encodeLoadAddressRegMem(MicroReg reg, MicroReg m
 
 EncodeResult MicroInstrBuilder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadAmcRM, emitFlags, 8);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadAmcRegMem, emitFlags, 8);
     inst.ops[0].reg      = regDst;
     inst.ops[1].reg      = regBase;
     inst.ops[2].reg      = regMul;
@@ -221,7 +221,7 @@ EncodeResult MicroInstrBuilder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits
 
 EncodeResult MicroInstrBuilder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadAmcMR, emitFlags, 8);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadAmcMemReg, emitFlags, 8);
     inst.ops[0].reg      = regBase;
     inst.ops[1].reg      = regMul;
     inst.ops[2].reg      = regSrc;
@@ -234,7 +234,7 @@ EncodeResult MicroInstrBuilder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg r
 
 EncodeResult MicroInstrBuilder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadAmcMI, emitFlags, 8);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadAmcMemImm, emitFlags, 8);
     inst.ops[0].reg      = regBase;
     inst.ops[1].reg      = regMul;
     inst.ops[3].opBits   = opBitsBaseMul;
@@ -247,7 +247,7 @@ EncodeResult MicroInstrBuilder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg r
 
 EncodeResult MicroInstrBuilder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadAddrAmcRM, emitFlags, 8);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadAddrAmcRegMem, emitFlags, 8);
     inst.ops[0].reg      = regDst;
     inst.ops[1].reg      = regBase;
     inst.ops[2].reg      = regMul;
@@ -260,7 +260,7 @@ EncodeResult MicroInstrBuilder::encodeLoadAddressAmcRegMem(MicroReg regDst, Micr
 
 EncodeResult MicroInstrBuilder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadMR, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadMemReg, emitFlags, 4);
     inst.ops[0].reg      = memReg;
     inst.ops[1].reg      = reg;
     inst.ops[2].opBits   = opBits;
@@ -270,7 +270,7 @@ EncodeResult MicroInstrBuilder::encodeLoadMemReg(MicroReg memReg, uint64_t memOf
 
 EncodeResult MicroInstrBuilder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::LoadMI, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::LoadMemImm, emitFlags, 4);
     inst.ops[0].reg      = memReg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].valueU64 = memOffset;
@@ -280,7 +280,7 @@ EncodeResult MicroInstrBuilder::encodeLoadMemImm(MicroReg memReg, uint64_t memOf
 
 EncodeResult MicroInstrBuilder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::CmpRR, emitFlags, 3);
+    const auto& inst   = addInstruction(MicroInstrOpcode::CmpRegReg, emitFlags, 3);
     inst.ops[0].reg    = reg0;
     inst.ops[1].reg    = reg1;
     inst.ops[2].opBits = opBits;
@@ -289,7 +289,7 @@ EncodeResult MicroInstrBuilder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, Mi
 
 EncodeResult MicroInstrBuilder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CmpMR, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CmpMemReg, emitFlags, 4);
     inst.ops[0].reg      = memReg;
     inst.ops[1].reg      = reg;
     inst.ops[2].opBits   = opBits;
@@ -299,7 +299,7 @@ EncodeResult MicroInstrBuilder::encodeCmpMemReg(MicroReg memReg, uint64_t memOff
 
 EncodeResult MicroInstrBuilder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CmpMI, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CmpMemImm, emitFlags, 4);
     inst.ops[0].reg      = memReg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].valueU64 = memOffset;
@@ -309,7 +309,7 @@ EncodeResult MicroInstrBuilder::encodeCmpMemImm(MicroReg memReg, uint64_t memOff
 
 EncodeResult MicroInstrBuilder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::CmpRI, emitFlags, 3);
+    const auto& inst     = addInstruction(MicroInstrOpcode::CmpRegImm, emitFlags, 3);
     inst.ops[0].reg      = reg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].valueU64 = value;
@@ -318,7 +318,7 @@ EncodeResult MicroInstrBuilder::encodeCmpRegImm(MicroReg reg, uint64_t value, Mi
 
 EncodeResult MicroInstrBuilder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond, EncodeFlags emitFlags)
 {
-    const auto& inst    = addInstruction(MicroInstrKind::SetCondR, emitFlags, 2);
+    const auto& inst    = addInstruction(MicroInstrOpcode::SetCondReg, emitFlags, 2);
     inst.ops[0].reg     = reg;
     inst.ops[1].cpuCond = cpuCond;
     return EncodeResult::Zero;
@@ -326,7 +326,7 @@ EncodeResult MicroInstrBuilder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond
 
 EncodeResult MicroInstrBuilder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst    = addInstruction(MicroInstrKind::LoadCondRR, emitFlags, 4);
+    const auto& inst    = addInstruction(MicroInstrOpcode::LoadCondRegReg, emitFlags, 4);
     inst.ops[0].reg     = regDst;
     inst.ops[1].reg     = regSrc;
     inst.ops[2].cpuCond = setType;
@@ -336,7 +336,7 @@ EncodeResult MicroInstrBuilder::encodeLoadCondRegReg(MicroReg regDst, MicroReg r
 
 EncodeResult MicroInstrBuilder::encodeClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::ClearR, emitFlags, 2);
+    const auto& inst   = addInstruction(MicroInstrOpcode::ClearReg, emitFlags, 2);
     inst.ops[0].reg    = reg;
     inst.ops[1].opBits = opBits;
     return EncodeResult::Zero;
@@ -344,7 +344,7 @@ EncodeResult MicroInstrBuilder::encodeClearReg(MicroReg reg, MicroOpBits opBits,
 
 EncodeResult MicroInstrBuilder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::OpUnaryM, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::OpUnaryMem, emitFlags, 4);
     inst.ops[0].reg      = memReg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].cpuOp    = op;
@@ -354,7 +354,7 @@ EncodeResult MicroInstrBuilder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOf
 
 EncodeResult MicroInstrBuilder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::OpUnaryR, emitFlags, 3);
+    const auto& inst   = addInstruction(MicroInstrOpcode::OpUnaryReg, emitFlags, 3);
     inst.ops[0].reg    = reg;
     inst.ops[1].opBits = opBits;
     inst.ops[2].cpuOp  = op;
@@ -363,7 +363,7 @@ EncodeResult MicroInstrBuilder::encodeOpUnaryReg(MicroReg reg, MicroOp op, Micro
 
 EncodeResult MicroInstrBuilder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::OpBinaryRR, emitFlags, 4);
+    const auto& inst   = addInstruction(MicroInstrOpcode::OpBinaryRegReg, emitFlags, 4);
     inst.ops[0].reg    = regDst;
     inst.ops[1].reg    = regSrc;
     inst.ops[2].opBits = opBits;
@@ -373,7 +373,7 @@ EncodeResult MicroInstrBuilder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg r
 
 EncodeResult MicroInstrBuilder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::OpBinaryRM, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::OpBinaryRegMem, emitFlags, 5);
     inst.ops[0].reg      = regDst;
     inst.ops[1].reg      = memReg;
     inst.ops[2].opBits   = opBits;
@@ -384,7 +384,7 @@ EncodeResult MicroInstrBuilder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg m
 
 EncodeResult MicroInstrBuilder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::OpBinaryMR, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::OpBinaryMemReg, emitFlags, 5);
     inst.ops[0].reg      = memReg;
     inst.ops[1].reg      = reg;
     inst.ops[2].opBits   = opBits;
@@ -395,7 +395,7 @@ EncodeResult MicroInstrBuilder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t m
 
 EncodeResult MicroInstrBuilder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::OpBinaryRI, emitFlags, 4);
+    const auto& inst     = addInstruction(MicroInstrOpcode::OpBinaryRegImm, emitFlags, 4);
     inst.ops[0].reg      = reg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].cpuOp    = op;
@@ -405,7 +405,7 @@ EncodeResult MicroInstrBuilder::encodeOpBinaryRegImm(MicroReg reg, uint64_t valu
 
 EncodeResult MicroInstrBuilder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst     = addInstruction(MicroInstrKind::OpBinaryMI, emitFlags, 5);
+    const auto& inst     = addInstruction(MicroInstrOpcode::OpBinaryMemImm, emitFlags, 5);
     inst.ops[0].reg      = memReg;
     inst.ops[1].opBits   = opBits;
     inst.ops[2].cpuOp    = op;
@@ -416,7 +416,7 @@ EncodeResult MicroInstrBuilder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t m
 
 EncodeResult MicroInstrBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const auto& inst   = addInstruction(MicroInstrKind::OpTernaryRRR, emitFlags, 5);
+    const auto& inst   = addInstruction(MicroInstrOpcode::OpTernaryRegRegReg, emitFlags, 5);
     inst.ops[0].reg    = reg0;
     inst.ops[1].reg    = reg1;
     inst.ops[2].reg    = reg2;
@@ -442,54 +442,54 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
 {
     switch (inst.op)
     {
-        case MicroInstrKind::End:
+        case MicroInstrOpcode::End:
             break;
 
-        case MicroInstrKind::Ignore:
-        case MicroInstrKind::Label:
-        case MicroInstrKind::Debug:
+        case MicroInstrOpcode::Ignore:
+        case MicroInstrOpcode::Label:
+        case MicroInstrOpcode::Debug:
             break;
 
-        case MicroInstrKind::Enter:
-        case MicroInstrKind::Leave:
-        case MicroInstrKind::LoadCallParam:
-        case MicroInstrKind::LoadCallAddrParam:
-        case MicroInstrKind::LoadCallZeroExtParam:
-        case MicroInstrKind::StoreCallParam:
+        case MicroInstrOpcode::Enter:
+        case MicroInstrOpcode::Leave:
+        case MicroInstrOpcode::LoadCallParam:
+        case MicroInstrOpcode::LoadCallAddrParam:
+        case MicroInstrOpcode::LoadCallZeroExtParam:
+        case MicroInstrOpcode::StoreCallParam:
             SWC_ASSERT(false);
             break;
 
-        case MicroInstrKind::SymbolRelocAddr:
+        case MicroInstrOpcode::SymbolRelocAddr:
             encoder.encodeLoadSymbolRelocAddress(inst.ops[0].reg, inst.ops[1].valueU32, inst.ops[2].valueU32, inst.emitFlags);
             break;
-        case MicroInstrKind::SymbolRelocValue:
+        case MicroInstrOpcode::SymbolRelocValue:
             encoder.encodeLoadSymRelocValue(inst.ops[0].reg, inst.ops[2].valueU32, inst.ops[3].valueU32, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::Push:
+        case MicroInstrOpcode::Push:
             encoder.encodePush(inst.ops[0].reg, inst.emitFlags);
             break;
-        case MicroInstrKind::Pop:
+        case MicroInstrOpcode::Pop:
             encoder.encodePop(inst.ops[0].reg, inst.emitFlags);
             break;
-        case MicroInstrKind::Nop:
+        case MicroInstrOpcode::Nop:
             encoder.encodeNop(inst.emitFlags);
             break;
-        case MicroInstrKind::Ret:
+        case MicroInstrOpcode::Ret:
             encoder.encodeRet(inst.emitFlags);
             break;
-        case MicroInstrKind::CallLocal:
+        case MicroInstrOpcode::CallLocal:
             encoder.encodeCallLocal(inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
             break;
-        case MicroInstrKind::CallExtern:
+        case MicroInstrOpcode::CallExtern:
             encoder.encodeCallExtern(inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
             break;
-        case MicroInstrKind::CallIndirect:
+        case MicroInstrOpcode::CallIndirect:
             encoder.encodeCallReg(inst.ops[0].reg, inst.ops[1].callConv, inst.emitFlags);
             break;
-        case MicroInstrKind::JumpTable:
+        case MicroInstrOpcode::JumpTable:
             encoder.encodeJumpTable(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].valueI32, inst.ops[3].valueU32, inst.ops[4].valueU32, inst.emitFlags);
             break;
-        case MicroInstrKind::JumpCond:
+        case MicroInstrOpcode::JumpCond:
         {
             MicroJump jump;
             encoder.encodeJump(jump, inst.ops[0].jumpType, inst.ops[1].opBits, inst.emitFlags);
@@ -497,7 +497,7 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
             jumpValid_[idx] = true;
             break;
         }
-        case MicroInstrKind::PatchJump:
+        case MicroInstrOpcode::PatchJump:
         {
             const size_t jumpIndex = resolveJumpIndex(inst.ops[0].valueU64);
             SWC_ASSERT(jumpIndex < jumpValid_.size());
@@ -508,7 +508,7 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
                 encoder.encodePatchJump(jumps_[jumpIndex], inst.emitFlags);
             break;
         }
-        case MicroInstrKind::JumpCondI:
+        case MicroInstrOpcode::JumpCondImm:
         {
             MicroJump  jump;
             const auto opBits = inst.ops[1].opBits == MicroOpBits::Zero ? MicroOpBits::B32 : inst.ops[1].opBits;
@@ -516,94 +516,94 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
             encoder.encodePatchJump(jump, inst.ops[2].valueU64, inst.emitFlags);
             break;
         }
-        case MicroInstrKind::JumpM:
+        case MicroInstrOpcode::JumpReg:
             encoder.encodeJumpReg(inst.ops[0].reg, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadRR:
+        case MicroInstrOpcode::LoadRegReg:
             encoder.encodeLoadRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadRI:
+        case MicroInstrOpcode::LoadRegImm:
             encoder.encodeLoadRegImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadRM:
+        case MicroInstrOpcode::LoadRegMem:
             encoder.encodeLoadRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadSignedExtRM:
+        case MicroInstrOpcode::LoadSignedExtRegMem:
             encoder.encodeLoadSignedExtendRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadSignedExtRR:
+        case MicroInstrOpcode::LoadSignedExtRegReg:
             encoder.encodeLoadSignedExtendRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadZeroExtRM:
+        case MicroInstrOpcode::LoadZeroExtRegMem:
             encoder.encodeLoadZeroExtendRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadZeroExtRR:
+        case MicroInstrOpcode::LoadZeroExtRegReg:
             encoder.encodeLoadZeroExtendRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadAddrRM:
+        case MicroInstrOpcode::LoadAddrRegMem:
             encoder.encodeLoadAddressRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadAmcMR:
+        case MicroInstrOpcode::LoadAmcMemReg:
             encoder.encodeLoadAmcMemReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[2].reg, inst.ops[4].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadAmcMI:
+        case MicroInstrOpcode::LoadAmcMemImm:
             encoder.encodeLoadAmcMemImm(inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[7].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadAmcRM:
+        case MicroInstrOpcode::LoadAmcRegMem:
             encoder.encodeLoadAmcRegMem(inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadAddrAmcRM:
+        case MicroInstrOpcode::LoadAddrAmcRegMem:
             encoder.encodeLoadAddressAmcRegMem(inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadMR:
+        case MicroInstrOpcode::LoadMemReg:
             encoder.encodeLoadMemReg(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadMI:
+        case MicroInstrOpcode::LoadMemImm:
             encoder.encodeLoadMemImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::CmpRR:
+        case MicroInstrOpcode::CmpRegReg:
             encoder.encodeCmpRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::CmpRI:
+        case MicroInstrOpcode::CmpRegImm:
             encoder.encodeCmpRegImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::CmpMR:
+        case MicroInstrOpcode::CmpMemReg:
             encoder.encodeCmpMemReg(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::CmpMI:
+        case MicroInstrOpcode::CmpMemImm:
             encoder.encodeCmpMemImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::SetCondR:
+        case MicroInstrOpcode::SetCondReg:
             encoder.encodeSetCondReg(inst.ops[0].reg, inst.ops[1].cpuCond, inst.emitFlags);
             break;
-        case MicroInstrKind::LoadCondRR:
+        case MicroInstrOpcode::LoadCondRegReg:
             encoder.encodeLoadCondRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].cpuCond, inst.ops[3].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::ClearR:
+        case MicroInstrOpcode::ClearReg:
             encoder.encodeClearReg(inst.ops[0].reg, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpUnaryM:
+        case MicroInstrOpcode::OpUnaryMem:
             encoder.encodeOpUnaryMem(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpUnaryR:
+        case MicroInstrOpcode::OpUnaryReg:
             encoder.encodeOpUnaryReg(inst.ops[0].reg, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpBinaryRR:
+        case MicroInstrOpcode::OpBinaryRegReg:
             encoder.encodeOpBinaryRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpBinaryMR:
+        case MicroInstrOpcode::OpBinaryMemReg:
             encoder.encodeOpBinaryMemReg(inst.ops[0].reg, inst.ops[4].valueU64, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpBinaryRI:
+        case MicroInstrOpcode::OpBinaryRegImm:
             encoder.encodeOpBinaryRegImm(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpBinaryMI:
+        case MicroInstrOpcode::OpBinaryMemImm:
             encoder.encodeOpBinaryMemImm(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[4].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpBinaryRM:
+        case MicroInstrOpcode::OpBinaryRegMem:
             encoder.encodeOpBinaryRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
-        case MicroInstrKind::OpTernaryRRR:
+        case MicroInstrOpcode::OpTernaryRegRegReg:
             encoder.encodeOpTernaryRegRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].reg, inst.ops[4].cpuOp, inst.ops[3].opBits, inst.emitFlags);
             break;
         default:
@@ -621,10 +621,12 @@ void MicroInstrBuilder::encode(Encoder& encoder)
     for (size_t idx = 0; idx < instructions_.size(); ++idx)
     {
         const auto& inst = instructions_[idx];
-        if (inst.op == MicroInstrKind::End)
+        if (inst.op == MicroInstrOpcode::End)
             break;
         encodeInstruction(encoder, inst, idx);
     }
 }
 
 SWC_END_NAMESPACE();
+
+

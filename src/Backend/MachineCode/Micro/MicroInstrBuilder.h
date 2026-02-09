@@ -60,7 +60,7 @@ public:
 
 private:
     void        encodeInstruction(Encoder& encoder, const MicroInstr& inst, size_t idx);
-    MicroInstr& addInstruction(MicroInstrKind op, EncodeFlags emitFlags, uint8_t numOperands);
+    MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
     TaskContext*            ctx_ = nullptr;
     std::vector<MicroInstr> instructions_;
@@ -69,3 +69,5 @@ private:
 };
 
 SWC_END_NAMESPACE();
+
+

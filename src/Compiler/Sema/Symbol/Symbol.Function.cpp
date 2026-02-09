@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -74,6 +76,34 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
     }
 
     return true;
+}
+
+SymbolStruct* SymbolFunction::ownerStruct()
+{
+    SymbolStruct* ownerStruct = nullptr;
+    if (auto* symMap = ownerSymMap())
+    {
+        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+            ownerStruct = symImpl->symStruct();
+        else
+            ownerStruct = symMap->safeCast<SymbolStruct>();
+    }
+
+    return ownerStruct;
+}
+
+const SymbolStruct* SymbolFunction::ownerStruct() const
+{
+    const SymbolStruct* ownerStruct = nullptr;
+    if (const auto* symMap = ownerSymMap())
+    {
+        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+            ownerStruct = symImpl->symStruct();
+        else
+            ownerStruct = symMap->safeCast<SymbolStruct>();
+    }
+
+    return ownerStruct;
 }
 
 SWC_END_NAMESPACE();

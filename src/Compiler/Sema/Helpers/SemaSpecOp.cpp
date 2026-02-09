@@ -4,9 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -261,19 +259,6 @@ namespace
         }
     }
 
-    SymbolStruct* ownerStructFor(SymbolFunction& sym)
-    {
-        SymbolStruct* ownerStruct = nullptr;
-        if (auto* symMap = sym.ownerSymMap())
-        {
-            if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
-                ownerStruct = symImpl->symStruct();
-            else
-                ownerStruct = symMap->safeCast<SymbolStruct>();
-        }
-
-        return ownerStruct;
-    }
 }
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
@@ -300,7 +285,7 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
             return reportSpecOpError(sema, sym, kind);
     }
 
-    const SymbolStruct* ownerStruct = ownerStructFor(sym);
+    const SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
@@ -315,7 +300,7 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     if (kind == SpecOpKind::Invalid)
         return Result::Continue;
 
-    SymbolStruct* ownerStruct = ownerStructFor(sym);
+    SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return Result::Continue;
 

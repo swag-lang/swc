@@ -6,6 +6,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
+class SymbolStruct;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
@@ -35,6 +36,8 @@ public:
     void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
+    SymbolStruct*                       ownerStruct();
+    const SymbolStruct*                 ownerStruct() const;
 
     void       setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool       isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }

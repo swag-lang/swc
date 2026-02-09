@@ -60,73 +60,6 @@ namespace
         }
     }
 
-    bool matchSpecOp(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
-    {
-        if (idRef.isInvalid())
-            return false;
-
-        using Pn = IdentifierManager::PredefinedName;
-        struct Entry
-        {
-            Pn         pn;
-            SpecOpKind kind;
-        };
-
-        static constexpr Entry K_MAP[] = {
-            {Pn::OpVisit, SpecOpKind::OpVisit},
-            {Pn::OpBinary, SpecOpKind::OpBinary},
-            {Pn::OpUnary, SpecOpKind::OpUnary},
-            {Pn::OpAssign, SpecOpKind::OpAssign},
-            {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
-            {Pn::OpCast, SpecOpKind::OpCast},
-            {Pn::OpEquals, SpecOpKind::OpEquals},
-            {Pn::OpCmp, SpecOpKind::OpCmp},
-            {Pn::OpPostCopy, SpecOpKind::OpPostCopy},
-            {Pn::OpPostMove, SpecOpKind::OpPostMove},
-            {Pn::OpDrop, SpecOpKind::OpDrop},
-            {Pn::OpCount, SpecOpKind::OpCount},
-            {Pn::OpData, SpecOpKind::OpData},
-            {Pn::OpAffect, SpecOpKind::OpAffect},
-            {Pn::OpAffectLiteral, SpecOpKind::OpAffectLiteral},
-            {Pn::OpSlice, SpecOpKind::OpSlice},
-            {Pn::OpIndex, SpecOpKind::OpIndex},
-            {Pn::OpIndexAffect, SpecOpKind::OpIndexAffect},
-        };
-
-        for (const auto& e : K_MAP)
-        {
-            if (idRef == idMgr.predefined(e.pn))
-            {
-                outKind = e.kind;
-                return true;
-            }
-        }
-
-        const std::string_view name = idMgr.get(idRef).name;
-        if (LangSpec::isOpVisitName(name))
-        {
-            outKind = SpecOpKind::OpVisit;
-            return true;
-        }
-
-        return false;
-    }
-
-    SpecOpKind computeSpecOpKind(IdentifierRef idRef, const IdentifierManager& idMgr)
-    {
-        if (idRef.isInvalid())
-            return SpecOpKind::None;
-
-        const std::string_view name = idMgr.get(idRef).name;
-        if (!LangSpec::isSpecOpName(name))
-            return SpecOpKind::None;
-
-        auto kind = SpecOpKind::Invalid;
-        if (matchSpecOp(idRef, idMgr, kind))
-            return kind;
-        return SpecOpKind::Invalid;
-    }
-
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -371,20 +304,11 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
-    RESULT_VERIFY(validateSpecOpSignature(sema, *ownerStruct, sym, kind));
-    sym.addExtraFlag(SymbolFunctionFlagsE::SpecOpValidated);
-    return Result::Continue;
+    return validateSpecOpSignature(sema, *ownerStruct, sym, kind);
 }
 
 Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
 {
-    const IdentifierRef idRef = sym.idRef();
-    if (idRef.isInvalid())
-        return Result::Continue;
-
-    if (!sym.hasExtraFlag(SymbolFunctionFlagsE::SpecOpValidated))
-        return Result::Continue;
-
     const SpecOpKind kind = sym.specOpKind();
     if (kind == SpecOpKind::None)
         return Result::Continue;
@@ -407,7 +331,54 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
 
 SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction& sym)
 {
-    return computeSpecOpKind(sym.idRef(), sema.idMgr());
+    const IdentifierRef      idRef = sym.idRef();
+    const IdentifierManager& idMgr = sema.idMgr();
+
+    const std::string_view name = idMgr.get(idRef).name;
+    if (!LangSpec::isSpecOpName(name))
+        return SpecOpKind::None;
+
+    auto kind = SpecOpKind::Invalid;
+    using Pn = IdentifierManager::PredefinedName;
+    struct Entry
+    {
+        Pn         pn;
+        SpecOpKind kind;
+    };
+
+    static constexpr Entry K_MAP[] = {
+        {Pn::OpVisit, SpecOpKind::OpVisit},
+        {Pn::OpBinary, SpecOpKind::OpBinary},
+        {Pn::OpUnary, SpecOpKind::OpUnary},
+        {Pn::OpAssign, SpecOpKind::OpAssign},
+        {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
+        {Pn::OpCast, SpecOpKind::OpCast},
+        {Pn::OpEquals, SpecOpKind::OpEquals},
+        {Pn::OpCmp, SpecOpKind::OpCmp},
+        {Pn::OpPostCopy, SpecOpKind::OpPostCopy},
+        {Pn::OpPostMove, SpecOpKind::OpPostMove},
+        {Pn::OpDrop, SpecOpKind::OpDrop},
+        {Pn::OpCount, SpecOpKind::OpCount},
+        {Pn::OpData, SpecOpKind::OpData},
+        {Pn::OpAffect, SpecOpKind::OpAffect},
+        {Pn::OpAffectLiteral, SpecOpKind::OpAffectLiteral},
+        {Pn::OpSlice, SpecOpKind::OpSlice},
+        {Pn::OpIndex, SpecOpKind::OpIndex},
+        {Pn::OpIndexAffect, SpecOpKind::OpIndexAffect},
+    };
+
+    for (const auto& e : K_MAP)
+    {
+        if (idRef == idMgr.predefined(e.pn))
+        {
+            kind = e.kind;
+            return kind;
+        }
+    }
+
+    if (LangSpec::isOpVisitName(name))
+        return SpecOpKind::OpVisit;
+    return SpecOpKind::Invalid;
 }
 
 SWC_END_NAMESPACE();

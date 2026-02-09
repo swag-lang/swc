@@ -9,13 +9,12 @@ class SymbolVariable;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
-    Zero            = 0,
-    Closure         = 1 << 0,
-    Method          = 1 << 1,
-    Throwable       = 1 << 2,
-    Const           = 1 << 3,
-    Empty           = 1 << 4,
-    SpecOpValidated = 1 << 5,
+    Zero      = 0,
+    Closure   = 1 << 0,
+    Method    = 1 << 1,
+    Throwable = 1 << 2,
+    Const     = 1 << 3,
+    Empty     = 1 << 4,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 

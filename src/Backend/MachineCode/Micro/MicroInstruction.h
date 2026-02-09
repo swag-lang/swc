@@ -81,16 +81,16 @@ struct MicroInstructionOperand
 {
     union
     {
-        IdentifierRef   name;
-        const CallConv* callConv;
-        Micro::Reg      reg;
-        Micro::OpBits   opBits;
-        Micro::Cond     cpuCond;
-        Micro::CondJump jumpType;
-        Micro::Op       cpuOp;
-        uint32_t        valueU32;
-        int32_t         valueI32;
-        uint64_t        valueU64;
+        IdentifierRef        name;
+        const CallConv*      callConv;
+        MicroReg      reg;
+        MicroOpBits   opBits;
+        MicroCond     cpuCond;
+        MicroCondJump jumpType;
+        MicroOp       cpuOp;
+        uint32_t             valueU32;
+        int32_t              valueI32;
+        uint64_t             valueU64;
     };
 
     MicroInstructionOperand() :

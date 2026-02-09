@@ -226,4 +226,48 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Error;
 }
 
+Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children)
+{
+    SmallVector<TypeRef>       memberTypes;
+    SmallVector<IdentifierRef> memberNames;
+    SmallVector<SourceCodeRef> memberCodeRefs;
+    memberTypes.reserve(children.size());
+    memberNames.reserve(children.size());
+    memberCodeRefs.reserve(children.size());
+
+    bool                     allConstant = true;
+    SmallVector<ConstantRef> values;
+    values.reserve(children.size());
+
+    for (const AstNodeRef& child : children)
+    {
+        const AstNode& childNode = sema.node(child);
+        if (childNode.is(AstNodeId::NamedArgument))
+            memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
+        else
+            memberNames.push_back(IdentifierRef::invalid());
+
+        SemaNodeView nodeView(sema, child);
+        SWC_ASSERT(nodeView.typeRef.isValid());
+        memberTypes.push_back(nodeView.typeRef);
+        memberCodeRefs.push_back(childNode.codeRef());
+        allConstant = allConstant && nodeView.cstRef.isValid();
+        values.push_back(nodeView.cstRef);
+    }
+
+    if (allConstant)
+    {
+        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+    }
+    else
+    {
+        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
+        sema.setType(sema.curNodeRef(), typeRef);
+    }
+
+    sema.setIsValue(sema.curNodeRef());
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

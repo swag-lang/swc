@@ -121,4 +121,18 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstStructInitializerList::semaPostNode(Sema& sema) const
+{
+    SmallVector<AstNodeRef> children;
+    AstNode::collectChildren(children, sema.ast(), spanArgsRef);
+
+    RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
+
+    const SemaNodeView nodeWhatView(sema, nodeWhatRef);
+    SemaNodeView       initView(sema, sema.curNodeRef());
+    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef, CastKind::Initialization));
+
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

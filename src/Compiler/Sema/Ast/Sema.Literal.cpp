@@ -2,10 +2,10 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Core/Utf8Helper.h"
@@ -454,103 +454,11 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     return Result::SkipChildren;
 }
 
-Result AstStructLiteral::semaPostNode(Sema& sema)
+Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-
-    SmallVector<TypeRef>       memberTypes;
-    SmallVector<IdentifierRef> memberNames;
-    SmallVector<SourceCodeRef> memberCodeRefs;
-    memberTypes.reserve(children.size());
-    memberNames.reserve(children.size());
-    memberCodeRefs.reserve(children.size());
-
-    bool                     allConstant = true;
-    SmallVector<ConstantRef> values;
-    values.reserve(children.size());
-
-    for (const AstNodeRef& child : children)
-    {
-        const AstNode& childNode = sema.node(child);
-        if (childNode.is(AstNodeId::NamedArgument))
-            memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
-        else
-            memberNames.push_back(IdentifierRef::invalid());
-
-        SemaNodeView nodeView(sema, child);
-        SWC_ASSERT(nodeView.typeRef.isValid());
-        memberTypes.push_back(nodeView.typeRef);
-        memberCodeRefs.push_back(childNode.codeRef());
-        allConstant = allConstant && nodeView.cstRef.isValid();
-        values.push_back(nodeView.cstRef);
-    }
-
-    if (allConstant)
-    {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-    }
-    else
-    {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
-        sema.setType(sema.curNodeRef(), typeRef);
-    }
-
-    sema.setIsValue(sema.curNodeRef());
-    return Result::Continue;
-}
-
-Result AstStructInitializerList::semaPostNode(Sema& sema) const
-{
-    SmallVector<AstNodeRef> children;
-    AstNode::collectChildren(children, sema.ast(), spanArgsRef);
-
-    SmallVector<TypeRef>       memberTypes;
-    SmallVector<IdentifierRef> memberNames;
-    SmallVector<SourceCodeRef> memberCodeRefs;
-    memberTypes.reserve(children.size());
-    memberNames.reserve(children.size());
-    memberCodeRefs.reserve(children.size());
-
-    bool                     allConstant = true;
-    SmallVector<ConstantRef> values;
-    values.reserve(children.size());
-
-    for (const AstNodeRef& child : children)
-    {
-        const AstNode& childNode = sema.node(child);
-        if (childNode.is(AstNodeId::NamedArgument))
-            memberNames.push_back(sema.idMgr().addIdentifier(sema.ctx(), childNode.codeRef()));
-        else
-            memberNames.push_back(IdentifierRef::invalid());
-
-        SemaNodeView nodeView(sema, child);
-        SWC_ASSERT(nodeView.typeRef.isValid());
-        memberTypes.push_back(nodeView.typeRef);
-        memberCodeRefs.push_back(childNode.codeRef());
-        allConstant = allConstant && nodeView.cstRef.isValid();
-        values.push_back(nodeView.cstRef);
-    }
-
-    if (allConstant)
-    {
-        const auto val = ConstantValue::makeAggregateStruct(sema.ctx(), memberNames, values, memberCodeRefs);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
-    }
-    else
-    {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes, memberCodeRefs));
-        sema.setType(sema.curNodeRef(), typeRef);
-    }
-
-    sema.setIsValue(sema.curNodeRef());
-
-    const SemaNodeView nodeWhatView(sema, nodeWhatRef);
-    SemaNodeView       initView(sema, sema.curNodeRef());
-    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef, CastKind::Initialization));
-
-    return Result::Continue;
+    return SemaHelpers::finalizeAggregateStruct(sema, children);
 }
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)

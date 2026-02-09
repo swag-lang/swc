@@ -180,12 +180,10 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
-Result SymbolStruct::computeLayout(Sema& sema)
+Result SymbolStruct::registerSpecOps(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
-
     auto registerSpecOps = [&](const std::vector<SymbolImpl*>& impls) -> Result {
-        for (auto* symImpl : impls)
+        for (const auto* symImpl : impls)
         {
             if (!symImpl)
                 continue;
@@ -202,6 +200,12 @@ Result SymbolStruct::computeLayout(Sema& sema)
 
     RESULT_VERIFY(registerSpecOps(impls()));
     RESULT_VERIFY(registerSpecOps(interfaces()));
+    return Result::Continue;
+}
+
+Result SymbolStruct::computeLayout(Sema& sema)
+{
+    auto& ctx = sema.ctx();
 
     sizeInBytes_ = 0;
     alignment_   = 1;

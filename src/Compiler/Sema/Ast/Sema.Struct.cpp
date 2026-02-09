@@ -59,6 +59,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 
     sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
+    RESULT_VERIFY(sym.registerSpecOps(sema));
     RESULT_VERIFY(sym.computeLayout(sema));
 
     // Runtime struct

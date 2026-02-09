@@ -327,7 +327,7 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     if (idRef.isInvalid())
         return Result::Continue;
 
-    auto&                  idMgr = sema.idMgr();
+    const auto&            idMgr = sema.idMgr();
     const std::string_view name  = idMgr.get(idRef).name;
     if (!LangSpec::isSpecOpName(name))
         return Result::Continue;
@@ -348,7 +348,7 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
             return reportSpecOpError(sema, sym, kind);
     }
 
-    SymbolStruct* ownerStruct = ownerStructFor(sym);
+    const SymbolStruct* ownerStruct = ownerStructFor(sym);
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
@@ -363,7 +363,7 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     if (idRef.isInvalid())
         return Result::Continue;
 
-    auto&                  idMgr = sema.idMgr();
+    const auto&            idMgr = sema.idMgr();
     const std::string_view name  = idMgr.get(idRef).name;
     if (!LangSpec::isSpecOpName(name))
         return Result::Continue;

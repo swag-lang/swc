@@ -52,6 +52,7 @@ public:
     uint64_t          sizeOf() const { return sizeInBytes_; }
     uint32_t          alignment() const { return alignment_; }
     Result            canBeCompleted(Sema& sema) const;
+    Result            registerSpecOps(Sema& sema) const;
 
     void                                addField(SymbolVariable* sym) { fields_.push_back(sym); }
     void                                removeIgnoredFields();

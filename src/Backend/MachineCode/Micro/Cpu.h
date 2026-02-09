@@ -106,26 +106,26 @@ namespace Cpu
         EP,
         NEP,
     };
+    // ReSharper restore CppInconsistentNaming
 
     enum class CondJump : uint8_t
     {
-        JNO,
-        JNZ,
-        JZ,
-        JL,
-        JLE,
-        JB,
-        JBE,
-        JGE,
-        JAE,
-        JG,
-        JA,
-        JP,
-        JS,
-        JNP,
-        JUMP,
+        JumpNotOverflow,
+        JumpNotZero,
+        JumpZero,
+        JumpLess,
+        JumpLessOrEqual,
+        JumpBelow,
+        JumpBelowOrEqual,
+        JumpGreaterOrEqual,
+        JumpAboveOrEqual,
+        JumpGreater,
+        JumpAbove,
+        JumpParity,
+        JumpSign,
+        JumpNotParity,
+        JumpUnconditional,
     };
-    // ReSharper restore CppInconsistentNaming
 
     enum class SymbolKind
     {

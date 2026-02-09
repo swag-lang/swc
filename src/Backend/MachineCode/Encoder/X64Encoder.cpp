@@ -2687,49 +2687,49 @@ EncodeResult X64Encoder::encodeJump(Cpu::Jump& jump, Cpu::CondJump jumpType, Cpu
     {
         switch (jumpType)
         {
-            case Cpu::CondJump::JNO:
+            case Cpu::CondJump::JumpNotOverflow:
                 emitCpuOp(store_, 0x71);
                 break;
-            case Cpu::CondJump::JB:
+            case Cpu::CondJump::JumpBelow:
                 emitCpuOp(store_, 0x72);
                 break;
-            case Cpu::CondJump::JAE:
+            case Cpu::CondJump::JumpAboveOrEqual:
                 emitCpuOp(store_, 0x73);
                 break;
-            case Cpu::CondJump::JZ:
+            case Cpu::CondJump::JumpZero:
                 emitCpuOp(store_, 0x74);
                 break;
-            case Cpu::CondJump::JNZ:
+            case Cpu::CondJump::JumpNotZero:
                 emitCpuOp(store_, 0x75);
                 break;
-            case Cpu::CondJump::JBE:
+            case Cpu::CondJump::JumpBelowOrEqual:
                 emitCpuOp(store_, 0x76);
                 break;
-            case Cpu::CondJump::JA:
+            case Cpu::CondJump::JumpAbove:
                 store_.pushU8(0x77);
                 break;
-            case Cpu::CondJump::JS:
+            case Cpu::CondJump::JumpSign:
                 emitCpuOp(store_, 0x78);
                 break;
-            case Cpu::CondJump::JP:
+            case Cpu::CondJump::JumpParity:
                 emitCpuOp(store_, 0x7A);
                 break;
-            case Cpu::CondJump::JNP:
+            case Cpu::CondJump::JumpNotParity:
                 emitCpuOp(store_, 0x7B);
                 break;
-            case Cpu::CondJump::JL:
+            case Cpu::CondJump::JumpLess:
                 emitCpuOp(store_, 0x7C);
                 break;
-            case Cpu::CondJump::JGE:
+            case Cpu::CondJump::JumpGreaterOrEqual:
                 emitCpuOp(store_, 0x7D);
                 break;
-            case Cpu::CondJump::JLE:
+            case Cpu::CondJump::JumpLessOrEqual:
                 emitCpuOp(store_, 0x7E);
                 break;
-            case Cpu::CondJump::JG:
+            case Cpu::CondJump::JumpGreater:
                 emitCpuOp(store_, 0x7F);
                 break;
-            case Cpu::CondJump::JUMP:
+            case Cpu::CondJump::JumpUnconditional:
                 emitCpuOp(store_, 0xEB);
                 break;
             default:
@@ -2747,63 +2747,63 @@ EncodeResult X64Encoder::encodeJump(Cpu::Jump& jump, Cpu::CondJump jumpType, Cpu
 
     switch (jumpType)
     {
-        case Cpu::CondJump::JNO:
+        case Cpu::CondJump::JumpNotOverflow:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x81);
             break;
-        case Cpu::CondJump::JB:
+        case Cpu::CondJump::JumpBelow:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x82);
             break;
-        case Cpu::CondJump::JAE:
+        case Cpu::CondJump::JumpAboveOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x83);
             break;
-        case Cpu::CondJump::JZ:
+        case Cpu::CondJump::JumpZero:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x84);
             break;
-        case Cpu::CondJump::JNZ:
+        case Cpu::CondJump::JumpNotZero:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x85);
             break;
-        case Cpu::CondJump::JBE:
+        case Cpu::CondJump::JumpBelowOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x86);
             break;
-        case Cpu::CondJump::JA:
+        case Cpu::CondJump::JumpAbove:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x87);
             break;
-        case Cpu::CondJump::JP:
+        case Cpu::CondJump::JumpParity:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8A);
             break;
-        case Cpu::CondJump::JS:
+        case Cpu::CondJump::JumpSign:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x88);
             break;
-        case Cpu::CondJump::JNP:
+        case Cpu::CondJump::JumpNotParity:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8B);
             break;
-        case Cpu::CondJump::JL:
+        case Cpu::CondJump::JumpLess:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8C);
             break;
-        case Cpu::CondJump::JGE:
+        case Cpu::CondJump::JumpGreaterOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8D);
             break;
-        case Cpu::CondJump::JLE:
+        case Cpu::CondJump::JumpLessOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8E);
             break;
-        case Cpu::CondJump::JG:
+        case Cpu::CondJump::JumpGreater:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8F);
             break;
-        case Cpu::CondJump::JUMP:
+        case Cpu::CondJump::JumpUnconditional:
             emitCpuOp(store_, 0xE9);
             break;
         default:

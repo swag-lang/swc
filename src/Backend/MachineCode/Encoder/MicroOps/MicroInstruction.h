@@ -77,209 +77,123 @@ enum class MicroOp : uint8_t
 };
 // ReSharper restore CppInconsistentNaming
 
-struct MicroInstruction
+struct MicroInstructionOperand
 {
-    MicroOp   op        = MicroOp::OpBinaryRI;
-    EmitFlags emitFlags = EMIT_ZERO;
-
     union
     {
-        struct
-        {
-            IdentifierRef   name;
-            const CallConv* cc;
-        } callName;
+        IdentifierRef   name;
+        const CallConv* callConv;
+        CpuReg          reg;
+        CpuOpBits       opBits;
+        CpuCond         cpuCond;
+        CpuCondJump     jumpType;
+        CpuOp           cpuOp;
+        uint64_t        value;
+    };
 
-        struct
-        {
-            CpuReg          regA;
-            const CallConv* cc;
-        } callReg;
+    MicroInstructionOperand() :
+        value(0)
+    {
+    }
 
-        struct
-        {
-            CpuReg regA;
-        } reg;
+    MicroInstructionOperand(const MicroInstructionOperand& other)
+    {
+        std::memcpy(this, &other, sizeof(MicroInstructionOperand));
+    }
 
-        struct
-        {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-        } regOp;
+    MicroInstructionOperand& operator=(const MicroInstructionOperand& other)
+    {
+        if (this != &other)
+            std::memcpy(this, &other, sizeof(MicroInstructionOperand));
+        return *this;
+    }
+};
 
-        struct
-        {
-            CpuReg   regA;
-            uint64_t valueA;
-        } regValue;
+struct MicroInstruction
+{
+    MicroInstructionOperand* operands    = nullptr;
+    MicroOp                  op          = MicroOp::OpBinaryRI;
+    EmitFlags                emitFlags   = EMIT_ZERO;
+    uint8_t                  numOperands = 0;
 
-        struct
-        {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-            uint64_t  valueA;
-        } regValOp;
+    MicroInstruction() = default;
+    ~MicroInstruction() { delete[] operands; }
 
-        struct
-        {
-            CpuReg   regA;
-            uint64_t valueA;
-            uint64_t valueB;
-        } regValue2;
+    MicroInstruction(const MicroInstruction& other)
+    {
+        copyFrom(other);
+    }
 
-        struct
+    MicroInstruction& operator=(const MicroInstruction& other)
+    {
+        if (this != &other)
         {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-            uint64_t  valueA;
-            uint64_t  valueB;
-        } regVal2Op;
+            clear();
+            copyFrom(other);
+        }
 
-        struct
-        {
-            CpuReg regA;
-            CpuReg regB;
-        } regReg;
+        return *this;
+    }
 
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-        } regRegOp;
+    MicroInstruction(MicroInstruction&& other) noexcept
+    {
+        moveFrom(other);
+    }
 
-        struct
+    MicroInstruction& operator=(MicroInstruction&& other) noexcept
+    {
+        if (this != &other)
         {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-            CpuOpBits opBitsB;
-        } regRegOp2;
+            clear();
+            moveFrom(other);
+        }
 
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-            uint64_t  valueA;
-        } regRegValOp;
+        return *this;
+    }
 
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-            CpuOpBits opBitsB;
-            uint64_t  valueA;
-        } regRegValOp2;
-
-        struct
-        {
-            CpuReg  regA;
-            CpuCond cpuCond;
-        } regCond;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuCond   cpuCond;
-            CpuOpBits opBitsA;
-        } regRegCondOpBits;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-        } regOpCpu;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-            uint64_t  valueA;
-        } regValOpCpu;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-            uint64_t  valueA;
-            uint64_t  valueB;
-        } regVal2OpCpu;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-        } regRegOpCpu;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-            uint64_t  valueA;
-        } regRegValOpCpu;
-
-        struct
-        {
-            CpuCondJump jumpType;
-            CpuOpBits   opBitsA;
-        } jumpCond;
-
-        struct
-        {
-            CpuCondJump jumpType;
-            CpuOpBits   opBitsA;
-            uint64_t    valueA;
-        } jumpCondImm;
-
-        struct
-        {
-            CpuReg   regA;
-            CpuReg   regB;
-            uint64_t valueA;
-            uint64_t valueB;
-            uint64_t valueC;
-        } jumpTable;
-
-        struct
-        {
-            uint64_t valueA;
-            uint64_t valueB;
-            uint64_t valueC;
-        } patchJump;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuReg    regC;
-            CpuOpBits opBitsA;
-            CpuOpBits opBitsB;
-            uint64_t  valueA;
-            uint64_t  valueB;
-            uint64_t  valueC;
-        } amc;
-
-        struct
-        {
-            CpuReg    regA;
-            CpuReg    regB;
-            CpuReg    regC;
-            CpuOpBits opBitsA;
-            CpuOp     cpuOp;
-        } ternary;
-    } payload;
+    void allocateOperands(uint8_t count)
+    {
+        delete[] operands;
+        numOperands = count;
+        operands    = count ? new MicroInstructionOperand[count] : nullptr;
+    }
 
     bool isEnd() const { return op == MicroOp::End; }
+
+private:
+    void clear()
+    {
+        delete[] operands;
+        operands    = nullptr;
+        numOperands = 0;
+    }
+
+    void copyFrom(const MicroInstruction& other)
+    {
+        op          = other.op;
+        emitFlags   = other.emitFlags;
+        numOperands = other.numOperands;
+        if (numOperands)
+        {
+            operands = new MicroInstructionOperand[numOperands];
+            for (uint8_t idx = 0; idx < numOperands; ++idx)
+                operands[idx] = other.operands[idx];
+        }
+        else
+        {
+            operands = nullptr;
+        }
+    }
+
+    void moveFrom(MicroInstruction& other)
+    {
+        op                = other.op;
+        emitFlags         = other.emitFlags;
+        numOperands       = other.numOperands;
+        operands          = other.operands;
+        other.numOperands = 0;
+        other.operands    = nullptr;
+    }
 };
 
 SWC_END_NAMESPACE();

@@ -54,7 +54,7 @@ public:
     EncodeResult encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags) override;
 
 private:
-    MicroInstruction& addInstruction(MicroOp op, EmitFlags emitFlags = EMIT_ZERO);
+    MicroInstruction& addInstruction(MicroOp op, EmitFlags emitFlags, uint8_t numOperands);
 
     std::vector<MicroInstruction> instructions_;
 };

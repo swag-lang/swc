@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace Cpu
+namespace Micro
 {
     enum class OpBits : uint8_t
     {
@@ -136,14 +136,14 @@ namespace Cpu
     class RegSet
     {
     public:
-        void add(Cpu::Reg reg)
+        void add(Micro::Reg reg)
         {
             const auto idx = static_cast<size_t>(reg);
             if (idx < bits_.size())
                 bits_.set(idx);
         }
 
-        bool has(Cpu::Reg reg) const
+        bool has(Micro::Reg reg) const
         {
             const auto idx = static_cast<size_t>(reg);
             return idx < bits_.size() && bits_.test(idx);
@@ -157,30 +157,30 @@ namespace Cpu
 
     struct Jump
     {
-        void*       patchOffsetAddr = nullptr;
-        uint64_t    offsetStart     = 0;
-        Cpu::OpBits opBits          = Cpu::OpBits::Zero;
+        void*         patchOffsetAddr = nullptr;
+        uint64_t      offsetStart     = 0;
+        Micro::OpBits opBits          = Micro::OpBits::Zero;
     };
 
     struct LabelToSolve
     {
-        uint32_t  ipDest = 0;
-        Cpu::Jump jump{};
+        uint32_t    ipDest = 0;
+        Micro::Jump jump{};
     };
 
     struct Symbol
     {
-        IdentifierRef   name;
-        Cpu::SymbolKind kind  = Cpu::SymbolKind::Custom;
-        uint32_t        value = 0;
-        uint32_t        index = 0;
+        IdentifierRef     name;
+        Micro::SymbolKind kind  = Micro::SymbolKind::Custom;
+        uint32_t          value = 0;
+        uint32_t          index = 0;
     };
 
     struct Function
     {
-        uint32_t                       symbolIndex  = 0;
-        uint32_t                       startAddress = 0;
-        std::vector<Cpu::LabelToSolve> labelsToSolve;
+        uint32_t                         symbolIndex  = 0;
+        uint32_t                         startAddress = 0;
+        std::vector<Micro::LabelToSolve> labelsToSolve;
     };
 
     inline bool isFloat(Reg reg)

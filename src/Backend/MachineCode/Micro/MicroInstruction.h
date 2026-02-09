@@ -1,10 +1,10 @@
 #pragma once
-#include "Backend/MachineCode/Micro/Cpu.h"
+#include "Backend/MachineCode/Micro/Micro.h"
 
 SWC_BEGIN_NAMESPACE();
 
 // ReSharper disable CppInconsistentNaming
-enum class MicroOp : uint8_t
+enum class MicroInstructionKind : uint8_t
 {
     End,
     Enter,
@@ -83,11 +83,11 @@ struct MicroInstructionOperand
     {
         IdentifierRef   name;
         const CallConv* callConv;
-        Cpu::Reg          reg;
-        Cpu::OpBits       opBits;
-        Cpu::Cond         cpuCond;
-        Cpu::CondJump     jumpType;
-        Cpu::Op           cpuOp;
+        Micro::Reg      reg;
+        Micro::OpBits   opBits;
+        Micro::Cond     cpuCond;
+        Micro::CondJump jumpType;
+        Micro::Op       cpuOp;
         uint32_t        valueU32;
         int32_t         valueI32;
         uint64_t        valueU64;
@@ -114,7 +114,7 @@ struct MicroInstructionOperand
 struct MicroInstruction
 {
     MicroInstructionOperand* ops         = nullptr;
-    MicroOp                  op          = MicroOp::OpBinaryRI;
+    MicroInstructionKind     op          = MicroInstructionKind::OpBinaryRI;
     EmitFlags                emitFlags   = EMIT_ZERO;
     uint8_t                  numOperands = 0;
 
@@ -160,7 +160,7 @@ struct MicroInstruction
         ops         = count ? new MicroInstructionOperand[count] : nullptr;
     }
 
-    bool isEnd() const { return op == MicroOp::End; }
+    bool isEnd() const { return op == MicroInstructionKind::End; }
 
 private:
     void clear()
@@ -199,4 +199,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

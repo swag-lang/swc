@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -43,8 +44,6 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
-
-Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym);
 
 namespace
 {
@@ -130,7 +129,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
-        RESULT_VERIFY(registerStructSpecialFunction(sema, sym));
+        RESULT_VERIFY(SemaSpecOp::registerStructSpecialFunction(sema, sym));
         if (!sym.isEmpty())
             RESULT_VERIFY(Match::ghosting(sema, sym));
     }

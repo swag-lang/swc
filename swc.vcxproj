@@ -271,7 +271,6 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.FunctionSpec.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp"/>
@@ -303,6 +302,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp"/>
@@ -418,6 +418,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h"/>

@@ -1,5 +1,5 @@
-﻿#include "pch.h"
-#include "Compiler/Sema/Core/Sema.h"
+#include "pch.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -10,9 +10,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+namespace SemaSpecOp
 {
-    std::string_view specialFunctionSignatureHint(SpecOpKind kind)
+    static std::string_view specialFunctionSignatureHint(SpecOpKind kind)
     {
         switch (kind)
         {
@@ -57,7 +57,7 @@ namespace
         }
     }
 
-    bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
+    static bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
     {
         if (idRef.isInvalid())
             return false;
@@ -99,7 +99,6 @@ namespace
             }
         }
 
-        // Slow/fallback path: name-based visit operator.
         const std::string_view name = idMgr.get(idRef).name;
         if (LangSpec::isOpVisitName(name))
         {
@@ -110,14 +109,14 @@ namespace
         return false;
     }
 
-    TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
+    static TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
             return typeRef;
         return ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias);
     }
 
-    TypeRef unwrapPointerOrRef(TaskContext& ctx, TypeRef typeRef)
+    static TypeRef unwrapPointerOrRef(TaskContext& ctx, TypeRef typeRef)
     {
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isReference() || type.isAnyPointer())
@@ -125,7 +124,7 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
+    static Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_signature, sym);
         diag.addArgument(Diagnostic::ARG_BECAUSE, specialFunctionSignatureHint(kind));
@@ -133,7 +132,7 @@ namespace
         return Result::Error;
     }
 
-    Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
+    static Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
     {
         auto&       ctx     = sema.ctx();
         const auto& typeMgr = sema.typeMgr();
@@ -287,49 +286,48 @@ namespace
         return Result::Continue;
     }
 
-}
-
-Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
-{
-    const IdentifierRef idRef = sym.idRef();
-    if (idRef.isInvalid())
-        return Result::Continue;
-
-    auto&                  idMgr = sema.idMgr();
-    const std::string_view name  = idMgr.get(idRef).name;
-    if (!LangSpec::isSpecialFunctionName(name))
-        return Result::Continue;
-
-    SpecOpKind kind{};
-    if (!matchSpecialFunction(idRef, idMgr, kind))
+    Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
-        diag.addNote(DiagnosticId::sema_note_special_function_reserved);
-        diag.report(sema.ctx());
-        return Result::Error;
+        const IdentifierRef idRef = sym.idRef();
+        if (idRef.isInvalid())
+            return Result::Continue;
+
+        auto&                  idMgr = sema.idMgr();
+        const std::string_view name  = idMgr.get(idRef).name;
+        if (!LangSpec::isSpecialFunctionName(name))
+            return Result::Continue;
+
+        SpecOpKind kind{};
+        if (!matchSpecialFunction(idRef, idMgr, kind))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
+            diag.addNote(DiagnosticId::sema_note_special_function_reserved);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (kind == SpecOpKind::OpVisit && name.size() > std::string_view("opVisit").size())
+        {
+            const char variantStart = name[std::string_view("opVisit").size()];
+            if (std::isupper(static_cast<unsigned char>(variantStart)) == 0)
+                return reportSpecialFunctionError(sema, sym, kind);
+        }
+
+        SymbolStruct* ownerStruct = nullptr;
+        if (auto* symMap = sym.ownerSymMap())
+        {
+            if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+                ownerStruct = symImpl->symStruct();
+            else
+                ownerStruct = symMap->safeCast<SymbolStruct>();
+        }
+
+        if (!ownerStruct)
+            return SemaError::raise(sema, DiagnosticId::sema_err_special_function_outside_impl, sym);
+
+        RESULT_VERIFY(validateSpecialFunctionSignature(sema, *ownerStruct, sym, kind));
+        return ownerStruct->registerSpecOp(sema, sym, kind);
     }
-
-    if (kind == SpecOpKind::OpVisit && name.size() > std::string_view("opVisit").size())
-    {
-        const char variantStart = name[std::string_view("opVisit").size()];
-        if (std::isupper(static_cast<unsigned char>(variantStart)) == 0)
-            return reportSpecialFunctionError(sema, sym, kind);
-    }
-
-    SymbolStruct* ownerStruct = nullptr;
-    if (auto* symMap = sym.ownerSymMap())
-    {
-        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
-            ownerStruct = symImpl->symStruct();
-        else
-            ownerStruct = symMap->safeCast<SymbolStruct>();
-    }
-
-    if (!ownerStruct)
-        return SemaError::raise(sema, DiagnosticId::sema_err_special_function_outside_impl, sym);
-
-    RESULT_VERIFY(validateSpecialFunctionSignature(sema, *ownerStruct, sym, kind));
-    return ownerStruct->registerSpecOp(sema, sym, kind);
 }
 
 SWC_END_NAMESPACE();

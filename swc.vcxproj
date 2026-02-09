@@ -327,9 +327,9 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+    <ClInclude Include="src\Backend\MachineCode\Micro\Cpu.h" />
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstruction.h"/>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstructionBuilder.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\CpuAbstraction.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>

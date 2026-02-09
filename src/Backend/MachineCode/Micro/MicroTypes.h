@@ -12,16 +12,9 @@ enum class MicroOpBits : uint8_t
     B128 = 128,
 };
 
-inline uint32_t getEncoderNumBits(MicroOpBits opBits)
+inline uint32_t getNumBits(MicroOpBits opBits)
 {
-    switch (opBits)
-    {
-        case MicroOpBits::B8: return 8;
-        case MicroOpBits::B16: return 16;
-        case MicroOpBits::B32: return 32;
-        case MicroOpBits::B64: return 64;
-        default: return 0;
-    }
+    return static_cast<uint32_t>(opBits);
 }
 
 enum class MicroOp : uint8_t

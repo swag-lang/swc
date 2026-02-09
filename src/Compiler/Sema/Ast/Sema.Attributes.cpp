@@ -146,8 +146,7 @@ Result AstAttributeList::semaPreNode(Sema& sema)
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
     const SemaNodeView identView(sema, nodeIdentRef);
-    if (!identView.sym)
-        SWC_INTERNAL_ERROR(sema.ctx());
+    SWC_ASSERT(identView.sym);
     if (!identView.sym->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 

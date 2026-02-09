@@ -144,8 +144,6 @@ namespace
 
         for (const auto leftRef : leftRefs)
         {
-            if (leftRef.isInvalid())
-                SWC_INTERNAL_ERROR(sema.ctx());
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 

@@ -150,6 +150,22 @@ AstNodeRef Parser::parseVarDecl()
         AstNodeRef nodeInit = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymEqual).isValid())
             nodeInit = parseInitializerExpression();
+        else if (nodeType.isValid())
+        {
+            const auto* initList = ast_->node(nodeType).safeCast<AstStructInitializerList>();
+            if (initList)
+            {
+                const TokenRef initTokRef = ast_->node(nodeType).tokRef();
+
+                auto [typeRef, typePtr] = ast_->makeNode<AstNodeId::NamedType>(ast_->node(initList->nodeWhatRef).tokRef());
+                typePtr->nodeIdentRef   = initList->nodeWhatRef;
+                nodeType                = typeRef;
+
+                auto [initRef, initPtr]   = ast_->makeNode<AstNodeId::StructLiteral>(initTokRef);
+                initPtr->spanChildrenRef = initList->spanArgsRef;
+                nodeInit                 = initRef;
+            }
+        }
 
         if (tokNames.size() == 1)
         {

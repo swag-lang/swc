@@ -1,10 +1,10 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Core/Encoder.h"
-#include "Backend/MachineCode/Encoder/MicroOps/MicroInstruction.h"
+#include "Backend/MachineCode/Encoder/Micro/MicroInstruction.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroOpsEncoder : public Encoder
+class MicroEncoder : public Encoder
 {
 public:
     void encode(Encoder& encoder);

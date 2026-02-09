@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -259,6 +261,23 @@ namespace
         }
     }
 
+    bool isSpecOpInImplFor(const SymbolFunction& sym)
+    {
+        const auto* symMap = sym.ownerSymMap();
+        if (!symMap)
+            return false;
+        const auto* symImpl = symMap->safeCast<SymbolImpl>();
+        if (!symImpl)
+            return false;
+        const auto* implDecl = symImpl->decl();
+        if (!implDecl)
+            return false;
+        const auto* implNode = implDecl->safeCast<AstImpl>();
+        if (!implNode)
+            return false;
+        return implNode->nodeForRef.isValid();
+    }
+
 }
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
@@ -288,6 +307,8 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     const SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
+    if (isSpecOpInImplFor(sym))
+        return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
 
     return validateSpecOpSignature(sema, *ownerStruct, sym, kind);
 }

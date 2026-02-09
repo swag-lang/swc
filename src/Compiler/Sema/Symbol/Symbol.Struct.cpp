@@ -182,24 +182,18 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
 Result SymbolStruct::registerSpecOps(Sema& sema) const
 {
-    auto registerSpecOps = [&](const std::vector<SymbolImpl*>& impls) -> Result {
-        for (const auto* symImpl : impls)
+    for (const auto* symImpl : impls())
+    {
+        if (!symImpl)
+            continue;
+        for (auto* symFunc : symImpl->specOps())
         {
-            if (!symImpl)
+            if (!symFunc)
                 continue;
-            for (auto* symFunc : symImpl->specOps())
-            {
-                if (!symFunc)
-                    continue;
-                RESULT_VERIFY(SemaSpecOp::registerSymbol(sema, *symFunc));
-            }
+            RESULT_VERIFY(SemaSpecOp::registerSymbol(sema, *symFunc));
         }
+    }
 
-        return Result::Continue;
-    };
-
-    RESULT_VERIFY(registerSpecOps(impls()));
-    RESULT_VERIFY(registerSpecOps(interfaces()));
     return Result::Continue;
 }
 

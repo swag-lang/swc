@@ -2,7 +2,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-using Ref = uint32_t;
+using Ref                 = uint32_t;
+constexpr Ref INVALID_REF = std::numeric_limits<Ref>::max();
 
 template<class T>
 class TypedStore;

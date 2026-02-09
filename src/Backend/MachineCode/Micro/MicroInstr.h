@@ -86,7 +86,7 @@ struct MicroInstrOperand
         MicroOpBits     opBits;
         MicroCond       cpuCond;
         MicroCondJump   jumpType;
-        MicroOp         cpuOp;
+        MicroOp         microOp;
         uint32_t        valueU32;
         int32_t         valueI32;
         uint64_t        valueU64;
@@ -112,12 +112,12 @@ struct MicroInstrOperand
 
 struct MicroInstr
 {
-    Ref              opsRef      = std::numeric_limits<Ref>::max();
+    Ref              opsRef      = INVALID_REF;
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
     EncodeFlags      emitFlags   = EMIT_ZERO;
     uint8_t          numOperands = 0;
 
-    MicroInstrOperand* ops(Store& store)
+    MicroInstrOperand* ops(Store& store) const
     {
         if (!numOperands)
             return nullptr;

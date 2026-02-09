@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/TypedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,9 +13,9 @@ public:
     {
     }
 
-    MicroInstrBuilder(const MicroInstrBuilder&)            = delete;
-    MicroInstrBuilder& operator=(const MicroInstrBuilder&) = delete;
-    MicroInstrBuilder(MicroInstrBuilder&&) noexcept        = default;
+    MicroInstrBuilder(const MicroInstrBuilder&)                = delete;
+    MicroInstrBuilder& operator=(const MicroInstrBuilder&)     = delete;
+    MicroInstrBuilder(MicroInstrBuilder&&) noexcept            = default;
     MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
     void encode(Encoder& encoder);
@@ -68,13 +68,11 @@ private:
     void        encodeInstruction(Encoder& encoder, const MicroInstr& inst, size_t idx);
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
-    TaskContext*            ctx_ = nullptr;
-    Store                   instructions_;
-    Store                   operands_;
-    std::vector<MicroJump>  jumps_;
-    uint32_t                instructionCount_ = 0;
+    TaskContext*                  ctx_ = nullptr;
+    TypedStore<MicroInstr>        instructions_;
+    TypedStore<MicroInstrOperand> operands_;
+    std::vector<MicroJump>        jumps_;
+    uint32_t                      instructionCount_ = 0;
 };
 
 SWC_END_NAMESPACE();
-
-

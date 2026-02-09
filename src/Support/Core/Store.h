@@ -4,6 +4,9 @@ SWC_BEGIN_NAMESPACE();
 
 using Ref = uint32_t;
 
+template<class T>
+class TypedStore;
+
 struct SpanTag
 {
 };
@@ -107,84 +110,6 @@ public:
         return *ptr<T>(ref);
     }
 
-    template<class T>
-    uint32_t count() const noexcept
-    {
-        uint32_t total = 0;
-        for (const auto& page : pagesStorage_)
-            total += page->used / static_cast<uint32_t>(sizeof(T));
-        return total;
-    }
-
-    template<class T>
-    class TypedView
-    {
-    public:
-        struct Iterator
-        {
-            const Store* store = nullptr;
-            uint32_t     pageIndex = 0;
-            uint32_t     indexInPage = 0;
-
-            void advanceToValid()
-            {
-                while (pageIndex < store->pagesStorage_.size())
-                {
-                    const auto& page = store->pagesStorage_[pageIndex];
-                    const uint32_t countInPage = page->used / static_cast<uint32_t>(sizeof(T));
-                    if (indexInPage < countInPage)
-                        return;
-                    ++pageIndex;
-                    indexInPage = 0;
-                }
-            }
-
-            const T& operator*() const
-            {
-                const auto& page = store->pagesStorage_[pageIndex];
-                return *(reinterpret_cast<const T*>(page->bytes()) + indexInPage);
-            }
-
-            Iterator& operator++()
-            {
-                ++indexInPage;
-                advanceToValid();
-                return *this;
-            }
-
-            bool operator!=(const Iterator& other) const
-            {
-                return store != other.store || pageIndex != other.pageIndex || indexInPage != other.indexInPage;
-            }
-        };
-
-        explicit TypedView(const Store* s) :
-            store_(s)
-        {
-        }
-
-        Iterator begin() const
-        {
-            Iterator it{store_, 0, 0};
-            it.advanceToValid();
-            return it;
-        }
-
-        Iterator end() const
-        {
-            return {store_, static_cast<uint32_t>(store_->pagesStorage_.size()), 0};
-        }
-
-    private:
-        const Store* store_ = nullptr;
-    };
-
-    template<class T>
-    TypedView<T> typedView() const noexcept
-    {
-        return TypedView<T>(this);
-    }
-
     // Non-templated raw span push: data = contiguous array of elements (elemSize/elemAlign),
     // count = number of elements. Returns Ref to first chunk header.
     SpanRef pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
@@ -262,6 +187,9 @@ public:
     Ref findRef(const void* ptr) const noexcept;
 
 private:
+    template<class T>
+    friend class TypedStore;
+
     static constexpr uint32_t K_DEFAULT_PAGE_SIZE = 16u * 1024u;
 
     struct Page

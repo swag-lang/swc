@@ -162,6 +162,7 @@
     <ClInclude Include="src\Report\DiagnosticDef.h" />
     <ClInclude Include="src\Report\ExitCodes.h" />
     <ClInclude Include="src\Core\Store.h" />
+    <ClInclude Include="src\Support\Core\TypedStore.h" />
     <ClInclude Include="src\Core\StrongRef.h" />
     <ClInclude Include="src\Lexer\SourceView.h" />
     <ClInclude Include="src\Main\Command.h" />

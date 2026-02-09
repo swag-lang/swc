@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -211,20 +211,20 @@ void SymbolStruct::computeLayout(Sema& sema)
 
 namespace
 {
-    bool allowsSpecialFunctionOverload(SpecialFuncKind kind)
+    bool allowsSpecialFunctionOverload(SpecOpKind kind)
     {
         switch (kind)
         {
-            case SpecialFuncKind::OpCast:
-            case SpecialFuncKind::OpEquals:
-            case SpecialFuncKind::OpCmp:
-            case SpecialFuncKind::OpBinary:
-            case SpecialFuncKind::OpAssign:
-            case SpecialFuncKind::OpAffect:
-            case SpecialFuncKind::OpAffectLiteral:
-            case SpecialFuncKind::OpIndex:
-            case SpecialFuncKind::OpIndexAssign:
-            case SpecialFuncKind::OpIndexAffect:
+            case SpecOpKind::OpCast:
+            case SpecOpKind::OpEquals:
+            case SpecOpKind::OpCmp:
+            case SpecOpKind::OpBinary:
+            case SpecOpKind::OpAssign:
+            case SpecOpKind::OpAffect:
+            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpIndex:
+            case SpecOpKind::OpIndexAssign:
+            case SpecOpKind::OpIndexAffect:
                 return true;
             default:
                 return false;
@@ -232,16 +232,16 @@ namespace
     }
 }
 
-Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc, SpecialFuncKind kind)
+Result SymbolStruct::registerSpecOp(Sema& sema, SymbolFunction& symFunc, SpecOpKind kind)
 {
-    std::unique_lock lk(mutexSpecialFuncs_);
-    if (std::ranges::find(specialFuncs_, &symFunc) != specialFuncs_.end())
+    std::unique_lock lk(mutexSpecOps_);
+    if (std::ranges::find(specOps_, &symFunc) != specOps_.end())
         return Result::Continue;
 
     const IdentifierRef idRef = symFunc.idRef();
     if (!allowsSpecialFunctionOverload(kind))
     {
-        for (const auto* existing : specialFuncs_)
+        for (const auto* existing : specOps_)
         {
             if (existing && existing->idRef() == idRef)
             {
@@ -259,7 +259,7 @@ Result SymbolStruct::registerSpecialFunction(Sema& sema, SymbolFunction& symFunc
     else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
         opPostMove_ = &symFunc;
 
-    specialFuncs_.push_back(&symFunc);
+    specOps_.push_back(&symFunc);
     return Result::Continue;
 }
 

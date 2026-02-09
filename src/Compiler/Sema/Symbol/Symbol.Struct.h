@@ -9,7 +9,7 @@ class SymbolFunction;
 class SymbolInterface;
 class Sema;
 
-enum class SpecialFuncKind : uint8_t
+enum class SpecOpKind : uint8_t
 {
     OpBinary,
     OpUnary,
@@ -69,7 +69,11 @@ public:
 
     void        computeLayout(Sema& sema);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
-    Result      registerSpecialFunction(Sema& sema, SymbolFunction& symFunc, SpecialFuncKind kind);
+
+    Result                registerSpecOp(Sema& sema, SymbolFunction& symFunc, SpecOpKind kind);
+    const SymbolFunction* opDrop() const { return opDrop_; }
+    const SymbolFunction* opPostCopy() const { return opPostCopy_; }
+    const SymbolFunction* opPostMove() const { return opPostMove_; }
 
 private:
     std::vector<SymbolVariable*> fields_;
@@ -77,8 +81,8 @@ private:
     std::vector<SymbolImpl*>     impls_;
     mutable std::shared_mutex    mutexInterfaces_;
     std::vector<SymbolImpl*>     interfaces_;
-    mutable std::shared_mutex    mutexSpecialFuncs_;
-    std::vector<SymbolFunction*> specialFuncs_;
+    mutable std::shared_mutex    mutexSpecOps_;
+    std::vector<SymbolFunction*> specOps_;
     SymbolFunction*              opDrop_     = nullptr;
     SymbolFunction*              opPostCopy_ = nullptr;
     SymbolFunction*              opPostMove_ = nullptr;

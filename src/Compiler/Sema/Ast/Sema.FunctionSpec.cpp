@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -12,52 +12,52 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string_view specialFunctionSignatureHint(SpecialFuncKind kind)
+    std::string_view specialFunctionSignatureHint(SpecOpKind kind)
     {
         switch (kind)
         {
-            case SpecialFuncKind::OpDrop:
+            case SpecOpKind::OpDrop:
                 return "func opDrop(me) -> void";
-            case SpecialFuncKind::OpPostCopy:
+            case SpecOpKind::OpPostCopy:
                 return "func opPostCopy(me) -> void";
-            case SpecialFuncKind::OpPostMove:
+            case SpecOpKind::OpPostMove:
                 return "func opPostMove(me) -> void";
-            case SpecialFuncKind::OpCount:
+            case SpecOpKind::OpCount:
                 return "func opCount(me) -> u64";
-            case SpecialFuncKind::OpData:
+            case SpecOpKind::OpData:
                 return "func opData(me) -> *<type>";
-            case SpecialFuncKind::OpCast:
+            case SpecOpKind::OpCast:
                 return "func opCast(me) -> <type>";
-            case SpecialFuncKind::OpEquals:
+            case SpecOpKind::OpEquals:
                 return "func opEquals(me, value: <type>) -> bool";
-            case SpecialFuncKind::OpCmp:
+            case SpecOpKind::OpCmp:
                 return "func opCmp(me, value: <type>) -> s32";
-            case SpecialFuncKind::OpBinary:
+            case SpecOpKind::OpBinary:
                 return "func(op: string) opBinary(me, other: <type>) -> <struct>";
-            case SpecialFuncKind::OpUnary:
+            case SpecOpKind::OpUnary:
                 return "func(op: string) opUnary(me) -> <struct>";
-            case SpecialFuncKind::OpAssign:
+            case SpecOpKind::OpAssign:
                 return "func(op: string) opAssign(me, value: <type>) -> void";
-            case SpecialFuncKind::OpAffect:
+            case SpecOpKind::OpAffect:
                 return "func opAffect(me, value: <type>) -> void";
-            case SpecialFuncKind::OpAffectLiteral:
+            case SpecOpKind::OpAffectLiteral:
                 return "func(suffix: string) opAffectLiteral(me, value: <type>) -> void";
-            case SpecialFuncKind::OpSlice:
+            case SpecOpKind::OpSlice:
                 return "func opSlice(me, low: u64, up: u64) -> <string or slice>";
-            case SpecialFuncKind::OpIndex:
+            case SpecOpKind::OpIndex:
                 return "func opIndex(me, index: <type>) -> <type>";
-            case SpecialFuncKind::OpIndexAssign:
+            case SpecOpKind::OpIndexAssign:
                 return "func(op: string) opIndexAssign(me, index: <type>, value: <type>) -> void";
-            case SpecialFuncKind::OpIndexAffect:
+            case SpecOpKind::OpIndexAffect:
                 return "func(op: string) opIndexAffect(me, index: <type>, value: <type>) -> void";
-            case SpecialFuncKind::OpVisit:
+            case SpecOpKind::OpVisit:
                 return "func(ptr: bool, back: bool) opVisit(me, stmt: #code) -> void";
             default:
                 return "valid special function signature";
         }
     }
 
-    bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecialFuncKind& outKind)
+    bool matchSpecialFunction(IdentifierRef idRef, const IdentifierManager& idMgr, SpecOpKind& outKind)
     {
         if (idRef.isInvalid())
             return false;
@@ -65,29 +65,29 @@ namespace
         using Pn = IdentifierManager::PredefinedName;
         struct Entry
         {
-            Pn              pn;
-            SpecialFuncKind kind;
+            Pn         pn;
+            SpecOpKind kind;
         };
 
         static constexpr Entry K_MAP[] = {
-            {Pn::OpVisit, SpecialFuncKind::OpVisit},
-            {Pn::OpBinary, SpecialFuncKind::OpBinary},
-            {Pn::OpUnary, SpecialFuncKind::OpUnary},
-            {Pn::OpAssign, SpecialFuncKind::OpAssign},
-            {Pn::OpIndexAssign, SpecialFuncKind::OpIndexAssign},
-            {Pn::OpCast, SpecialFuncKind::OpCast},
-            {Pn::OpEquals, SpecialFuncKind::OpEquals},
-            {Pn::OpCmp, SpecialFuncKind::OpCmp},
-            {Pn::OpPostCopy, SpecialFuncKind::OpPostCopy},
-            {Pn::OpPostMove, SpecialFuncKind::OpPostMove},
-            {Pn::OpDrop, SpecialFuncKind::OpDrop},
-            {Pn::OpCount, SpecialFuncKind::OpCount},
-            {Pn::OpData, SpecialFuncKind::OpData},
-            {Pn::OpAffect, SpecialFuncKind::OpAffect},
-            {Pn::OpAffectLiteral, SpecialFuncKind::OpAffectLiteral},
-            {Pn::OpSlice, SpecialFuncKind::OpSlice},
-            {Pn::OpIndex, SpecialFuncKind::OpIndex},
-            {Pn::OpIndexAffect, SpecialFuncKind::OpIndexAffect},
+            {Pn::OpVisit, SpecOpKind::OpVisit},
+            {Pn::OpBinary, SpecOpKind::OpBinary},
+            {Pn::OpUnary, SpecOpKind::OpUnary},
+            {Pn::OpAssign, SpecOpKind::OpAssign},
+            {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
+            {Pn::OpCast, SpecOpKind::OpCast},
+            {Pn::OpEquals, SpecOpKind::OpEquals},
+            {Pn::OpCmp, SpecOpKind::OpCmp},
+            {Pn::OpPostCopy, SpecOpKind::OpPostCopy},
+            {Pn::OpPostMove, SpecOpKind::OpPostMove},
+            {Pn::OpDrop, SpecOpKind::OpDrop},
+            {Pn::OpCount, SpecOpKind::OpCount},
+            {Pn::OpData, SpecOpKind::OpData},
+            {Pn::OpAffect, SpecOpKind::OpAffect},
+            {Pn::OpAffectLiteral, SpecOpKind::OpAffectLiteral},
+            {Pn::OpSlice, SpecOpKind::OpSlice},
+            {Pn::OpIndex, SpecOpKind::OpIndex},
+            {Pn::OpIndexAffect, SpecOpKind::OpIndexAffect},
         };
 
         for (const auto& e : K_MAP)
@@ -103,7 +103,7 @@ namespace
         const std::string_view name = idMgr.get(idRef).name;
         if (LangSpec::isOpVisitName(name))
         {
-            outKind = SpecialFuncKind::OpVisit;
+            outKind = SpecOpKind::OpVisit;
             return true;
         }
 
@@ -125,7 +125,7 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecialFuncKind kind)
+    Result reportSpecialFunctionError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_signature, sym);
         diag.addArgument(Diagnostic::ARG_BECAUSE, specialFunctionSignatureHint(kind));
@@ -133,7 +133,7 @@ namespace
         return Result::Error;
     }
 
-    Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecialFuncKind kind)
+    Result validateSpecialFunctionSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
     {
         auto&       ctx     = sema.ctx();
         const auto& typeMgr = sema.typeMgr();
@@ -205,80 +205,80 @@ namespace
 
         switch (kind)
         {
-            case SpecialFuncKind::OpDrop:
-            case SpecialFuncKind::OpPostCopy:
-            case SpecialFuncKind::OpPostMove:
+            case SpecOpKind::OpDrop:
+            case SpecOpKind::OpPostCopy:
+            case SpecOpKind::OpPostMove:
                 if (!requireExactParams(1) || !requireReturnVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpCount:
+            case SpecOpKind::OpCount:
                 if (!requireExactParams(1) || !requireReturnType(typeMgr.typeU64()))
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpData:
+            case SpecOpKind::OpData:
                 if (!requireExactParams(1) || !requireReturnPointer())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpCast:
+            case SpecOpKind::OpCast:
                 if (!requireExactParams(1) || !requireReturnNotVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpEquals:
+            case SpecOpKind::OpEquals:
                 if (!requireExactParams(2) || !requireReturnType(typeMgr.typeBool()))
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpCmp:
+            case SpecOpKind::OpCmp:
                 if (!requireExactParams(2) || !requireReturnType(typeMgr.typeS32()))
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpBinary:
+            case SpecOpKind::OpBinary:
                 if (!requireExactParams(2) || !requireReturnStruct())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpUnary:
+            case SpecOpKind::OpUnary:
                 if (!requireExactParams(1) || !requireReturnStruct())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpAssign:
+            case SpecOpKind::OpAssign:
                 if (!requireExactParams(2) || !requireReturnVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpAffect:
+            case SpecOpKind::OpAffect:
                 if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpAffectLiteral:
+            case SpecOpKind::OpAffectLiteral:
                 if (!requireExactParams(2) || !requireReturnVoid() || !requireSecondNotStruct())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpSlice:
+            case SpecOpKind::OpSlice:
                 if (!requireExactParams(3) || !requireReturnStringOrSlice() || !requireU64Param(1) || !requireU64Param(2))
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpIndex:
+            case SpecOpKind::OpIndex:
                 if (!requireMinParams(2) || !requireReturnNotVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpIndexAssign:
-            case SpecialFuncKind::OpIndexAffect:
+            case SpecOpKind::OpIndexAssign:
+            case SpecOpKind::OpIndexAffect:
                 if (!requireMinParams(3) || !requireReturnVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
 
-            case SpecialFuncKind::OpVisit:
+            case SpecOpKind::OpVisit:
                 if (!requireExactParams(2) || !requireReturnVoid())
                     return reportSpecialFunctionError(sema, sym, kind);
                 break;
@@ -300,7 +300,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
     if (!LangSpec::isSpecialFunctionName(name))
         return Result::Continue;
 
-    SpecialFuncKind kind{};
+    SpecOpKind kind{};
     if (!matchSpecialFunction(idRef, idMgr, kind))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_special_function_unknown, sym);
@@ -309,7 +309,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
         return Result::Error;
     }
 
-    if (kind == SpecialFuncKind::OpVisit && name.size() > std::string_view("opVisit").size())
+    if (kind == SpecOpKind::OpVisit && name.size() > std::string_view("opVisit").size())
     {
         const char variantStart = name[std::string_view("opVisit").size()];
         if (std::isupper(static_cast<unsigned char>(variantStart)) == 0)
@@ -329,7 +329,7 @@ Result registerStructSpecialFunction(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_special_function_outside_impl, sym);
 
     RESULT_VERIFY(validateSpecialFunctionSignature(sema, *ownerStruct, sym, kind));
-    return ownerStruct->registerSpecialFunction(sema, sym, kind);
+    return ownerStruct->registerSpecOp(sema, sym, kind);
 }
 
 SWC_END_NAMESPACE();

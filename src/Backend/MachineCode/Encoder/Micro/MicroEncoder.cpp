@@ -13,7 +13,7 @@ MicroInstruction& MicroEncoder::addInstruction(MicroOp op, EmitFlags emitFlags, 
     return inst;
 }
 
-EncodeResult MicroEncoder::encodeLoadSymbolRelocAddress(TaskContext&, CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::SymbolRelocAddr, emitFlags, 3);
     inst.ops[0].reg      = reg;
@@ -22,7 +22,7 @@ EncodeResult MicroEncoder::encodeLoadSymbolRelocAddress(TaskContext&, CpuReg reg
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadSymRelocValue(TaskContext&, CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::SymbolRelocValue, emitFlags, 4);
     inst.ops[0].reg      = reg;
@@ -32,33 +32,33 @@ EncodeResult MicroEncoder::encodeLoadSymRelocValue(TaskContext&, CpuReg reg, uin
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodePush(TaskContext&, CpuReg reg, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodePush(CpuReg reg, EmitFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroOp::Push, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodePop(TaskContext&, CpuReg reg, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodePop(CpuReg reg, EmitFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroOp::Pop, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeNop(TaskContext&, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeNop(EmitFlags emitFlags)
 {
     addInstruction(MicroOp::Nop, emitFlags, 0);
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeRet(TaskContext&, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeRet(EmitFlags emitFlags)
 {
     addInstruction(MicroOp::Ret, emitFlags, 0);
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCallLocal(TaskContext&, IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CallLocal, emitFlags, 2);
     inst.ops[0].name     = symbolName;
@@ -66,7 +66,7 @@ EncodeResult MicroEncoder::encodeCallLocal(TaskContext&, IdentifierRef symbolNam
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCallExtern(TaskContext&, IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CallExtern, emitFlags, 2);
     inst.ops[0].name     = symbolName;
@@ -74,7 +74,7 @@ EncodeResult MicroEncoder::encodeCallExtern(TaskContext&, IdentifierRef symbolNa
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCallReg(TaskContext&, CpuReg reg, const CallConv* callConv, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCallReg(CpuReg reg, const CallConv* callConv, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CallIndirect, emitFlags, 2);
     inst.ops[0].reg      = reg;
@@ -82,7 +82,7 @@ EncodeResult MicroEncoder::encodeCallReg(TaskContext&, CpuReg reg, const CallCon
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeJumpTable(TaskContext&, CpuReg tableReg, CpuReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeJumpTable(CpuReg tableReg, CpuReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::JumpTable, emitFlags, 5);
     inst.ops[0].reg      = tableReg;
@@ -93,7 +93,7 @@ EncodeResult MicroEncoder::encodeJumpTable(TaskContext&, CpuReg tableReg, CpuReg
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeJump(TaskContext&, CpuJump& jump, CpuCondJump jumpType, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeJump(CpuJump& jump, CpuCondJump jumpType, CpuOpBits opBits, EmitFlags emitFlags)
 {
     jump.offsetStart     = instructions_.size() * sizeof(MicroInstruction);
     jump.opBits          = opBits;
@@ -103,7 +103,7 @@ EncodeResult MicroEncoder::encodeJump(TaskContext&, CpuJump& jump, CpuCondJump j
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodePatchJump(TaskContext&, const CpuJump& jump, uint64_t offsetDestination, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodePatchJump(const CpuJump& jump, uint64_t offsetDestination, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::PatchJump, emitFlags, 3);
     inst.ops[0].valueU64 = jump.offsetStart;
@@ -112,21 +112,21 @@ EncodeResult MicroEncoder::encodePatchJump(TaskContext&, const CpuJump& jump, ui
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodePatchJump(TaskContext&, const CpuJump& jump, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodePatchJump(const CpuJump& jump, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::PatchJump, emitFlags, 3);
     inst.ops[0].valueU64 = jump.offsetStart;
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeJumpReg(TaskContext&, CpuReg reg, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeJumpReg(CpuReg reg, EmitFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroOp::JumpM, emitFlags, 1);
     inst.ops[0].reg  = reg;
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadRegMem(TaskContext&, CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadRegMem(CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadRM, emitFlags, 4);
     inst.ops[0].reg      = reg;
@@ -136,7 +136,7 @@ EncodeResult MicroEncoder::encodeLoadRegMem(TaskContext&, CpuReg reg, CpuReg mem
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadRegImm(TaskContext&, CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadRegImm(CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadRI, emitFlags, 3);
     inst.ops[0].reg      = reg;
@@ -145,7 +145,7 @@ EncodeResult MicroEncoder::encodeLoadRegImm(TaskContext&, CpuReg reg, uint64_t v
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadRegReg(TaskContext&, CpuReg regDst, CpuReg regSrc, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::LoadRR, emitFlags, 3);
     inst.ops[0].reg    = regDst;
@@ -154,7 +154,7 @@ EncodeResult MicroEncoder::encodeLoadRegReg(TaskContext&, CpuReg regDst, CpuReg 
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadSignedExtendRegMem(TaskContext&, CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadSignedExtendRegMem(CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadSignedExtRM, emitFlags, 5);
     inst.ops[0].reg      = reg;
@@ -165,7 +165,7 @@ EncodeResult MicroEncoder::encodeLoadSignedExtendRegMem(TaskContext&, CpuReg reg
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadSignedExtendRegReg(TaskContext&, CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadSignedExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::LoadSignedExtRR, emitFlags, 4);
     inst.ops[0].reg    = regDst;
@@ -175,7 +175,7 @@ EncodeResult MicroEncoder::encodeLoadSignedExtendRegReg(TaskContext&, CpuReg reg
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadZeroExtendRegMem(TaskContext&, CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadZeroExtendRegMem(CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadZeroExtRM, emitFlags, 5);
     inst.ops[0].reg      = reg;
@@ -186,7 +186,7 @@ EncodeResult MicroEncoder::encodeLoadZeroExtendRegMem(TaskContext&, CpuReg reg, 
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadZeroExtendRegReg(TaskContext&, CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadZeroExtendRegReg(CpuReg regDst, CpuReg regSrc, CpuOpBits numBitsDst, CpuOpBits numBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::LoadZeroExtRR, emitFlags, 4);
     inst.ops[0].reg    = regDst;
@@ -196,7 +196,7 @@ EncodeResult MicroEncoder::encodeLoadZeroExtendRegReg(TaskContext&, CpuReg regDs
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadAddressRegMem(TaskContext&, CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadAddressRegMem(CpuReg reg, CpuReg memReg, uint64_t memOffset, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadAddrRM, emitFlags, 4);
     inst.ops[0].reg      = reg;
@@ -206,7 +206,7 @@ EncodeResult MicroEncoder::encodeLoadAddressRegMem(TaskContext&, CpuReg reg, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadAmcRegMem(TaskContext&, CpuReg regDst, CpuOpBits opBitsDst, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadAmcRegMem(CpuReg regDst, CpuOpBits opBitsDst, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadAmcRM, emitFlags, 8);
     inst.ops[0].reg      = regDst;
@@ -219,7 +219,7 @@ EncodeResult MicroEncoder::encodeLoadAmcRegMem(TaskContext&, CpuReg regDst, CpuO
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadAmcMemReg(TaskContext&, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsBaseMul, CpuReg regSrc, CpuOpBits opBitsSrc, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadAmcMemReg(CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsBaseMul, CpuReg regSrc, CpuOpBits opBitsSrc, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadAmcMR, emitFlags, 8);
     inst.ops[0].reg      = regBase;
@@ -232,7 +232,7 @@ EncodeResult MicroEncoder::encodeLoadAmcMemReg(TaskContext&, CpuReg regBase, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadAmcMemImm(TaskContext&, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsBaseMul, uint64_t value, CpuOpBits opBitsValue, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadAmcMemImm(CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsBaseMul, uint64_t value, CpuOpBits opBitsValue, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadAmcMI, emitFlags, 8);
     inst.ops[0].reg      = regBase;
@@ -245,7 +245,7 @@ EncodeResult MicroEncoder::encodeLoadAmcMemImm(TaskContext&, CpuReg regBase, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadAddressAmcRegMem(TaskContext&, CpuReg regDst, CpuOpBits opBitsDst, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsValue, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadAddressAmcRegMem(CpuReg regDst, CpuOpBits opBitsDst, CpuReg regBase, CpuReg regMul, uint64_t mulValue, uint64_t addValue, CpuOpBits opBitsValue, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadAddrAmcRM, emitFlags, 8);
     inst.ops[0].reg      = regDst;
@@ -258,7 +258,7 @@ EncodeResult MicroEncoder::encodeLoadAddressAmcRegMem(TaskContext&, CpuReg regDs
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadMemReg(TaskContext&, CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadMemReg(CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadMR, emitFlags, 4);
     inst.ops[0].reg      = memReg;
@@ -268,7 +268,7 @@ EncodeResult MicroEncoder::encodeLoadMemReg(TaskContext&, CpuReg memReg, uint64_
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadMemImm(TaskContext&, CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadMemImm(CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::LoadMI, emitFlags, 4);
     inst.ops[0].reg      = memReg;
@@ -278,7 +278,7 @@ EncodeResult MicroEncoder::encodeLoadMemImm(TaskContext&, CpuReg memReg, uint64_
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCmpRegReg(TaskContext&, CpuReg reg0, CpuReg reg1, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCmpRegReg(CpuReg reg0, CpuReg reg1, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::CmpRR, emitFlags, 3);
     inst.ops[0].reg    = reg0;
@@ -287,7 +287,7 @@ EncodeResult MicroEncoder::encodeCmpRegReg(TaskContext&, CpuReg reg0, CpuReg reg
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCmpMemReg(TaskContext&, CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCmpMemReg(CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CmpMR, emitFlags, 4);
     inst.ops[0].reg      = memReg;
@@ -297,7 +297,7 @@ EncodeResult MicroEncoder::encodeCmpMemReg(TaskContext&, CpuReg memReg, uint64_t
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCmpMemImm(TaskContext&, CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCmpMemImm(CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CmpMI, emitFlags, 4);
     inst.ops[0].reg      = memReg;
@@ -307,7 +307,7 @@ EncodeResult MicroEncoder::encodeCmpMemImm(TaskContext&, CpuReg memReg, uint64_t
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeCmpRegImm(TaskContext&, CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeCmpRegImm(CpuReg reg, uint64_t value, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::CmpRI, emitFlags, 3);
     inst.ops[0].reg      = reg;
@@ -316,7 +316,7 @@ EncodeResult MicroEncoder::encodeCmpRegImm(TaskContext&, CpuReg reg, uint64_t va
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeSetCondReg(TaskContext&, CpuReg reg, CpuCond cpuCond, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeSetCondReg(CpuReg reg, CpuCond cpuCond, EmitFlags emitFlags)
 {
     const auto& inst    = addInstruction(MicroOp::SetCondR, emitFlags, 2);
     inst.ops[0].reg     = reg;
@@ -324,7 +324,7 @@ EncodeResult MicroEncoder::encodeSetCondReg(TaskContext&, CpuReg reg, CpuCond cp
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeLoadCondRegReg(TaskContext&, CpuReg regDst, CpuReg regSrc, CpuCond setType, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeLoadCondRegReg(CpuReg regDst, CpuReg regSrc, CpuCond setType, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst    = addInstruction(MicroOp::LoadCondRR, emitFlags, 4);
     inst.ops[0].reg     = regDst;
@@ -334,7 +334,7 @@ EncodeResult MicroEncoder::encodeLoadCondRegReg(TaskContext&, CpuReg regDst, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeClearReg(TaskContext&, CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeClearReg(CpuReg reg, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::ClearR, emitFlags, 2);
     inst.ops[0].reg    = reg;
@@ -342,7 +342,7 @@ EncodeResult MicroEncoder::encodeClearReg(TaskContext&, CpuReg reg, CpuOpBits op
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpUnaryMem(TaskContext&, CpuReg memReg, uint64_t memOffset, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpUnaryMem(CpuReg memReg, uint64_t memOffset, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::OpUnaryM, emitFlags, 4);
     inst.ops[0].reg      = memReg;
@@ -352,7 +352,7 @@ EncodeResult MicroEncoder::encodeOpUnaryMem(TaskContext&, CpuReg memReg, uint64_
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpUnaryReg(TaskContext&, CpuReg reg, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpUnaryReg(CpuReg reg, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::OpUnaryR, emitFlags, 3);
     inst.ops[0].reg    = reg;
@@ -361,7 +361,7 @@ EncodeResult MicroEncoder::encodeOpUnaryReg(TaskContext&, CpuReg reg, CpuOp op, 
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpBinaryRegReg(TaskContext&, CpuReg regDst, CpuReg regSrc, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpBinaryRegReg(CpuReg regDst, CpuReg regSrc, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::OpBinaryRR, emitFlags, 4);
     inst.ops[0].reg    = regDst;
@@ -371,7 +371,7 @@ EncodeResult MicroEncoder::encodeOpBinaryRegReg(TaskContext&, CpuReg regDst, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpBinaryRegMem(TaskContext&, CpuReg regDst, CpuReg memReg, uint64_t memOffset, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpBinaryRegMem(CpuReg regDst, CpuReg memReg, uint64_t memOffset, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::OpBinaryRM, emitFlags, 5);
     inst.ops[0].reg      = regDst;
@@ -382,7 +382,7 @@ EncodeResult MicroEncoder::encodeOpBinaryRegMem(TaskContext&, CpuReg regDst, Cpu
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpBinaryMemReg(TaskContext&, CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpBinaryMemReg(CpuReg memReg, uint64_t memOffset, CpuReg reg, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::OpBinaryMR, emitFlags, 5);
     inst.ops[0].reg      = memReg;
@@ -393,7 +393,7 @@ EncodeResult MicroEncoder::encodeOpBinaryMemReg(TaskContext&, CpuReg memReg, uin
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpBinaryRegImm(TaskContext&, CpuReg reg, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpBinaryRegImm(CpuReg reg, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::OpBinaryRI, emitFlags, 4);
     inst.ops[0].reg      = reg;
@@ -403,7 +403,7 @@ EncodeResult MicroEncoder::encodeOpBinaryRegImm(TaskContext&, CpuReg reg, uint64
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpBinaryMemImm(TaskContext&, CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpBinaryMemImm(CpuReg memReg, uint64_t memOffset, uint64_t value, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst     = addInstruction(MicroOp::OpBinaryMI, emitFlags, 5);
     inst.ops[0].reg      = memReg;
@@ -414,7 +414,7 @@ EncodeResult MicroEncoder::encodeOpBinaryMemImm(TaskContext&, CpuReg memReg, uin
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroEncoder::encodeOpTernaryRegRegReg(TaskContext&, CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
+EncodeResult MicroEncoder::encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags)
 {
     const auto& inst   = addInstruction(MicroOp::OpTernaryRRR, emitFlags, 5);
     inst.ops[0].reg    = reg0;
@@ -460,39 +460,39 @@ void MicroEncoder::encodeInstruction(Encoder& encoder, const MicroInstruction& i
             break;
 
         case MicroOp::SymbolRelocAddr:
-            encoder.encodeLoadSymbolRelocAddress(encoder.ctx(), inst.ops[0].reg, inst.ops[1].valueU32, inst.ops[2].valueU32, inst.emitFlags);
+            encoder.encodeLoadSymbolRelocAddress(inst.ops[0].reg, inst.ops[1].valueU32, inst.ops[2].valueU32, inst.emitFlags);
             break;
         case MicroOp::SymbolRelocValue:
-            encoder.encodeLoadSymRelocValue(encoder.ctx(), inst.ops[0].reg, inst.ops[2].valueU32, inst.ops[3].valueU32, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeLoadSymRelocValue(inst.ops[0].reg, inst.ops[2].valueU32, inst.ops[3].valueU32, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::Push:
-            encoder.encodePush(encoder.ctx(), inst.ops[0].reg, inst.emitFlags);
+            encoder.encodePush(inst.ops[0].reg, inst.emitFlags);
             break;
         case MicroOp::Pop:
-            encoder.encodePop(encoder.ctx(), inst.ops[0].reg, inst.emitFlags);
+            encoder.encodePop(inst.ops[0].reg, inst.emitFlags);
             break;
         case MicroOp::Nop:
-            encoder.encodeNop(encoder.ctx(), inst.emitFlags);
+            encoder.encodeNop(inst.emitFlags);
             break;
         case MicroOp::Ret:
-            encoder.encodeRet(encoder.ctx(), inst.emitFlags);
+            encoder.encodeRet(inst.emitFlags);
             break;
         case MicroOp::CallLocal:
-            encoder.encodeCallLocal(encoder.ctx(), inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
+            encoder.encodeCallLocal(inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
             break;
         case MicroOp::CallExtern:
-            encoder.encodeCallExtern(encoder.ctx(), inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
+            encoder.encodeCallExtern(inst.ops[0].name, inst.ops[1].callConv, inst.emitFlags);
             break;
         case MicroOp::CallIndirect:
-            encoder.encodeCallReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].callConv, inst.emitFlags);
+            encoder.encodeCallReg(inst.ops[0].reg, inst.ops[1].callConv, inst.emitFlags);
             break;
         case MicroOp::JumpTable:
-            encoder.encodeJumpTable(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].valueI32, inst.ops[3].valueU32, inst.ops[4].valueU32, inst.emitFlags);
+            encoder.encodeJumpTable(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].valueI32, inst.ops[3].valueU32, inst.ops[4].valueU32, inst.emitFlags);
             break;
         case MicroOp::JumpCond:
         {
             CpuJump jump;
-            encoder.encodeJump(encoder.ctx(), jump, inst.ops[0].jumpType, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeJump(jump, inst.ops[0].jumpType, inst.ops[1].opBits, inst.emitFlags);
             jumps_[idx]     = jump;
             jumpValid_[idx] = true;
             break;
@@ -503,108 +503,108 @@ void MicroEncoder::encodeInstruction(Encoder& encoder, const MicroInstruction& i
             SWC_ASSERT(jumpIndex < jumpValid_.size());
             SWC_ASSERT(jumpValid_[jumpIndex]);
             if (inst.ops[2].valueU64 == 1)
-                encoder.encodePatchJump(encoder.ctx(), jumps_[jumpIndex], inst.ops[1].valueU64, inst.emitFlags);
+                encoder.encodePatchJump(jumps_[jumpIndex], inst.ops[1].valueU64, inst.emitFlags);
             else
-                encoder.encodePatchJump(encoder.ctx(), jumps_[jumpIndex], inst.emitFlags);
+                encoder.encodePatchJump(jumps_[jumpIndex], inst.emitFlags);
             break;
         }
         case MicroOp::JumpCondI:
         {
             CpuJump    jump;
             const auto opBits = inst.ops[1].opBits == CpuOpBits::Zero ? CpuOpBits::B32 : inst.ops[1].opBits;
-            encoder.encodeJump(encoder.ctx(), jump, inst.ops[0].jumpType, opBits, inst.emitFlags);
-            encoder.encodePatchJump(encoder.ctx(), jump, inst.ops[2].valueU64, inst.emitFlags);
+            encoder.encodeJump(jump, inst.ops[0].jumpType, opBits, inst.emitFlags);
+            encoder.encodePatchJump(jump, inst.ops[2].valueU64, inst.emitFlags);
             break;
         }
         case MicroOp::JumpM:
-            encoder.encodeJumpReg(encoder.ctx(), inst.ops[0].reg, inst.emitFlags);
+            encoder.encodeJumpReg(inst.ops[0].reg, inst.emitFlags);
             break;
         case MicroOp::LoadRR:
-            encoder.encodeLoadRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadRI:
-            encoder.encodeLoadRegImm(encoder.ctx(), inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeLoadRegImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadRM:
-            encoder.encodeLoadRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadSignedExtRM:
-            encoder.encodeLoadSignedExtendRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadSignedExtendRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadSignedExtRR:
-            encoder.encodeLoadSignedExtendRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadSignedExtendRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadZeroExtRM:
-            encoder.encodeLoadZeroExtendRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadZeroExtendRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadZeroExtRR:
-            encoder.encodeLoadZeroExtendRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadZeroExtendRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.ops[3].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadAddrRM:
-            encoder.encodeLoadAddressRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadAddressRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].valueU64, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadAmcMR:
-            encoder.encodeLoadAmcMemReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[2].reg, inst.ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcMemReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[2].reg, inst.ops[4].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadAmcMI:
-            encoder.encodeLoadAmcMemImm(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[7].valueU64, inst.ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcMemImm(inst.ops[0].reg, inst.ops[1].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[3].opBits, inst.ops[7].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadAmcRM:
-            encoder.encodeLoadAmcRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcRegMem(inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadAddrAmcRM:
-            encoder.encodeLoadAddressAmcRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAddressAmcRegMem(inst.ops[0].reg, inst.ops[3].opBits, inst.ops[1].reg, inst.ops[2].reg, inst.ops[5].valueU64, inst.ops[6].valueU64, inst.ops[4].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadMR:
-            encoder.encodeLoadMemReg(encoder.ctx(), inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadMemReg(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::LoadMI:
-            encoder.encodeLoadMemImm(encoder.ctx(), inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeLoadMemImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::CmpRR:
-            encoder.encodeCmpRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeCmpRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::CmpRI:
-            encoder.encodeCmpRegImm(encoder.ctx(), inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeCmpRegImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::CmpMR:
-            encoder.encodeCmpMemReg(encoder.ctx(), inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeCmpMemReg(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[1].reg, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::CmpMI:
-            encoder.encodeCmpMemImm(encoder.ctx(), inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeCmpMemImm(inst.ops[0].reg, inst.ops[2].valueU64, inst.ops[3].valueU64, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::SetCondR:
-            encoder.encodeSetCondReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].cpuCond, inst.emitFlags);
+            encoder.encodeSetCondReg(inst.ops[0].reg, inst.ops[1].cpuCond, inst.emitFlags);
             break;
         case MicroOp::LoadCondRR:
-            encoder.encodeLoadCondRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].cpuCond, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadCondRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].cpuCond, inst.ops[3].opBits, inst.emitFlags);
             break;
         case MicroOp::ClearR:
-            encoder.encodeClearReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeClearReg(inst.ops[0].reg, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::OpUnaryM:
-            encoder.encodeOpUnaryMem(encoder.ctx(), inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpUnaryMem(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::OpUnaryR:
-            encoder.encodeOpUnaryReg(encoder.ctx(), inst.ops[0].reg, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpUnaryReg(inst.ops[0].reg, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::OpBinaryRR:
-            encoder.encodeOpBinaryRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::OpBinaryMR:
-            encoder.encodeOpBinaryMemReg(encoder.ctx(), inst.ops[0].reg, inst.ops[4].valueU64, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryMemReg(inst.ops[0].reg, inst.ops[4].valueU64, inst.ops[1].reg, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::OpBinaryRI:
-            encoder.encodeOpBinaryRegImm(encoder.ctx(), inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegImm(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::OpBinaryMI:
-            encoder.encodeOpBinaryMemImm(encoder.ctx(), inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[4].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryMemImm(inst.ops[0].reg, inst.ops[3].valueU64, inst.ops[4].valueU64, inst.ops[2].cpuOp, inst.ops[1].opBits, inst.emitFlags);
             break;
         case MicroOp::OpBinaryRM:
-            encoder.encodeOpBinaryRegMem(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegMem(inst.ops[0].reg, inst.ops[1].reg, inst.ops[4].valueU64, inst.ops[3].cpuOp, inst.ops[2].opBits, inst.emitFlags);
             break;
         case MicroOp::OpTernaryRRR:
-            encoder.encodeOpTernaryRegRegReg(encoder.ctx(), inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].reg, inst.ops[4].cpuOp, inst.ops[3].opBits, inst.emitFlags);
+            encoder.encodeOpTernaryRegRegReg(inst.ops[0].reg, inst.ops[1].reg, inst.ops[2].reg, inst.ops[4].cpuOp, inst.ops[3].opBits, inst.emitFlags);
             break;
         default:
             SWC_ASSERT(false);
@@ -628,3 +628,4 @@ void MicroEncoder::encode(Encoder& encoder)
 }
 
 SWC_END_NAMESPACE();
+

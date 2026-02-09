@@ -7,7 +7,10 @@ SWC_BEGIN_NAMESPACE();
 class MicroEncoder : public Encoder
 {
 public:
-    explicit MicroEncoder(TaskContext& ctx) : Encoder(ctx) {}
+    explicit MicroEncoder(TaskContext& ctx) :
+        Encoder(ctx)
+    {
+    }
 
     void encode(Encoder& encoder);
 
@@ -65,4 +68,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

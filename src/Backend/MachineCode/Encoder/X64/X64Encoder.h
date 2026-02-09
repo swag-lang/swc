@@ -8,7 +8,10 @@ struct MicroInstruction;
 class X64Encoder : Encoder
 {
 public:
-    explicit X64Encoder(TaskContext& ctx) : Encoder(ctx) {}
+    explicit X64Encoder(TaskContext& ctx) :
+        Encoder(ctx)
+    {
+    }
 
     CpuRegSet getReadRegisters(const MicroInstruction& inst) override;
     CpuRegSet getWriteRegisters(const MicroInstruction& inst) override;
@@ -59,4 +62,3 @@ public:
 };
 
 SWC_END_NAMESPACE();
-

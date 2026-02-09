@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/MachineCode/Encoder/Core/CpuAbstraction.h"
 #include "Runtime/Runtime.h"
 #include "Support/Core/Store.h"
@@ -47,7 +47,10 @@ enum class EncodeResult : uint32_t
 class Encoder
 {
 public:
-    explicit Encoder(TaskContext& ctx) : ctx_(&ctx) {}
+    explicit Encoder(TaskContext& ctx) :
+        ctx_(&ctx)
+    {
+    }
     virtual ~Encoder() = default;
 
     TaskContext&       ctx() { return *ctx_; }
@@ -128,7 +131,7 @@ public:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
 protected:
-    TaskContext*   ctx_               = nullptr;
+    TaskContext*    ctx_ = nullptr;
     Store           store_;
     BuildParameters buildParams_;
     Module*         module_            = nullptr;
@@ -141,4 +144,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

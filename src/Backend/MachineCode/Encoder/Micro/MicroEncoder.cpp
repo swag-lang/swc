@@ -628,6 +628,3 @@ void MicroEncoder::encode(Encoder& encoder)
 }
 
 SWC_END_NAMESPACE();
-
-
-

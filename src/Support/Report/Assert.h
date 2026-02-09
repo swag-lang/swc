@@ -23,11 +23,11 @@ void              swcAssert(const char* expr, const char* file, int line);
     } while (0)
 #endif // SWC_HAS_ASSERT
 
-#define SWC_INTERNAL_ERROR(__ctx)                  \
-    do                                             \
-    {                                              \
+#define SWC_INTERNAL_ERROR(__ctx)                    \
+    do                                               \
+    {                                                \
         swcInternalError(__ctx, __FILE__, __LINE__); \
-        std::unreachable();                        \
+        std::unreachable();                          \
     } while (0)
 
 #define SWC_FORCE_ASSERT(__expr)                    \

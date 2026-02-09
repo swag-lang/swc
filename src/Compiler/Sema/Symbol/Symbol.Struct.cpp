@@ -212,20 +212,20 @@ void SymbolStruct::computeLayout(Sema& sema)
 SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef) const
 {
     SmallVector<SymbolFunction*> result;
+
+    std::shared_lock lk(mutexSpecOps_);
     for (auto* symFunc : specOps_)
     {
-        if (symFunc && symFunc->idRef() == identifierRef)
+        if (symFunc->idRef() == identifierRef)
             result.push_back(symFunc);
     }
+
     return result;
 }
 
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     std::unique_lock lk(mutexSpecOps_);
-    if (std::ranges::find(specOps_, &symFunc) != specOps_.end())
-        return Result::Continue;
-
     specOps_.push_back(&symFunc);
 
     switch (kind)

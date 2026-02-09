@@ -1,5 +1,4 @@
 #pragma once
-#include "Backend/MachineCode/Micro/MicroReg.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -12,6 +11,18 @@ enum class MicroOpBits : uint8_t
     B64  = 64,
     B128 = 128,
 };
+
+inline uint32_t getEncoderNumBits(MicroOpBits opBits)
+{
+    switch (opBits)
+    {
+        case MicroOpBits::B8: return 8;
+        case MicroOpBits::B16: return 16;
+        case MicroOpBits::B32: return 32;
+        case MicroOpBits::B64: return 64;
+        default: return 0;
+    }
+}
 
 enum class MicroOp : uint8_t
 {
@@ -96,38 +107,6 @@ enum class MicroCondJump : uint8_t
     Sign,
     Unconditional,
     Zero,
-};
-
-class MicroRegSet
-{
-public:
-    void add(MicroReg reg)
-    {
-        if (!reg.isValid())
-            return;
-        const auto idx = regSetIndex(reg);
-        if (idx < bits_.size())
-            bits_.set(idx);
-    }
-
-    bool has(MicroReg reg) const
-    {
-        if (!reg.isValid())
-            return false;
-        const auto idx = regSetIndex(reg);
-        return idx < bits_.size() && bits_.test(idx);
-    }
-
-    void clear() { bits_.reset(); }
-
-private:
-    static constexpr size_t K_REG_CLASS_STRIDE = 32;
-    static constexpr size_t regSetIndex(MicroReg reg)
-    {
-        return static_cast<size_t>(static_cast<uint8_t>(reg.kind())) * K_REG_CLASS_STRIDE + reg.index();
-    }
-
-    std::bitset<128> bits_{};
 };
 
 struct MicroJump

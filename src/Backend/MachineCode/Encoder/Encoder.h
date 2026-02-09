@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/EncoderTypes.h"
+#include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
 #include "Runtime/Runtime.h"
 #include "Support/Core/Store.h"
@@ -59,9 +60,6 @@ protected:
     }
     virtual ~Encoder() = default;
 
-    virtual MicroRegSet getReadRegisters(const MicroInstr&) { return {}; }
-    virtual MicroRegSet getWriteRegisters(const MicroInstr&) { return {}; }
-
     virtual EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)                                                                                    = 0;
     virtual EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)                                                                     = 0;
     virtual EncodeResult encodePush(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                             = 0;
@@ -119,12 +117,12 @@ protected:
     EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
+    TaskContext*               ctx_ = nullptr;
     Store                      store_;
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
     BuildParameters            buildParams_;
     EncoderFunction*           cpuFct_ = nullptr;
-    TaskContext*               ctx_    = nullptr;
     std::vector<EncoderSymbol> symbols_;
 };
 

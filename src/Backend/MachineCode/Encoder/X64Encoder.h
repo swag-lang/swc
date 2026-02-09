@@ -21,9 +21,6 @@ public:
     }
 
 private:
-    MicroRegSet getReadRegisters(const MicroInstr& inst) override;
-    MicroRegSet getWriteRegisters(const MicroInstr& inst) override;
-
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags) override;
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags) override;
     EncodeResult encodePush(MicroReg reg, EncodeFlags emitFlags) override;

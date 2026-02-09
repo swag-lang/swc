@@ -198,7 +198,6 @@ namespace
         return rex;
     }
 
-    // Addressing mode
     uint8_t getModRm(ModRmMode mod, uint8_t reg, uint8_t rm)
     {
         const auto result = static_cast<uint32_t>(mod) << 6 | ((reg & 0b111) << 3) | (rm & 0b111);
@@ -211,7 +210,7 @@ namespace
             store.pushU8(0x66);
     }
 
-    void emitSIB(Store& store, uint8_t scale, uint8_t index, uint8_t base)
+    void emitSib(Store& store, uint8_t scale, uint8_t index, uint8_t base)
     {
         const uint8_t value = static_cast<uint8_t>(scale << 6) | static_cast<uint8_t>(index << 3) | base;
         store.pushU8(value);
@@ -283,7 +282,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Memory, reg, MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -297,7 +296,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Displacement8, reg, MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -313,7 +312,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Displacement32, reg, MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -336,7 +335,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Memory, encodeReg(reg), MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -350,7 +349,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Displacement8, encodeReg(reg), MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -366,7 +365,7 @@ namespace
             {
                 const auto modRm = getModRm(ModRmMode::Displacement32, encodeReg(reg), MODRM_RM_SIB);
                 store.pushU8(modRm);
-                emitSIB(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
+                emitSib(store, 0, MODRM_RM_SIB, encodeReg(memX64) & 0b111);
             }
             else
             {
@@ -1011,12 +1010,12 @@ namespace
         const auto scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
-            emitSIB(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
             emitValue(store, addValue, MicroOpBits::B32);
         }
         else
         {
-            emitSIB(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
             if (baseX64 == X64Reg::R13 || addValue != 0)
                 emitValue(store, addValue, addValue <= 0x7F ? MicroOpBits::B8 : MicroOpBits::B32);
         }
@@ -1125,12 +1124,12 @@ namespace
         const auto scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
-            emitSIB(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
             emitValue(store, addValue, MicroOpBits::B32);
         }
         else
         {
-            emitSIB(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
             if (baseX64 == X64Reg::R13 || addValue != 0)
                 emitValue(store, addValue, addValue <= 0x7F ? MicroOpBits::B8 : MicroOpBits::B32);
         }
@@ -3057,101 +3056,6 @@ EncodeResult X64Encoder::encodeNop(EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0x90);
     return EncodeResult::Zero;
-}
-
-MicroRegSet X64Encoder::getReadRegisters(const MicroInstr& inst)
-{
-    auto result = Encoder::getReadRegisters(inst);
-
-    if (inst.op == MicroInstrKind::OpBinaryRI ||
-        inst.op == MicroInstrKind::OpBinaryRR ||
-        inst.op == MicroInstrKind::OpBinaryMI ||
-        inst.op == MicroInstrKind::OpBinaryRM ||
-        inst.op == MicroInstrKind::OpBinaryMR)
-    {
-        auto cpuOp = MicroOp::Add;
-        switch (inst.op)
-        {
-            case MicroInstrKind::OpBinaryRI:
-                cpuOp = inst.ops[2].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryRR:
-                cpuOp = inst.ops[3].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryMI:
-                cpuOp = inst.ops[2].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryRM:
-            case MicroInstrKind::OpBinaryMR:
-                cpuOp = inst.ops[3].cpuOp;
-                break;
-            default:
-                break;
-        }
-
-        if (cpuOp == MicroOp::RotateLeft ||
-            cpuOp == MicroOp::RotateRight ||
-            cpuOp == MicroOp::ShiftArithmeticLeft ||
-            cpuOp == MicroOp::ShiftArithmeticRight ||
-            cpuOp == MicroOp::ShiftLeft ||
-            cpuOp == MicroOp::ShiftRight)
-        {
-            result.add(x64RegToMicroReg(X64Reg::Rcx));
-        }
-        else if (cpuOp == MicroOp::MultiplyUnsigned ||
-                 cpuOp == MicroOp::DivideUnsigned ||
-                 cpuOp == MicroOp::ModuloUnsigned ||
-                 cpuOp == MicroOp::DivideSigned ||
-                 cpuOp == MicroOp::ModuloSigned)
-        {
-            result.add(x64RegToMicroReg(X64Reg::Rdx));
-        }
-    }
-
-    return result;
-}
-
-MicroRegSet X64Encoder::getWriteRegisters(const MicroInstr& inst)
-{
-    auto result = Encoder::getWriteRegisters(inst);
-
-    if (inst.op == MicroInstrKind::OpBinaryRI ||
-        inst.op == MicroInstrKind::OpBinaryRR ||
-        inst.op == MicroInstrKind::OpBinaryMI ||
-        inst.op == MicroInstrKind::OpBinaryRM ||
-        inst.op == MicroInstrKind::OpBinaryMR)
-    {
-        auto cpuOp = MicroOp::Add;
-        switch (inst.op)
-        {
-            case MicroInstrKind::OpBinaryRI:
-                cpuOp = inst.ops[2].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryRR:
-                cpuOp = inst.ops[3].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryMI:
-                cpuOp = inst.ops[2].cpuOp;
-                break;
-            case MicroInstrKind::OpBinaryRM:
-            case MicroInstrKind::OpBinaryMR:
-                cpuOp = inst.ops[3].cpuOp;
-                break;
-            default:
-                break;
-        }
-
-        if (cpuOp == MicroOp::MultiplyUnsigned ||
-            cpuOp == MicroOp::DivideUnsigned ||
-            cpuOp == MicroOp::ModuloUnsigned ||
-            cpuOp == MicroOp::DivideSigned ||
-            cpuOp == MicroOp::ModuloSigned)
-        {
-            result.add(x64RegToMicroReg(X64Reg::Rdx));
-        }
-    }
-
-    return result;
 }
 
 SWC_END_NAMESPACE();

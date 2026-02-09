@@ -32,16 +32,4 @@ struct EncoderFunction
     std::vector<EncoderJumpLabel> labelsToSolve;
 };
 
-inline uint32_t getEncoderNumBits(MicroOpBits opBits)
-{
-    switch (opBits)
-    {
-        case MicroOpBits::B8: return 8;
-        case MicroOpBits::B16: return 16;
-        case MicroOpBits::B32: return 32;
-        case MicroOpBits::B64: return 64;
-        default: return 0;
-    }
-}
-
 SWC_END_NAMESPACE();

@@ -88,11 +88,11 @@ struct MicroInstructionOperand
         CpuCond         cpuCond;
         CpuCondJump     jumpType;
         CpuOp           cpuOp;
-        uint64_t        value;
+        uint64_t        valueU64;
     };
 
     MicroInstructionOperand() :
-        value(0)
+        valueU64(0)
     {
     }
 

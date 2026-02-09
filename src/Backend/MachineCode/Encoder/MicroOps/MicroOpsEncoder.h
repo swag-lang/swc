@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroOpsEncoder : public Encoder
 {
 public:
-    void encode(Encoder& encoder) const;
+    void encode(Encoder& encoder);
 
     EncodeResult encodeLoadSymbolRelocAddress(CpuReg reg, uint32_t symbolIndex, uint32_t offset, EmitFlags emitFlags) override;
     EncodeResult encodeLoadSymRelocValue(CpuReg reg, uint32_t symbolIndex, uint32_t offset, CpuOpBits opBits, EmitFlags emitFlags) override;
@@ -54,9 +54,12 @@ public:
     EncodeResult encodeOpTernaryRegRegReg(CpuReg reg0, CpuReg reg1, CpuReg reg2, CpuOp op, CpuOpBits opBits, EmitFlags emitFlags) override;
 
 private:
+    void              processEncoding(Encoder& encoder, const MicroInstruction& inst, size_t idx);
     MicroInstruction& addInstruction(MicroOp op, EmitFlags emitFlags, uint8_t numOperands);
 
     std::vector<MicroInstruction> instructions_;
+    std::vector<CpuJump>          jumps_;
+    std::vector<bool>             jumpValid_;
 };
 
 SWC_END_NAMESPACE();

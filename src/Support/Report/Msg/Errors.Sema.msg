@@ -8,6 +8,7 @@ SWC_DIAG_DEF(sema_err_cannot_cast, Error, "cannot cast from '{type}' to '{reques
 SWC_DIAG_DEF(sema_err_struct_cast_field_count, Error, "cannot cast from '{type}' to '{requested-type}'; struct field count mismatch: source = '{count}' destination = '{value}'")
 SWC_DIAG_DEF(sema_err_struct_cast_field_type, Error, "cannot cast from '{type}' to '{requested-type}'; field '{value}' has an incompatible type")
 SWC_DIAG_DEF(sema_err_struct_cast_duplicate_field, Error, "field '{value}' specified more than once")
+SWC_DIAG_DEF(sema_err_struct_cast_missing_field_no_default, Error, "cannot cast from '{type}' to '{requested-type}'; missing initialization of field '{value}'")
 SWC_DIAG_DEF(sema_err_array_cast_num_dims, Error, "cannot cast from '{type}' to '{requested-type}'; array dimension count mismatch: source = '{count}' destination = '{value}'")
 SWC_DIAG_DEF(sema_err_array_cast_dim_mismatch, Error, "cannot cast from '{type}' to '{requested-type}'; array dimension mismatch: source = '{left}' destination = '{right}'")
 SWC_DIAG_DEF(sema_err_array_cast_too_many_values, Error, "cannot cast from '{type}' to '{requested-type}'; too many elements: source = '{count}' destination = '{value}'")

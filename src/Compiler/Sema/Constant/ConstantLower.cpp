@@ -39,8 +39,11 @@ namespace
 
     void lowerConstantToBytes(Sema& sema, ByteSpan dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
-        const ConstantValue& cst     = sema.cstMgr().get(cstRef);
-        const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (cst.isUndefined())
+            return;
+
+        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
         if (dstType.isEnum())
         {

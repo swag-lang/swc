@@ -78,6 +78,7 @@ public:
     bool         isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
     bool         isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
     bool         isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
+    bool         isUndefined() const { return kind_ == ConstantKind::Undefined; }
 
     bool isPayloadBorrowed() const
     {

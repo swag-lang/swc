@@ -94,6 +94,17 @@ const VEC3F_NAMED_CAST: Vec3FDefault = Vec3FDefault{5, 7}
 #assert(VEC3F_NAMED_CAST.x == 5)
 #assert(VEC3F_NAMED_CAST.y == 7)
 #assert(VEC3F_NAMED_CAST.z == 10)
+
+struct RequiredDefaults {x: s32 = undefined, y: s32 = 5, z: s32 = undefined}
+#test { const REQUIRED_DEFAULTS: RequiredDefaults = {y: 2} } // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+#test { const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1} } // swc-expected-error {{sema_err_struct_cast_missing_field_no_default}}
+#test
+{
+    const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1, y: 2, z: 3}
+    #assert(REQUIRED_DEFAULTS.x == 1)
+    #assert(REQUIRED_DEFAULTS.y == 2)
+    #assert(REQUIRED_DEFAULTS.z == 3)
+}
 struct Point {x, y: s32}
 struct Rect {topLeft: Point, bottomRight: Point}
 

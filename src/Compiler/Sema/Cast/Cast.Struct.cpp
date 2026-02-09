@@ -35,6 +35,11 @@ namespace
         return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
     }
 
+    Result failStructMissingFieldNoDefault(const CastStructArgs& ctx, std::string_view fieldName)
+    {
+        return ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
+    }
+
     AstNodeRef aggregateFieldNodeRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)
     {
         if (!args.castRequest->errorNodeRef.isValid())
@@ -194,6 +199,16 @@ namespace
 
             srcToDst[i]       = dstIndex;
             dstUsed[dstIndex] = true;
+        }
+
+        for (size_t i = 0; i < dstFields.size(); ++i)
+        {
+            if (dstUsed[i])
+                continue;
+            const auto* field = dstFields[i];
+            if (!field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                continue;
+            return failStructMissingFieldNoDefault(args, args.sema->idMgr().get(field->idRef()).name);
         }
 
         return Result::Continue;

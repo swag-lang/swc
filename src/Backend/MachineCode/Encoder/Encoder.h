@@ -44,32 +44,40 @@ enum class EncodeResult : uint32_t
     NotSupported,
 };
 
+static bool isFloat(CpuReg reg)
+{
+    return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3;
+}
+static bool isInt(CpuReg reg)
+{
+    return !isFloat(reg);
+}
+
+static uint32_t getNumBits(CpuOpBits opBits)
+{
+    switch (opBits)
+    {
+        case CpuOpBits::B8: return 8;
+        case CpuOpBits::B16: return 16;
+        case CpuOpBits::B32: return 32;
+        case CpuOpBits::B64: return 64;
+        default: return 0;
+    }
+}
+
 class Encoder
 {
-public:
+    friend class MicroInstructionBuilder;
+
+protected:
+    TaskContext&       ctx() { return *ctx_; }
+    const TaskContext& ctx() const { return *ctx_; }
+
     explicit Encoder(TaskContext& ctx) :
         ctx_(&ctx)
     {
     }
     virtual ~Encoder() = default;
-
-    TaskContext&       ctx() { return *ctx_; }
-    const TaskContext& ctx() const { return *ctx_; }
-
-    static bool isFloat(CpuReg reg) { return reg >= CpuReg::Xmm0 && reg <= CpuReg::Xmm3; }
-    static bool isInt(CpuReg reg) { return !isFloat(reg); }
-
-    static uint32_t getNumBits(CpuOpBits opBits)
-    {
-        switch (opBits)
-        {
-            case CpuOpBits::B8: return 8;
-            case CpuOpBits::B16: return 16;
-            case CpuOpBits::B32: return 32;
-            case CpuOpBits::B64: return 64;
-            default: return 0;
-        }
-    }
 
     virtual CpuRegSet getReadRegisters(const MicroInstruction&) { return {}; }
     virtual CpuRegSet getWriteRegisters(const MicroInstruction&) { return {}; }
@@ -131,16 +139,12 @@ public:
     CpuSymbol*  getOrAddSymbol(IdentifierRef name, CpuSymbolKind kind);
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
-protected:
-    TaskContext*    ctx_ = nullptr;
-    Store           store_;
-    BuildParameters buildParams_;
-    Module*         module_            = nullptr;
-    CpuFunction*    cpuFct_            = nullptr;
-    uint32_t        symCsIndex_        = 0;
-    uint32_t        textSectionOffset_ = 0;
-
-private:
+    Store                  store_;
+    uint32_t               textSectionOffset_ = 0;
+    uint32_t               symCsIndex_        = 0;
+    BuildParameters        buildParams_;
+    CpuFunction*           cpuFct_ = nullptr;
+    TaskContext*           ctx_    = nullptr;
     std::vector<CpuSymbol> symbols_;
 };
 

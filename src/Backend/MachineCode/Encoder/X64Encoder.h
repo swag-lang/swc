@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroInstruction;
 
-class X64Encoder : Encoder
+class X64Encoder : public Encoder
 {
 public:
     explicit X64Encoder(TaskContext& ctx) :
@@ -13,6 +13,7 @@ public:
     {
     }
 
+private:
     CpuRegSet getReadRegisters(const MicroInstruction& inst) override;
     CpuRegSet getWriteRegisters(const MicroInstruction& inst) override;
 

@@ -83,11 +83,11 @@ struct MicroInstructionOperand
     {
         IdentifierRef   name;
         const CallConv* callConv;
-        CpuReg          reg;
-        CpuOpBits       opBits;
-        CpuCond         cpuCond;
-        CpuCondJump     jumpType;
-        CpuOp           cpuOp;
+        Cpu::Reg          reg;
+        Cpu::OpBits       opBits;
+        Cpu::Cond         cpuCond;
+        Cpu::CondJump     jumpType;
+        Cpu::Op           cpuOp;
         uint32_t        valueU32;
         int32_t         valueI32;
         uint64_t        valueU64;
@@ -199,3 +199,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

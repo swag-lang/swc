@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Diagnostic.h"
@@ -225,7 +225,7 @@ namespace
 
         for (size_t i = 0; i < values.size(); ++i)
         {
-            const size_t        dstIndex  = srcToDst[i];
+            const size_t        dstIndex = srcToDst[i];
             ConstantRef         castedRef;
             const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, values.size());
             const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, values.size());
@@ -253,15 +253,10 @@ namespace
         {
             if (!castedByDst[i].isValid())
                 continue;
-
-            const auto* field = dstFields[i];
-            if (!field)
-                continue;
-
-            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeRef   fieldTypeRef = dstFields[i]->typeRef();
             const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
-            const uint64_t  fieldOffset  = field->offset();
+            const uint64_t  fieldOffset  = dstFields[i]->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
             ConstantLower::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }

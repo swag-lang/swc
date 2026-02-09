@@ -5,8 +5,8 @@ SWC_BEGIN_NAMESPACE();
 
 MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
 {
-    auto [ref, inst] = instructions_.emplaceUninit<MicroInstr>();
-    instructionRefs_.push_back(ref);
+    auto [_, inst] = instructions_.emplaceUninit<MicroInstr>();
+    ++instructionCount_;
     inst->op          = op;
     inst->emitFlags   = emitFlags;
     inst->numOperands = numOperands;
@@ -114,7 +114,7 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
 
 EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    jump.offsetStart = instructionRefs_.size() * sizeof(MicroInstr);
+    jump.offsetStart = static_cast<uint64_t>(instructionCount_) * sizeof(MicroInstr);
     jump.opBits      = opBits;
     auto& inst       = addInstruction(MicroInstrOpcode::JumpCond, emitFlags, 2);
     auto* ops        = inst.ops(operands_);
@@ -668,16 +668,18 @@ void MicroInstrBuilder::encodeInstruction(Encoder& encoder, const MicroInstr& in
 void MicroInstrBuilder::encode(Encoder& encoder)
 {
     SWC_ASSERT(jumps_.empty());
-    jumps_.reserve(instructionRefs_.size());
-    jumpValid_.reserve(instructionRefs_.size());
+    jumps_.reserve(instructionCount_);
+    jumpValid_.reserve(instructionCount_);
 
-    for (size_t idx = 0; idx < instructionRefs_.size(); ++idx)
+    size_t idx = 0;
+    for (const auto& inst : instructions_.typedView<MicroInstr>())
     {
-        auto& inst = *instructions_.ptr<MicroInstr>(instructionRefs_[idx]);
-        auto* ops  = inst.ops(operands_);
+        if (idx >= instructionCount_)
+            break;
         if (inst.op == MicroInstrOpcode::End)
             break;
         encodeInstruction(encoder, inst, idx);
+        ++idx;
     }
 }
 

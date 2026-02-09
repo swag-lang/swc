@@ -11,6 +11,7 @@ enum class SymbolImplFlagsE : uint8_t
     Zero                        = 0,
     ForStruct                   = 1 << 0,
     ForEnum                     = 1 << 1,
+    ForInterface                = 1 << 2,
     PendingRegistrationResolved = 1 << 7,
 };
 using SymbolImplFlags = EnumFlags<SymbolImplFlagsE>;
@@ -27,6 +28,7 @@ public:
 
     bool isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
     bool isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
+    bool isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
     bool isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     void setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
 

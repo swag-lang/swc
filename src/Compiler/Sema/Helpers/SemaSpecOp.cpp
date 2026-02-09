@@ -1,13 +1,12 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -269,13 +268,7 @@ namespace
         const auto* symImpl = symMap->safeCast<SymbolImpl>();
         if (!symImpl)
             return false;
-        const auto* implDecl = symImpl->decl();
-        if (!implDecl)
-            return false;
-        const auto* implNode = implDecl->safeCast<AstImpl>();
-        if (!implNode)
-            return false;
-        return implNode->nodeForRef.isValid();
+        return symImpl->isForInterface();
     }
 
 }

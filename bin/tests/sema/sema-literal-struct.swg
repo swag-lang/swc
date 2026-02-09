@@ -205,5 +205,5 @@ struct Entity {name: Simple2, transform: Transform}
 
 /*
 #test { const rect: Rect = {{1, 2}, {3}} } // swc-expected-error {{sema_err_struct_cast_field_count}}
-#test { const vertex: Vertex = {{5, 10}, {256, 128, 64}} } // swc-expected-error {{sema_err_cannot_cast}}
 */
+#test { const vertex: Vertex = {{5, 10}, {256, 128, 64}} } // swc-expected-error {{sema_err_literal_overflow}}

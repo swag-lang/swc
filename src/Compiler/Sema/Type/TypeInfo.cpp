@@ -225,12 +225,24 @@ uint32_t TypeInfo::hash() const
                 h = Math::hashCombine(h, payloadAggregate_.types[i].get());
                 if (i < payloadAggregate_.names.size())
                     h = Math::hashCombine(h, payloadAggregate_.names[i].get());
+                if (i < payloadAggregate_.fieldRefs.size())
+                {
+                    h = Math::hashCombine(h, payloadAggregate_.fieldRefs[i].srcViewRef.get());
+                    h = Math::hashCombine(h, payloadAggregate_.fieldRefs[i].tokRef.get());
+                }
             }
             return h;
         case TypeInfoKind::AggregateArray:
             h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
-            for (const auto typeRef : payloadAggregate_.types)
-                h = Math::hashCombine(h, typeRef.get());
+            for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
+            {
+                h = Math::hashCombine(h, payloadAggregate_.types[i].get());
+                if (i < payloadAggregate_.fieldRefs.size())
+                {
+                    h = Math::hashCombine(h, payloadAggregate_.fieldRefs[i].srcViewRef.get());
+                    h = Math::hashCombine(h, payloadAggregate_.fieldRefs[i].tokRef.get());
+                }
+            }
             return h;
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
@@ -296,16 +308,24 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 return false;
             if (payloadAggregate_.names.size() != other.payloadAggregate_.names.size())
                 return false;
+            if (payloadAggregate_.fieldRefs.size() != other.payloadAggregate_.fieldRefs.size())
+                return false;
             for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i] ||
-                    payloadAggregate_.names[i] != other.payloadAggregate_.names[i])
+                    payloadAggregate_.names[i] != other.payloadAggregate_.names[i] ||
+                    payloadAggregate_.fieldRefs[i].srcViewRef != other.payloadAggregate_.fieldRefs[i].srcViewRef ||
+                    payloadAggregate_.fieldRefs[i].tokRef != other.payloadAggregate_.fieldRefs[i].tokRef)
                     return false;
             return true;
         case TypeInfoKind::AggregateArray:
             if (payloadAggregate_.types.size() != other.payloadAggregate_.types.size())
                 return false;
+            if (payloadAggregate_.fieldRefs.size() != other.payloadAggregate_.fieldRefs.size())
+                return false;
             for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
-                if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i])
+                if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i] ||
+                    payloadAggregate_.fieldRefs[i].srcViewRef != other.payloadAggregate_.fieldRefs[i].srcViewRef ||
+                    payloadAggregate_.fieldRefs[i].tokRef != other.payloadAggregate_.fieldRefs[i].tokRef)
                     return false;
             return true;
 

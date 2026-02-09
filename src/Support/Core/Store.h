@@ -65,6 +65,15 @@ public:
         return {r, static_cast<T*>(p)};
     }
 
+    template<class T>
+    std::pair<Ref, T*> emplaceUninitArray(uint32_t count)
+    {
+        if (count == 0)
+            return {std::numeric_limits<Ref>::max(), nullptr};
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T) * count), static_cast<uint32_t>(alignof(T)));
+        return {r, static_cast<T*>(p)};
+    }
+
     // Allocate and copy raw bytes; returns a stable view + its Ref.
     std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte))
     {

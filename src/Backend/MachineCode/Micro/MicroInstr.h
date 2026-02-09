@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/Micro/MicroTypes.h"
+#include "Support/Core/Store.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -111,90 +112,26 @@ struct MicroInstrOperand
 
 struct MicroInstr
 {
-    MicroInstrOperand* ops         = nullptr;
-    MicroInstrOpcode     op          = MicroInstrOpcode::OpBinaryRegImm;
-    EncodeFlags        emitFlags   = EMIT_ZERO;
-    uint8_t            numOperands = 0;
+    Ref              opsRef      = std::numeric_limits<Ref>::max();
+    MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
+    EncodeFlags      emitFlags   = EMIT_ZERO;
+    uint8_t          numOperands = 0;
 
-    MicroInstr() = default;
-    ~MicroInstr() { delete[] ops; }
-
-    MicroInstr(const MicroInstr& other)
+    MicroInstrOperand* ops(Store& store)
     {
-        copyFrom(other);
+        if (!numOperands)
+            return nullptr;
+        return store.ptr<MicroInstrOperand>(opsRef);
     }
 
-    MicroInstr& operator=(const MicroInstr& other)
+    const MicroInstrOperand* ops(const Store& store) const
     {
-        if (this != &other)
-        {
-            clear();
-            copyFrom(other);
-        }
-
-        return *this;
-    }
-
-    MicroInstr(MicroInstr&& other) noexcept
-    {
-        moveFrom(other);
-    }
-
-    MicroInstr& operator=(MicroInstr&& other) noexcept
-    {
-        if (this != &other)
-        {
-            clear();
-            moveFrom(other);
-        }
-
-        return *this;
-    }
-
-    void allocateOperands(uint8_t count)
-    {
-        SWC_ASSERT(!ops);
-        numOperands = count;
-        ops         = count ? new MicroInstrOperand[count] : nullptr;
+        if (!numOperands)
+            return nullptr;
+        return store.ptr<MicroInstrOperand>(opsRef);
     }
 
     bool isEnd() const { return op == MicroInstrOpcode::End; }
-
-private:
-    void clear()
-    {
-        delete[] ops;
-        ops         = nullptr;
-        numOperands = 0;
-    }
-
-    void copyFrom(const MicroInstr& other)
-    {
-        op          = other.op;
-        emitFlags   = other.emitFlags;
-        numOperands = other.numOperands;
-        if (numOperands)
-        {
-            ops = new MicroInstrOperand[numOperands];
-            for (uint8_t idx = 0; idx < numOperands; ++idx)
-                ops[idx] = other.ops[idx];
-        }
-        else
-        {
-            ops = nullptr;
-        }
-    }
-
-    void moveFrom(MicroInstr& other)
-    {
-        op                = other.op;
-        emitFlags         = other.emitFlags;
-        numOperands       = other.numOperands;
-        ops               = other.ops;
-        other.numOperands = 0;
-        other.ops         = nullptr;
-    }
 };
 
 SWC_END_NAMESPACE();
-

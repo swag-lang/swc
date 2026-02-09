@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Support/Core/Store.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -11,6 +12,11 @@ public:
         ctx_(&ctx)
     {
     }
+
+    MicroInstrBuilder(const MicroInstrBuilder&)            = delete;
+    MicroInstrBuilder& operator=(const MicroInstrBuilder&) = delete;
+    MicroInstrBuilder(MicroInstrBuilder&&) noexcept        = default;
+    MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
     void encode(Encoder& encoder);
 
@@ -63,7 +69,9 @@ private:
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
     TaskContext*            ctx_ = nullptr;
-    std::vector<MicroInstr> instructions_;
+    Store                   instructions_;
+    std::vector<Ref>         instructionRefs_;
+    Store                   operands_;
     std::vector<MicroJump>  jumps_;
     std::vector<bool>       jumpValid_;
 };

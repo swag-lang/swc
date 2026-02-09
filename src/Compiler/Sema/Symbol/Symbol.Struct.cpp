@@ -189,14 +189,13 @@ void SymbolStruct::computeLayout(Sema& sema)
     for (const auto field : fields_)
     {
         auto& symVar = field->cast<SymbolVariable>();
+        auto& type   = symVar.typeInfo(ctx);
 
-        auto& type = symVar.typeInfo(ctx);
+        const uint64_t sizeOf  = type.sizeOf(ctx);
+        const uint32_t alignOf = type.alignOf(ctx);
+        alignment_             = std::max(alignment_, alignOf);
 
-        const auto sizeOf  = type.sizeOf(ctx);
-        const auto alignOf = type.alignOf(ctx);
-        alignment_         = std::max(alignment_, alignOf);
-
-        const auto padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
+        const uint64_t padding = (alignOf - (sizeInBytes_ % alignOf)) % alignOf;
         sizeInBytes_ += padding;
 
         symVar.setOffset(static_cast<uint32_t>(sizeInBytes_));
@@ -205,7 +204,7 @@ void SymbolStruct::computeLayout(Sema& sema)
 
     if (alignment_ > 0)
     {
-        const auto padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
+        const uint64_t padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
         sizeInBytes_ += padding;
     }
 }

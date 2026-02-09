@@ -285,6 +285,26 @@ namespace
 
         return Result::Continue;
     }
+
+    bool allowsSpecOpOverload(SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpCast:
+            case SpecOpKind::OpEquals:
+            case SpecOpKind::OpCmp:
+            case SpecOpKind::OpBinary:
+            case SpecOpKind::OpAssign:
+            case SpecOpKind::OpAffect:
+            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpIndex:
+            case SpecOpKind::OpIndexAssign:
+            case SpecOpKind::OpIndexAffect:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 
 Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
@@ -327,7 +347,15 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
 
     RESULT_VERIFY(validateSpecOpSignature(sema, *ownerStruct, sym, kind));
-    return ownerStruct->registerSpecOp(sema, sym, kind);
+
+    if (!allowsSpecOpOverload(kind))
+    {
+        const auto here = ownerStruct->getSpecOp(sym.idRef());
+        if (!here.empty())
+            return SemaError::raiseAlreadyDefined(sema, &sym, here.front());
+    }
+
+    return ownerStruct->registerSpecOp(sym, kind);
 }
 
 SWC_END_NAMESPACE();

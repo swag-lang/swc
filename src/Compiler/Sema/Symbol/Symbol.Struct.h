@@ -70,10 +70,11 @@ public:
     void        computeLayout(Sema& sema);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
 
-    Result                registerSpecOp(Sema& sema, SymbolFunction& symFunc, SpecOpKind kind);
-    const SymbolFunction* opDrop() const { return opDrop_; }
-    const SymbolFunction* opPostCopy() const { return opPostCopy_; }
-    const SymbolFunction* opPostMove() const { return opPostMove_; }
+    SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
+    Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);
+    const SymbolFunction*        opDrop() const { return opDrop_; }
+    const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
+    const SymbolFunction*        opPostMove() const { return opPostMove_; }
 
 private:
     std::vector<SymbolVariable*> fields_;

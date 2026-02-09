@@ -210,57 +210,43 @@ void SymbolStruct::computeLayout(Sema& sema)
     }
 }
 
-namespace
+SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef) const
 {
-    bool allowsSpecOpOverload(SpecOpKind kind)
+    SmallVector<SymbolFunction*> result;
+    for (auto* symFunc : specOps_)
     {
-        switch (kind)
-        {
-            case SpecOpKind::OpCast:
-            case SpecOpKind::OpEquals:
-            case SpecOpKind::OpCmp:
-            case SpecOpKind::OpBinary:
-            case SpecOpKind::OpAssign:
-            case SpecOpKind::OpAffect:
-            case SpecOpKind::OpAffectLiteral:
-            case SpecOpKind::OpIndex:
-            case SpecOpKind::OpIndexAssign:
-            case SpecOpKind::OpIndexAffect:
-                return true;
-            default:
-                return false;
-        }
+        if (symFunc && symFunc->idRef() == identifierRef)
+            result.push_back(symFunc);
     }
+    return result;
 }
 
-Result SymbolStruct::registerSpecOp(Sema& sema, SymbolFunction& symFunc, SpecOpKind kind)
+Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     std::unique_lock lk(mutexSpecOps_);
     if (std::ranges::find(specOps_, &symFunc) != specOps_.end())
         return Result::Continue;
 
-    const IdentifierRef idRef = symFunc.idRef();
-    if (!allowsSpecOpOverload(kind))
+    specOps_.push_back(&symFunc);
+
+    switch (kind)
     {
-        for (const auto* existing : specOps_)
-        {
-            if (existing && existing->idRef() == idRef)
-            {
-                SemaError::raiseAlreadyDefined(sema, &symFunc, existing);
-                return Result::Error;
-            }
-        }
+        case SpecOpKind::OpDrop:
+            SWC_ASSERT(!opDrop_);
+            opDrop_ = &symFunc;
+            break;
+        case SpecOpKind::OpPostCopy:
+            SWC_ASSERT(!opPostCopy_);
+            opPostCopy_ = &symFunc;
+            break;
+        case SpecOpKind::OpPostMove:
+            SWC_ASSERT(!opPostMove_);
+            opPostMove_ = &symFunc;
+            break;
+        default:
+            break;
     }
 
-    const auto& idMgr = sema.idMgr();
-    if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpDrop))
-        opDrop_ = &symFunc;
-    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostCopy))
-        opPostCopy_ = &symFunc;
-    else if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::OpPostMove))
-        opPostMove_ = &symFunc;
-
-    specOps_.push_back(&symFunc);
     return Result::Continue;
 }
 

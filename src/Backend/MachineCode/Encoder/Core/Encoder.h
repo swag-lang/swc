@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/MachineCode/Encoder/Core/CpuAbstraction.h"
 #include "Runtime/Runtime.h"
 #include "Support/Core/Store.h"
@@ -145,4 +145,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

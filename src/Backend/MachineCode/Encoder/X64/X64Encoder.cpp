@@ -2989,4 +2989,3 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 }
 
 SWC_END_NAMESPACE();
-

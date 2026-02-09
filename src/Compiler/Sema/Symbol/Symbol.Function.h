@@ -1,6 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Symbol/Symbol.SpecOpKind.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -9,12 +9,12 @@ class SymbolVariable;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
-    Zero      = 0,
-    Closure   = 1 << 0,
-    Method    = 1 << 1,
-    Throwable = 1 << 2,
-    Const     = 1 << 3,
-    Empty     = 1 << 4,
+    Zero            = 0,
+    Closure         = 1 << 0,
+    Method          = 1 << 1,
+    Throwable       = 1 << 2,
+    Const           = 1 << 3,
+    Empty           = 1 << 4,
     SpecOpValidated = 1 << 5,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
@@ -37,19 +37,19 @@ public:
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
 
-    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
-    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    void       setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+    bool       isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool       isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool       isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool       isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool       isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
 private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
-    SpecOpKind                   specOpKind_ = SpecOpKind::Invalid;
+    SpecOpKind                   specOpKind_ = SpecOpKind::None;
 };
 
 SWC_END_NAMESPACE();

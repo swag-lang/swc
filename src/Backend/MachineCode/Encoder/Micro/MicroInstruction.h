@@ -113,7 +113,7 @@ struct MicroInstructionOperand
 
 struct MicroInstruction
 {
-    MicroInstructionOperand* ops    = nullptr;
+    MicroInstructionOperand* ops         = nullptr;
     MicroOp                  op          = MicroOp::OpBinaryRI;
     EmitFlags                emitFlags   = EMIT_ZERO;
     uint8_t                  numOperands = 0;
@@ -157,7 +157,7 @@ struct MicroInstruction
     {
         SWC_ASSERT(!ops);
         numOperands = count;
-        ops    = count ? new MicroInstructionOperand[count] : nullptr;
+        ops         = count ? new MicroInstructionOperand[count] : nullptr;
     }
 
     bool isEnd() const { return op == MicroOp::End; }
@@ -166,7 +166,7 @@ private:
     void clear()
     {
         delete[] ops;
-        ops    = nullptr;
+        ops         = nullptr;
         numOperands = 0;
     }
 
@@ -192,9 +192,9 @@ private:
         op                = other.op;
         emitFlags         = other.emitFlags;
         numOperands       = other.numOperands;
-        ops          = other.ops;
+        ops               = other.ops;
         other.numOperands = 0;
-        other.ops    = nullptr;
+        other.ops         = nullptr;
     }
 };
 

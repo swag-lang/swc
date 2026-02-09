@@ -1,5 +1,5 @@
 #pragma once
-#include "Compiler/Sema/Symbol/Symbol.SpecOpKind.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 
 SWC_BEGIN_NAMESPACE();

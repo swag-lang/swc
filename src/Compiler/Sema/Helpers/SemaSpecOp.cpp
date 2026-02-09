@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -52,6 +53,7 @@ namespace
                 return "func(op: string) opIndexAffect(me, index: <type>, value: <type>) -> void";
             case SpecOpKind::OpVisit:
                 return "func(ptr: bool, back: bool) opVisit(me, stmt: #code) -> void";
+            case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
                 return "valid special function signature";
@@ -112,7 +114,14 @@ namespace
 
     SpecOpKind computeSpecOpKind(IdentifierRef idRef, const IdentifierManager& idMgr)
     {
-        SpecOpKind kind = SpecOpKind::Invalid;
+        if (idRef.isInvalid())
+            return SpecOpKind::None;
+
+        const std::string_view name = idMgr.get(idRef).name;
+        if (!LangSpec::isSpecOpName(name))
+            return SpecOpKind::None;
+
+        auto kind = SpecOpKind::Invalid;
         if (matchSpecOp(idRef, idMgr, kind))
             return kind;
         return SpecOpKind::Invalid;
@@ -213,6 +222,8 @@ namespace
 
         switch (kind)
         {
+            case SpecOpKind::None:
+                return Result::Continue;
             case SpecOpKind::Invalid:
                 return reportSpecOpError(sema, sym, kind);
             case SpecOpKind::OpDrop:
@@ -334,13 +345,12 @@ namespace
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 {
-    const IdentifierRef    idRef = sym.idRef();
-    const auto&            idMgr = sema.idMgr();
-    const std::string_view name  = idMgr.get(idRef).name;
-    if (!LangSpec::isSpecOpName(name))
-        return Result::Continue;
+    const IdentifierRef idRef = sym.idRef();
+    const auto&         idMgr = sema.idMgr();
 
     const SpecOpKind kind = sym.specOpKind();
+    if (kind == SpecOpKind::None)
+        return Result::Continue;
     if (kind == SpecOpKind::Invalid)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_spec_op_unknown, sym);
@@ -349,6 +359,7 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
         return Result::Error;
     }
 
+    const std::string_view name = idMgr.get(idRef).name;
     if (kind == SpecOpKind::OpVisit && name.size() > std::string_view("opVisit").size())
     {
         const char variantStart = name[std::string_view("opVisit").size()];
@@ -375,6 +386,8 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
         return Result::Continue;
 
     const SpecOpKind kind = sym.specOpKind();
+    if (kind == SpecOpKind::None)
+        return Result::Continue;
     if (kind == SpecOpKind::Invalid)
         return Result::Continue;
 

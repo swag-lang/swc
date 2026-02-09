@@ -35,7 +35,7 @@ void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
 {
     (void) ctx;
     std::unique_lock lk(mutex_);
-    if (sym->specOpKind() != SpecOpKind::Invalid)
+    if (sym->specOpKind() != SpecOpKind::None && sym->specOpKind() != SpecOpKind::Invalid)
         specOps_.push_back(sym);
 }
 

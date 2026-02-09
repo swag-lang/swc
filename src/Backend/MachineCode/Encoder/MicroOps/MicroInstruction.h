@@ -88,6 +88,8 @@ struct MicroInstructionOperand
         CpuCond         cpuCond;
         CpuCondJump     jumpType;
         CpuOp           cpuOp;
+        uint32_t        valueU32;
+        int32_t         valueI32;
         uint64_t        valueU64;
     };
 
@@ -111,13 +113,13 @@ struct MicroInstructionOperand
 
 struct MicroInstruction
 {
-    MicroInstructionOperand* operands    = nullptr;
+    MicroInstructionOperand* ops    = nullptr;
     MicroOp                  op          = MicroOp::OpBinaryRI;
     EmitFlags                emitFlags   = EMIT_ZERO;
     uint8_t                  numOperands = 0;
 
     MicroInstruction() = default;
-    ~MicroInstruction() { delete[] operands; }
+    ~MicroInstruction() { delete[] ops; }
 
     MicroInstruction(const MicroInstruction& other)
     {
@@ -153,9 +155,9 @@ struct MicroInstruction
 
     void allocateOperands(uint8_t count)
     {
-        delete[] operands;
+        SWC_ASSERT(!ops);
         numOperands = count;
-        operands    = count ? new MicroInstructionOperand[count] : nullptr;
+        ops    = count ? new MicroInstructionOperand[count] : nullptr;
     }
 
     bool isEnd() const { return op == MicroOp::End; }
@@ -163,8 +165,8 @@ struct MicroInstruction
 private:
     void clear()
     {
-        delete[] operands;
-        operands    = nullptr;
+        delete[] ops;
+        ops    = nullptr;
         numOperands = 0;
     }
 
@@ -175,13 +177,13 @@ private:
         numOperands = other.numOperands;
         if (numOperands)
         {
-            operands = new MicroInstructionOperand[numOperands];
+            ops = new MicroInstructionOperand[numOperands];
             for (uint8_t idx = 0; idx < numOperands; ++idx)
-                operands[idx] = other.operands[idx];
+                ops[idx] = other.ops[idx];
         }
         else
         {
-            operands = nullptr;
+            ops = nullptr;
         }
     }
 
@@ -190,9 +192,9 @@ private:
         op                = other.op;
         emitFlags         = other.emitFlags;
         numOperands       = other.numOperands;
-        operands          = other.operands;
+        ops          = other.ops;
         other.numOperands = 0;
-        other.operands    = nullptr;
+        other.ops    = nullptr;
     }
 };
 

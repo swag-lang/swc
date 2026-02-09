@@ -2893,17 +2893,17 @@ CpuRegSet X64Encoder::getReadRegisters(const MicroInstruction& inst)
         switch (inst.op)
         {
             case MicroOp::OpBinaryRI:
-                cpuOp = inst.operands[2].cpuOp;
+                cpuOp = inst.ops[2].cpuOp;
                 break;
             case MicroOp::OpBinaryRR:
-                cpuOp = inst.operands[3].cpuOp;
+                cpuOp = inst.ops[3].cpuOp;
                 break;
             case MicroOp::OpBinaryMI:
-                cpuOp = inst.operands[2].cpuOp;
+                cpuOp = inst.ops[2].cpuOp;
                 break;
             case MicroOp::OpBinaryRM:
             case MicroOp::OpBinaryMR:
-                cpuOp = inst.operands[3].cpuOp;
+                cpuOp = inst.ops[3].cpuOp;
                 break;
             default:
                 break;
@@ -2945,17 +2945,17 @@ CpuRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
         switch (inst.op)
         {
             case MicroOp::OpBinaryRI:
-                cpuOp = inst.operands[2].cpuOp;
+                cpuOp = inst.ops[2].cpuOp;
                 break;
             case MicroOp::OpBinaryRR:
-                cpuOp = inst.operands[3].cpuOp;
+                cpuOp = inst.ops[3].cpuOp;
                 break;
             case MicroOp::OpBinaryMI:
-                cpuOp = inst.operands[2].cpuOp;
+                cpuOp = inst.ops[2].cpuOp;
                 break;
             case MicroOp::OpBinaryRM:
             case MicroOp::OpBinaryMR:
-                cpuOp = inst.operands[3].cpuOp;
+                cpuOp = inst.ops[3].cpuOp;
                 break;
             default:
                 break;

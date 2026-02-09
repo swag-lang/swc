@@ -35,7 +35,11 @@ public:
     SymbolEnum*   symEnum() const;
     void          setSymEnum(SymbolEnum* sym);
 
+    void addFunction(const TaskContext& ctx, SymbolFunction* sym);
+
 private:
+    std::vector<SymbolFunction*> specOps_;
+
     union
     {
         SymbolStruct* ownerStruct_ = nullptr;

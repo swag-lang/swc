@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result SymbolInterface::canBeCompleted(Sema& sema) const
 {
-    for (const auto method : methods_)
+    for (const auto method : functions_)
     {
         auto& symFunc = method->cast<SymbolFunction>();
         RESULT_VERIFY(sema.waitCompleted(&symFunc, symFunc.codeRef()));

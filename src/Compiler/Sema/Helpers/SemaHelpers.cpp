@@ -7,30 +7,33 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
 void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
 {
-    if (sym->isVariable())
+    if (auto* symVar = sym->safeCast<SymbolVariable>())
     {
         if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
-            symStruct->addField(reinterpret_cast<SymbolVariable*>(sym));
+            symStruct->addField(symVar);
 
         if (sema.curScope().isParameters())
         {
             if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
-                symAttr->addParameter(reinterpret_cast<SymbolVariable*>(sym));
+                symAttr->addParameter(symVar);
             if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
-                symFunc->addParameter(reinterpret_cast<SymbolVariable*>(sym));
+                symFunc->addParameter(symVar);
         }
     }
 
-    if (sym->isFunction())
+    if (auto* symFunc = sym->safeCast<SymbolFunction>())
     {
         if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())
-            symInterface->addMethod(reinterpret_cast<SymbolFunction*>(sym));
+            symInterface->addFunction(symFunc);
+        if (const auto symImpl = symbolMap->safeCast<SymbolImpl>())
+            symImpl->addFunction(sema.ctx(), symFunc);
     }
 }
 

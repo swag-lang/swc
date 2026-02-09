@@ -15,13 +15,13 @@ public:
     {
     }
 
-    std::vector<SymbolFunction*>&       methods() { return methods_; }
-    const std::vector<SymbolFunction*>& methods() const { return methods_; }
-    void                                addMethod(SymbolFunction* sym) { methods_.push_back(sym); }
+    std::vector<SymbolFunction*>&       functions() { return functions_; }
+    const std::vector<SymbolFunction*>& functions() const { return functions_; }
+    void                                addFunction(SymbolFunction* sym) { functions_.push_back(sym); }
     Result                              canBeCompleted(Sema& sema) const;
 
 private:
-    std::vector<SymbolFunction*> methods_;
+    std::vector<SymbolFunction*> functions_;
 };
 
 SWC_END_NAMESPACE();

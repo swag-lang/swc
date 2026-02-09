@@ -2371,7 +2371,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2394,7 +2394,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2417,7 +2417,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_7, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2481,7 +2481,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_7, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2504,7 +2504,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2527,7 +2527,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getEncoderNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
 
@@ -2832,7 +2832,7 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     const auto tableCompiler = buildParams_.module->compilerSegment.ptr<int32_t>(offsetTable);
     const auto currentOffset = static_cast<int32_t>(store_.size());
 
-    MicroLabelToSolve label;
+    EncoderJumpLabel label;
     for (uint32_t idx = 0; idx < numEntries; idx++)
     {
         label.ipDest               = tableCompiler[idx] + currentIp + 1;
@@ -3021,7 +3021,7 @@ EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, const CallCo
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
 
-    const auto callSym = getOrAddSymbol(symbolName, MicroSymbolKind::Extern);
+    const auto callSym = getOrAddSymbol(symbolName, EncoderSymbolKind::Extern);
     addSymbolRelocation(store_.size() - textSectionOffset_, callSym->index, IMAGE_REL_AMD64_REL32);
     store_.pushU32(0);
     return EncodeResult::Zero;
@@ -3031,8 +3031,8 @@ EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, const CallCon
 {
     emitCpuOp(store_, 0xE8);
 
-    const auto callSym = getOrAddSymbol(symbolName, MicroSymbolKind::Extern);
-    if (callSym->kind == MicroSymbolKind::Function)
+    const auto callSym = getOrAddSymbol(symbolName, EncoderSymbolKind::Extern);
+    if (callSym->kind == EncoderSymbolKind::Function)
     {
         store_.pushS32(static_cast<int32_t>(callSym->value + textSectionOffset_ - (store_.size() + 4)));
     }
@@ -3155,3 +3155,4 @@ MicroRegSet X64Encoder::getWriteRegisters(const MicroInstruction& inst)
 }
 
 SWC_END_NAMESPACE();
+

@@ -327,6 +327,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\Micro.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstruction.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstructionBuilder.h"/>

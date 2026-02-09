@@ -48,9 +48,9 @@ void Encoder::emitClearReg(MicroReg reg, MicroOpBits opBits, EmitFlags emitFlags
     encodeClearReg(reg, opBits, emitFlags);
 }
 
-MicroSymbol* Encoder::getOrAddSymbol(IdentifierRef name, MicroSymbolKind kind)
+EncoderSymbol* Encoder::getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind)
 {
-    symbols_.push_back(MicroSymbol{name, kind, 0, static_cast<uint32_t>(symbols_.size())});
+    symbols_.push_back(EncoderSymbol{name, kind, 0, static_cast<uint32_t>(symbols_.size())});
     return &symbols_.back();
 }
 

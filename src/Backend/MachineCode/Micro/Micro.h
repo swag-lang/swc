@@ -98,14 +98,6 @@ enum class MicroCondJump : uint8_t
     Zero,
 };
 
-enum class MicroSymbolKind
-{
-    Function,
-    Extern,
-    Custom,
-    Constant,
-};
-
 class MicroRegSet
 {
 public:
@@ -144,38 +136,5 @@ struct MicroJump
     uint64_t    offsetStart     = 0;
     MicroOpBits opBits          = MicroOpBits::Zero;
 };
-
-struct MicroLabelToSolve
-{
-    uint32_t  ipDest = 0;
-    MicroJump jump{};
-};
-
-struct MicroSymbol
-{
-    IdentifierRef   name;
-    MicroSymbolKind kind  = MicroSymbolKind::Custom;
-    uint32_t        value = 0;
-    uint32_t        index = 0;
-};
-
-struct MicroFunction
-{
-    uint32_t                       symbolIndex  = 0;
-    uint32_t                       startAddress = 0;
-    std::vector<MicroLabelToSolve> labelsToSolve;
-};
-
-inline uint32_t getNumBits(MicroOpBits opBits)
-{
-    switch (opBits)
-    {
-        case MicroOpBits::B8: return 8;
-        case MicroOpBits::B16: return 16;
-        case MicroOpBits::B32: return 32;
-        case MicroOpBits::B64: return 64;
-        default: return 0;
-    }
-}
 
 SWC_END_NAMESPACE();

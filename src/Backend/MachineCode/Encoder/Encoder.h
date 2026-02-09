@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/MachineCode/Encoder/EncoderTypes.h"
 #include "Backend/MachineCode/Micro/Micro.h"
 #include "Runtime/Runtime.h"
 #include "Support/Core/Store.h"
@@ -115,16 +116,16 @@ protected:
     void emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EmitFlags emitFlags = EMIT_ZERO);
     void emitClearReg(MicroReg reg, MicroOpBits opBits, EmitFlags emitFlags = EMIT_ZERO);
 
-    MicroSymbol* getOrAddSymbol(IdentifierRef name, MicroSymbolKind kind);
+    EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void         addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
     Store                           store_;
     uint32_t                        textSectionOffset_ = 0;
     uint32_t                        symCsIndex_        = 0;
     BuildParameters                 buildParams_;
-    MicroFunction*           cpuFct_ = nullptr;
+    EncoderFunction*         cpuFct_ = nullptr;
     TaskContext*                    ctx_    = nullptr;
-    std::vector<MicroSymbol> symbols_;
+    std::vector<EncoderSymbol> symbols_;
 };
 
 SWC_END_NAMESPACE();

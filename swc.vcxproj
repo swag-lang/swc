@@ -328,7 +328,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h" />
-        <ClInclude Include="src\Backend\MachineCode\Micro\Micro.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h" />
         <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>

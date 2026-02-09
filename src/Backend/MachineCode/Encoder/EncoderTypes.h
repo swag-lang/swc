@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/MachineCode/Micro/Micro.h"
+#include "Backend/MachineCode/Micro/MicroTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 

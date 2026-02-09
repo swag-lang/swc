@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/MachineCode/Micro/Micro.h"
+#include "Backend/MachineCode/Micro/MicroTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -115,7 +115,7 @@ struct MicroInstr
 {
     MicroInstrOperand* ops         = nullptr;
     MicroInstrKind     op          = MicroInstrKind::OpBinaryRI;
-    EmitFlags          emitFlags   = EMIT_ZERO;
+    EncodeFlags        emitFlags   = EMIT_ZERO;
     uint8_t            numOperands = 0;
 
     MicroInstr() = default;

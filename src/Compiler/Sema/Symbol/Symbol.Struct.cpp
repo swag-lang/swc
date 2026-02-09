@@ -109,6 +109,7 @@ namespace
 
 bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
 {
+    SWC_ASSERT(isCompleted());
     for (const auto itfImpl : interfaces())
     {
         if (itfImpl && itfImpl->idRef() == itf.idRef())

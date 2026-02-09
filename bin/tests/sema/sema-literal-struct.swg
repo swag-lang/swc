@@ -89,3 +89,8 @@ const V6: V2{1, 2}
 #assert(V6.x == 1)
 #assert(V6.y == 2)
 #assert(V6.z == 10)
+
+const V7: V2 = V2{5, 7}
+#assert(V7.x == 5)
+#assert(V7.y == 7)
+#assert(V7.z == 10)

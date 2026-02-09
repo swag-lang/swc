@@ -430,6 +430,8 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
         AstNode::collectChildren(out, {nodeWhatRef});
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
+
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

@@ -26,6 +26,7 @@ enum class ParserContextFlagsE : uint32_t
     InFunctionParam   = 1 << 1,
     InUsingMemberDecl = 1 << 2,
     InCallArgument    = 1 << 3,
+    InVarDeclType     = 1 << 4,
 };
 using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 

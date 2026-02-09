@@ -144,28 +144,17 @@ AstNodeRef Parser::parseVarDecl()
         // Type
         AstNodeRef nodeType = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymColon).isValid())
+        {
+            PushContextFlags scopedContext{this, ParserContextFlagsE::InVarDeclType};
             nodeType = parseType();
+        }
 
         // Initialization
         AstNodeRef nodeInit = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymEqual).isValid())
             nodeInit = parseInitializerExpression();
-        else if (nodeType.isValid())
-        {
-            const auto* initList = ast_->node(nodeType).safeCast<AstStructInitializerList>();
-            if (initList)
-            {
-                const TokenRef initTokRef = ast_->node(nodeType).tokRef();
-
-                auto [typeRef, typePtr] = ast_->makeNode<AstNodeId::NamedType>(ast_->node(initList->nodeWhatRef).tokRef());
-                typePtr->nodeIdentRef   = initList->nodeWhatRef;
-                nodeType                = typeRef;
-
-                auto [initRef, initPtr]   = ast_->makeNode<AstNodeId::StructLiteral>(initTokRef);
-                initPtr->spanChildrenRef = initList->spanArgsRef;
-                nodeInit                 = initRef;
-            }
-        }
+        else if (nodeType.isValid() && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
+            nodeInit = parseLiteralStruct();
 
         if (tokNames.size() == 1)
         {

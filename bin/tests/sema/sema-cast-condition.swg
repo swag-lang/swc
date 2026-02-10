@@ -76,3 +76,22 @@ const A = ""
     @assert(a or !a)
     @assert(a or a)
 }
+
+#test
+{
+    var s: string
+    @assert(!s)
+
+    s = "abc"
+    @assert(!s == false)
+}
+
+#test
+{
+    var a: [2] s32
+    var s: [..] s32 = a
+    @assert(!s == false)
+
+    var n: [..] s32 = null
+    @assert(!n)
+}

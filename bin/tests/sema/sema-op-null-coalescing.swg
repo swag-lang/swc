@@ -43,3 +43,28 @@ enum NullCEnum { A, B }
 
 #test { var a = s32 orelse 0 } // swc-expected-error {{sema_err_not_value_expr}}
 #test { var b = 0 orelse s32 } // swc-expected-error {{sema_err_not_value_expr}}
+
+#test
+{
+    var a: s32
+    @assert((a orelse 11) == 11)
+    a = 5
+    @assert((a orelse 11) == 5)
+}
+
+#test
+{
+    var p: *s32
+    var v: s32 = 10
+    @assert((p orelse &v) == &v)
+    p = &v
+    @assert((p orelse null) == &v)
+}
+
+#test
+{
+    var s: string
+    @assert((s orelse "fallback") == "fallback")
+    s = "ok"
+    @assert((s orelse "fallback") == "ok")
+}

@@ -118,3 +118,29 @@
     var b = cast(const *u8) a
     var c = cast(const *void) a
 }
+
+#test
+{
+    var x: const *s32 = null
+    var y = cast(const *u8) x
+    #assert(#typeof(y) == const *u8)
+}
+
+#test
+{
+    var x: const [*]s32 = null
+    var y = cast(const [*]u8) x
+    #assert(#typeof(y) == const [*]u8)
+}
+
+#test
+{
+    var x: [*]s32 = null
+    var y: *u8 = x // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: [2] s32
+    var p1: const *void = a
+}

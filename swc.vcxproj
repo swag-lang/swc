@@ -187,7 +187,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp" />
+        <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
@@ -327,13 +327,14 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h" />
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h" />
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h" />
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h" />
+        <ClInclude Include="src\Backend\CodeGenOptions.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h" />
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h"/>
         <ClInclude Include="src\Wmf\Module.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>

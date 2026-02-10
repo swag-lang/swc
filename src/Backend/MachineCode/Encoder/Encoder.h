@@ -1,22 +1,15 @@
 #pragma once
+#include "Backend/CodeGenOptions.h"
 #include "Backend/MachineCode/Encoder/EncoderTypes.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
-#include "Runtime/Runtime.h"
 #include "Support/Core/Store.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 struct MicroInstr;
-struct Module;
 struct CallConv;
-
-struct BuildParameters
-{
-    Module*                       module   = nullptr;
-    Runtime::BuildCfgBackendOptim optLevel = Runtime::BuildCfgBackendOptim::O0;
-};
 
 enum class EncodeFlagsE : uint8_t
 {
@@ -121,7 +114,7 @@ protected:
     Store                      store_;
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
-    BuildParameters            buildParams_;
+    CodeGenOptions             genOptions_;
     EncoderFunction*           cpuFct_ = nullptr;
     std::vector<EncoderSymbol> symbols_;
 };

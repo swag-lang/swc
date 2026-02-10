@@ -7,13 +7,13 @@ class Encoder;
 struct MicroInstr;
 struct MicroInstrOperand;
 template<typename T>
-class TypedPagedStore;
+class PagedStoreTyped;
 
 struct MicroPassContext
 {
     Encoder*                            encoder      = nullptr;
-    TypedPagedStore<MicroInstr>*        instructions = nullptr;
-    TypedPagedStore<MicroInstrOperand>* operands     = nullptr;
+    PagedStoreTyped<MicroInstr>*        instructions = nullptr;
+    PagedStoreTyped<MicroInstrOperand>* operands     = nullptr;
     CallConvKind                        callConvKind = CallConvKind::C;
 };
 

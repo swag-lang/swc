@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Support/Core/TypedPagedStore.h"
+#include "Support/Core/PagedStoreTyped.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,10 +24,10 @@ public:
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 
-    TypedPagedStore<MicroInstr>&              instructions() { return instructions_; }
-    const TypedPagedStore<MicroInstr>&        instructions() const { return instructions_; }
-    TypedPagedStore<MicroInstrOperand>&       operands() { return operands_; }
-    const TypedPagedStore<MicroInstrOperand>& operands() const { return operands_; }
+    PagedStoreTyped<MicroInstr>&              instructions() { return instructions_; }
+    const PagedStoreTyped<MicroInstr>&        instructions() const { return instructions_; }
+    PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
+    const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
 
     void runPasses(MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -79,8 +79,8 @@ private:
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
     TaskContext*                       ctx_ = nullptr;
-    TypedPagedStore<MicroInstr>        instructions_;
-    TypedPagedStore<MicroInstrOperand> operands_;
+    PagedStoreTyped<MicroInstr>        instructions_;
+    PagedStoreTyped<MicroInstrOperand> operands_;
 };
 
 SWC_END_NAMESPACE();

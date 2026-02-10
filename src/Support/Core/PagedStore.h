@@ -6,7 +6,7 @@ using Ref                 = uint32_t;
 constexpr Ref INVALID_REF = std::numeric_limits<Ref>::max();
 
 template<class T>
-class TypedPagedStore;
+class PagedStoreTyped;
 
 struct SpanTag
 {
@@ -189,7 +189,7 @@ public:
 
 private:
     template<class T>
-    friend class TypedPagedStore;
+    friend class PagedStoreTyped;
 
     static constexpr uint32_t K_DEFAULT_PAGE_SIZE = 16u * 1024u;
 

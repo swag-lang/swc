@@ -2,8 +2,8 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Support/Core/PagedStoreTyped.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Core/TypedPagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 

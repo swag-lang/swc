@@ -4,19 +4,19 @@
 SWC_BEGIN_NAMESPACE();
 
 template<class T>
-class TypedPagedStore
+class PagedStoreTyped
 {
 public:
-    TypedPagedStore() = default;
-    explicit TypedPagedStore(uint32_t pageSize) :
+    PagedStoreTyped() = default;
+    explicit PagedStoreTyped(uint32_t pageSize) :
         store_(pageSize)
     {
     }
 
-    TypedPagedStore(const TypedPagedStore&)                = delete;
-    TypedPagedStore& operator=(const TypedPagedStore&)     = delete;
-    TypedPagedStore(TypedPagedStore&&) noexcept            = default;
-    TypedPagedStore& operator=(TypedPagedStore&&) noexcept = default;
+    PagedStoreTyped(const PagedStoreTyped&)                = delete;
+    PagedStoreTyped& operator=(const PagedStoreTyped&)     = delete;
+    PagedStoreTyped(PagedStoreTyped&&) noexcept            = default;
+    PagedStoreTyped& operator=(PagedStoreTyped&&) noexcept = default;
 
     uint32_t pageSize() const noexcept { return store_.pageSize(); }
     uint32_t size() const noexcept { return store_.size(); }
@@ -70,12 +70,12 @@ private:
 };
 
 template<class T>
-class TypedPagedStore<T>::View
+class PagedStoreTyped<T>::View
 {
 public:
     struct Iterator
     {
-        TypedPagedStore* store       = nullptr;
+        PagedStoreTyped* store       = nullptr;
         uint32_t         pageIndex   = 0;
         uint32_t         indexInPage = 0;
 
@@ -112,7 +112,7 @@ public:
 
     struct ReverseIterator
     {
-        TypedPagedStore* store       = nullptr;
+        PagedStoreTyped* store       = nullptr;
         uint32_t         pageIndex   = std::numeric_limits<uint32_t>::max();
         uint32_t         indexInPage = 0;
 
@@ -178,7 +178,7 @@ public:
         }
     };
 
-    explicit View(TypedPagedStore* s) :
+    explicit View(PagedStoreTyped* s) :
         store_(s)
     {
     }
@@ -208,7 +208,7 @@ public:
     }
 
 private:
-    TypedPagedStore* store_ = nullptr;
+    PagedStoreTyped* store_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

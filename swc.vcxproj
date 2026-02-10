@@ -351,7 +351,7 @@
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\PagedStore.h"/>
-        <ClInclude Include="src\Support\Core\TypedPagedStore.h"/>
+        <ClInclude Include="src\Support\Core\PagedStoreTyped.h" />
         <ClInclude Include="src\Support\Core\SmallVector.h"/>
         <ClInclude Include="src\Support\Core\StringMap.h"/>
         <ClInclude Include="src\Support\Core\Timer.h"/>

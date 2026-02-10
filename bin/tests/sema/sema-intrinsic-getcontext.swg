@@ -8,3 +8,9 @@
     #assert(#defined(v.errorAllocator))
     #assert(#defined(v.flags))
 }
+
+#test
+{
+    var v = @getcontext()
+    #assert(#defined(v.panic))
+}

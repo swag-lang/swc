@@ -11,4 +11,7 @@
     #assert(#typeof(d) == const [..] string)
     let e = @bytecode
     #assert(#typeof(e) == bool)
+    #assert(#typeof(a) == u64)
+    @assert(@countof(d) >= 0)
+    @assert(e == @bytecode)
 }

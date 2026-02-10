@@ -22,3 +22,21 @@
     var j = @dataof(i)
     #assert(#typeof(j) == [*] void)
 }
+
+#test
+{
+    var s: string = "abc"
+    var p = @dataof(s)
+    @assert(p[0] == 'a')
+    @assert(p[1] == 'b')
+    @assert(p[2] == 'c')
+}
+
+#test
+{
+    var arr: [3] u8 = [1, 2, 3]
+    var p = @dataof(arr)
+    @assert(p[0] == 1'u8)
+    @assert(p[1] == 2'u8)
+    @assert(p[2] == 3'u8)
+}

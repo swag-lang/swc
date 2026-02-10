@@ -69,3 +69,22 @@ struct S1 { y: S0 }
     var st: AA
     let x = st.x
 }
+
+#test
+{
+    var a: AA
+    var b: BB
+    a.x = 1
+    b.x = 2
+    a.y = &b
+    b.y = null
+    b.z = null
+    @assert(a.y.x == 2)
+}
+
+#test
+{
+    var c: CC
+    c.a = &c
+    @assert(c.a == &c)
+}

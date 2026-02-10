@@ -53,3 +53,15 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     #assert(a != e)
     #assert(e != s32)
 }
+
+#test
+{
+    const p = #typeof(*s32)
+    #assert((cast(const *Swag.TypeInfoPointer) p).pointedType == s32)
+}
+
+#test
+{
+    const t = #typeof(A)
+    #assert((cast(const *Swag.TypeInfo) t).name == "A")
+}

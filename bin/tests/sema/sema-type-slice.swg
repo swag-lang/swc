@@ -30,3 +30,19 @@ var B: [..] void // swc-expected-error {{sema_err_bad_slice_element_type}}
     var s0: [..] u8 = null
     var s1: [..] s32 = s0 // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    var a: [3] s32 = [1, 2, 3]
+    var s: [..] s32 = a
+    @assert(s[0] == 1)
+    s[1] = 7
+    @assert(a[1] == 7)
+}
+
+#test
+{
+    var c: const [..] u8 = "abc"
+    @assert(c[0] == 'a')
+    @assert(@countof(c) == 3)
+}

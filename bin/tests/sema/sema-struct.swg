@@ -88,3 +88,16 @@ struct S1 { y: S0 }
     c.a = &c
     @assert(c.a == &c)
 }
+
+#test
+{
+    var ll: LL
+    ll.p = null
+    @assert(ll.p == null)
+}
+
+#test
+{
+    var e: NonCyclicEnum = .NCE_B
+    @assert(e == NonCyclicEnum.NCE_B)
+}

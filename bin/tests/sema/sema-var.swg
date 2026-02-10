@@ -22,3 +22,19 @@ struct F
     let L0: s32 // swc-expected-error {{sema_err_let_missing_init}}
     let L1 = 10
 }
+
+#test
+{
+    var x = true
+    #assert(#typeof(x) == bool)
+
+    var y: u16 = 5
+    var z = y
+    #assert(#typeof(z) == u16)
+}
+
+#test
+{
+    let a = 1
+    a = 2 // swc-expected-error {{sema_err_assign_to_let}}
+}

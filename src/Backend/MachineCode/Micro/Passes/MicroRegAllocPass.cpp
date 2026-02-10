@@ -24,11 +24,6 @@ namespace
         bool      def = false;
     };
 
-    bool isAllocatableVirtual(MicroReg reg)
-    {
-        return reg.isVirtualInt() || reg.isVirtualFloat();
-    }
-
     void addUse(RegUseDef& info, MicroReg reg)
     {
         if (reg.isValid() && !reg.isNoBase())
@@ -57,7 +52,7 @@ namespace
     RegUseDef collectRegUseDef(const MicroInstr& inst, const Store& store)
     {
         RegUseDef info;
-        auto* ops = inst.ops(store);
+        auto*     ops = inst.ops(store);
         switch (inst.op)
         {
             case MicroInstrOpcode::End:
@@ -431,7 +426,6 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 
-    CallConv::setup();
     const auto& funcConv = CallConv::get(context.callConvKind);
     const auto& store    = context.operands->store();
 
@@ -439,19 +433,15 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     if (instructionCount == 0)
         return;
 
-    std::vector<const MicroInstr*> instrs;
-    instrs.reserve(instructionCount);
-    for (const auto& inst : context.instructions->view())
-        instrs.push_back(&inst);
-
     std::unordered_map<uint32_t, uint32_t> regCallMask;
     std::vector<std::vector<uint32_t>>     liveOut(instructionCount);
     std::unordered_set<uint32_t>           live;
 
-    for (int64_t idx = static_cast<int64_t>(instructionCount) - 1; idx >= 0; --idx)
+    uint32_t idx = instructionCount;
+    for (auto& inst : context.instructions->viewMutReverse())
     {
-        const auto& inst = *instrs[static_cast<size_t>(idx)];
-        liveOut[static_cast<size_t>(idx)].assign(live.begin(), live.end());
+        --idx;
+        liveOut[idx].assign(live.begin(), live.end());
 
         const auto info = collectRegUseDef(inst, store);
         if (info.isCall)
@@ -463,12 +453,12 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
         for (const auto& reg : info.defs)
         {
-            if (isAllocatableVirtual(reg))
+            if (reg.isVirtual())
                 live.erase(reg.packed);
         }
         for (const auto& reg : info.uses)
         {
-            if (isAllocatableVirtual(reg))
+            if (reg.isVirtual())
                 live.insert(reg.packed);
         }
     }
@@ -501,8 +491,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
             freeFloatTransient.push_back(reg);
     }
 
-    auto freePhysical = [&](MicroReg reg)
-    {
+    auto freePhysical = [&](MicroReg reg) {
         if (reg.isInt())
         {
             if (intPersistentSet.contains(reg.packed))
@@ -519,8 +508,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         }
     };
 
-    auto allocatePhysical = [&](MicroReg virtReg, uint32_t virtKey) -> MicroReg
-    {
+    auto allocatePhysical = [&](MicroReg virtReg, uint32_t virtKey) -> MicroReg {
         const bool needsPersistent = regCallMask.contains(virtKey);
         if (virtReg.isVirtualInt())
         {
@@ -557,20 +545,20 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     std::unordered_map<uint32_t, uint32_t> liveStamp;
     uint32_t                               stamp = 1;
 
-    for (uint32_t idx = 0; idx < instructionCount; ++idx)
+    idx = 0;
+    for (auto& inst : context.instructions->viewMut())
     {
         ++stamp;
         for (auto regKey : liveOut[idx])
             liveStamp[regKey] = stamp;
 
-        auto& inst = *instrs[idx];
         SmallVector<RegOperandRef, 8> regs;
         collectRegOperands(inst, context.operands->store(), regs);
 
         for (auto& regRef : regs)
         {
             const auto reg = *regRef.reg;
-            if (!isAllocatableVirtual(reg))
+            if (!reg.isVirtual())
                 continue;
 
             const uint32_t key = reg.packed;
@@ -596,6 +584,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
                 ++it;
             }
         }
+        ++idx;
     }
 }
 

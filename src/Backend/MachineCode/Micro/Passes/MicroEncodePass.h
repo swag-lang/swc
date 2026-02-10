@@ -1,8 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
-#include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,7 +14,7 @@ public:
     void        run(MicroPassContext& context) override;
 
 private:
-    void encodeInstruction(MicroPassContext& context, const MicroInstr& inst, size_t idx);
+    void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, size_t idx);
 
     std::vector<MicroJump> jumps_;
 };

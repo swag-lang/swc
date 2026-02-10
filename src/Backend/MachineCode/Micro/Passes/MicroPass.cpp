@@ -8,7 +8,7 @@ void MicroPassManager::add(MicroPass& pass)
     passes_.push_back(&pass);
 }
 
-void MicroPassManager::run(MicroPassContext& context)
+void MicroPassManager::run(MicroPassContext& context) const
 {
     for (auto* pass : passes_)
     {

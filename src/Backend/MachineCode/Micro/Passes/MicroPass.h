@@ -27,7 +27,7 @@ class MicroPassManager
 {
 public:
     void add(MicroPass& pass);
-    void run(MicroPassContext& context);
+    void run(MicroPassContext& context) const;
 
 private:
     std::vector<MicroPass*> passes_;

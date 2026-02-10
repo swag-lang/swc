@@ -39,50 +39,18 @@ struct MicroInstrOpcodeInfo
 
 enum class MicroInstrOpcode : uint8_t
 {
-#define SWC_MICRO_INSTR_DEF(__enum, __info) __enum,
+#define SWC_MICRO_INSTR_DEF(__enum, ...) __enum,
 #include "Backend/MachineCode/Micro/MicroInstr.Def.inc"
 
 #undef SWC_MICRO_INSTR_DEF
 };
-
-#define MICRO_REG_NONE   MicroInstrRegMode::None
-#define MICRO_REG_USE    MicroInstrRegMode::Use
-#define MICRO_REG_DEF    MicroInstrRegMode::Def
-#define MICRO_REG_USEDEF MicroInstrRegMode::UseDef
-
-#define MICRO_INSTR_INFO(__r0, __r1, __r2, __special, __microOpIndex, __isCall, __callConvIndex) \
-    MicroInstrOpcodeInfo                                                                         \
-    {                                                                                            \
-        MicroInstrRegInfo                                                                        \
-        {                                                                                        \
-            {__r0, __r1, __r2}, __special, __microOpIndex, __isCall, __callConvIndex             \
-        }                                                                                        \
-    }
-
-#define MICRO_INSTR_SIMPLE(__r0, __r1, __r2) \
-    MICRO_INSTR_INFO(__r0, __r1, __r2, MicroInstrRegSpecial::None, 0, false, 0)
-
-#define MICRO_INSTR_CALL(__r0, __r1, __r2, __callConvIndex) \
-    MICRO_INSTR_INFO(__r0, __r1, __r2, MicroInstrRegSpecial::None, 0, true, __callConvIndex)
-
-#define MICRO_INSTR_SPECIAL(__r0, __r1, __r2, __special, __microOpIndex) \
-    MICRO_INSTR_INFO(__r0, __r1, __r2, __special, __microOpIndex, false, 0)
 
 constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
-#define SWC_MICRO_INSTR_DEF(__enum, __info) __info,
+#define SWC_MICRO_INSTR_DEF(__enum, ...) __VA_ARGS__,
 #include "Backend/MachineCode/Micro/MicroInstr.Def.inc"
 
 #undef SWC_MICRO_INSTR_DEF
 };
-
-#undef MICRO_INSTR_SPECIAL
-#undef MICRO_INSTR_CALL
-#undef MICRO_INSTR_SIMPLE
-#undef MICRO_INSTR_INFO
-#undef MICRO_REG_USEDEF
-#undef MICRO_REG_DEF
-#undef MICRO_REG_USE
-#undef MICRO_REG_NONE
 
 constexpr const MicroInstrOpcodeInfo& getMicroInstrOpcodeInfo(MicroInstrOpcode op)
 {

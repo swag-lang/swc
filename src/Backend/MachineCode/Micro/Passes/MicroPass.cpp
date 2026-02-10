@@ -1,14 +1,14 @@
 #include "pch.h"
-#include "Backend/MachineCode/Micro/MicroInstrPass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroInstrPassManager::add(MicroInstrPass& pass)
+void MicroPassManager::add(MicroPass& pass)
 {
     passes_.push_back(&pass);
 }
 
-void MicroInstrPassManager::run(MicroInstrPassContext& context)
+void MicroPassManager::run(MicroPassContext& context)
 {
     for (auto* pass : passes_)
     {

@@ -5,8 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroInstrPassManager;
-struct MicroInstrPassContext;
+class MicroPassManager;
+struct MicroPassContext;
 
 class MicroInstrBuilder
 {
@@ -29,7 +29,7 @@ public:
     TypedStore<MicroInstrOperand>&       operands() { return operands_; }
     const TypedStore<MicroInstrOperand>& operands() const { return operands_; }
 
-    void runPasses(MicroInstrPassManager& passes, Encoder* encoder, MicroInstrPassContext& context);
+    void runPasses(MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags);
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags);

@@ -189,8 +189,8 @@
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrEncodePass.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrPass.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPass.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
@@ -336,7 +336,8 @@
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrPass.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPass.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h"/>

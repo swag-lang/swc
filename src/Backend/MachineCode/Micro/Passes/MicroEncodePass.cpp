@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/MachineCode/Micro/MicroInstrEncodePass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Support/Core/TypedStore.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -18,7 +18,7 @@ namespace
 
 }
 
-void MicroInstrEncodePass::encodeInstruction(MicroInstrPassContext& context, const MicroInstr& inst, size_t idx)
+void MicroEncodePass::encodeInstruction(MicroPassContext& context, const MicroInstr& inst, size_t idx)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
@@ -196,7 +196,7 @@ void MicroInstrEncodePass::encodeInstruction(MicroInstrPassContext& context, con
     }
 }
 
-void MicroInstrEncodePass::run(MicroInstrPassContext& context)
+void MicroEncodePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);

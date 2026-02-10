@@ -142,7 +142,7 @@ namespace
     {
         RegUseDef info;
 
-        const auto& opcodeInfo = getMicroInstrOpcodeInfo(inst.op);
+        const auto& opcodeInfo = MicroInstr::info(inst.op);
         const auto* ops        = inst.ops(store);
 
         if (opcodeInfo.regInfo.isCall)
@@ -161,7 +161,7 @@ namespace
     // rather than values.
     void collectRegOperands(const MicroInstr& inst, Store& store, SmallVector<RegOperandRef, 8>& out)
     {
-        const auto& opcodeInfo = getMicroInstrOpcodeInfo(inst.op);
+        const auto& opcodeInfo = MicroInstr::info(inst.op);
         auto*       ops        = inst.ops(store);
         const auto  modes      = resolveRegModes(opcodeInfo.regInfo, ops);
         collectRegOperandsFromModes(ops, modes, out);

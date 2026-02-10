@@ -52,11 +52,6 @@ constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
 #undef SWC_MICRO_INSTR_DEF
 };
 
-constexpr const MicroInstrOpcodeInfo& getMicroInstrOpcodeInfo(MicroInstrOpcode op)
-{
-    return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)];
-}
-
 static_assert(MICRO_INSTR_OPCODE_INFOS.size() == static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1);
 
 struct MicroInstrOperand
@@ -114,7 +109,7 @@ struct MicroInstr
         return store.ptr<MicroInstrOperand>(opsRef);
     }
 
-    bool isEnd() const { return op == MicroInstrOpcode::End; }
+    static constexpr const MicroInstrOpcodeInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };
 
 SWC_END_NAMESPACE();

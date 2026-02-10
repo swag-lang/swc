@@ -2,171 +2,11 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Backend/MachineCode/Micro/MicroRegInfo.h"
 #include "Support/Core/PagedStoreTyped.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    // Collected register uses/defs for an instruction.
-    // - uses: registers read by the instruction
-    // - defs: registers written by the instruction
-    // - isCall/callConv: marks call instructions so the allocator can conservatively
-    //   require call-preserved ("persistent") physical registers for vregs live across calls.
-    struct RegUseDef
-    {
-        SmallVector<MicroReg, 6> uses;
-        SmallVector<MicroReg, 3> defs;
-        bool                     isCall   = false;
-        CallConvKind             callConv = CallConvKind::C;
-    };
-
-    // Reference to a MicroReg operand field inside the instruction's operand storage.
-    // This allows in-place rewriting of virtual regs to physical regs.
-    struct RegOperandRef
-    {
-        MicroReg* reg = nullptr; // pointer into operand storage
-        bool      use = false;   // operand is read
-        bool      def = false;   // operand is written
-    };
-
-    // Add a register to the use list if it's a meaningful register for allocation.
-    void addUse(RegUseDef& info, MicroReg reg)
-    {
-        if (reg.isValid() && !reg.isNoBase())
-            info.uses.push_back(reg);
-    }
-
-    // Add a register to the def list if it's a meaningful register for allocation.
-    void addDef(RegUseDef& info, MicroReg reg)
-    {
-        if (reg.isValid() && !reg.isNoBase())
-            info.defs.push_back(reg);
-    }
-
-    // Convenience: treat as both a use and a def (read-modify-write operand).
-    void addUseDef(RegUseDef& info, MicroReg reg)
-    {
-        addUse(info, reg);
-        addDef(info, reg);
-    }
-
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrOpcodeInfo& info, const MicroInstrOperand* ops)
-    {
-        auto modes = info.regModes;
-
-        switch (info.special)
-        {
-            case MicroInstrRegSpecial::None:
-                break;
-            case MicroInstrRegSpecial::OpBinaryRegReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                {
-                    modes[0] = MicroInstrRegMode::UseDef;
-                    modes[1] = MicroInstrRegMode::UseDef;
-                }
-                break;
-            case MicroInstrRegSpecial::OpBinaryMemReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
-                    modes[1] = MicroInstrRegMode::UseDef;
-                break;
-            case MicroInstrRegSpecial::OpTernaryRegRegReg:
-                if (ops[info.microOpIndex].microOp == MicroOp::CompareExchange)
-                    modes[1] = MicroInstrRegMode::UseDef;
-                break;
-        }
-
-        return modes;
-    }
-
-    void collectRegUseDefFromModes(RegUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
-    {
-        if (!ops)
-            return;
-
-        for (size_t i = 0; i < modes.size(); ++i)
-        {
-            switch (modes[i])
-            {
-                case MicroInstrRegMode::None:
-                    break;
-                case MicroInstrRegMode::Use:
-                    addUse(info, ops[i].reg);
-                    break;
-                case MicroInstrRegMode::Def:
-                    addDef(info, ops[i].reg);
-                    break;
-                case MicroInstrRegMode::UseDef:
-                    addUseDef(info, ops[i].reg);
-                    break;
-            }
-        }
-    }
-
-    // Add an operand reference for later rewriting, skipping invalid / non-allocatable regs.
-    void addOperand(SmallVector<RegOperandRef, 8>& out, MicroReg* reg, bool use, bool def)
-    {
-        if (!reg || !reg->isValid() || reg->isNoBase())
-            return;
-        out.push_back({reg, use, def});
-    }
-
-    void collectRegOperandsFromModes(MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes, SmallVector<RegOperandRef, 8>& out)
-    {
-        if (!ops)
-            return;
-
-        for (size_t i = 0; i < modes.size(); ++i)
-        {
-            switch (modes[i])
-            {
-                case MicroInstrRegMode::None:
-                    break;
-                case MicroInstrRegMode::Use:
-                    addOperand(out, &ops[i].reg, true, false);
-                    break;
-                case MicroInstrRegMode::Def:
-                    addOperand(out, &ops[i].reg, false, true);
-                    break;
-                case MicroInstrRegMode::UseDef:
-                    addOperand(out, &ops[i].reg, true, true);
-                    break;
-            }
-        }
-    }
-
-    // Compute the uses/defs for one instruction.
-    // This is used in the reverse liveness pre-pass (to build liveOut and call-crossing info).
-    RegUseDef collectRegUseDef(const MicroInstr& inst, const PagedStore& store)
-    {
-        RegUseDef info;
-
-        const auto& opcodeInfo = MicroInstr::info(inst.op);
-        const auto* ops        = inst.ops(store);
-
-        if (opcodeInfo.isCall)
-        {
-            info.isCall   = true;
-            info.callConv = ops[opcodeInfo.callConvIndex].callConv;
-        }
-
-        const auto modes = resolveRegModes(opcodeInfo, ops);
-        collectRegUseDefFromModes(info, ops, modes);
-        return info;
-    }
-
-    // Collect all register operand references for an instruction so they can be rewritten in-place.
-    // This duplicates the opcode classification from collectRegUseDef but returns pointer refs
-    // rather than values.
-    void collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<RegOperandRef, 8>& out)
-    {
-        const auto& opcodeInfo = MicroInstr::info(inst.op);
-        auto*       ops        = inst.ops(store);
-        const auto  modes      = resolveRegModes(opcodeInfo, ops);
-        collectRegOperandsFromModes(ops, modes, out);
-    }
-}
 
 void MicroRegAllocPass::run(MicroPassContext& context)
 {
@@ -203,7 +43,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Snapshot current live set as live-out of this instruction.
         liveOut[idx].assign(live.begin(), live.end());
 
-        const auto info = collectRegUseDef(inst, store);
+        const auto info = MicroRegInfo::collectUseDef(inst, store, context.encoder);
 
         // If this instruction is a call, any currently live vreg is live across a call site.
         // Record that we must allocate it to a call-preserved register class (persistent pool).
@@ -343,8 +183,8 @@ void MicroRegAllocPass::run(MicroPassContext& context)
             liveStamp[regKey] = stamp;
 
         // Collect all register operands in this instruction for in-place rewriting.
-        SmallVector<RegOperandRef, 8> regs;
-        collectRegOperands(inst, context.operands->store(), regs);
+        SmallVector<MicroRegOperandRef, 8> regs;
+        MicroRegInfo::collectRegOperands(inst, context.operands->store(), regs, context.encoder);
 
         // Replace each virtual operand with its allocated physical reg.
         // Allocation happens at first sight; later uses reuse the mapping.

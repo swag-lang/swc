@@ -21,6 +21,8 @@ public:
     }
 
 private:
+    void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegUseDef& info) const override;
+
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags) override;
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags) override;
     EncodeResult encodePush(MicroReg reg, EncodeFlags emitFlags) override;

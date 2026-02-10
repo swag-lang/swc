@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Backend/MachineCode/Micro/MicroRegInfo.h"
 #include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -515,6 +516,50 @@ namespace
 }
 
 /////////////////////////////////////////////////////////////////////
+
+void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegUseDef& info) const
+{
+    if (!ops)
+        return;
+
+    auto microOp = MicroOp::Add;
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegMem:
+        case MicroInstrOpcode::OpBinaryMemReg:
+            microOp = ops[3].microOp;
+            break;
+        case MicroInstrOpcode::OpBinaryRegImm:
+        case MicroInstrOpcode::OpBinaryMemImm:
+            microOp = ops[2].microOp;
+            break;
+        default:
+            return;
+    }
+
+    switch (microOp)
+    {
+        case MicroOp::RotateLeft:
+        case MicroOp::RotateRight:
+        case MicroOp::ShiftArithmeticLeft:
+        case MicroOp::ShiftArithmeticRight:
+        case MicroOp::ShiftLeft:
+        case MicroOp::ShiftRight:
+            info.addUse(x64RegToMicroReg(X64Reg::Rcx));
+            break;
+        case MicroOp::MultiplyUnsigned:
+        case MicroOp::DivideUnsigned:
+        case MicroOp::ModuloUnsigned:
+        case MicroOp::DivideSigned:
+        case MicroOp::ModuloSigned:
+            info.addUse(x64RegToMicroReg(X64Reg::Rdx));
+            info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+            break;
+        default:
+            break;
+    }
+}
 
 EncodeResult X64Encoder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {

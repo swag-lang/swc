@@ -10,6 +10,9 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 struct MicroInstr;
+struct MicroInstrOperand;
+struct MicroRegUseDef;
+class MicroRegInfo;
 class MicroEncodePass;
 
 enum class EncodeFlagsE : uint8_t
@@ -38,6 +41,7 @@ class Encoder
 {
     friend class MicroInstrBuilder;
     friend class MicroEncodePass;
+    friend class MicroRegInfo;
 
 protected:
     TaskContext&       ctx() { return *ctx_; }
@@ -92,6 +96,8 @@ protected:
     virtual EncodeResult encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                   = 0;
     virtual EncodeResult encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                            = 0;
     virtual EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
+
+    virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegUseDef& info) const { (void) inst; (void) ops; (void) info; }
 
     void emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void emitJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);

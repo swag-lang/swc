@@ -5,6 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class MicroInstrPassManager;
+
 class MicroInstrBuilder
 {
 public:
@@ -18,7 +20,15 @@ public:
     MicroInstrBuilder(MicroInstrBuilder&&) noexcept            = default;
     MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
-    void encode(Encoder& encoder);
+    TaskContext&       ctx() { return *ctx_; }
+    const TaskContext& ctx() const { return *ctx_; }
+
+    TypedStore<MicroInstr>&        instructions() { return instructions_; }
+    const TypedStore<MicroInstr>&  instructions() const { return instructions_; }
+    TypedStore<MicroInstrOperand>& operands() { return operands_; }
+    const TypedStore<MicroInstrOperand>& operands() const { return operands_; }
+
+    void runPasses(MicroInstrPassManager& passes, Encoder* encoder);
 
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags);
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags);
@@ -65,13 +75,11 @@ public:
     EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags);
 
 private:
-    void        encodeInstruction(Encoder& encoder, const MicroInstr& inst, size_t idx);
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
     TaskContext*                  ctx_ = nullptr;
     TypedStore<MicroInstr>        instructions_;
     TypedStore<MicroInstrOperand> operands_;
-    std::vector<MicroJump>        jumps_;
 };
 
 SWC_END_NAMESPACE();

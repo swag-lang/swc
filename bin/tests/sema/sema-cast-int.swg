@@ -91,3 +91,35 @@ func takes_s32(v: s32) {}
     var a: f64 = 10.5
     takes_s32(a) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    var a: u16 = 10
+    var b: s32 = a
+    var c: u32 = b
+}
+
+#test
+{
+    var a: u32 = 10
+    var b: u16 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var a: s32 = -10
+    var b: s16 = a // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    const A: s32 = 42
+    const B: u8 = A
+    #assert(B == 42'u8)
+}
+
+#test
+{
+    var a: bool = true
+    var b: u8 = a // swc-expected-error {{sema_err_cannot_cast}}
+}

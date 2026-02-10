@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 struct MicroInstr;
+class MicroInstrEncodePass;
 
 enum class EncodeFlagsE : uint8_t
 {
@@ -36,6 +37,7 @@ enum class EncodeResult : uint32_t
 class Encoder
 {
     friend class MicroInstrBuilder;
+    friend class MicroInstrEncodePass;
 
 protected:
     TaskContext&       ctx() { return *ctx_; }

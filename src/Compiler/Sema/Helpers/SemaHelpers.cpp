@@ -55,7 +55,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             if (leftView.type->isBlockPointer() && rightView.type->isScalarNumeric())
                 return Result::Continue;
             if (leftView.type->isBlockPointer() && rightView.type->isBlockPointer())
-                return Result::Continue;
+                return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef, rightView.typeRef);
             if (leftView.type->isScalarNumeric() && rightView.type->isBlockPointer())
                 return Result::Continue;
             break;

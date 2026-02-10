@@ -33,8 +33,7 @@
     let d = p1 - p2
     #assert(#typeof(d) == s64)
 
-    let p3 = p1 + p2
-    #assert(#typeof(p3) == [*]s32)
+    let p3 = p1 + p2 // swc-expected-error {{sema_err_binary_operand_type}}
 }
 
 #test

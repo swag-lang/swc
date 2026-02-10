@@ -193,10 +193,12 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     std::unordered_set<uint32_t> live;
 
     // Reverse pass: build liveOut and record which vregs are live across calls.
-    uint32_t idx = instructionCount;
-    for (auto& inst : context.instructions->viewMutReverse())
+    uint32_t idx  = instructionCount;
+    auto     view = context.instructions->view();
+    for (auto it = view.rbegin(); it != view.rend(); ++it)
     {
         --idx;
+        auto& inst = *it;
 
         // Snapshot current live set as live-out of this instruction.
         liveOut[idx].assign(live.begin(), live.end());
@@ -331,7 +333,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
     // Forward pass: rewrite operands from virtual regs to physical regs using liveOut.
     idx = 0;
-    for (auto& inst : context.instructions->viewMut())
+    for (auto& inst : context.instructions->view())
     {
         // New instruction "epoch".
         ++stamp;

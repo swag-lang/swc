@@ -61,68 +61,6 @@ public:
     public:
         struct Iterator
         {
-            const TypedStore* store       = nullptr;
-            uint32_t          pageIndex   = 0;
-            uint32_t          indexInPage = 0;
-
-            void advanceToValid()
-            {
-                while (pageIndex < store->pageCount())
-                {
-                    const uint32_t countInPage = store->pageUsed(pageIndex) / static_cast<uint32_t>(sizeof(T));
-                    if (indexInPage < countInPage)
-                        return;
-                    ++pageIndex;
-                    indexInPage = 0;
-                }
-            }
-
-            const T& operator*() const
-            {
-                return *(reinterpret_cast<const T*>(store->pageBytes(pageIndex)) + indexInPage);
-            }
-
-            Iterator& operator++()
-            {
-                ++indexInPage;
-                advanceToValid();
-                return *this;
-            }
-
-            bool operator!=(const Iterator& other) const
-            {
-                return store != other.store || pageIndex != other.pageIndex || indexInPage != other.indexInPage;
-            }
-        };
-
-        explicit View(const TypedStore* s) :
-            store_(s)
-        {
-        }
-
-        Iterator begin() const
-        {
-            Iterator it{store_, 0, 0};
-            it.advanceToValid();
-            return it;
-        }
-
-        Iterator end() const
-        {
-            return {store_, store_->pageCount(), 0};
-        }
-
-    private:
-        const TypedStore* store_ = nullptr;
-    };
-
-    View view() const noexcept { return View(this); }
-
-    class ViewMut
-    {
-    public:
-        struct Iterator
-        {
             TypedStore* store       = nullptr;
             uint32_t    pageIndex   = 0;
             uint32_t    indexInPage = 0;
@@ -223,7 +161,7 @@ public:
             }
         };
 
-        explicit ViewMut(TypedStore* s) :
+        explicit View(TypedStore* s) :
             store_(s)
         {
         }
@@ -256,30 +194,7 @@ public:
         TypedStore* store_ = nullptr;
     };
 
-    class ViewMutReverse
-    {
-    public:
-        explicit ViewMutReverse(TypedStore* s) :
-            store_(s)
-        {
-        }
-
-        typename ViewMut::ReverseIterator begin() const
-        {
-            return ViewMut(store_).rbegin();
-        }
-
-        typename ViewMut::ReverseIterator end() const
-        {
-            return ViewMut(store_).rend();
-        }
-
-    private:
-        TypedStore* store_ = nullptr;
-    };
-
-    ViewMut        viewMut() noexcept { return ViewMut(this); }
-    ViewMutReverse viewMutReverse() noexcept { return ViewMutReverse(this); }
+    View view() noexcept { return View(this); }
 
 private:
     T* ptrAtIndexImpl(uint32_t index) noexcept

@@ -114,7 +114,7 @@ struct MicroInstr
     MicroInstrOperand*       ops(PagedStore& store) const;
     const MicroInstrOperand* ops(const PagedStore& storeOps) const;
     MicroInstrUseDef         collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const;
-    void                     collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder) const;
+    void                     collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrOpcodeInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };

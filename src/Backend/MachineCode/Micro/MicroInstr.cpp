@@ -76,14 +76,14 @@ namespace
         }
     }
 
-    void addOperand(SmallVector<MicroInstrRegOperandRef, 8>& out, MicroReg* reg, bool use, bool def)
+    void addOperand(SmallVector<MicroInstrRegOperandRef>& out, MicroReg* reg, bool use, bool def)
     {
         if (!reg || !reg->isValid() || reg->isNoBase())
             return;
         out.push_back({reg, use, def});
     }
 
-    void collectRegOperandsFromModes(MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes, SmallVector<MicroInstrRegOperandRef, 8>& out)
+    void collectRegOperandsFromModes(SmallVector<MicroInstrRegOperandRef>& out, MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
     {
         if (!ops)
             return;
@@ -143,12 +143,12 @@ MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Enc
     return useDef;
 }
 
-void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder*) const
+void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
 {
     const MicroInstrOpcodeInfo& opcodeInfo = info(op);
     MicroInstrOperand*          ops        = this->ops(storeOps);
     const auto                  modes      = resolveRegModes(opcodeInfo, ops);
-    collectRegOperandsFromModes(ops, modes, out);
+    collectRegOperandsFromModes(out, ops, modes);
 }
 
 SWC_END_NAMESPACE();

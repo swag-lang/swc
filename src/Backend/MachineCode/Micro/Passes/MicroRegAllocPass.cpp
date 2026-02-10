@@ -14,8 +14,8 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands);
 
     // Function-level calling convention: defines available integer/float regs and which are call-preserved.
-    const auto& funcConv = CallConv::get(context.callConvKind);
-    const auto& store    = context.operands->store();
+    const CallConv&   funcConv = CallConv::get(context.callConvKind);
+    const PagedStore& storeOps = context.operands->store();
 
     const uint32_t instructionCount = context.instructions->count();
     if (instructionCount == 0)
@@ -42,7 +42,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Snapshot current live set as live-out of this instruction.
         liveOut[idx].assign(live.begin(), live.end());
 
-        const MicroInstrUseDef info = inst.collectUseDef(store, context.encoder);
+        const MicroInstrUseDef info = inst.collectUseDef(storeOps, context.encoder);
 
         // If this instruction is a call, any currently live vreg is live across a call site.
         // Record that we must allocate it to a call-preserved register class (persistent pool).
@@ -79,10 +79,10 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     // Free lists (pools) for allocating physical regs:
     // - transient: caller-saved / not required to survive calls
     // - persistent: call-preserved / should survive calls
-    SmallVector<MicroReg, 16> freeIntTransient;
-    SmallVector<MicroReg, 16> freeIntPersistent;
-    SmallVector<MicroReg, 8>  freeFloatTransient;
-    SmallVector<MicroReg, 8>  freeFloatPersistent;
+    SmallVector<MicroReg> freeIntTransient;
+    SmallVector<MicroReg> freeIntPersistent;
+    SmallVector<MicroReg> freeFloatTransient;
+    SmallVector<MicroReg> freeFloatPersistent;
 
     // Initialize free lists by partitioning available regs into persistent vs. transient pools.
     for (const auto& reg : funcConv.intRegs)
@@ -127,7 +127,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
         if (virtReg.isVirtualInt())
         {
-            SmallVector<MicroReg, 16>* pool = nullptr;
+            SmallVector<MicroReg>* pool = nullptr;
 
             if (needsPersistent)
                 pool = &freeIntPersistent;
@@ -147,7 +147,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Float path.
         SWC_ASSERT(virtReg.isVirtualFloat());
 
-        SmallVector<MicroReg, 8>* pool = nullptr;
+        SmallVector<MicroReg>* pool = nullptr;
         if (needsPersistent)
             pool = &freeFloatPersistent;
         else if (!freeFloatTransient.empty())
@@ -182,7 +182,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
             liveStamp[regKey] = stamp;
 
         // Collect all register operands in this instruction for in-place rewriting.
-        SmallVector<MicroInstrRegOperandRef, 8> regs;
+        SmallVector<MicroInstrRegOperandRef> regs;
         inst.collectRegOperands(context.operands->store(), regs, context.encoder);
 
         // Replace each virtual operand with its allocated physical reg.

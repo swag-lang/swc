@@ -21,11 +21,6 @@ enum class EncodeFlagsE : uint8_t
 };
 using EncodeFlags = EnumFlags<EncodeFlagsE>;
 
-constexpr auto EMIT_ZERO       = EncodeFlags{};
-constexpr auto EMIT_OVERFLOW   = EncodeFlagsE::Overflow;
-constexpr auto EMIT_LOCK       = EncodeFlagsE::Lock;
-constexpr auto EMIT_B64        = EncodeFlagsE::B64;
-constexpr auto EMIT_CAN_ENCODE = EncodeFlagsE::CanEncode;
 
 enum class EncodeResult : uint32_t
 {
@@ -59,9 +54,9 @@ protected:
     virtual EncodeResult encodePop(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                              = 0;
     virtual EncodeResult encodeNop(EncodeFlags emitFlags)                                                                                                                                                            = 0;
     virtual EncodeResult encodeRet(EncodeFlags emitFlags)                                                                                                                                                            = 0;
-    virtual EncodeResult encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                      = 0;
-    virtual EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                     = 0;
-    virtual EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                    = 0;
+    virtual EncodeResult encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                     = 0;
+    virtual EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                    = 0;
+    virtual EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                   = 0;
     virtual EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
     virtual EncodeResult encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                              = 0;
     virtual EncodeResult encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)                                                                                                   = 0;
@@ -97,15 +92,15 @@ protected:
     virtual EncodeResult encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                            = 0;
     virtual EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
 
-    void emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitJumpReg(MicroReg reg, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EMIT_ZERO);
-    void emitClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags = EMIT_ZERO);
+    void emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void emitClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
 
     EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);
@@ -120,3 +115,4 @@ protected:
 };
 
 SWC_END_NAMESPACE();
+

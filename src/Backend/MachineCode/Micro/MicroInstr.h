@@ -115,7 +115,7 @@ struct MicroInstr
 {
     Ref              opsRef      = INVALID_REF;
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
-    EncodeFlags      emitFlags   = EMIT_ZERO;
+    EncodeFlags      emitFlags   = EncodeFlagsE::Zero;
     uint8_t          numOperands = 0;
 
     MicroInstrOperand* ops(Store& store) const
@@ -136,3 +136,4 @@ struct MicroInstr
 };
 
 SWC_END_NAMESPACE();
+

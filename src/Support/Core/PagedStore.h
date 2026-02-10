@@ -13,14 +13,10 @@ struct SpanTag
 };
 using SpanRef = StrongRef<SpanTag>;
 
-// Page-based append-only store for raw bytes.
-// - Each page stores up to pageSize bytes (pageSize must be a power of two).
-// - Allocations are appended; alignment is honored relative to an aligned page base.
-// - Ref is a 32-bit byte index from the start of the store (encoded as page+offset).
-//
 class PagedStore
 {
 public:
+    class SpanView;
     static constexpr uint32_t K_DEFAULT_PAGE_SIZE = 16u * 1024u;
 
     explicit PagedStore(uint32_t pageSize = K_DEFAULT_PAGE_SIZE);
@@ -34,6 +30,20 @@ public:
     uint32_t size() const noexcept;
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
     void     clear() noexcept;
+
+    uint8_t* pushU8(uint8_t v) { return pushPod(v); }
+    uint8_t* pushU16(uint16_t v) { return pushPod(v); }
+    uint8_t* pushU32(uint32_t v) { return pushPod(v); }
+    uint8_t* pushU64(uint64_t v) { return pushPod(v); }
+    uint8_t* pushS8(int8_t v) { return pushPod(v); }
+    uint8_t* pushS16(int16_t v) { return pushPod(v); }
+    uint8_t* pushS32(int32_t v) { return pushPod(v); }
+    uint8_t* pushS64(int64_t v) { return pushPod(v); }
+
+    std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte));
+    SpanRef                  pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
+    SpanView                 spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
+    Ref                      findRef(const void* ptr) const noexcept;
 
     template<class T>
     Ref pushBack(const T& v)
@@ -53,12 +63,6 @@ public:
         return lastPtr_;
     }
 
-    uint8_t* pushU8(uint8_t v) { return pushPod(v); }
-    uint8_t* pushU16(uint16_t v) { return pushPod(v); }
-    uint8_t* pushU32(uint32_t v) { return pushPod(v); }
-    uint8_t* pushU64(uint64_t v) { return pushPod(v); }
-    uint8_t* pushS32(int32_t v) { return pushPod(v); }
-
     template<class T>
     std::pair<Ref, T*> emplaceUninit()
     {
@@ -74,14 +78,6 @@ public:
 
         auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T) * count), static_cast<uint32_t>(alignof(T)));
         return {r, static_cast<T*>(p)};
-    }
-
-    std::pair<ByteSpan, Ref> pushCopySpan(ByteSpan payload, uint32_t align = alignof(std::byte))
-    {
-        auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
-        if (payload.data()) // TODO: define expectations for nullptr + nonzero size
-            std::memcpy(dst, payload.data(), payload.size());
-        return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
     }
 
     template<class T>
@@ -108,8 +104,6 @@ public:
         return *ptr<T>(ref);
     }
 
-    SpanRef pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
-
     template<class T>
     SpanRef pushSpan(const std::span<T>& s)
     {
@@ -117,17 +111,12 @@ public:
         return pushSpanRaw(s.data(), static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), static_cast<uint32_t>(s.size()));
     }
 
-    class SpanView;
-    SpanView spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
-
     template<class T>
     SpanView span(Ref ref) const
     {
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         return spanView(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
     }
-
-    Ref findRef(const void* ptr) const noexcept;
 
 private:
     template<class T>
@@ -209,7 +198,6 @@ public:
 
     uint32_t size() const;
     bool     empty() const { return size() == 0; }
-
     Ref      ref() const { return head_; }
     uint32_t elemSize() const { return elementSize_; }
     uint32_t elemAlign() const { return elementAlign_; }

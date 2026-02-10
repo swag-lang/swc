@@ -102,6 +102,14 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     return {hdrRef, fit};
 }
 
+std::pair<ByteSpan, Ref> PagedStore::pushCopySpan(ByteSpan payload, uint32_t align)
+{
+    auto [ref, dst] = allocate(static_cast<uint32_t>(payload.size()), align);
+    if (payload.data()) // TODO: define expectations for nullptr + nonzero size
+        std::memcpy(dst, payload.data(), payload.size());
+    return {{static_cast<const std::byte*>(dst), payload.size()}, ref};
+}
+
 SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)
 {
     if (count == 0)

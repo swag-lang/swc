@@ -66,7 +66,7 @@ namespace Os
     void panicBox(const char* expr)
     {
         if (!hasCommandLineFlag(L"--devmode"))
-            return;
+            exit(ExitCode::PanicBox);
 
         char msg[2048];
         SWC_ASSERT(std::strlen(expr) < 1024);

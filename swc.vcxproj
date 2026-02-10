@@ -196,7 +196,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
-        <ClCompile Include="src\Support\Core\Store.cpp"/>
+        <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
@@ -334,7 +334,7 @@
         <ClInclude Include="src\Backend\CodeGenOptions.h"/>
         <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc" />
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h"/>
@@ -350,8 +350,8 @@
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
-        <ClInclude Include="src\Support\Core\Store.h"/>
-        <ClInclude Include="src\Support\Core\TypedStore.h"/>
+        <ClInclude Include="src\Support\Core\PagedStore.h"/>
+        <ClInclude Include="src\Support\Core\TypedPagedStore.h"/>
         <ClInclude Include="src\Support\Core\SmallVector.h"/>
         <ClInclude Include="src\Support\Core\StringMap.h"/>
         <ClInclude Include="src\Support\Core\Timer.h"/>

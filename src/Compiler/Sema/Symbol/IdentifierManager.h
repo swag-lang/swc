@@ -1,6 +1,6 @@
 #pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 #include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -115,8 +115,8 @@ private:
 
     struct Shard
     {
-        Store                     store;
-        Store                     stringStore;
+        PagedStore                store;
+        PagedStore                stringStore;
         StringMap<IdentifierRef>  map;
         mutable std::shared_mutex mutex;
     };

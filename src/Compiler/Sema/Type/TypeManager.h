@@ -1,6 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Type/TypeInfo.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -130,7 +130,7 @@ public:
 private:
     struct Shard
     {
-        Store                                               store;
+        PagedStore                                          store;
         std::unordered_map<TypeInfo, TypeRef, TypeInfoHash> map;
         mutable std::shared_mutex                           mutex;
     };

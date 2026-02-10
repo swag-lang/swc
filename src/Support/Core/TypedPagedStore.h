@@ -1,22 +1,22 @@
 #pragma once
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
 template<class T>
-class TypedStore
+class TypedPagedStore
 {
 public:
-    TypedStore() = default;
-    explicit TypedStore(uint32_t pageSize) :
+    TypedPagedStore() = default;
+    explicit TypedPagedStore(uint32_t pageSize) :
         store_(pageSize)
     {
     }
 
-    TypedStore(const TypedStore&)                = delete;
-    TypedStore& operator=(const TypedStore&)     = delete;
-    TypedStore(TypedStore&&) noexcept            = default;
-    TypedStore& operator=(TypedStore&&) noexcept = default;
+    TypedPagedStore(const TypedPagedStore&)                = delete;
+    TypedPagedStore& operator=(const TypedPagedStore&)     = delete;
+    TypedPagedStore(TypedPagedStore&&) noexcept            = default;
+    TypedPagedStore& operator=(TypedPagedStore&&) noexcept = default;
 
     uint32_t pageSize() const noexcept { return store_.pageSize(); }
     uint32_t size() const noexcept { return store_.size(); }
@@ -28,8 +28,8 @@ public:
     T&       at(Ref ref) noexcept { return store_.at<T>(ref); }
     const T& at(Ref ref) const noexcept { return store_.at<T>(ref); }
 
-    Store&       store() noexcept { return store_; }
-    const Store& store() const noexcept { return store_; }
+    PagedStore&       store() noexcept { return store_; }
+    const PagedStore& store() const noexcept { return store_; }
 
     void clear() noexcept
     {
@@ -65,19 +65,19 @@ private:
     const uint8_t* pageBytes(uint32_t index) const noexcept { return store_.pagesStorage_[index]->bytes(); }
     uint8_t*       pageBytesMutable(uint32_t index) const noexcept { return store_.pagesStorage_[index]->bytes(); }
 
-    Store    store_;
-    uint32_t count_ = 0;
+    PagedStore store_;
+    uint32_t   count_ = 0;
 };
 
 template<class T>
-class TypedStore<T>::View
+class TypedPagedStore<T>::View
 {
 public:
     struct Iterator
     {
-        TypedStore* store       = nullptr;
-        uint32_t    pageIndex   = 0;
-        uint32_t    indexInPage = 0;
+        TypedPagedStore* store       = nullptr;
+        uint32_t         pageIndex   = 0;
+        uint32_t         indexInPage = 0;
 
         void advanceToValid()
         {
@@ -112,9 +112,9 @@ public:
 
     struct ReverseIterator
     {
-        TypedStore* store       = nullptr;
-        uint32_t    pageIndex   = std::numeric_limits<uint32_t>::max();
-        uint32_t    indexInPage = 0;
+        TypedPagedStore* store       = nullptr;
+        uint32_t         pageIndex   = std::numeric_limits<uint32_t>::max();
+        uint32_t         indexInPage = 0;
 
         void initToLast()
         {
@@ -178,7 +178,7 @@ public:
         }
     };
 
-    explicit View(TypedStore* s) :
+    explicit View(TypedPagedStore* s) :
         store_(s)
     {
     }
@@ -208,7 +208,7 @@ public:
     }
 
 private:
-    TypedStore* store_ = nullptr;
+    TypedPagedStore* store_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

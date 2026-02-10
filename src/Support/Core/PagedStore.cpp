@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
-Store::Store(uint32_t pageSize) :
+PagedStore::PagedStore(uint32_t pageSize) :
     pageSizeValue_(pageSize)
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
 }
 
-Store::Store(Store&& other) noexcept :
+PagedStore::PagedStore(PagedStore&& other) noexcept :
     pagesStorage_(std::move(other.pagesStorage_)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
@@ -23,7 +23,7 @@ Store::Store(Store&& other) noexcept :
     other.lastPtr_      = nullptr;
 }
 
-Store& Store::operator=(Store&& other) noexcept
+PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
 {
     if (this != &other)
     {
@@ -37,7 +37,7 @@ Store& Store::operator=(Store&& other) noexcept
     return *this;
 }
 
-void Store::clear() noexcept
+void PagedStore::clear() noexcept
 {
     for (const auto& up : pagesStorage_)
         up->used = 0;
@@ -56,12 +56,12 @@ void Store::clear() noexcept
     lastPtr_ = nullptr;
 }
 
-uint32_t Store::size() const noexcept
+uint32_t PagedStore::size() const noexcept
 {
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
-std::pair<SpanRef, uint32_t> Store::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
+std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
 {
     SWC_ASSERT(elemSize > 0);
     SWC_ASSERT((elemAlign & (elemAlign - 1)) == 0 && elemAlign <= alignof(std::max_align_t));
@@ -101,7 +101,7 @@ std::pair<SpanRef, uint32_t> Store::writeChunkRaw(const uint8_t* src, uint32_t e
     return {hdrRef, fit};
 }
 
-SpanRef Store::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)
+SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count)
 {
     if (count == 0)
     {
@@ -137,18 +137,18 @@ SpanRef Store::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAli
     return firstRef;
 }
 
-void Store::SpanView::decodeRef(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
+void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
 {
-    Store::decodeRef(st->pageSize(), ref, pageIndex, off);
+    PagedStore::decodeRef(st->pageSize(), ref, pageIndex, off);
 }
 
-uint32_t Store::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
+uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
 {
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
     return alignUpU32(hdrOffset + hdrSize, elemAlign);
 }
 
-const void* Store::SpanView::dataPtr(const Store* st, Ref hdrRef, uint32_t elemAlign)
+const void* PagedStore::SpanView::dataPtr(const PagedStore* st, Ref hdrRef, uint32_t elemAlign)
 {
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
@@ -156,12 +156,12 @@ const void* Store::SpanView::dataPtr(const Store* st, Ref hdrRef, uint32_t elemA
     return st->pagesStorage_[pageIndex]->bytes() + dataOffset;
 }
 
-uint32_t Store::SpanView::totalElems(const Store* st, Ref hdrRef)
+uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)
 {
     return st->ptr<SpanHdrRaw>(hdrRef)->total;
 }
 
-uint32_t Store::SpanView::chunkCountFromLayout(const Store* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
+uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
 {
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
@@ -171,7 +171,7 @@ uint32_t Store::SpanView::chunkCountFromLayout(const Store* st, Ref hdrRef, uint
     return std::min<uint32_t>(cap, remaining);
 }
 
-Store::SpanView::SpanView(const Store* s, Ref r, uint32_t elemSize, uint32_t elemAlign) :
+PagedStore::SpanView::SpanView(const PagedStore* s, Ref r, uint32_t elemSize, uint32_t elemAlign) :
     store_(s),
     head_(r),
     elementSize_(elemSize),
@@ -179,19 +179,19 @@ Store::SpanView::SpanView(const Store* s, Ref r, uint32_t elemSize, uint32_t ele
 {
 }
 
-uint32_t Store::SpanView::size() const
+uint32_t PagedStore::SpanView::size() const
 {
     if (!store_ || head_ == std::numeric_limits<Ref>::max())
         return 0;
     return totalElems(store_, head_);
 }
 
-bool Store::SpanView::ChunkIterator::operator!=(const ChunkIterator& o) const
+bool PagedStore::SpanView::ChunkIterator::operator!=(const ChunkIterator& o) const
 {
     return hdrRef != o.hdrRef;
 }
 
-Store::SpanView::ChunkIterator& Store::SpanView::ChunkIterator::operator++()
+PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operator++()
 {
     done += current.count;
     if (done >= total)
@@ -214,7 +214,7 @@ Store::SpanView::ChunkIterator& Store::SpanView::ChunkIterator::operator++()
     return *this;
 }
 
-Store::SpanView::ChunkIterator Store::SpanView::chunksBegin() const
+PagedStore::SpanView::ChunkIterator PagedStore::SpanView::chunksBegin() const
 {
     ChunkIterator it;
     it.store     = store_;
@@ -237,7 +237,7 @@ Store::SpanView::ChunkIterator Store::SpanView::chunksBegin() const
     return it;
 }
 
-Store::SpanView::ChunkIterator Store::SpanView::chunksEnd() const
+PagedStore::SpanView::ChunkIterator PagedStore::SpanView::chunksEnd() const
 {
     return {.store     = store_,
             .hdrRef    = std::numeric_limits<Ref>::max(),
@@ -248,32 +248,32 @@ Store::SpanView::ChunkIterator Store::SpanView::chunksEnd() const
             .current   = {.ptr = nullptr, .count = 0}};
 }
 
-Store::SpanView Store::spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const
+PagedStore::SpanView PagedStore::spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const
 {
     return {this, ref, elemSize, elemAlign};
 }
 
-std::byte* Store::Page::allocateAligned(uint32_t size)
+std::byte* PagedStore::Page::allocateAligned(uint32_t size)
 {
     return static_cast<std::byte*>(operator new(size, static_cast<std::align_val_t>(alignof(std::max_align_t))));
 }
 
-void Store::Page::deallocateAligned(std::byte* p) noexcept
+void PagedStore::Page::deallocateAligned(std::byte* p) noexcept
 {
     operator delete(p, static_cast<std::align_val_t>(alignof(std::max_align_t)));
 }
 
-Store::Page::Page(uint32_t pageSize) :
+PagedStore::Page::Page(uint32_t pageSize) :
     storage(allocateAligned(pageSize))
 {
 }
 
-Store::Page::~Page()
+PagedStore::Page::~Page()
 {
     deallocateAligned(storage);
 }
 
-Store::Page* Store::newPage()
+PagedStore::Page* PagedStore::newPage()
 {
     pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_));
     curPage_      = pagesStorage_.back().get();
@@ -281,7 +281,7 @@ Store::Page* Store::newPage()
     return curPage_;
 }
 
-Ref Store::findRef(const void* ptr) const noexcept
+Ref PagedStore::findRef(const void* ptr) const noexcept
 {
     const auto bPtr = static_cast<const uint8_t*>(ptr);
     for (uint32_t j = 0; j < pagesStorage_.size(); j++)
@@ -297,20 +297,20 @@ Ref Store::findRef(const void* ptr) const noexcept
     return std::numeric_limits<Ref>::max();
 }
 
-Ref Store::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
+Ref PagedStore::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
 {
     const uint64_t r = static_cast<uint64_t>(pageIndex) * static_cast<uint64_t>(pageSize) + offset;
     SWC_ASSERT(r < std::numeric_limits<Ref>::max());
     return static_cast<Ref>(r);
 }
 
-void Store::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
+void PagedStore::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept
 {
     pageIndex = ref / pageSize;
     offset    = ref % pageSize;
 }
 
-std::pair<Ref, void*> Store::allocate(uint32_t size, uint32_t align)
+std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
 {
     SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
 

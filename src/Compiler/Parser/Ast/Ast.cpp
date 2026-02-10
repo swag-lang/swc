@@ -26,11 +26,11 @@ void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock      lk(shards_[s].mutex);
-    const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-    for (Store::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+    std::shared_lock           lk(shards_[s].mutex);
+    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
-        const Store::SpanView::Chunk& c = *it;
+        const PagedStore::SpanView::Chunk& c = *it;
         out.append(static_cast<const AstNodeRef*>(c.ptr), c.count);
     }
 }
@@ -44,8 +44,8 @@ size_t Ast::spanSize(SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock      lk(shards_[s].mutex);
-    const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    std::shared_lock           lk(shards_[s].mutex);
+    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     return view.size();
 }
 
@@ -58,15 +58,15 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock      lk(shards_[s].mutex);
-    const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    std::shared_lock           lk(shards_[s].mutex);
+    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     if (index >= view.size())
         return AstNodeRef::invalid();
 
     size_t remaining = index;
-    for (Store::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+    for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
-        const Store::SpanView::Chunk& c = *it;
+        const PagedStore::SpanView::Chunk& c = *it;
         if (remaining < c.count)
             return static_cast<const AstNodeRef*>(c.ptr)[remaining];
         remaining -= c.count;
@@ -92,11 +92,11 @@ void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock      lk(shards_[s].mutex);
-    const Store::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-    for (Store::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+    std::shared_lock           lk(shards_[s].mutex);
+    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
-        const Store::SpanView::Chunk& c = *it;
+        const PagedStore::SpanView::Chunk& c = *it;
         out.append(static_cast<const TokenRef*>(c.ptr), c.count);
     }
 }

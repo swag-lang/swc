@@ -103,7 +103,7 @@ private:
     struct Shard
     {
         std::shared_mutex mutex;
-        Store             store;
+        PagedStore        store;
     };
 
     Shard shards_[SEMA_SHARD_NUM];

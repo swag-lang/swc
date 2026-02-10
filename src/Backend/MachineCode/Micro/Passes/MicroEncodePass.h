@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class Store;
+class PagedStore;
 struct MicroJump;
 
 class MicroEncodePass final : public MicroPass

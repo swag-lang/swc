@@ -6,7 +6,7 @@ using Ref                 = uint32_t;
 constexpr Ref INVALID_REF = std::numeric_limits<Ref>::max();
 
 template<class T>
-class TypedStore;
+class TypedPagedStore;
 
 struct SpanTag
 {
@@ -17,16 +17,16 @@ using SpanRef = StrongRef<SpanTag>;
 // Each page holds up to pageSize bytes of raw data (pageSize must be a power of two).
 // Items are packed sequentially; alignment is preserved relative to a max-aligned base.
 // Ref is a 32-bit index in BYTES from the start of the store.
-class Store
+class PagedStore
 {
 public:
-    explicit Store(uint32_t pageSize = K_DEFAULT_PAGE_SIZE);
+    explicit PagedStore(uint32_t pageSize = K_DEFAULT_PAGE_SIZE);
 
-    Store(const Store&)            = delete;
-    Store& operator=(const Store&) = delete;
+    PagedStore(const PagedStore&)            = delete;
+    PagedStore& operator=(const PagedStore&) = delete;
 
-    Store(Store&& other) noexcept;
-    Store& operator=(Store&& other) noexcept;
+    PagedStore(PagedStore&& other) noexcept;
+    PagedStore& operator=(PagedStore&& other) noexcept;
 
     uint32_t pageSize() const noexcept { return pageSizeValue_; }
 
@@ -126,20 +126,20 @@ public:
     // Span view over stored data (type-erased; elements described by size+alignment).
     class SpanView
     {
-        const Store* store_        = nullptr;
-        Ref          head_         = std::numeric_limits<Ref>::max();
-        uint32_t     elementSize_  = 0;
-        uint32_t     elementAlign_ = 0;
+        const PagedStore* store_        = nullptr;
+        Ref               head_         = std::numeric_limits<Ref>::max();
+        uint32_t          elementSize_  = 0;
+        uint32_t          elementAlign_ = 0;
 
-        static void        decodeRef(const Store* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
+        static void        decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
         static uint32_t    dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
-        static const void* dataPtr(const Store* st, Ref hdrRef, uint32_t elemAlign);
-        static uint32_t    totalElems(const Store* st, Ref hdrRef);
-        static uint32_t    chunkCountFromLayout(const Store* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);
+        static const void* dataPtr(const PagedStore* st, Ref hdrRef, uint32_t elemAlign);
+        static uint32_t    totalElems(const PagedStore* st, Ref hdrRef);
+        static uint32_t    chunkCountFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);
 
     public:
         SpanView() = default;
-        SpanView(const Store* s, Ref r, uint32_t elemSize, uint32_t elemAlign);
+        SpanView(const PagedStore* s, Ref r, uint32_t elemSize, uint32_t elemAlign);
 
         uint32_t size() const;
         bool     empty() const { return size() == 0; }
@@ -155,13 +155,13 @@ public:
 
         struct ChunkIterator
         {
-            const Store* store     = nullptr;
-            Ref          hdrRef    = std::numeric_limits<Ref>::max();
-            uint32_t     total     = 0;
-            uint32_t     done      = 0;
-            uint32_t     elemSize  = 0;
-            uint32_t     elemAlign = 0;
-            Chunk        current{nullptr, 0};
+            const PagedStore* store     = nullptr;
+            Ref               hdrRef    = std::numeric_limits<Ref>::max();
+            uint32_t          total     = 0;
+            uint32_t          done      = 0;
+            uint32_t          elemSize  = 0;
+            uint32_t          elemAlign = 0;
+            Chunk             current{nullptr, 0};
 
             bool         operator!=(const ChunkIterator& o) const;
             const Chunk& operator*() const { return current; }
@@ -189,7 +189,7 @@ public:
 
 private:
     template<class T>
-    friend class TypedStore;
+    friend class TypedPagedStore;
 
     static constexpr uint32_t K_DEFAULT_PAGE_SIZE = 16u * 1024u;
 

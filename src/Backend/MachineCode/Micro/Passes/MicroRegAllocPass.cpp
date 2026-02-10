@@ -3,7 +3,7 @@
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Support/Core/SmallVector.h"
-#include "Support/Core/TypedStore.h"
+#include "Support/Core/TypedPagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -138,7 +138,7 @@ namespace
 
     // Compute the uses/defs for one instruction.
     // This is used in the reverse liveness pre-pass (to build liveOut and call-crossing info).
-    RegUseDef collectRegUseDef(const MicroInstr& inst, const Store& store)
+    RegUseDef collectRegUseDef(const MicroInstr& inst, const PagedStore& store)
     {
         RegUseDef info;
 
@@ -159,7 +159,7 @@ namespace
     // Collect all register operand references for an instruction so they can be rewritten in-place.
     // This duplicates the opcode classification from collectRegUseDef but returns pointer refs
     // rather than values.
-    void collectRegOperands(const MicroInstr& inst, Store& store, SmallVector<RegOperandRef, 8>& out)
+    void collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<RegOperandRef, 8>& out)
     {
         const auto& opcodeInfo = MicroInstr::info(inst.op);
         auto*       ops        = inst.ops(store);

@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -88,14 +88,14 @@ struct MicroInstr
     EncodeFlags      emitFlags   = EncodeFlagsE::Zero;
     uint8_t          numOperands = 0;
 
-    MicroInstrOperand* ops(Store& store) const
+    MicroInstrOperand* ops(PagedStore& store) const
     {
         if (!numOperands)
             return nullptr;
         return store.ptr<MicroInstrOperand>(opsRef);
     }
 
-    const MicroInstrOperand* ops(const Store& store) const
+    const MicroInstrOperand* ops(const PagedStore& store) const
     {
         if (!numOperands)
             return nullptr;

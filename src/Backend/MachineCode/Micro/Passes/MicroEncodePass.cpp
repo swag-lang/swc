@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Support/Core/TypedStore.h"
+#include "Support/Core/TypedPagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 

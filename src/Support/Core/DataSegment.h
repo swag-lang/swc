@@ -1,5 +1,5 @@
 #pragma once
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    Store                                                                  store_;
+    PagedStore                                                             store_;
     std::unordered_map<std::string, std::pair<std::string_view, uint32_t>> stringMap_;
     std::vector<DataSegmentRelocation>                                     relocations_;
     mutable std::shared_mutex                                              mutex_;

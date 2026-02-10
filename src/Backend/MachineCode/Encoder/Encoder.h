@@ -4,7 +4,7 @@
 #include "Backend/MachineCode/Encoder/EncoderTypes.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
-#include "Support/Core/Store.h"
+#include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -107,7 +107,7 @@ protected:
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
     TaskContext*               ctx_ = nullptr;
-    Store                      store_;
+    PagedStore                 store_;
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
     CodeGenOptions             genOptions_;

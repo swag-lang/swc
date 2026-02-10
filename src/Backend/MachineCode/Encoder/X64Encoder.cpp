@@ -204,19 +204,19 @@ namespace
         return static_cast<uint8_t>(result);
     }
 
-    void emitPrefixF64(Store& store, MicroOpBits opBits)
+    void emitPrefixF64(PagedStore& store, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B64)
             store.pushU8(0x66);
     }
 
-    void emitSib(Store& store, uint8_t scale, uint8_t index, uint8_t base)
+    void emitSib(PagedStore& store, uint8_t scale, uint8_t index, uint8_t base)
     {
         const uint8_t value = static_cast<uint8_t>(scale << 6) | static_cast<uint8_t>(index << 3) | base;
         store.pushU8(value);
     }
 
-    void emitRex(Store& store, MicroOpBits opBits, MicroReg reg0 = {}, MicroReg reg1 = {})
+    void emitRex(PagedStore& store, MicroOpBits opBits, MicroReg reg0 = {}, MicroReg reg1 = {})
     {
         if (opBits == MicroOpBits::B16)
             store.pushU8(0x66);
@@ -239,7 +239,7 @@ namespace
         }
     }
 
-    void emitValue(Store& store, uint64_t value, MicroOpBits opBits)
+    void emitValue(PagedStore& store, uint64_t value, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B8)
             store.pushU8(static_cast<uint8_t>(value));
@@ -251,28 +251,28 @@ namespace
             store.pushU64(value);
     }
 
-    void emitModRm(Store& store, ModRmMode mod, uint8_t reg, uint8_t rm)
+    void emitModRm(PagedStore& store, ModRmMode mod, uint8_t reg, uint8_t rm)
     {
         const auto value = getModRm(mod, reg, rm);
         store.pushU8(value);
     }
 
-    void emitModRm(Store& store, ModRmMode mod, MicroReg reg, uint8_t rm)
+    void emitModRm(PagedStore& store, ModRmMode mod, MicroReg reg, uint8_t rm)
     {
         emitModRm(store, mod, encodeReg(reg), rm);
     }
 
-    void emitModRm(Store& store, uint8_t reg, MicroReg rm)
+    void emitModRm(PagedStore& store, uint8_t reg, MicroReg rm)
     {
         emitModRm(store, ModRmMode::Register, reg, encodeReg(rm));
     }
 
-    void emitModRm(Store& store, MicroReg reg, MicroReg memReg)
+    void emitModRm(PagedStore& store, MicroReg reg, MicroReg memReg)
     {
         emitModRm(store, ModRmMode::Register, encodeReg(reg), encodeReg(memReg));
     }
 
-    void emitModRm(Store& store, uint64_t memOffset, uint8_t reg, MicroReg memReg)
+    void emitModRm(PagedStore& store, uint64_t memOffset, uint8_t reg, MicroReg memReg)
     {
         const auto memX64 = microRegToX64Reg(memReg);
 
@@ -325,7 +325,7 @@ namespace
         }
     }
 
-    void emitModRm(Store& store, uint64_t memOffset, MicroReg reg, MicroReg memReg)
+    void emitModRm(PagedStore& store, uint64_t memOffset, MicroReg reg, MicroReg memReg)
     {
         const auto memX64 = microRegToX64Reg(memReg);
 
@@ -378,7 +378,7 @@ namespace
         }
     }
 
-    void emitSpecB8(Store& store, uint8_t value, MicroOpBits opBits)
+    void emitSpecB8(PagedStore& store, uint8_t value, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B8)
             store.pushU8(value & ~1);
@@ -386,7 +386,7 @@ namespace
             store.pushU8(value);
     }
 
-    void emitSpecF64(Store& store, uint8_t value, MicroOpBits opBits)
+    void emitSpecF64(PagedStore& store, uint8_t value, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B64)
             store.pushU8(value & ~1);
@@ -488,27 +488,27 @@ namespace
         }
     }
 
-    void emitCpuOp(Store& store, MicroOp op)
+    void emitCpuOp(PagedStore& store, MicroOp op)
     {
         store.pushU8(getX64OpCode(op));
     }
 
-    void emitCpuOp(Store& store, uint8_t op)
+    void emitCpuOp(PagedStore& store, uint8_t op)
     {
         store.pushU8(op);
     }
 
-    void emitCpuOp(Store& store, uint8_t op, MicroReg reg)
+    void emitCpuOp(PagedStore& store, uint8_t op, MicroReg reg)
     {
         store.pushU8(op | (encodeReg(reg) & 0b111));
     }
 
-    void emitSpecCpuOp(Store& store, MicroOp op, MicroOpBits opBits)
+    void emitSpecCpuOp(PagedStore& store, MicroOp op, MicroOpBits opBits)
     {
         emitSpecB8(store, getX64OpCode(op), opBits);
     }
 
-    void emitSpecCpuOp(Store& store, uint8_t op, MicroOpBits opBits)
+    void emitSpecCpuOp(PagedStore& store, uint8_t op, MicroOpBits opBits)
     {
         emitSpecB8(store, op, opBits);
     }
@@ -944,7 +944,7 @@ EncodeResult X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, 
 
 namespace
 {
-    EncodeResult encodeAmcImm(Store& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
+    EncodeResult encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
@@ -1025,7 +1025,7 @@ namespace
         return EncodeResult::Zero;
     }
 
-    EncodeResult encodeAmcReg(Store& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, EncodeFlags emitFlags, bool mr)
+    EncodeResult encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, EncodeFlags emitFlags, bool mr)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {

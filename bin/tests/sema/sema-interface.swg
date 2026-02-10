@@ -56,3 +56,23 @@ impl I1 for T
 {
     T.I1.titi()
 }
+
+#test
+{
+    var a: A
+    var i = cast(I) a
+    @assert(i.A() == 0)
+}
+
+#test
+{
+    var t: T
+    var i = cast(I1) t
+    i.toto()
+}
+
+#test
+{
+    var u: U
+    var i = cast(I1) u // swc-expected-error {{sema_err_cannot_cast_to_interface}}
+}

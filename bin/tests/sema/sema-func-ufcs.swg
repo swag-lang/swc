@@ -31,3 +31,17 @@ impl A
     var b: *A
     b.toto(2)
 }
+
+#test
+{
+    var a: A
+    a.tata(2)
+    A.tata(&a, 3)
+    a.tata(1, 2) // swc-expected-error {{sema_err_too_many_arguments}}
+}
+
+#test
+{
+    var p: *A
+    A.toto(p, 1, 2) // swc-expected-error {{sema_err_too_many_arguments}}
+}

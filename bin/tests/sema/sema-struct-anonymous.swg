@@ -18,3 +18,20 @@ func toto()->{x: s32, y: bool}
     let b = st1.y == 2
     #assert(#sizeof(st1) == 8)
 }
+
+#test
+{
+    let s = toto()
+    @assert(s.x == 42)
+    @assert(s.y)
+}
+
+#test
+{
+    let s = toto()
+    var t: struct { x: s32; y: bool }
+    t.x = 1
+    t.y = false
+    @assert(t.x == 1)
+    @assert(!t.y)
+}

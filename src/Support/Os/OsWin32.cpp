@@ -3,8 +3,33 @@
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include <shellapi.h>
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    bool hasCommandLineFlag(const wchar_t* flag)
+    {
+        int     argc = 0;
+        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+        if (!argv)
+            return false;
+
+        bool found = false;
+        for (int i = 1; i < argc; ++i)
+        {
+            if (_wcsicmp(argv[i], flag) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        LocalFree(argv);
+        return found;
+    }
+}
 
 namespace Os
 {
@@ -40,6 +65,9 @@ namespace Os
 
     void panicBox(const char* expr)
     {
+        if (!hasCommandLineFlag(L"--devmode"))
+            return;
+
         char msg[2048];
         SWC_ASSERT(std::strlen(expr) < 1024);
 

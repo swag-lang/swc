@@ -2,7 +2,6 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Backend/MachineCode/Micro/MicroRegInfo.h"
 #include "Support/Core/PagedStoreTyped.h"
 #include "Support/Core/SmallVector.h"
 
@@ -43,7 +42,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Snapshot current live set as live-out of this instruction.
         liveOut[idx].assign(live.begin(), live.end());
 
-        const auto info = MicroRegInfo::collectUseDef(inst, store, context.encoder);
+        const auto info = MicroInstr::collectUseDef(inst, store, context.encoder);
 
         // If this instruction is a call, any currently live vreg is live across a call site.
         // Record that we must allocate it to a call-preserved register class (persistent pool).
@@ -183,8 +182,8 @@ void MicroRegAllocPass::run(MicroPassContext& context)
             liveStamp[regKey] = stamp;
 
         // Collect all register operands in this instruction for in-place rewriting.
-        SmallVector<MicroRegOperandRef, 8> regs;
-        MicroRegInfo::collectRegOperands(inst, context.operands->store(), regs, context.encoder);
+        SmallVector<MicroInstrRegOperandRef, 8> regs;
+        MicroInstr::collectRegOperands(inst, context.operands->store(), regs, context.encoder);
 
         // Replace each virtual operand with its allocated physical reg.
         // Allocation happens at first sight; later uses reuse the mapping.

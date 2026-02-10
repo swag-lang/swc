@@ -2,8 +2,11 @@
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class Encoder;
 
 enum class MicroInstrRegMode : uint8_t
 {
@@ -81,6 +84,25 @@ struct MicroInstrOperand
     }
 };
 
+struct MicroInstrUseDef
+{
+    SmallVector<MicroReg, 6> uses;
+    SmallVector<MicroReg, 3> defs;
+    bool                     isCall   = false;
+    CallConvKind             callConv = CallConvKind::C;
+
+    void addUse(MicroReg reg);
+    void addDef(MicroReg reg);
+    void addUseDef(MicroReg reg);
+};
+
+struct MicroInstrRegOperandRef
+{
+    MicroReg* reg = nullptr;
+    bool      use = false;
+    bool      def = false;
+};
+
 struct MicroInstr
 {
     Ref              opsRef      = INVALID_REF;
@@ -103,6 +125,8 @@ struct MicroInstr
     }
 
     static constexpr const MicroInstrOpcodeInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
+    static MicroInstrUseDef                      collectUseDef(const MicroInstr& inst, const PagedStore& store, const Encoder* encoder);
+    static void                                  collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder);
 };
 
 SWC_END_NAMESPACE();

@@ -1,22 +1,22 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
-#include "Backend/MachineCode/Micro/MicroRegInfo.h"
+#include "Backend/MachineCode/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroRegUseDef::addUse(MicroReg reg)
+void MicroInstrUseDef::addUse(MicroReg reg)
 {
     if (reg.isValid() && !reg.isNoBase())
         uses.push_back(reg);
 }
 
-void MicroRegUseDef::addDef(MicroReg reg)
+void MicroInstrUseDef::addDef(MicroReg reg)
 {
     if (reg.isValid() && !reg.isNoBase())
         defs.push_back(reg);
 }
 
-void MicroRegUseDef::addUseDef(MicroReg reg)
+void MicroInstrUseDef::addUseDef(MicroReg reg)
 {
     addUse(reg);
     addDef(reg);
@@ -52,7 +52,7 @@ namespace
         return modes;
     }
 
-    void collectRegUseDefFromModes(MicroRegUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
+    void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
     {
         if (!ops)
             return;
@@ -76,14 +76,14 @@ namespace
         }
     }
 
-    void addOperand(SmallVector<MicroRegOperandRef, 8>& out, MicroReg* reg, bool use, bool def)
+    void addOperand(SmallVector<MicroInstrRegOperandRef, 8>& out, MicroReg* reg, bool use, bool def)
     {
         if (!reg || !reg->isValid() || reg->isNoBase())
             return;
         out.push_back({reg, use, def});
     }
 
-    void collectRegOperandsFromModes(MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes, SmallVector<MicroRegOperandRef, 8>& out)
+    void collectRegOperandsFromModes(MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes, SmallVector<MicroInstrRegOperandRef, 8>& out)
     {
         if (!ops)
             return;
@@ -108,9 +108,9 @@ namespace
     }
 }
 
-MicroRegUseDef MicroRegInfo::collectUseDef(const MicroInstr& inst, const PagedStore& store, const Encoder* encoder)
+MicroInstrUseDef MicroInstr::collectUseDef(const MicroInstr& inst, const PagedStore& store, const Encoder* encoder)
 {
-    MicroRegUseDef info;
+    MicroInstrUseDef info;
 
     const auto& opcodeInfo = MicroInstr::info(inst.op);
     const auto* ops        = inst.ops(store);
@@ -130,7 +130,7 @@ MicroRegUseDef MicroRegInfo::collectUseDef(const MicroInstr& inst, const PagedSt
     return info;
 }
 
-void MicroRegInfo::collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<MicroRegOperandRef, 8>& out, const Encoder* encoder)
+void MicroInstr::collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder)
 {
     const auto& opcodeInfo = MicroInstr::info(inst.op);
     auto*       ops        = inst.ops(store);

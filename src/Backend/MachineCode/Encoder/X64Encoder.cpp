@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Backend/MachineCode/Micro/MicroRegInfo.h"
 #include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -517,7 +516,7 @@ namespace
 
 /////////////////////////////////////////////////////////////////////
 
-void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegUseDef& info) const
+void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
 {
     if (!ops)
         return;

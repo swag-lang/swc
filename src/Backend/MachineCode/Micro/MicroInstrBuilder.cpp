@@ -72,7 +72,7 @@ EncodeResult MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 2);
     auto*       ops  = inst.ops(operands_.store());
@@ -81,7 +81,7 @@ EncodeResult MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, const 
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 2);
     auto*       ops  = inst.ops(operands_.store());
@@ -90,7 +90,7 @@ EncodeResult MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, const
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroInstrBuilder::encodeCallReg(MicroReg reg, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult MicroInstrBuilder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::CallIndirect, emitFlags, 2);
     auto*       ops  = inst.ops(operands_.store());

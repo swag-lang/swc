@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/CodeGenOptions.h"
+#include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Encoder/EncoderTypes.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
@@ -9,7 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 struct MicroInstr;
-struct CallConv;
 
 enum class EncodeFlagsE : uint8_t
 {
@@ -59,9 +59,9 @@ protected:
     virtual EncodeResult encodePop(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                              = 0;
     virtual EncodeResult encodeNop(EncodeFlags emitFlags)                                                                                                                                                            = 0;
     virtual EncodeResult encodeRet(EncodeFlags emitFlags)                                                                                                                                                            = 0;
-    virtual EncodeResult encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)                                                                                                  = 0;
-    virtual EncodeResult encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)                                                                                                 = 0;
-    virtual EncodeResult encodeCallReg(MicroReg reg, const CallConv* callConv, EncodeFlags emitFlags)                                                                                                                = 0;
+    virtual EncodeResult encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                      = 0;
+    virtual EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                     = 0;
+    virtual EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                    = 0;
     virtual EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
     virtual EncodeResult encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                              = 0;
     virtual EncodeResult encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)                                                                                                   = 0;

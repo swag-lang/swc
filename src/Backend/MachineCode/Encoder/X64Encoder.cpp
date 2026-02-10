@@ -3015,7 +3015,7 @@ EncodeResult X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 
 /////////////////////////////////////////////////////////////////////
 
-EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
@@ -3026,7 +3026,7 @@ EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, const CallCo
     return EncodeResult::Zero;
 }
 
-EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0xE8);
 
@@ -3044,7 +3044,7 @@ EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, const CallCon
     return EncodeResult::Zero;
 }
 
-EncodeResult X64Encoder::encodeCallReg(MicroReg reg, const CallConv* callConv, EncodeFlags emitFlags)
+EncodeResult X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);

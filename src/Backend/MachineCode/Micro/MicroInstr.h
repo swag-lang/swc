@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
 #include "Support/Core/Store.h"
 
@@ -81,7 +82,7 @@ struct MicroInstrOperand
     union
     {
         IdentifierRef   name;
-        const CallConv* callConv;
+        CallConvKind    callConv;
         MicroReg        reg;
         MicroOpBits     opBits;
         MicroCond       cpuCond;

@@ -26,9 +26,9 @@ public:
     EncodeResult encodePop(MicroReg reg, EncodeFlags emitFlags);
     EncodeResult encodeNop(EncodeFlags emitFlags);
     EncodeResult encodeRet(EncodeFlags emitFlags);
-    EncodeResult encodeCallLocal(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags);
-    EncodeResult encodeCallExtern(IdentifierRef symbolName, const CallConv* callConv, EncodeFlags emitFlags);
-    EncodeResult encodeCallReg(MicroReg reg, const CallConv* callConv, EncodeFlags emitFlags);
+    EncodeResult encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags);
+    EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags);
+    EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags);
     EncodeResult encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags);
     EncodeResult encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags);

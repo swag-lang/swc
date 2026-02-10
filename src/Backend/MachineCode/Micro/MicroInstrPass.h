@@ -27,7 +27,7 @@ class MicroInstrPassManager
 {
 public:
     void add(MicroInstrPass& pass);
-    void run(MicroInstrPassContext& context, TypedStore<MicroInstr>& instructions, TypedStore<MicroInstrOperand>& operands, Encoder* encoder);
+    void run(MicroInstrPassContext& context);
 
 private:
     std::vector<MicroInstrPass*> passes_;

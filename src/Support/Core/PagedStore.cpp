@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -72,7 +73,7 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     const uint32_t bytesAvail = pageSizeValue_ - off;
 
     constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
-    const uint32_t     dataOffset = alignUpU32(off + hdrSize, elemAlign);
+    const uint32_t     dataOffset = Math::alignUpU32(off + hdrSize, elemAlign);
     const uint32_t     padBytes   = dataOffset - (off + hdrSize);
 
     if (hdrSize + padBytes + elemSize > bytesAvail)
@@ -81,7 +82,7 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
         off  = 0;
     }
 
-    const uint32_t dataOffsetF = alignUpU32(off + hdrSize, elemAlign);
+    const uint32_t dataOffsetF = Math::alignUpU32(off + hdrSize, elemAlign);
     const uint32_t maxData     = pageSizeValue_ - dataOffsetF;
     const uint32_t cap         = maxData / elemSize;
     const uint32_t fit         = std::min<uint32_t>(remaining, cap);
@@ -145,7 +146,7 @@ void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pa
 uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
 {
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
-    return alignUpU32(hdrOffset + hdrSize, elemAlign);
+    return Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
 }
 
 const void* PagedStore::SpanView::dataPtr(const PagedStore* st, Ref hdrRef, uint32_t elemAlign)

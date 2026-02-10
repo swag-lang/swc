@@ -11,6 +11,11 @@ namespace Math
 
     ApFloat bitCastToApFloat(const ApsInt& src, uint32_t floatBits);
     ApsInt  bitCastToApInt(const ApFloat& src, bool isUnsigned);
+
+    static constexpr uint32_t alignUpU32(uint32_t v, uint32_t a) noexcept
+    {
+        return (v + (a - 1)) & ~(a - 1);
+    }
 }
 
 SWC_END_NAMESPACE();

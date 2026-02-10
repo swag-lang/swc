@@ -153,17 +153,10 @@ private:
         uint32_t total = 0;
     };
 
-    static Ref  makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
-    static void decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
-
-    Page*                 newPage();
-    std::pair<Ref, void*> allocate(uint32_t size, uint32_t align);
-
-    static constexpr uint32_t alignUpU32(uint32_t v, uint32_t a) noexcept
-    {
-        return (v + (a - 1)) & ~(a - 1);
-    }
-
+    static Ref                   makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept;
+    static void                  decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint32_t& offset) noexcept;
+    Page*                        newPage();
+    std::pair<Ref, void*>        allocate(uint32_t size, uint32_t align);
     std::pair<SpanRef, uint32_t> writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>

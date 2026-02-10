@@ -334,6 +334,7 @@
         <ClInclude Include="src\Backend\CodeGenOptions.h"/>
         <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h"/>

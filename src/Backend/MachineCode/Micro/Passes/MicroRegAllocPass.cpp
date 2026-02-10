@@ -52,6 +52,58 @@ namespace
         addDef(info, reg);
     }
 
+    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrRegInfo& info, const MicroInstrOperand* ops)
+    {
+        auto modes = info.regModes;
+
+        switch (info.special)
+        {
+            case MicroInstrRegSpecial::None:
+                break;
+            case MicroInstrRegSpecial::OpBinaryRegReg:
+                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
+                {
+                    modes[0] = MicroInstrRegMode::UseDef;
+                    modes[1] = MicroInstrRegMode::UseDef;
+                }
+                break;
+            case MicroInstrRegSpecial::OpBinaryMemReg:
+                if (ops[info.microOpIndex].microOp == MicroOp::Exchange)
+                    modes[1] = MicroInstrRegMode::UseDef;
+                break;
+            case MicroInstrRegSpecial::OpTernaryRegRegReg:
+                if (ops[info.microOpIndex].microOp == MicroOp::CompareExchange)
+                    modes[1] = MicroInstrRegMode::UseDef;
+                break;
+        }
+
+        return modes;
+    }
+
+    void collectRegUseDefFromModes(RegUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
+    {
+        if (!ops)
+            return;
+
+        for (size_t i = 0; i < modes.size(); ++i)
+        {
+            switch (modes[i])
+            {
+                case MicroInstrRegMode::None:
+                    break;
+                case MicroInstrRegMode::Use:
+                    addUse(info, ops[i].reg);
+                    break;
+                case MicroInstrRegMode::Def:
+                    addDef(info, ops[i].reg);
+                    break;
+                case MicroInstrRegMode::UseDef:
+                    addUseDef(info, ops[i].reg);
+                    break;
+            }
+        }
+    }
+
     // Add an operand reference for later rewriting, skipping invalid / non-allocatable regs.
     void addOperand(SmallVector<RegOperandRef, 8>& out, MicroReg* reg, bool use, bool def)
     {
@@ -60,413 +112,59 @@ namespace
         out.push_back({reg, use, def});
     }
 
+    void collectRegOperandsFromModes(MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes, SmallVector<RegOperandRef, 8>& out)
+    {
+        if (!ops)
+            return;
+
+        for (size_t i = 0; i < modes.size(); ++i)
+        {
+            switch (modes[i])
+            {
+                case MicroInstrRegMode::None:
+                    break;
+                case MicroInstrRegMode::Use:
+                    addOperand(out, &ops[i].reg, true, false);
+                    break;
+                case MicroInstrRegMode::Def:
+                    addOperand(out, &ops[i].reg, false, true);
+                    break;
+                case MicroInstrRegMode::UseDef:
+                    addOperand(out, &ops[i].reg, true, true);
+                    break;
+            }
+        }
+    }
+
     // Compute the uses/defs for one instruction.
     // This is used in the reverse liveness pre-pass (to build liveOut and call-crossing info).
     RegUseDef collectRegUseDef(const MicroInstr& inst, const Store& store)
     {
         RegUseDef info;
-        auto*     ops = inst.ops(store);
 
-        switch (inst.op)
+        const auto& opcodeInfo = getMicroInstrOpcodeInfo(inst.op);
+        const auto* ops        = inst.ops(store);
+
+        if (opcodeInfo.regInfo.isCall)
         {
-            // No register effects (as modeled here).
-            case MicroInstrOpcode::End:
-            case MicroInstrOpcode::Enter:
-            case MicroInstrOpcode::Leave:
-            case MicroInstrOpcode::Ignore:
-            case MicroInstrOpcode::Label:
-            case MicroInstrOpcode::Debug:
-            case MicroInstrOpcode::LoadCallParam:
-            case MicroInstrOpcode::LoadCallAddrParam:
-            case MicroInstrOpcode::LoadCallZeroExtParam:
-            case MicroInstrOpcode::StoreCallParam:
-            case MicroInstrOpcode::Nop:
-            case MicroInstrOpcode::Ret:
-                break;
-
-            // dst := ...
-            case MicroInstrOpcode::SymbolRelocAddr:
-            case MicroInstrOpcode::SymbolRelocValue:
-            case MicroInstrOpcode::LoadRegImm:
-            case MicroInstrOpcode::SetCondReg:
-            case MicroInstrOpcode::ClearReg:
-                addDef(info, ops[0].reg);
-                break;
-
-            // uses only
-            case MicroInstrOpcode::Push:
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::CmpRegImm:
-                addUse(info, ops[0].reg);
-                break;
-
-            // defs only
-            case MicroInstrOpcode::Pop:
-                addDef(info, ops[0].reg);
-                break;
-
-            // Direct calls: mark as call and record call convention.
-            // (No explicit operand regs here; call clobbers/args presumably modeled elsewhere.)
-            case MicroInstrOpcode::CallLocal:
-            case MicroInstrOpcode::CallExtern:
-                info.isCall   = true;
-                info.callConv = ops[1].callConv;
-                break;
-
-            // Indirect call uses target reg and is a call.
-            case MicroInstrOpcode::CallIndirect:
-                info.isCall   = true;
-                info.callConv = ops[1].callConv;
-                addUse(info, ops[0].reg);
-                break;
-
-            // Jump-table uses base/index regs.
-            case MicroInstrOpcode::JumpTable:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            // Conditional jumps: no reg effects (condition likely modeled as prior cmp/setcc).
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            case MicroInstrOpcode::PatchJump:
-                break;
-
-            // dst := src (reg-reg variants)
-            case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-            case MicroInstrOpcode::LoadCondRegReg:
-                addDef(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            // dst := [mem(base,...)] - base reg is used
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-            case MicroInstrOpcode::LoadAddrRegMem:
-                addDef(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            // Atomic/multi-component mem forms: typically use base + amc reg(s).
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-                addDef(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                addUse(info, ops[2].reg);
-                break;
-
-            case MicroInstrOpcode::LoadAmcMemReg:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                addUse(info, ops[2].reg);
-                break;
-
-            case MicroInstrOpcode::LoadAmcMemImm:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            // Store: [mem(base,...)] := src
-            case MicroInstrOpcode::LoadMemReg:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            case MicroInstrOpcode::LoadMemImm:
-                addUse(info, ops[0].reg);
-                break;
-
-            // Comparisons read their operands.
-            case MicroInstrOpcode::CmpRegReg:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            case MicroInstrOpcode::CmpMemReg:
-                addUse(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            case MicroInstrOpcode::CmpMemImm:
-                addUse(info, ops[0].reg);
-                break;
-
-            case MicroInstrOpcode::OpUnaryMem:
-                addUse(info, ops[0].reg);
-                break;
-
-            // Unary op on reg is read-modify-write.
-            case MicroInstrOpcode::OpUnaryReg:
-                addUseDef(info, ops[0].reg);
-                break;
-
-            // Binary reg-reg ops:
-            // - Exchange: both operands are read/write
-            // - Otherwise: dst is read/write, src is read
-            case MicroInstrOpcode::OpBinaryRegReg:
-            {
-                const auto op = ops[3].microOp;
-                if (op == MicroOp::Exchange)
-                {
-                    addUseDef(info, ops[0].reg);
-                    addUseDef(info, ops[1].reg);
-                }
-                else
-                {
-                    addUseDef(info, ops[0].reg);
-                    addUse(info, ops[1].reg);
-                }
-                break;
-            }
-
-            // dst is read-modify-write; imm is not a reg
-            case MicroInstrOpcode::OpBinaryRegImm:
-                addUseDef(info, ops[0].reg);
-                break;
-
-            // dst is read-modify-write; mem base reg is read
-            case MicroInstrOpcode::OpBinaryRegMem:
-                addUseDef(info, ops[0].reg);
-                addUse(info, ops[1].reg);
-                break;
-
-            // mem op: base reg is used; second reg may be used or use/def for exchange
-            case MicroInstrOpcode::OpBinaryMemReg:
-            {
-                const auto op = ops[3].microOp;
-                addUse(info, ops[0].reg);
-                if (op == MicroOp::Exchange)
-                    addUseDef(info, ops[1].reg);
-                else
-                    addUse(info, ops[1].reg);
-                break;
-            }
-
-            case MicroInstrOpcode::OpBinaryMemImm:
-                addUse(info, ops[0].reg);
-                break;
-
-            // Ternary reg-reg-reg:
-            // - CompareExchange: first two are read/write, third is read
-            // - Otherwise: dst is read/write, two sources are read
-            case MicroInstrOpcode::OpTernaryRegRegReg:
-            {
-                const auto op = ops[4].microOp;
-                if (op == MicroOp::CompareExchange)
-                {
-                    addUseDef(info, ops[0].reg);
-                    addUseDef(info, ops[1].reg);
-                    addUse(info, ops[2].reg);
-                }
-                else
-                {
-                    addUseDef(info, ops[0].reg);
-                    addUse(info, ops[1].reg);
-                    addUse(info, ops[2].reg);
-                }
-                break;
-            }
-
-            default:
-                SWC_ASSERT(false);
-                break;
+            info.isCall   = true;
+            info.callConv = ops[opcodeInfo.regInfo.callConvIndex].callConv;
         }
 
+        const auto modes = resolveRegModes(opcodeInfo.regInfo, ops);
+        collectRegUseDefFromModes(info, ops, modes);
         return info;
     }
 
     // Collect all register operand references for an instruction so they can be rewritten in-place.
-    // This duplicates the opcode classification from collectRegUseDef, but returns pointer refs
+    // This duplicates the opcode classification from collectRegUseDef but returns pointer refs
     // rather than values.
     void collectRegOperands(const MicroInstr& inst, Store& store, SmallVector<RegOperandRef, 8>& out)
     {
-        auto* ops = inst.ops(store);
-
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::End:
-            case MicroInstrOpcode::Enter:
-            case MicroInstrOpcode::Leave:
-            case MicroInstrOpcode::Ignore:
-            case MicroInstrOpcode::Label:
-            case MicroInstrOpcode::Debug:
-            case MicroInstrOpcode::LoadCallParam:
-            case MicroInstrOpcode::LoadCallAddrParam:
-            case MicroInstrOpcode::LoadCallZeroExtParam:
-            case MicroInstrOpcode::StoreCallParam:
-            case MicroInstrOpcode::Nop:
-            case MicroInstrOpcode::Ret:
-                break;
-
-            case MicroInstrOpcode::SymbolRelocAddr:
-            case MicroInstrOpcode::SymbolRelocValue:
-            case MicroInstrOpcode::LoadRegImm:
-            case MicroInstrOpcode::SetCondReg:
-            case MicroInstrOpcode::ClearReg:
-                // def(dst)
-                addOperand(out, &ops[0].reg, false, true);
-                break;
-
-            case MicroInstrOpcode::Push:
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::CmpRegImm:
-                // use(reg)
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::Pop:
-                // def(reg)
-                addOperand(out, &ops[0].reg, false, true);
-                break;
-
-            case MicroInstrOpcode::CallLocal:
-            case MicroInstrOpcode::CallExtern:
-                break;
-
-            case MicroInstrOpcode::CallIndirect:
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::JumpTable:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            case MicroInstrOpcode::PatchJump:
-                break;
-
-            case MicroInstrOpcode::LoadRegReg:
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-            case MicroInstrOpcode::LoadCondRegReg:
-                addOperand(out, &ops[0].reg, false, true);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-            case MicroInstrOpcode::LoadAddrRegMem:
-                addOperand(out, &ops[0].reg, false, true);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadAmcRegMem:
-            case MicroInstrOpcode::LoadAddrAmcRegMem:
-                addOperand(out, &ops[0].reg, false, true);
-                addOperand(out, &ops[1].reg, true, false);
-                addOperand(out, &ops[2].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadAmcMemReg:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                addOperand(out, &ops[2].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadAmcMemImm:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadMemReg:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::LoadMemImm:
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::CmpRegReg:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::CmpMemReg:
-                addOperand(out, &ops[0].reg, true, false);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::CmpMemImm:
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::OpUnaryMem:
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::OpUnaryReg:
-                addOperand(out, &ops[0].reg, true, true);
-                break;
-
-            case MicroInstrOpcode::OpBinaryRegReg:
-            {
-                const auto op = ops[3].microOp;
-                if (op == MicroOp::Exchange)
-                {
-                    addOperand(out, &ops[0].reg, true, true);
-                    addOperand(out, &ops[1].reg, true, true);
-                }
-                else
-                {
-                    addOperand(out, &ops[0].reg, true, true);
-                    addOperand(out, &ops[1].reg, true, false);
-                }
-                break;
-            }
-
-            case MicroInstrOpcode::OpBinaryRegImm:
-                addOperand(out, &ops[0].reg, true, true);
-                break;
-
-            case MicroInstrOpcode::OpBinaryRegMem:
-                addOperand(out, &ops[0].reg, true, true);
-                addOperand(out, &ops[1].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::OpBinaryMemReg:
-            {
-                const auto op = ops[3].microOp;
-                addOperand(out, &ops[0].reg, true, false);
-                if (op == MicroOp::Exchange)
-                    addOperand(out, &ops[1].reg, true, true);
-                else
-                    addOperand(out, &ops[1].reg, true, false);
-                break;
-            }
-
-            case MicroInstrOpcode::OpBinaryMemImm:
-                addOperand(out, &ops[0].reg, true, false);
-                break;
-
-            case MicroInstrOpcode::OpTernaryRegRegReg:
-            {
-                const auto op = ops[4].microOp;
-                if (op == MicroOp::CompareExchange)
-                {
-                    addOperand(out, &ops[0].reg, true, true);
-                    addOperand(out, &ops[1].reg, true, true);
-                    addOperand(out, &ops[2].reg, true, false);
-                }
-                else
-                {
-                    addOperand(out, &ops[0].reg, true, true);
-                    addOperand(out, &ops[1].reg, true, false);
-                    addOperand(out, &ops[2].reg, true, false);
-                }
-                break;
-            }
-
-            default:
-                SWC_ASSERT(false);
-                break;
-        }
+        const auto& opcodeInfo = getMicroInstrOpcodeInfo(inst.op);
+        auto*       ops        = inst.ops(store);
+        const auto  modes      = resolveRegModes(opcodeInfo.regInfo, ops);
+        collectRegOperandsFromModes(ops, modes, out);
     }
 }
 
@@ -494,9 +192,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     // Current live set while scanning backwards. Contains packed virt reg keys.
     std::unordered_set<uint32_t> live;
 
-    // -----------------------------
     // Reverse pass: build liveOut and record which vregs are live across calls.
-    // -----------------------------
     uint32_t idx = instructionCount;
     for (auto& inst : context.instructions->viewMutReverse())
     {
@@ -507,7 +203,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
         const auto info = collectRegUseDef(inst, store);
 
-        // If this instruction is a call, any currently-live vreg is live across a call site.
+        // If this instruction is a call, any currently live vreg is live across a call site.
         // Record that we must allocate it to a call-preserved register class (persistent pool).
         if (info.isCall)
         {
@@ -547,7 +243,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     SmallVector<MicroReg, 8>  freeFloatTransient;
     SmallVector<MicroReg, 8>  freeFloatPersistent;
 
-    // Initialize free lists by partitioning available regs into persistent vs transient pools.
+    // Initialize free lists by partitioning available regs into persistent vs. transient pools.
     for (const auto& reg : funcConv.intRegs)
     {
         if (intPersistentSet.contains(reg.packed))
@@ -583,8 +279,8 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     };
 
     // Allocate a physical register for a given virtual register key.
-    // If virtKey is live across any call, allocate from persistent pool (call-preserved).
-    // Otherwise prefer transient, falling back to persistent if transient is empty.
+    // If virtKey is live across any call, allocate from a persistent pool (call-preserved).
+    // Otherwise, prefer transient, falling back to persistent if transient is empty.
     auto allocatePhysical = [&](MicroReg virtReg, uint32_t virtKey) -> MicroReg {
         const bool needsPersistent = regCallMask.contains(virtKey);
 
@@ -633,9 +329,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     std::unordered_map<uint32_t, uint32_t> liveStamp;
     uint32_t                               stamp = 1;
 
-    // -----------------------------
     // Forward pass: rewrite operands from virtual regs to physical regs using liveOut.
-    // -----------------------------
     idx = 0;
     for (auto& inst : context.instructions->viewMut())
     {
@@ -651,7 +345,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         collectRegOperands(inst, context.operands->store(), regs);
 
         // Replace each virtual operand with its allocated physical reg.
-        // Allocation happens on first sight; subsequent uses reuse the mapping.
+        // Allocation happens at first sight; later uses reuse the mapping.
         for (auto& regRef : regs)
         {
             const auto reg = *regRef.reg;

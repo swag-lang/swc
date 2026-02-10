@@ -21,3 +21,16 @@
     var c: any = @mkany(&x, f32) // swc-expected-error {{sema_err_invalid_mkany_ptr}}
     var d: any = @mkany(cast(*void) &x, f32)
 }
+
+#test
+{
+    var y: f32
+    var p: *void = cast(*void) &y
+    var a: any = @mkany(p, f32)
+}
+
+#test
+{
+    var p: *s32
+    var a: any = @mkany(p, f32) // swc-expected-error {{sema_err_invalid_mkany_ptr}}
+}

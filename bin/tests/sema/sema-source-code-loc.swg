@@ -20,3 +20,10 @@ const B = #curlocation
     var c: Swag.SourceCodeLocation = #curlocation
     @assert(c.fileName != null)
 }
+
+#test
+{
+    const L = #curlocation
+    #assert(L.fileName == A.fileName)
+    #assert(L.lineStart > B.lineStart)
+}

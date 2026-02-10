@@ -14,3 +14,10 @@
     var v = @getcontext()
     #assert(#defined(v.panic))
 }
+
+#test
+{
+    var v = @getcontext()
+    var f = v.flags
+    var b = f & .ByteCode
+}

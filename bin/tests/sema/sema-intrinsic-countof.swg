@@ -31,3 +31,17 @@ namespace NS {}
     const d = @countof(c)
     #assert(d == 40)
 }
+
+#test
+{
+    var a: [2, 3, 4] u8
+    const b = @countof(a)
+    #assert(b == 24)
+}
+
+#test
+{
+    var a: [7] bool
+    const b = @countof(a)
+    #assert(b == 7)
+}

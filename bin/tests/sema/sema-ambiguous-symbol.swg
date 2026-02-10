@@ -30,3 +30,13 @@ namespace N
 {
     #assert(#nameof(N.Amb) == "Amb") // swc-expected-error {{sema_err_ambiguous_symbol}}
 }
+
+#test
+{
+    let p0 = #typeof(Amb) // swc-expected-error {{sema_err_ambiguous_symbol}}
+}
+
+#test
+{
+    let p1 = #typeof(N.Amb) // swc-expected-error {{sema_err_ambiguous_symbol}}
+}

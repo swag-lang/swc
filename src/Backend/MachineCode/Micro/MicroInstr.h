@@ -3,8 +3,6 @@
 #include "Backend/MachineCode/Micro/MicroTypes.h"
 #include "Support/Core/Store.h"
 
-#include <array>
-
 SWC_BEGIN_NAMESPACE();
 
 enum class MicroInstrRegMode : uint8_t
@@ -23,18 +21,13 @@ enum class MicroInstrRegSpecial : uint8_t
     OpTernaryRegRegReg,
 };
 
-struct MicroInstrRegInfo
+struct MicroInstrOpcodeInfo
 {
     std::array<MicroInstrRegMode, 3> regModes;
     MicroInstrRegSpecial             special       = MicroInstrRegSpecial::None;
     uint8_t                          microOpIndex  = 0;
     bool                             isCall        = false;
     uint8_t                          callConvIndex = 0;
-};
-
-struct MicroInstrOpcodeInfo
-{
-    MicroInstrRegInfo regInfo;
 };
 
 enum class MicroInstrOpcode : uint8_t

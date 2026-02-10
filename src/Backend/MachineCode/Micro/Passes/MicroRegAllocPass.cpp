@@ -52,7 +52,7 @@ namespace
         addDef(info, reg);
     }
 
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrRegInfo& info, const MicroInstrOperand* ops)
+    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrOpcodeInfo& info, const MicroInstrOperand* ops)
     {
         auto modes = info.regModes;
 
@@ -145,13 +145,13 @@ namespace
         const auto& opcodeInfo = MicroInstr::info(inst.op);
         const auto* ops        = inst.ops(store);
 
-        if (opcodeInfo.regInfo.isCall)
+        if (opcodeInfo.isCall)
         {
             info.isCall   = true;
-            info.callConv = ops[opcodeInfo.regInfo.callConvIndex].callConv;
+            info.callConv = ops[opcodeInfo.callConvIndex].callConv;
         }
 
-        const auto modes = resolveRegModes(opcodeInfo.regInfo, ops);
+        const auto modes = resolveRegModes(opcodeInfo, ops);
         collectRegUseDefFromModes(info, ops, modes);
         return info;
     }
@@ -163,7 +163,7 @@ namespace
     {
         const auto& opcodeInfo = MicroInstr::info(inst.op);
         auto*       ops        = inst.ops(store);
-        const auto  modes      = resolveRegModes(opcodeInfo.regInfo, ops);
+        const auto  modes      = resolveRegModes(opcodeInfo, ops);
         collectRegOperandsFromModes(ops, modes, out);
     }
 }

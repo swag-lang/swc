@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 

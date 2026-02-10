@@ -16,7 +16,9 @@ public:
     void        run(MicroInstrPassContext& context) override;
 
 private:
-    void encodeInstruction(Encoder& encoder, const MicroInstr& inst, Store& store, std::vector<MicroJump>& jumps, size_t idx);
+    void encodeInstruction(MicroInstrPassContext& context, const MicroInstr& inst, size_t idx);
+
+    std::vector<MicroJump> jumps_;
 };
 
 SWC_END_NAMESPACE();

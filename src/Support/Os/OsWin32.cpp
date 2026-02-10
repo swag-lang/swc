@@ -49,22 +49,11 @@ namespace Os
         }
     }
 
-    void assertBox(const char* expr, const char* file, int line)
-    {
-        char msg[2048];
-        SWC_ASSERT(std::strlen(expr) < 1024);
-
-        (void) snprintf(msg, sizeof(msg),
-                        "Assertion failed!\n\n"
-                        "File: %s\n"
-                        "Line: %d\n"
-                        "Expression: %s\n",
-                        file, line, expr);
-        panicBox(msg);
-    }
-
     void panicBox(const char* expr)
     {
+        std::println(stderr, "panic: {}", expr ? expr : "<null>");
+        (void) std::fflush(stderr);
+
         if (!hasCommandLineFlag(L"--devmode"))
             exit(ExitCode::PanicBox);
 

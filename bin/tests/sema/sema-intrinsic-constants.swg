@@ -15,3 +15,16 @@
     @assert(@countof(d) >= 0)
     @assert(e == @bytecode)
 }
+
+#test
+{
+    let a = @args
+    #assert(#typeof(a) == const [..] string)
+    @assert(@countof(a) >= 0)
+}
+
+#test
+{
+    let a = @pinfos.args
+    #assert(#typeof(a) == string)
+}

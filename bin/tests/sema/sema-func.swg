@@ -33,6 +33,29 @@ namespace NS {}
     F0(1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
+#test
+{
+    A()
+    B(10)
+    C(1, 2)
+    D(1)
+    D(1, 2)
+    F5(1)
+    F5(1, 2)
+    F6(1)
+    F6(1, 2)
+}
+
+#test
+{
+    F1(1.5) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    F5(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
+}
+
 func F0() {}
 func F1(x: s32) {}
 

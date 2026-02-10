@@ -40,3 +40,18 @@
     @assert(p[1] == 2'u8)
     @assert(p[2] == 3'u8)
 }
+
+#test
+{
+    var s: string = null
+    var p = @dataof(s)
+    #assert(#typeof(p) == const [*] u8)
+}
+
+#test
+{
+    var arr: [2] s32 = [1, 2]
+    var p = @dataof(arr)
+    p[0] = 7
+    @assert(arr[0] == 7)
+}

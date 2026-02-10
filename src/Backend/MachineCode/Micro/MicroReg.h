@@ -20,7 +20,8 @@ enum class MicroRegSpecial : uint8_t
 struct MicroReg
 {
     static constexpr uint32_t K_KIND_SHIFT = 24;
-    static constexpr uint32_t K_INDEX_MASK = 0x00FFFFFFu;
+    static constexpr uint32_t K_INDEX_MASK = 0x00FFFFFF;
+    static constexpr uint32_t K_MAX_INDEX  = K_INDEX_MASK;
 
     uint32_t packed = 0;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/MachineCode/CallConv.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,6 +14,7 @@ struct MicroPassContext
     Encoder*                       encoder      = nullptr;
     TypedStore<MicroInstr>*        instructions = nullptr;
     TypedStore<MicroInstrOperand>* operands     = nullptr;
+    CallConvKind                   callConvKind = CallConvKind::C;
 };
 
 class MicroPass

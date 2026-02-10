@@ -8,7 +8,8 @@ enum class MicroRegKind : uint8_t
     Int,
     Float,
     Special,
-    Virtual,
+    VirtualInt,
+    VirtualFloat,
 };
 
 enum class MicroRegSpecial : uint8_t
@@ -37,7 +38,9 @@ struct MicroReg
     constexpr bool isValid() const { return kind() != MicroRegKind::Invalid; }
     constexpr bool isInt() const { return kind() == MicroRegKind::Int; }
     constexpr bool isFloat() const { return kind() == MicroRegKind::Float; }
-    constexpr bool isVirtual() const { return kind() == MicroRegKind::Virtual; }
+    constexpr bool isVirtualInt() const { return kind() == MicroRegKind::VirtualInt; }
+    constexpr bool isVirtualFloat() const { return kind() == MicroRegKind::VirtualFloat; }
+    constexpr bool isVirtual() const { return isVirtualInt() || isVirtualFloat(); }
 
     constexpr bool isSpecial() const { return kind() == MicroRegKind::Special; }
     constexpr bool isInstructionPointer() const { return isSpecial() && index() == static_cast<uint32_t>(MicroRegSpecial::InstructionPointer); }
@@ -46,7 +49,9 @@ struct MicroReg
     static constexpr MicroReg invalid() { return MicroReg(MicroRegKind::Invalid, 0); }
     static constexpr MicroReg intReg(uint32_t index) { return MicroReg(MicroRegKind::Int, index); }
     static constexpr MicroReg floatReg(uint32_t index) { return MicroReg(MicroRegKind::Float, index); }
-    static constexpr MicroReg virtualReg(uint32_t index) { return MicroReg(MicroRegKind::Virtual, index); }
+    static constexpr MicroReg virtualReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualInt, index); }
+    static constexpr MicroReg virtualIntReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualInt, index); }
+    static constexpr MicroReg virtualFloatReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualFloat, index); }
     static constexpr MicroReg instructionPointer() { return MicroReg(MicroRegKind::Special, static_cast<uint32_t>(MicroRegSpecial::InstructionPointer)); }
     static constexpr MicroReg noBase() { return MicroReg(MicroRegKind::Special, static_cast<uint32_t>(MicroRegSpecial::NoBase)); }
 

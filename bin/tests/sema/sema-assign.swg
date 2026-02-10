@@ -20,8 +20,8 @@
 
 #test
 {
-    const a = 10
-    a = 20 // swc-expected-error {{sema_err_assign_to_const}}
+    const A = 10
+    A = 20 // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test

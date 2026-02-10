@@ -1,9 +1,9 @@
 #global internal
 
-const a: s32 = 1
-const b: bool = cast() a
-const c: bool = a // swc-expected-error {{sema_err_cannot_cast}}
-#assert(b == true)
+const A: s32 = 1
+const B: bool = cast() A
+const C: bool = A // swc-expected-error {{sema_err_cannot_cast}}
+#assert(B == true)
 
 func toto(ptr: *u32) {}
 func takes_s32(v: s32) {}
@@ -30,9 +30,9 @@ func takes_s32(v: s32) {}
 
 #test
 {
-    const b: bool = true
-    const s: s32 = cast() b
-    #assert(s == 1)
+    const B: bool = true
+    const S: s32 = cast() B
+    #assert(S == 1)
 }
 
 #test

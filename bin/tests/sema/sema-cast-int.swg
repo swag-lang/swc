@@ -41,21 +41,21 @@ func takes_s32(v: s32) {}
 
 #test
 {
-    const a: u64 = 255
-    const b: u8 = a
-    #assert(b == 255'u8)
+    const A: u64 = 255
+    const B: u8 = A
+    #assert(B == 255'u8)
 }
 
 #test
 {
-    const a: u64 = 256
-    const b: u8 = a // swc-expected-error {{sema_err_literal_overflow}}
+    const A: u64 = 256
+    const B: u8 = A // swc-expected-error {{sema_err_literal_overflow}}
 }
 
 #test
 {
-    const a: s32 = -1
-    const b: u8 = a // swc-expected-error {{sema_err_signed_unsigned}}
+    const A: s32 = -1
+    const B: u8 = A // swc-expected-error {{sema_err_signed_unsigned}}
 }
 
 #test

@@ -19,8 +19,8 @@ func takes_f64(v: f64) {}
 
 #test
 {
-    const a: u64 = 10
-    const b: f32 = a // swc-expected-error {{sema_err_cannot_cast}}
+    const A: u64 = 10
+    const B: f32 = A // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

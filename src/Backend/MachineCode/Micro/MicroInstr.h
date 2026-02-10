@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/CallConv.h"
+#include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroTypes.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
@@ -86,10 +87,10 @@ struct MicroInstrOperand
 
 struct MicroInstrUseDef
 {
-    SmallVector<MicroReg, 6> uses;
-    SmallVector<MicroReg, 3> defs;
-    bool                     isCall   = false;
-    CallConvKind             callConv = CallConvKind::C;
+    SmallVector4<MicroReg> uses;
+    SmallVector4<MicroReg> defs;
+    bool                   isCall   = false;
+    CallConvKind           callConv = CallConvKind::C;
 
     void addUse(MicroReg reg);
     void addDef(MicroReg reg);
@@ -110,23 +111,12 @@ struct MicroInstr
     EncodeFlags      emitFlags   = EncodeFlagsE::Zero;
     uint8_t          numOperands = 0;
 
-    MicroInstrOperand* ops(PagedStore& store) const
-    {
-        if (!numOperands)
-            return nullptr;
-        return store.ptr<MicroInstrOperand>(opsRef);
-    }
-
-    const MicroInstrOperand* ops(const PagedStore& store) const
-    {
-        if (!numOperands)
-            return nullptr;
-        return store.ptr<MicroInstrOperand>(opsRef);
-    }
+    MicroInstrOperand*       ops(PagedStore& store) const;
+    const MicroInstrOperand* ops(const PagedStore& storeOps) const;
+    MicroInstrUseDef         collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const;
+    void                     collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrOpcodeInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
-    static MicroInstrUseDef                      collectUseDef(const MicroInstr& inst, const PagedStore& store, const Encoder* encoder);
-    static void                                  collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder);
 };
 
 SWC_END_NAMESPACE();

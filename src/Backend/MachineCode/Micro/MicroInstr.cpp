@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Backend/MachineCode/Encoder/Encoder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -108,35 +108,47 @@ namespace
     }
 }
 
-MicroInstrUseDef MicroInstr::collectUseDef(const MicroInstr& inst, const PagedStore& store, const Encoder* encoder)
+MicroInstrOperand* MicroInstr::ops(PagedStore& store) const
 {
-    MicroInstrUseDef info;
+    if (!numOperands)
+        return nullptr;
+    return store.ptr<MicroInstrOperand>(opsRef);
+}
 
-    const auto& opcodeInfo = MicroInstr::info(inst.op);
-    const auto* ops        = inst.ops(store);
+const MicroInstrOperand* MicroInstr::ops(const PagedStore& storeOps) const
+{
+    if (!numOperands)
+        return nullptr;
+    return storeOps.ptr<MicroInstrOperand>(opsRef);
+}
 
+MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const
+{
+    const MicroInstrOpcodeInfo& opcodeInfo = info(op);
+    const MicroInstrOperand*    ops        = this->ops(storeOps);
+
+    MicroInstrUseDef useDef;
     if (opcodeInfo.isCall)
     {
-        info.isCall   = true;
-        info.callConv = ops[opcodeInfo.callConvIndex].callConv;
+        useDef.isCall   = true;
+        useDef.callConv = ops[opcodeInfo.callConvIndex].callConv;
     }
 
     const auto modes = resolveRegModes(opcodeInfo, ops);
-    collectRegUseDefFromModes(info, ops, modes);
+    collectRegUseDefFromModes(useDef, ops, modes);
 
     if (encoder)
-        encoder->updateRegUseDef(inst, ops, info);
+        encoder->updateRegUseDef(*this, ops, useDef);
 
-    return info;
+    return useDef;
 }
 
-void MicroInstr::collectRegOperands(const MicroInstr& inst, PagedStore& store, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder* encoder)
+void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef, 8>& out, const Encoder*) const
 {
-    const auto& opcodeInfo = MicroInstr::info(inst.op);
-    auto*       ops        = inst.ops(store);
-    const auto  modes      = resolveRegModes(opcodeInfo, ops);
+    const MicroInstrOpcodeInfo& opcodeInfo = info(op);
+    MicroInstrOperand*          ops        = this->ops(storeOps);
+    const auto                  modes      = resolveRegModes(opcodeInfo, ops);
     collectRegOperandsFromModes(ops, modes, out);
-    (void) encoder;
 }
 
 SWC_END_NAMESPACE();

@@ -42,7 +42,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Snapshot current live set as live-out of this instruction.
         liveOut[idx].assign(live.begin(), live.end());
 
-        const auto info = MicroInstr::collectUseDef(inst, store, context.encoder);
+        const MicroInstrUseDef info = inst.collectUseDef(store, context.encoder);
 
         // If this instruction is a call, any currently live vreg is live across a call site.
         // Record that we must allocate it to a call-preserved register class (persistent pool).
@@ -183,7 +183,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
         // Collect all register operands in this instruction for in-place rewriting.
         SmallVector<MicroInstrRegOperandRef, 8> regs;
-        MicroInstr::collectRegOperands(inst, context.operands->store(), regs, context.encoder);
+        inst.collectRegOperands(context.operands->store(), regs, context.encoder);
 
         // Replace each virtual operand with its allocated physical reg.
         // Allocation happens at first sight; later uses reuse the mapping.

@@ -101,3 +101,6 @@ struct S1 { y: S0 }
     var e: NonCyclicEnum = .NCE_B
     @assert(e == NonCyclicEnum.NCE_B)
 }
+
+struct Empty {}
+const A0: Empty = {}

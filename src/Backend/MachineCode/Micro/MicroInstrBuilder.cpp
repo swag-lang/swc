@@ -478,9 +478,9 @@ EncodeResult MicroInstrBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg
     return EncodeResult::Zero;
 }
 
-void MicroInstrBuilder::runPasses(MicroInstrPassManager& passes, Encoder* encoder)
+void MicroInstrBuilder::runPasses(MicroInstrPassManager& passes, Encoder* encoder, MicroInstrPassContext& context)
 {
-    passes.run(encoder);
+    passes.run(context, instructions_, operands_, encoder);
 }
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/MicroInstrEncodePass.h"
+#include "Support/Core/TypedStore.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -15,12 +16,6 @@ namespace
         return valueA;
     }
 
-}
-
-MicroInstrEncodePass::MicroInstrEncodePass(TypedStore<MicroInstr>& instructions, TypedStore<MicroInstrOperand>& operands) :
-    instructions_(instructions),
-    operands_(operands)
-{
 }
 
 void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr& inst, Store& store, std::vector<MicroJump>& jumps, size_t idx)
@@ -198,21 +193,22 @@ void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr&
     }
 }
 
-void MicroInstrEncodePass::run(Encoder* encoder)
+void MicroInstrEncodePass::run(MicroInstrPassContext& context)
 {
-    SWC_ASSERT(encoder);
-    const uint32_t instructionCount = instructions_.count();
+    SWC_ASSERT(context.encoder);
+    SWC_ASSERT(context.instructions);
+    SWC_ASSERT(context.operands);
+    const uint32_t         instructionCount = context.instructions->count();
     std::vector<MicroJump> jumps;
     jumps.resize(instructionCount);
 
     size_t idx = 0;
-    for (const auto& inst : instructions_.view())
+    for (const auto& inst : context.instructions->view())
     {
-        if (idx >= instructionCount)
-            break;
+        SWC_ASSERT(idx < instructionCount);
         if (inst.op == MicroInstrOpcode::End)
             break;
-        encodeInstruction(*encoder, inst, operands_.store(), jumps, idx);
+        encodeInstruction(*context.encoder, inst, context.operands->store(), jumps, idx);
         ++idx;
     }
 }

@@ -6,6 +6,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class MicroInstrPassManager;
+struct MicroInstrPassContext;
 
 class MicroInstrBuilder
 {
@@ -23,12 +24,12 @@ public:
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 
-    TypedStore<MicroInstr>&        instructions() { return instructions_; }
-    const TypedStore<MicroInstr>&  instructions() const { return instructions_; }
-    TypedStore<MicroInstrOperand>& operands() { return operands_; }
+    TypedStore<MicroInstr>&              instructions() { return instructions_; }
+    const TypedStore<MicroInstr>&        instructions() const { return instructions_; }
+    TypedStore<MicroInstrOperand>&       operands() { return operands_; }
     const TypedStore<MicroInstrOperand>& operands() const { return operands_; }
 
-    void runPasses(MicroInstrPassManager& passes, Encoder* encoder);
+    void runPasses(MicroInstrPassManager& passes, Encoder* encoder, MicroInstrPassContext& context);
 
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags);
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags);

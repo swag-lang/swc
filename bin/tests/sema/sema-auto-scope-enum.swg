@@ -31,6 +31,13 @@ func toto()->A { return .R }
 
 }
 
+#test
+{
+    let x: A = .B
+    let y = x | .R
+    @assert(y == 5)
+}
+
 enum AA { R = 1, G = 2, B = 4 }
 struct E {}
 struct F
@@ -44,4 +51,11 @@ impl E
     {
         let a = f.x == .R
     }
+}
+
+#test
+{
+    var f: F
+    f.x = .G
+    let a = f.x == .G
 }

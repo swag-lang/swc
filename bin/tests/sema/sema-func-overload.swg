@@ -28,3 +28,21 @@ impl S
     s.foo(10)
     s.foo("a") // swc-expected-error {{sema_err_no_overload_match}}
 }
+
+#test
+{
+    var s: S
+    S.foo(&s)
+    S.foo(&s, 10)
+}
+
+#test
+{
+    var s: S
+    S.foo(s, "a") // swc-expected-error {{sema_err_no_overload_match}}
+}
+
+#test
+{
+    A(1.0) // swc-expected-error {{sema_err_no_overload_match}}
+}

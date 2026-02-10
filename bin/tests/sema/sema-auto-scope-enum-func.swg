@@ -49,3 +49,15 @@ impl Vec2
 {
     let r1 = overload(1.0, .C) // swc-expected-error {{sema_err_no_overload_match}}
 }
+
+#test
+{
+    let r2 = overload(1's32, OverA.A)
+    #assert(#typeof(r2) == s32)
+}
+
+#test
+{
+    let r3 = fct(1.0, .A)
+    #assert(#typeof(r3) == f32)
+}

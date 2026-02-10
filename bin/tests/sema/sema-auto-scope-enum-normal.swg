@@ -17,3 +17,15 @@ enum A { R, G, B }
 {
     let y = .C // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
 }
+
+#test
+{
+    let x: A = .G
+    let y = x != .R
+}
+
+#test
+{
+    let x: A = .B
+    let y = x == .B
+}

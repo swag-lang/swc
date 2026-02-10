@@ -23,6 +23,21 @@ enum Color {
 
 #test
 {
+    var c = Color.Red
+    #[Swag.Complete]
+    switch (c)
+    {
+        case Color.Blue:
+            break
+        case Color.Red:
+            break
+        case Color.Green:
+            break
+    }
+}
+
+#test
+{
     var c = Color.Green
     #[Swag.Complete]
     switch (c) // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}

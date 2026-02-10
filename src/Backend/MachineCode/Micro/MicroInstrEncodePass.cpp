@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/MicroInstrEncodePass.h"
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -18,7 +17,13 @@ namespace
 
 }
 
-void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr& inst, const Store& store, size_t idx)
+MicroInstrEncodePass::MicroInstrEncodePass(TypedStore<MicroInstr>& instructions, TypedStore<MicroInstrOperand>& operands) :
+    instructions_(instructions),
+    operands_(operands)
+{
+}
+
+void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr& inst, Store& store, std::vector<MicroJump>& jumps, size_t idx)
 {
     const auto* ops = inst.ops(store);
     switch (inst.op)
@@ -74,19 +79,19 @@ void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr&
         {
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].jumpType, ops[1].opBits, inst.emitFlags);
-            jump.valid  = true;
-            jumps_[idx] = jump;
+            jump.valid = true;
+            jumps[idx] = jump;
             break;
         }
         case MicroInstrOpcode::PatchJump:
         {
             const size_t jumpIndex = resolveJumpIndex(ops[0].valueU64);
-            SWC_ASSERT(jumpIndex < jumps_.size());
-            SWC_ASSERT(jumps_[jumpIndex].valid);
+            SWC_ASSERT(jumpIndex < jumps.size());
+            SWC_ASSERT(jumps[jumpIndex].valid);
             if (ops[2].valueU64 == 1)
-                encoder.encodePatchJump(jumps_[jumpIndex], ops[1].valueU64, inst.emitFlags);
+                encoder.encodePatchJump(jumps[jumpIndex], ops[1].valueU64, inst.emitFlags);
             else
-                encoder.encodePatchJump(jumps_[jumpIndex], inst.emitFlags);
+                encoder.encodePatchJump(jumps[jumpIndex], inst.emitFlags);
             break;
         }
         case MicroInstrOpcode::JumpCondImm:
@@ -193,24 +198,21 @@ void MicroInstrEncodePass::encodeInstruction(Encoder& encoder, const MicroInstr&
     }
 }
 
-void MicroInstrEncodePass::run(MicroInstrBuilder& builder, Encoder* encoder)
+void MicroInstrEncodePass::run(Encoder* encoder)
 {
     SWC_ASSERT(encoder);
-    const auto&    instructions     = builder.instructions();
-    const auto&    operands         = builder.operands();
-    const uint32_t instructionCount = instructions.count();
-
-    SWC_ASSERT(jumps_.empty());
-    jumps_.resize(instructionCount);
+    const uint32_t instructionCount = instructions_.count();
+    std::vector<MicroJump> jumps;
+    jumps.resize(instructionCount);
 
     size_t idx = 0;
-    for (const auto& inst : instructions.view())
+    for (const auto& inst : instructions_.view())
     {
         if (idx >= instructionCount)
             break;
         if (inst.op == MicroInstrOpcode::End)
             break;
-        encodeInstruction(*encoder, inst, operands.store(), idx);
+        encodeInstruction(*encoder, inst, operands_.store(), jumps, idx);
         ++idx;
     }
 }

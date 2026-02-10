@@ -480,7 +480,7 @@ EncodeResult MicroInstrBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg
 
 void MicroInstrBuilder::runPasses(MicroInstrPassManager& passes, Encoder* encoder)
 {
-    passes.run(*this, encoder);
+    passes.run(encoder);
 }
 
 SWC_END_NAMESPACE();

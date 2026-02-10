@@ -8,12 +8,12 @@ void MicroInstrPassManager::add(MicroInstrPass& pass)
     passes_.push_back(&pass);
 }
 
-void MicroInstrPassManager::run(MicroInstrBuilder& builder, Encoder* encoder)
+void MicroInstrPassManager::run(Encoder* encoder)
 {
     for (auto* pass : passes_)
     {
         SWC_ASSERT(pass);
-        pass->run(builder, encoder);
+        pass->run(encoder);
     }
 }
 

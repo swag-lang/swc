@@ -21,7 +21,6 @@ enum class EncodeFlagsE : uint8_t
 };
 using EncodeFlags = EnumFlags<EncodeFlagsE>;
 
-
 enum class EncodeResult : uint32_t
 {
     Zero,
@@ -115,4 +114,3 @@ protected:
 };
 
 SWC_END_NAMESPACE();
-

@@ -81,16 +81,16 @@ struct MicroInstrOperand
 {
     union
     {
-        IdentifierRef   name;
-        CallConvKind    callConv;
-        MicroReg        reg;
-        MicroOpBits     opBits;
-        MicroCond       cpuCond;
-        MicroCondJump   jumpType;
-        MicroOp         microOp;
-        uint32_t        valueU32;
-        int32_t         valueI32;
-        uint64_t        valueU64;
+        IdentifierRef name;
+        CallConvKind  callConv;
+        MicroReg      reg;
+        MicroOpBits   opBits;
+        MicroCond     cpuCond;
+        MicroCondJump jumpType;
+        MicroOp       microOp;
+        uint32_t      valueU32;
+        int32_t       valueI32;
+        uint64_t      valueU64;
     };
 
     MicroInstrOperand() :
@@ -136,4 +136,3 @@ struct MicroInstr
 };
 
 SWC_END_NAMESPACE();
-

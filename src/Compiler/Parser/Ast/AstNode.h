@@ -1,5 +1,4 @@
 #pragma once
-#include <span>
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
 #include "Support/Core/PagedStore.h"

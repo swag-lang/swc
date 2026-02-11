@@ -27,10 +27,9 @@ enum class NodeSemaKind : uint16_t
 
 enum class NodeSemaFlags : uint16_t
 {
-    LValue    = 1 << 14,
-    Value     = 1 << 15,
+    LValue = 1 << 14,
+    Value  = 1 << 15,
 };
-
 
 class SemaContext
 {

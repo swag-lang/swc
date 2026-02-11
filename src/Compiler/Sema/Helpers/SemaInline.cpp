@@ -243,10 +243,10 @@ namespace
     }
 }
 
-#define SWC_INLINE_CLONE_LITERAL(__type)                                                                                                       \
-    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding>) const                                \
-    {                                                                                                                                         \
-        return sema.ast().makeNode<AstNodeId::__type>(tokRef()).first;                                                                       \
+#define SWC_INLINE_CLONE_LITERAL(__type)                                                                     \
+    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding>) const \
+    {                                                                                                        \
+        return sema.ast().makeNode<AstNodeId::__type>(tokRef()).first;                                       \
     }
 
 SWC_INLINE_CLONE_LITERAL(BoolLiteral)
@@ -263,12 +263,12 @@ SWC_INLINE_CLONE_LITERAL(IntrinsicValue)
 
 #undef SWC_INLINE_CLONE_LITERAL
 
-#define SWC_INLINE_CLONE_UNARY(__type)                                                                                                         \
-    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const                       \
-    {                                                                                                                                          \
-        auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::__type>(tokRef());                                                            \
-        newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, bindings);                                                                       \
-        return newRef;                                                                                                                         \
+#define SWC_INLINE_CLONE_UNARY(__type)                                                                                \
+    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const \
+    {                                                                                                                 \
+        auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::__type>(tokRef());                                     \
+        newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, bindings);                                               \
+        return newRef;                                                                                                \
     }
 
 SWC_INLINE_CLONE_UNARY(ParenExpr)

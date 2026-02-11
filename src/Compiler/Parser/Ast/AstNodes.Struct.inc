@@ -162,7 +162,7 @@ struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 {
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -360,7 +360,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -379,7 +379,7 @@ struct AstQuotedExpr : AstNodeT<AstNodeId::QuotedExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeSuffixRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeSuffixRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeSuffixRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -399,14 +399,14 @@ struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 // -----------------------------------------------------------------------------
 struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -437,7 +437,7 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
 
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -447,8 +447,8 @@ struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeArgRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -462,7 +462,7 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
         AstNode::collectChildren(out, {nodeExprRef});
         AstCompoundT::collectChildren(out, ast);
     }
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -476,8 +476,8 @@ struct AstNamedArgument : AstNodeT<AstNodeId::NamedArgument>
 {
     AstNodeRef nodeArgRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -486,8 +486,8 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -504,15 +504,15 @@ struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 // -----------------------------------------------------------------------------
 struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
-    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -521,8 +521,8 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
-    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -531,8 +531,8 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -542,8 +542,8 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -554,8 +554,8 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     AstNodeRef nodeTrueRef;
     AstNodeRef nodeFalseRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -565,57 +565,57 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -623,13 +623,13 @@ struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 {
     static Result semaPreNode(Sema& sema);
-    AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
+    AstNodeRef    semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -646,14 +646,14 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 // -----------------------------------------------------------------------------
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 {
-    Result semaPostNode(Sema& sema);
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -669,8 +669,8 @@ struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAu
 {
     AstNodeRef nodeIdentRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -686,8 +686,8 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -697,7 +697,7 @@ struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -707,7 +707,7 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -717,8 +717,8 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -729,8 +729,8 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
     AstNodeRef       nodeTypeRef;
     AstNodeRef       nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -739,7 +739,7 @@ struct AstImplicitCastExpr : AstNodeT<AstNodeId::ImplicitCastExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -1118,7 +1118,7 @@ struct AstVarDeclList : AstCompoundT<AstNodeId::VarDeclList>
 struct AstUndefinedExpr : AstNodeT<AstNodeId::UndefinedExpr>
 {
     static Result semaPreNode(Sema& sema);
-    AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
+    AstNodeRef    semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
 struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
@@ -1136,7 +1136,7 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -1349,7 +1349,7 @@ struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -1358,7 +1358,7 @@ struct AstDiscardExpr : AstNodeT<AstNodeId::DiscardExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -1433,8 +1433,8 @@ struct AstRangeExpr : AstNodeT<AstNodeId::RangeExpr, AstRangeExprFlagsE>
     AstNodeRef nodeExprDownRef;
     AstNodeRef nodeExprUpRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprDownRef, nodeExprUpRef}); }
-    Result semaPostNode(Sema& sema);
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprDownRef, nodeExprUpRef}); }
+    Result     semaPostNode(Sema& sema);
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 
@@ -1443,8 +1443,8 @@ struct AstCountOfExpr : AstNodeT<AstNodeId::CountOfExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaInlineCloneExpr(Sema& sema, std::span<const SemaInline::ParamBinding> bindings) const;
 };
 

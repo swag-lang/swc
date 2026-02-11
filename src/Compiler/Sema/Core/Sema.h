@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/SemaContext.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaScope.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -117,6 +118,7 @@ public:
     bool             enteringState() const { return visit_.enteringState(); }
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);

@@ -219,9 +219,8 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
 
         case TokenId::CompilerOs:
         {
-            const TypeRef typeRef = sema.typeMgr().enumTargetOs();
-            if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TargetOs), codeRef());
+            TypeRef typeRef = TypeRef::invalid();
+            RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
@@ -236,9 +235,8 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerCallerLocation:
         case TokenId::CompilerCurLocation:
         {
-            const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
-            if (typeRef.isInvalid())
-                return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), codeRef());
+            TypeRef typeRef = TypeRef::invalid();
+            RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
             sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, *this));
             break;
         }
@@ -459,9 +457,8 @@ namespace
 
     Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)
     {
-        const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
-        if (typeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), node.codeRef());
+        TypeRef typeRef = TypeRef::invalid();
+        RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, node.codeRef()));
 
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);

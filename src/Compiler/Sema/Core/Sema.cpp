@@ -226,6 +226,32 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     return Result::Pause;
 }
 
+Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef)
+{
+    if (typeRef.isInvalid())
+    {
+        switch (name)
+        {
+            case IdentifierManager::PredefinedName::TargetOs:
+                typeRef = typeMgr().enumTargetOs();
+                break;
+            case IdentifierManager::PredefinedName::SourceCodeLocation:
+                typeRef = typeMgr().structSourceCodeLocation();
+                break;
+            case IdentifierManager::PredefinedName::TypeInfo:
+                typeRef = typeMgr().structTypeInfo();
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    if (typeRef.isValid())
+        return Result::Continue;
+
+    return waitIdentifier(idMgr().predefined(name), codeRef);
+}
+
 Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
     TaskState& wait = ctx().state();

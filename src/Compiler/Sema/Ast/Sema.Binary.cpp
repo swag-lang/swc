@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantFold.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -16,190 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        auto&       ctx         = sema.ctx();
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
-
-        const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
-
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-        const TypeInfo&      type     = leftCst.type(sema.ctx());
-
-        // Wrap and promote modifiers can only be applied to integers
-        if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
-        {
-            if (!type.isInt())
-            {
-                const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-                const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-                auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
-                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-        }
-
-        if (type.isFloat())
-        {
-            auto val1 = leftCst.getFloat();
-            switch (op)
-            {
-                case TokenId::SymPlus:
-                    val1.add(rightCst.getFloat());
-                    break;
-                case TokenId::SymMinus:
-                    val1.sub(rightCst.getFloat());
-                    break;
-                case TokenId::SymAsterisk:
-                    val1.mul(rightCst.getFloat());
-                    break;
-                case TokenId::SymSlash:
-                    val1.div(rightCst.getFloat());
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.payloadFloatBits()));
-            return Result::Continue;
-        }
-
-        if (type.isInt())
-        {
-            ApsInt val1 = leftCst.getInt();
-            ApsInt val2 = rightCst.getInt();
-
-            const bool wrap     = node.modifierFlags.has(AstModifierFlagsE::Wrap);
-            bool       overflow = false;
-
-            if (type.isIntUnsized())
-            {
-                val1.setSigned(true);
-                val2.setSigned(true);
-            }
-
-            switch (op)
-            {
-                case TokenId::SymPlus:
-                    val1.add(val2, overflow);
-                    break;
-                case TokenId::SymMinus:
-                    val1.sub(val2, overflow);
-                    break;
-                case TokenId::SymAsterisk:
-                    val1.mul(val2, overflow);
-                    break;
-
-                case TokenId::SymSlash:
-                    val1.div(val2, overflow);
-                    break;
-
-                case TokenId::SymPercent:
-                    val1.mod(val2, overflow);
-                    break;
-
-                case TokenId::SymAmpersand:
-                    val1.bitwiseAnd(val2);
-                    break;
-                case TokenId::SymPipe:
-                    val1.bitwiseOr(val2);
-                    break;
-                case TokenId::SymCircumflex:
-                    val1.bitwiseXor(val2);
-                    break;
-
-                case TokenId::SymGreaterGreater:
-                    if (val2.isNegative())
-                    {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
-                        diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                        diag.report(sema.ctx());
-                        return Result::Error;
-                    }
-
-                    if (!val2.fits64())
-                        overflow = true;
-                    else
-                        val1.shiftRight(val2.asI64());
-                    break;
-
-                case TokenId::SymLowerLower:
-                    if (val2.isNegative())
-                    {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
-                        diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                        diag.report(sema.ctx());
-                        return Result::Error;
-                    }
-
-                    if (!val2.fits64())
-                        overflow = true;
-                    else
-                        val1.shiftLeft(val2.asI64(), overflow);
-                    overflow = false;
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-            if (!wrap && type.payloadIntBits() != 0 && overflow)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node);
-                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
-                diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
-            return Result::Continue;
-        }
-
-        return Result::Error;
-    }
-
-    Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        auto& ctx = sema.ctx();
-        Utf8  str = nodeLeftView.cst->toString(ctx);
-        str += nodeRightView.cst->toString(ctx);
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
-        return Result::Continue;
-    }
-
-    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
-    {
-        switch (op)
-        {
-            case TokenId::SymPlusPlus:
-                return constantFoldPlusPlus(sema, result, node, nodeLeftView, nodeRightView);
-
-            case TokenId::SymPlus:
-            case TokenId::SymMinus:
-            case TokenId::SymAsterisk:
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-            case TokenId::SymAmpersand:
-            case TokenId::SymPipe:
-            case TokenId::SymCircumflex:
-            case TokenId::SymGreaterGreater:
-            case TokenId::SymLowerLower:
-                return constantFoldOp(sema, result, op, node, nodeLeftView, nodeRightView);
-
-            default:
-                break;
-        }
-
-        return Result::Error;
-    }
-
     Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)
     {
         RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
@@ -268,7 +85,7 @@ namespace
         if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
         {
             ConstantRef result;
-            RESULT_VERIFY(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
+            RESULT_VERIFY(ConstantFold::binary(sema, result, op, node, nodeLeftView, nodeRightView));
             sema.setConstant(sema.curNodeRef(), result);
             return Result::Continue;
         }
@@ -334,29 +151,10 @@ namespace
         return Result::Continue;
     }
 
-    Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
-    {
-        switch (op)
-        {
-            case TokenId::SymSlash:
-            case TokenId::SymPercent:
-                if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
-                if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
-                break;
-
-            default:
-                break;
-        }
-
-        return Result::Continue;
-    }
-
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef.isValid())
-            RESULT_VERIFY(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
+            RESULT_VERIFY(ConstantFold::checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
         switch (op)
         {

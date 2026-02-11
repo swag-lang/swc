@@ -197,6 +197,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Compiler\\Sema\\Constant\\ConstantEval.cpp"/>
+        <ClCompile Include="src\Compiler\\Sema\\Constant\\ConstantFold.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaIntrinsic.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
@@ -347,6 +348,7 @@
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h"/>
         <ClInclude Include="src\Compiler\\Sema\\Constant\\ConstantEval.h"/>
+        <ClInclude Include="src\Compiler\\Sema\\Constant\\ConstantFold.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>

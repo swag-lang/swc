@@ -228,27 +228,9 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
 
 Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef)
 {
-    if (typeRef.isInvalid())
-    {
-        switch (name)
-        {
-            case IdentifierManager::PredefinedName::TargetOs:
-                typeRef = typeMgr().enumTargetOs();
-                break;
-            case IdentifierManager::PredefinedName::SourceCodeLocation:
-                typeRef = typeMgr().structSourceCodeLocation();
-                break;
-            case IdentifierManager::PredefinedName::TypeInfo:
-                typeRef = typeMgr().structTypeInfo();
-                break;
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
+    typeRef = typeMgr().runtimeType(name);
     if (typeRef.isValid())
         return Result::Continue;
-
     return waitIdentifier(idMgr().predefined(name), codeRef);
 }
 

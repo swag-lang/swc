@@ -6,40 +6,61 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    constexpr auto makePredefinedRuntimeMap()
+    {
+        using Pn                                                        = IdentifierManager::PredefinedName;
+        std::array<RuntimeTypeKind, static_cast<size_t>(Pn::Count)> map = {};
+        map.fill(RuntimeTypeKind::Count);
+        map[static_cast<size_t>(Pn::TargetOs)]           = RuntimeTypeKind::TargetOs;
+        map[static_cast<size_t>(Pn::TypeInfoKind)]       = RuntimeTypeKind::TypeInfoKind;
+        map[static_cast<size_t>(Pn::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;
+        map[static_cast<size_t>(Pn::TypeInfoFlags)]      = RuntimeTypeKind::TypeInfoFlags;
+        map[static_cast<size_t>(Pn::TypeValueFlags)]     = RuntimeTypeKind::TypeValueFlags;
+        map[static_cast<size_t>(Pn::TypeInfo)]           = RuntimeTypeKind::TypeInfo;
+        map[static_cast<size_t>(Pn::TypeInfoNative)]     = RuntimeTypeKind::TypeInfoNative;
+        map[static_cast<size_t>(Pn::TypeInfoPointer)]    = RuntimeTypeKind::TypeInfoPointer;
+        map[static_cast<size_t>(Pn::TypeInfoStruct)]     = RuntimeTypeKind::TypeInfoStruct;
+        map[static_cast<size_t>(Pn::TypeInfoFunc)]       = RuntimeTypeKind::TypeInfoFunc;
+        map[static_cast<size_t>(Pn::TypeInfoEnum)]       = RuntimeTypeKind::TypeInfoEnum;
+        map[static_cast<size_t>(Pn::TypeInfoArray)]      = RuntimeTypeKind::TypeInfoArray;
+        map[static_cast<size_t>(Pn::TypeInfoSlice)]      = RuntimeTypeKind::TypeInfoSlice;
+        map[static_cast<size_t>(Pn::TypeInfoAlias)]      = RuntimeTypeKind::TypeInfoAlias;
+        map[static_cast<size_t>(Pn::TypeInfoVariadic)]   = RuntimeTypeKind::TypeInfoVariadic;
+        map[static_cast<size_t>(Pn::TypeInfoGeneric)]    = RuntimeTypeKind::TypeInfoGeneric;
+        map[static_cast<size_t>(Pn::TypeInfoNamespace)]  = RuntimeTypeKind::TypeInfoNamespace;
+        map[static_cast<size_t>(Pn::TypeInfoCodeBlock)]  = RuntimeTypeKind::TypeInfoCodeBlock;
+        map[static_cast<size_t>(Pn::TypeValue)]          = RuntimeTypeKind::TypeValue;
+        map[static_cast<size_t>(Pn::Attribute)]          = RuntimeTypeKind::Attribute;
+        map[static_cast<size_t>(Pn::AttributeParam)]     = RuntimeTypeKind::AttributeParam;
+        map[static_cast<size_t>(Pn::Interface)]          = RuntimeTypeKind::Interface;
+        map[static_cast<size_t>(Pn::SourceCodeLocation)] = RuntimeTypeKind::SourceCodeLocation;
+        map[static_cast<size_t>(Pn::ErrorValue)]         = RuntimeTypeKind::ErrorValue;
+        map[static_cast<size_t>(Pn::ScratchAllocator)]   = RuntimeTypeKind::ScratchAllocator;
+        map[static_cast<size_t>(Pn::Context)]            = RuntimeTypeKind::Context;
+        map[static_cast<size_t>(Pn::ContextFlags)]       = RuntimeTypeKind::ContextFlags;
+        map[static_cast<size_t>(Pn::Module)]             = RuntimeTypeKind::Module;
+        map[static_cast<size_t>(Pn::ProcessInfos)]       = RuntimeTypeKind::ProcessInfos;
+        map[static_cast<size_t>(Pn::Gvtd)]               = RuntimeTypeKind::Gvtd;
+        map[static_cast<size_t>(Pn::BuildCfg)]           = RuntimeTypeKind::BuildCfg;
+        return map;
+    }
+
+    constexpr auto PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
+}
+
 void TypeManager::setup(TaskContext& ctx)
 {
-    const auto& idMgr                                                                   = ctx.idMgr();
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TargetOs)]           = RuntimeTypeKind::TargetOs;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoKind)]       = RuntimeTypeKind::TypeInfoKind;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoFlags)]      = RuntimeTypeKind::TypeInfoFlags;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeValueFlags)]     = RuntimeTypeKind::TypeValueFlags;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfo)]           = RuntimeTypeKind::TypeInfo;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoNative)]     = RuntimeTypeKind::TypeInfoNative;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoPointer)]    = RuntimeTypeKind::TypeInfoPointer;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoStruct)]     = RuntimeTypeKind::TypeInfoStruct;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoFunc)]       = RuntimeTypeKind::TypeInfoFunc;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoEnum)]       = RuntimeTypeKind::TypeInfoEnum;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoArray)]      = RuntimeTypeKind::TypeInfoArray;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoSlice)]      = RuntimeTypeKind::TypeInfoSlice;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoAlias)]      = RuntimeTypeKind::TypeInfoAlias;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoVariadic)]   = RuntimeTypeKind::TypeInfoVariadic;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoGeneric)]    = RuntimeTypeKind::TypeInfoGeneric;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoNamespace)]  = RuntimeTypeKind::TypeInfoNamespace;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeInfoCodeBlock)]  = RuntimeTypeKind::TypeInfoCodeBlock;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::TypeValue)]          = RuntimeTypeKind::TypeValue;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Attribute)]          = RuntimeTypeKind::Attribute;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::AttributeParam)]     = RuntimeTypeKind::AttributeParam;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Interface)]          = RuntimeTypeKind::Interface;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::SourceCodeLocation)] = RuntimeTypeKind::SourceCodeLocation;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::ErrorValue)]         = RuntimeTypeKind::ErrorValue;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::ScratchAllocator)]   = RuntimeTypeKind::ScratchAllocator;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Context)]            = RuntimeTypeKind::Context;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::ContextFlags)]       = RuntimeTypeKind::ContextFlags;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Module)]             = RuntimeTypeKind::Module;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::ProcessInfos)]       = RuntimeTypeKind::ProcessInfos;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Gvtd)]               = RuntimeTypeKind::Gvtd;
-    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::BuildCfg)]           = RuntimeTypeKind::BuildCfg;
+    const auto& idMgr = ctx.idMgr();
+    for (size_t i = 0; i < PREDEFINED_RUNTIME_MAP.size(); ++i)
+    {
+        const auto kind = PREDEFINED_RUNTIME_MAP[i];
+        if (kind == RuntimeTypeKind::Count)
+            continue;
+        const auto name                    = static_cast<IdentifierManager::PredefinedName>(i);
+        mapRtKind_[idMgr.predefined(name)] = kind;
+    }
 
     for (auto& rt : runtimeTypes_)
         rt = TypeRef::invalid();
@@ -259,6 +280,14 @@ TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
 {
     std::shared_lock lk(mutexRt_);
     return runtimeTypes_[static_cast<uint32_t>(kind)];
+}
+
+TypeRef TypeManager::runtimeType(IdentifierManager::PredefinedName name) const
+{
+    const auto kind = PREDEFINED_RUNTIME_MAP[static_cast<size_t>(name)];
+    if (kind == RuntimeTypeKind::Count)
+        return TypeRef::invalid();
+    return runtimeType(kind);
 }
 
 TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const

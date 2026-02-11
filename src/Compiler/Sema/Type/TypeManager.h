@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -95,6 +96,7 @@ public:
     bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
     void    registerRuntimeType(IdentifierRef idRef, TypeRef typeRef);
     TypeRef runtimeType(RuntimeTypeKind kind) const;
+    TypeRef runtimeType(IdentifierManager::PredefinedName name) const;
 
     TypeRef structTypeInfo() const { return runtimeType(RuntimeTypeKind::TypeInfo); }
     TypeRef structTypeInfoNative() const { return runtimeType(RuntimeTypeKind::TypeInfoNative); }

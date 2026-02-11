@@ -47,7 +47,7 @@ namespace
 
     Result raiseInvalidIntrinsicArg(Sema& sema, const SymbolFunction& fn, AstNodeRef argRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_intrinsic_invalid_argument, argRef);
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_intrinsic_invalid_argument, argRef);
         diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;

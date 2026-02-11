@@ -27,6 +27,8 @@
     const W: f64 = @muladd(2.0'f32, 3.0'f32, 4.0'f32)
     const X: f64 = @min(1.0, 2.0'f32)
     const Y: f64 = @max(1.0, 2.0'f32)
+    const Z: f64 = @min(1.0'f64, 2.0'f64)
+    const AA: f64 = @max(1.0'f64, 2.0'f64)
     #assert(A == 2.0)
     #assert(B == 0.0)
     #assert(C == 1.0)
@@ -52,6 +54,8 @@
     #assert(W == 10.0)
     #assert(X == 1.0)
     #assert(Y == 2.0)
+    #assert(Z == 1.0)
+    #assert(AA == 2.0)
 }
 
 #test
@@ -73,6 +77,58 @@
 #test
 {
     const C: f64 = @asin(2.0'f32)  // swc-expected-error {{sema_err_intrinsic_invalid_argument}}
+}
+
+#test
+{
+    const A: s8 = @min(1's8, 2's8)
+    const B: s8 = @max(1's8, 2's8)
+    #assert(A == 1)
+    #assert(B == 2)
+    const C: s16 = @min(-3's16, 7's16)
+    const D: s16 = @max(-3's16, 7's16)
+    #assert(C == -3)
+    #assert(D == 7)
+    const E: s32 = @min(1's32, 2's32)
+    const F: s32 = @max(1's32, 2's32)
+    #assert(E == 1)
+    #assert(F == 2)
+}
+
+#test
+{
+    const A: s64 = @min(-5's64, 3's64)
+    const B: s64 = @max(-5's64, 3's64)
+    #assert(A == -5)
+    #assert(B == 3)
+}
+
+#test
+{
+    const A: u32 = @min(10'u32, 20'u32)
+    const B: u32 = @max(10'u32, 20'u32)
+    #assert(A == 10'u32)
+    #assert(B == 20'u32)
+}
+
+#test
+{
+    const A: u8 = @min(1'u8, 2'u8)
+    const B: u8 = @max(1'u8, 2'u8)
+    #assert(A == 1'u8)
+    #assert(B == 2'u8)
+    const C: u16 = @min(3'u16, 1'u16)
+    const D: u16 = @max(3'u16, 1'u16)
+    #assert(C == 1'u16)
+    #assert(D == 3'u16)
+}
+
+#test
+{
+    const A: u64 = @min(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
+    const B: u64 = @max(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
+    #assert(A == 1'u64)
+    #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
 }
 
 #test

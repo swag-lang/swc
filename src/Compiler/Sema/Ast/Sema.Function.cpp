@@ -176,6 +176,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    sym.setPure(!sema.hasNonArgRef(sema.curNodeRef()));
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

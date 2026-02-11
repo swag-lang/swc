@@ -27,9 +27,14 @@ enum class NodeSemaKind : uint16_t
 
 enum class NodeSemaFlags : uint16_t
 {
-    LValue = 1 << 14,
-    Value  = 1 << 15,
+    NonArgRef = 1 << 12,
+    Pure      = 1 << 13,
+    LValue    = 1 << 14,
+    Value     = 1 << 15,
 };
+
+constexpr uint16_t SEMA_CHILD_FLAGS_MASK = static_cast<uint16_t>(NodeSemaFlags::Pure) |
+                                           static_cast<uint16_t>(NodeSemaFlags::NonArgRef);
 
 class SemaContext
 {
@@ -86,7 +91,7 @@ protected:
     void  setPayload(AstNodeRef nodeRef, void* payload);
     void* getPayload(AstNodeRef nodeRef) const;
 
-    static void inheritSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc);
+    static void propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
     static void inheritSema(AstNode& nodeDst, const AstNode& nodeSrc);
 

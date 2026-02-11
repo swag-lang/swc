@@ -16,6 +16,7 @@ enum class SymbolFunctionFlagsE : uint8_t
     Throwable = 1 << 2,
     Const     = 1 << 3,
     Empty     = 1 << 4,
+    Pure      = 1 << 5,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -45,6 +46,8 @@ public:
     bool       isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool       isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool       isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool       isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
+    void       setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 

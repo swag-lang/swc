@@ -7,6 +7,8 @@
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -57,6 +59,24 @@ namespace
         // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
+
+    bool isParameterSymbol(const SymbolFunction* func, const Symbol* sym)
+    {
+        if (!func || !sym || !sym->isVariable())
+            return false;
+
+        const auto* var = sym->safeCast<SymbolVariable>();
+        if (!var)
+            return false;
+
+        for (const auto* param : func->parameters())
+        {
+            if (param == var)
+                return true;
+        }
+
+        return false;
+    }
 }
 
 Result AstIdentifier::semaPostNode(Sema& sema) const
@@ -80,7 +100,27 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         return sema.waitCompilerDefined(idRef, codeRef());
     RESULT_VERIFY(ret);
 
-    return checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols());
+    RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+
+    const SymbolFunction* func = sema.frame().currentFunction();
+    if (!func || !sema.hasSymbolList(sema.curNodeRef()))
+        return Result::Continue;
+
+    const auto symbols = sema.getSymbolList(sema.curNodeRef());
+    for (const auto* sym : symbols)
+    {
+        if (!sym)
+            continue;
+        if (sym->isConstant() || sym->isEnumValue())
+            continue;
+        if (isParameterSymbol(func, sym))
+            continue;
+
+        sema.setHasNonArgRef(sema.curNodeRef());
+        break;
+    }
+
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

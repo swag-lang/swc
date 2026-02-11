@@ -122,6 +122,7 @@ void SemaContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRef(ref.get());
     addSemaFlags(node, NodeSemaFlags::Value);
+    addSemaFlags(node, NodeSemaFlags::Pure);
 }
 
 bool SemaContext::hasSubstitute(AstNodeRef nodeRef) const
@@ -395,10 +396,12 @@ void* SemaContext::getPayload(AstNodeRef nodeRef) const
     return *shard.store.ptr<void*>(node.semaRef());
 }
 
-void SemaContext::inheritSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc)
+void SemaContext::propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
-    constexpr uint16_t mask = SEMA_FLAGS_MASK;
-    nodeDst.semaBits()      = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+    if (merge)
+        nodeDst.semaBits() |= (nodeSrc.semaBits() & mask);
+    else
+        nodeDst.semaBits() = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
 }
 
 void SemaContext::inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
@@ -410,7 +413,7 @@ void SemaContext::inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 
 void SemaContext::inheritSema(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    inheritSemaFlags(nodeDst, nodeSrc);
+    propagateSemaFlags(nodeDst, nodeSrc, SEMA_FLAGS_MASK, false);
     inheritSemaKindRef(nodeDst, nodeSrc);
 }
 

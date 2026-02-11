@@ -41,6 +41,7 @@ enum class RuntimeTypeKind : uint32_t
     Module,
     ProcessInfos,
     Gvtd,
+    BuildCfg,
     Count
 };
 
@@ -119,6 +120,7 @@ public:
     TypeRef structModule() const { return runtimeType(RuntimeTypeKind::Module); }
     TypeRef structProcessInfos() const { return runtimeType(RuntimeTypeKind::ProcessInfos); }
     TypeRef structGvtd() const { return runtimeType(RuntimeTypeKind::Gvtd); }
+    TypeRef structBuildCfg() const { return runtimeType(RuntimeTypeKind::BuildCfg); }
 
     TypeRef enumContextFlags() const { return runtimeType(RuntimeTypeKind::ContextFlags); }
     TypeRef enumTargetOs() const { return runtimeType(RuntimeTypeKind::TargetOs); }

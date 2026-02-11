@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 #include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -2258,7 +2260,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && genOptions_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
                 return EncodeResult::Zero;
@@ -2305,7 +2307,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && genOptions_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
                 return EncodeResult::Zero;
@@ -2578,7 +2580,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && genOptions_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
                 return EncodeResult::Zero;
@@ -2625,7 +2627,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && genOptions_.optLevel >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
                 return EncodeResult::Zero;
@@ -2858,7 +2860,8 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, 
 
 EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)
 {
-    const auto [offsetTableConstant, addrConstant] = genOptions_.module->constantSegment.reserveSpan<uint32_t>(numEntries);
+    auto& module = ctx().compiler().module();
+    const auto [offsetTableConstant, addrConstant] = module.constantSegment.reserveSpan<uint32_t>(numEntries);
     emitLoadSymRelocAddress(tableReg, symCsIndex_, offsetTableConstant);
 
     // 'movsxd' table, dword ptr [table + offset*4]
@@ -2872,7 +2875,7 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     const auto endIdx = store_.size();
     *patchPtr += endIdx - startIdx;
 
-    const auto tableCompiler = genOptions_.module->compilerSegment.ptr<int32_t>(offsetTable);
+    const auto tableCompiler = module.compilerSegment.ptr<int32_t>(offsetTable);
     const auto currentOffset = static_cast<int32_t>(store_.size());
 
     EncoderJumpLabel label;

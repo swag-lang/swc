@@ -39,6 +39,7 @@ void TypeManager::setup(TaskContext& ctx)
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Module)]             = RuntimeTypeKind::Module;
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::ProcessInfos)]       = RuntimeTypeKind::ProcessInfos;
     mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::Gvtd)]               = RuntimeTypeKind::Gvtd;
+    mapRtKind_[idMgr.predefined(IdentifierManager::PredefinedName::BuildCfg)]           = RuntimeTypeKind::BuildCfg;
 
     for (auto& rt : runtimeTypes_)
         rt = TypeRef::invalid();

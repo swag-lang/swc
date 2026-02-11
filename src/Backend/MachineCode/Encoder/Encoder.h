@@ -1,5 +1,4 @@
 #pragma once
-#include "Backend/CodeGenOptions.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Encoder/EncoderTypes.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
@@ -120,7 +119,6 @@ protected:
     PagedStore                 store_;
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
-    CodeGenOptions             genOptions_;
     EncoderFunction*           cpuFct_ = nullptr;
     std::vector<EncoderSymbol> symbols_;
 };

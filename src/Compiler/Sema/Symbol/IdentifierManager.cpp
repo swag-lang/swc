@@ -100,6 +100,7 @@ void IdentifierManager::setup(TaskContext&)
         {.name = PredefinedName::Module, .str = "Module"},
         {.name = PredefinedName::ProcessInfos, .str = "ProcessInfos"},
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
+        {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)

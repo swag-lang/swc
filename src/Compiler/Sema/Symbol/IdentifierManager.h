@@ -96,6 +96,7 @@ public:
         Module,
         ProcessInfos,
         Gvtd,
+        BuildCfg,
         Count,
     };
 

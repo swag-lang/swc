@@ -7,7 +7,7 @@ class Sema;
 class SymbolFunction;
 struct SemaNodeView;
 
-namespace ConstantIntrinsic
+namespace SemaIntrinsic
 {
     Result tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args);
 };

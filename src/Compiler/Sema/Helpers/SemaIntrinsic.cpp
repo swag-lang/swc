@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
+#include "Compiler/Sema/Helpers/SemaIntrinsic.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -54,7 +54,7 @@ namespace
     }
 }
 
-Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
+Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
 {
     const Token& tok = sema.token(selectedFn.codeRef());
 

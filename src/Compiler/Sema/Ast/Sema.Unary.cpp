@@ -364,13 +364,16 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             return semaTakeAddress(sema, *this, nodeView);
         case TokenId::SymBang:
             return semaBang(sema, *this, nodeView);
-
         case TokenId::KwdMoveRef:
             return semaMoveRef(sema, nodeView);
-        default:
-            // TODO
+        case TokenId::SymPlus:
+        case TokenId::SymMinus:
+        case TokenId::SymTilde:
             sema.setType(sema.curNodeRef(), nodeView.typeRef);
             break;
+
+        default:
+            SWC_INTERNAL_ERROR(sema.ctx());
     }
 
     return Result::Continue;

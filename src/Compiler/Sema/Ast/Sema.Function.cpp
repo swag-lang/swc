@@ -6,7 +6,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaIntrinsic.h"
+#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -100,7 +100,7 @@ namespace
             currentFunc->markImpure();
 
         if (tryIntrinsicFold)
-            RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
+            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
 
         return Result::Continue;
     }

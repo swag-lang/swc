@@ -98,7 +98,18 @@ namespace
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
         if (auto* currentFunc = sema.frame().currentFunction())
-            currentFunc->markImpure();
+        {
+            bool markImpure = true;
+            if (tryIntrinsicFold)
+            {
+                const auto tokId = sema.token(sym.codeRef()).id;
+                if (Token::isPureIntrinsic(tokId))
+                    markImpure = false;
+            }
+
+            if (markImpure)
+                currentFunc->markImpure();
+        }
 
         if (tryIntrinsicFold)
         {

@@ -123,9 +123,6 @@
     <ClCompile Include="src\Sema\Type\TypeGen.Layout.cpp" />
     <ClCompile Include="src\Sema\Type\TypeGen.Payload.cpp" />
     <ClCompile Include="src\Sema\Type\TypeGen.Process.cpp" />
-    <ClCompile Include="src\Compiler\\Sema\\Constant\\ConstantEval.cpp" />
-    <ClCompile Include="src\Compiler\\Sema\\Constant\\ConstantIntrinsic.cpp" />
-    <ClCompile Include="src\Compiler\\Sema\\Constant\\ConstantFold.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h" />
@@ -242,9 +239,6 @@
     <ClInclude Include="src\Sema\Symbol\Symbol.Struct.h" />
     <ClInclude Include="src\Sema\Symbol\Symbol.Variable.h" />
     <ClInclude Include="src\Sema\Type\TypeGen.h" />
-    <ClInclude Include="src\Compiler\\Sema\\Constant\\ConstantEval.h" />
-    <ClInclude Include="src\Compiler\\Sema\\Constant\\ConstantIntrinsic.h" />
-    <ClInclude Include="src\Compiler\\Sema\\Constant\\ConstantFold.h" />
   </ItemGroup>
 </Project>
 

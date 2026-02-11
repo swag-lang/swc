@@ -2,12 +2,11 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantEval.h"
-#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -98,18 +97,10 @@ namespace
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
         if (auto* currentFunc = sema.frame().currentFunction())
-        {
-            bool markImpure = true;
-            if (tryIntrinsicFold && ConstantIntrinsic::isPureIntrinsic(sema, sym.cast<SymbolFunction>()))
-                markImpure = false;
-            if (markImpure)
-                currentFunc->markImpure();
-        }
+            currentFunc->markImpure();
 
         if (tryIntrinsicFold)
             RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
-
-        RESULT_VERIFY(ConstantEval::tryConstantFoldPureCall(sema, sym.cast<SymbolFunction>(), args, ufcsArg));
 
         return Result::Continue;
     }

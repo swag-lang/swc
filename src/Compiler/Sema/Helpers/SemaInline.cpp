@@ -188,27 +188,27 @@ namespace
     }
 }
 
-bool SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
     if (!fn.isPure())
-        return false;
+        return Result::Continue;
     if (fn.isClosure() || fn.isEmpty())
-        return false;
+        return Result::Continue;
     if (hasVariadicParam(sema, fn))
-        return false;
+        return Result::Continue;
 
     const AstNodeRef srcExprRef = inlineExprRef(sema, fn);
     if (srcExprRef.isInvalid())
-        return false;
+        return Result::Continue;
 
     SmallVector<SemaClone::ParamBinding> bindings;
     if (!mapArguments(sema, fn, args, ufcsArg, bindings))
-        return false;
+        return Result::Continue;
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
     const AstNodeRef              inlinedRef = SemaClone::cloneExpr(sema, srcExprRef, cloneContext);
     if (inlinedRef.isInvalid())
-        return false;
+        return Result::Continue;
 
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
@@ -222,7 +222,7 @@ bool SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunct
         if (Cast::cast(sema, inlineView, fn.returnTypeRef(), CastKind::Implicit) == Result::Continue)
             finalRef = inlineView.nodeRef;
         else
-            return false;
+            return Result::Continue;
     }
 
     if (sema.hasConstant(finalRef) && shouldExposeConstantResult(sema))
@@ -230,7 +230,7 @@ bool SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunct
     else
         sema.setSubstitute(callRef, makeRuntimeInlineResultNode(sema, callRef, finalRef, fn.returnTypeRef()));
 
-    return true;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

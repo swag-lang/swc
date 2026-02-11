@@ -8,7 +8,7 @@ class Sema;
 
 namespace SemaInline
 {
-    bool tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
+    Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
 }
 
 SWC_END_NAMESPACE();

@@ -117,7 +117,7 @@ namespace
         }
         else
         {
-            SemaInline::tryInlineCall(sema, sema.curNodeRef(), sym.cast<SymbolFunction>(), args, ufcsArg);
+            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), sym.cast<SymbolFunction>(), args, ufcsArg));
         }
 
         return Result::Continue;

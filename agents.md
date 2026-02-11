@@ -1,6 +1,9 @@
 ## Hard Rules
 
 - After any change, always run a full compile and full test; if either fails, fix it.
+- If you have written a new feature, write new tests in Sema/ that cover it:
+    - Verify expected successful behavior.
+    - Verify expected failures by asserting the correct errors are raised.
 
 ## Build Instructions (Windows only)
 
@@ -27,10 +30,6 @@
   ```
 
 ## Test Authoring Rules
-
-- If you add a new feature, add new tests that cover it:
-    - Verify expected successful behavior.
-    - Verify expected failures by asserting the correct errors are raised.
 
 - Only one 'swc-expected-error' is possible per #test block (what follows will be skipped)
 - Write tests using the existing test framework and patterns.

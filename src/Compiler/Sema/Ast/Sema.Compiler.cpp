@@ -481,7 +481,9 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
             return semaCompilerAlignOf(sema, *this);
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
-
+        case TokenId::CompilerForeignLib:
+            return Result::SkipChildren;
+            
         case TokenId::CompilerGetTag:
         case TokenId::CompilerHasTag:
         case TokenId::CompilerDeclType:
@@ -490,7 +492,6 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerSafety:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
-        case TokenId::CompilerForeignLib:
         case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
             // TODO

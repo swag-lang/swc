@@ -11,6 +11,41 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isPureIntrinsicToken(TokenId id)
+    {
+        switch (id)
+        {
+            case TokenId::IntrinsicMin:
+            case TokenId::IntrinsicMax:
+            case TokenId::IntrinsicSqrt:
+            case TokenId::IntrinsicSin:
+            case TokenId::IntrinsicCos:
+            case TokenId::IntrinsicTan:
+            case TokenId::IntrinsicSinh:
+            case TokenId::IntrinsicCosh:
+            case TokenId::IntrinsicTanh:
+            case TokenId::IntrinsicASin:
+            case TokenId::IntrinsicACos:
+            case TokenId::IntrinsicATan:
+            case TokenId::IntrinsicLog:
+            case TokenId::IntrinsicLog2:
+            case TokenId::IntrinsicLog10:
+            case TokenId::IntrinsicFloor:
+            case TokenId::IntrinsicCeil:
+            case TokenId::IntrinsicTrunc:
+            case TokenId::IntrinsicRound:
+            case TokenId::IntrinsicAbs:
+            case TokenId::IntrinsicExp:
+            case TokenId::IntrinsicExp2:
+            case TokenId::IntrinsicATan2:
+            case TokenId::IntrinsicPow:
+            case TokenId::IntrinsicMulAdd:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, ConstantRef argCst, double& out)
     {
         SemaNodeView argView(sema, argRef);
@@ -219,7 +254,7 @@ namespace
 bool ConstantIntrinsic::isPureIntrinsic(Sema& sema, const SymbolFunction& selectedFn)
 {
     const Token& tok = sema.token(selectedFn.codeRef());
-    return Token::isPureIntrinsic(tok.id);
+    return isPureIntrinsicToken(tok.id);
 }
 
 Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)

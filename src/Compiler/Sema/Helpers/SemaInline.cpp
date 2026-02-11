@@ -212,7 +212,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
-    inlineSema.exec();
+    const JobResult inlineResult = inlineSema.exec();
+    if (inlineResult == JobResult::Sleep)
+        return Result::Pause;
     sema.ctx().state() = saved;
 
     AstNodeRef finalRef = inlinedRef;

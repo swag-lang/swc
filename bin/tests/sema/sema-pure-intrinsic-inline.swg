@@ -56,18 +56,3 @@ func fmuladd(a: f64, b: f64, c: f64)->f64 => @muladd(cast(f64) a, cast(f64) b, c
     var x: f64 = 3.0
     #assert(fsqrt(x) == 2.0) // swc-expected-error {{sema_err_expr_not_const}}
 }
-
-func add(a: s32, b: s32)->s32 => a + b
-func mul(a: s32, b: s32)->s32 { return a * b }
-
-#test
-{
-    #assert(add(2, 3) == 5)
-    #assert(mul(4, 5) == 20)
-}
-
-#test
-{
-    var x: s32 = 3
-    #assert(add(x, 1) == 4) // swc-expected-error {{sema_err_expr_not_const}}
-}

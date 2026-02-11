@@ -113,8 +113,8 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
-    const Token&         tok      = sema.token(codeRef());
-    const SemaNodeView   argView(sema, nodeArgRef);
+    const Token&       tok = sema.token(codeRef());
+    const SemaNodeView argView(sema, nodeArgRef);
     SWC_ASSERT(argView.cst);
     const ConstantValue& constant = *argView.cst;
     switch (tok.id)

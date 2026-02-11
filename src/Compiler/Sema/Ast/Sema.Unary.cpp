@@ -35,7 +35,7 @@ namespace
         // @MinusLiteralSuffix
         if (nodeView.node->is(AstNodeId::SuffixLiteral))
         {
-            result = sema.constantRefOf(nodeView.nodeRef);
+            result = nodeView.cstRef;
             return Result::Continue;
         }
 
@@ -348,7 +348,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 
     // Constant folding
-    if (sema.hasConstant(nodeView.nodeRef))
+    if (nodeView.cstRef.isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeView));

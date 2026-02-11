@@ -10,12 +10,14 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
-    auto&         ctx     = sema.ctx();
-    const TypeRef typeRef = sema.typeRefOf(nodeSuffixRef);
+    auto&              ctx = sema.ctx();
+    const SemaNodeView suffixView(sema, nodeSuffixRef);
+    const TypeRef      typeRef = suffixView.typeRef;
 
-    SWC_ASSERT(sema.hasConstant(nodeLiteralRef));
+    SemaNodeView nodeLiteralView(sema, nodeLiteralRef);
+    SWC_ASSERT(nodeLiteralView.cstRef.isValid());
 
-    ConstantRef cstRef = sema.constantRefOf(nodeLiteralRef);
+    ConstantRef cstRef = nodeLiteralView.cstRef;
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
@@ -46,7 +48,6 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
-    SemaNodeView nodeLiteralView(sema, nodeLiteralRef);
     nodeLiteralView.setCstRef(sema, cstRef);
     RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
     sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef);

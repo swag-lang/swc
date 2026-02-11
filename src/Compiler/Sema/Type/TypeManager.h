@@ -1,6 +1,6 @@
 #pragma once
-#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();

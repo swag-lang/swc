@@ -145,7 +145,12 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         // A 'default' with a 'where' clause is only considered an unconditional default if the
         // where clause is a constant 'true'. Otherwise, it behaves like a conditional default
         // and does not participate in duplicate-default checks.
-        const bool isUnconditionalDefault = nodeWhereRef.isInvalid() || sema.constantRefOf(nodeWhereRef) == sema.cstMgr().cstTrue();
+        bool isUnconditionalDefault = nodeWhereRef.isInvalid();
+        if (!isUnconditionalDefault)
+        {
+            const SemaNodeView whereView(sema, nodeWhereRef);
+            isUnconditionalDefault = whereView.cstRef == sema.cstMgr().cstTrue();
+        }
         if (!isUnconditionalDefault)
             return Result::Continue;
 
@@ -227,7 +232,8 @@ namespace
         // if the where clause if a 'true' constant.
         if (whereRef.isValid())
         {
-            if (!sema.hasConstant(whereRef) || sema.constantRefOf(whereRef) != sema.cstMgr().cstTrue())
+            const SemaNodeView whereView(sema, whereRef);
+            if (whereView.cstRef.isInvalid() || whereView.cstRef != sema.cstMgr().cstTrue())
                 return Result::Continue;
         }
 

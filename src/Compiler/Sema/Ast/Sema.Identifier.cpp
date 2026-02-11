@@ -63,7 +63,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 {
     // Can be forced to false in case of an identifier inside a #defined
     // @CompilerNotDefined
-    if (sema.hasConstant(sema.curNodeRef()))
+    const SemaNodeView nodeView(sema, sema.curNodeRef());
+    if (nodeView.cstRef.isValid())
         return Result::Continue;
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());

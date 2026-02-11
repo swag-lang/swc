@@ -13,7 +13,6 @@ namespace
 {
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
     {
-        argRef = sema.getSubstituteRef(argRef);
         const SemaNodeView argView(sema, argRef);
         if (!argView.cstRef.isValid())
             return false;
@@ -65,10 +64,8 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         {
             SWC_ASSERT(args.size() == 2);
 
-            const AstNodeRef   aRef = sema.getSubstituteRef(args[0]);
-            const AstNodeRef   bRef = sema.getSubstituteRef(args[1]);
-            const SemaNodeView aView(sema, aRef);
-            const SemaNodeView bView(sema, bRef);
+            const SemaNodeView aView(sema, args[0]);
+            const SemaNodeView bView(sema, args[1]);
             if (!aView.cstRef.isValid() || !bView.cstRef.isValid())
                 return Result::Continue;
 

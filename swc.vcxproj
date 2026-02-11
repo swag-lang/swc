@@ -196,6 +196,7 @@
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
@@ -434,6 +435,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>

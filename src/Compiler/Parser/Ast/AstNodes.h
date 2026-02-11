@@ -334,7 +334,7 @@ struct AstNodeIdInfo
     using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
     using SemaErrorCleanup   = void (*)(Sema&, AstNode&, AstNodeRef);
-    using SemaInlineClone    = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
+    using SemaClone          = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
 
     AstCollectChildren collectChildren;
 
@@ -348,7 +348,7 @@ struct AstNodeIdInfo
     SemaPostNodeChild semaPostNodeChild;
     SemaPostNode      semaPostNode;
     SemaErrorCleanup  semaErrorCleanup;
-    SemaInlineClone   semaInlineClone;
+    SemaClone         semaClone;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -426,7 +426,7 @@ void semaErrorCleanup(Sema& sema, AstNode& node, AstNodeRef nodeRef)
 }
 
 template<AstNodeId ID>
-AstNodeRef semaInlineClone(Sema& sema, AstNode& node, const CloneContext& cloneContext)
+AstNodeRef semaClone(Sema& sema, AstNode& node, const CloneContext& cloneContext)
 {
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>()->semaClone(sema, cloneContext);
@@ -446,7 +446,7 @@ constexpr std::array AST_NODE_ID_INFOS = {
                                           &semaPostNodeChild<AstNodeId::__enum>, \
                                           &semaPostNode<AstNodeId::__enum>,      \
                                           &semaErrorCleanup<AstNodeId::__enum>,  \
-                                          &semaInlineClone<AstNodeId::__enum>},
+                                          &semaClone<AstNodeId::__enum>},
 #include "Compiler/Parser/Ast/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF

@@ -48,7 +48,6 @@ namespace
 
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, ConstantRef argCst, double& out)
     {
-        argRef = sema.getSubstituteRef(argRef);
         SemaNodeView argView(sema, argRef);
         if (argCst.isValid())
             argView.setCstRef(sema, argCst);
@@ -102,10 +101,8 @@ namespace
             {
                 SWC_ASSERT(args.size() == 2);
 
-                const AstNodeRef   aRef = sema.getSubstituteRef(args[0]);
-                const AstNodeRef   bRef = sema.getSubstituteRef(args[1]);
-                SemaNodeView       aView(sema, aRef);
-                SemaNodeView       bView(sema, bRef);
+                SemaNodeView       aView(sema, args[0]);
+                SemaNodeView       bView(sema, args[1]);
                 const ConstantRef  aCstArg = useCst ? argCsts[0] : ConstantRef::invalid();
                 const ConstantRef  bCstArg = useCst ? argCsts[1] : ConstantRef::invalid();
                 if (aCstArg.isValid())

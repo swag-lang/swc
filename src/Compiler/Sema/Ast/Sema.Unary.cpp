@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantFold.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -14,6 +13,123 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
+    {
+        auto& ctx = sema.ctx();
+
+        if (nodeView.type->isInt())
+        {
+            ApsInt value = nodeView.cst->getInt();
+            value.setUnsigned(true);
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
+            return Result::Continue;
+        }
+
+        result = nodeView.cstRef;
+        return Result::Continue;
+    }
+
+    Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
+    {
+        // In the case of a literal with a suffix, it has already been done
+        // @MinusLiteralSuffix
+        if (nodeView.node->is(AstNodeId::SuffixLiteral))
+        {
+            result = nodeView.cstRef;
+            return Result::Continue;
+        }
+
+        auto& ctx = sema.ctx();
+        if (nodeView.type->isInt())
+        {
+            ApsInt value = nodeView.cst->getInt();
+
+            bool overflow = false;
+            value.negate(overflow);
+            if (overflow)
+                return SemaError::raiseLiteralOverflow(sema, nodeView.nodeRef, *nodeView.cst, nodeView.typeRef);
+
+            value.setUnsigned(false);
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Signed));
+            return Result::Continue;
+        }
+
+        if (nodeView.type->isFloat())
+        {
+            ApFloat value = nodeView.cst->getFloat();
+            value.negate();
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, nodeView.type->payloadFloatBits()));
+            return Result::Continue;
+        }
+
+        return Result::Error;
+    }
+
+    Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
+    {
+        const auto& cstMgr = sema.cstMgr();
+
+        if (nodeView.cst->isBool())
+        {
+            result = cstMgr.cstNegBool(nodeView.cstRef);
+            return Result::Continue;
+        }
+
+        if (nodeView.cst->isInt())
+        {
+            result = cstMgr.cstBool(nodeView.cst->getInt().isZero());
+            return Result::Continue;
+        }
+
+        if (nodeView.cst->isChar())
+        {
+            result = cstMgr.cstBool(nodeView.cst->getChar());
+            return Result::Continue;
+        }
+
+        if (nodeView.cst->isRune())
+        {
+            result = cstMgr.cstBool(nodeView.cst->getRune());
+            return Result::Continue;
+        }
+
+        if (nodeView.cst->isString())
+        {
+            result = cstMgr.cstFalse();
+            return Result::Continue;
+        }
+
+        SWC_INTERNAL_ERROR(sema.ctx());
+    }
+
+    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    {
+        auto&  ctx   = sema.ctx();
+        ApsInt value = nodeView.cst->getInt();
+        value.invertAllBits();
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
+        return Result::Continue;
+    }
+
+    Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const AstUnaryExpr& node, const SemaNodeView& nodeView)
+    {
+        switch (op)
+        {
+            case TokenId::SymMinus:
+                return constantFoldMinus(sema, result, nodeView);
+            case TokenId::SymPlus:
+                return constantFoldPlus(sema, result, nodeView);
+            case TokenId::SymBang:
+                return constantFoldBang(sema, result, nodeView);
+            case TokenId::SymTilde:
+                return constantFoldTilde(sema, result, node, nodeView);
+            default:
+                break;
+        }
+
+        return Result::Error;
+    }
+
     Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.codeRef());
@@ -235,7 +351,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     if (nodeView.cstRef.isValid())
     {
         ConstantRef result;
-        RESULT_VERIFY(ConstantFold::unary(sema, result, tok.id, *this, nodeView));
+        RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeView));
         sema.setConstant(sema.curNodeRef(), result);
         return Result::Continue;
     }

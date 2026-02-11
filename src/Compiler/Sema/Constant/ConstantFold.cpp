@@ -74,12 +74,6 @@ namespace
             return Result::Continue;
         }
 
-        if (nodeView.cst->isNull())
-        {
-            result = cstMgr.cstTrue();
-            return Result::Continue;
-        }
-
         if (nodeView.cst->isInt())
         {
             result = cstMgr.cstBool(nodeView.cst->getInt().isZero());
@@ -100,25 +94,7 @@ namespace
 
         if (nodeView.cst->isString())
         {
-            result = cstMgr.cstBool(nodeView.cst->getString().data() == nullptr);
-            return Result::Continue;
-        }
-
-        if (nodeView.cst->isValuePointer())
-        {
-            result = cstMgr.cstBool(nodeView.cst->getValuePointer() == 0);
-            return Result::Continue;
-        }
-
-        if (nodeView.cst->isBlockPointer())
-        {
-            result = cstMgr.cstBool(nodeView.cst->getBlockPointer() == 0);
-            return Result::Continue;
-        }
-
-        if (nodeView.cst->isSlice())
-        {
-            result = cstMgr.cstBool(nodeView.cst->getSlice().data() == nullptr);
+            result = cstMgr.cstFalse();
             return Result::Continue;
         }
 

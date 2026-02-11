@@ -117,15 +117,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             continue;
         if (isParameterSymbol(func, sym))
             continue;
-        if (const AstNode* parent = sema.visit().parentNode())
-        {
-            if (parent->is(AstNodeId::MemberAccessExpr))
-            {
-                const auto* member = parent->cast<AstMemberAccessExpr>();
-                if (member->nodeRightRef == sema.curNodeRef())
-                    continue;
-            }
-        }
 
         if (auto* currentFunc = sema.frame().currentFunction())
             currentFunc->markImpure();

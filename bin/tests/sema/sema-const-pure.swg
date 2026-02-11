@@ -72,57 +72,6 @@
 
 #test
 {
-    func widen(a: s32) -> u64 => cast(u64) a + 5'u64
-    const M: u64 = widen(2's32)
-    #assert(M == 7'u64)
-}
-
-#test
-{
-    func fallback(a: s32, b: s32) -> s32 => a orelse b
-    const N: s32 = fallback(0, 9)
-    #assert(N == 9)
-}
-/*
-#test
-{
-    struct Pair { a: s32; b: s32 }
-    func getB(p: Pair) -> s32 => p.b
-    const P: Pair = {1, 4}
-    const O: s32 = getB(P)
-    #assert(O == 4)
-}*/
-
-#test
-{
-    func pick(a: string, i: s32) -> u8 => a[i]
-    const Q: u8 = pick("abcd", 2)
-    #assert(Q == 99'u8)
-}
-/*
-#test
-{
-    func pick(a: [3] [1] s32) -> s32 => a[2][0]
-    const R: [3] [1] s32 = [[1], [2], [3]]
-    const S: s32 = pick(R)
-    #assert(S == 3)
-}
-*/
-#test
-{
-    func count(a: string) -> u64 => @countof(a)
-    const T: u64 = count("hello")
-    #assert(T == 5)
-}
-
-#test
-{
-    func countBad(a: s32) -> u64 => @countof(a)
-    const U: u64 = countBad(-1) // swc-expected-error {{sema_err_count_negative}}
-}
-
-#test
-{
     func add(a: s32, b: s32) -> s32 => a + b
     var v: s32 = 2
     const K: s32 = add(1, v) // swc-expected-error {{sema_err_expr_not_const}}
@@ -133,6 +82,3 @@
     func bad(a: f64) -> f64 => @sqrt(a)
     const L: f64 = bad(-1.0'f64) // swc-expected-error {{sema_err_intrinsic_invalid_argument}}
 }
-
-func tt() => "1" ++ "2"
-#assert(tt() == "12")

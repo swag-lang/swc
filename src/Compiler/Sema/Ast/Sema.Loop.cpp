@@ -196,14 +196,6 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         if (nodeView.node->isNot(AstNodeId::RangeExpr))
         {
-            if (nodeView.type->isIntSigned() && (!nodeView.cst || !nodeView.cst->isInt()))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
             const AstNode& exprNode   = sema.node(nodeExprRef);
             auto [countRef, countPtr] = sema.ast().makeNode<AstNodeId::CountOfExpr>(exprNode.tokRef());
             countPtr->nodeExprRef     = nodeExprRef;

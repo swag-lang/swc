@@ -2,14 +2,12 @@
 #include "Compiler/Sema/Constant/ConstantEval.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantFold.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
@@ -24,8 +22,6 @@ namespace
         AstNodeRef            argRef = AstNodeRef::invalid();
     };
 
-    Result evalPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, ConstantRef& outResult);
-
     class ConstEval
     {
     public:
@@ -37,15 +33,8 @@ namespace
 
         Result evalExpr(AstNodeRef exprRef, ConstantRef& out)
         {
-            return evalExprInternal(exprRef, out, true);
-        }
-
-    private:
-        Result evalExprInternal(AstNodeRef exprRef, ConstantRef& out, bool allowSubstitute)
-        {
-            out = ConstantRef::invalid();
-            if (allowSubstitute)
-                exprRef = sema_->getSubstituteRef(exprRef);
+            out     = ConstantRef::invalid();
+            exprRef = sema_->getSubstituteRef(exprRef);
             if (exprRef.isInvalid())
                 return Result::Continue;
 
@@ -62,7 +51,7 @@ namespace
                 case AstNodeId::Identifier:
                     return evalIdentifier(exprRef, out);
                 case AstNodeId::ParenExpr:
-                    return evalExprInternal(node.cast<AstParenExpr>()->nodeExprRef, out, allowSubstitute);
+                    return evalExpr(node.cast<AstParenExpr>()->nodeExprRef, out);
                 case AstNodeId::UnaryExpr:
                     return evalUnary(exprRef, node.cast<AstUnaryExpr>(), out);
                 case AstNodeId::BinaryExpr:
@@ -73,30 +62,14 @@ namespace
                     return evalLogical(exprRef, node.cast<AstLogicalExpr>(), out);
                 case AstNodeId::ConditionalExpr:
                     return evalConditional(exprRef, node.cast<AstConditionalExpr>(), out);
-                case AstNodeId::NullCoalescingExpr:
-                    return evalNullCoalescing(exprRef, node.cast<AstNullCoalescingExpr>(), out);
-                case AstNodeId::ExplicitCastExpr:
-                    return evalExplicitCast(exprRef, node.cast<AstExplicitCastExpr>(), out);
-                case AstNodeId::ImplicitCastExpr:
-                    return evalImplicitCast(exprRef, node.cast<AstImplicitCastExpr>(), out);
-                case AstNodeId::AutoCastExpr:
-                    return evalAutoCast(exprRef, node.cast<AstAutoCastExpr>(), out);
-                case AstNodeId::MemberAccessExpr:
-                    return evalMemberAccess(exprRef, node.cast<AstMemberAccessExpr>(), out);
-                case AstNodeId::IndexExpr:
-                    return evalIndex(exprRef, node.cast<AstIndexExpr>(), out);
-                case AstNodeId::IndexListExpr:
-                    return evalIndexList(exprRef, node.cast<AstIndexListExpr>(), out);
-                case AstNodeId::CountOfExpr:
-                    return evalCountOf(exprRef, node.cast<AstCountOfExpr>()->nodeExprRef, out);
-                case AstNodeId::CallExpr:
-                    return evalCall(exprRef, node.cast<AstCallExpr>(), out);
                 case AstNodeId::IntrinsicCallExpr:
                     return evalIntrinsicCall(exprRef, node.cast<AstIntrinsicCallExpr>(), out);
                 default:
                     return Result::Continue;
             }
         }
+
+    private:
         Result evalIdentifier(AstNodeRef nodeRef, ConstantRef& out) const
         {
             if (const SymbolVariable* param = lookupParameter(nodeRef))
@@ -126,30 +99,17 @@ namespace
                     sym = symbols.front();
             }
 
-            if (sym && sym->isVariable())
-            {
-                const auto* var = sym->safeCast<SymbolVariable>();
-                if (var)
-                {
-                    for (const auto& binding : bindings_)
-                    {
-                        if (binding.sym == var)
-                            return var;
-                    }
-
-                    return nullptr;
-                }
-            }
-
-            const AstNode& node = sema_->node(nodeRef);
-            if (!node.is(AstNodeId::Identifier))
+            if (!sym || !sym->isVariable())
                 return nullptr;
 
-            const IdentifierRef idRef = sema_->idMgr().addIdentifier(sema_->ctx(), node.codeRef());
+            const auto* var = sym->safeCast<SymbolVariable>();
+            if (!var)
+                return nullptr;
+
             for (const auto& binding : bindings_)
             {
-                if (binding.sym && binding.sym->idRef() == idRef)
-                    return binding.sym;
+                if (binding.sym == var)
+                    return var;
             }
 
             return nullptr;
@@ -167,57 +127,6 @@ namespace
             }
 
             return argRef;
-        }
-
-        Result castConstant(AstNodeRef nodeRef, ConstantRef srcCstRef, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags, ConstantRef& out, TypeRef srcTypeRef = TypeRef::invalid()) const
-        {
-            out = ConstantRef::invalid();
-            if (srcCstRef.isInvalid() || dstTypeRef.isInvalid())
-                return Result::Continue;
-
-            CastRequest castRequest(castKind);
-            castRequest.flags        = castFlags;
-            castRequest.errorNodeRef = nodeRef;
-            castRequest.setConstantFoldingSrc(srcCstRef);
-
-            if (srcTypeRef.isInvalid())
-                srcTypeRef = sema_->cstMgr().get(srcCstRef).typeRef();
-            if (srcTypeRef.isInvalid())
-                return Result::Continue;
-            const Result  result     = Cast::castAllowed(*sema_, castRequest, srcTypeRef, dstTypeRef);
-            if (result == Result::Continue)
-            {
-                out = castRequest.constantFoldingResult();
-                return Result::Continue;
-            }
-
-            if (result == Result::Error && castRequest.failure.diagId != DiagnosticId::None)
-                return Cast::emitCastFailure(*sema_, castRequest.failure);
-
-            return result;
-        }
-
-        Result getConstIndex(AstNodeRef nodeArgRef, ConstantRef indexCstRef, int64_t& outIndex) const
-        {
-            if (indexCstRef.isInvalid())
-                return Result::Continue;
-
-            const ConstantValue& indexCst = sema_->cstMgr().get(indexCstRef);
-            const auto& idxInt = indexCst.getInt();
-            if (!idxInt.fits64())
-                return SemaError::raise(*sema_, DiagnosticId::sema_err_index_too_large, nodeArgRef);
-
-            const TypeInfo& idxType = sema_->typeMgr().get(indexCst.typeRef());
-            if (idxType.isIntSigned() && idxInt.isNegative())
-            {
-                auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_index_negative, nodeArgRef);
-                diag.addArgument(Diagnostic::ARG_VALUE, idxInt.asI64());
-                diag.report(sema_->ctx());
-                return Result::Error;
-            }
-
-            outIndex = idxInt.asI64();
-            return Result::Continue;
         }
 
         Result evalUnary(AstNodeRef nodeRef, const AstUnaryExpr* node, ConstantRef& out)
@@ -333,17 +242,10 @@ namespace
             if (leftCst.isInvalid() || rightCst.isInvalid())
                 return Result::Continue;
 
-            ConstantRef leftBoolCst = ConstantRef::invalid();
-            ConstantRef rightBoolCst = ConstantRef::invalid();
-            RESULT_VERIFY(castConstant(node->nodeLeftRef, leftCst, sema_->typeMgr().typeBool(), CastKind::Condition, CastFlagsE::Zero, leftBoolCst));
-            RESULT_VERIFY(castConstant(node->nodeRightRef, rightCst, sema_->typeMgr().typeBool(), CastKind::Condition, CastFlagsE::Zero, rightBoolCst));
-            if (leftBoolCst.isInvalid() || rightBoolCst.isInvalid())
-                return Result::Continue;
-
             SemaNodeView nodeLeftView(*sema_, node->nodeLeftRef);
             SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-            nodeLeftView.setCstRef(*sema_, leftBoolCst);
-            nodeRightView.setCstRef(*sema_, rightBoolCst);
+            nodeLeftView.setCstRef(*sema_, leftCst);
+            nodeRightView.setCstRef(*sema_, rightCst);
 
             ConstantRef  result;
             const Token& tok = sema_->token(node->codeRef());
@@ -359,362 +261,17 @@ namespace
             if (condCst.isInvalid())
                 return Result::Continue;
 
-            ConstantRef condBoolCst = ConstantRef::invalid();
-            RESULT_VERIFY(castConstant(node->nodeCondRef, condCst, sema_->typeMgr().typeBool(), CastKind::Condition, CastFlagsE::Zero, condBoolCst));
-            if (condBoolCst.isInvalid())
+            const auto& condVal = sema_->cstMgr().get(condCst);
+            if (!condVal.isBool())
                 return Result::Continue;
-            const bool       takeTrue  = sema_->cstMgr().get(condBoolCst).getBool();
+            const bool       takeTrue  = condVal.getBool();
             const AstNodeRef branchRef = takeTrue ? node->nodeTrueRef : node->nodeFalseRef;
             ConstantRef      branchCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(branchRef, branchCst));
             if (branchCst.isInvalid())
                 return Result::Continue;
 
-            const TypeRef resultTypeRef = sema_->typeRefOf(nodeRef);
-            RESULT_VERIFY(castConstant(branchRef, branchCst, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out));
-            return Result::Continue;
-        }
-
-        Result evalNullCoalescing(AstNodeRef nodeRef, const AstNullCoalescingExpr* node, ConstantRef& out)
-        {
-            ConstantRef leftCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeLeftRef, leftCst));
-            if (leftCst.isInvalid())
-                return Result::Continue;
-
-            ConstantRef leftBoolCst = ConstantRef::invalid();
-            RESULT_VERIFY(castConstant(node->nodeLeftRef, leftCst, sema_->typeMgr().typeBool(), CastKind::Condition, CastFlagsE::Zero, leftBoolCst));
-            if (leftBoolCst.isInvalid())
-                return Result::Continue;
-
-            const bool leftIsFalse = sema_->cstMgr().get(leftBoolCst).getBool() == false;
-            if (!leftIsFalse)
-            {
-                out = leftCst;
-                return Result::Continue;
-            }
-
-            ConstantRef rightCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeRightRef, rightCst));
-            if (rightCst.isInvalid())
-                return Result::Continue;
-
-            const TypeRef resultTypeRef = sema_->typeRefOf(nodeRef);
-            RESULT_VERIFY(castConstant(node->nodeRightRef, rightCst, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out));
-            return Result::Continue;
-        }
-
-        Result evalExplicitCast(AstNodeRef nodeRef, const AstExplicitCastExpr* node, ConstantRef& out)
-        {
-            ConstantRef exprCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExprInternal(node->nodeExprRef, exprCst, false));
-            if (exprCst.isInvalid())
-                return Result::Continue;
-
-            CastFlags castFlags = CastFlagsE::Zero;
-            if (node->modifierFlags.has(AstModifierFlagsE::Bit))
-                castFlags.add(CastFlagsE::BitCast);
-            if (node->modifierFlags.has(AstModifierFlagsE::UnConst))
-                castFlags.add(CastFlagsE::UnConst);
-
-            const SemaNodeView nodeTypeView(*sema_, node->nodeTypeRef);
-            TypeRef            dstTypeRef = sema_->typeRefOf(nodeRef);
-            if (dstTypeRef.isInvalid())
-                dstTypeRef = nodeTypeView.typeRef;
-            if (dstTypeRef.isInvalid())
-                return Result::Continue;
-
-            return castConstant(nodeRef, exprCst, dstTypeRef, CastKind::Explicit, castFlags, out);
-        }
-
-        Result evalImplicitCast(AstNodeRef nodeRef, const AstImplicitCastExpr* node, ConstantRef& out)
-        {
-            ConstantRef exprCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExprInternal(node->nodeExprRef, exprCst, false));
-            if (exprCst.isInvalid())
-                return Result::Continue;
-
-            const TypeRef dstTypeRef = sema_->typeRefOf(nodeRef);
-            const TypeRef srcTypeRef = sema_->typeRefOf(node->nodeExprRef);
-            return castConstant(nodeRef, exprCst, dstTypeRef, CastKind::Implicit, CastFlagsE::Zero, out, srcTypeRef);
-        }
-
-        Result evalAutoCast(AstNodeRef nodeRef, const AstAutoCastExpr* node, ConstantRef& out)
-        {
-            ConstantRef exprCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExprInternal(node->nodeExprRef, exprCst, false));
-            if (exprCst.isInvalid())
-                return Result::Continue;
-
-            CastFlags castFlags = CastFlagsE::Zero;
-            if (node->modifierFlags.has(AstModifierFlagsE::Bit))
-                castFlags.add(CastFlagsE::BitCast);
-            if (node->modifierFlags.has(AstModifierFlagsE::UnConst))
-                castFlags.add(CastFlagsE::UnConst);
-
-            const TypeRef dstTypeRef = sema_->typeRefOf(nodeRef);
-            const TypeRef srcTypeRef = sema_->typeRefOf(node->nodeExprRef);
-            return castConstant(nodeRef, exprCst, dstTypeRef, CastKind::Explicit, castFlags, out, srcTypeRef);
-        }
-
-        Result evalMemberAccess(AstNodeRef nodeRef, const AstMemberAccessExpr* node, ConstantRef& out)
-        {
-            (void) nodeRef;
-            ConstantRef leftCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeLeftRef, leftCst));
-            if (leftCst.isInvalid())
-                return Result::Continue;
-
-            const ConstantValue& leftVal = sema_->cstMgr().get(leftCst);
-            if (sema_->hasSymbolList(node->nodeRightRef))
-            {
-                const auto symbols = sema_->getSymbolList(node->nodeRightRef);
-                const SymbolVariable* symVar = nullptr;
-                if (symbols.size() == 1 && symbols.front()->isVariable())
-                    symVar = symbols.front()->safeCast<SymbolVariable>();
-                else
-                {
-                    for (const auto* sym : symbols)
-                    {
-                        if (sym && sym->isVariable())
-                        {
-                            symVar = sym->safeCast<SymbolVariable>();
-                            break;
-                        }
-                    }
-                }
-
-                if (symVar)
-                {
-                    ConstantRef memberCst = ConstantRef::invalid();
-                    RESULT_VERIFY(ConstantExtract::structMember(*sema_, leftVal, *symVar, memberCst, node->nodeRightRef));
-                    out = memberCst;
-                    return Result::Continue;
-                }
-            }
-            else if (sema_->hasSymbol(node->nodeRightRef))
-            {
-                const auto& sym = sema_->symbolOf(node->nodeRightRef);
-                if (sym.isVariable())
-                {
-                    ConstantRef memberCst = ConstantRef::invalid();
-                    RESULT_VERIFY(ConstantExtract::structMember(*sema_, leftVal, sym.cast<SymbolVariable>(), memberCst, node->nodeRightRef));
-                    out = memberCst;
-                    return Result::Continue;
-                }
-            }
-            else
-            {
-                const SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-                const auto* symVar = nodeRightView.sym ? nodeRightView.sym->safeCast<SymbolVariable>() : nullptr;
-                if (symVar)
-                {
-                    ConstantRef memberCst = ConstantRef::invalid();
-                    RESULT_VERIFY(ConstantExtract::structMember(*sema_, leftVal, *symVar, memberCst, node->nodeRightRef));
-                    out = memberCst;
-                    return Result::Continue;
-                }
-            }
-
-            const SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-            if (nodeRightView.node && nodeRightView.node->is(AstNodeId::Identifier))
-            {
-                const TypeInfo& leftType = sema_->typeMgr().get(leftVal.typeRef());
-                if (leftType.isStruct())
-                {
-                    const IdentifierRef idRef = sema_->idMgr().addIdentifier(sema_->ctx(), nodeRightView.node->codeRef());
-                    const auto&         fields = leftType.payloadSymStruct().fields();
-                    for (const auto* field : fields)
-                    {
-                        if (field && field->idRef() == idRef)
-                        {
-                            ConstantRef memberCst = ConstantRef::invalid();
-                            RESULT_VERIFY(ConstantExtract::structMember(*sema_, leftVal, *field, memberCst, node->nodeRightRef));
-                            out = memberCst;
-                            return Result::Continue;
-                        }
-                    }
-                }
-            }
-
-            if (leftVal.isAggregateStruct())
-            {
-                const SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-                if (!nodeRightView.node || !nodeRightView.node->is(AstNodeId::Identifier))
-                    return Result::Continue;
-
-                const TypeInfo& aggregateType = sema_->typeMgr().get(leftVal.typeRef());
-                const auto&     aggregate     = aggregateType.payloadAggregate();
-                const auto&     values        = leftVal.getAggregateStruct();
-                const IdentifierRef idRef = sema_->idMgr().addIdentifier(sema_->ctx(), nodeRightView.node->codeRef());
-                const std::string_view idName = sema_->idMgr().get(idRef).name;
-
-                size_t memberIndex = 0;
-                bool   found       = false;
-                for (size_t i = 0; i < aggregate.names.size(); ++i)
-                {
-                    if (aggregate.names[i].isValid())
-                    {
-                        if (aggregate.names[i] == idRef)
-                        {
-                            memberIndex = i;
-                            found       = true;
-                            break;
-                        }
-                    }
-                    else if (idName == ("item" + std::to_string(i)))
-                    {
-                        memberIndex = i;
-                        found       = true;
-                        break;
-                    }
-                }
-
-                if (!found || std::cmp_greater_equal(memberIndex, values.size()))
-                    return Result::Continue;
-
-                out = values[memberIndex];
-                return Result::Continue;
-            }
-
-            return Result::Continue;
-        }
-
-        Result evalIndex(AstNodeRef nodeRef, const AstIndexExpr* node, ConstantRef& out)
-        {
-            (void) nodeRef;
-            ConstantRef baseCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeExprRef, baseCst));
-            if (baseCst.isInvalid())
-                return Result::Continue;
-
-            ConstantRef indexCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeArgRef, indexCst));
-            if (indexCst.isInvalid())
-                return Result::Continue;
-
-            if (!sema_->cstMgr().get(indexCst).isInt())
-                return Result::Continue;
-
-            int64_t constIndex = 0;
-            RESULT_VERIFY(getConstIndex(node->nodeArgRef, indexCst, constIndex));
-
-            ConstantRef elemCst = ConstantRef::invalid();
-            RESULT_VERIFY(ConstantExtract::atIndex(*sema_, sema_->cstMgr().get(baseCst), constIndex, node->nodeArgRef, elemCst));
-            out = elemCst;
-            return Result::Continue;
-        }
-
-        Result evalIndexList(AstNodeRef nodeRef, const AstIndexListExpr* node, ConstantRef& out)
-        {
-            (void) nodeRef;
-            ConstantRef baseCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(node->nodeExprRef, baseCst));
-            if (baseCst.isInvalid())
-                return Result::Continue;
-
-            SmallVector<AstNodeRef> indices;
-            sema_->ast().appendNodes(indices, node->spanChildrenRef);
-
-            ConstantRef currentCst = baseCst;
-            for (size_t i = 0; i < indices.size(); ++i)
-            {
-                ConstantRef indexCst = ConstantRef::invalid();
-                RESULT_VERIFY(evalExpr(indices[i], indexCst));
-                if (indexCst.isInvalid())
-                    return Result::Continue;
-
-                if (!sema_->cstMgr().get(indexCst).isInt())
-                    return Result::Continue;
-
-                int64_t constIndex = 0;
-                RESULT_VERIFY(getConstIndex(indices[i], indexCst, constIndex));
-
-                ConstantRef nextCstRef = ConstantRef::invalid();
-                const ConstantValue& currentVal = sema_->cstMgr().get(currentCst);
-                RESULT_VERIFY(ConstantExtract::atIndex(*sema_, currentVal, constIndex, indices[i], nextCstRef));
-                if (nextCstRef.isInvalid())
-                    return Result::Continue;
-                currentCst = nextCstRef;
-            }
-
-            out = currentCst;
-            return Result::Continue;
-        }
-
-        Result evalCountOf(AstNodeRef nodeRef, AstNodeRef exprRef, ConstantRef& out)
-        {
-            exprRef = mapArgumentRef(exprRef);
-            SemaNodeView nodeView(*sema_, exprRef);
-            ConstantRef  exprCst = ConstantRef::invalid();
-            RESULT_VERIFY(evalExpr(exprRef, exprCst));
-            if (exprCst.isValid())
-                nodeView.setCstRef(*sema_, exprCst);
-
-            if (!nodeView.type)
-                return Result::Continue;
-
-            auto& ctx = sema_->ctx();
-            const TypeRef resultTypeRef = sema_->typeRefOf(nodeRef);
-            if (nodeView.cst)
-            {
-                if (nodeView.cst->isString())
-                {
-                    out = sema_->cstMgr().addInt(ctx, nodeView.cst->getString().length());
-                    if (resultTypeRef.isValid())
-                        return castConstant(nodeRef, out, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out);
-                    return Result::Continue;
-                }
-
-                if (nodeView.cst->isSlice())
-                {
-                    out = sema_->cstMgr().addInt(ctx, nodeView.cst->getSlice().size());
-                    if (resultTypeRef.isValid())
-                        return castConstant(nodeRef, out, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out);
-                    return Result::Continue;
-                }
-
-                if (nodeView.cst->isInt())
-                {
-                    if (nodeView.cst->getInt().isNegative())
-                    {
-                        auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_count_negative, exprRef);
-                        diag.addArgument(Diagnostic::ARG_VALUE, nodeView.cst->toString(ctx));
-                        diag.report(ctx);
-                        return Result::Error;
-                    }
-
-                    ConstantRef newCstRef = ConstantRef::invalid();
-                    RESULT_VERIFY(Cast::concretizeConstant(*sema_, newCstRef, exprRef, nodeView.cstRef, TypeInfo::Sign::Unsigned));
-                    if (resultTypeRef.isValid())
-                        return castConstant(nodeRef, newCstRef, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out);
-                    out = newCstRef;
-                    return Result::Continue;
-                }
-            }
-
-            if (nodeView.type->isEnum())
-            {
-                RESULT_VERIFY(sema_->waitCompleted(nodeView.type, exprRef));
-                out = sema_->cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count());
-                if (resultTypeRef.isValid())
-                    return castConstant(nodeRef, out, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out);
-                return Result::Continue;
-            }
-
-            if (nodeView.type->isArray())
-            {
-                const uint64_t  sizeOf     = nodeView.type->sizeOf(ctx);
-                const TypeRef   typeRef    = nodeView.type->payloadArrayElemTypeRef();
-                const TypeInfo& ty         = sema_->typeMgr().get(typeRef);
-                const uint64_t  sizeOfElem = ty.sizeOf(ctx);
-                SWC_ASSERT(sizeOfElem > 0);
-                out = sema_->cstMgr().addInt(ctx, sizeOf / sizeOfElem);
-                if (resultTypeRef.isValid())
-                    return castConstant(nodeRef, out, resultTypeRef, CastKind::Implicit, CastFlagsE::Zero, out);
-                return Result::Continue;
-            }
-
+            out = branchCst;
             return Result::Continue;
         }
 
@@ -754,55 +311,6 @@ namespace
 
             ConstantRef result = ConstantRef::invalid();
             RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(*sema_, sym->cast<SymbolFunction>(), argRefs, argCsts, nodeRef, result));
-            if (result.isInvalid())
-            {
-                const Token& tok = sema_->token(sym->codeRef());
-                if (tok.id == TokenId::IntrinsicCountOf && args.size() == 1)
-                    return evalCountOf(nodeRef, args[0], out);
-                return Result::Continue;
-            }
-
-            out = result;
-            return Result::Continue;
-        }
-
-        Result evalCall(AstNodeRef nodeRef, const AstCallExpr* node, ConstantRef& out)
-        {
-            SmallVector<AstNodeRef> args;
-            node->collectArguments(args, sema_->ast());
-
-            std::vector<AstNodeRef>  argRefs;
-            argRefs.reserve(args.size());
-            for (const auto argRef : args)
-            {
-                argRefs.push_back(mapArgumentRef(argRef));
-            }
-
-            AstNodeRef ufcsArg = AstNodeRef::invalid();
-            if (const auto* memberAccess = sema_->node(node->nodeExprRef).safeCast<AstMemberAccessExpr>())
-            {
-                const SemaNodeView nodeLeftView(*sema_, memberAccess->nodeLeftRef);
-                if (nodeLeftView.node && sema_->isValue(*nodeLeftView.node))
-                    ufcsArg = mapArgumentRef(nodeLeftView.nodeRef);
-            }
-
-            const Symbol* sym = nullptr;
-            if (sema_->hasSymbol(nodeRef))
-            {
-                sym = &sema_->symbolOf(nodeRef);
-            }
-            else if (sema_->hasSymbolList(nodeRef))
-            {
-                const auto symbols = sema_->getSymbolList(nodeRef);
-                if (symbols.size() == 1)
-                    sym = symbols.front();
-            }
-
-            if (!sym || !sym->isFunction())
-                return Result::Continue;
-
-            ConstantRef result = ConstantRef::invalid();
-            RESULT_VERIFY(evalPureCall(*sema_, sym->cast<SymbolFunction>(), argRefs, ufcsArg, result));
             if (result.isInvalid())
                 return Result::Continue;
 
@@ -884,80 +392,43 @@ namespace
                 return false;
 
             const SemaNodeView argView(sema, argRef);
-            ConstantRef        argCstRef = argView.cstRef;
-            if (argCstRef.isInvalid())
-                argCstRef = sema.constantRefOf(argRef);
-            if (argCstRef.isInvalid())
-            {
-                const AstNode& argNode = sema.node(argRef);
-                if (const auto* implicitCast = argNode.safeCast<AstImplicitCastExpr>())
-                {
-                    ConstantRef innerCst = sema.constantRefOf(implicitCast->nodeExprRef);
-                    if (innerCst.isValid())
-                    {
-                        const TypeRef dstTypeRef = sema.typeRefOf(argRef);
-                        if (dstTypeRef.isValid())
-                        {
-                            const TypeRef srcTypeRef = sema.cstMgr().get(innerCst).typeRef();
-                            CastRequest   castRequest(CastKind::Implicit);
-                            castRequest.errorNodeRef = argRef;
-                            castRequest.setConstantFoldingSrc(innerCst);
-                            if (Cast::castAllowed(sema, castRequest, srcTypeRef, dstTypeRef) != Result::Continue)
-                                return false;
-                            argCstRef = castRequest.constantFoldingResult();
-                        }
-                    }
-                }
-            }
-            if (argCstRef.isInvalid())
-            {
-                ConstEval argEval(sema, {});
-                if (argEval.evalExpr(argRef, argCstRef) != Result::Continue)
-                    return false;
-            }
-            if (argCstRef.isInvalid())
+            if (argView.cstRef.isInvalid())
                 return false;
 
-            outBindings.push_back({.sym = params[i], .cstRef = argCstRef, .argRef = argRef});
+            outBindings.push_back({.sym = params[i], .cstRef = argView.cstRef, .argRef = argRef});
         }
 
         return true;
-    }
-
-    Result evalPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, ConstantRef& outResult)
-    {
-        outResult = ConstantRef::invalid();
-        if (!selectedFn.isPure())
-            return Result::Continue;
-        const AstNode* decl = selectedFn.decl();
-        if (!decl || !decl->is(AstNodeId::FunctionDecl))
-            return Result::Continue;
-
-        const auto* funcDecl = decl->cast<AstFunctionDecl>();
-        if (!funcDecl->hasFlag(AstFunctionFlagsE::Short))
-            return Result::Continue;
-
-        if (funcDecl->nodeBodyRef.isInvalid())
-            return Result::Continue;
-
-        const TypeRef returnTypeRef = selectedFn.returnTypeRef();
-        if (returnTypeRef.isInvalid() || sema.typeMgr().get(returnTypeRef).isVoid())
-            return Result::Continue;
-
-        std::vector<ParamBinding> bindings;
-        if (!collectParamBindings(sema, selectedFn, args, ufcsArg, bindings))
-            return Result::Continue;
-
-        ConstEval evaluator(sema, bindings);
-        RESULT_VERIFY(evaluator.evalExpr(funcDecl->nodeBodyRef, outResult));
-        return Result::Continue;
     }
 }
 
 Result ConstantEval::tryConstantFoldPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
+    if (!selectedFn.isPure())
+        return Result::Continue;
+
+    const AstNode* decl = selectedFn.decl();
+    if (!decl || !decl->is(AstNodeId::FunctionDecl))
+        return Result::Continue;
+
+    const auto* funcDecl = decl->cast<AstFunctionDecl>();
+    if (!funcDecl->hasFlag(AstFunctionFlagsE::Short))
+        return Result::Continue;
+
+    if (funcDecl->nodeBodyRef.isInvalid())
+        return Result::Continue;
+
+    const TypeRef returnTypeRef = selectedFn.returnTypeRef();
+    if (returnTypeRef.isInvalid() || sema.typeMgr().get(returnTypeRef).isVoid())
+        return Result::Continue;
+
+    std::vector<ParamBinding> bindings;
+    if (!collectParamBindings(sema, selectedFn, args, ufcsArg, bindings))
+        return Result::Continue;
+
+    ConstEval   evaluator(sema, bindings);
     ConstantRef result = ConstantRef::invalid();
-    RESULT_VERIFY(evalPureCall(sema, selectedFn, args, ufcsArg, result));
+    RESULT_VERIFY(evaluator.evalExpr(funcDecl->nodeBodyRef, result));
     if (result.isInvalid())
         return Result::Continue;
 

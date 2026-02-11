@@ -63,8 +63,8 @@ public:
 
 private:
     std::vector<SymbolVariable*> parameters_;
-    TypeRef                      returnType_ = TypeRef::invalid();
-    SpecOpKind                   specOpKind_ = SpecOpKind::None;
+    TypeRef                      returnType_  = TypeRef::invalid();
+    SpecOpKind                   specOpKind_  = SpecOpKind::None;
     PurityState                  purityState_ = PurityState::Unknown;
 };
 

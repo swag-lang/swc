@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantFold.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"

@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
-#include "Compiler/Sema/Helpers/SemaConstEval.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaIntrinsic.h"
@@ -102,8 +101,6 @@ namespace
 
         if (tryIntrinsicFold)
             RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
-
-        RESULT_VERIFY(SemaConstEval::tryConstantFoldPureCall(sema, sym.cast<SymbolFunction>(), args, ufcsArg));
 
         return Result::Continue;
     }

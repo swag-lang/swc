@@ -489,8 +489,6 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 // -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
-    static Result semaPreDecl(Sema&) { return Result::SkipChildren; } // TODO
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
 };
 
 // -----------------------------------------------------------------------------

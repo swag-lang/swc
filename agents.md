@@ -5,6 +5,26 @@
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
 
+    Add this section:
+
+## Source Code Comment Rules
+
+- Use standardized visual separators if relevant.
+  * Big section separators (never inside functions) must use:
+  ```cpp
+  // ============================================================================
+  ````
+  The line must start with `// ` and extend with `=` up to column 80.
+
+  * Medium/smaller separators must use:
+  ```cpp
+  // ----------------------------------------------------------------------------
+  ```
+  The line must start with `// ` and extend with `-` up to column 80.
+
+- Do not use other decorative separator styles.
+- Keep separator length consistent (80 columns total).
+
 ## Build Instructions (Windows only)
 
 - MSBuild is located at:

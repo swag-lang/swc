@@ -248,10 +248,10 @@ namespace
     }
 }
 
-#define SWC_INLINE_CLONE_LITERAL(__type)                                                           \
-    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, const CloneContext&) const \
-    {                                                                                              \
-        return sema.ast().makeNode<AstNodeId::__type>(tokRef()).first;                             \
+#define SWC_INLINE_CLONE_LITERAL(__type)                                     \
+    AstNodeRef Ast##__type::semaClone(Sema& sema, const CloneContext&) const \
+    {                                                                        \
+        return sema.ast().makeNode<AstNodeId::__type>(tokRef()).first;       \
     }
 
 SWC_INLINE_CLONE_LITERAL(BoolLiteral)
@@ -268,12 +268,12 @@ SWC_INLINE_CLONE_LITERAL(IntrinsicValue)
 
 #undef SWC_INLINE_CLONE_LITERAL
 
-#define SWC_INLINE_CLONE_UNARY(__type)                                                                          \
-    AstNodeRef Ast##__type::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const \
-    {                                                                                                           \
-        auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::__type>(tokRef());                               \
-        newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);                                     \
-        return newRef;                                                                                          \
+#define SWC_INLINE_CLONE_UNARY(__type)                                                    \
+    AstNodeRef Ast##__type::semaClone(Sema& sema, const CloneContext& cloneContext) const \
+    {                                                                                     \
+        auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::__type>(tokRef());         \
+        newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);               \
+        return newRef;                                                                    \
     }
 
 SWC_INLINE_CLONE_UNARY(ParenExpr)
@@ -286,12 +286,12 @@ SWC_INLINE_CLONE_UNARY(ThrowExpr)
 
 #undef SWC_INLINE_CLONE_UNARY
 
-AstNodeRef AstIdentifier::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstIdentifier::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     return cloneIdentifier(sema, *this, cloneContext);
 }
 
-AstNodeRef AstBinaryExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstBinaryExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::BinaryExpr>(tokRef());
     newPtr->modifierFlags = modifierFlags;
@@ -300,7 +300,7 @@ AstNodeRef AstBinaryExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cl
     return newRef;
 }
 
-AstNodeRef AstLogicalExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstLogicalExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::LogicalExpr>(tokRef());
     newPtr->nodeLeftRef   = cloneExpr(sema, nodeLeftRef, cloneContext);
@@ -308,7 +308,7 @@ AstNodeRef AstLogicalExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& c
     return newRef;
 }
 
-AstNodeRef AstRelationalExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstRelationalExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::RelationalExpr>(tokRef());
     newPtr->nodeLeftRef   = cloneExpr(sema, nodeLeftRef, cloneContext);
@@ -316,7 +316,7 @@ AstNodeRef AstRelationalExpr::semaInlineCloneExpr(Sema& sema, const CloneContext
     return newRef;
 }
 
-AstNodeRef AstNullCoalescingExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstNullCoalescingExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::NullCoalescingExpr>(tokRef());
     newPtr->nodeLeftRef   = cloneExpr(sema, nodeLeftRef, cloneContext);
@@ -324,7 +324,7 @@ AstNodeRef AstNullCoalescingExpr::semaInlineCloneExpr(Sema& sema, const CloneCon
     return newRef;
 }
 
-AstNodeRef AstConditionalExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstConditionalExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ConditionalExpr>(tokRef());
     newPtr->nodeCondRef   = cloneExpr(sema, nodeCondRef, cloneContext);
@@ -333,7 +333,7 @@ AstNodeRef AstConditionalExpr::semaInlineCloneExpr(Sema& sema, const CloneContex
     return newRef;
 }
 
-AstNodeRef AstRangeExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstRangeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::RangeExpr>(tokRef());
     newPtr->flags()         = flags();
@@ -342,7 +342,7 @@ AstNodeRef AstRangeExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& clo
     return newRef;
 }
 
-AstNodeRef AstIndexExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstIndexExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IndexExpr>(tokRef());
     newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -350,7 +350,7 @@ AstNodeRef AstIndexExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& clo
     return newRef;
 }
 
-AstNodeRef AstIndexListExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstIndexListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::IndexListExpr>(tokRef());
     newPtr->nodeExprRef     = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -358,7 +358,7 @@ AstNodeRef AstIndexListExpr::semaInlineCloneExpr(Sema& sema, const CloneContext&
     return newRef;
 }
 
-AstNodeRef AstStructInitializerList::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstStructInitializerList::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::StructInitializerList>(tokRef());
     newPtr->nodeWhatRef   = cloneExpr(sema, nodeWhatRef, cloneContext);
@@ -366,7 +366,7 @@ AstNodeRef AstStructInitializerList::semaInlineCloneExpr(Sema& sema, const Clone
     return newRef;
 }
 
-AstNodeRef AstCallExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::CallExpr>(tokRef());
     newPtr->nodeExprRef     = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -374,7 +374,7 @@ AstNodeRef AstCallExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& clon
     return newRef;
 }
 
-AstNodeRef AstIntrinsicCallExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstIntrinsicCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::IntrinsicCallExpr>(tokRef());
     newPtr->nodeExprRef     = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -382,7 +382,7 @@ AstNodeRef AstIntrinsicCallExpr::semaInlineCloneExpr(Sema& sema, const CloneCont
     return newRef;
 }
 
-AstNodeRef AstAliasCallExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstAliasCallExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::AliasCallExpr>(tokRef());
     newPtr->nodeExprRef     = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -391,14 +391,14 @@ AstNodeRef AstAliasCallExpr::semaInlineCloneExpr(Sema& sema, const CloneContext&
     return newRef;
 }
 
-AstNodeRef AstNamedArgument::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstNamedArgument::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::NamedArgument>(tokRef());
     newPtr->nodeArgRef    = cloneExpr(sema, nodeArgRef, cloneContext);
     return newRef;
 }
 
-AstNodeRef AstAutoMemberAccessExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstAutoMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(tokRef());
     newPtr->flags()       = flags();
@@ -406,7 +406,7 @@ AstNodeRef AstAutoMemberAccessExpr::semaInlineCloneExpr(Sema& sema, const CloneC
     return newRef;
 }
 
-AstNodeRef AstMemberAccessExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());
     newPtr->flags()       = flags();
@@ -415,7 +415,7 @@ AstNodeRef AstMemberAccessExpr::semaInlineCloneExpr(Sema& sema, const CloneConte
     return newRef;
 }
 
-AstNodeRef AstQuotedExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::QuotedExpr>(tokRef());
     newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -423,7 +423,7 @@ AstNodeRef AstQuotedExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cl
     return newRef;
 }
 
-AstNodeRef AstQuotedListExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::QuotedListExpr>(tokRef());
     newPtr->nodeExprRef     = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -431,7 +431,7 @@ AstNodeRef AstQuotedListExpr::semaInlineCloneExpr(Sema& sema, const CloneContext
     return newRef;
 }
 
-AstNodeRef AstExplicitCastExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstExplicitCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ExplicitCastExpr>(tokRef());
     newPtr->modifierFlags = modifierFlags;
@@ -440,7 +440,7 @@ AstNodeRef AstExplicitCastExpr::semaInlineCloneExpr(Sema& sema, const CloneConte
     return newRef;
 }
 
-AstNodeRef AstAutoCastExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstAutoCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AutoCastExpr>(tokRef());
     newPtr->modifierFlags = modifierFlags;
@@ -448,7 +448,7 @@ AstNodeRef AstAutoCastExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& 
     return newRef;
 }
 
-AstNodeRef AstAsCastExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstAsCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::AsCastExpr>(tokRef());
     newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -456,7 +456,7 @@ AstNodeRef AstAsCastExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cl
     return newRef;
 }
 
-AstNodeRef AstIsTypeExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstIsTypeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::IsTypeExpr>(tokRef());
     newPtr->nodeExprRef   = cloneExpr(sema, nodeExprRef, cloneContext);
@@ -464,7 +464,7 @@ AstNodeRef AstIsTypeExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cl
     return newRef;
 }
 
-AstNodeRef AstInitializerExpr::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstInitializerExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::InitializerExpr>(tokRef());
     newPtr->modifierFlags = modifierFlags;
@@ -472,14 +472,14 @@ AstNodeRef AstInitializerExpr::semaInlineCloneExpr(Sema& sema, const CloneContex
     return newRef;
 }
 
-AstNodeRef AstArrayLiteral::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstArrayLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::ArrayLiteral>(tokRef());
     newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContext);
     return newRef;
 }
 
-AstNodeRef AstStructLiteral::semaInlineCloneExpr(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstStructLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::StructLiteral>(tokRef());
     newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContext);

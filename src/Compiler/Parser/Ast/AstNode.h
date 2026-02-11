@@ -58,16 +58,16 @@ struct AstNode
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;
 
-    static Result semaPreDecl(Sema&) { return Result::Continue; }
-    static Result semaPreDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result semaPostDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result semaPostDecl(Sema&) { return Result::Continue; }
-    static Result semaPreNode(Sema&) { return Result::Continue; }
-    static Result semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result semaPostNode(Sema&) { return Result::Continue; }
-    static void   semaErrorCleanup(Sema&, AstNodeRef) {}
-    AstNodeRef    semaInlineCloneExpr(Sema&, const CloneContext&) const { return AstNodeRef::invalid(); }
+    static Result     semaPreDecl(Sema&) { return Result::Continue; }
+    static Result     semaPreDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result     semaPostDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result     semaPostDecl(Sema&) { return Result::Continue; }
+    static Result     semaPreNode(Sema&) { return Result::Continue; }
+    static Result     semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result     semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
+    static Result     semaPostNode(Sema&) { return Result::Continue; }
+    static void       semaErrorCleanup(Sema&, AstNodeRef) {}
+    static AstNodeRef semaClone(Sema&, const CloneContext&) { return AstNodeRef::invalid(); }
 
     uint16_t&       semaBits() { return semaBits_; }
     const uint16_t& semaBits() const { return semaBits_; }

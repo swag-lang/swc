@@ -429,7 +429,7 @@ template<AstNodeId ID>
 AstNodeRef semaInlineClone(Sema& sema, AstNode& node, const CloneContext& cloneContext)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaInlineCloneExpr(sema, cloneContext);
+    return node.cast<NodeType>()->semaClone(sema, cloneContext);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

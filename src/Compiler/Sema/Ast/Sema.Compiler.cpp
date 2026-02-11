@@ -456,6 +456,19 @@ namespace
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
+
+    Result semaCompilerForeignLib(Sema& sema, const AstCompilerCall& node)
+    {
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        RESULT_VERIFY(SemaCheck::isConstant(sema, childRef));
+
+        const ConstantValue& constant = sema.constantOf(childRef);
+        if (!constant.isString())
+            return SemaError::raiseInvalidType(sema, childRef, constant.typeRef(), sema.typeMgr().typeString());
+
+        sema.compiler().registerForeignLib(constant.getString());
+        return Result::Continue;
+    }
 }
 
 Result AstCompilerCall::semaPostNode(Sema& sema) const
@@ -482,8 +495,8 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
         case TokenId::CompilerForeignLib:
-            return Result::SkipChildren;
-            
+            return semaCompilerForeignLib(sema, *this);
+
         case TokenId::CompilerGetTag:
         case TokenId::CompilerHasTag:
         case TokenId::CompilerDeclType:
@@ -495,7 +508,7 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
             // TODO
-            return Result::SkipChildren;
+            SWC_INTERNAL_ERROR(sema.ctx());
 
         default:
             SWC_INTERNAL_ERROR(sema.ctx());

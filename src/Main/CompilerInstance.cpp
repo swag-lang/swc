@@ -174,6 +174,19 @@ bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
     return true;
 }
 
+bool CompilerInstance::registerForeignLib(std::string_view name)
+{
+    std::unique_lock lock(mutex_);
+    for (const auto& lib : foreignLibs_)
+    {
+        if (lib == name)
+            return false;
+    }
+
+    foreignLibs_.emplace_back(name);
+    return true;
+}
+
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);

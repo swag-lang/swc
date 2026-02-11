@@ -340,9 +340,9 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
-    struct BuildCfgBackendLLVM
+    struct BuildCfgBackendLlvm
     {
-        bool outputIR;
+        bool outputIr;
         bool fpMathFma;
         bool fpMathNoNaN;
         bool fpMathNoInf;
@@ -351,7 +351,7 @@ namespace Runtime
         bool fpMathApproxFunc;
     };
 
-    struct BuildCfgBackendSCBE
+    struct BuildCfgBackendScbe
     {
         uint32_t unrollMemLimit;
     };
@@ -429,50 +429,50 @@ namespace Runtime
 
     struct BuildCfg
     {
-        uint32_t             moduleVersion             = 0;
-        uint32_t             moduleRevision            = 0;
-        uint32_t             moduleBuildNum            = 0;
-        String               moduleNamespace;
-        bool                 embeddedImports           = false;
+        uint32_t moduleVersion  = 0;
+        uint32_t moduleRevision = 0;
+        uint32_t moduleBuildNum = 0;
+        String   moduleNamespace;
+        bool     embeddedImports = false;
 
-        uint32_t             tempAllocatorCapacity     = 4u * 1024u * 1024u;
-        uint32_t             errorAllocatorCapacity    = 16u * 1024u;
-        SafetyWhat           safetyGuards              = SafetyWhat::All;
-        bool                 sanity                    = true;
-        bool                 debugAllocator            = true;
-        bool                 debugAllocatorCaptureStack = true;
-        bool                 debugAllocatorLeaks       = true;
-        bool                 errorStackTrace           = true;
+        uint32_t   tempAllocatorCapacity      = 4u * 1024u * 1024u;
+        uint32_t   errorAllocatorCapacity     = 16u * 1024u;
+        SafetyWhat safetyGuards               = SafetyWhat::All;
+        bool       sanity                     = true;
+        bool       debugAllocator             = true;
+        bool       debugAllocatorCaptureStack = true;
+        bool       debugAllocatorLeaks        = true;
+        bool       errorStackTrace            = true;
 
-        String               warnAsErrors;
-        String               warnAsWarning;
-        String               warnAsDisabled;
-        bool                 warnDefaultDisabled       = false;
-        bool                 warnDefaultErrors         = false;
+        String warnAsErrors;
+        String warnAsWarning;
+        String warnAsDisabled;
+        bool   warnDefaultDisabled = false;
+        bool   warnDefaultErrors   = false;
 
-        BuildCfgByteCodeOptim byteCodeOptimizeLevel    = BuildCfgByteCodeOptim::O1;
-        bool                  byteCodeEmitAssume       = true;
-        bool                  byteCodeInline           = true;
-        bool                  byteCodeAutoInline       = true;
+        BuildCfgByteCodeOptim byteCodeOptimizeLevel = BuildCfgByteCodeOptim::O1;
+        bool                  byteCodeEmitAssume    = true;
+        bool                  byteCodeInline        = true;
+        bool                  byteCodeAutoInline    = true;
 
-        BuildCfgBackendKind   backendKind              = BuildCfgBackendKind::Executable;
-        BuildCfgBackendSubKind backendSubKind          = BuildCfgBackendSubKind::Console;
-        bool                  backendDebugInformations = false;
-        bool                  backendDebugInline       = false;
-        BuildCfgBackendOptim  backendOptimize          = BuildCfgBackendOptim::O0;
-        uint32_t              backendNumCU             = 0;
+        BuildCfgBackendKind    backendKind              = BuildCfgBackendKind::Executable;
+        BuildCfgBackendSubKind backendSubKind           = BuildCfgBackendSubKind::Console;
+        bool                   backendDebugInformations = false;
+        bool                   backendDebugInline       = false;
+        BuildCfgBackendOptim   backendOptimize          = BuildCfgBackendOptim::O0;
+        uint32_t               backendNumCu             = 0;
 
-        String                linkerArgs;
-        BuildCfgBackendLLVM   backendLLVM;
-        BuildCfgBackendSCBE   backendSCBE;
+        String              linkerArgs;
+        BuildCfgBackendLlvm backendLlvm;
+        BuildCfgBackendScbe backendScbe;
 
-        String                repoPath;
-        String                resAppIcoFileName;
-        String                resAppName;
-        String                resAppDescription;
-        String                resAppCompany;
-        String                resAppCopyright;
-        BuildCfgGenDoc        genDoc;
+        String         repoPath;
+        String         resAppIcoFileName;
+        String         resAppName;
+        String         resAppDescription;
+        String         resAppCompany;
+        String         resAppCopyright;
+        BuildCfgGenDoc genDoc;
     };
 }
 

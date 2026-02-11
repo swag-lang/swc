@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/ExitCodes.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
@@ -54,6 +55,9 @@ public:
     std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
     bool                   setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*       mainFunc() const { return mainFunc_; }
+
+    bool                       registerForeignLib(std::string_view name);
+    const std::vector<Utf8>&   foreignLibs() const { return foreignLibs_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
@@ -115,6 +119,7 @@ private:
     std::atomic<uint32_t>      atomicId_                 = 0;
     std::atomic<uint32_t>      pendingImplRegistrations_ = 0;
     AstCompilerFunc*           mainFunc_                 = nullptr;
+    std::vector<Utf8>          foreignLibs_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

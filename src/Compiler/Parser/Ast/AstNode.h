@@ -1,4 +1,5 @@
 #pragma once
+#include <span>
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNodeId.h"
 #include "Support/Core/PagedStore.h"
@@ -12,6 +13,14 @@ class SourceFile;
 class TaskContext;
 class ConstantValue;
 struct SourceCodeRange;
+namespace SemaInline
+{
+    struct ParamBinding
+    {
+        IdentifierRef idRef;
+        AstNodeRef    exprRef;
+    };
+}
 
 enum class AstModifierFlagsE : uint32_t
 {
@@ -64,6 +73,7 @@ struct AstNode
     static Result semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNode(Sema&) { return Result::Continue; }
     static void   semaErrorCleanup(Sema&, AstNodeRef) {}
+    AstNodeRef    semaInlineCloneExpr(Sema&, std::span<const SemaInline::ParamBinding>) const { return AstNodeRef::invalid(); }
 
     uint16_t&       semaBits() { return semaBits_; }
     const uint16_t& semaBits() const { return semaBits_; }

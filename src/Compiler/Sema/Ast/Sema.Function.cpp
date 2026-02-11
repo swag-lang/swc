@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -100,7 +101,13 @@ namespace
             currentFunc->markImpure();
 
         if (tryIntrinsicFold)
+        {
             RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
+        }
+        else
+        {
+            SemaInline::tryInlineCall(sema, sema.curNodeRef(), sym.cast<SymbolFunction>(), args, ufcsArg);
+        }
 
         return Result::Continue;
     }

@@ -311,9 +311,9 @@ Result AstCompilerGlobal::semaPostNode(Sema&) const
 
 namespace
 {
-    Result semaCompilerTypeOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     nodeView(sema, childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
@@ -329,9 +329,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerKindOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerKindOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     nodeView(sema, childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
@@ -347,9 +347,9 @@ namespace
         return semaCompilerTypeOf(sema, node);
     }
 
-    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
@@ -360,9 +360,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.sym || !nodeView.sym->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
@@ -372,9 +372,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerAlignOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
@@ -385,10 +385,10 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerNameOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
         auto&            ctx      = sema.ctx();
-        const AstNodeRef childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     nodeView(sema, childRef);
 
         if (nodeView.sym)
@@ -411,10 +411,10 @@ namespace
         return SemaError::raise(sema, DiagnosticId::sema_err_failed_nameof, childRef);
     }
 
-    Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
         auto&              ctx      = sema.ctx();
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.sym)
@@ -428,10 +428,10 @@ namespace
         return semaCompilerNameOf(sema, node);
     }
 
-    Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerStringOf(Sema& sema, const AstCompilerCallOne& node)
     {
         auto&              ctx      = sema.ctx();
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
 
         if (nodeView.cst)
@@ -445,10 +445,10 @@ namespace
         return semaCompilerNameOf(sema, node);
     }
 
-    Result semaCompilerDefined(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerDefined(Sema& sema, const AstCompilerCallOne& node)
     {
         auto&              ctx      = sema.ctx();
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
 
         const bool          isDefined = nodeView.sym != nullptr;
@@ -457,13 +457,13 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerLocation(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerLocation(Sema& sema, const AstCompilerCallOne& node)
     {
         const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
         if (typeRef.isInvalid())
             return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), node.codeRef());
 
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.sym)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
@@ -473,9 +473,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerForeignLib(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerForeignLib(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const AstNodeRef childRef = node.nodeArgRef;
         RESULT_VERIFY(SemaCheck::isConstant(sema, childRef));
 
         const ConstantValue& constant = sema.constantOf(childRef);
@@ -487,7 +487,7 @@ namespace
     }
 }
 
-Result AstCompilerCall::semaPostNode(Sema& sema) const
+Result AstCompilerCallOne::semaPostNode(Sema& sema) const
 {
     const Token& tok = sema.token(codeRef());
     switch (tok.id)
@@ -515,7 +515,6 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerForeignLib:
             return semaCompilerForeignLib(sema, *this);
 
-        case TokenId::CompilerGetTag:
         case TokenId::CompilerHasTag:
         case TokenId::CompilerDeclType:
         case TokenId::CompilerRunes:
@@ -524,6 +523,20 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerInject:
         case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
+            // TODO
+            SWC_INTERNAL_ERROR(sema.ctx());
+
+        default:
+            SWC_INTERNAL_ERROR(sema.ctx());
+    }
+}
+
+Result AstCompilerCall::semaPostNode(Sema& sema) const
+{
+    const Token& tok = sema.token(codeRef());
+    switch (tok.id)
+    {
+        case TokenId::CompilerGetTag:
             // TODO
             SWC_INTERNAL_ERROR(sema.ctx());
 

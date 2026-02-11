@@ -1,8 +1,8 @@
 #pragma once
 #include "Main/ExitCodes.h"
 #include "Runtime/Runtime.h"
-#include "Support/Core/Utf8.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
@@ -64,8 +64,8 @@ public:
     bool                   setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*       mainFunc() const { return mainFunc_; }
 
-    bool                       registerForeignLib(std::string_view name);
-    const std::vector<Utf8>&   foreignLibs() const { return foreignLibs_; }
+    bool                     registerForeignLib(std::string_view name);
+    const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
     SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }

@@ -9,13 +9,13 @@ SWC_BEGIN_NAMESPACE();
 
 ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange)
 {
-    auto&                 ctx       = sema.ctx();
-    const TypeRef         typeRef   = sema.typeMgr().structSourceCodeLocation();
+    auto&         ctx     = sema.ctx();
+    const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;
 
-    const SourceView*     srcView  = codeRange.srcView;
-    const SourceFile*     file     = srcView ? srcView->file() : nullptr;
+    const SourceView*      srcView  = codeRange.srcView;
+    const SourceFile*      file     = srcView ? srcView->file() : nullptr;
     const std::string_view nameView = sema.cstMgr().addString(ctx, file ? file->path().string() : "");
     rtLoc.fileName.ptr              = nameView.data();
     rtLoc.fileName.length           = nameView.size();

@@ -119,7 +119,7 @@ protected:
     PagedStore                 store_;
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
-    EncoderFunction*           cpuFct_ = nullptr;
+    EncoderFunction*           cpuFct_            = nullptr;
     std::vector<EncoderSymbol> symbols_;
 };
 

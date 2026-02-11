@@ -12,11 +12,11 @@ namespace
 {
     Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)
     {
-        AstNodeRef declRef = varDeclRef;
+        AstNodeRef  declRef = varDeclRef;
         const auto& varNode = sema.node(varDeclRef);
         if (varNode.is(AstNodeId::VarDeclList))
         {
-            const auto* list = varNode.cast<AstVarDeclList>();
+            const auto*             list = varNode.cast<AstVarDeclList>();
             SmallVector<AstNodeRef> decls;
             sema.ast().appendNodes(decls, list->spanChildrenRef);
             if (decls.size() != 1)
@@ -40,7 +40,7 @@ namespace
         if (symbols.size() != 1)
             return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, declRef);
 
-        const Symbol* sym = symbols.front();
+        const Symbol* sym     = symbols.front();
         const TypeRef typeRef = sym->typeRef();
         if (typeRef.isInvalid())
             return Result::Continue;

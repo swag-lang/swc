@@ -618,7 +618,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::CompilerHasTag:
         case TokenId::CompilerInject:
         case TokenId::CompilerLocation:
-            return parseCompilerCall(1);
+            return parseCompilerCallOne();
 
         case TokenId::CompilerGetTag:
             return parseCompilerCall(3);

@@ -71,6 +71,19 @@ namespace
         TypeRef typeRef = TypeRef::invalid();
     };
 
+    struct CallArgEntry
+    {
+        AstNodeRef argRef      = AstNodeRef::invalid();
+        uint32_t   callArgIndex = 0;
+    };
+
+    struct CallArgMapping
+    {
+        SmallVector<CallArgEntry> paramArgs;
+        SmallVector<CallArgEntry> variadicArgs;
+        bool                      hasNamed = false;
+    };
+
     AstNodeRef getCallArg(uint32_t callArgIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid())
@@ -96,23 +109,9 @@ namespace
         return ufcsArg.isValid() ? (callArgIndex - 1) : callArgIndex;
     }
 
-    Result castCallArgAndStore(Sema& sema, std::span<AstNodeRef> args, AstNodeRef ufcsArg, uint32_t callArgIndex, TypeRef dstTy, CastKind castKind)
+    uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg)
     {
-        const AstNodeRef argRef = getCallArg(callArgIndex, args, ufcsArg);
-        SemaNodeView     argView(sema, argRef);
-
-        CastFlags  flags;
-        const bool isUfcsImplicitArg = ufcsArg.isValid() && callArgIndex == 0;
-        if (isUfcsImplicitArg)
-            flags.add(CastFlagsE::UfcsArgument);
-
-        RESULT_VERIFY(Cast::cast(sema, argView, dstTy, castKind, flags));
-
-        // Only rewrite the user-provided args array when it's not the implicit UFCS arg.
-        if (!isUfcsImplicitArg)
-            args[userArgIndexFromCallIndex(callArgIndex, ufcsArg)] = argView.nodeRef;
-
-        return Result::Continue;
+        return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
@@ -155,6 +154,101 @@ namespace
         f.paramIndex  = paramIndex;
         f.castFailure = cf;
         f.hasLocation = true;
+    }
+
+    bool buildCallArgMapping(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CallArgMapping& outMapping, MatchFailure& outFail)
+    {
+        outMapping = {};
+
+        const auto&    params     = fn.parameters();
+        const uint32_t numParams  = static_cast<uint32_t>(params.size());
+        const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
+
+        outMapping.paramArgs.resize(numParams);
+        for (auto& entry : outMapping.paramArgs)
+            entry.callArgIndex = 0;
+
+        if (ufcsArg.isValid() && numParams > 0)
+        {
+            outMapping.paramArgs[0].argRef      = ufcsArg;
+            outMapping.paramArgs[0].callArgIndex = 0;
+        }
+
+        bool     seenNamed = false;
+        uint32_t nextPos   = paramStart;
+
+        const auto setFailure = [&](uint32_t userArgIndex, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid()) {
+            CastFailure cf{};
+            cf.diagId = diagId;
+            if (idRef.isValid())
+                cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
+            const uint32_t callArgIndex = callArgIndexFromUserIndex(userArgIndex, ufcsArg);
+            failBadType(outFail, callArgIndex, callArgIndex, cf);
+        };
+
+        for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
+        {
+            const AstNodeRef argRef  = args[userIndex];
+            const AstNode&   argNode = sema.node(argRef);
+
+            if (argNode.is(AstNodeId::NamedArgument))
+            {
+                seenNamed = true;
+                outMapping.hasNamed = true;
+
+                const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
+
+                int32_t found = -1;
+                for (uint32_t i = paramStart; i < numParams; ++i)
+                {
+                    if (params[i]->idRef() == idRef)
+                    {
+                        found = static_cast<int32_t>(i);
+                        break;
+                    }
+                }
+
+                if (found < 0)
+                {
+                    setFailure(userIndex, DiagnosticId::sema_err_named_argument_unknown, idRef);
+                    return false;
+                }
+
+                if (outMapping.paramArgs[found].argRef.isValid())
+                {
+                    setFailure(userIndex, DiagnosticId::sema_err_named_argument_duplicate, idRef);
+                    return false;
+                }
+
+                outMapping.paramArgs[found].argRef      = argRef;
+                outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                continue;
+            }
+
+            if (seenNamed)
+            {
+                setFailure(userIndex, DiagnosticId::sema_err_unnamed_parameter);
+                return false;
+            }
+
+            while (nextPos < numParams && outMapping.paramArgs[nextPos].argRef.isValid())
+                ++nextPos;
+
+            if (nextPos < numParams)
+            {
+                outMapping.paramArgs[nextPos].argRef      = argRef;
+                outMapping.paramArgs[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                ++nextPos;
+                continue;
+            }
+
+            CallArgEntry entry;
+            entry.argRef      = argRef;
+            entry.callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+            outMapping.variadicArgs.push_back(entry);
+        }
+
+        return true;
     }
 
     DiagnosticId addCastFailureArgs(DiagnosticElement& e, const CastFailure& cf)
@@ -478,8 +572,12 @@ namespace
         auto&              ctx = sema.ctx();
         const VariadicInfo vi  = getVariadicInfo(sema, fn);
 
+        CallArgMapping mapping;
+        if (!buildCallArgMapping(sema, fn, args, ufcsArg, mapping, outFail))
+            return Result::Continue;
+
         // Too many args (non-variadic only)
-        if (numArgs > numParams && !vi.any())
+        if (!vi.any() && !mapping.variadicArgs.empty())
         {
             failTooMany(outFail, numParams, numArgs);
             return Result::Continue;
@@ -487,12 +585,23 @@ namespace
 
         // Rank each provided argument (excluding the variadic parameter itself when variadic)
         const uint32_t numCommon = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
-        const uint32_t upto      = std::min(numArgs, numCommon);
-
-        for (uint32_t i = 0; i < upto; ++i)
+        for (uint32_t i = 0; i < numCommon; ++i)
         {
-            const AstNodeRef argRef  = getCallArg(i, args, ufcsArg);
+            const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
+
+            if (argRef.isInvalid())
+            {
+                if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
+                {
+                    const uint32_t minExpected = minRequiredArgs(fn, vi.any());
+                    failTooFew(outFail, minExpected, numArgs, i);
+                    return Result::Continue;
+                }
+
+                outCandidate.usedDefaults++;
+                continue;
+            }
 
             CastFailure cf{};
             TypeRef     argTy = sema.typeRefOf(argRef);
@@ -508,7 +617,7 @@ namespace
             {
                 // Likely an unresolved auto-member (`.Value`) without a type hint.
                 // Consider it not viable for this overload.
-                failBadType(outFail, i, i, cf);
+                failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
 
@@ -516,58 +625,40 @@ namespace
             const ConvRank r              = probeImplicitConversion(sema, argRef, argTy, paramTy, cf, isUfcsArgument);
             if (r == ConvRank::Bad)
             {
-                failBadType(outFail, i, i, cf);
+                failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
             outCandidate.perArg.push_back(r);
         }
 
         // Handle variadic tail
-        if (vi.any() && numParams > 0)
+        if (vi.any() && numParams > 0 && !mapping.variadicArgs.empty())
         {
-            const uint32_t startVariadic = numParams - 1;
-            if (numArgs >= numParams)
+            if (vi.isVariadic)
             {
-                TypeRef variadicTy = TypeRef::invalid();
-                if (vi.isTypedVariadic)
-                    variadicTy = params.back()->type(ctx).payloadTypeRef();
+                for (const auto& entry : mapping.variadicArgs)
+                    outCandidate.perArg.push_back(ConvRank::Ellipsis);
+            }
+            else
+            {
+                const uint32_t startVariadic = numParams - 1;
+                const TypeRef  variadicTy    = params.back()->type(ctx).payloadTypeRef();
 
-                for (uint32_t i = startVariadic; i < numArgs; ++i)
+                for (const auto& entry : mapping.variadicArgs)
                 {
-                    if (vi.isVariadic)
+                    const AstNodeRef argRef = entry.argRef;
+                    const TypeRef    argTy  = sema.typeRefOf(argRef);
+                    CastFailure      cf{};
+                    const ConvRank   r = probeImplicitConversion(sema, argRef, argTy, variadicTy, cf, false);
+                    if (r == ConvRank::Bad)
                     {
-                        outCandidate.perArg.push_back(ConvRank::Ellipsis);
+                        // paramIndex points at the variadic parameter
+                        failBadType(outFail, entry.callArgIndex, startVariadic, cf);
+                        return Result::Continue;
                     }
-                    else
-                    {
-                        const AstNodeRef argRef = getCallArg(i, args, ufcsArg);
-                        const TypeRef    argTy  = sema.typeRefOf(argRef);
-                        CastFailure      cf{};
-                        const bool       isUfcsArgument = ufcsArg.isValid() && i == 0;
-                        const ConvRank   r              = probeImplicitConversion(sema, argRef, argTy, variadicTy, cf, isUfcsArgument);
-                        if (r == ConvRank::Bad)
-                        {
-                            // paramIndex points at the variadic parameter
-                            failBadType(outFail, i, startVariadic, cf);
-                            return Result::Continue;
-                        }
-                        outCandidate.perArg.push_back(r);
-                    }
+                    outCandidate.perArg.push_back(r);
                 }
             }
-        }
-
-        // Remaining params must be defaulted/initialized (excluding the variadic parameter itself)
-        const uint32_t numParamsToCheck = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
-        for (uint32_t i = numArgs; i < numParamsToCheck; ++i)
-        {
-            if (!params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
-            {
-                const uint32_t minExpected = minRequiredArgs(fn, vi.any());
-                failTooFew(outFail, minExpected, numArgs, i);
-                return Result::Continue;
-            }
-            outCandidate.usedDefaults++;
         }
 
         outCandidate.viable = true;
@@ -695,20 +786,19 @@ namespace
         return numParams - 1;
     }
 
-    Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
         const auto&     params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
-        const uint32_t  numArgs        = countCallArgs(args, appliedUfcsArg);
         const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
-        const uint32_t  end            = std::min(numArgs, commonParams);
 
-        for (uint32_t i = 0; i < end; ++i)
+        for (uint32_t i = 0; i < commonParams; ++i)
         {
-            const AstNodeRef argRef  = getCallArg(i, args, appliedUfcsArg);
+            const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
-            RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+            if (argRef.isValid())
+                RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
         }
 
         return Result::Continue;
@@ -768,18 +858,24 @@ namespace
 
     // For each argument, perform the required cast to the destination parameter type.
     // The cast value is then stored back in the argument node.
-    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
         const auto&     params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
-        const uint32_t  numArgs        = countCallArgs(args, appliedUfcsArg);
         const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
-        const uint32_t  endCommon      = std::min(numArgs, numCommon);
 
-        for (uint32_t i = 0; i < endCommon; ++i)
+        for (uint32_t i = 0; i < numCommon; ++i)
         {
-            RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, params[i]->typeRef(), CastKind::Parameter));
+            const AstNodeRef argRef = mapping.paramArgs[i].argRef;
+            if (argRef.isInvalid())
+                continue;
+
+            SemaNodeView argView(sema, argRef);
+            CastFlags    flags;
+            if (appliedUfcsArg.isValid() && i == 0)
+                flags.add(CastFlagsE::UfcsArgument);
+            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
         }
 
         return Result::Continue;
@@ -787,23 +883,22 @@ namespace
 
     // For typed variadic functions (e.g., `func(x: ...int)`), each extra argument
     // must be cast to the underlying variadic type.
-    Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef appliedUfcsArg)
+    Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
         if (!selectedFnType.isTypedVariadic())
             return Result::Continue;
 
-        const uint32_t numArgs   = countCallArgs(args, appliedUfcsArg);
         const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
             return Result::Continue;
 
-        const uint32_t startVariadic = numParams - 1;
         const TypeRef  variadicTy    = selectedFnType.payloadTypeRef();
 
-        for (uint32_t i = startVariadic; i < numArgs; ++i)
+        for (const auto& entry : mapping.variadicArgs)
         {
-            RESULT_VERIFY(castCallArgAndStore(sema, args, appliedUfcsArg, i, variadicTy, CastKind::Implicit));
+            SemaNodeView argView(sema, entry.argRef);
+            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
         }
 
         return Result::Continue;
@@ -829,9 +924,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();
     const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
-    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, args, appliedUfcsArg));
-    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, args, appliedUfcsArg));
-    RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, args, appliedUfcsArg));
+    CallArgMapping mapping;
+    MatchFailure   mappingFail;
+    if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
+        return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
+
+    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
+    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
+    RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
 
     // Set the call node type to the return type of the selected function
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());

@@ -87,6 +87,8 @@ SWC_DIAG_DEF(sema_err_cyclic_dependency, Error, "cyclic dependency detected for 
 SWC_DIAG_DEF(sema_err_variadic_not_last, Error, "variadic parameter is not last")
 SWC_DIAG_DEF(sema_err_parameter_default_value_not_last, Error, "parameter with default value is followed by a parameter without a default value")
 SWC_DIAG_DEF(sema_err_unnamed_parameter, Error, "unnamed parameter follows a named parameter")
+SWC_DIAG_DEF(sema_err_named_argument_unknown, Error, "unknown named argument '{value}'")
+SWC_DIAG_DEF(sema_err_named_argument_duplicate, Error, "named argument '{value}' specified more than once")
 SWC_DIAG_DEF(sema_err_invalid_attribute_parameter_type, Error, "the parameter type '{type}' is not allowed for an attribute")
 SWC_DIAG_DEF(sema_err_pointer_arithmetic_value_ptr, Error, "pointer arithmetic is not allowed on a value pointer of type '{type}'")
 SWC_DIAG_DEF(sema_err_pointer_arithmetic_void_ptr, Error, "pointer arithmetic is not allowed on a pointer to void of type '{type}'")

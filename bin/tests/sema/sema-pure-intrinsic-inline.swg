@@ -58,5 +58,26 @@ func fmuladd(a: f64, b: f64, c: f64)->f64 => @muladd(cast(f64) a, cast(f64) b, c
 }
 
 const A = 42
-func pure_intrinsic(a: s32)->s32 => #location(A).lineStart
-#assert(pure_intrinsic(0) == 60)
+
+func pure_file(a: s32)->bool => #file == #file
+func pure_line(a: s32)->bool => #line > 0
+func pure_swcversion(a: s32)->bool => #swcversion == #swcversion
+func pure_swcrevision(a: s32)->bool => #swcrevision > 0
+func pure_swcbuildnum(a: s32)->bool => #swcbuildnum > 0
+func pure_os(a: s32)->bool => #os == #os
+func pure_stringof(a: s32)->bool => #stringof(1 + 2) == "3"
+func pure_defined(a: s32)->bool => #defined(A)
+func pure_location(a: s32)->bool => #location(A).lineStart > 0
+
+#test
+{
+    #assert(pure_file(0))
+    #assert(pure_line(0))
+    #assert(pure_swcversion(0))
+    #assert(pure_swcrevision(0))
+    #assert(pure_swcbuildnum(0))
+    #assert(pure_os(0))
+    #assert(pure_stringof(0))
+    #assert(pure_defined(0))
+    #assert(pure_location(0))
+}

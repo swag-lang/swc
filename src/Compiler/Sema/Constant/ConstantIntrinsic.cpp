@@ -55,9 +55,9 @@ namespace
 
     Result tryConstantFoldCallImpl(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, std::span<const ConstantRef> argCsts, AstNodeRef callRef, ConstantRef& outResult)
     {
-        outResult           = ConstantRef::invalid();
-        const Token& tok    = sema.token(selectedFn.codeRef());
-        const bool   useCst = argCsts.size() == args.size();
+        outResult         = ConstantRef::invalid();
+        const Token& tok  = sema.token(selectedFn.codeRef());
+        const bool  useCst = argCsts.size() == args.size();
 
         switch (tok.id)
         {
@@ -66,10 +66,10 @@ namespace
             {
                 SWC_ASSERT(args.size() == 2);
 
-                SemaNodeView      aView(sema, args[0]);
-                SemaNodeView      bView(sema, args[1]);
-                const ConstantRef aCstArg = useCst ? argCsts[0] : ConstantRef::invalid();
-                const ConstantRef bCstArg = useCst ? argCsts[1] : ConstantRef::invalid();
+                SemaNodeView       aView(sema, args[0]);
+                SemaNodeView       bView(sema, args[1]);
+                const ConstantRef  aCstArg = useCst ? argCsts[0] : ConstantRef::invalid();
+                const ConstantRef  bCstArg = useCst ? argCsts[1] : ConstantRef::invalid();
                 if (aCstArg.isValid())
                     aView.setCstRef(sema, aCstArg);
                 if (bCstArg.isValid())
@@ -92,7 +92,7 @@ namespace
             {
                 SWC_ASSERT(args.size() == 1);
 
-                double            x;
+                double x;
                 const ConstantRef argCst = useCst ? argCsts[0] : ConstantRef::invalid();
                 if (!getFloatArgAsDouble(sema, args[0], argCst, x))
                     return Result::Continue;
@@ -124,7 +124,7 @@ namespace
             {
                 SWC_ASSERT(args.size() == 1);
 
-                double            x;
+                double x;
                 const ConstantRef argCst = useCst ? argCsts[0] : ConstantRef::invalid();
                 if (!getFloatArgAsDouble(sema, args[0], argCst, x))
                     return Result::Continue;
@@ -170,7 +170,7 @@ namespace
             {
                 SWC_ASSERT(args.size() == 2);
 
-                double            x, y;
+                double x, y;
                 const ConstantRef yCst = useCst ? argCsts[0] : ConstantRef::invalid();
                 const ConstantRef xCst = useCst ? argCsts[1] : ConstantRef::invalid();
                 if (!getFloatArgAsDouble(sema, args[0], yCst, y) || !getFloatArgAsDouble(sema, args[1], xCst, x))
@@ -183,7 +183,7 @@ namespace
             {
                 SWC_ASSERT(args.size() == 2);
 
-                double            a, b;
+                double a, b;
                 const ConstantRef aCst = useCst ? argCsts[0] : ConstantRef::invalid();
                 const ConstantRef bCst = useCst ? argCsts[1] : ConstantRef::invalid();
                 if (!getFloatArgAsDouble(sema, args[0], aCst, a) || !getFloatArgAsDouble(sema, args[1], bCst, b))
@@ -198,7 +198,7 @@ namespace
             case TokenId::IntrinsicMulAdd:
             {
                 SWC_ASSERT(args.size() == 3);
-                double            a, b, c;
+                double a, b, c;
                 const ConstantRef aCst = useCst ? argCsts[0] : ConstantRef::invalid();
                 const ConstantRef bCst = useCst ? argCsts[1] : ConstantRef::invalid();
                 const ConstantRef cCst = useCst ? argCsts[2] : ConstantRef::invalid();

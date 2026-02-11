@@ -198,7 +198,7 @@ namespace
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
         const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        outCstRef                  = sema.cstMgr().addConstant(sema.ctx(), cstInt);
+        outCstRef = sema.cstMgr().addConstant(sema.ctx(), cstInt);
         return Result::Continue;
     }
 

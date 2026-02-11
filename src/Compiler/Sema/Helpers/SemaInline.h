@@ -8,6 +8,22 @@ class Sema;
 
 namespace SemaInline
 {
+    struct ParamBinding
+    {
+        IdentifierRef idRef;
+        AstNodeRef    exprRef;
+    };
+
+    struct CloneContext final : ::swc::CloneContext
+    {
+        std::span<const ParamBinding> bindings;
+
+        explicit CloneContext(std::span<const ParamBinding> inBindings) :
+            bindings(inBindings)
+        {
+        }
+    };
+
     bool tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
 }
 

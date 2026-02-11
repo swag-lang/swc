@@ -199,7 +199,8 @@ namespace TypeGenInternal
 
     void initFunc(Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
-        rtType.isPure = type.payloadSymFunction().isPure();
+        if (type.payloadSymFunction().isPure())
+            addFlag(rtType.base, Runtime::TypeInfoFlags::Pure);
     }
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)

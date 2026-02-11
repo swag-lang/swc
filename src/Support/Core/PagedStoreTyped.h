@@ -1,3 +1,4 @@
+// ReSharper disable CppInconsistentNaming
 #pragma once
 #include "Support/Core/PagedStore.h"
 
@@ -71,10 +72,18 @@ private:
 
 template<class T>
 class PagedStoreTyped<T>::View
+    : public std::ranges::view_base
 {
 public:
     struct Iterator
     {
+        using iterator_concept  = std::bidirectional_iterator_tag;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type        = T;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = T*;
+        using reference         = T&;
+
         PagedStoreTyped* store       = nullptr;
         uint32_t         pageIndex   = 0;
         uint32_t         indexInPage = 0;
@@ -97,6 +106,11 @@ public:
             return *(reinterpret_cast<T*>(store->pageBytesMutable(pageIndex)) + indexInPage);
         }
 
+        T* operator->() const
+        {
+            return &(**this);
+        }
+
         Iterator& operator++()
         {
             ++indexInPage;
@@ -104,51 +118,43 @@ public:
             return *this;
         }
 
-        bool operator!=(const Iterator& other) const
+        Iterator operator++(int)
         {
-            return store != other.store || pageIndex != other.pageIndex || indexInPage != other.indexInPage;
-        }
-    };
-
-    struct ReverseIterator
-    {
-        PagedStoreTyped* store       = nullptr;
-        uint32_t         pageIndex   = std::numeric_limits<uint32_t>::max();
-        uint32_t         indexInPage = 0;
-
-        void initToLast()
-        {
-            if (!store || store->pageCount() == 0)
-                return;
-
-            pageIndex = store->pageCount() - 1;
-            while (true)
-            {
-                const uint32_t countInPage =
-                    store->pageUsed(pageIndex) / static_cast<uint32_t>(sizeof(T));
-                if (countInPage)
-                {
-                    indexInPage = countInPage - 1;
-                    return;
-                }
-                if (pageIndex == 0)
-                {
-                    pageIndex = std::numeric_limits<uint32_t>::max();
-                    return;
-                }
-                --pageIndex;
-            }
+            Iterator tmp = *this;
+            ++(*this);
+            return tmp;
         }
 
-        T& operator*() const
+        Iterator& operator--()
         {
-            return *(reinterpret_cast<T*>(store->pageBytesMutable(pageIndex)) + indexInPage);
-        }
-
-        ReverseIterator& operator++()
-        {
-            if (pageIndex == std::numeric_limits<uint32_t>::max())
+            if (!store)
                 return *this;
+
+            const uint32_t pageCount = store->pageCount();
+            if (pageCount == 0)
+                return *this;
+
+            if (pageIndex >= pageCount)
+            {
+                pageIndex = pageCount - 1;
+                while (true)
+                {
+                    const uint32_t countInPage =
+                        store->pageUsed(pageIndex) / static_cast<uint32_t>(sizeof(T));
+                    if (countInPage)
+                    {
+                        indexInPage = countInPage - 1;
+                        return *this;
+                    }
+                    if (pageIndex == 0)
+                    {
+                        pageIndex   = pageCount;
+                        indexInPage = 0;
+                        return *this;
+                    }
+                    --pageIndex;
+                }
+            }
 
             if (indexInPage > 0)
             {
@@ -168,16 +174,28 @@ public:
                 }
             }
 
-            pageIndex = std::numeric_limits<uint32_t>::max();
             return *this;
         }
 
-        bool operator!=(const ReverseIterator& other) const
+        Iterator operator--(int)
         {
-            return store != other.store || pageIndex != other.pageIndex || indexInPage != other.indexInPage;
+            Iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+
+        bool operator==(const Iterator& other) const
+        {
+            return store == other.store && pageIndex == other.pageIndex && indexInPage == other.indexInPage;
+        }
+
+        bool operator!=(const Iterator& other) const
+        {
+            return !(*this == other);
         }
     };
 
+    View() = default;
     explicit View(PagedStoreTyped* s) :
         store_(s)
     {
@@ -193,18 +211,6 @@ public:
     Iterator end() const
     {
         return {store_, store_->pageCount(), 0};
-    }
-
-    ReverseIterator rbegin() const
-    {
-        ReverseIterator it{store_};
-        it.initToLast();
-        return it;
-    }
-
-    ReverseIterator rend() const
-    {
-        return {store_, std::numeric_limits<uint32_t>::max(), 0};
     }
 
 private:

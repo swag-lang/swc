@@ -35,10 +35,9 @@ void MicroRegAllocPass::run(MicroPassContext& context)
     // Reverse pass: build liveOut and record which vregs are live across calls.
     uint32_t idx  = instructionCount;
     auto     view = context.instructions->view();
-    for (auto it = view.rbegin(); it != view.rend(); ++it)
+    for (auto& inst : std::ranges::reverse_view(view))
     {
         --idx;
-        auto& inst = *it;
 
         // Snapshot current live set as live-out of this instruction.
         auto& out = liveOut[idx];

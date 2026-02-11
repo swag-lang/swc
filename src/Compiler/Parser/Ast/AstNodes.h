@@ -334,7 +334,7 @@ struct AstNodeIdInfo
     using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
     using SemaPostNode       = Result (*)(Sema&, AstNode&);
     using SemaErrorCleanup   = void (*)(Sema&, AstNode&, AstNodeRef);
-    using SemaInlineClone    = AstNodeRef (*)(Sema&, AstNode&, std::span<const SemaInline::ParamBinding>);
+    using SemaInlineClone    = AstNodeRef (*)(Sema&, AstNode&, const SemaInline::CloneContext&);
 
     AstCollectChildren collectChildren;
 
@@ -426,10 +426,10 @@ void semaErrorCleanup(Sema& sema, AstNode& node, AstNodeRef nodeRef)
 }
 
 template<AstNodeId ID>
-AstNodeRef semaInlineClone(Sema& sema, AstNode& node, std::span<const SemaInline::ParamBinding> bindings)
+AstNodeRef semaInlineClone(Sema& sema, AstNode& node, const SemaInline::CloneContext& cloneContext)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaInlineCloneExpr(sema, bindings);
+    return node.cast<NodeType>()->semaInlineCloneExpr(sema, cloneContext);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

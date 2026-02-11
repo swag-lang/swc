@@ -19,6 +19,11 @@ namespace SemaInline
         IdentifierRef idRef;
         AstNodeRef    exprRef;
     };
+
+    struct CloneContext
+    {
+        std::span<const ParamBinding> bindings;
+    };
 }
 
 enum class AstModifierFlagsE : uint32_t
@@ -72,7 +77,7 @@ struct AstNode
     static Result semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
     static Result semaPostNode(Sema&) { return Result::Continue; }
     static void   semaErrorCleanup(Sema&, AstNodeRef) {}
-    AstNodeRef    semaInlineCloneExpr(Sema&, std::span<const SemaInline::ParamBinding>) const { return AstNodeRef::invalid(); }
+    AstNodeRef    semaInlineCloneExpr(Sema&, const SemaInline::CloneContext&) const { return AstNodeRef::invalid(); }
 
     uint16_t&       semaBits() { return semaBits_; }
     const uint16_t& semaBits() const { return semaBits_; }

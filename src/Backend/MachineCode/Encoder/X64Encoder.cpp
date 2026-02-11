@@ -3,7 +3,6 @@
 #include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Wmf/Module.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -2860,8 +2859,8 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, 
 
 EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)
 {
-    auto& module = ctx().compiler().module();
-    const auto [offsetTableConstant, addrConstant] = module.constantSegment.reserveSpan<uint32_t>(numEntries);
+    auto&       compiler = ctx().compiler();
+    const auto [offsetTableConstant, addrConstant] = compiler.constantSegment().reserveSpan<uint32_t>(numEntries);
     emitLoadSymRelocAddress(tableReg, symCsIndex_, offsetTableConstant);
 
     // 'movsxd' table, dword ptr [table + offset*4]
@@ -2875,7 +2874,7 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     const auto endIdx = store_.size();
     *patchPtr += endIdx - startIdx;
 
-    const auto tableCompiler = module.compilerSegment.ptr<int32_t>(offsetTable);
+    const auto tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
     const auto currentOffset = static_cast<int32_t>(store_.size());
 
     EncoderJumpLabel label;

@@ -2,10 +2,10 @@
 #include "Main/ExitCodes.h"
 #include "Runtime/Runtime.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
-#include "Wmf/Module.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -41,8 +41,10 @@ public:
     const ConstantManager&   cstMgr() const { return *cstMgr_; }
     IdentifierManager&       idMgr() { return *idMgr_; }
     const IdentifierManager& idMgr() const { return *idMgr_; }
-    Module&                  module() { return module_; }
-    const Module&            module() const { return module_; }
+    DataSegment&             constantSegment() { return constantSegment_; }
+    const DataSegment&       constantSegment() const { return constantSegment_; }
+    DataSegment&             compilerSegment() { return compilerSegment_; }
+    const DataSegment&       compilerSegment() const { return compilerSegment_; }
     Runtime::BuildCfg&       buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg& buildCfg() const { return buildCfg_; }
 
@@ -113,7 +115,8 @@ private:
     fs::path                                 modulePathSrc_;
     fs::path                                 modulePathFile_;
     fs::path                                 exeFullName_;
-    Module                                   module_;
+    DataSegment                              constantSegment_;
+    DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
     std::mutex                               mutex_;
     bool                                     changed_ = true;

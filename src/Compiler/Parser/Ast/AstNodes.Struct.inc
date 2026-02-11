@@ -1168,7 +1168,9 @@ struct AstIfVarDecl : AstIfBaseT<AstNodeId::IfVarDecl>
         AstIfBaseT::collectChildren(out, ast);
     }
 
-    static Result semaPreNode(Sema&) { return Result::SkipChildren; } // TODO
+    static Result semaPreNode(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

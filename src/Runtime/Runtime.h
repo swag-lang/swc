@@ -324,7 +324,61 @@ namespace Runtime
         uint32_t hasError;
     };
 
-    enum BuildCfgBackendOptim
+    enum class SafetyWhat : uint16_t
+    {
+        BoundCheck  = 0x0001,
+        Overflow    = 0x0002,
+        Math        = 0x0004,
+        DynCast     = 0x0008,
+        Switch      = 0x0010,
+        Bool        = 0x0020,
+        NaN         = 0x0040,
+        Unreachable = 0x0080,
+        Null        = 0x0100,
+        Memory      = 0x0200,
+        None        = 0x0000,
+        All         = 0xFFFF,
+    };
+
+    struct BuildCfgBackendLLVM
+    {
+        bool outputIR;
+        bool fpMathFma;
+        bool fpMathNoNaN;
+        bool fpMathNoInf;
+        bool fpMathNoSignedZero;
+        bool fpMathUnsafe;
+        bool fpMathApproxFunc;
+    };
+
+    struct BuildCfgBackendSCBE
+    {
+        uint32_t unrollMemLimit;
+    };
+
+    enum class BuildCfgBackendKind
+    {
+        None,
+        Export,
+        Executable,
+        Library,
+    };
+
+    enum class BuildCfgBackendSubKind
+    {
+        Default,
+        Console,
+    };
+
+    enum class BuildCfgByteCodeOptim
+    {
+        O0,
+        O1,
+        O2,
+        O3,
+    };
+
+    enum class BuildCfgBackendOptim
     {
         O0,
         O1,
@@ -332,6 +386,93 @@ namespace Runtime
         O3,
         Os,
         Oz,
+    };
+
+    enum class BuildCfgDocKind
+    {
+        None,
+        Api,
+        Examples,
+        Pages,
+    };
+
+    struct BuildCfgGenDoc
+    {
+        BuildCfgDocKind kind = BuildCfgDocKind::None;
+        String          outputName;
+        String          outputExtension;
+        String          titleToc;
+        String          titleContent;
+        String          css;
+        String          icon;
+        String          startHead;
+        String          endHead;
+        String          startBody;
+        String          endBody;
+        String          morePages;
+        String          quoteIconNote;
+        String          quoteIconTip;
+        String          quoteIconWarning;
+        String          quoteIconAttention;
+        String          quoteIconExample;
+        String          quoteTitleNote;
+        String          quoteTitleTip;
+        String          quoteTitleWarning;
+        String          quoteTitleAttention;
+        String          quoteTitleExample;
+        uint32_t        syntaxDefaultColor = 0x00222222;
+        float           syntaxColorLum     = 0.5f;
+        bool            hasFontAwesome     = true;
+        bool            hasStyleSection    = true;
+        bool            hasSwagWatermark   = true;
+    };
+
+    struct BuildCfg
+    {
+        uint32_t             moduleVersion             = 0;
+        uint32_t             moduleRevision            = 0;
+        uint32_t             moduleBuildNum            = 0;
+        String               moduleNamespace;
+        bool                 embeddedImports           = false;
+
+        uint32_t             tempAllocatorCapacity     = 4u * 1024u * 1024u;
+        uint32_t             errorAllocatorCapacity    = 16u * 1024u;
+        SafetyWhat           safetyGuards              = SafetyWhat::All;
+        bool                 sanity                    = true;
+        bool                 debugAllocator            = true;
+        bool                 debugAllocatorCaptureStack = true;
+        bool                 debugAllocatorLeaks       = true;
+        bool                 errorStackTrace           = true;
+
+        String               warnAsErrors;
+        String               warnAsWarning;
+        String               warnAsDisabled;
+        bool                 warnDefaultDisabled       = false;
+        bool                 warnDefaultErrors         = false;
+
+        BuildCfgByteCodeOptim byteCodeOptimizeLevel    = BuildCfgByteCodeOptim::O1;
+        bool                  byteCodeEmitAssume       = true;
+        bool                  byteCodeInline           = true;
+        bool                  byteCodeAutoInline       = true;
+
+        BuildCfgBackendKind   backendKind              = BuildCfgBackendKind::Executable;
+        BuildCfgBackendSubKind backendSubKind          = BuildCfgBackendSubKind::Console;
+        bool                  backendDebugInformations = false;
+        bool                  backendDebugInline       = false;
+        BuildCfgBackendOptim  backendOptimize          = BuildCfgBackendOptim::O0;
+        uint32_t              backendNumCU             = 0;
+
+        String                linkerArgs;
+        BuildCfgBackendLLVM   backendLLVM;
+        BuildCfgBackendSCBE   backendSCBE;
+
+        String                repoPath;
+        String                resAppIcoFileName;
+        String                resAppName;
+        String                resAppDescription;
+        String                resAppCompany;
+        String                resAppCopyright;
+        BuildCfgGenDoc        genDoc;
     };
 }
 

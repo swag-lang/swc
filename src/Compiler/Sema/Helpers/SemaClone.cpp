@@ -64,7 +64,9 @@ AstNodeRef SemaClone::cloneExpr(Sema& sema, AstNodeRef nodeRef, const CloneConte
         return AstNodeRef::invalid();
 
     AstNode& node = sema.node(nodeRef);
-    return Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
+    const AstNodeRef clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
+    SWC_ASSERT(clonedRef.isValid());
+    return clonedRef;
 }
 
 AstNodeRef AstBoolLiteral::semaClone(Sema& sema, const CloneContext&) const

@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantFold.h"
+#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -18,6 +19,7 @@ namespace
     {
         const SymbolVariable* sym    = nullptr;
         ConstantRef           cstRef = ConstantRef::invalid();
+        AstNodeRef            argRef = AstNodeRef::invalid();
     };
 
     class ConstEval
@@ -60,6 +62,8 @@ namespace
                     return evalLogical(exprRef, node.cast<AstLogicalExpr>(), out);
                 case AstNodeId::ConditionalExpr:
                     return evalConditional(exprRef, node.cast<AstConditionalExpr>(), out);
+                case AstNodeId::IntrinsicCallExpr:
+                    return evalIntrinsicCall(exprRef, node.cast<AstIntrinsicCallExpr>(), out);
                 default:
                     return Result::Continue;
             }
@@ -109,6 +113,20 @@ namespace
             }
 
             return nullptr;
+        }
+
+        AstNodeRef mapArgumentRef(AstNodeRef argRef) const
+        {
+            if (const SymbolVariable* param = lookupParameter(argRef))
+            {
+                for (const auto& binding : bindings_)
+                {
+                    if (binding.sym == param && binding.argRef.isValid())
+                        return binding.argRef;
+                }
+            }
+
+            return argRef;
         }
 
         Result evalUnary(AstNodeRef nodeRef, const AstUnaryExpr* node, ConstantRef& out)
@@ -257,6 +275,49 @@ namespace
             return Result::Continue;
         }
 
+        Result evalIntrinsicCall(AstNodeRef nodeRef, const AstIntrinsicCallExpr* node, ConstantRef& out)
+        {
+            SmallVector<AstNodeRef> args;
+            node->collectArguments(args, sema_->ast());
+
+            std::vector<ConstantRef> argCsts;
+            std::vector<AstNodeRef>  argRefs;
+            argCsts.reserve(args.size());
+            argRefs.reserve(args.size());
+            for (const auto argRef : args)
+            {
+                ConstantRef argCst = ConstantRef::invalid();
+                RESULT_VERIFY(evalExpr(argRef, argCst));
+                if (argCst.isInvalid())
+                    return Result::Continue;
+                argCsts.push_back(argCst);
+                argRefs.push_back(mapArgumentRef(argRef));
+            }
+
+            const Symbol* sym = nullptr;
+            if (sema_->hasSymbol(nodeRef))
+            {
+                sym = &sema_->symbolOf(nodeRef);
+            }
+            else if (sema_->hasSymbolList(nodeRef))
+            {
+                const auto symbols = sema_->getSymbolList(nodeRef);
+                if (symbols.size() == 1)
+                    sym = symbols.front();
+            }
+
+            if (!sym || !sym->isFunction())
+                return Result::Continue;
+
+            ConstantRef result = ConstantRef::invalid();
+            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(*sema_, sym->cast<SymbolFunction>(), argRefs, argCsts, nodeRef, result));
+            if (result.isInvalid())
+                return Result::Continue;
+
+            out = result;
+            return Result::Continue;
+        }
+
         Sema*                         sema_ = nullptr;
         std::span<const ParamBinding> bindings_;
     };
@@ -334,7 +395,7 @@ namespace
             if (argView.cstRef.isInvalid())
                 return false;
 
-            outBindings.push_back({.sym = params[i], .cstRef = argView.cstRef});
+            outBindings.push_back({.sym = params[i], .cstRef = argView.cstRef, .argRef = argRef});
         }
 
         return true;

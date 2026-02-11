@@ -27,12 +27,10 @@ enum class NodeSemaKind : uint16_t
 
 enum class NodeSemaFlags : uint16_t
 {
-    Pure      = 1 << 13,
     LValue    = 1 << 14,
     Value     = 1 << 15,
 };
 
-constexpr uint16_t SEMA_CHILD_FLAGS_MASK = static_cast<uint16_t>(NodeSemaFlags::Pure);
 
 class SemaContext
 {

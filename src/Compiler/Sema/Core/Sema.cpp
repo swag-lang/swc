@@ -399,8 +399,6 @@ Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
     const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
     const Result         result = info.semaPostNodeChild(*this, node, childRef);
     if (result == Result::Continue)
-        collectSemaFlags(node, childRef);
-    if (result == Result::Continue)
         processDeferredPopsPostChild(curNodeRef(), childRef);
     return result;
 }

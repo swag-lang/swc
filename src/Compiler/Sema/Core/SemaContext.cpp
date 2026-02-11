@@ -122,7 +122,6 @@ void SemaContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     setSemaKind(node, NodeSemaKind::ConstantRef);
     node.setSemaRef(ref.get());
     addSemaFlags(node, NodeSemaFlags::Value);
-    addSemaFlags(node, NodeSemaFlags::Pure);
 }
 
 bool SemaContext::hasSubstitute(AstNodeRef nodeRef) const

@@ -6,13 +6,13 @@ SWC_BEGIN_NAMESPACE();
 
 void swcAssert(const char* expr, const char* file, int line)
 {
-    const Utf8 msg = std::format("assertion failed!\n\nFile: {}\nLine: {}\nExpression: {}\n", file, line, expr);
+    const Utf8 msg = std::format("assertion failed!\n\nFile: {}({})\nExpression: {}\n", file, line, expr);
     Os::panicBox(msg.c_str());
 }
 
 [[noreturn]] void swcInternalError(const TaskContext& ctx, const char* file, int line)
 {
-    const Utf8 msg = std::format("internal error!\n\nFile: {}\nLine: {}\n", file ? file : "<null>", line);
+    const Utf8 msg = std::format("internal error!\n\nFile: {}({})\n", file ? file : "<null>", line);
     Os::panicBox(msg.c_str());
 }
 

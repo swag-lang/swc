@@ -550,7 +550,8 @@ struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeExprRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result semaPostNode(Sema& sema);
 };
 
 // -----------------------------------------------------------------------------
@@ -769,11 +770,12 @@ struct AstReferenceType : AstNodeT<AstNodeId::ReferenceType>
 };
 
 // -----------------------------------------------------------------------------
-struct AstRRefType : AstNodeT<AstNodeId::RRefType>
+struct AstMoveRefType : AstNodeT<AstNodeId::MoveRefType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    Result semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

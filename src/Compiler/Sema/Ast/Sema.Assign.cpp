@@ -13,6 +13,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView)
+    {
+        if (leftView.type && leftView.type->isReference())
+            return leftView.type->payloadTypeRef();
+        return leftView.typeRef;
+    }
+
+    SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView)
+    {
+        SemaNodeView  targetView    = leftView;
+        const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
+        if (targetTypeRef != leftView.typeRef)
+        {
+            targetView.typeRef = targetTypeRef;
+            targetView.type    = &sema.typeMgr().get(targetTypeRef);
+        }
+        return targetView;
+    }
+
+    void applyMoveAssignmentModifiers(Sema& sema, AstModifierFlags modifierFlags, SemaNodeView& rightView)
+    {
+        if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw}))
+            return;
+        if (!rightView.type || !rightView.type->isMoveReference())
+            return;
+
+        const TypeRef valueTypeRef = rightView.type->payloadTypeRef();
+        rightView.typeRef          = valueTypeRef;
+        rightView.type             = &sema.typeMgr().get(valueTypeRef);
+    }
+
     Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
         switch (op)
@@ -34,8 +65,9 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        const TokenId binOp = Token::assignToBinary(op);
-        RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Assignment));
+        const TokenId binOp          = Token::assignToBinary(op);
+        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), targetLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }
 
@@ -64,12 +96,14 @@ namespace
         }
     }
 
-    Result assignDecomposition(Sema& sema, const Token& tok, const AstAssignList& assignList, const SemaNodeView& nodeRightView)
+    Result assignDecomposition(Sema& sema, const Token& tok, const AstAssignList& assignList, AstModifierFlags modifierFlags, SemaNodeView nodeRightView)
     {
         if (tok.id != TokenId::SymEqual)
         {
             SWC_INTERNAL_ERROR(sema.ctx());
         }
+
+        applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
 
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
@@ -117,18 +151,21 @@ namespace
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
 
             CastRequest castRequest(CastKind::Assignment);
-            castRequest.errorNodeRef = leftRef;
-            if (Cast::castAllowed(sema, castRequest, fields[i]->typeRef(), leftView.typeRef) != Result::Continue)
+            castRequest.errorNodeRef    = leftRef;
+            const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
+            if (Cast::castAllowed(sema, castRequest, fields[i]->typeRef(), targetTypeRef) != Result::Continue)
                 return Cast::emitCastFailure(sema, castRequest.failure);
         }
 
         return Result::Continue;
     }
 
-    Result assignMulti(Sema& sema, const Token& tok, const AstAssignList& assignList, SemaNodeView nodeRightView)
+    Result assignMulti(Sema& sema, const Token& tok, const AstAssignList& assignList, AstModifierFlags modifierFlags, SemaNodeView nodeRightView)
     {
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
+
+        applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
 
         if (nodeRightView.cstRef.isValid())
             RESULT_VERIFY(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
@@ -152,13 +189,15 @@ namespace
 
             if (tok.id != TokenId::SymEqual)
             {
-                const TokenId binOp = Token::assignToBinary(tok.id);
-                RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef, leftView, nodeRightView));
+                const TokenId binOp          = Token::assignToBinary(tok.id);
+                const auto    targetLeftView = assignmentTargetView(sema, leftView);
+                RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef, targetLeftView, nodeRightView));
             }
 
             CastRequest castRequest(CastKind::Assignment);
-            castRequest.errorNodeRef = leftRef;
-            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef, leftView.typeRef) != Result::Continue)
+            castRequest.errorNodeRef    = leftRef;
+            const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
+            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef, targetTypeRef) != Result::Continue)
                 return Cast::emitCastFailure(sema, castRequest.failure);
         }
 
@@ -169,7 +208,12 @@ namespace
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
 {
-    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Zero));
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::NoDrop |
+                                         AstModifierFlagsE::Ref |
+                                         AstModifierFlagsE::ConstRef |
+                                         AstModifierFlagsE::Move |
+                                         AstModifierFlagsE::MoveRaw;
+    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
     return Result::Continue;
 }
 
@@ -200,12 +244,14 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     {
         const auto* assignList = nodeLeftView.node->cast<AstAssignList>();
         if (assignList->hasFlag(AstAssignListFlagsE::Destructuring))
-            return assignDecomposition(sema, tok, *assignList, nodeRightView);
-        return assignMulti(sema, tok, *assignList, nodeRightView);
+            return assignDecomposition(sema, tok, *assignList, modifierFlags, nodeRightView);
+        return assignMulti(sema, tok, *assignList, modifierFlags, nodeRightView);
     }
 
     RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
     RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
+
+    applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
 
     if (tok.id == TokenId::SymEqual)
     {
@@ -214,8 +260,9 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     else
     {
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
-        const TokenId binOp = Token::assignToBinary(tok.id);
-        RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, nodeLeftView, nodeRightView));
+        const TokenId binOp          = Token::assignToBinary(tok.id);
+        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
+        RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
     }
 
     RESULT_VERIFY(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));

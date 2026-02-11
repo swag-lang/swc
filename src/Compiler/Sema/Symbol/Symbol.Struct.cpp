@@ -225,7 +225,7 @@ Result SymbolStruct::computeLayout(Sema& sema)
         const uint64_t padding = (alignment_ - (sizeInBytes_ % alignment_)) % alignment_;
         sizeInBytes_ += padding;
     }
-    
+
     sizeInBytes_ = std::max(sizeInBytes_, 1ULL);
 
     return Result::Continue;

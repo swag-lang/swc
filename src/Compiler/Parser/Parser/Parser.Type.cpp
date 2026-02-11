@@ -172,7 +172,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         const auto child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
-        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::RRefType>(ref());
+        auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(ref());
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
     }

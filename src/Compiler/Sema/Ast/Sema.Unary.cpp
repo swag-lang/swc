@@ -269,8 +269,27 @@ namespace
         return Result::Continue;
     }
 
-    Result checkMoveRef(Sema&, const AstUnaryExpr&, const SemaNodeView&)
+    Result checkMoveRef(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
     {
+        if (nodeView.type->isAnyPointer() || nodeView.type->isReference())
+            return Result::Continue;
+        return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
+    }
+
+    Result semaMoveRef(Sema& sema, const SemaNodeView& nodeView)
+    {
+        TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+        if (nodeView.type->isConst())
+            flags.add(TypeInfoFlagsE::Const);
+
+        TypeRef pointeeTypeRef = TypeRef::invalid();
+        if (nodeView.type->isReference() || nodeView.type->isAnyPointer())
+            pointeeTypeRef = nodeView.type->payloadTypeRef();
+
+        SWC_ASSERT(pointeeTypeRef.isValid());
+        const TypeInfo ty      = TypeInfo::makeMoveReference(pointeeTypeRef, flags);
+        const TypeRef  typeRef = sema.typeMgr().addType(ty);
+        sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
     }
 
@@ -347,9 +366,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             return semaBang(sema, *this, nodeView);
 
         case TokenId::KwdMoveRef:
-            // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            break;
+            return semaMoveRef(sema, nodeView);
         default:
             // TODO
             sema.setType(sema.curNodeRef(), nodeView.typeRef);

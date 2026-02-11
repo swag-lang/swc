@@ -55,6 +55,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
@@ -124,6 +125,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
@@ -211,6 +213,7 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
@@ -278,6 +281,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Slice:
         case TypeInfoKind::TypeValue:
         case TypeInfoKind::TypedVariadic:
@@ -418,6 +422,12 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
             out += std::format("&{}", type.toName(ctx));
             break;
         }
+        case TypeInfoKind::MoveReference:
+        {
+            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
+            out += std::format("&&{}", type.toName(ctx));
+            break;
+        }
 
         case TypeInfoKind::Int:
             if (payloadInt_.bits == 0)
@@ -533,6 +543,8 @@ Utf8 TypeInfo::toFamily(const TaskContext&) const
             return "pointer";
         case TypeInfoKind::Reference:
             return "reference";
+        case TypeInfoKind::MoveReference:
+            return "move reference";
         case TypeInfoKind::Int:
             return "integer";
         case TypeInfoKind::Float:
@@ -687,6 +699,14 @@ TypeInfo TypeInfo::makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
+TypeInfo TypeInfo::makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags)
+{
+    TypeInfo ti{TypeInfoKind::MoveReference, flags};
+    ti.payloadTypeRef_.typeRef = pointeeTypeRef;
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    return ti;
+}
+
 TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 {
     TypeInfo ti{TypeInfoKind::Slice, flags};
@@ -770,6 +790,7 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Null:
         case TypeInfoKind::TypeInfo:
             return 8;
@@ -846,6 +867,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::Reference:
+        case TypeInfoKind::MoveReference:
         case TypeInfoKind::Function:
         case TypeInfoKind::Slice:
         case TypeInfoKind::String:

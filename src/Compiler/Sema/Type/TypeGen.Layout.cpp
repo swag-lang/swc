@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
@@ -53,10 +56,39 @@ namespace TypeGenInternal
         return tm.structTypeInfo();
     }
 
-    Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, TypeRef rtTypeRef, const AstNode& node)
+    IdentifierRef typeInfoIdentifierFor(LayoutKind kind, const IdentifierManager& idMgr)
+    {
+        using Pn = IdentifierManager::PredefinedName;
+        switch (kind)
+        {
+            case LayoutKind::Native: return idMgr.predefined(Pn::TypeInfoNative);
+            case LayoutKind::Enum: return idMgr.predefined(Pn::TypeInfoEnum);
+            case LayoutKind::Array: return idMgr.predefined(Pn::TypeInfoArray);
+            case LayoutKind::Slice: return idMgr.predefined(Pn::TypeInfoSlice);
+            case LayoutKind::Pointer: return idMgr.predefined(Pn::TypeInfoPointer);
+            case LayoutKind::Struct: return idMgr.predefined(Pn::TypeInfoStruct);
+            case LayoutKind::Alias: return idMgr.predefined(Pn::TypeInfoAlias);
+            case LayoutKind::Variadic: return idMgr.predefined(Pn::TypeInfoVariadic);
+            case LayoutKind::TypedVariadic: return idMgr.predefined(Pn::TypeInfoVariadic);
+            case LayoutKind::Func: return idMgr.predefined(Pn::TypeInfoFunc);
+            case LayoutKind::Base: return idMgr.predefined(Pn::TypeInfo);
+        }
+
+        return idMgr.predefined(Pn::TypeInfo);
+    }
+
+    Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, LayoutKind kind, TypeRef rtTypeRef, const AstNode& node)
     {
         if (rtTypeRef.isInvalid())
-            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::TypeInfo), node.codeRef());
+        {
+            MatchContext lookUpCxt;
+            lookUpCxt.codeRef         = node.codeRef();
+            const IdentifierRef idRef = typeInfoIdentifierFor(kind, sema.idMgr());
+            RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+            for (const Symbol* sym : lookUpCxt.symbols())
+                RESULT_VERIFY(sema.waitCompleted(sym, node.codeRef()));
+            return Result::Pause;
+        }
 
         const auto& structType = tm.get(rtTypeRef);
         RESULT_VERIFY(sema.waitCompleted(&structType.payloadSymStruct(), node.codeRef()));

@@ -38,6 +38,7 @@ enum class TypeInfoKind : uint8_t
     ValuePointer,
     BlockPointer,
     Reference,
+    MoveReference,
     Slice,
     Array,
     AggregateStruct,
@@ -117,7 +118,8 @@ public:
     bool isTypeInfo() const noexcept { return kind_ == TypeInfoKind::TypeInfo; }
     bool isValuePointer() const noexcept { return kind_ == TypeInfoKind::ValuePointer; }
     bool isBlockPointer() const noexcept { return kind_ == TypeInfoKind::BlockPointer; }
-    bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference; }
+    bool isReference() const noexcept { return kind_ == TypeInfoKind::Reference || kind_ == TypeInfoKind::MoveReference; }
+    bool isMoveReference() const noexcept { return kind_ == TypeInfoKind::MoveReference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
     bool isAggregate() const noexcept { return isAggregateStruct() || isAggregateArray(); }
@@ -258,6 +260,7 @@ public:
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeAggregateStruct(const std::span<IdentifierRef>& names, const std::span<TypeRef>& types);

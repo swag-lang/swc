@@ -545,4 +545,17 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags(), symbols.span());
 }
 
+Result AstInitializerExpr::semaPostNode(Sema& sema)
+{
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::NoDrop |
+                                         AstModifierFlagsE::Ref |
+                                         AstModifierFlagsE::ConstRef |
+                                         AstModifierFlagsE::Move |
+                                         AstModifierFlagsE::MoveRaw;
+    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+
+    sema.inheritSema(*this, nodeExprRef);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

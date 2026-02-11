@@ -105,7 +105,7 @@ namespace TypeGenInternal
 
                 // Make sure the runtime TypeInfo struct definition exists before we write
                 // an instance of it into the 'DataSegment'.
-                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, entry.rtTypeRef, node));
+                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, kind, entry.rtTypeRef, node));
 
                 // Allocate the concrete runtime payload (TypeInfoStruct/TypeInfoPtr/...) in
                 // the target storage and remember its offset.

@@ -456,7 +456,7 @@ void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
     }
 }
 
-JobResult Sema::exec()
+Result Sema::execResult()
 {
     if (!curScope_ && scopes_.empty())
     {
@@ -467,13 +467,13 @@ JobResult Sema::exec()
 
     ctx().state().reset();
 
-    JobResult jobResult;
+    Result semaResult = Result::Continue;
     while (true)
     {
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
         {
-            jobResult = JobResult::Sleep;
+            semaResult = Result::Pause;
             break;
         }
 
@@ -490,21 +490,26 @@ JobResult Sema::exec()
                 errorCleanupNode(parentRef, ast().node(parentRef));
             }
 
-            jobResult = JobResult::Done;
+            semaResult = Result::Error;
             break;
         }
 
         if (result == AstVisitResult::Stop)
         {
-            jobResult = JobResult::Done;
+            semaResult = Result::Continue;
             break;
         }
     }
 
-    if (jobResult == JobResult::Done)
+    if (semaResult != Result::Pause)
         scopes_.clear();
 
-    return jobResult;
+    return semaResult;
+}
+
+JobResult Sema::exec()
+{
+    return execResult() == Result::Pause ? JobResult::Sleep : JobResult::Done;
 }
 
 namespace

@@ -28,3 +28,17 @@ func wait_inline_const_value()->s32 => WaitInlineConst
 }
 
 const WaitInlineConst = 77
+
+func pure_addr(a: s32)->*s32 => &a // swc-expected-error {{sema_err_take_address_constant}}
+
+#test
+{
+    var x: s32 = 42
+    let p = pure_addr(x)
+    #assert(#typeof(p) == *s32)
+}
+
+#test
+{
+    let p = pure_addr(1)
+}

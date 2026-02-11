@@ -23,6 +23,7 @@ public:
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
+    Result    execResult();
 
     TaskContext&               ctx() { return *ctx_; }
     const TaskContext&         ctx() const { return *ctx_; }

@@ -105,6 +105,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const SymbolFunction* func = sema.frame().currentFunction();
     if (!func || !sema.hasSymbolList(sema.curNodeRef()))
         return Result::Continue;
+    if (allowOverloadSet)
+        return Result::Continue;
 
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
     for (const auto* sym : symbols)

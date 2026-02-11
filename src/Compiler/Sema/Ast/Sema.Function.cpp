@@ -93,12 +93,12 @@ namespace
         RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
 
+        const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        SWC_ASSERT(sym.isFunction());
+        sema.setHasNonArgRef(sema.curNodeRef());
+
         if (tryIntrinsicFold)
-        {
-            const Symbol& sym = sema.symbolOf(sema.curNodeRef());
-            SWC_ASSERT(sym.isFunction());
             RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
-        }
 
         return Result::Continue;
     }

@@ -98,13 +98,7 @@ namespace
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
         if (auto* currentFunc = sema.frame().currentFunction())
-        {
-            bool markImpure = true;
-            if (tryIntrinsicFold && ConstantIntrinsic::isPureIntrinsic(sema, sym.cast<SymbolFunction>()))
-                markImpure = false;
-            if (markImpure)
-                currentFunc->markImpure();
-        }
+            currentFunc->markImpure();
 
         if (tryIntrinsicFold)
             RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));

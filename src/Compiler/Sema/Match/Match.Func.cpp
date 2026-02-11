@@ -927,9 +927,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
 
-    // Set the call node type to the return type of the selected function
     sema.setSymbol(sema.curNodeRef(), selectedFn);
-    sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     sema.setIsValue(sema.node(sema.curNodeRef()));
     return Result::Continue;
 }

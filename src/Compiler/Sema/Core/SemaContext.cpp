@@ -3,12 +3,53 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #if SWC_HAS_REF_DEBUG_INFO
 #include "Compiler/Sema/Type/TypeManager.h"
 #endif
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    bool isCallLikeNode(const AstNode& node)
+    {
+        return node.is(AstNodeId::CallExpr) ||
+               node.is(AstNodeId::AliasCallExpr) ||
+               node.is(AstNodeId::CompilerCall) ||
+               node.is(AstNodeId::CompilerCallOne);
+    }
+
+    TypeRef unwrapFunctionReturnTypeIfCall(const TaskContext& ctx, const AstNode& node, TypeRef typeRef)
+    {
+        if (!typeRef.isValid() || !isCallLikeNode(node))
+            return typeRef;
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (type.isFunction())
+        {
+            const TypeRef returnTypeRef = type.payloadSymFunction().returnTypeRef();
+            return returnTypeRef.isValid() ? returnTypeRef : typeRef;
+        }
+
+        if (type.isAlias())
+        {
+            const TypeRef unaliasedRef = type.unwrap(ctx, TypeRef::invalid(), TypeExpandE::Alias);
+            if (unaliasedRef.isValid())
+            {
+                const TypeInfo& unaliased = ctx.typeMgr().get(unaliasedRef);
+                if (unaliased.isFunction())
+                {
+                    const TypeRef returnTypeRef = unaliased.payloadSymFunction().returnTypeRef();
+                    return returnTypeRef.isValid() ? returnTypeRef : typeRef;
+                }
+            }
+        }
+
+        return typeRef;
+    }
+}
 
 bool SemaContext::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
@@ -160,7 +201,7 @@ TypeRef SemaContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     if (value.isValid())
         value.dbgPtr = &ctx.typeMgr().get(value);
 #endif
-    return value;
+    return unwrapFunctionReturnTypeIfCall(ctx, node, value);
 }
 
 void SemaContext::setType(AstNodeRef nodeRef, TypeRef ref)

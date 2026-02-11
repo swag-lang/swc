@@ -78,15 +78,14 @@ namespace
         return failStructMemberType(sema, symVar, nodeMemberRef);
     }
 
-    void extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+    Result extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, ConstantRef& outCstRef, AstNodeRef nodeMemberRef)
     {
         const auto& values = cst.getAggregateStruct();
         const auto* owner  = symVar.ownerSymMap();
         const auto* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
         if (!sym)
         {
-            failStructMemberType(sema, symVar, nodeMemberRef);
-            return;
+            return failStructMemberType(sema, symVar, nodeMemberRef);
         }
 
         size_t      fieldIndex = 0;
@@ -97,18 +96,17 @@ namespace
 
         if (it == fields.end())
         {
-            failStructMemberType(sema, symVar, nodeMemberRef);
-            return;
+            return failStructMemberType(sema, symVar, nodeMemberRef);
         }
 
         fieldIndex = static_cast<size_t>(std::distance(fields.begin(), it));
         if (std::cmp_greater_equal(fieldIndex, values.size()))
         {
-            failStructMemberType(sema, symVar, nodeMemberRef);
-            return;
+            return failStructMemberType(sema, symVar, nodeMemberRef);
         }
 
-        sema.setConstant(nodeRef, values[fieldIndex]);
+        outCstRef = values[fieldIndex];
+        return Result::Continue;
     }
 
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
@@ -150,14 +148,14 @@ namespace
     }
 }
 
-Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, ConstantRef& outCstRef, AstNodeRef nodeMemberRef)
 {
     auto& ctx = sema.ctx();
+    outCstRef = ConstantRef::invalid();
 
     if (cst.isAggregateStruct())
     {
-        extractAggregateStructMember(sema, cst, symVar, nodeRef, nodeMemberRef);
-        return Result::Continue;
+        return extractAggregateStructMember(sema, cst, symVar, outCstRef, nodeMemberRef);
     }
 
     ByteSpan bytes;
@@ -170,36 +168,41 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
     ConstantRef cstRef = ConstantRef::invalid();
     RESULT_VERIFY(makeFieldConstantFromBytes(sema, symVar.typeRef(), *typeField, fieldBytes, cstRef, symVar, nodeMemberRef));
+    outCstRef = cstRef;
+    return Result::Continue;
+}
 
-    sema.setConstant(nodeRef, cstRef);
+Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
+{
+    ConstantRef cstRef = ConstantRef::invalid();
+    RESULT_VERIFY(structMember(sema, cst, symVar, cstRef, nodeMemberRef));
+    if (cstRef.isValid())
+        sema.setConstant(nodeRef, cstRef);
     return Result::Continue;
 }
 
 namespace
 {
-    Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
-        if (typeInfo.payloadArrayDims().size() > 1)
-            return Result::Continue;
         const auto& values = cst.getAggregateArray();
         if (std::cmp_greater_equal(constIndex, values.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
-        sema.setConstant(sema.curNodeRef(), values[constIndex]);
+        outCstRef = values[constIndex];
         return Result::Continue;
     }
 
-    Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
         const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cstInt));
+        outCstRef = sema.cstMgr().addConstant(sema.ctx(), cstInt);
         return Result::Continue;
     }
 
-    Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef)
+    Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         auto&           ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
@@ -244,42 +247,63 @@ namespace
         if (elemCstRef.isInvalid())
             return Result::Continue;
 
-        sema.setConstant(sema.curNodeRef(), elemCstRef);
+        outCstRef = elemCstRef;
         return Result::Continue;
     }
 
-    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
-        if (typeInfo.payloadArrayDims().size() > 1)
-            return Result::Continue;
+        const auto&     dims     = typeInfo.payloadArrayDims();
+        if (dims.size() > 1)
+        {
+            std::vector<uint64_t> subDims;
+            subDims.reserve(dims.size() - 1);
+            for (size_t i = 1; i < dims.size(); ++i)
+                subDims.push_back(dims[i]);
 
-        const uint64_t count = typeInfo.payloadArrayDims().empty() ? 0 : typeInfo.payloadArrayDims()[0];
-        return extractAtIndexBytes(sema, cst.getArray(), typeInfo.payloadArrayElemTypeRef(), constIndex, count, nodeArgRef);
+            const TypeInfo subArrayType = TypeInfo::makeArray(subDims, typeInfo.payloadArrayElemTypeRef(), typeInfo.flags());
+            const TypeRef  subArrayRef  = sema.typeMgr().addType(subArrayType);
+            const uint64_t count        = dims.empty() ? 0 : dims[0];
+            return extractAtIndexBytes(sema, cst.getArray(), subArrayRef, constIndex, count, nodeArgRef, outCstRef);
+        }
+
+        const uint64_t count = dims.empty() ? 0 : dims[0];
+        return extractAtIndexBytes(sema, cst.getArray(), typeInfo.payloadArrayElemTypeRef(), constIndex, count, nodeArgRef, outCstRef);
     }
 
-    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
+    Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
         const ByteSpan  bytes    = cst.getSlice();
-        return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, bytes.size(), nodeArgRef);
+        return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, bytes.size(), nodeArgRef, outCstRef);
     }
+}
+
+Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
+{
+    SWC_ASSERT(cst.isValid());
+    outCstRef = ConstantRef::invalid();
+
+    if (cst.isAggregateArray())
+        return extractAtIndexAggregateArray(sema, cst, constIndex, nodeArgRef, outCstRef);
+    if (cst.isArray())
+        return extractAtIndexArray(sema, cst, constIndex, nodeArgRef, outCstRef);
+    if (cst.isString())
+        return extractAtIndexString(sema, cst, constIndex, nodeArgRef, outCstRef);
+    if (cst.isSlice())
+        return extractAtIndexSlice(sema, cst, constIndex, nodeArgRef, outCstRef);
+
+    return SemaError::raiseTypeNotIndexable(sema, sema.curNodeRef(), cst.typeRef());
 }
 
 Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef)
 {
-    SWC_ASSERT(cst.isValid());
-
-    if (cst.isAggregateArray())
-        return extractAtIndexAggregateArray(sema, cst, constIndex, nodeArgRef);
-    if (cst.isArray())
-        return extractAtIndexArray(sema, cst, constIndex, nodeArgRef);
-    if (cst.isString())
-        return extractAtIndexString(sema, cst, constIndex, nodeArgRef);
-    if (cst.isSlice())
-        return extractAtIndexSlice(sema, cst, constIndex, nodeArgRef);
-
-    return SemaError::raiseTypeNotIndexable(sema, sema.curNodeRef(), cst.typeRef());
+    ConstantRef cstRef = ConstantRef::invalid();
+    RESULT_VERIFY(atIndex(sema, cst, constIndex, nodeArgRef, cstRef));
+    if (cstRef.isValid())
+        sema.setConstant(sema.curNodeRef(), cstRef);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

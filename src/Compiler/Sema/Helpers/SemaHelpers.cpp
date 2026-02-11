@@ -220,6 +220,13 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
         return Result::Continue;
     }
 
+    if (nodeView.type->isIntSigned())
+    {
+        sema.setType(targetRef, sema.typeMgr().typeU64());
+        sema.setIsValue(targetRef);
+        return Result::Continue;
+    }
+
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
     diag.report(ctx);

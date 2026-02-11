@@ -189,8 +189,7 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
         case TokenId::IntrinsicAs:
         case TokenId::IntrinsicTableOf:
             // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            return Result::Continue;
+            SWC_INTERNAL_ERROR(sema.ctx());
 
         default:
             SWC_INTERNAL_ERROR(sema.ctx());

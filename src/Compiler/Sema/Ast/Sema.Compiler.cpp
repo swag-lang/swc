@@ -253,11 +253,10 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
             // TODO
-            sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstBool(true));
-            break;
+            SWC_INTERNAL_ERROR(ctx);
 
         default:
-            SWC_UNREACHABLE();
+            SWC_INTERNAL_ERROR(ctx);
     }
 
     return Result::Continue;

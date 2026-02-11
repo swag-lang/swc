@@ -23,7 +23,7 @@ namespace
     {
     public:
         ConstEval(Sema& sema, std::span<const ParamBinding> bindings) :
-            sema_(&sema),
+            sema_(sema),
             bindings_(bindings)
         {
         }
@@ -31,18 +31,18 @@ namespace
         Result evalExpr(AstNodeRef exprRef, ConstantRef& out)
         {
             out     = ConstantRef::invalid();
-            exprRef = sema_->getSubstituteRef(exprRef);
+            exprRef = sema_.getSubstituteRef(exprRef);
             if (exprRef.isInvalid())
                 return Result::Continue;
 
-            const ConstantRef directRef = sema_->constantRefOf(exprRef);
+            const ConstantRef directRef = sema_.constantRefOf(exprRef);
             if (directRef.isValid())
             {
                 out = directRef;
                 return Result::Continue;
             }
 
-            const AstNode& node = sema_->node(exprRef);
+            const AstNode& node = sema_.node(exprRef);
             switch (node.id())
             {
                 case AstNodeId::Identifier:
@@ -85,11 +85,11 @@ namespace
         const SymbolVariable* lookupParameter(AstNodeRef nodeRef) const
         {
             const Symbol* sym = nullptr;
-            if (sema_->hasSymbol(nodeRef))
-                sym = &sema_->symbolOf(nodeRef);
-            else if (sema_->hasSymbolList(nodeRef))
+            if (sema_.hasSymbol(nodeRef))
+                sym = &sema_.symbolOf(nodeRef);
+            else if (sema_.hasSymbolList(nodeRef))
             {
-                const auto symbols = sema_->getSymbolList(nodeRef);
+                const auto symbols = sema_.getSymbolList(nodeRef);
                 if (symbols.size() == 1)
                     sym = symbols.front();
             }
@@ -118,11 +118,11 @@ namespace
             if (exprCst.isInvalid())
                 return Result::Continue;
 
-            SemaNodeView nodeView(*sema_, node->nodeExprRef);
-            nodeView.setCstRef(*sema_, exprCst);
+            SemaNodeView nodeView(sema_, node->nodeExprRef);
+            nodeView.setCstRef(sema_, exprCst);
 
             ConstantRef  result;
-            const Token& tok = sema_->token(node->codeRef());
+            const Token& tok = sema_.token(node->codeRef());
             switch (tok.id)
             {
                 case TokenId::SymMinus:
@@ -149,12 +149,12 @@ namespace
             if (leftCst.isInvalid() || rightCst.isInvalid())
                 return Result::Continue;
 
-            SemaNodeView nodeLeftView(*sema_, node->nodeLeftRef);
-            SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-            nodeLeftView.setCstRef(*sema_, leftCst);
-            nodeRightView.setCstRef(*sema_, rightCst);
+            SemaNodeView nodeLeftView(sema_, node->nodeLeftRef);
+            SemaNodeView nodeRightView(sema_, node->nodeRightRef);
+            nodeLeftView.setCstRef(sema_, leftCst);
+            nodeRightView.setCstRef(sema_, rightCst);
 
-            const Token& tok    = sema_->token(node->codeRef());
+            const Token& tok    = sema_.token(node->codeRef());
             ConstantRef  result = ConstantRef::invalid();
             switch (tok.id)
             {
@@ -193,13 +193,13 @@ namespace
             if (leftCst.isInvalid() || rightCst.isInvalid())
                 return Result::Continue;
 
-            SemaNodeView nodeLeftView(*sema_, node->nodeLeftRef);
-            SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-            nodeLeftView.setCstRef(*sema_, leftCst);
-            nodeRightView.setCstRef(*sema_, rightCst);
+            SemaNodeView nodeLeftView(sema_, node->nodeLeftRef);
+            SemaNodeView nodeRightView(sema_, node->nodeRightRef);
+            nodeLeftView.setCstRef(sema_, leftCst);
+            nodeRightView.setCstRef(sema_, rightCst);
 
             ConstantRef  result;
-            const Token& tok = sema_->token(node->codeRef());
+            const Token& tok = sema_.token(node->codeRef());
             RESULT_VERIFY(constantFoldRelational(result, tok.id, nodeLeftView, nodeRightView));
             out = result;
             return Result::Continue;
@@ -215,13 +215,13 @@ namespace
             if (leftCst.isInvalid() || rightCst.isInvalid())
                 return Result::Continue;
 
-            SemaNodeView nodeLeftView(*sema_, node->nodeLeftRef);
-            SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
-            nodeLeftView.setCstRef(*sema_, leftCst);
-            nodeRightView.setCstRef(*sema_, rightCst);
+            SemaNodeView nodeLeftView(sema_, node->nodeLeftRef);
+            SemaNodeView nodeRightView(sema_, node->nodeRightRef);
+            nodeLeftView.setCstRef(sema_, leftCst);
+            nodeRightView.setCstRef(sema_, rightCst);
 
             ConstantRef  result;
-            const Token& tok = sema_->token(node->codeRef());
+            const Token& tok = sema_.token(node->codeRef());
             RESULT_VERIFY(constantFoldLogical(result, tok.id, nodeLeftView, nodeRightView));
             out = result;
             return Result::Continue;
@@ -234,7 +234,7 @@ namespace
             if (condCst.isInvalid())
                 return Result::Continue;
 
-            const auto& condVal = sema_->cstMgr().get(condCst);
+            const auto& condVal = sema_.cstMgr().get(condCst);
             if (!condVal.isBool())
                 return Result::Continue;
             const bool       takeTrue  = condVal.getBool();
@@ -254,7 +254,7 @@ namespace
             {
                 ApsInt value = nodeView.cst->getInt();
                 value.setUnsigned(true);
-                result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeInt(sema_->ctx(), value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
+                result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeInt(sema_.ctx(), value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
             }
             else
             {
@@ -280,10 +280,10 @@ namespace
                 bool   overflow = false;
                 value.negate(overflow);
                 if (overflow)
-                    return SemaError::raiseLiteralOverflow(*sema_, nodeView.nodeRef, *nodeView.cst, nodeView.typeRef);
+                    return SemaError::raiseLiteralOverflow(sema_, nodeView.nodeRef, *nodeView.cst, nodeView.typeRef);
 
                 value.setUnsigned(false);
-                result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeInt(sema_->ctx(), value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Signed));
+                result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeInt(sema_.ctx(), value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Signed));
                 out    = result;
                 return Result::Continue;
             }
@@ -292,7 +292,7 @@ namespace
             {
                 ApFloat value = nodeView.cst->getFloat();
                 value.negate();
-                result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeFloat(sema_->ctx(), value, nodeView.type->payloadFloatBits()));
+                result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeFloat(sema_.ctx(), value, nodeView.type->payloadFloatBits()));
                 out    = result;
                 return Result::Continue;
             }
@@ -302,7 +302,7 @@ namespace
 
         Result constantFoldBang(ConstantRef& result, const SemaNodeView& nodeView, ConstantRef& out) const
         {
-            const auto& cstMgr = sema_->cstMgr();
+            const auto& cstMgr = sema_.cstMgr();
             if (nodeView.cst->isBool())
                 result = cstMgr.cstNegBool(nodeView.cstRef);
             else if (nodeView.cst->isInt())
@@ -314,7 +314,7 @@ namespace
             else if (nodeView.cst->isString())
                 result = cstMgr.cstFalse();
             else
-                SWC_INTERNAL_ERROR(sema_->ctx());
+                SWC_INTERNAL_ERROR(sema_.ctx());
 
             out = result;
             return Result::Continue;
@@ -324,16 +324,16 @@ namespace
         {
             ApsInt value = nodeView.cst->getInt();
             value.invertAllBits();
-            result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeInt(sema_->ctx(), value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
+            result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeInt(sema_.ctx(), value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
             out    = result;
             return Result::Continue;
         }
 
         Result constantFoldPlusPlus(ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView) const
         {
-            Utf8 str = nodeLeftView.cst->toString(sema_->ctx());
-            str += nodeRightView.cst->toString(sema_->ctx());
-            result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeString(sema_->ctx(), str));
+            Utf8 str = nodeLeftView.cst->toString(sema_.ctx());
+            str += nodeRightView.cst->toString(sema_.ctx());
+            result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeString(sema_.ctx(), str));
             return Result::Continue;
         }
 
@@ -343,11 +343,11 @@ namespace
             ConstantRef rightCstRef = nodeRightView.cstRef;
 
             const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
-            const ConstantValue& leftCst  = sema_->cstMgr().get(leftCstRef);
-            const ConstantValue& rightCst = sema_->cstMgr().get(rightCstRef);
-            const TypeInfo&      type     = leftCst.type(sema_->ctx());
+            const ConstantValue& leftCst  = sema_.cstMgr().get(leftCstRef);
+            const ConstantValue& rightCst = sema_.cstMgr().get(rightCstRef);
+            const TypeInfo&      type     = leftCst.type(sema_.ctx());
 
             if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             {
@@ -376,7 +376,7 @@ namespace
                         SWC_UNREACHABLE();
                 }
 
-                result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeFloat(sema_->ctx(), val1, type.payloadFloatBits()));
+                result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeFloat(sema_.ctx(), val1, type.payloadFloatBits()));
                 return Result::Continue;
             }
 
@@ -423,9 +423,9 @@ namespace
                     case TokenId::SymGreaterGreater:
                         if (val2.isNegative())
                         {
-                            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                            auto diag = SemaError::report(sema_, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                             diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                            diag.report(sema_->ctx());
+                            diag.report(sema_.ctx());
                             return Result::Error;
                         }
                         if (!val2.fits64())
@@ -436,9 +436,9 @@ namespace
                     case TokenId::SymLowerLower:
                         if (val2.isNegative())
                         {
-                            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                            auto diag = SemaError::report(sema_, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
                             diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                            diag.report(sema_->ctx());
+                            diag.report(sema_.ctx());
                             return Result::Error;
                         }
                         if (!val2.fits64())
@@ -453,15 +453,15 @@ namespace
 
                 if (!wrap && type.payloadIntBits() != 0 && overflow)
                 {
-                    auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_integer_overflow, sema_->node(nodeRef));
+                    auto diag = SemaError::report(sema_, DiagnosticId::sema_err_integer_overflow, sema_.node(nodeRef));
                     diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
                     diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                     diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                    diag.report(sema_->ctx());
+                    diag.report(sema_.ctx());
                     return Result::Error;
                 }
 
-                result = sema_->cstMgr().addConstant(sema_->ctx(), ConstantValue::makeInt(sema_->ctx(), val1, type.payloadIntBits(), type.payloadIntSign()));
+                result = sema_.cstMgr().addConstant(sema_.ctx(), ConstantValue::makeInt(sema_.ctx(), val1, type.payloadIntBits(), type.payloadIntSign()));
                 return Result::Continue;
             }
 
@@ -476,7 +476,7 @@ namespace
                     return constantFoldEqual(result, nodeLeftView, nodeRightView);
                 case TokenId::SymBangEqual:
                     RESULT_VERIFY(constantFoldEqual(result, nodeLeftView, nodeRightView));
-                    result = sema_->cstMgr().cstNegBool(result);
+                    result = sema_.cstMgr().cstNegBool(result);
                     return Result::Continue;
                 case TokenId::SymLess:
                     return constantFoldLess(result, nodeLeftView, nodeRightView);
@@ -497,43 +497,43 @@ namespace
         {
             if (nodeLeftView.cstRef == nodeRightView.cstRef)
             {
-                result = sema_->cstMgr().cstTrue();
+                result = sema_.cstMgr().cstTrue();
                 return Result::Continue;
             }
 
             if (nodeLeftView.type->isTypeValue() && nodeRightView.type->isTypeValue())
             {
-                result = sema_->cstMgr().cstBool(*nodeLeftView.type == *nodeRightView.type);
+                result = sema_.cstMgr().cstBool(*nodeLeftView.type == *nodeRightView.type);
                 return Result::Continue;
             }
 
-            if (nodeLeftView.type->isAnyTypeInfo(sema_->ctx()) && nodeRightView.type->isAnyTypeInfo(sema_->ctx()))
+            if (nodeLeftView.type->isAnyTypeInfo(sema_.ctx()) && nodeRightView.type->isAnyTypeInfo(sema_.ctx()))
             {
-                const auto& leftCst  = sema_->cstMgr().get(nodeLeftView.cstRef);
-                const auto& rightCst = sema_->cstMgr().get(nodeRightView.cstRef);
-                result               = sema_->cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
+                const auto& leftCst  = sema_.cstMgr().get(nodeLeftView.cstRef);
+                const auto& rightCst = sema_.cstMgr().get(nodeRightView.cstRef);
+                result               = sema_.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
                 return Result::Continue;
             }
 
             if (nodeLeftView.cst->isNull() || nodeRightView.cst->isNull())
             {
-                result = sema_->cstMgr().cstBool(nodeLeftView.cst->isNull() && nodeRightView.cst->isNull());
+                result = sema_.cstMgr().cstBool(nodeLeftView.cst->isNull() && nodeRightView.cst->isNull());
                 return Result::Continue;
             }
 
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
 
-            const auto& left = sema_->cstMgr().get(leftCstRef);
+            const auto& left = sema_.cstMgr().get(leftCstRef);
             if (left.isFloat())
             {
-                const auto& right = sema_->cstMgr().get(rightCstRef);
-                result            = sema_->cstMgr().cstBool(left.eq(right));
+                const auto& right = sema_.cstMgr().get(rightCstRef);
+                result            = sema_.cstMgr().cstBool(left.eq(right));
                 return Result::Continue;
             }
 
-            result = sema_->cstMgr().cstBool(leftCstRef == rightCstRef);
+            result = sema_.cstMgr().cstBool(leftCstRef == rightCstRef);
             return Result::Continue;
         }
 
@@ -541,22 +541,22 @@ namespace
         {
             if (nodeLeftView.cstRef == nodeRightView.cstRef)
             {
-                result = sema_->cstMgr().cstFalse();
+                result = sema_.cstMgr().cstFalse();
                 return Result::Continue;
             }
 
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
             if (leftCstRef == rightCstRef)
             {
-                result = sema_->cstMgr().cstFalse();
+                result = sema_.cstMgr().cstFalse();
                 return Result::Continue;
             }
 
-            const auto& leftCst  = sema_->cstMgr().get(leftCstRef);
-            const auto& rightCst = sema_->cstMgr().get(rightCstRef);
-            result               = sema_->cstMgr().cstBool(leftCst.lt(rightCst));
+            const auto& leftCst  = sema_.cstMgr().get(leftCstRef);
+            const auto& rightCst = sema_.cstMgr().get(rightCstRef);
+            result               = sema_.cstMgr().cstBool(leftCst.lt(rightCst));
             return Result::Continue;
         }
 
@@ -564,22 +564,22 @@ namespace
         {
             if (nodeLeftView.cstRef == nodeRightView.cstRef)
             {
-                result = sema_->cstMgr().cstTrue();
+                result = sema_.cstMgr().cstTrue();
                 return Result::Continue;
             }
 
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
             if (leftCstRef == rightCstRef)
             {
-                result = sema_->cstMgr().cstTrue();
+                result = sema_.cstMgr().cstTrue();
                 return Result::Continue;
             }
 
-            const auto& leftCst  = sema_->cstMgr().get(leftCstRef);
-            const auto& rightCst = sema_->cstMgr().get(rightCstRef);
-            result               = sema_->cstMgr().cstBool(leftCst.le(rightCst));
+            const auto& leftCst  = sema_.cstMgr().get(leftCstRef);
+            const auto& rightCst = sema_.cstMgr().get(rightCstRef);
+            result               = sema_.cstMgr().cstBool(leftCst.le(rightCst));
             return Result::Continue;
         }
 
@@ -587,16 +587,16 @@ namespace
         {
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
             if (leftCstRef == rightCstRef)
             {
-                result = sema_->cstMgr().cstFalse();
+                result = sema_.cstMgr().cstFalse();
                 return Result::Continue;
             }
 
-            const auto& leftCst  = sema_->cstMgr().get(leftCstRef);
-            const auto& rightCst = sema_->cstMgr().get(rightCstRef);
-            result               = sema_->cstMgr().cstBool(leftCst.gt(rightCst));
+            const auto& leftCst  = sema_.cstMgr().get(leftCstRef);
+            const auto& rightCst = sema_.cstMgr().get(rightCstRef);
+            result               = sema_.cstMgr().cstBool(leftCst.gt(rightCst));
             return Result::Continue;
         }
 
@@ -604,22 +604,22 @@ namespace
         {
             if (nodeLeftView.cstRef == nodeRightView.cstRef)
             {
-                result = sema_->cstMgr().cstTrue();
+                result = sema_.cstMgr().cstTrue();
                 return Result::Continue;
             }
 
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
             if (leftCstRef == rightCstRef)
             {
-                result = sema_->cstMgr().cstTrue();
+                result = sema_.cstMgr().cstTrue();
                 return Result::Continue;
             }
 
-            const auto& leftCst  = sema_->cstMgr().get(leftCstRef);
-            const auto& rightCst = sema_->cstMgr().get(rightCstRef);
-            result               = sema_->cstMgr().cstBool(leftCst.ge(rightCst));
+            const auto& leftCst  = sema_.cstMgr().get(leftCstRef);
+            const auto& rightCst = sema_.cstMgr().get(rightCstRef);
+            result               = sema_.cstMgr().cstBool(leftCst.ge(rightCst));
             return Result::Continue;
         }
 
@@ -627,9 +627,9 @@ namespace
         {
             auto leftCstRef  = nodeLeftView.cstRef;
             auto rightCstRef = nodeRightView.cstRef;
-            RESULT_VERIFY(Cast::promoteConstants(*sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
-            const auto& left  = sema_->cstMgr().get(leftCstRef);
-            const auto& right = sema_->cstMgr().get(rightCstRef);
+            RESULT_VERIFY(Cast::promoteConstants(sema_, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+            const auto& left  = sema_.cstMgr().get(leftCstRef);
+            const auto& right = sema_.cstMgr().get(rightCstRef);
 
             int val = 0;
             if (leftCstRef == rightCstRef)
@@ -639,7 +639,7 @@ namespace
             else if (right.lt(left))
                 val = 1;
 
-            result = sema_->cstMgr().cstS32(val);
+            result = sema_.cstMgr().cstS32(val);
             return Result::Continue;
         }
 
@@ -647,8 +647,8 @@ namespace
         {
             const ConstantRef leftCstRef  = nodeLeftView.cstRef;
             const ConstantRef rightCstRef = nodeRightView.cstRef;
-            const ConstantRef cstFalseRef = sema_->cstMgr().cstFalse();
-            const ConstantRef cstTrueRef  = sema_->cstMgr().cstTrue();
+            const ConstantRef cstFalseRef = sema_.cstMgr().cstFalse();
+            const ConstantRef cstTrueRef  = sema_.cstMgr().cstTrue();
 
             switch (op)
             {
@@ -676,9 +676,9 @@ namespace
                 case TokenId::SymSlash:
                 case TokenId::SymPercent:
                     if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                        return SemaError::raiseDivZero(*sema_, nodeRef, nodeRightView.nodeRef);
+                        return SemaError::raiseDivZero(sema_, nodeRef, nodeRightView.nodeRef);
                     if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                        return SemaError::raiseDivZero(*sema_, nodeRef, nodeRightView.nodeRef);
+                        return SemaError::raiseDivZero(sema_, nodeRef, nodeRightView.nodeRef);
                     break;
                 default:
                     break;
@@ -687,7 +687,7 @@ namespace
             return Result::Continue;
         }
 
-        Sema*                         sema_ = nullptr;
+        Sema&                         sema_;
         std::span<const ParamBinding> bindings_;
     };
 

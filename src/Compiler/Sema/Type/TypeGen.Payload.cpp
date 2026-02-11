@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
@@ -194,6 +195,11 @@ namespace TypeGenInternal
             // Type (wired later once dep TypeInfos are emitted)
             entry.structFieldTypes.push_back(symField->typeRef());
         }
+    }
+
+    void initFunc(Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
+    {
+        rtType.isPure = type.payloadSymFunction().isPure();
     }
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)

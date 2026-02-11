@@ -201,6 +201,7 @@ namespace Runtime
         Slice<TypeValue> parameters;
         const TypeInfo*  returnType;
         Slice<Attribute> attributes;
+        bool             isPure;
     };
 
     struct TypeInfoEnum

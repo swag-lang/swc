@@ -665,6 +665,7 @@ namespace Swag
         parameters:     const [..] TypeValue     // Parameters
         returnType:     const *TypeInfo          // The return type, or 'null'
         attributes:     const [..] Attribute     // All the attributes
+        isPure:         bool                     // True if the function is pure
     }
 
     struct TypeInfoEnum

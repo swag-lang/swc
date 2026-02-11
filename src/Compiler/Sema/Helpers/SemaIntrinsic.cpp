@@ -63,8 +63,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:
         {
-            if (args.size() != 2)
-                return Result::Continue;
+            SWC_ASSERT(args.size() == 2);
 
             const AstNodeRef   aRef = sema.getSubstituteRef(args[0]);
             const AstNodeRef   bRef = sema.getSubstituteRef(args[1]);
@@ -86,8 +85,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
 
         case TokenId::IntrinsicSqrt:
         {
-            if (args.size() != 1)
-                return Result::Continue;
+            SWC_ASSERT(args.size() == 1);
 
             double x;
             if (!getFloatArgAsDouble(sema, args[0], x))
@@ -118,8 +116,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
         case TokenId::IntrinsicExp:
         case TokenId::IntrinsicExp2:
         {
-            if (args.size() != 1)
-                return Result::Continue;
+            SWC_ASSERT(args.size() == 1);
 
             double x;
             if (!getFloatArgAsDouble(sema, args[0], x))
@@ -164,8 +161,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
 
         case TokenId::IntrinsicATan2:
         {
-            if (args.size() != 2)
-                return Result::Continue;
+            SWC_ASSERT(args.size() == 2);
 
             double y;
             double x;
@@ -177,8 +173,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
 
         case TokenId::IntrinsicPow:
         {
-            if (args.size() != 2)
-                return Result::Continue;
+            SWC_ASSERT(args.size() == 2);
 
             double a;
             double b;
@@ -193,9 +188,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
 
         case TokenId::IntrinsicMulAdd:
         {
-            if (args.size() != 3)
-                return Result::Continue;
-
+            SWC_ASSERT(args.size() == 3);
             double a;
             double b;
             double c;

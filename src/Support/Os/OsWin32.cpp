@@ -1,35 +1,11 @@
 #include "pch.h"
 #ifdef _WIN32
+#include "Main/CommandLine.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
-#include <shellapi.h>
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    bool hasCommandLineFlag(const wchar_t* flag)
-    {
-        int     argc = 0;
-        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-        if (!argv)
-            return false;
-
-        bool found = false;
-        for (int i = 1; i < argc; ++i)
-        {
-            if (_wcsicmp(argv[i], flag) == 0)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        LocalFree(argv);
-        return found;
-    }
-}
 
 namespace Os
 {
@@ -54,7 +30,7 @@ namespace Os
         std::println(stderr, "panic: {}", expr ? expr : "<null>");
         (void) std::fflush(stderr);
 
-        if (!hasCommandLineFlag(L"--devmode"))
+        if (!CommandLine::dbgDevMode)
             exit(ExitCode::PanicBox);
 
         char msg[2048];

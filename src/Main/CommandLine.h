@@ -34,10 +34,11 @@ struct CommandLine
     bool errorId      = false;
     bool silent       = false;
     bool stats        = false;
-    bool dbgDevMode   = false;
     bool verboseDiag  = false;
     bool verify       = true;
     bool runtime      = false;
+
+    static inline bool dbgDevMode = false;
 
 #ifdef SWC_DEV_MODE
     bool     randomize = false;

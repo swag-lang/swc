@@ -6,26 +6,33 @@ SWC_BEGIN_NAMESPACE();
 class SourceView;
 class SourceFile;
 
-enum class TokenIdKind
+enum class TokenIdKindE : uint16_t
 {
-    Zero = 0,
-    Trivia,
-    Symbol,
-    Keyword,
-    KeywordLogic,
-    Compiler,
-    CompilerFunc,
-    CompilerIntrinsic,
-    CompilerIntrinsicReturn,
-    Intrinsic,
-    IntrinsicReturn,
-    Type,
-    Literal,
-    Modifier,
-    Reserved,
-    CompilerAlias,
-    CompilerUniq,
+    Zero      = 0,
+    Trivia    = 1 << 0,
+    Symbol    = 1 << 1,
+    Keyword   = 1 << 2,
+    Logic     = 1 << 3,
+    Compiler  = 1 << 4,
+    Func      = 1 << 5,
+    Intrinsic = 1 << 6,
+    Return    = 1 << 7,
+    Type      = 1 << 8,
+    Literal   = 1 << 9,
+    Modifier  = 1 << 10,
+    Reserved  = 1 << 11,
+    Alias     = 1 << 12,
+    Uniq      = 1 << 13,
+
+    KeywordLogic            = Keyword | Logic,
+    CompilerFunc            = Compiler | Func,
+    CompilerIntrinsic       = Compiler | Intrinsic,
+    CompilerIntrinsicReturn = CompilerIntrinsic | Return,
+    IntrinsicReturn         = Intrinsic | Return,
+    CompilerAlias           = Compiler | Alias,
+    CompilerUniq            = Compiler | Uniq,
 };
+using TokenIdKind = EnumFlags<TokenIdKindE>;
 
 struct TokenIdInfo
 {
@@ -44,7 +51,7 @@ enum class TokenId : uint16_t
 };
 
 constexpr std::array TOKEN_ID_INFOS = {
-#define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKind::__kind},
+#define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKindE::__kind},
 #include "Compiler/Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
@@ -90,22 +97,22 @@ struct Token
 
     bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
 
-    static bool isLiteral(TokenId id) { return toKind(id) == TokenIdKind::Literal; }
-    static bool isSymbol(TokenId id) { return toKind(id) == TokenIdKind::Symbol; }
-    static bool isKeywordLogic(TokenId id) { return toKind(id) == TokenIdKind::KeywordLogic; }
-    static bool isKeyword(TokenId id) { return toKind(id) == TokenIdKind::Keyword || isKeywordLogic(id); }
-    static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsicReturn; }
-    static bool isCompilerIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::CompilerIntrinsic || isCompilerIntrinsicReturn(id); }
-    static bool isCompilerFunc(TokenId id) { return toKind(id) == TokenIdKind::CompilerFunc; }
-    static bool isCompilerAlias(TokenId id) { return toKind(id) == TokenIdKind::CompilerAlias; }
-    static bool isCompilerUniq(TokenId id) { return toKind(id) == TokenIdKind::CompilerUniq; }
-    static bool isCompiler(TokenId id) { return toKind(id) == TokenIdKind::Compiler || isCompilerIntrinsic(id) || isCompilerFunc(id) || isCompilerAlias(id) || isCompilerUniq(id); }
-    static bool isIntrinsic(TokenId id) { return toKind(id) == TokenIdKind::Intrinsic || isIntrinsicReturn(id); }
-    static bool isIntrinsicReturn(TokenId id) { return toKind(id) == TokenIdKind::IntrinsicReturn; }
-    static bool isType(TokenId id) { return toKind(id) == TokenIdKind::Type; }
-    static bool isModifier(TokenId id) { return toKind(id) == TokenIdKind::Modifier; }
+    static bool isLiteral(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Literal); }
+    static bool isSymbol(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Symbol); }
+    static bool isKeywordLogic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::KeywordLogic); }
+    static bool isKeyword(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Keyword); }
+    static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::CompilerIntrinsicReturn); }
+    static bool isCompilerIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::CompilerIntrinsic); }
+    static bool isCompilerFunc(TokenId id) { return toKind(id).hasAll(TokenIdKindE::CompilerFunc); }
+    static bool isCompilerAlias(TokenId id) { return toKind(id).hasAll(TokenIdKindE::CompilerAlias); }
+    static bool isCompilerUniq(TokenId id) { return toKind(id).hasAll(TokenIdKindE::CompilerUniq); }
+    static bool isCompiler(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler); }
+    static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }
+    static bool isIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::IntrinsicReturn); }
+    static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
+    static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
-    static bool isReserved(TokenId id) { return toKind(id) == TokenIdKind::Reserved; }
+    static bool isReserved(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Reserved); }
 
 #if SWC_HAS_TOKEN_DEBUG_INFO
     const char8_t*  dbgPtr     = nullptr;

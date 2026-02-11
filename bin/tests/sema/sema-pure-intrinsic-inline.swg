@@ -56,3 +56,7 @@ func fmuladd(a: f64, b: f64, c: f64)->f64 => @muladd(cast(f64) a, cast(f64) b, c
     var x: f64 = 3.0
     #assert(fsqrt(x) == 2.0) // swc-expected-error {{sema_err_expr_not_const}}
 }
+
+const A = 42
+func pure_intrinsic(a: s32)->s32 => #location(A).lineStart
+#assert(pure_intrinsic(0) == 60)

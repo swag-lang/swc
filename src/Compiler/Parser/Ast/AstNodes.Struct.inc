@@ -139,7 +139,8 @@ struct AstCompilerDiagnostic : AstInternalCallUnaryT<AstNodeId::CompilerDiagnost
 // -----------------------------------------------------------------------------
 struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

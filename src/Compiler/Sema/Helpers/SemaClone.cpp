@@ -112,6 +112,13 @@ AstNodeRef AstCompilerLiteral::semaClone(Sema& sema, const CloneContext&) const
     return sema.ast().makeNode<AstNodeId::CompilerLiteral>(tokRef()).first;
 }
 
+AstNodeRef AstCompilerCallOne::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CompilerCallOne>(tokRef());
+    newPtr->nodeArgRef    = SemaClone::cloneExpr(sema, nodeArgRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstUndefinedExpr::semaClone(Sema& sema, const CloneContext&) const
 {
     return sema.ast().makeNode<AstNodeId::UndefinedExpr>(tokRef()).first;

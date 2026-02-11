@@ -68,13 +68,14 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeConditionRef)
         return Result::Continue;
 
-    const ConstantValue& constant = sema.constantOf(nodeConditionRef);
-    if (!constant.isBool())
-        return SemaError::raiseInvalidType(sema, nodeConditionRef, constant.typeRef(), sema.typeMgr().typeBool());
+    const SemaNodeView condView(sema, nodeConditionRef);
+    SWC_ASSERT(condView.cst);
+    if (!condView.cst->isBool())
+        return SemaError::raiseInvalidType(sema, nodeConditionRef, condView.cst->typeRef(), sema.typeMgr().typeBool());
 
-    if (childRef == nodeIfBlockRef && !constant.getBool())
+    if (childRef == nodeIfBlockRef && !condView.cst->getBool())
         return Result::SkipChildren;
-    if (childRef == nodeElseBlockRef && constant.getBool())
+    if (childRef == nodeElseBlockRef && condView.cst->getBool())
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -85,8 +86,9 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
     // Condition must already be a constant at this point
     SWC_ASSERT(sema.hasConstant(nodeConditionRef));
 
-    const ConstantValue& constant      = sema.constantOf(nodeConditionRef);
-    const bool           takenIfBranch = constant.getBool();
+    const SemaNodeView condView(sema, nodeConditionRef);
+    SWC_ASSERT(condView.cst);
+    const bool takenIfBranch = condView.cst->getBool();
 
     // The block that will be ignored
     const AstNodeRef& ignoredBlockRef = takenIfBranch ? nodeElseBlockRef : nodeIfBlockRef;
@@ -112,7 +114,9 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
     const Token&         tok      = sema.token(codeRef());
-    const ConstantValue& constant = sema.constantOf(nodeArgRef);
+    const SemaNodeView   argView(sema, nodeArgRef);
+    SWC_ASSERT(argView.cst);
+    const ConstantValue& constant = *argView.cst;
     switch (tok.id)
     {
         case TokenId::CompilerError:
@@ -475,11 +479,12 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         RESULT_VERIFY(SemaCheck::isConstant(sema, childRef));
 
-        const ConstantValue& constant = sema.constantOf(childRef);
-        if (!constant.isString())
-            return SemaError::raiseInvalidType(sema, childRef, constant.typeRef(), sema.typeMgr().typeString());
+        const SemaNodeView nodeView(sema, childRef);
+        SWC_ASSERT(nodeView.cst);
+        if (!nodeView.cst->isString())
+            return SemaError::raiseInvalidType(sema, childRef, nodeView.cst->typeRef(), sema.typeMgr().typeString());
 
-        sema.compiler().registerForeignLib(constant.getString());
+        sema.compiler().registerForeignLib(nodeView.cst->getString());
         return Result::Continue;
     }
 }

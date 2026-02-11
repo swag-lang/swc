@@ -1,5 +1,5 @@
 #global internal
-/*
+
 #test
 {
     // Constant folding of math intrinsics when all arguments are constant.
@@ -19,9 +19,15 @@
 
 #test
 {
-    // Invalid constant arguments must raise an error.
     const A: f64 = @sqrt(-1.0'f32) // swc-expected-error {{sema_err_intrinsic_invalid_argument}}
+}
+
+#test
+{
     const B: f64 = @log(0.0'f32)   // swc-expected-error {{sema_err_intrinsic_invalid_argument}}
+}
+
+#test
+{
     const C: f64 = @asin(2.0'f32)  // swc-expected-error {{sema_err_intrinsic_invalid_argument}}
 }
-*/

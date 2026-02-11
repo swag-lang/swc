@@ -73,7 +73,7 @@ namespace
 
     struct CallArgEntry
     {
-        AstNodeRef argRef      = AstNodeRef::invalid();
+        AstNodeRef argRef       = AstNodeRef::invalid();
         uint32_t   callArgIndex = 0;
     };
 
@@ -101,12 +101,6 @@ namespace
         if (ufcsArg.isValid())
             ++n;
         return n;
-    }
-
-    uint32_t userArgIndexFromCallIndex(uint32_t callArgIndex, AstNodeRef ufcsArg)
-    {
-        // Only valid when callArgIndex is NOT the implicit UFCS arg (i.e. callArgIndex != 0 when ufcsArg is valid).
-        return ufcsArg.isValid() ? (callArgIndex - 1) : callArgIndex;
     }
 
     uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg)
@@ -170,7 +164,7 @@ namespace
 
         if (ufcsArg.isValid() && numParams > 0)
         {
-            outMapping.paramArgs[0].argRef      = ufcsArg;
+            outMapping.paramArgs[0].argRef       = ufcsArg;
             outMapping.paramArgs[0].callArgIndex = 0;
         }
 
@@ -193,7 +187,7 @@ namespace
 
             if (argNode.is(AstNodeId::NamedArgument))
             {
-                seenNamed = true;
+                seenNamed           = true;
                 outMapping.hasNamed = true;
 
                 const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
@@ -220,7 +214,7 @@ namespace
                     return false;
                 }
 
-                outMapping.paramArgs[found].argRef      = argRef;
+                outMapping.paramArgs[found].argRef       = argRef;
                 outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
                 continue;
             }
@@ -236,14 +230,14 @@ namespace
 
             if (nextPos < numParams)
             {
-                outMapping.paramArgs[nextPos].argRef      = argRef;
+                outMapping.paramArgs[nextPos].argRef       = argRef;
                 outMapping.paramArgs[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
                 ++nextPos;
                 continue;
             }
 
             CallArgEntry entry;
-            entry.argRef      = argRef;
+            entry.argRef       = argRef;
             entry.callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
             outMapping.variadicArgs.push_back(entry);
         }
@@ -893,7 +887,7 @@ namespace
         if (numParams == 0)
             return Result::Continue;
 
-        const TypeRef  variadicTy    = selectedFnType.payloadTypeRef();
+        const TypeRef variadicTy = selectedFnType.payloadTypeRef();
 
         for (const auto& entry : mapping.variadicArgs)
         {
@@ -924,8 +918,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();
     const SymbolFunction* selectedFn     = selectedAttempt->candidate.fn;
-    CallArgMapping mapping;
-    MatchFailure   mappingFail;
+    CallArgMapping        mapping;
+    MatchFailure          mappingFail;
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
@@ -934,6 +928,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
 
     // Set the call node type to the return type of the selected function
+    sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setType(sema.curNodeRef(), selectedFn->returnTypeRef());
     sema.setIsValue(sema.node(sema.curNodeRef()));
     return Result::Continue;

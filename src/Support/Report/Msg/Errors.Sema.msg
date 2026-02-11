@@ -135,6 +135,7 @@ SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "too few arguments for function 
 SWC_DIAG_DEF(sema_err_not_callable, Error, "expression is not callable")
 SWC_DIAG_DEF(sema_err_bad_function_match, Error, "no matching call for '{sym}'")
 SWC_DIAG_DEF(sema_err_no_overload_match, Error, "no overload matches")
+SWC_DIAG_DEF(sema_err_intrinsic_invalid_argument, Error, "invalid constant argument for intrinsic '{sym}'")
 SWC_DIAG_DEF(sema_err_cst_struct_member_type, Error, "struct member type '{type}' is not compile-time evaluable")
 SWC_DIAG_DEF(sema_err_empty_array_literal, Error, "empty array literal")
 SWC_DIAG_DEF(sema_err_ambiguous_array_type, Error, "array type is ambiguous")

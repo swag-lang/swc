@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaIntrinsic.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -185,7 +186,17 @@ Result AstCallExpr::semaPostNode(Sema& sema) const
             ufcsArg = nodeLeftView.nodeRef;
     }
 
-    return Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg);
+    RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
+
+    // If overload resolution succeeded with a single typed symbol, try to constant-fold intrinsic calls.
+    if (sema.hasSymbol(sema.curNodeRef()))
+    {
+        const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        if (sym.isFunction())
+            RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, *this, sym.cast<SymbolFunction>(), args));
+    }
+
+    return Result::Continue;
 }
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const

@@ -220,9 +220,8 @@ namespace
             return Result::Continue;
         }
 
-        Result evalUnary(AstNodeRef nodeRef, const AstUnaryExpr* node, ConstantRef& out)
+        Result evalUnary(AstNodeRef, const AstUnaryExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef exprCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeExprRef, exprCst));
             if (exprCst.isInvalid())
@@ -301,9 +300,8 @@ namespace
             return Result::Continue;
         }
 
-        Result evalRelational(AstNodeRef nodeRef, const AstRelationalExpr* node, ConstantRef& out)
+        Result evalRelational(AstNodeRef, const AstRelationalExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef leftCst  = ConstantRef::invalid();
             ConstantRef rightCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeLeftRef, leftCst));
@@ -323,9 +321,8 @@ namespace
             return Result::Continue;
         }
 
-        Result evalLogical(AstNodeRef nodeRef, const AstLogicalExpr* node, ConstantRef& out)
+        Result evalLogical(AstNodeRef, const AstLogicalExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef leftCst  = ConstantRef::invalid();
             ConstantRef rightCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeLeftRef, leftCst));
@@ -457,9 +454,8 @@ namespace
             return castConstant(nodeRef, exprCst, dstTypeRef, CastKind::Explicit, castFlags, out, srcTypeRef);
         }
 
-        Result evalMemberAccess(AstNodeRef nodeRef, const AstMemberAccessExpr* node, ConstantRef& out)
+        Result evalMemberAccess(AstNodeRef, const AstMemberAccessExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef leftCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeLeftRef, leftCst));
             if (leftCst.isInvalid())
@@ -539,7 +535,6 @@ namespace
 
             if (leftVal.isAggregateStruct())
             {
-                const SemaNodeView nodeRightView(*sema_, node->nodeRightRef);
                 if (!nodeRightView.node || !nodeRightView.node->is(AstNodeId::Identifier))
                     return Result::Continue;
 
@@ -580,9 +575,8 @@ namespace
             return Result::Continue;
         }
 
-        Result evalIndex(AstNodeRef nodeRef, const AstIndexExpr* node, ConstantRef& out)
+        Result evalIndex(AstNodeRef, const AstIndexExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef baseCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeExprRef, baseCst));
             if (baseCst.isInvalid())
@@ -605,9 +599,8 @@ namespace
             return Result::Continue;
         }
 
-        Result evalIndexList(AstNodeRef nodeRef, const AstIndexListExpr* node, ConstantRef& out)
+        Result evalIndexList(AstNodeRef, const AstIndexListExpr* node, ConstantRef& out)
         {
-            (void) nodeRef;
             ConstantRef baseCst = ConstantRef::invalid();
             RESULT_VERIFY(evalExpr(node->nodeExprRef, baseCst));
             if (baseCst.isInvalid())
@@ -617,10 +610,10 @@ namespace
             sema_->ast().appendNodes(indices, node->spanChildrenRef);
 
             ConstantRef currentCst = baseCst;
-            for (size_t i = 0; i < indices.size(); ++i)
+            for (const auto indice : indices)
             {
                 ConstantRef indexCst = ConstantRef::invalid();
-                RESULT_VERIFY(evalExpr(indices[i], indexCst));
+                RESULT_VERIFY(evalExpr(indice, indexCst));
                 if (indexCst.isInvalid())
                     return Result::Continue;
 
@@ -628,11 +621,11 @@ namespace
                     return Result::Continue;
 
                 int64_t constIndex = 0;
-                RESULT_VERIFY(getConstIndex(indices[i], indexCst, constIndex));
+                RESULT_VERIFY(getConstIndex(indice, indexCst, constIndex));
 
                 ConstantRef nextCstRef = ConstantRef::invalid();
                 const ConstantValue& currentVal = sema_->cstMgr().get(currentCst);
-                RESULT_VERIFY(ConstantExtract::atIndex(*sema_, currentVal, constIndex, indices[i], nextCstRef));
+                RESULT_VERIFY(ConstantExtract::atIndex(*sema_, currentVal, constIndex, indice, nextCstRef));
                 if (nextCstRef.isInvalid())
                     return Result::Continue;
                 currentCst = nextCstRef;
@@ -766,7 +759,7 @@ namespace
             return Result::Continue;
         }
 
-        Result evalCall(AstNodeRef nodeRef, const AstCallExpr* node, ConstantRef& out)
+        Result evalCall(AstNodeRef nodeRef, const AstCallExpr* node, ConstantRef& out) const
         {
             SmallVector<AstNodeRef> args;
             node->collectArguments(args, sema_->ast());

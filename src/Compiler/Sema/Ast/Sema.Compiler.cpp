@@ -457,6 +457,22 @@ namespace
         return Result::Continue;
     }
 
+    Result semaCompilerLocation(Sema& sema, const AstCompilerCall& node)
+    {
+        const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
+        if (typeRef.isInvalid())
+            return sema.waitIdentifier(sema.idMgr().predefined(IdentifierManager::PredefinedName::SourceCodeLocation), node.codeRef());
+
+        const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
+        const SemaNodeView nodeView(sema, childRef);
+        if (!nodeView.sym)
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
+
+        const SourceCodeRange codeRange = nodeView.sym->codeRange(sema.ctx());
+        sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange));
+        return Result::Continue;
+    }
+
     Result semaCompilerForeignLib(Sema& sema, const AstCompilerCall& node)
     {
         const AstNodeRef   childRef = sema.ast().oneNode(node.spanChildrenRef);
@@ -494,6 +510,8 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
             return semaCompilerAlignOf(sema, *this);
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
+        case TokenId::CompilerLocation:
+            return semaCompilerLocation(sema, *this);
         case TokenId::CompilerForeignLib:
             return semaCompilerForeignLib(sema, *this);
 
@@ -504,7 +522,6 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
         case TokenId::CompilerIsConstExpr:
         case TokenId::CompilerSafety:
         case TokenId::CompilerInject:
-        case TokenId::CompilerLocation:
         case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
             // TODO

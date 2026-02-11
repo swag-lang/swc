@@ -75,6 +75,7 @@ SWC_DIAG_DEF(sema_err_flag_enum_power_2, Error, "enum flag value cannot be deduc
 SWC_DIAG_DEF(sema_err_invalid_sizeof, Error, "invalid '#sizeof' expression")
 SWC_DIAG_DEF(sema_err_invalid_alignof, Error, "invalid '#alignof' expression")
 SWC_DIAG_DEF(sema_err_invalid_offsetof, Error, "invalid '#offsetof' expression")
+SWC_DIAG_DEF(sema_err_invalid_location, Error, "invalid '#location' expression")
 SWC_DIAG_DEF(sema_err_invalid_countof, Error, "invalid count expression")
 SWC_DIAG_DEF(sema_err_invalid_countof_type, Error, "invalid count type '{type}'; expected array, slice, string, enum, or unsigned integer")
 SWC_DIAG_DEF(sema_err_count_negative, Error, "count is negative (got '{value}')")

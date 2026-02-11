@@ -7,15 +7,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
-ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const AstNode& node)
+ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange)
 {
     auto&                 ctx       = sema.ctx();
-    const SourceCodeRange codeRange = node.codeRangeWithChildren(ctx, sema.ast());
     const TypeRef         typeRef   = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;
 
-    const std::string_view nameView = sema.cstMgr().addString(ctx, codeRange.srcView->file()->path().string());
+    const SourceView*     srcView  = codeRange.srcView;
+    const SourceFile*     file     = srcView ? srcView->file() : nullptr;
+    const std::string_view nameView = sema.cstMgr().addString(ctx, file ? file->path().string() : "");
     rtLoc.fileName.ptr              = nameView.data();
     rtLoc.fileName.length           = nameView.size();
 
@@ -27,9 +28,15 @@ ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const AstNode& n
     rtLoc.lineEnd   = codeRange.line;
     rtLoc.colEnd    = codeRange.column + codeRange.len;
 
-    const auto view   = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
-    const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, view);
+    const auto bytes  = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
+    const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
     return sema.cstMgr().addConstant(ctx, cstVal);
+}
+
+ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const AstNode& node)
+{
+    const SourceCodeRange codeRange = node.codeRangeWithChildren(sema.ctx(), sema.ast());
+    return makeSourceCodeLocation(sema, codeRange);
 }
 
 SWC_END_NAMESPACE();

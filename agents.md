@@ -28,6 +28,11 @@
 
 ## Test Authoring Rules
 
+- If you add a new feature, add new tests that cover it:
+    - Verify expected successful behavior.
+    - Verify expected failures by asserting the correct errors are raised.
+
+- Only one 'swc-expected-error' is possible per #test block (what follows will be skipped)
 - Write tests using the existing test framework and patterns.
 - Do not add comments.
 - Test files must contain only compilable test code.

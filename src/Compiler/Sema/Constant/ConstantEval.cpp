@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Helpers/SemaConstEval.h"
+#include "Compiler/Sema/Constant/ConstantEval.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -771,7 +771,7 @@ namespace
     }
 }
 
-Result SemaConstEval::tryConstantFoldPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+Result ConstantEval::tryConstantFoldPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
     if (!selectedFn.isPure())
         return Result::Continue;

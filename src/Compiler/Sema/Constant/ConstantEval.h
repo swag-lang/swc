@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 
-struct SemaConstEval
+struct ConstantEval
 {
     static Result tryConstantFoldPureCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
 };

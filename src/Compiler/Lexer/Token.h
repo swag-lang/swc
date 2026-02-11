@@ -12,21 +12,20 @@ enum class TokenIdFlagsE : uint32_t
     Trivia                  = 1 << 0,
     Symbol                  = 1 << 1,
     Keyword                 = 1 << 2,
-    KeywordLogic            = Keyword | (1 << 3),
+    KeywordLogic            = 1 << 3,
     Compiler                = 1 << 4,
-    CompilerFunc            = Compiler | (1 << 5),
-    Intrinsic               = 1 << 6,
-    CompilerIntrinsic       = Compiler | Intrinsic,
-    Return                  = 1 << 7,
-    IntrinsicReturn         = Intrinsic | Return,
-    CompilerIntrinsicReturn = CompilerIntrinsic | Return,
-    Type                    = 1 << 8,
-    Literal                 = 1 << 9,
-    Modifier                = 1 << 10,
-    Reserved                = 1 << 11,
-    CompilerAlias           = Compiler | (1 << 12),
-    CompilerUniq            = Compiler | (1 << 13),
-    PureIntrinsic           = IntrinsicReturn | (1 << 14),
+    CompilerFunc            = 1 << 5,
+    CompilerIntrinsic       = 1 << 6,
+    CompilerIntrinsicReturn = 1 << 7,
+    Intrinsic               = 1 << 8,
+    IntrinsicReturn         = 1 << 9,
+    Type                    = 1 << 10,
+    Literal                 = 1 << 11,
+    Modifier                = 1 << 12,
+    Reserved                = 1 << 13,
+    CompilerAlias           = 1 << 14,
+    CompilerUniq            = 1 << 15,
+    PureIntrinsic           = 1 << 16,
 };
 using TokenIdFlags = EnumFlags<TokenIdFlagsE>;
 
@@ -95,21 +94,21 @@ struct Token
 
     static bool isLiteral(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Literal); }
     static bool isSymbol(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Symbol); }
-    static bool isKeywordLogic(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::KeywordLogic); }
+    static bool isKeywordLogic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::KeywordLogic); }
     static bool isKeyword(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Keyword); }
-    static bool isCompilerIntrinsicReturn(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::CompilerIntrinsicReturn); }
-    static bool isCompilerIntrinsic(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::CompilerIntrinsic); }
-    static bool isCompilerFunc(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::CompilerFunc); }
-    static bool isCompilerAlias(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::CompilerAlias); }
-    static bool isCompilerUniq(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::CompilerUniq); }
-    static bool isCompiler(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Compiler); }
-    static bool isIntrinsic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Intrinsic); }
-    static bool isIntrinsicReturn(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::IntrinsicReturn); }
+    static bool isCompilerIntrinsicReturn(TokenId id) { return toFlags(id).has(TokenIdFlagsE::CompilerIntrinsicReturn); }
+    static bool isCompilerIntrinsic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::CompilerIntrinsic) || isCompilerIntrinsicReturn(id); }
+    static bool isCompilerFunc(TokenId id) { return toFlags(id).has(TokenIdFlagsE::CompilerFunc); }
+    static bool isCompilerAlias(TokenId id) { return toFlags(id).has(TokenIdFlagsE::CompilerAlias); }
+    static bool isCompilerUniq(TokenId id) { return toFlags(id).has(TokenIdFlagsE::CompilerUniq); }
+    static bool isCompiler(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Compiler) || isCompilerIntrinsic(id) || isCompilerFunc(id) || isCompilerAlias(id) || isCompilerUniq(id); }
+    static bool isIntrinsic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Intrinsic) || isIntrinsicReturn(id); }
+    static bool isIntrinsicReturn(TokenId id) { return toFlags(id).has(TokenIdFlagsE::IntrinsicReturn); }
     static bool isType(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Type); }
     static bool isModifier(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Modifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
     static bool isReserved(TokenId id) { return toFlags(id).has(TokenIdFlagsE::Reserved); }
-    static bool isPureIntrinsic(TokenId id) { return toFlags(id).hasAll(TokenIdFlagsE::PureIntrinsic); }
+    static bool isPureIntrinsic(TokenId id) { return toFlags(id).has(TokenIdFlagsE::PureIntrinsic); }
 
 #if SWC_HAS_TOKEN_DEBUG_INFO
     const char8_t*  dbgPtr     = nullptr;

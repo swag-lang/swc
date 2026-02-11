@@ -393,21 +393,14 @@ struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstCallExpr : AstCompoundT<AstNodeId::CallExpr>
+struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
 {
-    AstNodeRef nodeExprRef;
+    Result semaPostNode(Sema& sema) const;
+};
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstNode::collectChildren(out, {nodeExprRef});
-        AstCompoundT::collectChildren(out, ast);
-    }
-
-    void collectArguments(SmallVector<AstNodeRef>& out, const Ast& ast) const
-    {
-        AstCompoundT::collectChildren(out, ast);
-    }
-
+// -----------------------------------------------------------------------------
+struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr>
+{
     Result semaPostNode(Sema& sema) const;
 };
 

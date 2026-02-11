@@ -75,7 +75,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 AstNodeRef Parser::parseIntrinsicCallConstantExpr()
 {
     const auto tokRef       = consume();
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
@@ -86,7 +86,7 @@ AstNodeRef Parser::parseIntrinsicCallConstantExpr()
 AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 {
     const auto tokRef       = consume();
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(tokRef);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);

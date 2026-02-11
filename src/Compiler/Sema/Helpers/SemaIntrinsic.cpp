@@ -54,7 +54,7 @@ namespace
     }
 }
 
-Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
+Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
 {
     const Token& tok = sema.token(selectedFn.codeRef());
 

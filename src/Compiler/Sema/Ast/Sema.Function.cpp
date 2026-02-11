@@ -68,6 +68,40 @@ namespace
             symMe->setTyped(ctx);
         }
     }
+
+    template<typename T>
+    Result semaCallExprCommon(Sema& sema, const T& node, bool tryIntrinsicFold)
+    {
+        const SemaNodeView nodeCallee(sema, node.nodeExprRef);
+
+        SmallVector<AstNodeRef> args;
+        node.collectArguments(args, sema.ast());
+        for (auto& arg : args)
+            arg = sema.getSubstituteRef(arg);
+
+        SmallVector<Symbol*> symbols;
+        nodeCallee.getSymbols(symbols);
+
+        AstNodeRef ufcsArg = AstNodeRef::invalid();
+        if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
+        {
+            const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
+            if (sema.isValue(*nodeLeftView.node))
+                ufcsArg = nodeLeftView.nodeRef;
+        }
+
+        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
+        SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
+
+        if (tryIntrinsicFold)
+        {
+            const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+            SWC_ASSERT(sym.isFunction());
+            RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -165,38 +199,12 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 
 Result AstCallExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeCallee(sema, nodeExprRef);
+    return semaCallExprCommon(sema, *this, false);
+}
 
-    // Collect arguments: take care of substitutions
-    SmallVector<AstNodeRef> args;
-    collectArguments(args, sema.ast());
-    for (auto& arg : args)
-        arg = sema.getSubstituteRef(arg);
-
-    // Collect overload set
-    SmallVector<Symbol*> symbols;
-    nodeCallee.getSymbols(symbols);
-
-    // Possible UFCS if we are inside a member access expression with a value on the left
-    AstNodeRef ufcsArg = AstNodeRef::invalid();
-    if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
-    {
-        const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
-        if (sema.isValue(*nodeLeftView.node))
-            ufcsArg = nodeLeftView.nodeRef;
-    }
-
-    RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
-
-    // If overload resolution succeeded with a single typed symbol, try to constant-fold intrinsic calls.
-    if (sema.hasSymbol(sema.curNodeRef()))
-    {
-        const Symbol& sym = sema.symbolOf(sema.curNodeRef());
-        if (sym.isFunction())
-            RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, *this, sym.cast<SymbolFunction>(), args));
-    }
-
-    return Result::Continue;
+Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
+{
+    return semaCallExprCommon(sema, *this, true);
 }
 
 Result AstReturnStmt::semaPostNode(Sema& sema) const

@@ -37,6 +37,29 @@ struct AstCompoundT : AstNodeT<I, E>
 
 // -----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
+struct AstCallExprT : AstCompoundT<I, E>
+{
+    AstNodeRef nodeExprRef;
+
+    explicit AstCallExprT(SourceCodeRef codeRef) :
+        AstCompoundT<I, E>(codeRef)
+    {
+    }
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, {nodeExprRef});
+        AstCompoundT<I, E>::collectChildren(out, ast);
+    }
+
+    void collectArguments(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstCompoundT<I, E>::collectChildren(out, ast);
+    }
+};
+
+// -----------------------------------------------------------------------------
+template<AstNodeId I, typename E = void>
 struct AstLambdaExprT : AstNodeT<I, E>
 {
     SpanRef    spanArgsRef;

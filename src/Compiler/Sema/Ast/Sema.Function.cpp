@@ -43,6 +43,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
+    sym.resetPurity();
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -95,7 +96,8 @@ namespace
 
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
-        sema.setHasNonArgRef(sema.curNodeRef());
+        if (auto* currentFunc = sema.frame().currentFunction())
+            currentFunc->markImpure();
 
         if (tryIntrinsicFold)
             RESULT_VERIFY(SemaIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
@@ -176,7 +178,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    sym.setPure(!sema.hasNonArgRef(sema.curNodeRef()));
+    sym.setPure(!sym.isImpure());
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

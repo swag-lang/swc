@@ -88,19 +88,15 @@ public:
     bool isLValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::LValue); }
     bool isValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Value); }
     bool isPure(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Pure); }
-    bool hasNonArgRef(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::NonArgRef); }
     void setIsLValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::LValue); }
     void setIsValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::Value); }
     void setIsPure(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::Pure); }
-    void setHasNonArgRef(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::NonArgRef); }
     bool isLValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::LValue); }
     bool isValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::Value); }
     bool isPure(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::Pure); }
-    bool hasNonArgRef(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::NonArgRef); }
     void setIsLValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::LValue); }
     void setIsValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::Value); }
     void setIsPure(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::Pure); }
-    void setHasNonArgRef(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::NonArgRef); }
 
     void inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::propagateSemaFlags(nodeDst, node(srcRef), SEMA_FLAGS_MASK, false); }
     void inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSemaKindRef(nodeDst, node(srcRef)); }

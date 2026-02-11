@@ -118,7 +118,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         if (isParameterSymbol(func, sym))
             continue;
 
-        sema.setHasNonArgRef(sema.curNodeRef());
+        if (auto* currentFunc = sema.frame().currentFunction())
+            currentFunc->markImpure();
         break;
     }
 

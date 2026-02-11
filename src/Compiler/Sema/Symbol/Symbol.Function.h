@@ -25,6 +25,13 @@ class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFla
 public:
     static constexpr auto K = SymbolKind::Function;
 
+    enum class PurityState : uint8_t
+    {
+        Unknown,
+        Pure,
+        Impure,
+    };
+
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)
     {
@@ -48,6 +55,9 @@ public:
     bool       isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool       isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
     void       setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
+    void       resetPurity() noexcept { purityState_ = PurityState::Unknown; }
+    void       markImpure() noexcept { purityState_ = PurityState::Impure; }
+    bool       isImpure() const noexcept { return purityState_ == PurityState::Impure; }
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
@@ -55,6 +65,7 @@ private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
     SpecOpKind                   specOpKind_ = SpecOpKind::None;
+    PurityState                  purityState_ = PurityState::Unknown;
 };
 
 SWC_END_NAMESPACE();

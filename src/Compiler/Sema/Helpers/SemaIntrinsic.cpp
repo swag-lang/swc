@@ -163,8 +163,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
         {
             SWC_ASSERT(args.size() == 2);
 
-            double y;
-            double x;
+            double x, y;
             if (!getFloatArgAsDouble(sema, args[0], y) || !getFloatArgAsDouble(sema, args[1], x))
                 return Result::Continue;
 
@@ -175,8 +174,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
         {
             SWC_ASSERT(args.size() == 2);
 
-            double a;
-            double b;
+            double a, b;
             if (!getFloatArgAsDouble(sema, args[0], a) || !getFloatArgAsDouble(sema, args[1], b))
                 return Result::Continue;
 
@@ -189,9 +187,7 @@ Result SemaIntrinsic::tryConstantFoldCall(Sema& sema, const AstCallExpr& call, c
         case TokenId::IntrinsicMulAdd:
         {
             SWC_ASSERT(args.size() == 3);
-            double a;
-            double b;
-            double c;
+            double a, b, c;
             if (!getFloatArgAsDouble(sema, args[0], a) || !getFloatArgAsDouble(sema, args[1], b) || !getFloatArgAsDouble(sema, args[2], c))
                 return Result::Continue;
 

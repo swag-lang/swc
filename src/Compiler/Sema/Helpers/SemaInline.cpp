@@ -137,55 +137,6 @@ namespace
 
         return false;
     }
-
-    bool shouldExposeConstantResult(const Sema& sema)
-    {
-        for (size_t up = 0;; up++)
-        {
-            const AstNode* parent = sema.visit().parentNode(up);
-            if (!parent)
-                return false;
-
-            switch (parent->id())
-            {
-                case AstNodeId::CompilerExpression:
-                case AstNodeId::CompilerDiagnostic:
-                case AstNodeId::CompilerCall:
-                case AstNodeId::CompilerCallOne:
-                case AstNodeId::CompilerRunExpr:
-                case AstNodeId::CompilerRunBlock:
-                    return true;
-
-                case AstNodeId::SingleVarDecl:
-                    if (parent->cast<AstSingleVarDecl>()->hasFlag(AstVarDeclFlagsE::Const))
-                        return true;
-                    break;
-
-                case AstNodeId::MultiVarDecl:
-                    if (parent->cast<AstMultiVarDecl>()->hasFlag(AstVarDeclFlagsE::Const))
-                        return true;
-                    break;
-
-                case AstNodeId::VarDeclDestructuring:
-                    if (parent->cast<AstVarDeclDestructuring>()->hasFlag(AstVarDeclFlagsE::Const))
-                        return true;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    AstNodeRef makeRuntimeInlineResultNode(Sema& sema, AstNodeRef callRef, AstNodeRef inlinedRef, TypeRef returnTypeRef)
-    {
-        const AstNode& callNode = sema.node(callRef);
-        auto [wrapRef, wrapPtr] = sema.ast().makeNode<AstNodeId::ImplicitCastExpr>(callNode.tokRef());
-        wrapPtr->nodeExprRef    = inlinedRef;
-        sema.setType(wrapRef, returnTypeRef);
-        sema.setIsValue(*wrapPtr);
-        return wrapRef;
-    }
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -207,33 +158,24 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
     const AstNodeRef              inlinedRef = SemaClone::cloneExpr(sema, srcExprRef, cloneContext);
-    if (inlinedRef.isInvalid())
-        return Result::Continue;
+    SWC_ASSERT(inlinedRef.isValid());
 
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
-
     if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
         inlineSema.frame().pushBindingType(fn.returnTypeRef());
-
     RESULT_VERIFY(inlineSema.execResult());
     sema.ctx().state() = saved;
 
-    AstNodeRef finalRef = inlinedRef;
     if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
     {
         SemaNodeView inlineView(sema, inlinedRef);
-        if (Cast::cast(sema, inlineView, fn.returnTypeRef(), CastKind::Implicit) == Result::Continue)
-            finalRef = inlineView.nodeRef;
-        else
-            return Result::Continue;
+        RESULT_VERIFY(Cast::cast(sema, inlineView, fn.returnTypeRef(), CastKind::Implicit));
     }
 
-    if (sema.hasConstant(finalRef) && shouldExposeConstantResult(sema))
-        sema.setConstant(callRef, sema.constantRefOf(finalRef));
-    else
-        sema.setSubstitute(callRef, makeRuntimeInlineResultNode(sema, callRef, finalRef, fn.returnTypeRef()));
-
+    const SemaNodeView callView(sema, inlinedRef);
+    SWC_ASSERT(callView.cstRef.isValid());
+    sema.setConstant(callRef, callView.cstRef);
     return Result::Continue;
 }
 

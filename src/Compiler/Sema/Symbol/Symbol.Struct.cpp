@@ -166,9 +166,14 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         auto& symVar = field->cast<SymbolVariable>();
 
         SWC_ASSERT(symVar.decl()->is(AstNodeId::SingleVarDecl) || symVar.decl()->is(AstNodeId::MultiVarDecl));
-        auto&            type        = symVar.typeInfo(sema.ctx());
-        const auto       var         = reinterpret_cast<const AstVarDeclBase*>(symVar.decl());
-        const AstNodeRef typeNodeRef = var->typeOrInitRef();
+        auto&      type        = symVar.typeInfo(sema.ctx());
+        AstNodeRef typeNodeRef = AstNodeRef::invalid();
+        if (const auto* varSingle = symVar.decl()->safeCast<AstSingleVarDecl>())
+            typeNodeRef = varSingle->typeOrInitRef();
+        else if (const auto* varMulti = symVar.decl()->safeCast<AstMultiVarDecl>())
+            typeNodeRef = varMulti->typeOrInitRef();
+        else
+            SWC_UNREACHABLE();
 
         // A struct is referencing itself
         if (type.isStruct() && &type.payloadSymStruct() == this)

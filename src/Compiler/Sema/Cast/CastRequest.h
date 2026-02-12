@@ -18,12 +18,12 @@ enum class CastKind
 
 enum class CastFlagsE : uint32_t
 {
-    Zero         = 0,
-    BitCast      = 1 << 0,
-    NoOverflow   = 1 << 1,
-    UnConst      = 1 << 2,
-    UfcsArgument = 1 << 3,
-    ConstRuntime = 1 << 4,
+    Zero             = 0,
+    BitCast          = 1 << 0,
+    NoOverflow       = 1 << 1,
+    UnConst          = 1 << 2,
+    UfcsArgument     = 1 << 3,
+    FoldedTypedConst = 1 << 4,
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

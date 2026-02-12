@@ -424,6 +424,8 @@ namespace
             if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
                 castFlags.add(CastFlagsE::UnConst);
         }
+        if (argNodeView.cstRef.isValid() && sema.isFoldedTypedConst(argRef))
+            castFlags.add(CastFlagsE::FoldedTypedConst);
 
         CastRequest castRequest(castKind);
         castRequest.flags = castFlags;

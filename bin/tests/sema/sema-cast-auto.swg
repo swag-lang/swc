@@ -105,3 +105,27 @@ func takes_f64(v: f64) {}
     var s: string = cast() null
     var sl: [..] s32 = cast() null
 }
+
+func ret_u64_short() => cast(u64) 42
+func a_takes_s32(v: s32) {}
+
+#test
+{
+    var x: s32 = ret_u64_short() // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var y: s32 = cast() ret_u64_short()
+    @assert(y == 42)
+}
+
+#test
+{
+    a_takes_s32(ret_u64_short()) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    a_takes_s32(cast() ret_u64_short())
+}

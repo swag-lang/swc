@@ -88,16 +88,16 @@ public:
 
     bool isLValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::LValue); }
     bool isValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Value); }
-    bool isConstRuntime(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::ConstRuntime); }
+    bool isFoldedTypedConst(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::FoldedTypedConst); }
     void setIsLValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::LValue); }
     void setIsValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::Value); }
-    void setConstRuntime(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::ConstRuntime); }
+    void setFoldedTypedConst(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::FoldedTypedConst); }
     bool isLValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::LValue); }
     bool isValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::Value); }
-    bool isConstRuntime(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::ConstRuntime); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::FoldedTypedConst); }
     void setIsLValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::LValue); }
     void setIsValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::Value); }
-    void setConstRuntime(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::ConstRuntime); }
+    void setFoldedTypedConst(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::FoldedTypedConst); }
 
     void inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::propagateSemaFlags(nodeDst, node(srcRef), SEMA_FLAGS_MASK, false); }
     void inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSemaKindRef(nodeDst, node(srcRef)); }

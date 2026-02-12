@@ -27,9 +27,9 @@ enum class NodeSemaKind : uint16_t
 
 enum class NodeSemaFlags : uint16_t
 {
-    ConstRuntime = 1 << 13,
-    LValue       = 1 << 14,
-    Value        = 1 << 15,
+    FoldedTypedConst = 1 << 13,
+    LValue           = 1 << 14,
+    Value            = 1 << 15,
 };
 
 class SemaContext

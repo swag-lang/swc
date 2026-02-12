@@ -91,8 +91,8 @@ namespace TypeGenInternal
 
             // Be sure the type is completed.
             const LayoutKind kind = layoutKindOf(type);
-            if (kind == LayoutKind::Struct)
-                RESULT_VERIFY(sema.waitCompleted(&type.payloadSymStruct(), node.codeRef()));
+            if (const Symbol* sym = type.getSymbolDependency(ctx))
+                RESULT_VERIFY(sema.waitCompleted(sym, node.codeRef()));
 
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())

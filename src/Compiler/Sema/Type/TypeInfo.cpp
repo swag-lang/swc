@@ -948,6 +948,27 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     return true;
 }
 
+Symbol* TypeInfo::getSymbol() const
+{
+    switch (kind_)
+    {
+        case TypeInfoKind::Struct:
+            return &payloadSymStruct();
+        case TypeInfoKind::Enum:
+            return &payloadSymEnum();
+        case TypeInfoKind::Interface:
+            return &payloadSymInterface();
+        case TypeInfoKind::Alias:
+            return &payloadSymAlias();
+        case TypeInfoKind::Function:
+            return &payloadSymFunction();
+        default:
+            break;
+    }
+
+    return nullptr;
+}
+
 Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
 {
     switch (kind_)
@@ -961,8 +982,6 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
         case TypeInfoKind::Alias:
             return &payloadSymAlias();
 
-        case TypeInfoKind::Array:
-            return ctx.typeMgr().get(payloadArray_.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::Function:
         {
             if (payloadFunction_.sym->returnTypeRef().isValid())
@@ -970,13 +989,19 @@ Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
                 if (const auto sym = ctx.typeMgr().get(payloadFunction_.sym->returnTypeRef()).getSymbolDependency(ctx))
                     return sym;
             }
+
             for (const auto& param : payloadFunction_.sym->parameters())
             {
                 if (const auto sym = ctx.typeMgr().get(param->typeRef()).getSymbolDependency(ctx))
                     return sym;
             }
-            return nullptr;
+
+            return &payloadSymFunction();
         }
+
+        case TypeInfoKind::Array:
+            return ctx.typeMgr().get(payloadArray_.typeRef).getSymbolDependency(ctx);
+
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
         case TypeInfoKind::AggregateStruct:

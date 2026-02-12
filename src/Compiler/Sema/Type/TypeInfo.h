@@ -273,6 +273,7 @@ public:
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;
+    Symbol*  getSymbol() const;
     Symbol*  getSymbolDependency(TaskContext& ctx) const;
 
 private:

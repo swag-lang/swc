@@ -60,30 +60,6 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    bool isInCompilerIntrinsicContext(const Sema& sema)
-    {
-        for (size_t up = 0;; up++)
-        {
-            const AstNode* parent = sema.visit().parentNode(up);
-            if (!parent)
-                return false;
-
-            switch (parent->id())
-            {
-                case AstNodeId::CompilerCallOne:
-                case AstNodeId::CompilerCall:
-                case AstNodeId::CompilerLiteral:
-                case AstNodeId::CompilerExpression:
-                case AstNodeId::CompilerDiagnostic:
-                case AstNodeId::CompilerIf:
-                    return true;
-
-                default:
-                    break;
-            }
-        }
-    }
-
     Result evaluateFunctionPurity(Sema& sema, const bool allowOverloadSet)
     {
         if (allowOverloadSet)
@@ -101,21 +77,13 @@ namespace
         const auto symbols = sema.getSymbolList(sema.curNodeRef());
         for (const auto* sym : symbols)
         {
-            if (!sym)
-                continue;
-            if (sym->isConstant() || sym->isEnumValue())
-                continue;
             if (const auto* symVar = sym->safeCast<SymbolVariable>())
             {
                 if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
                     continue;
+                func->markImpure();
+                break;
             }
-
-            if (isInCompilerIntrinsicContext(sema))
-                continue;
-
-            func->markImpure();
-            break;
         }
 
         return Result::Continue;

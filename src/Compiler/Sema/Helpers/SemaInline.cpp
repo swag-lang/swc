@@ -212,6 +212,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
+    if (fn.returnTypeRef().isValid() && fn.returnTypeRef() != sema.typeMgr().typeVoid())
+        inlineSema.frame().pushBindingType(fn.returnTypeRef());
     const Result    inlineResult = inlineSema.execResult();
     if (inlineResult == Result::Pause)
         return Result::Pause;

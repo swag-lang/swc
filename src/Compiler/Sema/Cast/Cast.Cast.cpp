@@ -151,7 +151,7 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef 
         case CastKind::Parameter:
         case CastKind::Initialization:
         case CastKind::Assignment:
-            if (!castRequest.isConstantFolding())
+            if (!castRequest.isConstantFolding() || castRequest.flags.has(CastFlagsE::ConstAsRuntime))
             {
                 const bool srcUnsized = srcType.isIntUnsized();
                 const bool dstUnsized = dstType.isIntUnsized();

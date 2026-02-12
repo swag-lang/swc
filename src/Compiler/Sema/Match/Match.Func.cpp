@@ -415,7 +415,7 @@ namespace
 
         const SemaNodeView argNodeView(sema, argRef);
         auto               castKind = CastKind::Parameter;
-        CastFlags          castFlags;
+        CastFlags          castFlags = CastFlagsE::Zero;
         if (const auto* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
         {
             castKind = CastKind::Explicit;
@@ -866,7 +866,7 @@ namespace
                 continue;
 
             SemaNodeView argView(sema, argRef);
-            CastFlags    flags;
+            CastFlags    flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
             RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));

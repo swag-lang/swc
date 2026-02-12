@@ -213,14 +213,14 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
 
-    if (fn.returnTypeRef().isValid() && fn.returnTypeRef() != sema.typeMgr().typeVoid())
+    if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
         inlineSema.frame().pushBindingType(fn.returnTypeRef());
 
     RESULT_VERIFY(inlineSema.execResult());
     sema.ctx().state() = saved;
 
     AstNodeRef finalRef = inlinedRef;
-    if (fn.returnTypeRef().isValid() && fn.returnTypeRef() != sema.typeMgr().typeVoid())
+    if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
     {
         SemaNodeView inlineView(sema, inlinedRef);
         if (Cast::cast(sema, inlineView, fn.returnTypeRef(), CastKind::Implicit) == Result::Continue)

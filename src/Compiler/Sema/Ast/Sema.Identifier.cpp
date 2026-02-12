@@ -62,9 +62,6 @@ namespace
 
     bool isParameterSymbol(const SymbolFunction* func, const Symbol* sym)
     {
-        if (!func || !sym || !sym->isVariable())
-            return false;
-
         const auto* var = sym->safeCast<SymbolVariable>();
         if (!var)
             return false;
@@ -106,7 +103,7 @@ namespace
     {
         if (allowOverloadSet)
             return Result::Continue;
-        
+
         SymbolFunction* func = sema.frame().currentFunction();
         if (!func)
             return Result::Continue;

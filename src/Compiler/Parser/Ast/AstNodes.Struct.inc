@@ -724,7 +724,13 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
+enum class AstCastExprFlagsE : AstNode::ParserFlags
+{
+    Zero     = 0,
+    Explicit = 1 << 0,
+};
+
+struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>
 {
     AstModifierFlags modifierFlags;
     AstNodeRef       nodeTypeRef;
@@ -732,15 +738,6 @@ struct AstExplicitCastExpr : AstNodeT<AstNodeId::ExplicitCastExpr>
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
     Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
-struct AstImplicitCastExpr : AstNodeT<AstNodeId::ImplicitCastExpr>
-{
-    AstNodeRef nodeExprRef;
-
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

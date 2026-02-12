@@ -152,13 +152,6 @@ AstNodeRef AstCountOfExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     return newRef;
 }
 
-AstNodeRef AstImplicitCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ImplicitCastExpr>(tokRef());
-    newPtr->nodeExprRef   = SemaClone::cloneExpr(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
 AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::DiscardExpr>(tokRef());
@@ -325,9 +318,10 @@ AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneCon
     return newRef;
 }
 
-AstNodeRef AstExplicitCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ExplicitCastExpr>(tokRef());
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
+    newPtr->flags()       = flags();
     newPtr->modifierFlags = modifierFlags;
     newPtr->nodeTypeRef   = nodeTypeRef;
     newPtr->nodeExprRef   = SemaClone::cloneExpr(sema, nodeExprRef, cloneContextAsInline(cloneContext));

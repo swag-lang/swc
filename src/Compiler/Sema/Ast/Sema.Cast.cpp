@@ -55,27 +55,30 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstExplicitCastExpr::semaPostNode(Sema& sema)
+Result AstCastExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-    SemaNodeView       nodeExprView(sema, nodeExprRef);
+    if (hasFlag(AstCastExprFlagsE::Explicit))
+    {
+        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        SemaNodeView       nodeExprView(sema, nodeExprRef);
 
-    // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
+        // Value-check
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
 
-    // Check cast modifiers
-    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+        // Check cast modifiers
+        RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
-    // Cast kind
-    CastFlags castFlags = CastFlagsE::Zero;
-    if (modifierFlags.has(AstModifierFlagsE::Bit))
-        castFlags.add(CastFlagsE::BitCast);
-    if (modifierFlags.has(AstModifierFlagsE::UnConst))
-        castFlags.add(CastFlagsE::UnConst);
+        // Cast kind
+        CastFlags castFlags = CastFlagsE::Zero;
+        if (modifierFlags.has(AstModifierFlagsE::Bit))
+            castFlags.add(CastFlagsE::BitCast);
+        if (modifierFlags.has(AstModifierFlagsE::UnConst))
+            castFlags.add(CastFlagsE::UnConst);
 
-    RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
-    sema.inheritSema(*this, nodeExprView.nodeRef);
-    sema.setIsValue(*this);
+        RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
+        sema.inheritSema(*this, nodeExprView.nodeRef);
+        sema.setIsValue(*this);
+    }
 
     return Result::Continue;
 }

@@ -264,9 +264,10 @@ AstNodeRef Parser::parseCast()
         return nodeRef;
     }
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ExplicitCastExpr>(tknOp);
-    nodePtr->modifierFlags        = modifierFlags;
-    nodePtr->nodeTypeRef          = parseType();
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(tknOp);
+    nodePtr->addFlag(AstCastExprFlagsE::Explicit);
+    nodePtr->modifierFlags = modifierFlags;
+    nodePtr->nodeTypeRef   = parseType();
     if (nodePtr->nodeTypeRef.isInvalid())
         skipTo({TokenId::SymRightParen});
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

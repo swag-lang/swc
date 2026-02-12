@@ -26,6 +26,8 @@ func fmuladd(a: f64, b: f64, c: f64)->f64 => @muladd(cast(f64) a, cast(f64) b, c
 
 #test
 {
+    const typeFsqrt = cast(const *Swag.TypeInfoFunc) #typeof(fsqrt)
+    #assert((typeFsqrt.flags & .Pure) != 0)
     #assert(fsqrt(4.0) == 2.0)
     #assert(fsin(0.0) == 0.0)
     #assert(fcos(0.0) == 1.0)
@@ -59,6 +61,12 @@ func fmuladd(a: f64, b: f64, c: f64)->f64 => @muladd(cast(f64) a, cast(f64) b, c
 
 const A = 42
 
+struct PureIntrinsicStruct
+{
+    a: s32
+    b: u8
+}
+
 func pure_file(a: s32)->bool => #file == #file
 func pure_line(a: s32)->bool => #line > 0
 func pure_swcversion(a: s32)->bool => #swcversion == #swcversion
@@ -66,11 +74,18 @@ func pure_swcrevision(a: s32)->bool => #swcrevision > 0
 func pure_swcbuildnum(a: s32)->bool => #swcbuildnum > 0
 func pure_os(a: s32)->bool => #os == #os
 func pure_stringof(a: s32)->bool => #stringof(1 + 2) == "3"
+func pure_sizeof(a: s32)->bool => #sizeof(PureIntrinsicStruct) == 8
+func pure_offsetof(a: s32)->bool => #offsetof(PureIntrinsicStruct.b) == 4
+func pure_alignof(a: s32)->bool => #alignof(PureIntrinsicStruct) == 4
 func pure_defined(a: s32)->bool => #defined(A)
 func pure_location(a: s32)->bool => #location(A).lineStart > 0
 
 #test
 {
+    const typePureFile = cast(const *Swag.TypeInfoFunc) #typeof(pure_file)
+    #assert((typePureFile.flags & .Pure) != 0)
+    const typePureSizeOf = cast(const *Swag.TypeInfoFunc) #typeof(pure_sizeof)
+    #assert((typePureSizeOf.flags & .Pure) != 0)
     #assert(pure_file(0))
     #assert(pure_line(0))
     #assert(pure_swcversion(0))
@@ -78,6 +93,15 @@ func pure_location(a: s32)->bool => #location(A).lineStart > 0
     #assert(pure_swcbuildnum(0))
     #assert(pure_os(0))
     #assert(pure_stringof(0))
+    #assert(pure_sizeof(0))
+    #assert(pure_offsetof(0))
+    #assert(pure_alignof(0))
     #assert(pure_defined(0))
     #assert(pure_location(0))
+}
+
+#test
+{
+    var x: s32 = 0
+    #assert(pure_sizeof(x)) // swc-expected-error {{sema_err_expr_not_const}}
 }

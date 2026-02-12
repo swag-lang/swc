@@ -14,6 +14,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isInCompilerIntrinsicContext(const Sema& sema)
+    {
+        for (size_t up = 0;; up++)
+        {
+            const AstNode* parent = sema.visit().parentNode(up);
+            if (!parent)
+                return false;
+
+            switch (parent->id())
+            {
+                case AstNodeId::CompilerCallOne:
+                case AstNodeId::CompilerCall:
+                case AstNodeId::CompilerLiteral:
+                case AstNodeId::CompilerExpression:
+                case AstNodeId::CompilerDiagnostic:
+                case AstNodeId::CompilerIf:
+                    return true;
+
+                default:
+                    break;
+            }
+        }
+    }
+
     // A call callee may legitimately bind to an overload set, but only for callable candidates.
     // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
     // If no callable candidates exist:
@@ -102,7 +126,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
 
-    const SymbolFunction* func = sema.frame().currentFunction();
+    SymbolFunction* func = sema.frame().currentFunction();
     if (!func || !sema.hasSymbolList(sema.curNodeRef()))
         return Result::Continue;
     if (allowOverloadSet)
@@ -113,13 +137,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     {
         if (!sym)
             continue;
+        if (isInCompilerIntrinsicContext(sema))
+            continue;
         if (sym->isConstant() || sym->isEnumValue())
             continue;
         if (isParameterSymbol(func, sym))
             continue;
-
-        if (auto* currentFunc = sema.frame().currentFunction())
-            currentFunc->markImpure();
+        func->markImpure();
         break;
     }
 

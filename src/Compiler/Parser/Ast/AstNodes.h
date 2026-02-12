@@ -12,6 +12,8 @@ struct AstNamedNodeT : AstNodeT<I, E>
 {
     TokenRef tokNameRef;
 
+    AstNamedNodeT() = default;
+
     explicit AstNamedNodeT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -23,6 +25,8 @@ template<AstNodeId I, typename E = void>
 struct AstCompoundT : AstNodeT<I, E>
 {
     SpanRef spanChildrenRef;
+
+    AstCompoundT() = default;
 
     explicit AstCompoundT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
@@ -40,6 +44,8 @@ template<AstNodeId I, typename E = void>
 struct AstCallExprT : AstCompoundT<I, E>
 {
     AstNodeRef nodeExprRef;
+
+    AstCallExprT() = default;
 
     explicit AstCallExprT(SourceCodeRef codeRef) :
         AstCompoundT<I, E>(codeRef)
@@ -66,6 +72,8 @@ struct AstLambdaExprT : AstNodeT<I, E>
     AstNodeRef nodeReturnTypeRef;
     AstNodeRef nodeBodyRef;
 
+    AstLambdaExprT() = default;
+
     explicit AstLambdaExprT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -85,6 +93,8 @@ struct AstBinaryT : AstNodeT<I, E>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
+    AstBinaryT() = default;
+
     explicit AstBinaryT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -100,6 +110,8 @@ struct AstBinaryT : AstNodeT<I, E>
 template<AstNodeId I, typename E = void>
 struct AstLiteralT : AstNodeT<I, E>
 {
+    AstLiteralT() = default;
+
     explicit AstLiteralT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -114,6 +126,8 @@ struct AstAggregateDeclT : AstNodeT<I, E>
     SpanRef    spanGenericParamsRef;
     SpanRef    spanWhereRef;
     AstNodeRef nodeBodyRef;
+
+    AstAggregateDeclT() = default;
 
     explicit AstAggregateDeclT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
@@ -134,6 +148,8 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
 {
     AstNodeRef nodeBodyRef;
 
+    AstAnonymousAggregateDeclT() = default;
+
     explicit AstAnonymousAggregateDeclT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -152,6 +168,8 @@ struct AstIfBaseT : AstNodeT<I, E>
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
+    AstIfBaseT() = default;
+
     explicit AstIfBaseT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -169,6 +187,8 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 {
     AstNodeRef nodeWhatRef;
     AstNodeRef nodeCountRef;
+
+    AstIntrinsicInitDropCopyMoveT() = default;
 
     explicit AstIntrinsicInitDropCopyMoveT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
@@ -202,6 +222,8 @@ struct AstVarDeclBase
 template<AstNodeId I, typename E = void>
 struct AstInternalCallZeroT : AstNodeT<I, E>
 {
+    AstInternalCallZeroT() = default;
+
     explicit AstInternalCallZeroT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -213,6 +235,8 @@ template<AstNodeId I, typename E = void>
 struct AstInternalCallUnaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeArgRef;
+
+    AstInternalCallUnaryT() = default;
 
     explicit AstInternalCallUnaryT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
@@ -231,6 +255,8 @@ struct AstInternalCallBinaryT : AstNodeT<I, E>
 {
     AstNodeRef nodeArg1Ref;
     AstNodeRef nodeArg2Ref;
+
+    AstInternalCallBinaryT() = default;
 
     explicit AstInternalCallBinaryT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
@@ -251,6 +277,8 @@ struct AstInternalCallTernaryT : AstNodeT<I, E>
     AstNodeRef nodeArg2Ref;
     AstNodeRef nodeArg3Ref;
 
+    AstInternalCallTernaryT() = default;
+
     explicit AstInternalCallTernaryT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)
     {
@@ -267,6 +295,8 @@ template<AstNodeId I, typename E = void>
 struct AstGenericParamT : AstNodeT<I, E>
 {
     AstNodeRef nodeAssignRef;
+
+    AstGenericParamT() = default;
 
     explicit AstGenericParamT(SourceCodeRef codeRef) :
         AstNodeT<I, E>(codeRef)

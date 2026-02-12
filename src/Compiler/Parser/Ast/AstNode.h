@@ -38,6 +38,8 @@ using AstModifierFlags = EnumFlags<AstModifierFlagsE>;
 
 struct AstNode
 {
+    AstNode() = default;
+
     // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId, const SourceCodeRef& codeRef) :
         id_(nodeId),
@@ -85,6 +87,7 @@ struct AstNode
     SourceCodeRange      codeRange(const TaskContext& ctx) const;
     SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
     const SourceCodeRef& codeRef() const { return codeRef_; }
+    void                 setCodeRef(const SourceCodeRef& codeRef) { codeRef_ = codeRef; }
     SourceViewRef        srcViewRef() const { return codeRef_.srcViewRef; }
     TokenRef             tokRef() const { return codeRef_.tokRef; }
     TokenRef             tokRefEnd(const Ast& ast) const;
@@ -138,6 +141,11 @@ struct AstNodeT : AstNode
     static constexpr auto ID = I;
     using FlagsE             = E;
     using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+
+    AstNodeT() :
+        AstNode(I, SourceCodeRef::invalid())
+    {
+    }
 
     explicit AstNodeT(const SourceCodeRef& codeRef) :
         AstNode(I, codeRef)

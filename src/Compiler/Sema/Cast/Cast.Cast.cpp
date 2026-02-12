@@ -151,7 +151,7 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef 
         case CastKind::Parameter:
         case CastKind::Initialization:
         case CastKind::Assignment:
-            if (!castRequest.isConstantFolding() || castRequest.flags.has(CastFlagsE::ConstAsRuntime))
+            if (!castRequest.isConstantFolding() || castRequest.flags.has(CastFlagsE::ConstRuntime))
             {
                 const bool srcUnsized = srcType.isIntUnsized();
                 const bool dstUnsized = dstType.isIntUnsized();
@@ -803,7 +803,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     }
 
     if (view.cstRef.isValid() && sema.isConstRuntime(view.nodeRef))
-        effectiveFlags.add(CastFlagsE::ConstAsRuntime);
+        effectiveFlags.add(CastFlagsE::ConstRuntime);
 
     if (view.typeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;

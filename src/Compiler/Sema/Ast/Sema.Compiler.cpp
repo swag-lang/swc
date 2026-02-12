@@ -312,24 +312,6 @@ Result AstCompilerGlobal::semaPostNode(Sema&) const
 
 namespace
 {
-    struct ScopedNoCurrentFunction
-    {
-        explicit ScopedNoCurrentFunction(Sema& sema) :
-            sema(sema),
-            savedCurrentFunction(sema.frame().currentFunction())
-        {
-            sema.frame().setCurrentFunction(nullptr);
-        }
-
-        ~ScopedNoCurrentFunction()
-        {
-            sema.frame().setCurrentFunction(savedCurrentFunction);
-        }
-
-        Sema&           sema;
-        SymbolFunction* savedCurrentFunction;
-    };
-
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -372,11 +354,7 @@ namespace
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-
-        {
-            ScopedNoCurrentFunction scopedNoCurrentFunction(sema);
-            RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
-        }
+        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return Result::Continue;
@@ -400,11 +378,7 @@ namespace
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-
-        {
-            ScopedNoCurrentFunction scopedNoCurrentFunction(sema);
-            RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
-        }
+        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return Result::Continue;

@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -212,13 +212,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     const TaskState saved = sema.ctx().state();
     Sema            inlineSema(sema.ctx(), sema, inlinedRef);
+
     if (fn.returnTypeRef().isValid() && fn.returnTypeRef() != sema.typeMgr().typeVoid())
         inlineSema.frame().pushBindingType(fn.returnTypeRef());
-    const Result    inlineResult = inlineSema.execResult();
-    if (inlineResult == Result::Pause)
-        return Result::Pause;
-    if (inlineResult == Result::Error)
-        return Result::Error;
+
+    RESULT_VERIFY(inlineSema.execResult());
     sema.ctx().state() = saved;
 
     AstNodeRef finalRef = inlinedRef;

@@ -175,6 +175,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     const SemaNodeView callView(sema, inlinedRef);
     SWC_ASSERT(callView.cstRef.isValid());
+    sema.setConstRuntime(callRef);
     sema.setConstant(callRef, callView.cstRef);
     return Result::Continue;
 }

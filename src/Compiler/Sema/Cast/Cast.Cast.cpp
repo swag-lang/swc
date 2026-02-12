@@ -802,6 +802,9 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             effectiveFlags.add(CastFlagsE::UnConst);
     }
 
+    if (view.cstRef.isValid() && sema.isConstRuntime(view.nodeRef))
+        effectiveFlags.add(CastFlagsE::ConstAsRuntime);
+
     if (view.typeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;
 

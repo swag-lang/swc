@@ -74,6 +74,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
             castFlags.add(CastFlagsE::BitCast);
         if (modifierFlags.has(AstModifierFlagsE::UnConst))
             castFlags.add(CastFlagsE::UnConst);
+        if (hasFlag(AstCastExprFlagsE::ConstAsRuntime))
+            castFlags.add(CastFlagsE::ConstAsRuntime);
 
         RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
         sema.inheritSema(*this, nodeExprView.nodeRef);

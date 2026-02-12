@@ -726,8 +726,9 @@ struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
 // -----------------------------------------------------------------------------
 enum class AstCastExprFlagsE : AstNode::ParserFlags
 {
-    Zero     = 0,
-    Explicit = 1 << 0,
+    Zero           = 0,
+    Explicit       = 1 << 0,
+    ConstAsRuntime = 1 << 1,
 };
 
 struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>

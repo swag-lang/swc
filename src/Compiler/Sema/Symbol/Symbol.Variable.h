@@ -9,6 +9,7 @@ enum class SymbolVariableFlagsE : uint8_t
     Let               = 1 << 0,
     Initialized       = 1 << 1,
     ExplicitUndefined = 1 << 2,
+    Parameter         = 1 << 3,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

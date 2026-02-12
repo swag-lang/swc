@@ -60,21 +60,6 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    bool isParameterSymbol(const SymbolFunction* func, const Symbol* sym)
-    {
-        const auto* var = sym->safeCast<SymbolVariable>();
-        if (!var)
-            return false;
-
-        for (const auto* param : func->parameters())
-        {
-            if (param == var)
-                return true;
-        }
-
-        return false;
-    }
-
     bool isInCompilerIntrinsicContext(const Sema& sema)
     {
         for (size_t up = 0;; up++)
@@ -120,8 +105,11 @@ namespace
                 continue;
             if (sym->isConstant() || sym->isEnumValue())
                 continue;
-            if (isParameterSymbol(func, sym))
-                continue;
+            if (const auto* symVar = sym->safeCast<SymbolVariable>())
+            {
+                if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                    continue;
+            }
 
             if (isInCompilerIntrinsicContext(sema))
                 continue;

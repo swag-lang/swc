@@ -63,6 +63,7 @@ namespace
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
                 typeFlags.add(TypeInfoFlagsE::Const);
             symMe->setTypeRef(sema.typeMgr().addType(TypeInfo::makeReference(ownerType, typeFlags)));
+            symMe->addExtraFlag(SymbolVariableFlagsE::Parameter);
 
             sym.addParameter(symMe);
             sym.addSymbol(ctx, symMe, true);

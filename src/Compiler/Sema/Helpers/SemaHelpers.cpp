@@ -21,6 +21,7 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 
         if (sema.curScope().isParameters())
         {
+            symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
             if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
                 symAttr->addParameter(symVar);
             if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())

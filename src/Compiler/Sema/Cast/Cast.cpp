@@ -23,11 +23,12 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
     return Result::Error;
 }
 
-AstNodeRef Cast::createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef)
+AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)
 {
     const AstNode& node               = sema.node(nodeRef);
     auto [substNodeRef, substNodePtr] = sema.ast().makeNode<AstNodeId::CastExpr>(node.tokRef());
-    substNodePtr->nodeExprRef         = nodeRef;
+    substNodePtr->addFlag(castFlags);
+    substNodePtr->nodeExprRef = nodeRef;
     sema.setSubstitute(nodeRef, substNodeRef);
     sema.setType(substNodeRef, dstTypeRef);
     sema.setIsValue(*substNodePtr);

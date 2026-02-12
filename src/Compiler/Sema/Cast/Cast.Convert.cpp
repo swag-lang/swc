@@ -17,7 +17,7 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     }
 
     const SymbolEnum& symEnum = nodeView.type->payloadSymEnum();
-    createImplicitCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
+    createCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
     nodeView.compute(sema, nodeView.nodeRef);
 }
 

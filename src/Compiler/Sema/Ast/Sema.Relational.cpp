@@ -261,7 +261,7 @@ namespace
             if (!self.type || !other.type)
                 return;
             if (self.type->isNull() && other.type->isPointerLike())
-                Cast::createImplicitCast(sema, other.typeRef, self.nodeRef);
+                Cast::createCast(sema, other.typeRef, self.nodeRef);
         }
 
         Result typeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)

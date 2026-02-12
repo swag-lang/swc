@@ -817,7 +817,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (result == Result::Continue)
     {
         if (castRequest.constantFoldingResult().isInvalid())
-            view.nodeRef = createImplicitCast(sema, dstTypeRef, view.nodeRef);
+            view.nodeRef = createCast(sema, dstTypeRef, view.nodeRef);
         else
         {
             view.setCstRef(sema, castRequest.constantFoldingResult());

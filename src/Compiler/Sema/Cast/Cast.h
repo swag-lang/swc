@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -18,7 +19,7 @@ struct Cast
     static Result promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
     static Result concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts = false);
 
-    static AstNodeRef createImplicitCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef);
+    static AstNodeRef createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
 
 private:

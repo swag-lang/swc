@@ -302,7 +302,7 @@ Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
     wait.nodeRef    = nodeRef;
     if (nodeRef.isValid())
         wait.codeRef = node(nodeRef).codeRef();
-    wait.symbol       = type->getSymbolDependency(ctx());
+    wait.symbol       = type->getNotCompletedSymbol(ctx());
     wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
 }

@@ -274,7 +274,7 @@ public:
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;
     Symbol*  getSymbol() const;
-    Symbol*  getSymbolDependency(TaskContext& ctx) const;
+    Symbol*  getNotCompletedSymbol(TaskContext& ctx) const;
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

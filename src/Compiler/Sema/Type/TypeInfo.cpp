@@ -969,45 +969,56 @@ Symbol* TypeInfo::getSymbol() const
     return nullptr;
 }
 
-Symbol* TypeInfo::getSymbolDependency(TaskContext& ctx) const
+Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
 {
+    const auto getTypeBlockingSymbol = [&](const TypeRef tr) -> Symbol* {
+        if (!tr.isValid())
+            return nullptr;
+        return ctx.typeMgr().get(tr).getNotCompletedSymbol(ctx);
+    };
+
+    const auto getDirectBlockingSymbol = [](Symbol* sym) -> Symbol* {
+        if (!sym || sym->isCompleted())
+            return nullptr;
+        return sym;
+    };
+
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return &payloadSymStruct();
+            return getDirectBlockingSymbol(&payloadSymStruct());
         case TypeInfoKind::Enum:
-            return &payloadSymEnum();
+            return getDirectBlockingSymbol(&payloadSymEnum());
         case TypeInfoKind::Interface:
-            return &payloadSymInterface();
+            return getDirectBlockingSymbol(&payloadSymInterface());
         case TypeInfoKind::Alias:
-            return &payloadSymAlias();
+            return getDirectBlockingSymbol(&payloadSymAlias());
 
         case TypeInfoKind::Function:
         {
-            if (payloadFunction_.sym->returnTypeRef().isValid())
-            {
-                if (const auto sym = ctx.typeMgr().get(payloadFunction_.sym->returnTypeRef()).getSymbolDependency(ctx))
-                    return sym;
-            }
+            if (const auto sym = getTypeBlockingSymbol(payloadFunction_.sym->returnTypeRef()))
+                return sym;
 
             for (const auto& param : payloadFunction_.sym->parameters())
             {
-                if (const auto sym = ctx.typeMgr().get(param->typeRef()).getSymbolDependency(ctx))
+                if (const auto sym = getTypeBlockingSymbol(param->typeRef()))
                     return sym;
             }
 
-            return &payloadSymFunction();
+            return getDirectBlockingSymbol(&payloadSymFunction());
         }
 
         case TypeInfoKind::Array:
-            return ctx.typeMgr().get(payloadArray_.typeRef).getSymbolDependency(ctx);
+            return getTypeBlockingSymbol(payloadArray_.typeRef);
 
         case TypeInfoKind::TypeValue:
-            return ctx.typeMgr().get(payloadTypeRef_.typeRef).getSymbolDependency(ctx);
+            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
+        case TypeInfoKind::TypedVariadic:
+            return getTypeBlockingSymbol(payloadTypeRef_.typeRef);
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             for (const TypeRef tr : payloadAggregate_.types)
-                if (auto* sym = ctx.typeMgr().get(tr).getSymbolDependency(ctx))
+                if (auto* sym = getTypeBlockingSymbol(tr))
                     return sym;
             return nullptr;
         default:

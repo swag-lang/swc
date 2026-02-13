@@ -39,9 +39,7 @@ namespace Backend
     class FFI final
     {
     public:
-        static Result compileCall(TaskContext& ctx, void* targetFn, JITExecMemory& outExecutableMemory);
         static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
-        static Result describeType(TaskContext& ctx, TypeRef typeRef, FFITypeDesc& outDesc);
     };
 }
 

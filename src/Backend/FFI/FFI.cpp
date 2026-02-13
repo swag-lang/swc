@@ -87,28 +87,6 @@ namespace Backend
 
     }
 
-    Result FFI::compileCall(TaskContext& ctx, void* targetFn, JITExecMemory& outExecutableMemory)
-    {
-        if (!targetFn)
-            return Result::Error;
-
-        const auto& conv = CallConv::get(CallConvKind::Host);
-
-        MicroInstrBuilder builder(ctx);
-        builder.encodeOpBinaryRegImm(conv.stackPointer, sizeof(void*), MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeLoadRegImm(MicroReg::intReg(0), reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeCallReg(MicroReg::intReg(0), CallConvKind::Host, EncodeFlagsE::Zero);
-        builder.encodeOpBinaryRegImm(conv.stackPointer, sizeof(void*), MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
-
-        return JIT::compile(ctx, builder, outExecutableMemory);
-    }
-
-    Result FFI::describeType(TaskContext& ctx, TypeRef typeRef, FFITypeDesc& outDesc)
-    {
-        return classifyType(ctx, typeRef, outDesc);
-    }
-
     Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
     {
         if (!targetFn)

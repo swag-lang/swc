@@ -33,7 +33,7 @@ namespace
 
     void buildReturn42(MicroInstrBuilder& builder, const CallConv& callConv)
     {
-        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B32, EncodeFlagsE::Zero);
+        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64, EncodeFlagsE::Zero);
         builder.encodeRet(EncodeFlagsE::Zero);
     }
 }

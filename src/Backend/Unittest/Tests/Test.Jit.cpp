@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Jit/Jit.h"
 #include "Backend/Jit/JitExecMemory.h"
+#include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -13,8 +14,10 @@ namespace
 {
     Result runConstantReturn42(TaskContext& ctx)
     {
+        const auto& callConv = CallConv::get(CallConvKind::C);
+
         MicroInstrBuilder builder(ctx);
-        builder.encodeLoadRegImm(MicroReg::intReg(0), 42, MicroOpBits::B32, EncodeFlagsE::Zero);
+        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B32, EncodeFlagsE::Zero);
         builder.encodeRet(EncodeFlagsE::Zero);
 
         Backend::JitExecMemory executableMemory;

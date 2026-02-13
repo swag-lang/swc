@@ -116,6 +116,29 @@ namespace
         b.encodeClearReg(vf3, MicroOpBits::B64, EncodeFlagsE::Zero);
         b.encodeOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64, EncodeFlagsE::Zero);
     }
+
+    void buildLotsOfVirtualRegs(MicroInstrBuilder& b, CallConvKind callConvKind)
+    {
+        for (uint32_t i = 0; i < 128; ++i)
+        {
+            const auto v = MicroReg::virtualIntReg(1000 + i);
+            b.encodeLoadRegImm(v, i + 1, MicroOpBits::B64, EncodeFlagsE::Zero);
+            b.encodeOpBinaryRegImm(v, (i & 7) + 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+            if ((i % 16) == 15)
+                b.encodeCallReg(MicroReg::intReg(0), callConvKind, EncodeFlagsE::Zero);
+        }
+
+        for (uint32_t i = 0; i < 64; ++i)
+        {
+            const auto v0 = MicroReg::virtualFloatReg(2000 + i * 2);
+            const auto v1 = MicroReg::virtualFloatReg(2000 + i * 2 + 1);
+            b.encodeClearReg(v0, MicroOpBits::B64, EncodeFlagsE::Zero);
+            b.encodeClearReg(v1, MicroOpBits::B64, EncodeFlagsE::Zero);
+            b.encodeOpBinaryRegReg(v0, v1, MicroOp::FloatXor, MicroOpBits::B64, EncodeFlagsE::Zero);
+            if ((i % 16) == 15)
+                b.encodeCallReg(MicroReg::intReg(0), callConvKind, EncodeFlagsE::Zero);
+        }
+    }
 }
 
 SWC_BACKEND_TEST_BEGIN(MicroRegAlloc)
@@ -123,6 +146,7 @@ SWC_BACKEND_TEST_BEGIN(MicroRegAlloc)
     executeCase(ctx, buildPersistentAcrossCallsInt);
     executeCase(ctx, buildNoCalls);
     executeCase(ctx, buildMixedIntFloat);
+    executeCase(ctx, buildLotsOfVirtualRegs);
 }
 SWC_BACKEND_TEST_END()
 

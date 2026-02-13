@@ -148,7 +148,15 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     bool setIsTyped = false;
     if (hasFlag(AstFunctionFlagsE::Short))
     {
-        if (childRef == nodeBodyRef)
+        if (nodeReturnTypeRef.isValid())
+        {
+            if (childRef == nodeReturnTypeRef)
+            {
+                sym.setReturnTypeRef(sema.typeRefOf(nodeReturnTypeRef));
+                setIsTyped = true;
+            }
+        }
+        else if (childRef == nodeBodyRef)
         {
             sym.setReturnTypeRef(sema.typeRefOf(nodeBodyRef));
             setIsTyped = true;

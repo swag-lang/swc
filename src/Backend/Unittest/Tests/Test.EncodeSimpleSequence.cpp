@@ -1,23 +1,24 @@
 #include "pch.h"
-#include "Backend/Unittest/BackendUnittest.h"
-#include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/Unittest/BackendUnittest.h"
+#include "Backend/Unittest/BackendUnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 #if SWC_DEV_MODE
 
 SWC_BACKEND_TEST_BEGIN(EncodeSimpleSequence)
+{
     MicroInstrBuilder builder(ctx);
 
     builder.encodeLoadRegImm(MicroReg::intReg(0), 0x1234, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeOpBinaryRegReg(MicroReg::intReg(0), MicroReg::intReg(1), MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeRet(EncodeFlagsE::Zero);
 
-    X64Encoder encoder(ctx);
-    MicroEncodePass encodePass;
+    X64Encoder       encoder(ctx);
+    MicroEncodePass  encodePass;
     MicroPassManager passes;
     passes.add(encodePass);
 
@@ -26,6 +27,7 @@ SWC_BACKEND_TEST_BEGIN(EncodeSimpleSequence)
 
     SWC_ASSERT(encoder.size() > 0);
     SWC_ASSERT(encoder.data());
+}
 SWC_BACKEND_TEST_END()
 
 #endif

@@ -1,24 +1,25 @@
 #include "pch.h"
-#include "Backend/Unittest/BackendUnittest.h"
-#include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/Unittest/BackendUnittest.h"
+#include "Backend/Unittest/BackendUnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 #if SWC_DEV_MODE
 
 SWC_BACKEND_TEST_BEGIN(RegAllocPersistentAcrossCall)
-    MicroInstrBuilder builder(ctx);
-    const auto        vLive = MicroReg::virtualIntReg(0);
-    const auto        vTemp = MicroReg::virtualIntReg(1);
+{
+    MicroInstrBuilder  builder(ctx);
+    constexpr MicroReg virtLive = MicroReg::virtualIntReg(0);
+    constexpr MicroReg virtTemp = MicroReg::virtualIntReg(1);
 
-    builder.encodeLoadRegImm(vLive, 0x11, MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeLoadRegImm(vTemp, 0x22, MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeOpBinaryRegImm(vTemp, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeLoadRegImm(virtLive, 0x11, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeLoadRegImm(virtTemp, 0x22, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeOpBinaryRegImm(virtTemp, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(MicroReg::intReg(0), CallConvKind::C, EncodeFlagsE::Zero);
-    builder.encodeOpBinaryRegImm(vLive, 2, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeOpBinaryRegImm(virtLive, 2, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 
     MicroRegAllocPass regAllocPass;
     MicroPassManager  passes;
@@ -58,6 +59,7 @@ SWC_BACKEND_TEST_BEGIN(RegAllocPersistentAcrossCall)
     SWC_ASSERT(regTemp.isInt());
     SWC_ASSERT(Backend::Unittest::isPersistentReg(conv.intPersistentRegs, regLive));
     SWC_ASSERT(!Backend::Unittest::isPersistentReg(conv.intPersistentRegs, regTemp));
+}
 SWC_BACKEND_TEST_END()
 
 #endif

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Backend/MachineCode/CallConv.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -10,7 +9,6 @@ namespace
 {
     void setupBackendUnittests(TaskContext&)
     {
-        CallConv::setup();
     }
 
     const Unittest::TestSetupRegistrar g_BackendUnittestSetup{&setupBackendUnittests};

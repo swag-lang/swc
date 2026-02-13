@@ -102,7 +102,6 @@ namespace Backend
         if (!targetFn)
             return Result::Error;
 
-        CallConv::setup();
         const auto& conv = CallConv::get(CallConvKind::Host);
 
         MicroInstrBuilder builder(ctx);
@@ -142,7 +141,6 @@ namespace Backend
             return Result::Error;
 
         constexpr auto callConvKind = CallConvKind::Host;
-        CallConv::setup();
         const auto& conv = CallConv::get(callConvKind);
 
         const auto retDesc = ret.typeDesc;

@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Backend\Backend.cpp" />
         <ClCompile Include="src\Backend\Unittest\BackendUnittestSetup.cpp"/>
         <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
@@ -345,6 +346,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp" />
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Backend\Backend.h" />
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h" />
         <ClInclude Include="src\Support\Unittest\Unittest.h" />
         <ClInclude Include="src\Backend\MachineCode\CallConv.h" />

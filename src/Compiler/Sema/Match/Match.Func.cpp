@@ -414,7 +414,7 @@ namespace
             return ConvRank::Exact;
 
         const SemaNodeView argNodeView(sema, argRef);
-        auto               castKind = CastKind::Parameter;
+        auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
         if (const auto* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
         {

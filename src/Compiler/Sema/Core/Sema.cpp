@@ -467,7 +467,7 @@ Result Sema::execResult()
 
     ctx().state().reset();
 
-    Result semaResult = Result::Continue;
+    auto semaResult = Result::Continue;
     while (true)
     {
         const AstVisitResult result = visit_.step(ctx());

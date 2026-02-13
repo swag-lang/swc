@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolStruct;
+class Sema;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
@@ -39,6 +40,7 @@ public:
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
+    bool                                computePurity(Sema& sema) const;
 
     void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }

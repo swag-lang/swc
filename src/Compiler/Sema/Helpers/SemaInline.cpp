@@ -12,102 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void collectFileConstIdentifiers(Sema& sema, const Ast& fnAst, std::unordered_set<IdentifierRef>& outConstIds)
-    {
-        Ast::visit(fnAst, fnAst.root(), [&](const AstNodeRef, const AstNode& node) {
-            if (node.safeCast<AstFunctionDecl>() || node.safeCast<AstFunctionExpr>() || node.safeCast<AstClosureExpr>() || node.safeCast<AstCompilerFunc>() || node.safeCast<AstAttrDecl>())
-                return Ast::VisitResult::Skip;
-
-            if (const auto* single = node.safeCast<AstSingleVarDecl>())
-            {
-                if (!single->hasFlag(AstVarDeclFlagsE::Const))
-                    return Ast::VisitResult::Continue;
-
-                const SourceCodeRef codeRef{single->srcViewRef(), single->tokNameRef};
-                outConstIds.insert(sema.idMgr().addIdentifier(sema.ctx(), codeRef));
-                return Ast::VisitResult::Continue;
-            }
-
-            if (const auto* multi = node.safeCast<AstMultiVarDecl>())
-            {
-                if (!multi->hasFlag(AstVarDeclFlagsE::Const))
-                    return Ast::VisitResult::Continue;
-
-                SmallVector<TokenRef> tokNames;
-                fnAst.appendTokens(tokNames, multi->spanNamesRef);
-                for (const TokenRef tokRef : tokNames)
-                {
-                    const SourceCodeRef codeRef{multi->srcViewRef(), tokRef};
-                    outConstIds.insert(sema.idMgr().addIdentifier(sema.ctx(), codeRef));
-                }
-            }
-
-            return Ast::VisitResult::Continue;
-        });
-    }
-
-    bool computeShortFunctionPurityFromAst(Sema& sema, const SymbolFunction& fn)
-    {
-        const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        if (!decl || !decl->hasFlag(AstFunctionFlagsE::Short) || decl->nodeBodyRef.isInvalid())
-            return false;
-        const Ast* fnAst = decl->sourceAst(sema.ctx());
-        if (!fnAst)
-            return false;
-
-        std::unordered_set<IdentifierRef> paramIds;
-        for (const SymbolVariable* param : fn.parameters())
-        {
-            if (param && param->idRef().isValid())
-                paramIds.insert(param->idRef());
-        }
-        std::unordered_set<IdentifierRef> constIds;
-        collectFileConstIdentifiers(sema, *fnAst, constIds);
-
-        bool isPure = true;
-        Ast::visit(*fnAst, decl->nodeBodyRef, [&](const AstNodeRef, const AstNode& node) {
-            if (node.safeCast<AstCompilerCall>() || node.safeCast<AstCompilerCallOne>() || node.safeCast<AstCompilerDiagnostic>())
-                return Ast::VisitResult::Skip;
-
-            if (node.safeCast<AstCallExpr>())
-            {
-                isPure = false;
-                return Ast::VisitResult::Stop;
-            }
-
-            if (const auto* intrinsicCall = node.safeCast<AstIntrinsicCallExpr>())
-            {
-                if (intrinsicCall->nodeExprRef.isInvalid())
-                {
-                    isPure = false;
-                    return Ast::VisitResult::Stop;
-                }
-
-                const AstNode& calleeNode = fnAst->node(intrinsicCall->nodeExprRef);
-                if (!Token::isPureIntrinsic(sema.token(calleeNode.codeRef()).id))
-                {
-                    isPure = false;
-                    return Ast::VisitResult::Stop;
-                }
-
-                return Ast::VisitResult::Continue;
-            }
-
-            const auto* ident = node.safeCast<AstIdentifier>();
-            if (!ident || ident->hasFlag(AstIdentifierFlagsE::CallCallee))
-                return Ast::VisitResult::Continue;
-
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), ident->codeRef());
-            if (paramIds.contains(idRef) || constIds.contains(idRef))
-                return Ast::VisitResult::Continue;
-
-            isPure = false;
-            return Ast::VisitResult::Stop;
-        });
-
-        return isPure;
-    }
-
     Result finalizeInlinedCall(Sema& sema, AstNodeRef inlinedRef, AstNodeRef callRef, TypeRef returnTypeRef)
     {
         SemaNodeView inlineView(sema, inlinedRef);
@@ -250,7 +154,7 @@ namespace
 
 bool SemaInline::isFunctionPureFromAst(Sema& sema, const SymbolFunction& fn)
 {
-    return fn.getOrComputePureFromAst([&]() { return computeShortFunctionPurityFromAst(sema, fn); });
+    return fn.getOrComputePureFromAst([&]() { return fn.computePurity(sema); });
 }
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)

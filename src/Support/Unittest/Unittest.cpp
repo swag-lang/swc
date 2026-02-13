@@ -55,7 +55,8 @@ namespace Unittest
             if (!setupFn || setupFn(ctx) != Result::Continue)
             {
                 Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
-                Os::panicBox("[DevMode] UNITTEST failed!");
+                if (CommandLine::dbgDevMode)
+                    Os::panicBox("[DevMode] UNITTEST failed!");
                 return Result::Error;
             }
         }

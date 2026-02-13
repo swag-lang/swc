@@ -50,10 +50,9 @@ public:
     bool isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
     void setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
 
-    template<typename FN>
-    bool getOrComputePureFromAst(FN&& computeFn) const
+    bool getOrComputePureFromAst(const TaskContext& ctx) const
     {
-        std::call_once(pureFromAstOnce_, [&]() { pureFromAst_ = computeFn(); });
+        std::call_once(pureFromAstOnce_, [&]() { pureFromAst_ = computePurity(ctx); });
         return pureFromAst_;
     }
 

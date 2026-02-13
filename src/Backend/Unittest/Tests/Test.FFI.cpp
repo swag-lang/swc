@@ -13,7 +13,8 @@ namespace
 {
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
-        return FFI::callFFI(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        FFI::callFFI(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        return Result::Continue;
     }
 
     TaskContext& typedFFICtx(TaskContext& ctx)
@@ -253,36 +254,6 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
     bool result = false;
     RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, ffiCtx.typeMgr().typeBool(), &result));
     if (!result)
-        return Result::Error;
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(FFI_CallNativeErrArgType)
-{
-    auto& ffiCtx = typedFFICtx(ctx);
-
-    constexpr uint64_t value = 42;
-
-    const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeVoid(), .valuePtr = &value},
-    };
-
-    uint64_t result = 0;
-    if (FFI::callFFI(ffiCtx, reinterpret_cast<void*>(&ffiNativeMixArgs), args, {.typeRef = ffiCtx.typeMgr().typeU64(), .valuePtr = &result}) != Result::Error)
-        return Result::Error;
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(FFI_CallNativeErrNullArgVal)
-{
-    auto& ffiCtx = typedFFICtx(ctx);
-
-    const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeU8(), .valuePtr = nullptr},
-    };
-
-    uint8_t result = 0;
-    if (FFI::callFFI(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddU8), args, {.typeRef = ffiCtx.typeMgr().typeU8(), .valuePtr = &result}) != Result::Error)
         return Result::Error;
 }
 SWC_TEST_END()

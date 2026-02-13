@@ -11,6 +11,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    [[noreturn]] void ffiContractFailure()
+    {
+        SWC_INTERNAL_ERROR();
+    }
+
+    void ffiExpect(bool condition)
+    {
+        if (!condition)
+        {
+            SWC_FORCE_ASSERT(condition);
+            ffiContractFailure();
+        }
+    }
+
     struct FFIEmitRegs
     {
         MicroReg base = MicroReg::invalid();
@@ -31,53 +45,51 @@ namespace
         uint8_t  numBits = 0;
     };
 
-    Result normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
+    void normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
     {
-        if (!typeRef.isValid())
-            return Result::Error;
+        ffiExpect(typeRef.isValid());
 
         const auto expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        if (!expanded.isValid())
-            return Result::Error;
+        ffiExpect(expanded.isValid());
 
         const auto& ty = ctx.typeMgr().get(expanded);
         if (ty.isVoid())
         {
             outType = {.isVoid = true, .isFloat = false, .numBits = 0};
-            return Result::Continue;
+            return;
         }
 
         if (ty.isBool())
         {
             outType = {.isVoid = false, .isFloat = false, .numBits = 8};
-            return Result::Continue;
+            return;
         }
 
         if (ty.isCharRune())
         {
             outType = {.isVoid = false, .isFloat = false, .numBits = 32};
-            return Result::Continue;
+            return;
         }
 
         if (ty.isInt() && ty.payloadIntBits() <= 64 && ty.payloadIntBits() != 0)
         {
             outType = {.isVoid = false, .isFloat = false, .numBits = static_cast<uint8_t>(ty.payloadIntBits())};
-            return Result::Continue;
+            return;
         }
 
         if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
         {
             outType = {.isVoid = false, .isFloat = true, .numBits = static_cast<uint8_t>(ty.payloadFloatBits())};
-            return Result::Continue;
+            return;
         }
 
         if (ty.isPointerLike() || ty.isNull())
         {
             outType = {.isVoid = false, .isFloat = false, .numBits = 64};
-            return Result::Continue;
+            return;
         }
 
-        return Result::Error;
+        ffiExpect(false);
     }
 
     MicroOpBits opBitsFor(uint8_t numBits)
@@ -139,12 +151,12 @@ namespace
 
     uint32_t computeStackAdjust(const CallConv& conv, uint32_t numArgs, uint32_t numRegArgs, uint32_t stackSlotSize)
     {
-        const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
-        const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
-        const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-        const uint32_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
-        const uint32_t callPushSize   = static_cast<uint32_t>(sizeof(void*));
-        const uint32_t alignPad       = (stackAlignment + callPushSize - (frameBaseSize % stackAlignment)) % stackAlignment;
+        const uint32_t     numStackArgs   = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
+        const uint32_t     stackArgsSize  = numStackArgs * stackSlotSize;
+        const uint32_t     frameBaseSize  = conv.stackShadowSpace + stackArgsSize;
+        const uint32_t     stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
+        constexpr uint32_t callPushSize   = sizeof(void*);
+        const uint32_t     alignPad       = (stackAlignment + callPushSize - (frameBaseSize % stackAlignment)) % stackAlignment;
         return frameBaseSize + alignPad;
     }
 
@@ -180,17 +192,15 @@ namespace
     }
 }
 
-Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
+void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
 {
-    if (!targetFn)
-        return Result::Error;
+    ffiExpect(targetFn != nullptr);
 
     constexpr auto    callConvKind = CallConvKind::Host;
     const auto&       conv         = CallConv::get(callConvKind);
     FFINormalizedType retType;
-    RESULT_VERIFY(normalizeType(ctx, ret.typeRef, retType));
-    if (!retType.isVoid && !ret.valuePtr)
-        return Result::Error;
+    normalizeType(ctx, ret.typeRef, retType);
+    ffiExpect(retType.isVoid || ret.valuePtr);
 
     uint64_t                  intRetTemp = 0;
     SmallVector<FFIPackedArg> packedArgs;
@@ -201,24 +211,22 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
     {
         const auto&       arg = args[i];
         FFINormalizedType argType;
-        RESULT_VERIFY(normalizeType(ctx, arg.typeRef, argType));
-        if (argType.isVoid)
-            return Result::Error;
-        RESULT_VERIFY(packArgValue(argType, arg.valuePtr, packedArgs[i]));
+        normalizeType(ctx, arg.typeRef, argType);
+        ffiExpect(!argType.isVoid);
+        ffiExpect(packArgValue(argType, arg.valuePtr, packedArgs[i]) == Result::Continue);
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t stackAdjust   = computeStackAdjust(conv, numArgs, numRegArgs, stackSlotSize);
     FFIEmitRegs    regs;
-    if (!conv.tryPickIntScratchRegs(regs.base, regs.tmp))
-        return Result::Error;
+    ffiExpect(conv.tryPickIntScratchRegs(regs.base, regs.tmp));
 
     MicroInstrBuilder builder(ctx);
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
-    RESULT_VERIFY(emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp));
+    ffiExpect(emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp) == Result::Continue);
 
     builder.encodeLoadRegImm(regs.tmp, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regs.tmp, callConvKind, EncodeFlagsE::Zero);
@@ -239,19 +247,16 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
     builder.encodeRet(EncodeFlagsE::Zero);
 
     JITExecMemory executableMemory;
-    RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));
+    ffiExpect(JIT::compile(ctx, builder, executableMemory) == Result::Continue);
 
     using FFIInvokerFn = void (*)();
     const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
-    if (!invoker)
-        return Result::Error;
+    ffiExpect(invoker != nullptr);
 
     invoker();
 
     if (!retType.isVoid && !retType.isFloat)
         std::memcpy(ret.valuePtr, &intRetTemp, retType.numBits / 8);
-
-    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

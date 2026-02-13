@@ -3,6 +3,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+const uint8_t* Encoder::data() const
+{
+    if (!store_.size())
+        return nullptr;
+    return store_.ptr<uint8_t>(0);
+}
+
+uint8_t Encoder::byteAt(uint32_t index) const
+{
+    SWC_ASSERT(index < store_.size());
+    return *store_.ptr<uint8_t>(index);
+}
+
+void Encoder::copyTo(std::span<std::byte> dst) const
+{
+    store_.copyTo(dst);
+}
+
+Encoder::Encoder(TaskContext& ctx) :
+    ctx_(&ctx)
+{
+}
+
 void Encoder::emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {
     encodeLoadSymbolRelocAddress(reg, symbolIndex, offset, emitFlags);

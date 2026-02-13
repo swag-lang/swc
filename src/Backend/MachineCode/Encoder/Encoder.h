@@ -43,30 +43,15 @@ class Encoder
 
 public:
     uint32_t       size() const { return store_.size(); }
-    const uint8_t* data() const
-    {
-        if (!store_.size())
-            return nullptr;
-        return store_.ptr<uint8_t>(0);
-    }
-    uint8_t byteAt(uint32_t index) const
-    {
-        SWC_ASSERT(index < store_.size());
-        return *store_.ptr<uint8_t>(index);
-    }
-    void copyTo(void* dst, uint32_t count) const
-    {
-        store_.copyTo(dst, count);
-    }
+    const uint8_t* data() const;
+    uint8_t        byteAt(uint32_t index) const;
+    void           copyTo(std::span<std::byte> dst) const;
 
 protected:
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 
-    explicit Encoder(TaskContext& ctx) :
-        ctx_(&ctx)
-    {
-    }
+    explicit Encoder(TaskContext& ctx);
     virtual ~Encoder() = default;
 
     virtual EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)                                                                                    = 0;
@@ -113,12 +98,7 @@ protected:
     virtual EncodeResult encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                            = 0;
     virtual EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
 
-    virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
-    {
-        (void) inst;
-        (void) ops;
-        (void) info;
-    }
+    virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
 
     void emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void emitJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);

@@ -23,10 +23,10 @@ namespace Backend
             if (!codeSize)
                 return Result::Error;
 
-            std::vector<uint8_t> linearCode(codeSize);
-            encoder.copyTo(linearCode.data(), codeSize);
+            std::vector<std::byte> linearCode(codeSize);
+            encoder.copyTo(linearCode);
 
-            if (!outExecutableMemory.allocateAndCopy(linearCode.data(), codeSize))
+            if (!outExecutableMemory.allocateAndCopy(asByteSpan(linearCode)))
                 return Result::Error;
 
             return Result::Continue;

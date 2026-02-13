@@ -41,17 +41,21 @@ namespace Backend
         size_ = 0;
     }
 
-    bool JitExecMemory::allocateAndCopy(const uint8_t* data, uint32_t size)
+    bool JitExecMemory::allocateAndCopy(ByteSpan bytes)
     {
         reset();
-        if (!data || !size)
+        SWC_ASSERT(bytes.data() || bytes.empty());
+        if (bytes.empty())
             return false;
+
+        SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
+        const auto size = static_cast<uint32_t>(bytes.size());
 
         ptr_ = Os::allocExecutableMemory(size);
         if (!ptr_)
             return false;
 
-        std::memcpy(ptr_, data, size);
+        std::memcpy(ptr_, bytes.data(), bytes.size());
         if (!Os::makeExecutableMemory(ptr_, size))
         {
             reset();

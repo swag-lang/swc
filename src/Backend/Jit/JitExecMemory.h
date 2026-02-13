@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/ByteSpan.h"
 #include <bit>
 #include <cstdint>
 #include <type_traits>
@@ -19,7 +20,7 @@ namespace Backend
         JitExecMemory& operator=(JitExecMemory&& other) noexcept;
 
         void     reset();
-        bool     allocateAndCopy(const uint8_t* data, uint32_t size);
+        bool     allocateAndCopy(ByteSpan bytes);
         uint32_t size() const { return size_; }
         bool     empty() const { return ptr_ == nullptr; }
 

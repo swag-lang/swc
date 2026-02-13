@@ -30,7 +30,7 @@ public:
     uint32_t size() const noexcept;
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
     void     clear() noexcept;
-    void     copyTo(void* dst, uint32_t count) const;
+    void     copyTo(std::span<std::byte> dst) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }

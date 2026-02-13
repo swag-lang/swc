@@ -62,13 +62,12 @@ uint32_t PagedStore::size() const noexcept
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
-void PagedStore::copyTo(void* dst, uint32_t count) const
+void PagedStore::copyTo(std::span<std::byte> dst) const
 {
-    SWC_ASSERT(dst || count == 0);
-    SWC_ASSERT(count <= size());
+    SWC_ASSERT(dst.size() <= size());
 
-    auto*    out       = static_cast<uint8_t*>(dst);
-    uint32_t remaining = count;
+    auto*    out       = dst.data();
+    uint32_t remaining = static_cast<uint32_t>(dst.size());
     for (const auto& page : pagesStorage_)
     {
         if (!remaining)
@@ -77,7 +76,7 @@ void PagedStore::copyTo(void* dst, uint32_t count) const
         const uint32_t chunkSize = std::min(remaining, page->used);
         if (chunkSize)
         {
-            std::memcpy(out, page->bytes(), chunkSize);
+            std::memcpy(out, page->bytes(), static_cast<size_t>(chunkSize));
             out += chunkSize;
             remaining -= chunkSize;
         }

@@ -56,6 +56,6 @@
 
 - Only one 'swc-expected-error' is possible per #test block (what follows will be skipped)
 - Write tests using the existing test framework and patterns.
+- Write new tests in existing test files if this is relevant. But create new files if tests are different.
 - Do not add comments.
 - Test files must contain only compilable test code.
-- Do not modify existing tests unless explicitly requested.

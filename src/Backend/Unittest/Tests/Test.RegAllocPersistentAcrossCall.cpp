@@ -9,8 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 #if SWC_DEV_MODE
 
-SWC_BACKEND_TEST(RegAllocPersistentAcrossCall)
-{
+SWC_BACKEND_TEST_BEGIN(RegAllocPersistentAcrossCall)
     MicroInstrBuilder builder(ctx);
     const auto        vLive = MicroReg::virtualIntReg(0);
     const auto        vTemp = MicroReg::virtualIntReg(1);
@@ -59,7 +58,7 @@ SWC_BACKEND_TEST(RegAllocPersistentAcrossCall)
     SWC_ASSERT(regTemp.isInt());
     SWC_ASSERT(Backend::Unittest::isPersistentReg(conv.intPersistentRegs, regLive));
     SWC_ASSERT(!Backend::Unittest::isPersistentReg(conv.intPersistentRegs, regTemp));
-}
+SWC_BACKEND_TEST_END()
 
 #endif
 

@@ -9,8 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 #if SWC_DEV_MODE
 
-SWC_BACKEND_TEST(EncodeSimpleSequence)
-{
+SWC_BACKEND_TEST_BEGIN(EncodeSimpleSequence)
     MicroInstrBuilder builder(ctx);
 
     builder.encodeLoadRegImm(MicroReg::intReg(0), 0x1234, MicroOpBits::B64, EncodeFlagsE::Zero);
@@ -27,7 +26,7 @@ SWC_BACKEND_TEST(EncodeSimpleSequence)
 
     SWC_ASSERT(encoder.size() > 0);
     SWC_ASSERT(encoder.data());
-}
+SWC_BACKEND_TEST_END()
 
 #endif
 

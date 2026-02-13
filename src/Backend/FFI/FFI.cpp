@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecMemory.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -13,6 +14,13 @@ namespace Backend
 {
     namespace
     {
+        struct FFINormalizedType
+        {
+            bool    isVoid  = true;
+            bool    isFloat = false;
+            uint8_t numBits = 0;
+        };
+
         struct FFIArgSlot
         {
             uint64_t value = 0;
@@ -20,11 +28,12 @@ namespace Backend
 
         struct FFIArgPlan
         {
-            FFITypeDesc desc;
-            uint32_t    slotIndex = 0;
+            bool     isFloat   = false;
+            uint8_t  numBits   = 0;
+            uint32_t slotIndex = 0;
         };
 
-        Result classifyType(TaskContext& ctx, TypeRef typeRef, FFITypeDesc& outDesc)
+        Result normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
         {
             if (!typeRef.isValid())
                 return Result::Error;
@@ -36,37 +45,37 @@ namespace Backend
             const auto& ty = ctx.typeMgr().get(expanded);
             if (ty.isVoid())
             {
-                outDesc = {.valueClass = FFIValueClass::Void, .numBits = 0};
+                outType = {.isVoid = true, .isFloat = false, .numBits = 0};
                 return Result::Continue;
             }
 
             if (ty.isBool())
             {
-                outDesc = {.valueClass = FFIValueClass::Int, .numBits = 8};
+                outType = {.isVoid = false, .isFloat = false, .numBits = 8};
                 return Result::Continue;
             }
 
             if (ty.isCharRune())
             {
-                outDesc = {.valueClass = FFIValueClass::Int, .numBits = 32};
+                outType = {.isVoid = false, .isFloat = false, .numBits = 32};
                 return Result::Continue;
             }
 
             if (ty.isInt() && ty.payloadIntBits() <= 64 && ty.payloadIntBits() != 0)
             {
-                outDesc = {.valueClass = FFIValueClass::Int, .numBits = static_cast<uint8_t>(ty.payloadIntBits())};
+                outType = {.isVoid = false, .isFloat = false, .numBits = static_cast<uint8_t>(ty.payloadIntBits())};
                 return Result::Continue;
             }
 
             if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
             {
-                outDesc = {.valueClass = FFIValueClass::Float, .numBits = static_cast<uint8_t>(ty.payloadFloatBits())};
+                outType = {.isVoid = false, .isFloat = true, .numBits = static_cast<uint8_t>(ty.payloadFloatBits())};
                 return Result::Continue;
             }
 
             if (ty.isPointerLike() || ty.isNull())
             {
-                outDesc = {.valueClass = FFIValueClass::Int, .numBits = 64};
+                outType = {.isVoid = false, .isFloat = false, .numBits = 64};
                 return Result::Continue;
             }
 
@@ -84,7 +93,6 @@ namespace Backend
                 default: return MicroOpBits::Zero;
             }
         }
-
     }
 
     Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
@@ -95,9 +103,9 @@ namespace Backend
         constexpr auto callConvKind = CallConvKind::Host;
         const auto& conv = CallConv::get(callConvKind);
 
-        FFITypeDesc retDesc;
-        RESULT_VERIFY(classifyType(ctx, ret.typeRef, retDesc));
-        if (retDesc.valueClass != FFIValueClass::Void && !ret.valuePtr)
+        FFINormalizedType retType;
+        RESULT_VERIFY(normalizeType(ctx, ret.typeRef, retType));
+        if (!retType.isVoid && !ret.valuePtr)
             return Result::Error;
 
         uint64_t intRetTemp = 0;
@@ -112,51 +120,42 @@ namespace Backend
             if (!arg.valuePtr)
                 return Result::Error;
 
-            FFITypeDesc desc;
-            RESULT_VERIFY(classifyType(ctx, arg.typeRef, desc));
-            if (desc.valueClass == FFIValueClass::Void)
+            FFINormalizedType argType;
+            RESULT_VERIFY(normalizeType(ctx, arg.typeRef, argType));
+            if (argType.isVoid)
                 return Result::Error;
 
             auto& slot = argSlots[i].value;
-            switch (desc.valueClass)
+            if (argType.isFloat)
             {
-                case FFIValueClass::Int:
+                if (argType.numBits == 32)
                 {
-                    switch (desc.numBits)
-                    {
-                        case 8: slot = *static_cast<const uint8_t*>(arg.valuePtr); break;
-                        case 16: slot = *static_cast<const uint16_t*>(arg.valuePtr); break;
-                        case 32: slot = *static_cast<const uint32_t*>(arg.valuePtr); break;
-                        case 64: std::memcpy(&slot, arg.valuePtr, sizeof(uint64_t)); break;
-                        default: return Result::Error;
-                    }
-                    break;
+                    const auto value = *static_cast<const float*>(arg.valuePtr);
+                    std::memcpy(&slot, &value, sizeof(float));
                 }
-
-                case FFIValueClass::Float:
+                else if (argType.numBits == 64)
                 {
-                    if (desc.numBits == 32)
-                    {
-                        const auto value = *static_cast<const float*>(arg.valuePtr);
-                        std::memcpy(&slot, &value, sizeof(float));
-                    }
-                    else if (desc.numBits == 64)
-                    {
-                        const auto value = *static_cast<const double*>(arg.valuePtr);
-                        std::memcpy(&slot, &value, sizeof(double));
-                    }
-                    else
-                    {
-                        return Result::Error;
-                    }
-                    break;
+                    const auto value = *static_cast<const double*>(arg.valuePtr);
+                    std::memcpy(&slot, &value, sizeof(double));
                 }
-
-                default:
+                else
+                {
                     return Result::Error;
+                }
+            }
+            else
+            {
+                switch (argType.numBits)
+                {
+                    case 8: slot = *static_cast<const uint8_t*>(arg.valuePtr); break;
+                    case 16: slot = *static_cast<const uint16_t*>(arg.valuePtr); break;
+                    case 32: slot = *static_cast<const uint32_t*>(arg.valuePtr); break;
+                    case 64: std::memcpy(&slot, arg.valuePtr, sizeof(uint64_t)); break;
+                    default: return Result::Error;
+                }
             }
 
-            plans.push_back({.desc = desc, .slotIndex = i});
+            plans.push_back({.isFloat = argType.isFloat, .numBits = argType.numBits, .slotIndex = i});
         }
 
         const uint32_t numStackArgs  = args.size() > 4 ? static_cast<uint32_t>(args.size() - 4) : 0;
@@ -183,9 +182,9 @@ namespace Backend
 
                 if (isRegArg)
                 {
-                    if (plan.desc.valueClass == FFIValueClass::Float)
+                    if (plan.isFloat)
                     {
-                        builder.encodeLoadRegMem(conv.floatArgRegs[i], regBase, slotAddr, opBitsFor(plan.desc.numBits), EncodeFlagsE::Zero);
+                        builder.encodeLoadRegMem(conv.floatArgRegs[i], regBase, slotAddr, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
                     }
                     else
                     {
@@ -195,10 +194,10 @@ namespace Backend
                 else
                 {
                     const auto stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - 4) * sizeof(uint64_t);
-                    if (plan.desc.valueClass == FFIValueClass::Float)
+                    if (plan.isFloat)
                     {
-                        builder.encodeLoadRegMem(conv.floatReturn, regBase, slotAddr, opBitsFor(plan.desc.numBits), EncodeFlagsE::Zero);
-                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, conv.floatReturn, opBitsFor(plan.desc.numBits), EncodeFlagsE::Zero);
+                        builder.encodeLoadRegMem(conv.floatReturn, regBase, slotAddr, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
+                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, conv.floatReturn, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
                     }
                     else
                     {
@@ -212,13 +211,13 @@ namespace Backend
         builder.encodeLoadRegImm(regTarget, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
         builder.encodeCallReg(regTarget, callConvKind, EncodeFlagsE::Zero);
 
-        if (retDesc.valueClass != FFIValueClass::Void)
+        if (!retType.isVoid)
         {
-            const bool useIntTemp = retDesc.valueClass == FFIValueClass::Int;
+            const bool useIntTemp = !retType.isFloat;
             void*      retPtr     = useIntTemp ? static_cast<void*>(&intRetTemp) : ret.valuePtr;
             builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(retPtr), MicroOpBits::B64, EncodeFlagsE::Zero);
-            if (retDesc.valueClass == FFIValueClass::Float)
-                builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, opBitsFor(retDesc.numBits), EncodeFlagsE::Zero);
+            if (retType.isFloat)
+                builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, opBitsFor(retType.numBits), EncodeFlagsE::Zero);
             else
                 builder.encodeLoadMemReg(regBase, 0, conv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
         }
@@ -237,8 +236,8 @@ namespace Backend
 
         invoker();
 
-        if (retDesc.valueClass == FFIValueClass::Int)
-            std::memcpy(ret.valuePtr, &intRetTemp, retDesc.numBits / 8);
+        if (!retType.isVoid && !retType.isFloat)
+            std::memcpy(ret.valuePtr, &intRetTemp, retType.numBits / 8);
 
         return Result::Continue;
     }

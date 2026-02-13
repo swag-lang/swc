@@ -2871,8 +2871,8 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     auto* patchPtr = store_.seekPtr() - sizeof(uint32_t);
     emitOpBinaryRegReg(offsetReg, tableReg, MicroOp::Add, MicroOpBits::B64, emitFlags);
     emitJumpReg(offsetReg);
-    const auto endIdx = store_.size();
-    uint32_t patchValue = 0;
+    const auto endIdx     = store_.size();
+    uint32_t   patchValue = 0;
     std::memcpy(&patchValue, patchPtr, sizeof(patchValue));
     patchValue += static_cast<uint32_t>(endIdx - startIdx);
     std::memcpy(patchPtr, &patchValue, sizeof(patchValue));

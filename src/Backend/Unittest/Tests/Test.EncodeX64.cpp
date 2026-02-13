@@ -51,9 +51,9 @@ namespace
     constexpr auto XMM2 = MicroReg::floatReg(2);
     constexpr auto XMM3 = MicroReg::floatReg(3);
 
-#define ENCODE_CASE(__name, __hex, ...)                              \
-    do                                                               \
-    {                                                                \
+#define ENCODE_CASE(__name, __hex, ...)                                             \
+    do                                                                              \
+    {                                                                               \
         RESULT_VERIFY(runCase(__name, __hex, [&](MicroInstrBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
     } while (false)
 
@@ -289,7 +289,7 @@ namespace
         CompilerInstance compiler(ctx.global(), ctx.cmdLine());
         TaskContext      compilerCtx(compiler);
         const RunCaseFn  runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
-            TestX64Encoder encoder(compilerCtx);
+            TestX64Encoder  encoder(compilerCtx);
             EncoderFunction testFct{};
             testFct.startAddress = 0;
             testFct.symbolIndex  = 7;

@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Support/Core/Result.h"
-#include <functional>
 
 SWC_BEGIN_NAMESPACE();
 

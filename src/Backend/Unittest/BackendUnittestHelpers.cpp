@@ -85,7 +85,7 @@ namespace Backend::Unittest
             return Result::Error;
         }
 
-        const auto size     = encoder.size();
+        const auto                size = encoder.size();
         std::vector<ExpectedByte> expected;
         if (parseExpected(expectedHex, expected) != Result::Continue)
         {

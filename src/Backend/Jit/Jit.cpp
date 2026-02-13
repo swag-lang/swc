@@ -38,14 +38,11 @@ namespace Backend
 
     Result Jit::compile(TaskContext& ctx, MicroInstrBuilder& builder, JitExecMemory& outExecutableMemory)
     {
-#if defined(_M_X64)
+#ifdef _M_X64
         X64Encoder encoder(ctx);
         return compileWithEncoder(builder, encoder, outExecutableMemory);
 #else
-        (void) ctx;
-        (void) builder;
-        (void) outExecutableMemory;
-        return Result::Error;
+        SWC_UNREACHABLE();
 #endif
     }
 }

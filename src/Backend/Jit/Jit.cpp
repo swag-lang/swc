@@ -4,6 +4,7 @@
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,11 +14,14 @@ namespace Backend
     {
         Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JitExecMemory& outExecutableMemory)
         {
+            MicroRegAllocPass regAllocPass;
             MicroEncodePass  encodePass;
             MicroPassManager passManager;
+            passManager.add(regAllocPass);
             passManager.add(encodePass);
 
             MicroPassContext passContext;
+            passContext.callConvKind = CallConvKind::C;
             builder.runPasses(passManager, &encoder, passContext);
             const auto codeSize = encoder.size();
             if (!codeSize)

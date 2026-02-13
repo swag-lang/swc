@@ -117,10 +117,11 @@ public:
     SemaScope&       curScope() { return *curScope_; }
     const SemaScope& curScope() const { return *curScope_; }
     void             pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
-    void             pushFramePopOnPostNode(const SemaFrame& frame);
+    void             pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
     SemaScope*       pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope*       pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     bool             enteringState() const { return visit_.enteringState(); }
+    void             deferInlineFinalize(AstNodeRef substituteRef, AstNodeRef callRef, TypeRef returnTypeRef);
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
@@ -154,6 +155,7 @@ private:
 
     void processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
     void processDeferredPopsPostNode(AstNodeRef nodeRef);
+    Result processDeferredInlineFinalize(AstNodeRef nodeRef);
 
     TaskContext* ctx_         = nullptr;
     SemaContext* semaContext_ = nullptr;
@@ -186,6 +188,14 @@ private:
 
     std::vector<DeferredPopFrame> deferredPopFrames_;
     std::vector<DeferredPopScope> deferredPopScopes_;
+
+    struct DeferredInlineFinalize
+    {
+        AstNodeRef substituteRef;
+        AstNodeRef callRef;
+        TypeRef    returnTypeRef;
+    };
+    std::vector<DeferredInlineFinalize> deferredInlineFinalizes_;
 };
 
 SWC_END_NAMESPACE();

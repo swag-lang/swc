@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -160,23 +159,16 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const AstNodeRef              inlinedRef = SemaClone::cloneExpr(sema, srcExprRef, cloneContext);
     SWC_ASSERT(inlinedRef.isValid());
 
-    const TaskState saved = sema.ctx().state();
-    Sema            inlineSema(sema.ctx(), sema, inlinedRef);
-    if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
-        inlineSema.frame().pushBindingType(fn.returnTypeRef());
-    RESULT_VERIFY(inlineSema.execResult());
-    sema.ctx().state() = saved;
-
     if (fn.returnTypeRef() != sema.typeMgr().typeVoid())
     {
-        SemaNodeView inlineView(sema, inlinedRef);
-        RESULT_VERIFY(Cast::cast(sema, inlineView, fn.returnTypeRef(), CastKind::Implicit));
+        auto frame = sema.frame();
+        frame.pushBindingType(fn.returnTypeRef());
+        sema.pushFramePopOnPostNode(frame, inlinedRef);
     }
 
-    const SemaNodeView callView(sema, inlinedRef);
-    SWC_ASSERT(callView.cstRef.isValid());
-    sema.setFoldedTypedConst(callRef);
-    sema.setConstant(callRef, callView.cstRef);
+    sema.setSubstitute(callRef, inlinedRef);
+    sema.deferInlineFinalize(inlinedRef, callRef, fn.returnTypeRef());
+    sema.visit().restartCurrentNode(inlinedRef);
     return Result::Continue;
 }
 

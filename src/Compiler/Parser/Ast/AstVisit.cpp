@@ -6,6 +6,25 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void AstVisit::resetFrame(Frame& frame, AstNodeRef nodeRef)
+{
+    frame.node         = nullptr;
+    frame.nodeRef      = nodeRef;
+    frame.stage        = Frame::Stage::Pre;
+    frame.nextChildIx  = 0;
+    frame.firstChildIx = 0;
+    frame.numChildren  = 0;
+
+    frame.firstPass = true;
+
+    frame.preNodeState  = Frame::CallState::NotCalled;
+    frame.postNodeState = Frame::CallState::NotCalled;
+
+    frame.pendingPostChild = false;
+    frame.postChildState   = Frame::CallState::NotCalled;
+    frame.preChildState    = Frame::CallState::NotCalled;
+}
+
 void AstVisit::start(Ast& ast, AstNodeRef root)
 {
     SWC_ASSERT(root.isValid());
@@ -17,21 +36,15 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     children_.clear();
 
     Frame fr;
-    fr.nodeRef = root;
-    fr.stage   = Frame::Stage::Pre;
-
-    // Reset per-frame state (important if Frame is not POD-zeroed)
-    fr.firstPass = true;
-
-    fr.preNodeState  = Frame::CallState::NotCalled;
-    fr.postNodeState = Frame::CallState::NotCalled;
-
-    fr.pendingPostChild = false;
-    fr.postChildState   = Frame::CallState::NotCalled;
-
-    fr.preChildState = Frame::CallState::NotCalled;
-
+    resetFrame(fr, root);
     stack_.push_back(fr);
+}
+
+void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(!stack_.empty());
+    resetFrame(stack_.back(), nodeRef);
 }
 
 AstVisitResult AstVisit::step(const TaskContext& ctx)
@@ -185,19 +198,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
 
                 // Push child frame
                 Frame childFr;
-                childFr.nodeRef = childRef;
-                childFr.stage   = Frame::Stage::Pre;
-
-                childFr.firstPass = true;
-
-                childFr.preNodeState  = Frame::CallState::NotCalled;
-                childFr.postNodeState = Frame::CallState::NotCalled;
-
-                childFr.pendingPostChild = false;
-                childFr.postChildState   = Frame::CallState::NotCalled;
-
-                childFr.preChildState = Frame::CallState::NotCalled;
-
+                resetFrame(childFr, childRef);
                 stack_.push_back(childFr);
 
                 // Mark that this child is now "the last visited child" once it completes,
@@ -231,6 +232,9 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                     fr.postNodeState = Frame::CallState::Paused;
                     return AstVisitResult::Pause;
                 }
+
+                if (fr.stage != Frame::Stage::Post)
+                    return AstVisitResult::Continue;
 
                 fr.postNodeState = Frame::CallState::Done;
             }

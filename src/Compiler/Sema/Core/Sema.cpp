@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaContext.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -161,17 +163,28 @@ void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterCh
     });
 }
 
-void Sema::pushFramePopOnPostNode(const SemaFrame& frame)
+void Sema::pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef)
 {
     pushFrame(frame);
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
     deferredPopFrames_.push_back({
-        .nodeRef                  = curNodeRef(),
+        .nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef(),
         .childRef                 = AstNodeRef::invalid(),
         .onPostNode               = true,
         .expectedFrameCountBefore = before,
         .expectedFrameCountAfter  = before - 1,
+    });
+}
+
+void Sema::deferInlineFinalize(AstNodeRef substituteRef, AstNodeRef callRef, TypeRef returnTypeRef)
+{
+    SWC_ASSERT(substituteRef.isValid());
+    SWC_ASSERT(callRef.isValid());
+    deferredInlineFinalizes_.push_back({
+        .substituteRef = substituteRef,
+        .callRef       = callRef,
+        .returnTypeRef = returnTypeRef,
     });
 }
 
@@ -363,10 +376,15 @@ Result Sema::preNode(AstNode& node)
 
 Result Sema::postNode(AstNode& node)
 {
-    const AstNodeIdInfo& info   = Ast::nodeIdInfos(node.id());
-    const Result         result = info.semaPostNode(*this, node);
+    const AstNodeRef     nodeRef = curNodeRef();
+    const AstNodeIdInfo& info    = Ast::nodeIdInfos(node.id());
+    const Result         result  = info.semaPostNode(*this, node);
     if (result == Result::Continue)
-        processDeferredPopsPostNode(curNodeRef());
+    {
+        processDeferredPopsPostNode(nodeRef);
+        if (nodeRef == curNodeRef())
+            RESULT_VERIFY(processDeferredInlineFinalize(nodeRef));
+    }
     return result;
 }
 
@@ -454,6 +472,28 @@ void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
         SWC_ASSERT(scopes_.size() == last.expectedScopeCountAfter);
         deferredPopScopes_.pop_back();
     }
+}
+
+Result Sema::processDeferredInlineFinalize(AstNodeRef nodeRef)
+{
+    while (!deferredInlineFinalizes_.empty())
+    {
+        const auto& last = deferredInlineFinalizes_.back();
+        if (last.substituteRef != nodeRef)
+            break;
+
+        SemaNodeView inlineView(*this, nodeRef);
+        if (last.returnTypeRef != typeMgr().typeVoid())
+            RESULT_VERIFY(Cast::cast(*this, inlineView, last.returnTypeRef, CastKind::Implicit));
+
+        SWC_ASSERT(inlineView.cstRef.isValid());
+        setFoldedTypedConst(last.callRef);
+        setConstant(last.callRef, inlineView.cstRef);
+
+        deferredInlineFinalizes_.pop_back();
+    }
+
+    return Result::Continue;
 }
 
 Result Sema::execResult()

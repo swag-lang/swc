@@ -20,6 +20,7 @@ class AstVisit
 {
 public:
     void           start(Ast& ast, AstNodeRef root);
+    void           restartCurrentNode(AstNodeRef nodeRef);
     void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
@@ -86,6 +87,7 @@ private:
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
 
+    static void resetFrame(Frame& frame, AstNodeRef nodeRef);
     AstNode*   parentNodeInternal(size_t up) const;
     AstNodeRef parentNodeRefInternal(size_t up) const;
 };

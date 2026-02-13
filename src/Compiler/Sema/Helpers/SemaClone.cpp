@@ -60,9 +60,7 @@ namespace
 
 AstNodeRef SemaClone::cloneExpr(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
 {
-    if (nodeRef.isInvalid())
-        return AstNodeRef::invalid();
-
+    SWC_ASSERT(nodeRef.isValid());
     AstNode&         node      = sema.node(nodeRef);
     const AstNodeRef clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
     SWC_ASSERT(clonedRef.isValid());

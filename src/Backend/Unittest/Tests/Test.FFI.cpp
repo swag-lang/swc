@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Main/CompilerInstance.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,20 +14,6 @@ namespace
     {
         FFI::callFFI(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
         return Result::Continue;
-    }
-
-    TaskContext& typedFFICtx(TaskContext& ctx)
-    {
-        static std::unique_ptr<CompilerInstance> compiler;
-        static std::unique_ptr<TaskContext>      ffiCtx;
-        if (!compiler)
-        {
-            compiler = std::make_unique<CompilerInstance>(ctx.global(), ctx.cmdLine());
-            ffiCtx   = std::make_unique<TaskContext>(*compiler);
-            compiler->setupSema(*ffiCtx);
-        }
-
-        return *ffiCtx;
     }
 }
 
@@ -82,7 +67,7 @@ namespace
 
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
     bool  result = false;
     RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const FFIArgument>{}, ffiCtx.typeMgr().typeBool(), &result));
     if (!result)
@@ -92,7 +77,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeU8)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr uint8_t a = 19;
     constexpr uint8_t b = 23;
@@ -111,7 +96,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeI32)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr int32_t a = -1200;
     constexpr int32_t b = -137;
@@ -130,7 +115,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF32)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr float a = 0.5f;
     constexpr float b = 1.25f;
@@ -149,7 +134,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr double a = 1.5;
     constexpr double b = 2.5;
@@ -168,7 +153,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr double a = 1.0;
     constexpr double b = 2.0;
@@ -193,7 +178,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr uint8_t  a = 1;
     constexpr uint16_t b = 2;
@@ -216,7 +201,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     constexpr int64_t a = 1;
     constexpr int64_t b = 2;
@@ -243,7 +228,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 {
-    auto& ffiCtx = typedFFICtx(ctx);
+    auto& ffiCtx = ctx;
 
     const void* ptr = reinterpret_cast<void*>(0x10);
 

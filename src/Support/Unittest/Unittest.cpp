@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
 #include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -48,24 +49,28 @@ namespace Unittest
 
     Result runAll(TaskContext& ctx)
     {
+        CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+        TaskContext      testCtx(compiler);
+        compiler.setupSema(testCtx);
+
         bool hasFailure = false;
 
         for (const auto setupFn : setupRegistry())
         {
             if (setupFn)
-                setupFn(ctx);
+                setupFn(testCtx);
         }
 
         for (const auto& test : testRegistry())
         {
-            const Result result = test.fn(ctx);
+            const Result result = test.fn(testCtx);
             if (result == Result::Continue)
             {
-                logUnittestStatus(ctx, test.name, true);
+                logUnittestStatus(testCtx, test.name, true);
             }
             else
             {
-                logUnittestStatus(ctx, test.name, false);
+                logUnittestStatus(testCtx, test.name, false);
                 if (CommandLine::dbgDevMode)
                     Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;

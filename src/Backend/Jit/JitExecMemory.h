@@ -7,16 +7,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Backend
 {
-    class JitExecutableMemory
+    class JitExecMemory
     {
     public:
-        JitExecutableMemory() = default;
-        ~JitExecutableMemory();
+        JitExecMemory() = default;
+        ~JitExecMemory();
 
-        JitExecutableMemory(const JitExecutableMemory&)                = delete;
-        JitExecutableMemory& operator=(const JitExecutableMemory&)     = delete;
-        JitExecutableMemory(JitExecutableMemory&& other) noexcept;
-        JitExecutableMemory& operator=(JitExecutableMemory&& other) noexcept;
+        JitExecMemory(const JitExecMemory&)            = delete;
+        JitExecMemory& operator=(const JitExecMemory&) = delete;
+        JitExecMemory(JitExecMemory&& other) noexcept;
+        JitExecMemory& operator=(JitExecMemory&& other) noexcept;
 
         void     reset();
         bool     allocateAndCopy(const uint8_t* data, uint32_t size);

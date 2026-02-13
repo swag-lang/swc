@@ -1,17 +1,17 @@
 #include "pch.h"
-#include "Backend/Jit/JitExecutableMemory.h"
+#include "Backend/Jit/JitExecMemory.h"
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace Backend
 {
-    JitExecutableMemory::~JitExecutableMemory()
+    JitExecMemory::~JitExecMemory()
     {
         reset();
     }
 
-    JitExecutableMemory::JitExecutableMemory(JitExecutableMemory&& other) noexcept :
+    JitExecMemory::JitExecMemory(JitExecMemory&& other) noexcept :
         ptr_(other.ptr_),
         size_(other.size_)
     {
@@ -19,7 +19,7 @@ namespace Backend
         other.size_ = 0;
     }
 
-    JitExecutableMemory& JitExecutableMemory::operator=(JitExecutableMemory&& other) noexcept
+    JitExecMemory& JitExecMemory::operator=(JitExecMemory&& other) noexcept
     {
         if (this != &other)
         {
@@ -33,7 +33,7 @@ namespace Backend
         return *this;
     }
 
-    void JitExecutableMemory::reset()
+    void JitExecMemory::reset()
     {
         if (ptr_)
             Os::freeExecutableMemory(ptr_);
@@ -41,7 +41,7 @@ namespace Backend
         size_ = 0;
     }
 
-    bool JitExecutableMemory::allocateAndCopy(const uint8_t* data, uint32_t size)
+    bool JitExecMemory::allocateAndCopy(const uint8_t* data, uint32_t size)
     {
         reset();
         if (!data || !size)

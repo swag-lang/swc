@@ -88,19 +88,7 @@ namespace Backend::Unittest
                 const auto got = encoder.byteAt(i);
                 if (got != expected[i].value)
                 {
-                    Logger::print(ctx, std::format("EncodeAllInstructionsX64 mismatch: case={} byte={} expected={:02X} got={:02X}\n", name, i, expected[i].value, got));
-
-                    std::string encoded = "Encoded bytes: ";
-                    for (uint32_t j = 0; j < size; ++j)
-                    {
-                        encoded += std::format("{:02X}", encoder.byteAt(j));
-                        if (j + 1 < size)
-                            encoded += " ";
-                    }
-                    encoded += "\n";
-                    Logger::print(ctx, encoded);
-
-                    Logger::print(ctx, std::format("Expected: {}\n", expectedHex));
+                    Logger::print(ctx, std::format("runEncodeCase mismatch: case={} byte={} expected={:02X} got={:02X}\n", name, i, expected[i].value, got));
                     SWC_ASSERT(false);
                 }
             }

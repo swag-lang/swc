@@ -4,7 +4,7 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 
 void              swcAssert(const char* expr, const char* file, int line);
-[[noreturn]] void swcInternalError(const TaskContext& ctx, const char* file, int line);
+[[noreturn]] void swcInternalError(const char* file, int line);
 
 // Only enable assertions in debug builds
 #if SWC_HAS_ASSERT
@@ -23,11 +23,11 @@ void              swcAssert(const char* expr, const char* file, int line);
     } while (0)
 #endif // SWC_HAS_ASSERT
 
-#define SWC_INTERNAL_ERROR(__ctx)                    \
-    do                                               \
-    {                                                \
-        swcInternalError(__ctx, __FILE__, __LINE__); \
-        std::unreachable();                          \
+#define SWC_INTERNAL_ERROR()                  \
+    do                                        \
+    {                                         \
+        swcInternalError(__FILE__, __LINE__); \
+        std::unreachable();                   \
     } while (0)
 
 #define SWC_FORCE_ASSERT(__expr)                    \

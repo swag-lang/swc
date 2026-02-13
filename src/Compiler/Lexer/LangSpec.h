@@ -1,6 +1,5 @@
 #pragma once
 #include "Support/Core/Flags.h"
-#include "Support/Core/RefTypes.h"
 #include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();

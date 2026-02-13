@@ -253,10 +253,10 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
             // TODO
-            SWC_INTERNAL_ERROR(ctx);
+            SWC_INTERNAL_ERROR();
 
         default:
-            SWC_INTERNAL_ERROR(ctx);
+            SWC_INTERNAL_ERROR();
     }
 
     return Result::Continue;
@@ -523,24 +523,24 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
         case TokenId::CompilerInclude:
         case TokenId::CompilerLoad:
             // TODO
-            SWC_INTERNAL_ERROR(sema.ctx());
+            SWC_INTERNAL_ERROR();
 
         default:
-            SWC_INTERNAL_ERROR(sema.ctx());
+            SWC_INTERNAL_ERROR();
     }
 }
 
-Result AstCompilerCall::semaPostNode(Sema& sema) const
+Result AstCompilerCall::semaPostNode(const Sema& sema) const
 {
     const Token& tok = sema.token(codeRef());
     switch (tok.id)
     {
         case TokenId::CompilerGetTag:
             // TODO
-            SWC_INTERNAL_ERROR(sema.ctx());
+            SWC_INTERNAL_ERROR();
 
         default:
-            SWC_INTERNAL_ERROR(sema.ctx());
+            SWC_INTERNAL_ERROR();
     }
 }
 

@@ -478,7 +478,7 @@ EncodeResult MicroInstrBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg
     return EncodeResult::Zero;
 }
 
-void MicroInstrBuilder::runPasses(MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
+void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
     context.encoder      = encoder;
     context.instructions = &instructions_;

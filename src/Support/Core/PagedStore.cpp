@@ -180,9 +180,9 @@ uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hd
     return std::min<uint32_t>(cap, remaining);
 }
 
-PagedStore::SpanView::SpanView(const PagedStore* s, Ref r, uint32_t elemSize, uint32_t elemAlign) :
+PagedStore::SpanView::SpanView(const PagedStore* s, Ref head, uint32_t elemSize, uint32_t elemAlign) :
     store_(s),
-    head_(r),
+    head_(head),
     elementSize_(elemSize),
     elementAlign_(elemAlign)
 {

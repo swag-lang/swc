@@ -147,7 +147,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 case TokenId::IntrinsicAbs: r = std::fabs(x); break;
                 case TokenId::IntrinsicExp: r = std::exp(x); break;
                 case TokenId::IntrinsicExp2: r = std::exp2(x); break;
-                default: SWC_INTERNAL_ERROR(sema.ctx());
+                default: SWC_INTERNAL_ERROR();
             }
 
             if (std::isnan(r))

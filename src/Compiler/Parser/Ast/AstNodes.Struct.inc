@@ -146,7 +146,7 @@ struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
 // -----------------------------------------------------------------------------
 struct AstCompilerCall : AstCompoundT<AstNodeId::CompilerCall>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result semaPostNode(const Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

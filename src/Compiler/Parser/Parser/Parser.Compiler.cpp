@@ -46,7 +46,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
             nodeArgs.push_back(parseExpression());
     }
 
-    if (nodeArgs.size() < 1)
+    if (nodeArgs.empty())
     {
         auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
         diag.addArgument(Diagnostic::ARG_COUNT, 1);
@@ -143,7 +143,7 @@ AstNodeRef Parser::parseCompilerCallOne()
         nodeArgs.push_back(parseExpression());
     }
 
-    if (nodeArgs.size() < 1)
+    if (nodeArgs.empty())
     {
         auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
         diag.addArgument(Diagnostic::ARG_COUNT, 1);

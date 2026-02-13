@@ -56,7 +56,7 @@ namespace TypeGenInternal
         return tm.structTypeInfo();
     }
 
-    IdentifierRef typeInfoIdentifierFor(LayoutKind kind, const IdentifierManager& idMgr)
+    static IdentifierRef typeInfoIdentifierFor(LayoutKind kind, const IdentifierManager& idMgr)
     {
         using Pn = IdentifierManager::PredefinedName;
         switch (kind)

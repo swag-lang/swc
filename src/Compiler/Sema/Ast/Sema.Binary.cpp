@@ -376,7 +376,7 @@ namespace
                 return checkOp(sema, nodeRef, op, node, nodeLeftView, nodeRightView);
 
             default:
-                SWC_INTERNAL_ERROR(sema.ctx());
+                SWC_INTERNAL_ERROR();
         }
     }
 }

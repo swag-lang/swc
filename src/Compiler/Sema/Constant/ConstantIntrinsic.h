@@ -10,6 +10,6 @@ struct SemaNodeView;
 namespace ConstantIntrinsic
 {
     Result tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args);
-};
+}
 
 SWC_END_NAMESPACE();

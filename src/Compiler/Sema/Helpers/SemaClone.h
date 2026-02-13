@@ -13,7 +13,7 @@ namespace SemaClone
         AstNodeRef    exprRef;
     };
 
-    struct CloneContext final : ::swc::CloneContext
+    struct CloneContext final : swc::CloneContext
     {
         std::span<const ParamBinding> bindings;
 

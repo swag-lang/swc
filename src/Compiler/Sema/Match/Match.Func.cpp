@@ -632,7 +632,7 @@ namespace
         {
             if (vi.isVariadic)
             {
-                for (const auto& entry : mapping.variadicArgs)
+                for ([[maybe_unused]] const auto& entry : mapping.variadicArgs)
                     outCandidate.perArg.push_back(ConvRank::Ellipsis);
             }
             else

@@ -92,7 +92,7 @@ namespace
                 return Result::Continue;
 
             default:
-                SWC_INTERNAL_ERROR(sema.ctx());
+                SWC_INTERNAL_ERROR();
         }
     }
 
@@ -100,7 +100,7 @@ namespace
     {
         if (tok.id != TokenId::SymEqual)
         {
-            SWC_INTERNAL_ERROR(sema.ctx());
+            SWC_INTERNAL_ERROR();
         }
 
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);

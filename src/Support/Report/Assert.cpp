@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -10,7 +9,7 @@ void swcAssert(const char* expr, const char* file, int line)
     Os::panicBox(msg.c_str());
 }
 
-[[noreturn]] void swcInternalError(const TaskContext& ctx, const char* file, int line)
+[[noreturn]] void swcInternalError(const char* file, int line)
 {
     const Utf8 msg = std::format("internal error!\n\nFile: {}({})\n", file ? file : "<null>", line);
     Os::panicBox(msg.c_str());

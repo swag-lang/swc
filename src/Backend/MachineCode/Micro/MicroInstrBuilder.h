@@ -29,7 +29,7 @@ public:
     PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
     const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
 
-    void runPasses(MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
+    void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
     EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags);
     EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags);

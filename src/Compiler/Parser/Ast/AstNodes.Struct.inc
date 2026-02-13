@@ -147,12 +147,14 @@ struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
 struct AstCompilerCall : AstCompoundT<AstNodeId::CompilerCall>
 {
     Result semaPostNode(const Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 {
     Result semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -181,6 +183,7 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -193,6 +196,8 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
         AstNode::collectChildren(out, ast, nodeCaptureArgsRef);
         AstLambdaExprT::collectChildren(out, ast);
     }
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -289,6 +294,7 @@ struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument, AstClosureArgum
     AstNodeRef nodeIdentifierRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentifierRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -325,6 +331,7 @@ struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -341,6 +348,7 @@ struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
     AstNodeRef nodeExprRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -372,6 +380,7 @@ struct AstAncestorIdentifier : AstNodeT<AstNodeId::AncestorIdentifier>
     AstNodeRef nodeIdentRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeValueRef, nodeIdentRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -470,6 +479,7 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
 // -----------------------------------------------------------------------------
 struct AstUnnamedArgument : AstNodeT<AstNodeId::UnnamedArgument>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -495,11 +505,13 @@ struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 // -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -642,6 +654,7 @@ struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef}); }
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -874,6 +887,7 @@ struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1041,6 +1055,7 @@ struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
     AstNodeRef nodeExprRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

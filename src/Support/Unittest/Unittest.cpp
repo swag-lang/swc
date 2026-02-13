@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
+#include "Main/CommandLine.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
@@ -53,19 +55,13 @@ namespace Unittest
             if (!setupFn || setupFn(ctx) != Result::Continue)
             {
                 Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
+                Os::panicBox("[DevMode] UNITTEST failed!");
                 return Result::Error;
             }
         }
 
         for (const auto& test : testRegistry())
         {
-            if (!test.name || !test.fn)
-            {
-                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest <invalid>]", LogColor::BrightRed, "fail");
-                hasFailure = true;
-                continue;
-            }
-
             const Result result = test.fn(ctx);
             if (result == Result::Continue)
             {
@@ -74,6 +70,8 @@ namespace Unittest
             else
             {
                 logUnittestStatus(ctx, test.name, false);
+                if (CommandLine::dbgDevMode)
+                    Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;
             }
         }

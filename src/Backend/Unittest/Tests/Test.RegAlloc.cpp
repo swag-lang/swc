@@ -19,7 +19,7 @@ namespace
         return CALL_CONVS;
     }
 
-    void verifyCallConvConformity(MicroInstrBuilder& builder, const CallConv& conv)
+    Result verifyCallConvConformity(MicroInstrBuilder& builder, const CallConv& conv)
     {
         auto& storeOps = builder.operands().store();
 
@@ -29,26 +29,33 @@ namespace
             inst.collectRegOperands(storeOps, refs, nullptr);
             for (const auto& ref : refs)
             {
+                if (!ref.reg)
+                    return Result::Error;
                 const auto reg = *ref.reg;
-                SWC_ASSERT(!reg.isVirtual());
+                if (reg.isVirtual())
+                    return Result::Error;
 
                 if (reg.isInt())
                 {
-                    SWC_ASSERT(std::ranges::find(conv.intRegs, reg) != conv.intRegs.end());
+                    if (std::ranges::find(conv.intRegs, reg) == conv.intRegs.end())
+                        return Result::Error;
                 }
                 else if (reg.isFloat())
                 {
-                    SWC_ASSERT(std::ranges::find(conv.floatRegs, reg) != conv.floatRegs.end());
+                    if (std::ranges::find(conv.floatRegs, reg) == conv.floatRegs.end())
+                        return Result::Error;
                 }
                 else
                 {
-                    SWC_ASSERT(false);
+                    return Result::Error;
                 }
             }
         }
+
+        return Result::Continue;
     }
 
-    void executeCase(TaskContext& ctx, const BuildCaseFn& buildFn)
+    Result executeCase(TaskContext& ctx, const BuildCaseFn& buildFn)
     {
         for (const auto callConvKind : testedCallConvs())
         {
@@ -62,9 +69,11 @@ namespace
             MicroPassContext passCtx;
             passCtx.callConvKind = callConvKind;
             builder.runPasses(passes, nullptr, passCtx);
-            Backend::Unittest::assertNoVirtualRegs(builder);
-            verifyCallConvConformity(builder, CallConv::get(passCtx.callConvKind));
+            RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
+            RESULT_VERIFY(verifyCallConvConformity(builder, CallConv::get(passCtx.callConvKind)));
         }
+
+        return Result::Continue;
     }
 
     void buildPersistentAcrossCallsInt(MicroInstrBuilder& b, CallConvKind callConvKind)
@@ -143,10 +152,10 @@ namespace
 
 SWC_TEST_BEGIN(RegAlloc)
 {
-    executeCase(ctx, buildPersistentAcrossCallsInt);
-    executeCase(ctx, buildNoCalls);
-    executeCase(ctx, buildMixedIntFloat);
-    executeCase(ctx, buildLotsOfVirtualRegs);
+    RESULT_VERIFY(executeCase(ctx, buildPersistentAcrossCallsInt));
+    RESULT_VERIFY(executeCase(ctx, buildNoCalls));
+    RESULT_VERIFY(executeCase(ctx, buildMixedIntFloat));
+    RESULT_VERIFY(executeCase(ctx, buildLotsOfVirtualRegs));
 }
 SWC_TEST_END()
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -32,20 +33,41 @@ namespace Unittest
         setupRegistry().push_back(setupFn);
     }
 
-    void runAll(TaskContext& ctx)
+    Result runAll(TaskContext& ctx)
     {
+        bool hasFailure = false;
+
         for (const auto setupFn : setupRegistry())
         {
-            SWC_ASSERT(setupFn);
-            setupFn(ctx);
+            if (!setupFn || setupFn(ctx) != Result::Continue)
+            {
+                Logger::print(ctx, "[unittest] setup fail\n");
+                return Result::Error;
+            }
         }
 
         for (const auto& test : testRegistry())
         {
-            SWC_ASSERT(test.name);
-            SWC_ASSERT(test.fn);
-            test.fn(ctx);
+            if (!test.name || !test.fn)
+            {
+                Logger::print(ctx, "[unittest] <invalid> fail\n");
+                hasFailure = true;
+                continue;
+            }
+
+            const auto result = test.fn(ctx);
+            if (result == Result::Continue)
+            {
+                Logger::print(ctx, std::format("[unittest] {} ok\n", test.name));
+            }
+            else
+            {
+                Logger::print(ctx, std::format("[unittest] {} fail\n", test.name));
+                hasFailure = true;
+            }
         }
+
+        return hasFailure ? Result::Error : Result::Continue;
     }
 }
 

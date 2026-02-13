@@ -14,11 +14,11 @@ namespace Backend::Unittest
         bool    wildcard = false;
     };
 
-    std::vector<ExpectedByte> parseExpected(const char* text);
-    void                      runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn);
+    Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn);
 
-    bool isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg);
-    void assertNoVirtualRegs(MicroInstrBuilder& builder);
+    bool   isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg);
+    Result assertNoVirtualRegs(MicroInstrBuilder& builder);
 }
 
 #endif

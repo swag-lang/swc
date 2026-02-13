@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using BuilderCaseFn = std::function<void(MicroInstrBuilder&)>;
-    using RunCaseFn     = std::function<void(const char*, const char*, const BuilderCaseFn&)>;
+    using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
     constexpr auto K_EMIT = EncodeFlagsE::Zero;
     constexpr auto K_LOCK = EncodeFlagsE::Lock;
@@ -37,10 +37,10 @@ namespace
 #define ENCODE_CASE(__name, __hex, ...)                              \
     do                                                               \
     {                                                                \
-        runCase(__name, __hex, [&](MicroInstrBuilder& builder) { auto& b = builder; __VA_ARGS__; }); \
+        RESULT_VERIFY(runCase(__name, __hex, [&](MicroInstrBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
     } while (false)
 
-    void buildFlow(const RunCaseFn& runCase)
+    Result buildFlow(const RunCaseFn& runCase)
     {
         ENCODE_CASE("nop", "90", b.encodeNop(K_EMIT););
         ENCODE_CASE("push_r8", "41 50", b.encodePush(R8, K_EMIT););
@@ -71,9 +71,10 @@ namespace
                     MicroJump jump;
                     b.encodeJump(jump, MicroCondJump::Less, MicroOpBits::B32, K_EMIT);
                     b.encodePatchJump(jump, 0x80, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildLoad(const RunCaseFn& runCase)
+    Result buildLoad(const RunCaseFn& runCase)
     {
         ENCODE_CASE("sym_reloc_addr_r10", "4C 8D 15 10 00 00 00", b.encodeLoadSymbolRelocAddress(R10, 1, 0x10, K_EMIT););
         ENCODE_CASE("sym_reloc_value_r11_b64", "4C 8B 1D 20 00 00 00", b.encodeLoadSymRelocValue(R11, 2, 0x20, MicroOpBits::B64, K_EMIT););
@@ -137,9 +138,10 @@ namespace
         ENCODE_CASE("load_mem_imm_r13_b16", "66 41 C7 45 7F 34 12", b.encodeLoadMemImm(R13, 0x7F, 0x1234, MicroOpBits::B16, K_EMIT););
         ENCODE_CASE("load_mem_imm_rsp_b32", "40 C7 44 24 40 78 56 34 12", b.encodeLoadMemImm(RSP, 0x40, 0x12345678, MicroOpBits::B32, K_EMIT););
         ENCODE_CASE("load_mem_imm_rbp_b64", "48 C7 45 20 80 FF FF FF", b.encodeLoadMemImm(RBP, 0x20, 0xFFFFFFFFFFFFFF80, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildCmpAndCond(const RunCaseFn& runCase)
+    Result buildCmpAndCond(const RunCaseFn& runCase)
     {
         ENCODE_CASE("cmp_reg_reg_r8_r9_b64", "4D 39 C8", b.encodeCmpRegReg(R8, R9, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("cmp_reg_reg_xmm0_xmm1_b64", "66 0F 2F C1", b.encodeCmpRegReg(XMM0, XMM1, MicroOpBits::B64, K_EMIT););
@@ -154,9 +156,10 @@ namespace
         ENCODE_CASE("clear_reg_r9_b32", "45 31 C9", b.encodeClearReg(R9, MicroOpBits::B32, K_EMIT););
         ENCODE_CASE("clear_reg_r11_b64", "4D 31 DB", b.encodeClearReg(R11, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("clear_reg_xmm1_b64", "66 0F 57 C9", b.encodeClearReg(XMM1, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildUnaryOps(const RunCaseFn& runCase)
+    Result buildUnaryOps(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_unary_reg_not_r8", "49 F7 D0", b.encodeOpUnaryReg(R8, MicroOp::BitwiseNot, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_unary_reg_neg_r9_b32", "41 F7 D9", b.encodeOpUnaryReg(R9, MicroOp::Negate, MicroOpBits::B32, K_EMIT););
@@ -164,9 +167,10 @@ namespace
         ENCODE_CASE("op_unary_reg_bswap_r11_b64", "49 0F CB", b.encodeOpUnaryReg(R11, MicroOp::ByteSwap, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_unary_mem_not_r12_b32", "F7 54 24 20", b.encodeOpUnaryMem(R12, 0x20, MicroOp::BitwiseNot, MicroOpBits::B32, K_EMIT););
         ENCODE_CASE("op_unary_mem_neg_r13", "48 F7 5D 40", b.encodeOpUnaryMem(R13, 0x40, MicroOp::Negate, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildBinaryRegRegOps(const RunCaseFn& runCase)
+    Result buildBinaryRegRegOps(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_binary_reg_reg_add", "4D 01 C8", b.encodeOpBinaryRegReg(R8, R9, MicroOp::Add, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_reg_sub", "4D 29 C8", b.encodeOpBinaryRegReg(R8, R9, MicroOp::Subtract, MicroOpBits::B64, K_EMIT););
@@ -198,18 +202,20 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_float_sub", "F2 0F 5C C1", b.encodeOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatSubtract, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_reg_float_xor", "66 0F 57 C1", b.encodeOpBinaryRegReg(XMM0, XMM1, MicroOp::FloatXor, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_reg_cvt_float_float", "F2 0F 5A C1", b.encodeOpBinaryRegReg(XMM0, XMM1, MicroOp::ConvertFloatToFloat, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildBinaryRegMemOps(const RunCaseFn& runCase)
+    Result buildBinaryRegMemOps(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_binary_reg_mem_sub", "4D 2B 4C 24 24", b.encodeOpBinaryRegMem(R9, R12, 0x24, MicroOp::Subtract, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_mem_and", "4D 23 4C 24 24", b.encodeOpBinaryRegMem(R9, R12, 0x24, MicroOp::And, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_mem_or", "4D 0B 4C 24 24", b.encodeOpBinaryRegMem(R9, R12, 0x24, MicroOp::Or, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_mem_xor", "4D 33 4C 24 24", b.encodeOpBinaryRegMem(R9, R12, 0x24, MicroOp::Xor, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_mem_mul_signed", "4D 0F AF 4C 24 24", b.encodeOpBinaryRegMem(R9, R12, 0x24, MicroOp::MultiplySigned, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildBinaryMemRegOps(const RunCaseFn& runCase)
+    Result buildBinaryMemRegOps(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_binary_mem_reg_add_lock", "F0 4D 01 55 20", b.encodeOpBinaryMemReg(R13, 0x20, R10, MicroOp::Add, MicroOpBits::B64, K_LOCK););
         ENCODE_CASE("op_binary_mem_reg_sub_b32", "45 29 5C 24 30", b.encodeOpBinaryMemReg(R12, 0x30, R11, MicroOp::Subtract, MicroOpBits::B32, K_EMIT););
@@ -220,9 +226,10 @@ namespace
         ENCODE_CASE("op_binary_mem_reg_shl_rcx", "49 D3 65 18", b.encodeOpBinaryMemReg(R13, 0x18, RCX, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_reg_shr_rcx", "49 D3 6C 24 28", b.encodeOpBinaryMemReg(R12, 0x28, RCX, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_reg_sar_rcx", "48 D3 7C 24 38", b.encodeOpBinaryMemReg(RSP, 0x38, RCX, MicroOp::ShiftArithmeticRight, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildBinaryImmOps(const RunCaseFn& runCase)
+    Result buildBinaryImmOps(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_binary_reg_imm_add_r8", "49 83 C0 02", b.encodeOpBinaryRegImm(R8, 2, MicroOp::Add, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_add_r8_7f_b64", "49 83 C0 7F", b.encodeOpBinaryRegImm(R8, 0x7F, MicroOp::Add, MicroOpBits::B64, K_EMIT););
@@ -248,14 +255,16 @@ namespace
         ENCODE_CASE("op_binary_mem_imm_shl_1", "49 D1 65 60", b.encodeOpBinaryMemImm(R13, 0x60, 1, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_shr_4", "48 C1 6C 24 70 04", b.encodeOpBinaryMemImm(RSP, 0x70, 4, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_sar", "48 C1 BD 80 00 00 00 08", b.encodeOpBinaryMemImm(RBP, 0x80, 8, MicroOp::ShiftArithmeticRight, MicroOpBits::B64, K_EMIT););
+        return Result::Continue;
     }
 
-    void buildTernaryAndConvert(const RunCaseFn& runCase)
+    Result buildTernaryAndConvert(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_ternary_madd", "F2 0F 59 C1 F2 0F 58 C2", b.encodeOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::MultiplyAdd, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_ternary_cmpxchg_lock", "F0 4D 0F B1 1C 24", b.encodeOpTernaryRegRegReg(RAX, R12, R11, MicroOp::CompareExchange, MicroOpBits::B64, K_LOCK););
         ENCODE_CASE("convert_i2f_b64", "F2 49 0F 2A D2", b.encodeOpBinaryRegReg(XMM2, R10, MicroOp::ConvertIntToFloat, MicroOpBits::B64, K_B64););
         ENCODE_CASE("convert_f2i_b64", "F2 4C 0F 2C DB", b.encodeOpBinaryRegReg(R11, XMM3, MicroOp::ConvertFloatToInt, MicroOpBits::B64, K_B64););
+        return Result::Continue;
     }
 
 #undef ENCODE_CASE
@@ -265,18 +274,18 @@ SWC_TEST_BEGIN(EncodeX64)
 {
     const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
         X64Encoder encoder(ctx);
-        Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
     };
 
-    buildFlow(runCase);
-    buildLoad(runCase);
-    buildCmpAndCond(runCase);
-    buildUnaryOps(runCase);
-    buildBinaryRegRegOps(runCase);
-    buildBinaryRegMemOps(runCase);
-    buildBinaryMemRegOps(runCase);
-    buildBinaryImmOps(runCase);
-    buildTernaryAndConvert(runCase);
+    RESULT_VERIFY(buildFlow(runCase));
+    RESULT_VERIFY(buildLoad(runCase));
+    RESULT_VERIFY(buildCmpAndCond(runCase));
+    RESULT_VERIFY(buildUnaryOps(runCase));
+    RESULT_VERIFY(buildBinaryRegRegOps(runCase));
+    RESULT_VERIFY(buildBinaryRegMemOps(runCase));
+    RESULT_VERIFY(buildBinaryMemRegOps(runCase));
+    RESULT_VERIFY(buildBinaryImmOps(runCase));
+    RESULT_VERIFY(buildTernaryAndConvert(runCase));
 }
 SWC_TEST_END()
 

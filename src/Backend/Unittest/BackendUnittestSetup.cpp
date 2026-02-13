@@ -8,9 +8,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void setupBackendUnittests(TaskContext&)
+    Result setupBackendUnittests(TaskContext&)
     {
         CallConv::setup();
+        return Result::Continue;
     }
 
     const Unittest::TestSetupRegistrar g_BackendUnittestSetup{&setupBackendUnittests};

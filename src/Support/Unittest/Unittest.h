@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/TaskContext.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -7,8 +8,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Unittest
 {
-    using TestFn  = void (*)(TaskContext&);
-    using SetupFn = void (*)(TaskContext&);
+    using TestFn  = Result (*)(TaskContext&);
+    using SetupFn = Result (*)(TaskContext&);
 
     struct TestCase
     {
@@ -16,9 +17,9 @@ namespace Unittest
         TestFn      fn   = nullptr;
     };
 
-    void registerTest(TestCase test);
-    void registerSetup(SetupFn setupFn);
-    void runAll(TaskContext& ctx);
+    void   registerTest(TestCase test);
+    void   registerSetup(SetupFn setupFn);
+    Result runAll(TaskContext& ctx);
 
     class TestRegistrar
     {
@@ -42,11 +43,12 @@ namespace Unittest
 #define SWC_TEST_BEGIN(__name)                                             \
     namespace                                                              \
     {                                                                      \
-        void                               __name(swc::TaskContext&);      \
+        swc::Result                        __name(swc::TaskContext&);      \
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name}; \
-        void                               __name(swc::TaskContext& ctx)   \
+        swc::Result                        __name(swc::TaskContext& ctx)   \
         {
 #define SWC_TEST_END() \
+        return swc::Result::Continue; \
     }                  \
     }
 

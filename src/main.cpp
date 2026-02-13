@@ -4,6 +4,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
+#include "Support/Report/Logger.h"
 #include "Support/Unittest/Unittest.h"
 
 int main(int argc, char* argv[])
@@ -18,7 +19,11 @@ int main(int argc, char* argv[])
 
 #if SWC_HAS_UNITTEST
     swc::TaskContext ctx(global, cmdLine);
-    swc::Unittest::runAll(ctx);
+    if (swc::Unittest::runAll(ctx) != swc::Result::Continue)
+    {
+        swc::Logger::print(ctx, "[unittest] failure detected\n");
+        return static_cast<int>(swc::ExitCode::ErrorCommand);
+    }
 #endif
 
     swc::CompilerInstance compiler(global, cmdLine);

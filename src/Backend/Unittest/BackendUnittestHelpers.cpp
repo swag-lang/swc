@@ -11,11 +11,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Backend::Unittest
 {
-    std::vector<ExpectedByte> parseExpected(const char* text)
+    Result parseExpected(const char* text, std::vector<ExpectedByte>& result)
     {
-        std::vector<ExpectedByte> result;
         if (!text || !*text)
-            return result;
+            return Result::Continue;
 
         std::string token;
         for (const char* p = text;; ++p)
@@ -40,7 +39,8 @@ namespace Backend::Unittest
             }
             else
             {
-                SWC_ASSERT(token.size() == 2);
+                if (token.size() != 2)
+                    return Result::Error;
                 uint32_t value = 0;
                 for (const auto tc : token)
                 {
@@ -52,7 +52,7 @@ namespace Backend::Unittest
                     else if (tc >= 'A' && tc <= 'F')
                         nibble = static_cast<uint32_t>(10 + tc - 'A');
                     else
-                        SWC_ASSERT(false);
+                        return Result::Error;
                     value = (value << 4) | nibble;
                 }
 
@@ -64,10 +64,10 @@ namespace Backend::Unittest
                 break;
         }
 
-        return result;
+        return Result::Continue;
     }
 
-    void runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn)
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn)
     {
         MicroInstrBuilder builder(ctx);
         fn(builder);
@@ -79,13 +79,24 @@ namespace Backend::Unittest
         MicroPassContext passCtx;
         builder.runPasses(passes, &encoder, passCtx);
 
-        SWC_ASSERT(encoder.size() > 0);
+        if (encoder.size() == 0)
+        {
+            Logger::print(ctx, std::format("runEncodeCase empty output: case={}\n", name));
+            return Result::Error;
+        }
+
         const auto size     = encoder.size();
-        const auto expected = parseExpected(expectedHex);
+        std::vector<ExpectedByte> expected;
+        if (parseExpected(expectedHex, expected) != Result::Continue)
+        {
+            Logger::print(ctx, std::format("runEncodeCase invalid expected pattern: case={}\n", name));
+            return Result::Error;
+        }
+
         if (size != expected.size())
         {
             Logger::print(ctx, std::format("runEncodeCase size mismatch: case={} expected={} got={}\n", name, expected.size(), size));
-            SWC_ASSERT(false);
+            return Result::Error;
         }
 
         for (uint32_t i = 0; i < size; ++i)
@@ -96,10 +107,12 @@ namespace Backend::Unittest
                 if (got != expected[i].value)
                 {
                     Logger::print(ctx, std::format("runEncodeCase mismatch: case={} byte={} expected={:02X} got={:02X}\n", name, i, expected[i].value, got));
-                    SWC_ASSERT(false);
+                    return Result::Error;
                 }
             }
         }
+
+        return Result::Continue;
     }
 
     bool isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg)
@@ -107,7 +120,7 @@ namespace Backend::Unittest
         return std::ranges::find(regs, reg) != regs.end();
     }
 
-    void assertNoVirtualRegs(MicroInstrBuilder& builder)
+    Result assertNoVirtualRegs(MicroInstrBuilder& builder)
     {
         auto& storeOps = builder.operands().store();
         for (const auto& inst : builder.instructions().view())
@@ -115,8 +128,13 @@ namespace Backend::Unittest
             SmallVector<MicroInstrRegOperandRef> regs;
             inst.collectRegOperands(storeOps, regs, nullptr);
             for (const auto& regRef : regs)
-                SWC_ASSERT(regRef.reg && !regRef.reg->isVirtual());
+            {
+                if (!regRef.reg || regRef.reg->isVirtual())
+                    return Result::Error;
+            }
         }
+
+        return Result::Continue;
     }
 }
 

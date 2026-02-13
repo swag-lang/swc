@@ -30,22 +30,10 @@ namespace Backend
         const void* valuePtr = nullptr;
     };
 
-    struct FFIArgumentDesc
-    {
-        FFITypeDesc typeDesc = {};
-        const void* valuePtr = nullptr;
-    };
-
     struct FFIReturn
     {
         TypeRef typeRef  = TypeRef::invalid();
         void*   valuePtr = nullptr;
-    };
-
-    struct FFIReturnDesc
-    {
-        FFITypeDesc typeDesc = {};
-        void*       valuePtr = nullptr;
     };
 
     class FFI final
@@ -53,7 +41,6 @@ namespace Backend
     public:
         static Result compileCall(TaskContext& ctx, void* targetFn, JITExecMemory& outExecutableMemory);
         static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
-        static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumentDesc> args, const FFIReturnDesc& ret);
         static Result describeType(TaskContext& ctx, TypeRef typeRef, FFITypeDesc& outDesc);
     };
 }

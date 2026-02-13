@@ -85,16 +85,6 @@ namespace Backend
             }
         }
 
-        bool isValidTypeDesc(const FFITypeDesc& desc)
-        {
-            switch (desc.valueClass)
-            {
-                case FFIValueClass::Void: return desc.numBits == 0;
-                case FFIValueClass::Int: return desc.numBits == 8 || desc.numBits == 16 || desc.numBits == 32 || desc.numBits == 64;
-                case FFIValueClass::Float: return desc.numBits == 32 || desc.numBits == 64;
-                default: return false;
-            }
-        }
     }
 
     Result FFI::compileCall(TaskContext& ctx, void* targetFn, JITExecMemory& outExecutableMemory)
@@ -121,31 +111,14 @@ namespace Backend
 
     Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
     {
-        std::vector<FFIArgumentDesc> descArgs;
-        descArgs.reserve(args.size());
-        for (const auto& arg : args)
-        {
-            FFITypeDesc typeDesc;
-            RESULT_VERIFY(classifyType(ctx, arg.typeRef, typeDesc));
-            descArgs.push_back({.typeDesc = typeDesc, .valuePtr = arg.valuePtr});
-        }
-
-        FFITypeDesc retDesc;
-        RESULT_VERIFY(classifyType(ctx, ret.typeRef, retDesc));
-        return callFFI(ctx, targetFn, descArgs, {.typeDesc = retDesc, .valuePtr = ret.valuePtr});
-    }
-
-    Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumentDesc> args, const FFIReturnDesc& ret)
-    {
         if (!targetFn)
             return Result::Error;
 
         constexpr auto callConvKind = CallConvKind::Host;
         const auto& conv = CallConv::get(callConvKind);
 
-        const auto retDesc = ret.typeDesc;
-        if (!isValidTypeDesc(retDesc))
-            return Result::Error;
+        FFITypeDesc retDesc;
+        RESULT_VERIFY(classifyType(ctx, ret.typeRef, retDesc));
         if (retDesc.valueClass != FFIValueClass::Void && !ret.valuePtr)
             return Result::Error;
 
@@ -161,9 +134,8 @@ namespace Backend
             if (!arg.valuePtr)
                 return Result::Error;
 
-            const auto desc = arg.typeDesc;
-            if (!isValidTypeDesc(desc))
-                return Result::Error;
+            FFITypeDesc desc;
+            RESULT_VERIFY(classifyType(ctx, arg.typeRef, desc));
             if (desc.valueClass == FFIValueClass::Void)
                 return Result::Error;
 

@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE();
 enum class CallConvKind : uint8_t
 {
     C,
+    WindowsX64,
+    Host,
 };
 
 struct CallConv

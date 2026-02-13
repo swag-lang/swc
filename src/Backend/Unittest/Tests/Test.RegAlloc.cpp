@@ -15,7 +15,11 @@ namespace
 
     std::span<const CallConvKind> testedCallConvs()
     {
-        static constexpr std::array CALL_CONVS = {CallConvKind::C};
+        static constexpr std::array CALL_CONVS = {
+            CallConvKind::C,
+            CallConvKind::WindowsX64,
+            CallConvKind::Host,
+        };
         return CALL_CONVS;
     }
 

@@ -5,13 +5,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::C) + 1;
+    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::Host) + 1;
     CallConv         g_CallConvs[K_CALL_CONV_COUNT];
     bool             g_CallConvsReady = false;
 
-    void setupCallConvC(CallConv& conv)
+    CallConvKind resolveHostCallConvKind()
     {
-        conv.name         = "C";
+#if defined(_WIN32) && defined(_M_X64)
+        return CallConvKind::WindowsX64;
+#else
+        SWC_UNREACHABLE();
+#endif
+    }
+
+    void setupCallConvWindowsX64(CallConv& conv)
+    {
+        conv.name         = "WindowsX64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
         conv.intReturn    = MicroReg::intReg(0);
@@ -97,7 +106,14 @@ void CallConv::setup()
     if (g_CallConvsReady)
         return;
 
-    setupCallConvC(g_CallConvs[static_cast<size_t>(CallConvKind::C)]);
+    setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
+
+    const auto hostCallConvKind = resolveHostCallConvKind();
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)] = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "Host";
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)]    = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name = "C";
+
     g_CallConvsReady = true;
 }
 

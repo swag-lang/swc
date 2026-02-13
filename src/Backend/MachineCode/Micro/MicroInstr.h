@@ -90,7 +90,7 @@ struct MicroInstrUseDef
     SmallVector4<MicroReg> uses;
     SmallVector4<MicroReg> defs;
     bool                   isCall   = false;
-    CallConvKind           callConv = CallConvKind::C;
+    CallConvKind           callConv = CallConvKind::Host;
 
     void addUse(MicroReg reg);
     void addDef(MicroReg reg);

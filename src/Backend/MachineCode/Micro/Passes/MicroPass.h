@@ -14,7 +14,7 @@ struct MicroPassContext
     Encoder*                            encoder      = nullptr;
     PagedStoreTyped<MicroInstr>*        instructions = nullptr;
     PagedStoreTyped<MicroInstrOperand>* operands     = nullptr;
-    CallConvKind                        callConvKind = CallConvKind::C;
+    CallConvKind                        callConvKind = CallConvKind::Host;
 };
 
 class MicroPass

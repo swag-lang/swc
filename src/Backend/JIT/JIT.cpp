@@ -21,7 +21,7 @@ namespace Backend
             passManager.add(encodePass);
 
             MicroPassContext passContext;
-            passContext.callConvKind = CallConvKind::C;
+            passContext.callConvKind = CallConvKind::Host;
             builder.runPasses(passManager, &encoder, passContext);
             const auto codeSize = encoder.size();
             if (!codeSize)

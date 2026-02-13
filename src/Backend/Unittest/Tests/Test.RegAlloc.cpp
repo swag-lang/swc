@@ -141,7 +141,7 @@ namespace
     }
 }
 
-SWC_BACKEND_TEST_BEGIN(MicroRegAlloc)
+SWC_BACKEND_TEST_BEGIN(RegAlloc)
 {
     executeCase(ctx, buildPersistentAcrossCallsInt);
     executeCase(ctx, buildNoCalls);

@@ -49,6 +49,11 @@ public:
             return nullptr;
         return store_.ptr<uint8_t>(0);
     }
+    uint8_t byteAt(uint32_t index) const
+    {
+        SWC_ASSERT(index < store_.size());
+        return *store_.ptr<uint8_t>(index);
+    }
 
 protected:
     TaskContext&       ctx() { return *ctx_; }

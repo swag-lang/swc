@@ -69,8 +69,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeU8)
 {
-    const uint8_t a = 19;
-    const uint8_t b = 23;
+    constexpr uint8_t a = 19;
+    constexpr uint8_t b = 23;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 8}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 8}, .valuePtr = &b},
@@ -85,8 +86,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeI32)
 {
-    const int32_t a = -1200;
-    const int32_t b = -137;
+    constexpr int32_t a = -1200;
+    constexpr int32_t b = -137;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 32}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 32}, .valuePtr = &b},
@@ -101,8 +103,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF32)
 {
-    const float a = 0.5f;
-    const float b = 1.25f;
+    constexpr float a = 0.5f;
+    constexpr float b = 1.25f;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Float, .numBits = 32}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Float, .numBits = 32}, .valuePtr = &b},
@@ -117,8 +120,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64)
 {
-    const double a = 1.5;
-    const double b = 2.5;
+    constexpr double a = 1.5;
+    constexpr double b = 2.5;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Float, .numBits = 64}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Float, .numBits = 64}, .valuePtr = &b},
@@ -133,10 +137,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
 {
-    const uint8_t  a = 1;
-    const uint16_t b = 2;
-    const uint32_t c = 70000;
-    const uint64_t d = 0;
+    constexpr uint8_t  a = 1;
+    constexpr uint16_t b = 2;
+    constexpr uint32_t c = 70000;
+    constexpr uint64_t d = 0;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 8}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 16}, .valuePtr = &b},
@@ -153,12 +158,13 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
 {
-    const int64_t a = 1;
-    const int64_t b = 2;
-    const int64_t c = 3;
-    const int64_t d = 4;
-    const int64_t e = 5;
-    const int64_t f = 6;
+    constexpr int64_t a = 1;
+    constexpr int64_t b = 2;
+    constexpr int64_t c = 3;
+    constexpr int64_t d = 4;
+    constexpr int64_t e = 5;
+    constexpr int64_t f = 6;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 64}, .valuePtr = &a},
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 64}, .valuePtr = &b},
@@ -178,8 +184,9 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 {
     const void* ptr = reinterpret_cast<void*>(0x10);
+
     const std::vector<Backend::FFIArgumentDesc> args = {
-        {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 64}, .valuePtr = &ptr},
+        {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 64}, .valuePtr = static_cast<const void**>(&ptr)},
     };
 
     bool result = false;
@@ -191,7 +198,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeErrorInvalidArgTypeDesc)
 {
-    const uint64_t value = 42;
+    constexpr uint64_t value = 42;
+
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 24}, .valuePtr = &value},
     };

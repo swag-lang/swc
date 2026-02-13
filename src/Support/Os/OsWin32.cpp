@@ -109,6 +109,27 @@ namespace Os
         return IsDebuggerPresent() ? true : false;
     }
 
+    void* allocExecutableMemory(uint32_t size)
+    {
+        return VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    }
+
+    bool makeExecutableMemory(void* ptr, uint32_t size)
+    {
+        DWORD oldProtect = 0;
+        if (!VirtualProtect(ptr, size, PAGE_EXECUTE_READ, &oldProtect))
+            return false;
+
+        return FlushInstructionCache(GetCurrentProcess(), ptr, size) ? true : false;
+    }
+
+    void freeExecutableMemory(void* ptr)
+    {
+        if (!ptr)
+            return;
+        (void) VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
     void exit(ExitCode code)
     {
         ExitProcess(static_cast<int>(code));

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -23,6 +24,10 @@ namespace Os
     fs::path getExeFullName();
 
     bool isDebuggerAttached();
+
+    void* allocExecutableMemory(uint32_t size);
+    bool  makeExecutableMemory(void* ptr, uint32_t size);
+    void  freeExecutableMemory(void* ptr);
 }
 
 #ifdef _WIN32

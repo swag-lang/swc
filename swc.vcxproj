@@ -190,7 +190,9 @@
         <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeX64.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Tests\Test.JitX64.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp" />
+        <ClCompile Include="src\Backend\Jit\Jit.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
@@ -351,6 +353,7 @@
         <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPass.h"/>
+        <ClInclude Include="src\Backend\Jit\Jit.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h"/>

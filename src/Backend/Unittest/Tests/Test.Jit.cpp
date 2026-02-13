@@ -2,7 +2,6 @@
 #include "Backend/Jit/Jit.h"
 #include "Backend/Jit/JitExecMemory.h"
 #include "Backend/MachineCode/CallConv.h"
-#include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -12,13 +11,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runConstantReturn42(TaskContext& ctx)
+    Result runCase(TaskContext& ctx, void (*buildFn)(MicroInstrBuilder&, const CallConv&), uint64_t expectedResult)
     {
         const auto& callConv = CallConv::get(CallConvKind::C);
 
         MicroInstrBuilder builder(ctx);
-        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B32, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
+        buildFn(builder, callConv);
 
         Backend::JitExecMemory executableMemory;
         RESULT_VERIFY(Backend::Jit::compile(ctx, builder, executableMemory));
@@ -27,16 +25,22 @@ namespace
         const auto fn = executableMemory.entryPoint<TestFn>();
         if (!fn)
             return Result::Error;
-        if (fn() != 42)
+        if (fn() != expectedResult)
             return Result::Error;
 
         return Result::Continue;
+    }
+
+    void buildReturn42(MicroInstrBuilder& builder, const CallConv& callConv)
+    {
+        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B32, EncodeFlagsE::Zero);
+        builder.encodeRet(EncodeFlagsE::Zero);
     }
 }
 
 SWC_TEST_BEGIN(Jit)
 {
-    RESULT_VERIFY(runConstantReturn42(ctx));
+    runCase(ctx, &buildReturn42, 42);
 }
 SWC_TEST_END()
 

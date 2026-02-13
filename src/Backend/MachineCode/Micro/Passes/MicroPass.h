@@ -20,9 +20,8 @@ struct MicroPassContext
 class MicroPass
 {
 public:
-    virtual ~MicroPass()                               = default;
-    virtual const char* name() const                   = 0;
-    virtual void        run(MicroPassContext& context) = 0;
+    virtual ~MicroPass()                        = default;
+    virtual void run(MicroPassContext& context) = 0;
 };
 
 class MicroPassManager

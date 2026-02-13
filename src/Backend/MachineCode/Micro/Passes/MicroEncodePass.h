@@ -10,8 +10,7 @@ struct MicroJump;
 class MicroEncodePass final : public MicroPass
 {
 public:
-    const char* name() const override { return "MicroEncode"; }
-    void        run(MicroPassContext& context) override;
+    void run(MicroPassContext& context) override;
 
 private:
     void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, size_t idx);

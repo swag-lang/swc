@@ -76,7 +76,7 @@ namespace
         return Result::Continue;
     }
 
-    void buildPersistentAcrossCallsInt(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildPersistentAcross(MicroInstrBuilder& b, CallConvKind callConvKind)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(0);
         constexpr auto v1 = MicroReg::virtualIntReg(1);
@@ -150,9 +150,9 @@ namespace
     }
 }
 
-SWC_TEST_BEGIN(RegAlloc_PersistentAcrossCallsInt)
+SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
 {
-    RESULT_VERIFY(runCase(ctx, buildPersistentAcrossCallsInt));
+    RESULT_VERIFY(runCase(ctx, buildPersistentAcross));
 }
 SWC_TEST_END()
 

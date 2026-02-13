@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Unittest/Unittest.h"
+#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -25,12 +25,12 @@ namespace Unittest
 
         void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
         {
-            const auto header = std::format("[Test-{}]", name);
-            Logger::printHeaderCentered(ctx,
-                                        LogColor::BrightCyan,
-                                        header,
-                                        ok ? LogColor::BrightGreen : LogColor::BrightRed,
-                                        ok ? "ok" : "fail");
+            const auto header = std::format("Test-{}", name);
+            Logger::printHeaderDot(ctx,
+                                   LogColor::BrightCyan,
+                                   header,
+                                   ok ? LogColor::BrightGreen : LogColor::BrightRed,
+                                   ok ? "ok" : "fail");
         }
     }
 
@@ -52,7 +52,7 @@ namespace Unittest
         {
             if (!setupFn || setupFn(ctx) != Result::Continue)
             {
-                Logger::printHeaderCentered(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
+                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
                 return Result::Error;
             }
         }
@@ -61,7 +61,7 @@ namespace Unittest
         {
             if (!test.name || !test.fn)
             {
-                Logger::printHeaderCentered(ctx, LogColor::BrightCyan, "[unittest <invalid>]", LogColor::BrightRed, "fail");
+                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest <invalid>]", LogColor::BrightRed, "fail");
                 hasFailure = true;
                 continue;
             }

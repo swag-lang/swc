@@ -8,12 +8,12 @@ class TaskContext;
 
 namespace Backend
 {
-    class JitExecMemory;
+    class JITExecMemory;
 
-    class Jit final
+    class JIT final
     {
     public:
-        static Result compile(TaskContext& ctx, MicroInstrBuilder& builder, JitExecMemory& outExecutableMemory);
+        static Result compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
     };
 }
 

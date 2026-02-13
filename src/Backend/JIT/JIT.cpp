@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Jit/Jit.h"
-#include "Backend/Jit/JitExecMemory.h"
+#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecMemory.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
@@ -12,7 +12,7 @@ namespace Backend
 {
     namespace
     {
-        Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JitExecMemory& outExecutableMemory)
+        Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
         {
             MicroRegAllocPass regAllocPass;
             MicroEncodePass  encodePass;
@@ -37,7 +37,7 @@ namespace Backend
         }
     }
 
-    Result Jit::compile(TaskContext& ctx, MicroInstrBuilder& builder, JitExecMemory& outExecutableMemory)
+    Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
     {
 #ifdef _M_X64
         X64Encoder encoder(ctx);

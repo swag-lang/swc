@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Jit/Jit.h"
-#include "Backend/Jit/JitExecMemory.h"
+#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecMemory.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -18,8 +18,8 @@ namespace
         MicroInstrBuilder builder(ctx);
         buildFn(builder, callConv);
 
-        Backend::JitExecMemory executableMemory;
-        RESULT_VERIFY(Backend::Jit::compile(ctx, builder, executableMemory));
+        Backend::JITExecMemory executableMemory;
+        RESULT_VERIFY(Backend::JIT::compile(ctx, builder, executableMemory));
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();

@@ -192,31 +192,33 @@ protected:
     uint8_t        extraFlags_ = 0;
 };
 
-template<SymbolKind K, typename E = void>
-struct SymbolT : Symbol
+template<typename BASE, SymbolKind K, typename E = void>
+struct SymbolExtraFlagsT : BASE
 {
     using FlagsE    = E;
     using FlagsType = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
-    explicit SymbolT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
-        Symbol(decl, tokRef, K, idRef, flags)
+    static_assert(sizeof(FlagsType) == sizeof(uint8_t), "Extra flags storage expects one-byte flag wrappers");
+
+    explicit SymbolExtraFlagsT(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
+        BASE(decl, tokRef, K, idRef, flags)
     {
     }
 
     FlagsType& extraFlags()
     {
         if constexpr (!std::is_void_v<E>)
-            return *reinterpret_cast<FlagsType*>(&extraFlags_);
+            return *reinterpret_cast<FlagsType*>(&this->extraFlags_);
         else
-            return extraFlags_;
+            return this->extraFlags_;
     }
 
     const FlagsType& extraFlags() const
     {
         if constexpr (!std::is_void_v<E>)
-            return *reinterpret_cast<const FlagsType*>(&extraFlags_);
+            return *reinterpret_cast<const FlagsType*>(&this->extraFlags_);
         else
-            return extraFlags_;
+            return this->extraFlags_;
     }
 
     template<typename T = E>
@@ -240,6 +242,12 @@ struct SymbolT : Symbol
         if constexpr (!std::is_void_v<E>)
             extraFlags().remove(flag);
     }
+};
+
+template<SymbolKind K, typename E = void>
+struct SymbolT : SymbolExtraFlagsT<Symbol, K, E>
+{
+    using SymbolExtraFlagsT<Symbol, K, E>::SymbolExtraFlagsT;
 };
 
 SWC_END_NAMESPACE();

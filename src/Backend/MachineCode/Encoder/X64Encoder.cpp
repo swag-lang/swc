@@ -2868,11 +2868,14 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
 
     const auto startIdx = store_.size();
     emitLoadSymRelocAddress(offsetReg, cpuFct_->symbolIndex, store_.size() - cpuFct_->startAddress);
-    const auto patchPtr = reinterpret_cast<uint32_t*>(store_.seekPtr()) - 1;
+    auto* patchPtr = store_.seekPtr() - sizeof(uint32_t);
     emitOpBinaryRegReg(offsetReg, tableReg, MicroOp::Add, MicroOpBits::B64, emitFlags);
     emitJumpReg(offsetReg);
     const auto endIdx = store_.size();
-    *patchPtr += endIdx - startIdx;
+    uint32_t patchValue = 0;
+    std::memcpy(&patchValue, patchPtr, sizeof(patchValue));
+    patchValue += static_cast<uint32_t>(endIdx - startIdx);
+    std::memcpy(patchPtr, &patchValue, sizeof(patchValue));
 
     const auto tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
     const auto currentOffset = static_cast<int32_t>(store_.size());

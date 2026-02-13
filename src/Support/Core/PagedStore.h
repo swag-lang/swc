@@ -56,10 +56,9 @@ public:
     template<class T>
     uint8_t* pushPod(const T& v)
     {
-        auto [ref, p] = emplaceUninit<T>();
-        (void) ref;
-        *p       = v;
-        lastPtr_ = reinterpret_cast<uint8_t*>(p) + sizeof(T);
+        auto [_, p] = allocate(static_cast<uint32_t>(sizeof(T)), 1);
+        std::memcpy(p, &v, sizeof(T));
+        lastPtr_ = static_cast<uint8_t*>(p) + sizeof(T);
         return lastPtr_;
     }
 

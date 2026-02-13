@@ -38,9 +38,9 @@ namespace
     }
 }
 
-SWC_TEST_BEGIN(Jit)
+SWC_TEST_BEGIN(Jit_Return42)
 {
-    runCase(ctx, &buildReturn42, 42);
+    RESULT_VERIFY(runCase(ctx, &buildReturn42, 42));
 }
 SWC_TEST_END()
 

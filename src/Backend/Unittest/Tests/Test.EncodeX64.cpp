@@ -311,22 +311,98 @@ namespace
 #undef ENCODE_CASE
 }
 
-SWC_TEST_BEGIN(EncodeX64)
+SWC_TEST_BEGIN(EncodeX64_Flow)
 {
     const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
         X64Encoder encoder(ctx);
         return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
     };
-
     RESULT_VERIFY(buildFlow(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_Load)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildLoad(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildCmpAndCond(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_UnaryOps)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildUnaryOps(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_BinaryRegRegOps)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildBinaryRegRegOps(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_BinaryRegMemOps)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildBinaryRegMemOps(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_BinaryMemRegOps)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildBinaryMemRegOps(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_BinaryImmOps)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildBinaryImmOps(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
+{
+    const RunCaseFn runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        X64Encoder encoder(ctx);
+        return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
+    };
     RESULT_VERIFY(buildTernaryAndConvert(runCase));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_JumpTable)
+{
     RESULT_VERIFY(buildJumpTable(ctx));
 }
 SWC_TEST_END()

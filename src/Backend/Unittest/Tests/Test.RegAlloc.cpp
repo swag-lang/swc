@@ -150,11 +150,26 @@ namespace
     }
 }
 
-SWC_TEST_BEGIN(RegAlloc)
+SWC_TEST_BEGIN(RegAlloc_PersistentAcrossCallsInt)
 {
     RESULT_VERIFY(executeCase(ctx, buildPersistentAcrossCallsInt));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_NoCalls)
+{
     RESULT_VERIFY(executeCase(ctx, buildNoCalls));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_MixedIntFloat)
+{
     RESULT_VERIFY(executeCase(ctx, buildMixedIntFloat));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_LotsOfVirtualRegs)
+{
     RESULT_VERIFY(executeCase(ctx, buildLotsOfVirtualRegs));
 }
 SWC_TEST_END()

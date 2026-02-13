@@ -13,8 +13,6 @@ enum class CallConvKind : uint8_t
 
 struct CallConv
 {
-    const char* name = "";
-
     MicroReg stackPointer = MicroReg::invalid();
     MicroReg framePointer = MicroReg::invalid();
     MicroReg intReturn    = MicroReg::invalid();

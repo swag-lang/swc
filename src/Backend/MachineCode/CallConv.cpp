@@ -7,7 +7,6 @@ namespace
 {
     constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::Host) + 1;
     CallConv         g_CallConvs[K_CALL_CONV_COUNT];
-    bool             g_CallConvsReady = false;
 
     CallConvKind resolveHostCallConvKind()
     {
@@ -20,7 +19,6 @@ namespace
 
     void setupCallConvWindowsX64(CallConv& conv)
     {
-        conv.name         = "WindowsX64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
         conv.intReturn    = MicroReg::intReg(0);
@@ -177,23 +175,15 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::
 
 void CallConv::setup()
 {
-    if (g_CallConvsReady)
-        return;
-
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto hostCallConvKind                               = resolveHostCallConvKind();
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)]      = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "Host";
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)]         = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name    = "C";
-
-    g_CallConvsReady = true;
+    const auto hostCallConvKind                          = resolveHostCallConvKind();
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)] = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)]    = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
 }
 
 const CallConv& CallConv::get(CallConvKind kind)
 {
-    SWC_ASSERT(g_CallConvsReady);
     const auto index = static_cast<size_t>(kind);
     SWC_ASSERT(index < K_CALL_CONV_COUNT);
     return g_CallConvs[index];

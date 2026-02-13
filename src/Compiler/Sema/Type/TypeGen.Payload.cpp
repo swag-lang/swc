@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
@@ -199,7 +199,8 @@ namespace TypeGenInternal
 
     void initFunc(Sema& sema, Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
-        if (SemaInline::isFunctionPureFromAst(sema, type.payloadSymFunction()))
+        const SymbolFunction& fn = type.payloadSymFunction();
+        if (fn.getOrComputePureFromAst([&]() { return fn.computePurity(sema.ctx()); }))
             addFlag(rtType.base, Runtime::TypeInfoFlags::Pure);
     }
 

@@ -152,14 +152,9 @@ namespace
     }
 }
 
-bool SemaInline::isFunctionPureFromAst(Sema& sema, const SymbolFunction& fn)
-{
-    return fn.getOrComputePureFromAst([&]() { return fn.computePurity(sema); });
-}
-
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
-    if (!isFunctionPureFromAst(sema, fn))
+    if (!fn.getOrComputePureFromAst([&]() { return fn.computePurity(sema.ctx()); }))
         return false;
     if (fn.isClosure() || fn.isEmpty())
         return false;

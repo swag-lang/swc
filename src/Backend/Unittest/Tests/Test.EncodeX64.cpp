@@ -284,13 +284,13 @@ namespace
         return Result::Continue;
     }
 
-    Result runBuildCases(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
+    Result runCase(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
     {
-        const RunCaseFn  runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        const RunCaseFn  runOneCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
             X64Encoder encoder(ctx);
             return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
         };
-        return buildFn(runCase);
+        return buildFn(runOneCase);
     }
 
     Result buildJumpTable(const TaskContext& ctx)
@@ -322,55 +322,55 @@ namespace
 
 SWC_TEST_BEGIN(EncodeX64_Flow)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildFlow));
+    RESULT_VERIFY(runCase(ctx, buildFlow));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_Load)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildLoad));
+    RESULT_VERIFY(runCase(ctx, buildLoad));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildCmpAndCond));
+    RESULT_VERIFY(runCase(ctx, buildCmpAndCond));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnaryOps)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildUnaryOps));
+    RESULT_VERIFY(runCase(ctx, buildUnaryOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegRegOps)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildBinaryRegRegOps));
+    RESULT_VERIFY(runCase(ctx, buildBinaryRegRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegMemOps)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildBinaryRegMemOps));
+    RESULT_VERIFY(runCase(ctx, buildBinaryRegMemOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryMemRegOps)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildBinaryMemRegOps));
+    RESULT_VERIFY(runCase(ctx, buildBinaryMemRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryImmOps)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildBinaryImmOps));
+    RESULT_VERIFY(runCase(ctx, buildBinaryImmOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
-    RESULT_VERIFY(runBuildCases(ctx, buildTernaryAndConvert));
+    RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
 }
 SWC_TEST_END()
 

@@ -55,7 +55,7 @@ namespace
         return Result::Continue;
     }
 
-    Result executeCase(TaskContext& ctx, const BuildCaseFn& buildFn)
+    Result runCase(TaskContext& ctx, const BuildCaseFn& buildFn)
     {
         for (const auto callConvKind : testedCallConvs())
         {
@@ -152,25 +152,25 @@ namespace
 
 SWC_TEST_BEGIN(RegAlloc_PersistentAcrossCallsInt)
 {
-    RESULT_VERIFY(executeCase(ctx, buildPersistentAcrossCallsInt));
+    RESULT_VERIFY(runCase(ctx, buildPersistentAcrossCallsInt));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(RegAlloc_NoCalls)
 {
-    RESULT_VERIFY(executeCase(ctx, buildNoCalls));
+    RESULT_VERIFY(runCase(ctx, buildNoCalls));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(RegAlloc_MixedIntFloat)
 {
-    RESULT_VERIFY(executeCase(ctx, buildMixedIntFloat));
+    RESULT_VERIFY(runCase(ctx, buildMixedIntFloat));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(RegAlloc_LotsOfVirtualRegs)
 {
-    RESULT_VERIFY(executeCase(ctx, buildLotsOfVirtualRegs));
+    RESULT_VERIFY(runCase(ctx, buildLotsOfVirtualRegs));
 }
 SWC_TEST_END()
 

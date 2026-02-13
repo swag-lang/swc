@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Backend.h"
+#include "Backend/Unittest/BackendUnittest.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -17,7 +17,8 @@ int main(int argc, char* argv[])
     global.initialize(cmdLine);
 
 #if SWC_DEV_MODE
-    swc::Backend::test(global, cmdLine);
+    swc::TaskContext ctx(global, cmdLine);
+    swc::Backend::Unittest::runAll(ctx);
 #endif
 
     swc::CompilerInstance compiler(global, cmdLine);

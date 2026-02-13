@@ -186,7 +186,10 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
-        <ClCompile Include="src\Backend\Backend.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\BackendUnittest.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.EncodeSimpleSequence.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Test.RegAllocPersistentAcrossCall.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
@@ -336,7 +339,8 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\Backend.h"/>
+        <ClInclude Include="src\Backend\Unittest\BackendUnittest.h"/>
+        <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc"/>

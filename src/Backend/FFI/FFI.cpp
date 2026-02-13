@@ -282,8 +282,8 @@ namespace Backend
         JITExecMemory executableMemory;
         RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));
 
-        using FfiInvokerFn = void (*)();
-        const auto invoker = executableMemory.entryPoint<FfiInvokerFn>();
+        using FFIInvokerFn = void (*)();
+        const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
         if (!invoker)
             return Result::Error;
 

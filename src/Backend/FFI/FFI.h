@@ -26,14 +26,14 @@ namespace Backend
 
     struct FFIArgument
     {
-        TypeRef      typeRef  = TypeRef::invalid();
-        const void*  valuePtr = nullptr;
+        TypeRef     typeRef  = TypeRef::invalid();
+        const void* valuePtr = nullptr;
     };
 
     struct FFIArgumentDesc
     {
-        FFITypeDesc  typeDesc = {};
-        const void*  valuePtr = nullptr;
+        FFITypeDesc typeDesc = {};
+        const void* valuePtr = nullptr;
     };
 
     struct FFIReturn
@@ -56,11 +56,11 @@ namespace Backend
         static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumentDesc> args, const FFIReturnDesc& ret);
         static Result describeType(TaskContext& ctx, TypeRef typeRef, FFITypeDesc& outDesc);
 
-        template<typename Fn>
-        static Result compileCall(TaskContext& ctx, Fn targetFn, JITExecMemory& outExecutableMemory)
+        template<typename F>
+        static Result compileCall(TaskContext& ctx, F targetFn, JITExecMemory& outExecutableMemory)
         {
-            static_assert(std::is_pointer_v<Fn>);
-            static_assert(std::is_function_v<std::remove_pointer_t<Fn>>);
+            static_assert(std::is_pointer_v<F>);
+            static_assert(std::is_function_v<std::remove_pointer_t<F>>);
             return compileCall(ctx, reinterpret_cast<void*>(targetFn), outExecutableMemory);
         }
     };

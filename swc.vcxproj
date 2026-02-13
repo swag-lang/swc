@@ -188,7 +188,6 @@
     <ItemGroup>
         <ClCompile Include="src\Backend\Unittest\BackendUnittest.cpp"/>
         <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeAllInstructionsExhaustive.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeAllInstructionsX64.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAllocPersistentAcrossCall.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>

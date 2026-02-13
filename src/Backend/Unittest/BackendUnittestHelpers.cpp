@@ -80,7 +80,21 @@ namespace Backend::Unittest
         SWC_ASSERT(encoder.size() > 0);
         const auto size     = encoder.size();
         const auto expected = parseExpected(expectedHex);
-        SWC_ASSERT(size == expected.size());
+        if (size != expected.size())
+        {
+            Logger::print(ctx, std::format("EncodeAllInstructionsX64 size mismatch: case={} expected={} got={}\n", name, expected.size(), size));
+            std::string encoded = "Encoded bytes: ";
+            for (uint32_t j = 0; j < size; ++j)
+            {
+                encoded += std::format("{:02X}", encoder.byteAt(j));
+                if (j + 1 < size)
+                    encoded += " ";
+            }
+            encoded += "\n";
+            Logger::print(ctx, encoded);
+            Logger::print(ctx, std::format("Expected: {}\n", expectedHex ? expectedHex : "<null>"));
+            SWC_ASSERT(false);
+        }
         for (uint32_t i = 0; i < size; ++i)
         {
             if (!expected[i].wildcard)

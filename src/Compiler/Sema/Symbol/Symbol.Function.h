@@ -47,13 +47,15 @@ public:
     bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
-    void setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
 
     bool getOrComputePureFromAst(const TaskContext& ctx) const
     {
-        std::call_once(pureFromAstOnce_, [&]() { pureFromAst_ = computePurity(ctx); });
-        return pureFromAst_;
+        std::call_once(pureFromAstOnce_, [&]() {
+            auto* self = const_cast<SymbolFunction*>(this);
+            if (computePurity(ctx))
+                self->addExtraFlag(SymbolFunctionFlagsE::Pure);
+        });
+        return hasExtraFlag(SymbolFunctionFlagsE::Pure);
     }
 
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
@@ -64,7 +66,6 @@ private:
     TypeRef                      returnType_ = TypeRef::invalid();
     SpecOpKind                   specOpKind_ = SpecOpKind::None;
     mutable std::once_flag       pureFromAstOnce_;
-    mutable bool                 pureFromAst_ = false;
 };
 
 SWC_END_NAMESPACE();

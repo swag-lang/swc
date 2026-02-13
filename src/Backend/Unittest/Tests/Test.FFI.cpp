@@ -196,7 +196,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FFI_CallNativeErrorInvalidArgTypeDesc)
+SWC_TEST_BEGIN(FFI_CallNativeErrArgType)
 {
     constexpr uint64_t value = 42;
 
@@ -210,7 +210,7 @@ SWC_TEST_BEGIN(FFI_CallNativeErrorInvalidArgTypeDesc)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FFI_CallNativeErrorNullArgValue)
+SWC_TEST_BEGIN(FFI_CallNativeErrNullArgVal)
 {
     const std::vector<Backend::FFIArgumentDesc> args = {
         {.typeDesc = {.valueClass = Backend::FFIValueClass::Int, .numBits = 8}, .valuePtr = nullptr},

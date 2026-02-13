@@ -58,6 +58,11 @@ namespace
         return a + b;
     }
 
+    double ffiNativeSum5F64(double a, double b, double c, double d, double e)
+    {
+        return a + b + c + d + e;
+    }
+
     uint64_t ffiNativeMixArgs(uint8_t a, uint16_t b, uint32_t c, uint64_t d)
     {
         return static_cast<uint64_t>(a) + static_cast<uint64_t>(b) + static_cast<uint64_t>(c) + d;
@@ -156,6 +161,31 @@ SWC_TEST_BEGIN(FFI_CallNativeF64)
     double result = 0;
     RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddF64), args, ffiCtx.typeMgr().typeFloat(64), &result));
     if (result != 4.0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
+{
+    auto& ffiCtx = typedFFICtx(ctx);
+
+    constexpr double a = 1.0;
+    constexpr double b = 2.0;
+    constexpr double c = 3.0;
+    constexpr double d = 4.0;
+    constexpr double e = 5.0;
+
+    const std::vector<FFIArgument> args = {
+        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &a},
+        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &b},
+        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &c},
+        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &d},
+        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &e},
+    };
+
+    double result = 0;
+    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, ffiCtx.typeMgr().typeFloat(64), &result));
+    if (result != 15.0)
         return Result::Error;
 }
 SWC_TEST_END()

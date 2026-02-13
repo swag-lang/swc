@@ -94,11 +94,85 @@ namespace
         };
 
         conv.floatPersistentRegs.clear();
-        conv.stackAlignment      = 16;
-        conv.stackParamAlignment = 8;
-        conv.stackShadowSpace    = 32;
-        conv.stackRedZone        = false;
+        conv.stackAlignment       = 16;
+        conv.stackParamAlignment  = 8;
+        conv.stackParamSlotSize   = 8;
+        conv.stackShadowSpace     = 32;
+        conv.argRegisterSlotCount = 4;
+        conv.stackRedZone         = false;
     }
+}
+
+uint32_t CallConv::numArgRegisterSlots() const
+{
+    if (argRegisterSlotCount)
+        return argRegisterSlotCount;
+
+    const auto numIntArgRegs   = static_cast<uint32_t>(intArgRegs.size());
+    const auto numFloatArgRegs = static_cast<uint32_t>(floatArgRegs.size());
+    return std::min(numIntArgRegs, numFloatArgRegs);
+}
+
+uint32_t CallConv::stackSlotSize() const
+{
+    if (stackParamSlotSize)
+        return stackParamSlotSize;
+    if (stackParamAlignment)
+        return stackParamAlignment;
+    return sizeof(uint64_t);
+}
+
+bool CallConv::isIntArgReg(MicroReg reg) const
+{
+    for (const auto value : intArgRegs)
+    {
+        if (value == reg)
+            return true;
+    }
+
+    return false;
+}
+
+bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden) const
+{
+    auto isForbidden = [&](MicroReg reg) {
+        if (!reg.isValid() || reg == stackPointer || reg == framePointer || reg == intReturn || isIntArgReg(reg))
+            return true;
+
+        for (const auto blocked : forbidden)
+        {
+            if (reg == blocked)
+                return true;
+        }
+
+        return false;
+    };
+
+    outReg0 = MicroReg::invalid();
+    outReg1 = MicroReg::invalid();
+
+    for (const auto reg : intTransientRegs)
+    {
+        if (isForbidden(reg))
+            continue;
+
+        outReg0 = reg;
+        break;
+    }
+
+    if (!outReg0.isValid())
+        return false;
+
+    for (const auto reg : intTransientRegs)
+    {
+        if (reg == outReg0 || isForbidden(reg))
+            continue;
+
+        outReg1 = reg;
+        break;
+    }
+
+    return outReg1.isValid();
 }
 
 void CallConv::setup()
@@ -108,11 +182,11 @@ void CallConv::setup()
 
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto hostCallConvKind = resolveHostCallConvKind();
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)] = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    const auto hostCallConvKind                               = resolveHostCallConvKind();
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)]      = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
     g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "Host";
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)]    = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name = "C";
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)]         = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name    = "C";
 
     g_CallConvsReady = true;
 }

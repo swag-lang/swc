@@ -26,14 +26,13 @@ namespace Backend::Unittest
     };
 }
 
-#define SWC_BACKEND_TEST_BEGIN(__name)                                   \
-    namespace                                                             \
-    {                                                                     \
-        void __name(swc::TaskContext& ctx);                               \
+#define SWC_BACKEND_TEST_BEGIN(__name)                                                     \
+    namespace                                                                              \
+    {                                                                                      \
+        void                                               __name(swc::TaskContext& ctx);  \
         const swc::Backend::Unittest::BackendTestRegistrar reg_##__name{#__name, &__name}; \
-        void __name(swc::TaskContext& ctx)                                \
+        void                                               __name(swc::TaskContext& ctx)   \
         {
-
 #define SWC_BACKEND_TEST_END() \
     }                          \
     }

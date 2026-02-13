@@ -42,7 +42,7 @@ class Encoder
     friend struct MicroInstr;
 
 public:
-    uint32_t size() const { return store_.size(); }
+    uint32_t       size() const { return store_.size(); }
     const uint8_t* data() const
     {
         if (!store_.size())

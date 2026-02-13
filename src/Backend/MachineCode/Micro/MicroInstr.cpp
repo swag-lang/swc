@@ -124,8 +124,8 @@ const MicroInstrOperand* MicroInstr::ops(const PagedStore& storeOps) const
 
 MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const
 {
-    const MicroInstrInfo& opcodeInfo = info(op);
-    const MicroInstrOperand*    ops        = this->ops(storeOps);
+    const MicroInstrInfo&    opcodeInfo = info(op);
+    const MicroInstrOperand* ops        = this->ops(storeOps);
 
     MicroInstrUseDef useDef;
     if (opcodeInfo.isCall)
@@ -146,8 +146,8 @@ MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Enc
 void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
 {
     const MicroInstrInfo& opcodeInfo = info(op);
-    MicroInstrOperand*          ops        = this->ops(storeOps);
-    const auto                  modes      = resolveRegModes(opcodeInfo, ops);
+    MicroInstrOperand*    ops        = this->ops(storeOps);
+    const auto            modes      = resolveRegModes(opcodeInfo, ops);
     collectRegOperandsFromModes(out, ops, modes);
 }
 

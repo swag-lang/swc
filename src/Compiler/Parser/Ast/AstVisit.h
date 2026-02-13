@@ -88,8 +88,8 @@ private:
     SmallVector<AstNodeRef> children_;
 
     static void resetFrame(Frame& frame, AstNodeRef nodeRef);
-    AstNode*   parentNodeInternal(size_t up) const;
-    AstNodeRef parentNodeRefInternal(size_t up) const;
+    AstNode*    parentNodeInternal(size_t up) const;
+    AstNodeRef  parentNodeRefInternal(size_t up) const;
 };
 
 SWC_END_NAMESPACE();

@@ -25,11 +25,12 @@ namespace Unittest
 
         void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
         {
-            Logger::print(ctx, std::format("[unittest] {} ", name));
-            Logger::print(ctx, LogColorHelper::toAnsi(ctx, ok ? LogColor::BrightGreen : LogColor::BrightRed));
-            Logger::print(ctx, ok ? "ok" : "fail");
-            Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
-            Logger::print(ctx, "\n");
+            const auto header = std::format("[Test-{}]", name);
+            Logger::printHeaderCentered(ctx,
+                                        LogColor::BrightCyan,
+                                        header,
+                                        ok ? LogColor::BrightGreen : LogColor::BrightRed,
+                                        ok ? "ok" : "fail");
         }
     }
 
@@ -51,14 +52,19 @@ namespace Unittest
         {
             if (!setupFn || setupFn(ctx) != Result::Continue)
             {
-                Logger::print(ctx, "[unittest] setup fail\n");
+                Logger::printHeaderCentered(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
                 return Result::Error;
             }
         }
 
         for (const auto& test : testRegistry())
         {
-            SWC_ASSERT(test.name && test.fn);
+            if (!test.name || !test.fn)
+            {
+                Logger::printHeaderCentered(ctx, LogColor::BrightCyan, "[unittest <invalid>]", LogColor::BrightRed, "fail");
+                hasFailure = true;
+                continue;
+            }
 
             const Result result = test.fn(ctx);
             if (result == Result::Continue)

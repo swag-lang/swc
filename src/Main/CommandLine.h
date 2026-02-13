@@ -36,6 +36,7 @@ struct CommandLine
     bool stats        = false;
     bool verboseDiag  = false;
     bool verify       = true;
+    bool unittest     = true;
     bool runtime      = false;
 
     static inline bool dbgDevMode = false;

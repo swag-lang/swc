@@ -491,6 +491,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
     addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
+    addArg("all", "--unittest", nullptr, CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal unit tests before executing command.");
     addArg("all", "--verbose-unittest", "-ve", CommandLineType::Bool, &cmdLine_->verboseDiag, nullptr, "Log raised diagnostics during tests.");
     addArg("all", "--verbose-unittest-filter", "-vef", CommandLineType::String, &cmdLine_->verboseDiagFilter, nullptr, "Filter verbose diagnostics logs by matching a specific string.");
     addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");

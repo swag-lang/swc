@@ -5,22 +5,25 @@
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
 
-    Add this section:
+  Add this section:
 
 ## Source Code Comment Rules
 
 - Use standardized visual separators if relevant.
-  * Big section separators (never inside functions) must use:
-  ```cpp
-  // ============================================================================
-  ````
-  The line must start with `// ` and extend with `=` up to column 80.
+    * Big section separators (never inside functions) must use:
+    ```cpp
+    // ============================================================================
+    ````
 
-  * Medium/smaller separators must use:
-  ```cpp
-  // ----------------------------------------------------------------------------
-  ```
-  The line must start with `// ` and extend with `-` up to column 80.
+    * Medium/smaller separators (never inside functions) must use:
+    ```cpp
+    // ----------------------------------------------------------------------------
+    ```
+
+    * To separate blocks of code inside functions, use :
+    ```cpp
+    ///////////////////////////////////////////
+    ```
 
 - Do not use other decorative separator styles.
 - Keep separator length consistent (80 columns total).
@@ -34,8 +37,8 @@
   `/p:Configuration=DevMode`
 
 - Build output:
-  - Directory: `C:\Perso\swag-lang\swc\bin`
-  - Binary name (DevMode): `swc_devmode`
+    - Directory: `C:\Perso\swag-lang\swc\bin`
+    - Binary name (DevMode): `swc_devmode`
 
 ## Test Instructions
 

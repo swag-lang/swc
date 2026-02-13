@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstNamedNodeT : AstNodeT<I, E>
 {
@@ -20,7 +20,7 @@ struct AstNamedNodeT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstCompoundT : AstNodeT<I, E>
 {
@@ -39,7 +39,7 @@ struct AstCompoundT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstCallExprT : AstCompoundT<I, E>
 {
@@ -64,7 +64,7 @@ struct AstCallExprT : AstCompoundT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstLambdaExprT : AstNodeT<I, E>
 {
@@ -86,7 +86,7 @@ struct AstLambdaExprT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstBinaryT : AstNodeT<I, E>
 {
@@ -106,7 +106,7 @@ struct AstBinaryT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstLiteralT : AstNodeT<I, E>
 {
@@ -118,7 +118,7 @@ struct AstLiteralT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstAggregateDeclT : AstNodeT<I, E>
 {
@@ -142,7 +142,7 @@ struct AstAggregateDeclT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
 {
@@ -161,7 +161,7 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstIfBaseT : AstNodeT<I, E>
 {
@@ -181,7 +181,7 @@ struct AstIfBaseT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 {
@@ -201,7 +201,7 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 struct AstVarDeclBase
 {
     AstNodeRef nodeTypeRef;
@@ -218,7 +218,7 @@ struct AstVarDeclBase
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallZeroT : AstNodeT<I, E>
 {
@@ -230,7 +230,7 @@ struct AstInternalCallZeroT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallUnaryT : AstNodeT<I, E>
 {
@@ -249,7 +249,7 @@ struct AstInternalCallUnaryT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallBinaryT : AstNodeT<I, E>
 {
@@ -269,7 +269,7 @@ struct AstInternalCallBinaryT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallTernaryT : AstNodeT<I, E>
 {
@@ -290,7 +290,7 @@ struct AstInternalCallTernaryT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstGenericParamT : AstNodeT<I, E>
 {
@@ -309,14 +309,14 @@ struct AstGenericParamT : AstNodeT<I, E>
     }
 };
 
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include "Compiler/Parser/Ast/AstNodes.Struct.inc"
 
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 template<AstNodeId ID>
 struct AstTypeOf;

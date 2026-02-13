@@ -515,7 +515,7 @@ namespace
     }
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
 {
@@ -609,7 +609,7 @@ EncodeResult X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIn
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodePush(MicroReg reg, EncodeFlags emitFlags)
 {
@@ -631,7 +631,7 @@ EncodeResult X64Encoder::encodeRet(EncodeFlags emitFlags)
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -938,7 +938,7 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg 
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -1203,7 +1203,7 @@ EncodeResult X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits
     return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsValue, MicroOp::LoadEffectiveAddress, emitFlags, false);
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -1283,7 +1283,7 @@ EncodeResult X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, u
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -1307,7 +1307,7 @@ EncodeResult X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits, Encode
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond, EncodeFlags emitFlags)
 {
@@ -1408,7 +1408,7 @@ EncodeResult X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, 
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -1576,7 +1576,7 @@ EncodeResult X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, ui
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
@@ -3059,7 +3059,7 @@ EncodeResult X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
     return EncodeResult::Zero;
 }
 
-/////////////////////////////////////////////////////////////////////
+// ============================================================================
 
 EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {

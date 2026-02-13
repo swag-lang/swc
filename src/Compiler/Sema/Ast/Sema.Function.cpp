@@ -231,6 +231,8 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
+        if (hasFlag(AstFunctionFlagsE::Short) && childRef == nodeBodyRef)
+            sym.setPure(isPureShortFunctionBody(sema, *this));
         sym.setTyped(sema.ctx());
 
         RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
@@ -244,10 +246,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym    = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    const auto&     decl   = *sema.node(sema.curNodeRef()).cast<AstFunctionDecl>();
-    const bool      isPure = isPureShortFunctionBody(sema, decl);
-    sym.setPure(isPure);
+    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

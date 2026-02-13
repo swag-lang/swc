@@ -32,15 +32,28 @@ void Logger::printHeaderDot(const TaskContext& ctx,
                             std::string_view   dot,
                             size_t             messageColumn)
 {
+    printHeaderDot(ctx, headerColor, header, msgColor, message, LogColor::Gray, dot, messageColumn);
+}
+
+void Logger::printHeaderDot(const TaskContext& ctx,
+                            LogColor           headerColor,
+                            std::string_view   header,
+                            LogColor           msgColor,
+                            std::string_view   message,
+                            LogColor           dotColor,
+                            std::string_view   dot,
+                            size_t             messageColumn)
+{
     if (ctx.cmdLine().silent)
         return;
 
     print(ctx, LogColorHelper::toAnsi(ctx, headerColor));
     print(ctx, header);
-    print(ctx, LogColorHelper::toAnsi(ctx, msgColor));
+    print(ctx, LogColorHelper::toAnsi(ctx, dotColor));
     for (size_t i = header.size(); i < messageColumn - 1; ++i)
         print(ctx, dot);
     print(ctx, " ");
+    print(ctx, LogColorHelper::toAnsi(ctx, msgColor));
     print(ctx, message);
     print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
     print(ctx, "\n");

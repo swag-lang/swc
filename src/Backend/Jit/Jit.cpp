@@ -33,13 +33,6 @@ namespace Backend
         }
     }
 
-    Result Jit::compile(TaskContext& ctx, const std::function<void(MicroInstrBuilder&)>& buildFn, JitExecMemory& outExecutableMemory)
-    {
-        MicroInstrBuilder builder(ctx);
-        buildFn(builder);
-        return compile(ctx, builder, outExecutableMemory);
-    }
-
     Result Jit::compile(TaskContext& ctx, MicroInstrBuilder& builder, JitExecMemory& outExecutableMemory)
     {
 #ifdef _M_X64

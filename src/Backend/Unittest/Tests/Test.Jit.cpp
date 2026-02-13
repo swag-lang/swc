@@ -7,16 +7,18 @@
 SWC_BEGIN_NAMESPACE();
 
 #if SWC_HAS_UNITTEST
-#if defined(_M_X64)
+#ifdef _M_X64
 
 namespace
 {
     Result runConstantReturn42(TaskContext& ctx)
     {
+        MicroInstrBuilder builder(ctx);
+        builder.encodeLoadRegImm(MicroReg::intReg(0), 42, MicroOpBits::B32, EncodeFlagsE::Zero);
+        builder.encodeRet(EncodeFlagsE::Zero);
+
         Backend::JitExecMemory executableMemory;
-        RESULT_VERIFY(Backend::Jit::compile(ctx, [](MicroInstrBuilder& b) {
-                                                b.encodeLoadRegImm(MicroReg::intReg(0), 42, MicroOpBits::B32, EncodeFlagsE::Zero);
-                                                b.encodeRet(EncodeFlagsE::Zero); }, executableMemory));
+        RESULT_VERIFY(Backend::Jit::compile(ctx, builder, executableMemory));
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();

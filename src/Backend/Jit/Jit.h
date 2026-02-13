@@ -13,7 +13,6 @@ namespace Backend
     class Jit final
     {
     public:
-        static Result compile(TaskContext& ctx, const std::function<void(MicroInstrBuilder&)>& buildFn, JitExecMemory& outExecutableMemory);
         static Result compile(TaskContext& ctx, MicroInstrBuilder& builder, JitExecMemory& outExecutableMemory);
     };
 }

@@ -19,10 +19,14 @@ namespace Backend
 
             MicroPassContext passContext;
             builder.runPasses(passManager, &encoder, passContext);
-            if (!encoder.size())
+            const auto codeSize = encoder.size();
+            if (!codeSize)
                 return Result::Error;
 
-            if (!outExecutableMemory.allocateAndCopy(encoder.data(), encoder.size()))
+            std::vector<uint8_t> linearCode(codeSize);
+            encoder.copyTo(linearCode.data(), codeSize);
+
+            if (!outExecutableMemory.allocateAndCopy(linearCode.data(), codeSize))
                 return Result::Error;
 
             return Result::Continue;

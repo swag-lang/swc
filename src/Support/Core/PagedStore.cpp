@@ -62,6 +62,30 @@ uint32_t PagedStore::size() const noexcept
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
+void PagedStore::copyTo(void* dst, uint32_t count) const
+{
+    SWC_ASSERT(dst || count == 0);
+    SWC_ASSERT(count <= size());
+
+    auto*    out       = static_cast<uint8_t*>(dst);
+    uint32_t remaining = count;
+    for (const auto& page : pagesStorage_)
+    {
+        if (!remaining)
+            break;
+
+        const uint32_t chunkSize = std::min(remaining, page->used);
+        if (chunkSize)
+        {
+            std::memcpy(out, page->bytes(), chunkSize);
+            out += chunkSize;
+            remaining -= chunkSize;
+        }
+    }
+
+    SWC_ASSERT(remaining == 0);
+}
+
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
 {
     SWC_ASSERT(elemSize > 0);

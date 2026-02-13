@@ -54,6 +54,10 @@ public:
         SWC_ASSERT(index < store_.size());
         return *store_.ptr<uint8_t>(index);
     }
+    void copyTo(void* dst, uint32_t count) const
+    {
+        store_.copyTo(dst, count);
+    }
 
 protected:
     TaskContext&       ctx() { return *ctx_; }

@@ -179,7 +179,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
 
     sema.setSubstitute(callRef, inlinedRef);
-    sema.deferPostNodeAction(inlinedRef, [callRef, returnTypeRef = fn.returnTypeRef()](Sema& sema, AstNodeRef nodeRef) { return finalizeInlinedCall(sema, nodeRef, callRef, returnTypeRef); });
+    sema.deferPostNodeAction(inlinedRef, [callRef, returnTypeRef = fn.returnTypeRef()](Sema& inSema, AstNodeRef nodeRef) { return finalizeInlinedCall(inSema, nodeRef, callRef, returnTypeRef); });
     sema.visit().restartCurrentNode(inlinedRef);
     return Result::Continue;
 }

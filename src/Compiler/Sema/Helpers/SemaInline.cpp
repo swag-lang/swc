@@ -177,7 +177,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
 
     const SemaClone::CloneContext cloneContext{bindings.span()};
-    const AstNodeRef              inlinedRef = SemaClone::cloneExpr(sema, srcExprRef, cloneContext);
+    const AstNodeRef              inlinedRef = SemaClone::cloneAst(sema, srcExprRef, cloneContext);
     SWC_ASSERT(inlinedRef.isValid());
 
     if (fn.returnTypeRef() != sema.typeMgr().typeVoid())

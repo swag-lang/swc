@@ -23,7 +23,7 @@ namespace SemaClone
         }
     };
 
-    AstNodeRef cloneExpr(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
+    AstNodeRef cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
 }
 
 SWC_END_NAMESPACE();

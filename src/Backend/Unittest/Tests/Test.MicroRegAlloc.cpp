@@ -58,7 +58,7 @@ namespace
         verifyCallConvConformity(builder, CallConv::get(CallConvKind::C));
     }
 
-    void buildPersistentAcrossCallsIntCase(MicroInstrBuilder& b)
+    void buildPersistentAcrossCallsInt(MicroInstrBuilder& b)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(0);
         constexpr auto v1 = MicroReg::virtualIntReg(1);
@@ -75,7 +75,7 @@ namespace
         b.encodeOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     }
 
-    void buildNoCallsCase(MicroInstrBuilder& b)
+    void buildNoCalls(MicroInstrBuilder& b)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(10);
         constexpr auto v1 = MicroReg::virtualIntReg(11);
@@ -89,7 +89,7 @@ namespace
         b.encodeOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     }
 
-    void buildMixedIntFloatCase(MicroInstrBuilder& b)
+    void buildMixedIntFloat(MicroInstrBuilder& b)
     {
         constexpr auto vi  = MicroReg::virtualIntReg(20);
         constexpr auto vf0 = MicroReg::virtualFloatReg(0);
@@ -111,9 +111,9 @@ namespace
 
 SWC_BACKEND_TEST_BEGIN(MicroRegAlloc)
 {
-    executeCase(ctx, buildPersistentAcrossCallsIntCase);
-    executeCase(ctx, buildNoCallsCase);
-    executeCase(ctx, buildMixedIntFloatCase);
+    executeCase(ctx, buildPersistentAcrossCallsInt);
+    executeCase(ctx, buildNoCalls);
+    executeCase(ctx, buildMixedIntFloat);
 }
 SWC_BACKEND_TEST_END()
 

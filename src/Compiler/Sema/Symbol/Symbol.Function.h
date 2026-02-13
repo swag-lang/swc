@@ -40,21 +40,31 @@ public:
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
 
-    void       setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool       isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool       isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool       isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
-    bool       isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool       isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool       isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
-    void       setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
+    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
+    void setPure(bool value) { value ? addExtraFlag(SymbolFunctionFlagsE::Pure) : removeExtraFlag(SymbolFunctionFlagsE::Pure); }
+
+    template<typename FN>
+    bool getOrComputePureFromAst(FN&& computeFn) const
+    {
+        std::call_once(pureFromAstOnce_, [&]() { pureFromAst_ = computeFn(); });
+        return pureFromAst_;
+    }
+
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
 private:
     std::vector<SymbolVariable*> parameters_;
-    TypeRef                      returnType_  = TypeRef::invalid();
-    SpecOpKind                   specOpKind_  = SpecOpKind::None;
+    TypeRef                      returnType_ = TypeRef::invalid();
+    SpecOpKind                   specOpKind_ = SpecOpKind::None;
+    mutable std::once_flag       pureFromAstOnce_;
+    mutable bool                 pureFromAst_ = false;
 };
 
 SWC_END_NAMESPACE();

@@ -44,7 +44,7 @@ namespace TypeGenInternal
     void initNative(Runtime::TypeInfoNative& rtType, const TypeInfo& type);
     void initArray(Runtime::TypeInfoArray& rtType, const TypeInfo& type);
     void initStruct(Sema& sema, DataSegment& storage, Runtime::TypeInfoStruct& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry);
-    void initFunc(Runtime::TypeInfoFunc& rtType, const TypeInfo& type);
+    void initFunc(Sema& sema, Runtime::TypeInfoFunc& rtType, const TypeInfo& type);
 
     SmallVector<TypeRef> computeDeps(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind);
     void                 wireRelocations(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache::Entry& entry, LayoutKind kind);

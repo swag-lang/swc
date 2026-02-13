@@ -12,6 +12,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool canSkipWaitTypedForSymbol(Sema& sema, const Symbol* symbol)
+    {
+        const auto* currentFn = sema.frame().currentFunction();
+        if (!currentFn)
+            return false;
+
+        const auto* currentDecl = currentFn->decl() ? currentFn->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!currentDecl || !currentDecl->hasFlag(AstFunctionFlagsE::Short))
+            return false;
+
+        const auto* fn = symbol ? symbol->safeCast<SymbolFunction>() : nullptr;
+        if (!fn || fn->isTyped())
+            return false;
+
+        const auto* decl = fn->decl() ? fn->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl)
+            return false;
+
+        return decl->hasFlag(AstFunctionFlagsE::Short) && decl->nodeReturnTypeRef.isValid();
+    }
+
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
         for (const auto* existing : lookUpCxt.symMaps)
@@ -238,7 +259,8 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     for (const Symbol* other : lookUpCxt.symbols())
     {
         RESULT_VERIFY(sema.waitDeclared(other, lookUpCxt.codeRef));
-        RESULT_VERIFY(sema.waitTyped(other, lookUpCxt.codeRef));
+        if (!canSkipWaitTypedForSymbol(sema, other))
+            RESULT_VERIFY(sema.waitTyped(other, lookUpCxt.codeRef));
     }
 
     return Result::Continue;

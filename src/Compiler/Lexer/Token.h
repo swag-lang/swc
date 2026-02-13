@@ -23,7 +23,6 @@ enum class TokenIdKindE : uint16_t
     Reserved  = 1 << 11,
     Alias     = 1 << 12,
     Uniq      = 1 << 13,
-    Pure      = 1 << 14,
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -102,7 +101,6 @@ struct Token
     static bool isCompiler(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler); }
     static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }
     static bool isIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
-    static bool isPureIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Pure); }
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }

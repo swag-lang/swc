@@ -17,9 +17,13 @@ namespace
         SemaNodeView inlineView(sema, inlinedRef);
         if (returnTypeRef != sema.typeMgr().typeVoid())
             RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
-        SWC_ASSERT(inlineView.cstRef.isValid());
-        sema.setFoldedTypedConst(callRef);
-        sema.setConstant(callRef, inlineView.cstRef);
+
+        if (inlineView.cstRef.isValid())
+        {
+            sema.setFoldedTypedConst(callRef);
+            sema.setConstant(callRef, inlineView.cstRef);
+        }
+
         return Result::Continue;
     }
 
@@ -125,10 +129,6 @@ namespace
             if (!bound[i].isValid())
                 return false;
 
-            const SemaNodeView argView(sema, bound[i]);
-            if (!argView.cstRef.isValid())
-                return false;
-
             if (params[i]->idRef().isValid())
                 outBindings.push_back({params[i]->idRef(), bound[i]});
         }
@@ -154,11 +154,11 @@ namespace
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
-    if (!fn.isPure(sema.ctx()))
-        return false;
     if (fn.isClosure() || fn.isEmpty())
         return false;
     if (hasVariadicParam(sema, fn))
+        return false;
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
         return false;
     return true;
 }

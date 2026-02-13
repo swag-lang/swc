@@ -16,7 +16,6 @@ enum class SymbolFunctionFlagsE : uint8_t
     Throwable = 1 << 2,
     Const     = 1 << 3,
     Empty     = 1 << 4,
-    Pure      = 1 << 5,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -39,7 +38,6 @@ public:
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
-    bool                                computePurity(const TaskContext& ctx) const;
 
     void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
@@ -47,18 +45,14 @@ public:
     bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool isPure(const TaskContext& ctx) const;
 
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
 private:
-    void computeAstFlags(const TaskContext& ctx) const;
-
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
     SpecOpKind                   specOpKind_ = SpecOpKind::None;
-    mutable std::once_flag       pureFromAstOnce_;
 };
 
 SWC_END_NAMESPACE();

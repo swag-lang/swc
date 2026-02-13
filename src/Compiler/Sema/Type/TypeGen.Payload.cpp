@@ -197,11 +197,10 @@ namespace TypeGenInternal
         }
     }
 
-    void initFunc(Sema& sema, Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
+    void initFunc(Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
-        const SymbolFunction& fn = type.payloadSymFunction();
-        if (fn.isPure(sema.ctx()))
-            addFlag(rtType.base, Runtime::TypeInfoFlags::Pure);
+        (void) rtType;
+        (void) type;
     }
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)

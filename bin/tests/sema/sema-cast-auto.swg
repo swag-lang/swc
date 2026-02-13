@@ -46,6 +46,14 @@ func takes_f64(v: f64) {}
 
 #test
 {
+    #[Swag.Inline]
+    func ret_u64() -> u64 { return 42 }
+    var x: s32 = ret_u64() // swc-expected-error {{sema_err_cannot_cast}}
+    var y: s32 = cast() ret_u64()
+}
+
+#test
+{
     var a: u8 = 255
     var b: u16 = cast() a
     var c: u32 = cast() a
@@ -106,6 +114,7 @@ func takes_f64(v: f64) {}
     var sl: [..] s32 = cast() null
 }
 
+#[Swag.Inline]
 func ret_u64_short() => cast(u64) 42
 func a_takes_s32(v: s32) {}
 

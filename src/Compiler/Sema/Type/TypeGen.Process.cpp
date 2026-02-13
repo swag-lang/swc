@@ -124,7 +124,7 @@ namespace TypeGenInternal
                 if (kind == LayoutKind::Struct)
                     initStruct(sema, storage, *reinterpret_cast<Runtime::TypeInfoStruct*>(rtBase), offset, type, entry);
                 if (kind == LayoutKind::Func)
-                    initFunc(sema, *reinterpret_cast<Runtime::TypeInfoFunc*>(rtBase), type);
+                    initFunc(*reinterpret_cast<Runtime::TypeInfoFunc*>(rtBase), type);
 
                 // Compute direct dependencies required to wire this payload.
                 entry.deps = computeDeps(tm, ctx, type, kind);

@@ -564,7 +564,6 @@ namespace Swag
         Character         = 0x00008000     // This is a 32 bits character
         Const             = 0x00010000     // This is const
         Nullable          = 0x00020000     // This is a nullable type
-        Pure              = 0x00040000     // This is a pure function
     }
 
     struct Interface

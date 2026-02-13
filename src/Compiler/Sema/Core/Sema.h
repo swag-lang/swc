@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Thread/Job.h"
+#include <functional>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -121,7 +122,7 @@ public:
     SemaScope*       pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope*       pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     bool             enteringState() const { return visit_.enteringState(); }
-    void             deferInlineFinalize(AstNodeRef substituteRef, AstNodeRef callRef, TypeRef returnTypeRef);
+    void             deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
@@ -153,9 +154,9 @@ private:
 
     void errorCleanupNode(AstNodeRef nodeRef, AstNode& node);
 
-    void processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
-    void processDeferredPopsPostNode(AstNodeRef nodeRef);
-    Result processDeferredInlineFinalize(AstNodeRef nodeRef);
+    void   processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
+    void   processDeferredPopsPostNode(AstNodeRef nodeRef);
+    Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
     TaskContext* ctx_         = nullptr;
     SemaContext* semaContext_ = nullptr;
@@ -189,13 +190,12 @@ private:
     std::vector<DeferredPopFrame> deferredPopFrames_;
     std::vector<DeferredPopScope> deferredPopScopes_;
 
-    struct DeferredInlineFinalize
+    struct DeferredPostNodeAction
     {
-        AstNodeRef substituteRef;
-        AstNodeRef callRef;
-        TypeRef    returnTypeRef;
+        AstNodeRef                               nodeRef;
+        std::function<Result(Sema&, AstNodeRef)> callback;
     };
-    std::vector<DeferredInlineFinalize> deferredInlineFinalizes_;
+    std::vector<DeferredPostNodeAction> deferredPostNodeActions_;
 };
 
 SWC_END_NAMESPACE();

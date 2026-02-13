@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -11,6 +12,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result finalizeInlinedCall(Sema& sema, AstNodeRef inlinedRef, AstNodeRef callRef, TypeRef returnTypeRef)
+    {
+        SemaNodeView inlineView(sema, inlinedRef);
+        if (returnTypeRef != sema.typeMgr().typeVoid())
+            RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
+        SWC_ASSERT(inlineView.cstRef.isValid());
+        sema.setFoldedTypedConst(callRef);
+        sema.setConstant(callRef, inlineView.cstRef);
+        return Result::Continue;
+    }
+
     bool isNamedArgument(const AstNode& node)
     {
         return node.is(AstNodeId::NamedArgument);
@@ -167,7 +179,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
 
     sema.setSubstitute(callRef, inlinedRef);
-    sema.deferInlineFinalize(inlinedRef, callRef, fn.returnTypeRef());
+    sema.deferPostNodeAction(inlinedRef, [callRef, returnTypeRef = fn.returnTypeRef()](Sema& sema, AstNodeRef nodeRef) { return finalizeInlinedCall(sema, nodeRef, callRef, returnTypeRef); });
     sema.visit().restartCurrentNode(inlinedRef);
     return Result::Continue;
 }

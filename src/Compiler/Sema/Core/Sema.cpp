@@ -1,10 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaContext.h"
 #include "Compiler/Sema/Core/SemaJob.h"
-#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -177,14 +175,13 @@ void Sema::pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef)
     });
 }
 
-void Sema::deferInlineFinalize(AstNodeRef substituteRef, AstNodeRef callRef, TypeRef returnTypeRef)
+void Sema::deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback)
 {
-    SWC_ASSERT(substituteRef.isValid());
-    SWC_ASSERT(callRef.isValid());
-    deferredInlineFinalizes_.push_back({
-        .substituteRef = substituteRef,
-        .callRef       = callRef,
-        .returnTypeRef = returnTypeRef,
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(callback);
+    deferredPostNodeActions_.push_back({
+        .nodeRef  = nodeRef,
+        .callback = std::move(callback),
     });
 }
 
@@ -383,7 +380,7 @@ Result Sema::postNode(AstNode& node)
     {
         processDeferredPopsPostNode(nodeRef);
         if (nodeRef == curNodeRef())
-            RESULT_VERIFY(processDeferredInlineFinalize(nodeRef));
+            RESULT_VERIFY(processDeferredPostNodeActions(nodeRef));
     }
     return result;
 }
@@ -474,23 +471,19 @@ void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
     }
 }
 
-Result Sema::processDeferredInlineFinalize(AstNodeRef nodeRef)
+Result Sema::processDeferredPostNodeActions(AstNodeRef nodeRef)
 {
-    while (!deferredInlineFinalizes_.empty())
+    while (!deferredPostNodeActions_.empty())
     {
-        const auto& last = deferredInlineFinalizes_.back();
-        if (last.substituteRef != nodeRef)
+        const auto& last = deferredPostNodeActions_.back();
+        if (last.nodeRef != nodeRef)
             break;
 
-        SemaNodeView inlineView(*this, nodeRef);
-        if (last.returnTypeRef != typeMgr().typeVoid())
-            RESULT_VERIFY(Cast::cast(*this, inlineView, last.returnTypeRef, CastKind::Implicit));
+        const Result res = last.callback(*this, nodeRef);
+        if (res != Result::Continue)
+            return res;
 
-        SWC_ASSERT(inlineView.cstRef.isValid());
-        setFoldedTypedConst(last.callRef);
-        setConstant(last.callRef, inlineView.cstRef);
-
-        deferredInlineFinalizes_.pop_back();
+        deferredPostNodeActions_.pop_back();
     }
 
     return Result::Continue;

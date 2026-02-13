@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "Backend/Jit/Jit.h"
+#include "Backend/Jit/JitExecutableMemory.h"
+#include "Backend/Jit/JitX64.h"
 #include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -12,10 +13,12 @@ namespace
     Result runConstantReturn42(TaskContext& ctx)
     {
 #if defined(_M_X64)
-        Backend::Jit::ExecutableMemory executableMemory;
-        RESULT_VERIFY(Backend::Jit::X64Jit::compile(ctx, [](MicroInstrBuilder& b) {
-                                                        b.encodeLoadRegImm(MicroReg::intReg(0), 42, MicroOpBits::B32, EncodeFlagsE::Zero);
-                                                        b.encodeRet(EncodeFlagsE::Zero); }, executableMemory));
+        Backend::JitExecutableMemory executableMemory;
+        RESULT_VERIFY(Backend::JitX64::compile(ctx, [](MicroInstrBuilder& b) {
+                                                    b.encodeLoadRegImm(MicroReg::intReg(0), 42, MicroOpBits::B32, EncodeFlagsE::Zero);
+                                                    b.encodeRet(EncodeFlagsE::Zero);
+                                                },
+                                                executableMemory));
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();

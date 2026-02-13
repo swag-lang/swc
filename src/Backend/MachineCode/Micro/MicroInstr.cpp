@@ -24,7 +24,7 @@ void MicroInstrUseDef::addUseDef(MicroReg reg)
 
 namespace
 {
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrOpcodeInfo& info, const MicroInstrOperand* ops)
+    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrInfo& info, const MicroInstrOperand* ops)
     {
         auto modes = info.regModes;
 
@@ -124,7 +124,7 @@ const MicroInstrOperand* MicroInstr::ops(const PagedStore& storeOps) const
 
 MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const
 {
-    const MicroInstrOpcodeInfo& opcodeInfo = info(op);
+    const MicroInstrInfo& opcodeInfo = info(op);
     const MicroInstrOperand*    ops        = this->ops(storeOps);
 
     MicroInstrUseDef useDef;
@@ -145,7 +145,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Enc
 
 void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
 {
-    const MicroInstrOpcodeInfo& opcodeInfo = info(op);
+    const MicroInstrInfo& opcodeInfo = info(op);
     MicroInstrOperand*          ops        = this->ops(storeOps);
     const auto                  modes      = resolveRegModes(opcodeInfo, ops);
     collectRegOperandsFromModes(out, ops, modes);

@@ -7,7 +7,6 @@
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Thread/Job.h"
-#include <functional>
 
 SWC_BEGIN_NAMESPACE();
 

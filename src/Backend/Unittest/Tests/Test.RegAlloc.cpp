@@ -141,14 +141,14 @@ namespace
     }
 }
 
-SWC_BACKEND_TEST_BEGIN(RegAlloc)
+SWC_TEST_BEGIN(RegAlloc)
 {
     executeCase(ctx, buildPersistentAcrossCallsInt);
     executeCase(ctx, buildNoCalls);
     executeCase(ctx, buildMixedIntFloat);
     executeCase(ctx, buildLotsOfVirtualRegs);
 }
-SWC_BACKEND_TEST_END()
+SWC_TEST_END()
 
 #endif
 

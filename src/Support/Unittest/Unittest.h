@@ -37,18 +37,15 @@ namespace Unittest
     };
 }
 
-#define SWC_TEST_BEGIN(__name)                                          \
-    namespace                                                           \
-    {                                                                   \
-        void                                 __name(swc::TaskContext&); \
-        const swc::Unittest::TestRegistrar   reg_##__name{#__name, &__name}; \
-        void                                 __name(swc::TaskContext& ctx) \
+#define SWC_TEST_BEGIN(__name)                                             \
+    namespace                                                              \
+    {                                                                      \
+        void                               __name(swc::TaskContext&);      \
+        const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name}; \
+        void                               __name(swc::TaskContext& ctx)   \
         {
 #define SWC_TEST_END() \
     }                  \
     }
-
-#define SWC_BACKEND_TEST_BEGIN(__name) SWC_TEST_BEGIN(__name)
-#define SWC_BACKEND_TEST_END() SWC_TEST_END()
 
 SWC_END_NAMESPACE();

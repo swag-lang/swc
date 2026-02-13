@@ -13,7 +13,7 @@ namespace Backend::Unittest
     };
 
     std::vector<ExpectedByte> parseExpected(const char* text);
-    void runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn);
+    void                      runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn);
 
     bool isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg);
     void assertNoVirtualRegs(MicroInstrBuilder& builder);

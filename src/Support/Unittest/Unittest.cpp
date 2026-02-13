@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Support/Report/LogColor.h"
 #include "Support/Unittest/Unittest.h"
 #include "Support/Report/Logger.h"
 
@@ -20,6 +21,15 @@ namespace Unittest
         {
             static std::vector<SetupFn> allSetups;
             return allSetups;
+        }
+
+        void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
+        {
+            Logger::print(ctx, std::format("[unittest] {} ", name));
+            Logger::print(ctx, LogColorHelper::toAnsi(ctx, ok ? LogColor::BrightGreen : LogColor::BrightRed));
+            Logger::print(ctx, ok ? "ok" : "fail");
+            Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
+            Logger::print(ctx, "\n");
         }
     }
 
@@ -48,21 +58,16 @@ namespace Unittest
 
         for (const auto& test : testRegistry())
         {
-            if (!test.name || !test.fn)
-            {
-                Logger::print(ctx, "[unittest] <invalid> fail\n");
-                hasFailure = true;
-                continue;
-            }
+            SWC_ASSERT(test.name && test.fn);
 
-            const auto result = test.fn(ctx);
+            const Result result = test.fn(ctx);
             if (result == Result::Continue)
             {
-                Logger::print(ctx, std::format("[unittest] {} ok\n", test.name));
+                logUnittestStatus(ctx, test.name, true);
             }
             else
             {
-                Logger::print(ctx, std::format("[unittest] {} fail\n", test.name));
+                logUnittestStatus(ctx, test.name, false);
                 hasFailure = true;
             }
         }

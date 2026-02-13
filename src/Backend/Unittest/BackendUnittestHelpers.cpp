@@ -82,19 +82,10 @@ namespace Backend::Unittest
         const auto expected = parseExpected(expectedHex);
         if (size != expected.size())
         {
-            Logger::print(ctx, std::format("EncodeAllInstructionsX64 size mismatch: case={} expected={} got={}\n", name, expected.size(), size));
-            std::string encoded = "Encoded bytes: ";
-            for (uint32_t j = 0; j < size; ++j)
-            {
-                encoded += std::format("{:02X}", encoder.byteAt(j));
-                if (j + 1 < size)
-                    encoded += " ";
-            }
-            encoded += "\n";
-            Logger::print(ctx, encoded);
-            Logger::print(ctx, std::format("Expected: {}\n", expectedHex ? expectedHex : "<null>"));
+            Logger::print(ctx, std::format("runEncodeCase size mismatch: case={} expected={} got={}\n", name, expected.size(), size));
             SWC_ASSERT(false);
         }
+
         for (uint32_t i = 0; i < size; ++i)
         {
             if (!expected[i].wildcard)

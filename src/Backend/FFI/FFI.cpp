@@ -20,9 +20,9 @@ namespace
 
     struct FFIPackedArg
     {
-        uint64_t value     = 0;
-        bool     isFloat   = false;
-        uint8_t  numBits   = 0;
+        uint64_t value   = 0;
+        bool     isFloat = false;
+        uint8_t  numBits = 0;
     };
 
     Result normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
@@ -183,21 +183,21 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
     if (!targetFn)
         return Result::Error;
 
-    constexpr auto  callConvKind = CallConvKind::Host;
-    const auto&     conv         = CallConv::get(callConvKind);
+    constexpr auto    callConvKind = CallConvKind::Host;
+    const auto&       conv         = CallConv::get(callConvKind);
     FFINormalizedType retType;
     RESULT_VERIFY(normalizeType(ctx, ret.typeRef, retType));
     if (!retType.isVoid && !ret.valuePtr)
         return Result::Error;
 
-    uint64_t                 intRetTemp = 0;
-    std::vector<FFIPackedArg> packedArgs;
+    uint64_t                  intRetTemp = 0;
+    SmallVector<FFIPackedArg> packedArgs;
     packedArgs.resize(args.size());
 
     const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto& arg = args[i];
+        const auto&       arg = args[i];
         FFINormalizedType argType;
         RESULT_VERIFY(normalizeType(ctx, arg.typeRef, argType));
         if (argType.isVoid)
@@ -252,4 +252,3 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
 }
 
 SWC_END_NAMESPACE();
-

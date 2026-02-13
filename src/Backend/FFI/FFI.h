@@ -6,25 +6,22 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
-namespace Backend
+struct FFIArgument
 {
-    struct FFIArgument
-    {
-        TypeRef     typeRef  = TypeRef::invalid();
-        const void* valuePtr = nullptr;
-    };
+    TypeRef     typeRef  = TypeRef::invalid();
+    const void* valuePtr = nullptr;
+};
 
-    struct FFIReturn
-    {
-        TypeRef typeRef  = TypeRef::invalid();
-        void*   valuePtr = nullptr;
-    };
+struct FFIReturn
+{
+    TypeRef typeRef  = TypeRef::invalid();
+    void*   valuePtr = nullptr;
+};
 
-    class FFI final
-    {
-    public:
-        static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
-    };
-}
+class FFI final
+{
+public:
+    static Result callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
+};
 
 SWC_END_NAMESPACE();

@@ -18,8 +18,8 @@ namespace
         MicroInstrBuilder builder(ctx);
         buildFn(builder, callConv);
 
-        Backend::JITExecMemory executableMemory;
-        RESULT_VERIFY(Backend::JIT::compile(ctx, builder, executableMemory));
+        JITExecMemory executableMemory;
+        RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();
@@ -48,3 +48,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

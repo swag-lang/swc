@@ -8,44 +8,42 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace Backend
+namespace
 {
-    namespace
+    Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
-        Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
-        {
-            MicroRegAllocPass regAllocPass;
-            MicroEncodePass  encodePass;
-            MicroPassManager passManager;
-            passManager.add(regAllocPass);
-            passManager.add(encodePass);
+        MicroRegAllocPass regAllocPass;
+        MicroEncodePass   encodePass;
+        MicroPassManager  passManager;
+        passManager.add(regAllocPass);
+        passManager.add(encodePass);
 
-            MicroPassContext passContext;
-            passContext.callConvKind = CallConvKind::Host;
-            builder.runPasses(passManager, &encoder, passContext);
-            const auto codeSize = encoder.size();
-            if (!codeSize)
-                return Result::Error;
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Host;
+        builder.runPasses(passManager, &encoder, passContext);
+        const auto codeSize = encoder.size();
+        if (!codeSize)
+            return Result::Error;
 
-            std::vector<std::byte> linearCode(codeSize);
-            encoder.copyTo(linearCode);
+        std::vector<std::byte> linearCode(codeSize);
+        encoder.copyTo(linearCode);
 
-            if (!outExecutableMemory.allocateAndCopy(asByteSpan(linearCode)))
-                return Result::Error;
+        if (!outExecutableMemory.allocateAndCopy(asByteSpan(linearCode)))
+            return Result::Error;
 
-            return Result::Continue;
-        }
-    }
-
-    Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
-    {
-#ifdef _M_X64
-        X64Encoder encoder(ctx);
-        return compileWithEncoder(builder, encoder, outExecutableMemory);
-#else
-        SWC_UNREACHABLE();
-#endif
+        return Result::Continue;
     }
 }
 
+Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
+{
+#ifdef _M_X64
+    X64Encoder encoder(ctx);
+    return compileWithEncoder(builder, encoder, outExecutableMemory);
+#else
+    SWC_UNREACHABLE();
+#endif
+}
+
 SWC_END_NAMESPACE();
+

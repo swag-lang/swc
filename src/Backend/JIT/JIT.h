@@ -5,16 +5,13 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+class JITExecMemory;
 
-namespace Backend
+class JIT final
 {
-    class JITExecMemory;
-
-    class JIT final
-    {
-    public:
-        static Result compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
-    };
-}
+public:
+    static Result compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
+};
 
 SWC_END_NAMESPACE();
+

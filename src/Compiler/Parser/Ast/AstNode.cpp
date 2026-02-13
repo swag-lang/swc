@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -100,6 +101,14 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
 const SourceView& AstNode::srcView(const TaskContext& ctx) const
 {
     return ctx.compiler().srcView(srcViewRef());
+}
+
+const Ast* AstNode::sourceAst(const TaskContext& ctx) const
+{
+    const SourceFile* file = srcView(ctx).file();
+    if (!file)
+        return nullptr;
+    return &file->ast();
 }
 
 TokenRef AstNode::tokRefEnd(const Ast& ast) const

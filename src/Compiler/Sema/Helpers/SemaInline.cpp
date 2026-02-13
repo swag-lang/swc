@@ -7,20 +7,11 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const Ast* functionAst(const Sema& sema, const AstFunctionDecl& decl)
-    {
-        const SourceFile* file = sema.srcView(decl.srcViewRef()).file();
-        if (!file)
-            return nullptr;
-        return &file->ast();
-    }
-
     void collectFileConstIdentifiers(Sema& sema, const Ast& fnAst, std::unordered_set<IdentifierRef>& outConstIds)
     {
         Ast::visit(fnAst, fnAst.root(), [&](const AstNodeRef, const AstNode& node) {
@@ -60,7 +51,7 @@ namespace
         const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!decl || !decl->hasFlag(AstFunctionFlagsE::Short) || decl->nodeBodyRef.isInvalid())
             return false;
-        const Ast* fnAst = functionAst(sema, *decl);
+        const Ast* fnAst = decl->sourceAst(sema.ctx());
         if (!fnAst)
             return false;
 

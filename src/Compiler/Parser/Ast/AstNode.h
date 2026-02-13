@@ -84,6 +84,7 @@ struct AstNode
     bool      isNot(AstNodeId id) const { return id_ != id; }
 
     const SourceView&    srcView(const TaskContext& ctx) const;
+    const Ast*           sourceAst(const TaskContext& ctx) const;
     SourceCodeRange      codeRange(const TaskContext& ctx) const;
     SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
     const SourceCodeRef& codeRef() const { return codeRef_; }

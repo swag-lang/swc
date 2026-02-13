@@ -41,6 +41,15 @@ class Encoder
     friend class MicroEncodePass;
     friend struct MicroInstr;
 
+public:
+    uint32_t size() const { return store_.size(); }
+    const uint8_t* data() const
+    {
+        if (!store_.size())
+            return nullptr;
+        return store_.ptr<uint8_t>(0);
+    }
+
 protected:
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }

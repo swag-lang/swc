@@ -17,15 +17,18 @@ namespace
     constexpr auto K_B64  = EncodeFlagsE::B64;
 
     constexpr auto RAX  = MicroReg::intReg(0);
+    constexpr auto RDX  = MicroReg::intReg(3);
     constexpr auto RCX  = MicroReg::intReg(2);
     constexpr auto RSP  = MicroReg::intReg(4);
     constexpr auto RBP  = MicroReg::intReg(5);
+    constexpr auto R15  = MicroReg::intReg(15);
     constexpr auto R8   = MicroReg::intReg(8);
     constexpr auto R9   = MicroReg::intReg(9);
     constexpr auto R10  = MicroReg::intReg(10);
     constexpr auto R11  = MicroReg::intReg(11);
     constexpr auto R12  = MicroReg::intReg(12);
     constexpr auto R13  = MicroReg::intReg(13);
+    constexpr auto R14  = MicroReg::intReg(14);
     constexpr auto XMM0 = MicroReg::floatReg(0);
     constexpr auto XMM1 = MicroReg::floatReg(1);
     constexpr auto XMM2 = MicroReg::floatReg(2);
@@ -217,6 +220,48 @@ namespace
         runCase("convert_i2f_b64", "F2 49 0F 2A D2", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegReg(XMM2, R10, MicroOp::ConvertIntToFloat, MicroOpBits::B64, K_B64); });
         runCase("convert_f2i_b64", "F2 4C 0F 2C DB", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegReg(R11, XMM3, MicroOp::ConvertFloatToInt, MicroOpBits::B64, K_B64); });
     }
+
+    void runCasesEdgeAndCombinations(const RunCaseFn& runCase)
+    {
+        runCase("push_r8", "41 50", [&](MicroInstrBuilder& builder) { builder.encodePush(R8, K_EMIT); });
+        runCase("pop_r15", "41 5F", [&](MicroInstrBuilder& builder) { builder.encodePop(R15, K_EMIT); });
+        runCase("call_reg_rax", "FF D0", [&](MicroInstrBuilder& builder) { builder.encodeCallReg(RAX, CallConvKind::C, K_EMIT); });
+        runCase("jump_reg_r8", "41 FF E0", [&](MicroInstrBuilder& builder) { builder.encodeJumpReg(R8, K_EMIT); });
+        runCase("jump_not_zero_b8_patch_here", "75 00", [&](MicroInstrBuilder& builder) {
+            MicroJump jump;
+            builder.encodeJump(jump, MicroCondJump::NotZero, MicroOpBits::B8, K_EMIT);
+            builder.encodePatchJump(jump, K_EMIT);
+        });
+        runCase("jump_above_b32_patch_here", "0F 87 00 00 00 00", [&](MicroInstrBuilder& builder) {
+            MicroJump jump;
+            builder.encodeJump(jump, MicroCondJump::Above, MicroOpBits::B32, K_EMIT);
+            builder.encodePatchJump(jump, K_EMIT);
+        });
+
+        runCase("load_reg_mem_r8_rbp_0_b64", "4C 8B 45 00", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegMem(R8, RBP, 0, MicroOpBits::B64, K_EMIT); });
+        runCase("load_reg_mem_r8_r13_0_b64", "4D 8B 45 00", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegMem(R8, R13, 0, MicroOpBits::B64, K_EMIT); });
+        runCase("load_reg_mem_r9_r12_80_b64", "4D 8B 8C 24 80 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegMem(R9, R12, 0x80, MicroOpBits::B64, K_EMIT); });
+        runCase("load_mem_reg_rbp_0_r8_b64", "4C 89 45 00", [&](MicroInstrBuilder& builder) { builder.encodeLoadMemReg(RBP, 0, R8, MicroOpBits::B64, K_EMIT); });
+        runCase("load_mem_reg_r13_0_r8_b64", "4D 89 45 00", [&](MicroInstrBuilder& builder) { builder.encodeLoadMemReg(R13, 0, R8, MicroOpBits::B64, K_EMIT); });
+        runCase("load_mem_imm_r13_80_b8", "41 C6 85 80 00 00 00 5A", [&](MicroInstrBuilder& builder) { builder.encodeLoadMemImm(R13, 0x80, 0x5A, MicroOpBits::B8, K_EMIT); });
+        runCase("lea_reg_mem_r10_rsp_0_b64", "49 89 E2", [&](MicroInstrBuilder& builder) { builder.encodeLoadAddressRegMem(R10, RSP, 0, MicroOpBits::B64, K_EMIT); });
+        runCase("lea_reg_mem_r8_rbp_0_b64", "49 89 E8", [&](MicroInstrBuilder& builder) { builder.encodeLoadAddressRegMem(R8, RBP, 0, MicroOpBits::B64, K_EMIT); });
+
+        runCase("load_reg_reg_r9_r10_b8", "45 88 D1", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegReg(R9, R10, MicroOpBits::B8, K_EMIT); });
+        runCase("load_reg_reg_rdx_rcx_b8", "88 CA", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegReg(RDX, RCX, MicroOpBits::B8, K_EMIT); });
+        runCase("clear_reg_r9_b32", "45 31 C9", [&](MicroInstrBuilder& builder) { builder.encodeClearReg(R9, MicroOpBits::B32, K_EMIT); });
+        runCase("cmp_reg_imm_r8_7f_b64", "49 83 F8 7F", [&](MicroInstrBuilder& builder) { builder.encodeCmpRegImm(R8, 0x7F, MicroOpBits::B64, K_EMIT); });
+        runCase("cmp_reg_imm_r8_80_b64", "49 81 F8 80 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeCmpRegImm(R8, 0x80, MicroOpBits::B64, K_EMIT); });
+        runCase("cmp_mem_imm_r12_12345678_b8", "41 80 BC 24 78 56 34 12 12", [&](MicroInstrBuilder& builder) { builder.encodeCmpMemImm(R12, 0x12345678, 0x12, MicroOpBits::B8, K_EMIT); });
+
+        runCase("op_binary_reg_imm_add_r8_7f_b64", "49 83 C0 7F", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegImm(R8, 0x7F, MicroOp::Add, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_reg_imm_add_r8_80_b64", "49 81 C0 80 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegImm(R8, 0x80, MicroOp::Add, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_reg_imm_sub_r9_ff_b64", "49 83 E9 FF", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegImm(R9, 0xFFFFFFFFFFFFFFFF, MicroOp::Subtract, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_mem_imm_and_80_b64", "49 81 64 24 20 80 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryMemImm(R12, 0x20, 0x80, MicroOp::And, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegImm(R8, 0, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_reg_imm_shr_63_b64", "49 C1 E9 3F", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegImm(R9, 63, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT); });
+        runCase("op_binary_mem_reg_or_r13_r14_b64", "4D 09 75 40", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryMemReg(R13, 0x40, R14, MicroOp::Or, MicroOpBits::B64, K_EMIT); });
+    }
 }
 
 SWC_BACKEND_TEST_BEGIN(EncodeX64)
@@ -235,6 +280,7 @@ SWC_BACKEND_TEST_BEGIN(EncodeX64)
     runCasesBinaryMemRegOps(runCase);
     runCasesBinaryImmOps(runCase);
     runCasesTernaryAndConvert(runCase);
+    runCasesEdgeAndCombinations(runCase);
 }
 SWC_BACKEND_TEST_END()
 

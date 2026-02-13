@@ -1,0 +1,122 @@
+#include "pch.h"
+#include "Backend/MachineCode/CallConv.h"
+#include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/Unittest/BackendUnittest.h"
+#include "Backend/Unittest/BackendUnittestHelpers.h"
+
+SWC_BEGIN_NAMESPACE();
+
+#if SWC_DEV_MODE
+
+namespace
+{
+    using BuildCaseFn = std::function<void(MicroInstrBuilder&)>;
+
+    void verifyCallConvConformity(MicroInstrBuilder& builder, const CallConv& conv)
+    {
+        auto& storeOps     = builder.operands().store();
+
+        for (const auto& inst : builder.instructions().view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(storeOps, refs, nullptr);
+            for (const auto& ref : refs)
+            {
+                const auto reg = *ref.reg;
+                SWC_ASSERT(!reg.isVirtual());
+
+                if (reg.isInt())
+                {
+                    SWC_ASSERT(std::ranges::find(conv.intRegs, reg) != conv.intRegs.end());
+                }
+                else if (reg.isFloat())
+                {
+                    SWC_ASSERT(std::ranges::find(conv.floatRegs, reg) != conv.floatRegs.end());
+                }
+                else
+                {
+                    SWC_ASSERT(false);
+                }
+            }
+        }
+    }
+
+    void executeCase(TaskContext& ctx, const BuildCaseFn& buildFn)
+    {
+        MicroInstrBuilder builder(ctx);
+        buildFn(builder);
+
+        MicroRegAllocPass regAllocPass;
+        MicroPassManager  passes;
+        passes.add(regAllocPass);
+
+        MicroPassContext passCtx;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        Backend::Unittest::assertNoVirtualRegs(builder);
+        verifyCallConvConformity(builder, CallConv::get(CallConvKind::C));
+    }
+
+    void buildPersistentAcrossCallsIntCase(MicroInstrBuilder& b)
+    {
+        constexpr auto v0 = MicroReg::virtualIntReg(0);
+        constexpr auto v1 = MicroReg::virtualIntReg(1);
+        constexpr auto v2 = MicroReg::virtualIntReg(2);
+
+        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeLoadRegImm(v1, 2, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeCallReg(MicroReg::intReg(0), CallConvKind::C, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v1, 3, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeLoadRegImm(v2, 4, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v2, 5, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeCallReg(MicroReg::intReg(0), CallConvKind::C, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+    }
+
+    void buildNoCallsCase(MicroInstrBuilder& b)
+    {
+        constexpr auto v0 = MicroReg::virtualIntReg(10);
+        constexpr auto v1 = MicroReg::virtualIntReg(11);
+        constexpr auto v2 = MicroReg::virtualIntReg(12);
+
+        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeLoadRegImm(v1, 2, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v1, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeLoadRegImm(v2, 3, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+    }
+
+    void buildMixedIntFloatCase(MicroInstrBuilder& b)
+    {
+        constexpr auto vi  = MicroReg::virtualIntReg(20);
+        constexpr auto vf0 = MicroReg::virtualFloatReg(0);
+        constexpr auto vf1 = MicroReg::virtualFloatReg(1);
+        constexpr auto vf2 = MicroReg::virtualFloatReg(2);
+        constexpr auto vf3 = MicroReg::virtualFloatReg(3);
+
+        b.encodeLoadRegImm(vi, 9, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeClearReg(vf0, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeClearReg(vf1, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegReg(vf0, vf1, MicroOp::FloatXor, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeCallReg(MicroReg::intReg(0), CallConvKind::C, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(vi, 2, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeClearReg(vf2, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeClearReg(vf3, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64, EncodeFlagsE::Zero);
+    }
+}
+
+SWC_BACKEND_TEST_BEGIN(MicroRegAlloc)
+{
+    executeCase(ctx, buildPersistentAcrossCallsIntCase);
+    executeCase(ctx, buildNoCallsCase);
+    executeCase(ctx, buildMixedIntFloatCase);
+}
+SWC_BACKEND_TEST_END()
+
+#endif
+
+SWC_END_NAMESPACE();

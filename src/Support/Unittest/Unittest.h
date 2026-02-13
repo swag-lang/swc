@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 namespace Unittest
 {
     using TestFn  = Result (*)(TaskContext&);
-    using SetupFn = Result (*)(TaskContext&);
+    using SetupFn = void (*)(TaskContext&);
 
     struct TestCase
     {

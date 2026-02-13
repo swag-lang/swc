@@ -52,13 +52,8 @@ namespace Unittest
 
         for (const auto setupFn : setupRegistry())
         {
-            if (!setupFn || setupFn(ctx) != Result::Continue)
-            {
-                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "[unittest setup]", LogColor::BrightRed, "fail");
-                if (CommandLine::dbgDevMode)
-                    Os::panicBox("[DevMode] UNITTEST failed!");
-                return Result::Error;
-            }
+            if (setupFn)
+                setupFn(ctx);
         }
 
         for (const auto& test : testRegistry())

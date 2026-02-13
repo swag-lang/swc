@@ -35,6 +35,9 @@ func indirectRegularB(n: s32)->s32
 func indirectShortA(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortB(n - 1)
 func indirectShortB(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortA(n - 1)
 
+func indirectShortNamedA(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortNamedB(value: n - 1)
+func indirectShortNamedB(value: s32)->s32 => value <= 1 ? 1 : value * indirectShortNamedA(n: value - 1)
+
 #test
 {
     @assert(directRegular(6) == 720)
@@ -55,4 +58,10 @@ func indirectShortB(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortA(n - 1)
 {
     @assert(indirectShortA(6) == 720)
     @assert(indirectShortB(6) == 720)
+}
+
+#test
+{
+    @assert(indirectShortNamedA(6) == 720)
+    @assert(indirectShortNamedB(6) == 720)
 }

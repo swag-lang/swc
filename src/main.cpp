@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Backend.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -14,6 +15,10 @@ int main(int argc, char* argv[])
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     global.initialize(cmdLine);
+
+#if SWC_DEV_MODE
+    swc::Backend::test(global, cmdLine);
+#endif
 
     swc::CompilerInstance compiler(global, cmdLine);
     return static_cast<int>(compiler.run());

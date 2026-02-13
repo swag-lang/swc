@@ -186,6 +186,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Backend\Backend.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
@@ -335,6 +336,7 @@
         <ClCompile Include="src\Wmf\Verify.cpp"/>
     </ItemGroup>
     <ItemGroup>
+        <ClInclude Include="src\Backend\Backend.h"/>
         <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc"/>

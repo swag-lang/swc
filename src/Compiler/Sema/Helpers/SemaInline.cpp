@@ -168,6 +168,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (!canInlineCall(sema, fn))
         return Result::Continue;
 
+    // TODO
     const AstNodeRef srcExprRef = inlineExprRef(sema, fn);
     if (srcExprRef.isInvalid())
         return Result::Continue;

@@ -149,16 +149,6 @@ SWC_BACKEND_TEST_BEGIN(EncodeAllInstructionsX64)
     runEncodeCase(ctx, "call_local", "E8 00 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeCallLocal({}, CallConvKind::C, kEmit); });
     runEncodeCase(ctx, "call_extern", "FF 15 00 00 00 00", [&](MicroInstrBuilder& builder) { builder.encodeCallExtern({}, CallConvKind::C, kEmit); });
     runEncodeCase(ctx, "call_reg_r9", "41 FF D1", [&](MicroInstrBuilder& builder) { builder.encodeCallReg(r9, CallConvKind::C, kEmit); });
-    runEncodeCase(ctx, "jump_zero_b8_patch_here", "74 00", [&](MicroInstrBuilder& builder) {
-        MicroJump jump;
-        builder.encodeJump(jump, MicroCondJump::Zero, MicroOpBits::B8, kEmit);
-        builder.encodePatchJump(jump, kEmit);
-    });
-    runEncodeCase(ctx, "jump_less_b32_patch_80", "0F 8C 7A 00 00 00", [&](MicroInstrBuilder& builder) {
-        MicroJump jump;
-        builder.encodeJump(jump, MicroCondJump::Less, MicroOpBits::B32, kEmit);
-        builder.encodePatchJump(jump, 0x80, kEmit);
-    });
     runEncodeCase(ctx, "jump_reg_r13", "41 FF E5", [&](MicroInstrBuilder& builder) { builder.encodeJumpReg(r13, kEmit); });
     runEncodeCase(ctx, "load_reg_imm_rax_b8", "B0 12", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegImm(rax, 0x12, MicroOpBits::B8, kEmit); });
     runEncodeCase(ctx, "load_reg_imm_r10_b64", "49 BA F0 DE BC 9A 78 56 34 12", [&](MicroInstrBuilder& builder) { builder.encodeLoadRegImm(r10, 0x123456789ABCDEF0, MicroOpBits::B64, kEmit); });
@@ -197,6 +187,17 @@ SWC_BACKEND_TEST_BEGIN(EncodeAllInstructionsX64)
     runEncodeCase(ctx, "convert_i2f_b64", "F2 49 0F 2A D2", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegReg(xmm2, r10, MicroOp::ConvertIntToFloat, MicroOpBits::B64, kB64); });
     runEncodeCase(ctx, "convert_f2i_b64", "F2 4C 0F 2C DB", [&](MicroInstrBuilder& builder) { builder.encodeOpBinaryRegReg(r11, xmm3, MicroOp::ConvertFloatToInt, MicroOpBits::B64, kB64); });
     runEncodeCase(ctx, "ret", "C3", [&](MicroInstrBuilder& builder) { builder.encodeRet(kEmit); });
+
+    runEncodeCase(ctx, "jump_zero_b8_patch_here", "74 00", [&](MicroInstrBuilder& builder) {
+        MicroJump jump;
+        builder.encodeJump(jump, MicroCondJump::Zero, MicroOpBits::B8, kEmit);
+        builder.encodePatchJump(jump, kEmit);
+    });
+    runEncodeCase(ctx, "jump_less_b32_patch_80", "0F 8C 7A 00 00 00", [&](MicroInstrBuilder& builder) {
+        MicroJump jump;
+        builder.encodeJump(jump, MicroCondJump::Less, MicroOpBits::B32, kEmit);
+        builder.encodePatchJump(jump, 0x80, kEmit);
+    });
 }
 SWC_BACKEND_TEST_END()
 

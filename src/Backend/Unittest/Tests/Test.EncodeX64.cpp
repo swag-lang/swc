@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
-#include "Backend/Unittest/BackendUnittest.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
+#include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
 

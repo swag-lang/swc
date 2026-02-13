@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Backend/Unittest/BackendUnittest.h"
 #include "Main/CommandLine.h"
 #include "Main/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
+#include "Support/Unittest/Unittest.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 
 #if SWC_DEV_MODE
     swc::TaskContext ctx(global, cmdLine);
-    swc::Backend::Unittest::runAll(ctx);
+    swc::Unittest::runAll(ctx);
 #endif
 
     swc::CompilerInstance compiler(global, cmdLine);

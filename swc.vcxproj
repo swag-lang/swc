@@ -188,8 +188,8 @@
     <ItemGroup>
         <ClCompile Include="src\Backend\Unittest\BackendUnittest.cpp"/>
         <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.EncodeSimpleSequence.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Test.RegAllocPersistentAcrossCall.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeSimpleSequence.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAllocPersistentAcrossCall.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>

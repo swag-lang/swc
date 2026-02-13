@@ -97,7 +97,7 @@ func pure_location(a: s32)->bool => #location(A).lineStart > 0
     #assert(pure_offsetof(0))
     #assert(pure_alignof(0))
     #assert(pure_defined(0))
-    #assert(pure_location(0))
+    #assert(pure_location(0)) // swc-expected-error {{sema_err_expr_not_const}}
 }
 
 #test

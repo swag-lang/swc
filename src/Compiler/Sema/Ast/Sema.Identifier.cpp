@@ -6,8 +6,6 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -60,34 +58,6 @@ namespace
         return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
     }
 
-    Result evaluateFunctionPurity(Sema& sema, const bool allowOverloadSet)
-    {
-        if (allowOverloadSet)
-            return Result::Continue;
-
-        SymbolFunction* func = sema.frame().currentFunction();
-        if (!func)
-            return Result::Continue;
-
-        if (func->isImpure())
-            return Result::Continue;
-        if (!sema.hasSymbolList(sema.curNodeRef()))
-            return Result::Continue;
-
-        const auto symbols = sema.getSymbolList(sema.curNodeRef());
-        for (const auto* sym : symbols)
-        {
-            if (const auto* symVar = sym->safeCast<SymbolVariable>())
-            {
-                if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                    continue;
-                func->markImpure();
-                break;
-            }
-        }
-
-        return Result::Continue;
-    }
 }
 
 Result AstIdentifier::semaPostNode(Sema& sema) const
@@ -112,7 +82,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     RESULT_VERIFY(ret);
 
     RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
-    RESULT_VERIFY(evaluateFunctionPurity(sema, allowOverloadSet));
     return Result::Continue;
 }
 

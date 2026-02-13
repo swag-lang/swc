@@ -44,13 +44,75 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
-    sym.resetPurity();
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
 
 namespace
 {
+    bool isPureShortFunctionBody(Sema& sema, const AstFunctionDecl& decl)
+    {
+        if (!decl.hasFlag(AstFunctionFlagsE::Short))
+            return false;
+        SWC_ASSERT(decl.nodeBodyRef.isValid());
+
+        bool isPure = true;
+        Ast::visit(sema.ast(), decl.nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
+            if (node.safeCast<AstCompilerCall>() || node.safeCast<AstCompilerCallOne>() || node.safeCast<AstCompilerDiagnostic>())
+                return Ast::VisitResult::Skip;
+
+            if (node.safeCast<AstCallExpr>())
+            {
+                isPure = false;
+                return Ast::VisitResult::Stop;
+            }
+
+            if (node.safeCast<AstIntrinsicCallExpr>())
+            {
+                if (!sema.hasSymbol(nodeRef))
+                {
+                    isPure = false;
+                    return Ast::VisitResult::Stop;
+                }
+
+                const Symbol& sym = sema.symbolOf(nodeRef);
+                if (!sym.isFunction())
+                {
+                    isPure = false;
+                    return Ast::VisitResult::Stop;
+                }
+
+                if (!Token::isPureIntrinsic(sema.token(sym.codeRef()).id))
+                {
+                    isPure = false;
+                    return Ast::VisitResult::Stop;
+                }
+
+                return Ast::VisitResult::Continue;
+            }
+
+            const auto* ident = node.safeCast<AstIdentifier>();
+            if (!ident || ident->hasFlag(AstIdentifierFlagsE::CallCallee))
+                return Ast::VisitResult::Continue;
+            if (!sema.hasSymbolList(nodeRef))
+                return Ast::VisitResult::Continue;
+
+            for (const auto* sym : sema.getSymbolList(nodeRef))
+            {
+                const auto* var = sym->safeCast<SymbolVariable>();
+                if (!var || var->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                    continue;
+
+                isPure = false;
+                return Ast::VisitResult::Stop;
+            }
+
+            return Ast::VisitResult::Continue;
+        });
+
+        return isPure;
+    }
+
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
         if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
@@ -95,22 +157,8 @@ namespace
 
         RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
-
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
-        if (auto* currentFunc = sema.frame().currentFunction())
-        {
-            bool markImpure = true;
-            if (tryIntrinsicFold)
-            {
-                const auto tokId = sema.token(sym.codeRef()).id;
-                if (Token::isPureIntrinsic(tokId))
-                    markImpure = false;
-            }
-
-            if (markImpure)
-                currentFunc->markImpure();
-        }
 
         if (tryIntrinsicFold)
         {
@@ -196,8 +244,10 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
-    sym.setPure(!sym.isImpure());
+    SymbolFunction& sym    = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    const auto&     decl   = *sema.node(sema.curNodeRef()).cast<AstFunctionDecl>();
+    const bool      isPure = isPureShortFunctionBody(sema, decl);
+    sym.setPure(isPure);
     sym.setCompleted(sema.ctx());
     return Result::Continue;
 }

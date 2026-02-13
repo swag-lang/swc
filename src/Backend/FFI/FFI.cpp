@@ -18,16 +18,11 @@ namespace
         uint8_t numBits = 0;
     };
 
-    struct FFIArgSlot
+    struct FFIPackedArg
     {
-        uint64_t value = 0;
-    };
-
-    struct FFIArgPlan
-    {
+        uint64_t value     = 0;
         bool     isFloat   = false;
         uint8_t  numBits   = 0;
-        uint32_t slotIndex = 0;
     };
 
     Result normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
@@ -90,6 +85,97 @@ namespace
             default: return MicroOpBits::Zero;
         }
     }
+
+    Result packArgValue(const FFINormalizedType& argType, const void* valuePtr, FFIPackedArg& outArg)
+    {
+        if (!valuePtr)
+            return Result::Error;
+
+        outArg.isFloat = argType.isFloat;
+        outArg.numBits = argType.numBits;
+
+        if (argType.isFloat)
+        {
+            if (argType.numBits == 32)
+            {
+                const auto value = *static_cast<const float*>(valuePtr);
+                std::memcpy(&outArg.value, &value, sizeof(float));
+                return Result::Continue;
+            }
+
+            if (argType.numBits == 64)
+            {
+                const auto value = *static_cast<const double*>(valuePtr);
+                std::memcpy(&outArg.value, &value, sizeof(double));
+                return Result::Continue;
+            }
+
+            return Result::Error;
+        }
+
+        switch (argType.numBits)
+        {
+            case 8:
+                outArg.value = *static_cast<const uint8_t*>(valuePtr);
+                return Result::Continue;
+            case 16:
+                outArg.value = *static_cast<const uint16_t*>(valuePtr);
+                return Result::Continue;
+            case 32:
+                outArg.value = *static_cast<const uint32_t*>(valuePtr);
+                return Result::Continue;
+            case 64:
+                std::memcpy(&outArg.value, valuePtr, sizeof(uint64_t));
+                return Result::Continue;
+            default: return Result::Error;
+        }
+    }
+
+    uint32_t computeStackAdjust(const CallConv& conv, uint32_t numArgs)
+    {
+        const uint32_t numStackArgs  = numArgs > 4 ? numArgs - 4 : 0;
+        const uint32_t stackArgsSize = numStackArgs * sizeof(uint64_t);
+        const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
+        const uint32_t alignPad      = (8u - (frameBaseSize & 0xFu)) & 0xFu;
+        return frameBaseSize + alignPad;
+    }
+
+    void emitPackedArgs(const CallConv& conv, MicroInstrBuilder& builder, std::span<const FFIPackedArg> packedArgs, MicroReg regBase, MicroReg regTmp)
+    {
+        if (packedArgs.empty())
+            return;
+
+        const auto numPackedArgs = static_cast<uint32_t>(packedArgs.size());
+        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(packedArgs.data()), MicroOpBits::B64, EncodeFlagsE::Zero);
+        for (uint32_t i = 0; i < numPackedArgs; ++i)
+        {
+            const auto& arg      = packedArgs[i];
+            const auto  argAddr  = static_cast<uint64_t>(i) * sizeof(FFIPackedArg);
+            const auto  argBits  = arg.isFloat ? opBitsFor(arg.numBits) : MicroOpBits::B64;
+            const bool  isRegArg = i < 4;
+
+            if (isRegArg)
+            {
+                if (arg.isFloat)
+                    builder.encodeLoadRegMem(conv.floatArgRegs[i], regBase, argAddr, argBits, EncodeFlagsE::Zero);
+                else
+                    builder.encodeLoadRegMem(conv.intArgRegs[i], regBase, argAddr, argBits, EncodeFlagsE::Zero);
+                continue;
+            }
+
+            const auto stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - 4) * sizeof(uint64_t);
+            if (arg.isFloat)
+            {
+                builder.encodeLoadRegMem(conv.floatReturn, regBase, argAddr, argBits, EncodeFlagsE::Zero);
+                builder.encodeLoadMemReg(conv.stackPointer, stackOffset, conv.floatReturn, argBits, EncodeFlagsE::Zero);
+            }
+            else
+            {
+                builder.encodeLoadRegMem(regTmp, regBase, argAddr, argBits, EncodeFlagsE::Zero);
+                builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits, EncodeFlagsE::Zero);
+            }
+        }
+    }
 }
 
 Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
@@ -104,60 +190,22 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
     if (!retType.isVoid && !ret.valuePtr)
         return Result::Error;
 
-    uint64_t intRetTemp = 0;
+    uint64_t                 intRetTemp = 0;
+    std::vector<FFIPackedArg> packedArgs;
+    packedArgs.resize(args.size());
 
-    std::vector<FFIArgSlot> argSlots(args.size());
-    std::vector<FFIArgPlan> plans;
-    plans.reserve(args.size());
-
-    for (uint32_t i = 0; i < args.size(); ++i)
+    const auto numArgs = static_cast<uint32_t>(args.size());
+    for (uint32_t i = 0; i < numArgs; ++i)
     {
         const auto& arg = args[i];
-        if (!arg.valuePtr)
-            return Result::Error;
-
         FFINormalizedType argType;
         RESULT_VERIFY(normalizeType(ctx, arg.typeRef, argType));
         if (argType.isVoid)
             return Result::Error;
-
-        auto& slot = argSlots[i].value;
-        if (argType.isFloat)
-        {
-            if (argType.numBits == 32)
-            {
-                const auto value = *static_cast<const float*>(arg.valuePtr);
-                std::memcpy(&slot, &value, sizeof(float));
-            }
-            else if (argType.numBits == 64)
-            {
-                const auto value = *static_cast<const double*>(arg.valuePtr);
-                std::memcpy(&slot, &value, sizeof(double));
-            }
-            else
-            {
-                return Result::Error;
-            }
-        }
-        else
-        {
-            switch (argType.numBits)
-            {
-                case 8: slot = *static_cast<const uint8_t*>(arg.valuePtr); break;
-                case 16: slot = *static_cast<const uint16_t*>(arg.valuePtr); break;
-                case 32: slot = *static_cast<const uint32_t*>(arg.valuePtr); break;
-                case 64: std::memcpy(&slot, arg.valuePtr, sizeof(uint64_t)); break;
-                default: return Result::Error;
-            }
-        }
-
-        plans.push_back({.isFloat = argType.isFloat, .numBits = argType.numBits, .slotIndex = i});
+        RESULT_VERIFY(packArgValue(argType, arg.valuePtr, packedArgs[i]));
     }
 
-    const uint32_t numStackArgs  = args.size() > 4 ? static_cast<uint32_t>(args.size() - 4) : 0;
-    const uint32_t stackArgsSize = numStackArgs * sizeof(uint64_t);
-    const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-    const uint32_t stackAdjust   = frameBaseSize + ((8u - (frameBaseSize & 0xFu)) & 0xFu);
+    const uint32_t stackAdjust = computeStackAdjust(conv, numArgs);
 
     constexpr auto regTarget = MicroReg::intReg(0);
     constexpr auto regBase   = MicroReg::intReg(10);
@@ -167,42 +215,7 @@ Result FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgumen
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
-    if (!argSlots.empty())
-    {
-        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(argSlots.data()), MicroOpBits::B64, EncodeFlagsE::Zero);
-        for (uint32_t i = 0; i < plans.size(); ++i)
-        {
-            const auto& plan     = plans[i];
-            const auto  slotAddr = static_cast<uint64_t>(plan.slotIndex) * sizeof(FFIArgSlot);
-            const bool  isRegArg = i < 4;
-
-            if (isRegArg)
-            {
-                if (plan.isFloat)
-                {
-                    builder.encodeLoadRegMem(conv.floatArgRegs[i], regBase, slotAddr, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
-                }
-                else
-                {
-                    builder.encodeLoadRegMem(conv.intArgRegs[i], regBase, slotAddr, MicroOpBits::B64, EncodeFlagsE::Zero);
-                }
-            }
-            else
-            {
-                const auto stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - 4) * sizeof(uint64_t);
-                if (plan.isFloat)
-                {
-                    builder.encodeLoadRegMem(conv.floatReturn, regBase, slotAddr, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
-                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, conv.floatReturn, opBitsFor(plan.numBits), EncodeFlagsE::Zero);
-                }
-                else
-                {
-                    builder.encodeLoadRegMem(regTmp, regBase, slotAddr, MicroOpBits::B64, EncodeFlagsE::Zero);
-                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, MicroOpBits::B64, EncodeFlagsE::Zero);
-                }
-            }
-        }
-    }
+    emitPackedArgs(conv, builder, packedArgs, regBase, regTmp);
 
     builder.encodeLoadRegImm(regTarget, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regTarget, callConvKind, EncodeFlagsE::Zero);

@@ -11,20 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    [[noreturn]] void ffiContractFailure()
-    {
-        SWC_INTERNAL_ERROR();
-    }
-
-    void ffiExpect(bool condition)
-    {
-        if (!condition)
-        {
-            SWC_FORCE_ASSERT(condition);
-            ffiContractFailure();
-        }
-    }
-
     struct FFIEmitRegs
     {
         MicroReg base = MicroReg::invalid();
@@ -47,10 +33,10 @@ namespace
 
     void normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
     {
-        ffiExpect(typeRef.isValid());
+        SWC_ASSERT(typeRef.isValid());
 
         const auto expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        ffiExpect(expanded.isValid());
+        SWC_ASSERT(expanded.isValid());
 
         const auto& ty = ctx.typeMgr().get(expanded);
         if (ty.isVoid())
@@ -89,7 +75,7 @@ namespace
             return;
         }
 
-        ffiExpect(false);
+        SWC_ASSERT(false);
     }
 
     MicroOpBits opBitsFor(uint8_t numBits)
@@ -194,13 +180,13 @@ namespace
 
 void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
 {
-    ffiExpect(targetFn != nullptr);
+    SWC_ASSERT(targetFn != nullptr);
 
     constexpr auto    callConvKind = CallConvKind::Host;
     const auto&       conv         = CallConv::get(callConvKind);
     FFINormalizedType retType;
     normalizeType(ctx, ret.typeRef, retType);
-    ffiExpect(retType.isVoid || ret.valuePtr);
+    SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
     uint64_t                  intRetTemp = 0;
     SmallVector<FFIPackedArg> packedArgs;
@@ -212,21 +198,21 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
         const auto&       arg = args[i];
         FFINormalizedType argType;
         normalizeType(ctx, arg.typeRef, argType);
-        ffiExpect(!argType.isVoid);
-        ffiExpect(packArgValue(argType, arg.valuePtr, packedArgs[i]) == Result::Continue);
+        SWC_ASSERT(!argType.isVoid);
+        SWC_ASSERT(packArgValue(argType, arg.valuePtr, packedArgs[i]) == Result::Continue);
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t stackAdjust   = computeStackAdjust(conv, numArgs, numRegArgs, stackSlotSize);
     FFIEmitRegs    regs;
-    ffiExpect(conv.tryPickIntScratchRegs(regs.base, regs.tmp));
+    SWC_ASSERT(conv.tryPickIntScratchRegs(regs.base, regs.tmp));
 
     MicroInstrBuilder builder(ctx);
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
-    ffiExpect(emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp) == Result::Continue);
+    SWC_ASSERT(emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp) == Result::Continue);
 
     builder.encodeLoadRegImm(regs.tmp, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regs.tmp, callConvKind, EncodeFlagsE::Zero);
@@ -247,11 +233,11 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     builder.encodeRet(EncodeFlagsE::Zero);
 
     JITExecMemory executableMemory;
-    ffiExpect(JIT::compile(ctx, builder, executableMemory) == Result::Continue);
+    SWC_ASSERT(JIT::compile(ctx, builder, executableMemory) == Result::Continue);
 
     using FFIInvokerFn = void (*)();
     const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
-    ffiExpect(invoker != nullptr);
+    SWC_ASSERT(invoker != nullptr);
 
     invoker();
 

@@ -4,6 +4,7 @@
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/Unittest/BackendUnittest.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -98,16 +99,19 @@ namespace
                 const auto got = encoder.byteAt(i);
                 if (got != expected[i].value)
                 {
-                    std::printf("EncodeAllInstructionsX64 mismatch: case=%s byte=%u expected=%02X got=%02X\n", name, i, expected[i].value, got);
-                    std::printf("Encoded bytes: ");
+                    Logger::print(ctx, std::format("EncodeAllInstructionsX64 mismatch: case={} byte={} expected={:02X} got={:02X}\n", name, i, expected[i].value, got));
+
+                    std::string encoded = "Encoded bytes: ";
                     for (uint32_t j = 0; j < size; ++j)
                     {
-                        std::printf("%02X", encoder.byteAt(j));
+                        encoded += std::format("{:02X}", encoder.byteAt(j));
                         if (j + 1 < size)
-                            std::printf(" ");
+                            encoded += " ";
                     }
+                    encoded += "\n";
+                    Logger::print(ctx, encoded);
 
-                    std::printf("\nExpected: %s\n", expectedHex);
+                    Logger::print(ctx, std::format("Expected: {}\n", expectedHex));
                     SWC_ASSERT(false);
                 }
             }

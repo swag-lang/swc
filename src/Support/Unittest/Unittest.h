@@ -3,6 +3,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_UNITTEST
+
 namespace Unittest
 {
     using TestFn  = void (*)(TaskContext&);
@@ -47,5 +49,7 @@ namespace Unittest
 #define SWC_TEST_END() \
     }                  \
     }
+
+#endif
 
 SWC_END_NAMESPACE();

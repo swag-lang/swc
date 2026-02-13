@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#if SWC_HAS_UNITTEST
+#if defined(SWC_HAS_UNITTEST) && SWC_HAS_UNITTEST
 
 namespace
 {

@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
     global.initialize(cmdLine);
 
-#if SWC_DEV_MODE
+#if SWC_HAS_UNITTEST
     swc::TaskContext ctx(global, cmdLine);
     swc::Unittest::runAll(ctx);
 #endif

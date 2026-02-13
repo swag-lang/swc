@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_UNITTEST
+
 namespace Backend::Unittest
 {
     struct ExpectedByte
@@ -18,5 +20,7 @@ namespace Backend::Unittest
     bool isPersistentReg(const SmallVector<MicroReg>& regs, MicroReg reg);
     void assertNoVirtualRegs(MicroInstrBuilder& builder);
 }
+
+#endif
 
 SWC_END_NAMESPACE();

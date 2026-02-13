@@ -7,6 +7,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#if SWC_HAS_UNITTEST
+
 namespace Backend::Unittest
 {
     std::vector<ExpectedByte> parseExpected(const char* text)
@@ -117,5 +119,7 @@ namespace Backend::Unittest
         }
     }
 }
+
+#endif
 
 SWC_END_NAMESPACE();

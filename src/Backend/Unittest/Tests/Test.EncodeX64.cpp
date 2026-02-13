@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#if SWC_DEV_MODE
+#if SWC_HAS_UNITTEST
 
 namespace
 {

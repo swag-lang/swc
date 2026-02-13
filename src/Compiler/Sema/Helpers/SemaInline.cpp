@@ -154,7 +154,7 @@ namespace
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 {
-    if (!fn.getOrComputePureFromAst(sema.ctx()))
+    if (!fn.isPure(sema.ctx()))
         return false;
     if (fn.isClosure() || fn.isEmpty())
         return false;

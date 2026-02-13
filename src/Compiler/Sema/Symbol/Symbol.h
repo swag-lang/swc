@@ -180,16 +180,16 @@ public:
     }
 
 protected:
-    Symbol*        nextHomonym_ = nullptr;
-    SymbolMap*     ownerSymMap_ = nullptr;
-    const AstNode* decl_        = nullptr;
-    AttributeList  attributes_;
-    IdentifierRef  idRef_      = IdentifierRef::invalid();
-    TypeRef        typeRef_    = TypeRef::invalid();
-    TokenRef       tokRef_     = TokenRef::invalid();
-    SymbolKind     kind_       = SymbolKind::Invalid;
-    SymbolFlags    flags_      = SymbolFlagsE::Zero;
-    uint8_t        extraFlags_ = 0;
+    Symbol*              nextHomonym_ = nullptr;
+    SymbolMap*           ownerSymMap_ = nullptr;
+    const AstNode*       decl_        = nullptr;
+    AttributeList        attributes_;
+    IdentifierRef        idRef_      = IdentifierRef::invalid();
+    TypeRef              typeRef_    = TypeRef::invalid();
+    TokenRef             tokRef_     = TokenRef::invalid();
+    SymbolKind           kind_       = SymbolKind::Invalid;
+    SymbolFlags          flags_      = SymbolFlagsE::Zero;
+    std::atomic<uint8_t> extraFlags_ = 0;
 };
 
 template<typename BASE, SymbolKind K, typename E = void>

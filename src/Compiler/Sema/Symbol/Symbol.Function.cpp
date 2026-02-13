@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -50,7 +50,7 @@ namespace
             return false;
 
         const std::string_view identName = fnAst.srcView().tokenString(ident.tokRef());
-        bool                   isConst    = false;
+        bool                   isConst   = false;
         Ast::visit(fnAst, fnAst.root(), [&](const AstNodeRef, const AstNode& node) {
             if (node.safeCast<AstFunctionDecl>() || node.safeCast<AstFunctionExpr>() || node.safeCast<AstClosureExpr>() || node.safeCast<AstCompilerFunc>() || node.safeCast<AstAttrDecl>())
                 return Ast::VisitResult::Skip;
@@ -134,6 +134,21 @@ void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addExtraFlag(SymbolFunctionFlagsE::Closure);
     if (parserFlags.has(AstFunctionFlagsE::Const))
         addExtraFlag(SymbolFunctionFlagsE::Const);
+}
+
+bool SymbolFunction::isPure(const TaskContext& ctx) const
+{
+    computeAstFlags(ctx);
+    return hasExtraFlag(SymbolFunctionFlagsE::Pure);
+}
+
+void SymbolFunction::computeAstFlags(const TaskContext& ctx) const
+{
+    std::call_once(pureFromAstOnce_, [&]() {
+        auto* self = const_cast<SymbolFunction*>(this);
+        if (computePurity(ctx))
+            self->addExtraFlag(SymbolFunctionFlagsE::Pure);
+    });
 }
 
 bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept

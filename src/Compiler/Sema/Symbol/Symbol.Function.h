@@ -47,21 +47,14 @@ public:
     bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-
-    bool getOrComputePureFromAst(const TaskContext& ctx) const
-    {
-        std::call_once(pureFromAstOnce_, [&]() {
-            auto* self = const_cast<SymbolFunction*>(this);
-            if (computePurity(ctx))
-                self->addExtraFlag(SymbolFunctionFlagsE::Pure);
-        });
-        return hasExtraFlag(SymbolFunctionFlagsE::Pure);
-    }
+    bool isPure(const TaskContext& ctx) const;
 
     SpecOpKind specOpKind() const noexcept { return specOpKind_; }
     void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
 
 private:
+    void computeAstFlags(const TaskContext& ctx) const;
+
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_ = TypeRef::invalid();
     SpecOpKind                   specOpKind_ = SpecOpKind::None;

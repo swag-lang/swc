@@ -200,7 +200,7 @@ namespace TypeGenInternal
     void initFunc(Sema& sema, Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
         const SymbolFunction& fn = type.payloadSymFunction();
-        if (fn.getOrComputePureFromAst(sema.ctx()))
+        if (fn.isPure(sema.ctx()))
             addFlag(rtType.base, Runtime::TypeInfoFlags::Pure);
     }
 

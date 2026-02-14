@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
@@ -8,28 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string toLowerSnake(std::string_view src)
-    {
-        std::string out;
-        out.reserve(src.size() * 2);
-        for (size_t i = 0; i < src.size(); ++i)
-        {
-            const char c = src[i];
-            if (c >= 'A' && c <= 'Z')
-            {
-                if (i && out.back() != '_')
-                    out.push_back('_');
-                out.push_back(static_cast<char>(c - 'A' + 'a'));
-            }
-            else
-            {
-                out.push_back(c);
-            }
-        }
-
-        return out;
-    }
-
     std::string_view opcodeEnumName(MicroInstrOpcode op)
     {
         switch (op)
@@ -46,7 +25,7 @@ namespace
 
     std::string opcodeName(MicroInstrOpcode op)
     {
-        return toLowerSnake(opcodeEnumName(op));
+        return Utf8Helper::toLowerSnake(opcodeEnumName(op));
     }
 
     std::string_view opBitsName(MicroOpBits opBits)
@@ -269,7 +248,31 @@ namespace
             return "nobase";
 
         if (reg.isInt())
+        {
+            static constexpr std::array K_INT_REG_NAMES = {
+                "rax",
+                "rbx",
+                "rcx",
+                "rdx",
+                "rsp",
+                "rbp",
+                "rsi",
+                "rdi",
+                "r8",
+                "r9",
+                "r10",
+                "r11",
+                "r12",
+                "r13",
+                "r14",
+                "r15",
+            };
+
+            if (reg.index() < K_INT_REG_NAMES.size())
+                return std::string(K_INT_REG_NAMES[reg.index()]);
+
             return std::format("r{}", reg.index());
+        }
 
         if (reg.isFloat())
             return std::format("xmm{}", reg.index());

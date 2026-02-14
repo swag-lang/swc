@@ -173,6 +173,29 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
 
+Utf8 Utf8Helper::toLowerSnake(std::string_view s)
+{
+    Utf8 out;
+    out.reserve(s.size() * 2);
+
+    for (size_t i = 0; i < s.size(); ++i)
+    {
+        const char c = s[i];
+        if (c >= 'A' && c <= 'Z')
+        {
+            if (i && out.back() != '_')
+                out.push_back('_');
+            out.push_back(static_cast<char>(c - 'A' + 'a'));
+        }
+        else
+        {
+            out.push_back(c);
+        }
+    }
+
+    return out;
+}
+
 // whitespace helpers
 std::string_view Utf8Helper::trimLeft(std::string_view s)
 {

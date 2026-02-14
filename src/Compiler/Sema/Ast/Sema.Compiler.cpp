@@ -289,6 +289,22 @@ Result AstCompilerGlobal::semaPreNode(Sema& sema) const
     return semaPreDecl(sema);
 }
 
+namespace
+{
+    Result semaCompilerGlobalIf(Sema& sema, const AstCompilerGlobal& node)
+    {
+        RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeModeRef));
+        const SemaNodeView condView(sema, node.nodeModeRef);
+
+        SWC_ASSERT(condView.cst);
+        if (!condView.cst->isBool())
+            return SemaError::raiseInvalidType(sema, node.nodeModeRef, condView.cst->typeRef(), sema.typeMgr().typeBool());
+
+        sema.frame().setGlobalCompilerIfEnabled(condView.cst->getBool());
+        return Result::SkipChildren;
+    }
+}
+
 Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
@@ -298,17 +314,7 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
             return Result::Continue;
 
         case Mode::CompilerIf:
-        {
-            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeModeRef));
-            const SemaNodeView condView(sema, nodeModeRef);
-
-            SWC_ASSERT(condView.cst);
-            if (!condView.cst->isBool())
-                return SemaError::raiseInvalidType(sema, nodeModeRef, condView.cst->typeRef(), sema.typeMgr().typeBool());
-
-            sema.frame().setGlobalCompilerIfEnabled(condView.cst->getBool());
-            return Result::SkipChildren;
-        }
+            return semaCompilerGlobalIf(sema, *this);
 
         case Mode::Export:
         case Mode::AttributeList:

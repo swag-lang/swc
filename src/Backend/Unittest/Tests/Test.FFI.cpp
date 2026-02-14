@@ -406,8 +406,8 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
     };
     const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
-    constexpr uint32_t        a = 11;
-    constexpr uint32_t        b = 31;
+    constexpr uint32_t             a    = 11;
+    constexpr uint32_t             b    = 31;
     const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeU32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU32(), .valuePtr = &b},
@@ -434,7 +434,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
     };
     const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
-    constexpr uint64_t       seed = 39;
+    constexpr uint64_t             seed = 39;
     const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeU64(), .valuePtr = &seed},
     };

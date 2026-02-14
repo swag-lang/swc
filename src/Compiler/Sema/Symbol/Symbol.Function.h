@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolStruct;
+class MicroInstrBuilder;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
@@ -46,13 +47,17 @@ public:
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
 
-    SpecOpKind specOpKind() const noexcept { return specOpKind_; }
-    void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    SpecOpKind               specOpKind() const noexcept { return specOpKind_; }
+    void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    MicroInstrBuilder*       microInstrBuilder() noexcept { return microInstrBuilder_; }
+    const MicroInstrBuilder* microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    void                     setMicroInstrBuilder(MicroInstrBuilder* builder) noexcept { microInstrBuilder_ = builder; }
 
 private:
     std::vector<SymbolVariable*> parameters_;
-    TypeRef                      returnType_ = TypeRef::invalid();
-    SpecOpKind                   specOpKind_ = SpecOpKind::None;
+    TypeRef                      returnType_        = TypeRef::invalid();
+    SpecOpKind                   specOpKind_        = SpecOpKind::None;
+    MicroInstrBuilder*           microInstrBuilder_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

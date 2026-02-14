@@ -20,13 +20,13 @@ namespace
 
     struct FFINormalizedType
     {
-        bool     isVoid             = true;
-        bool     isFloat            = false;
-        bool     isIndirectArg      = false;
-        bool     needsIndirectCopy  = false;
-        uint8_t  numBits            = 0;
-        uint32_t indirectCopySize   = 0;
-        uint32_t indirectCopyAlign  = 0;
+        bool     isVoid            = true;
+        bool     isFloat           = false;
+        bool     isIndirectArg     = false;
+        bool     needsIndirectCopy = false;
+        uint8_t  numBits           = 0;
+        uint32_t indirectCopySize  = 0;
+        uint32_t indirectCopyAlign = 0;
     };
 
     FFINormalizedType makeNormalizedType(bool isVoid, bool isFloat, uint8_t numBits)
@@ -83,8 +83,8 @@ namespace
                 return makeNormalizedType(false, false, static_cast<uint8_t>(size * 8));
             }
 
-            const uint32_t align = std::max(ty.alignOf(ctx), uint32_t{1});
-            const bool needsCopy = usage == FFITypeUsage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
+            const uint32_t align     = std::max(ty.alignOf(ctx), uint32_t{1});
+            const bool     needsCopy = usage == FFITypeUsage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
             return makeIndirectStructType(size, align, needsCopy);
         }
 
@@ -161,7 +161,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     const FFINormalizedType retType      = normalizeType(ctx, conv, ret.typeRef, FFITypeUsage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
-    SmallVector<MicroABICallArg>      packedArgs;
+    SmallVector<MicroABICallArg>   packedArgs;
     SmallVector<FFINormalizedType> normalizedArgTypes;
     uint32_t                       indirectArgStorageSize = 0;
     const bool                     hasIndirectRetArg      = retType.isIndirectArg;
@@ -186,7 +186,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 
         if (argType.isIndirectArg && argType.needsIndirectCopy)
         {
-            indirectArgStorageSize = alignValue(indirectArgStorageSize, argType.indirectCopyAlign);
+            indirectArgStorageSize         = alignValue(indirectArgStorageSize, argType.indirectCopyAlign);
             const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectCopySize;
             SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
             indirectArgStorageSize = static_cast<uint32_t>(nextStorageSize);
@@ -216,7 +216,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
             indirectArgStorageOffset = alignValue(indirectArgStorageOffset, argType.indirectCopyAlign);
             auto* const copyPtr      = indirectArgStorage.data() + indirectArgStorageOffset;
             std::memcpy(copyPtr, arg.valuePtr, argType.indirectCopySize);
-            indirectValuePtr          = copyPtr;
+            indirectValuePtr = copyPtr;
             indirectArgStorageOffset += argType.indirectCopySize;
         }
 
@@ -226,13 +226,13 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     }
 
     MicroInstrBuilder builder(ctx);
-    const auto retOutPtr = retType.isIndirectArg ? nullptr : ret.valuePtr;
-    const auto retMeta   = MicroABICallReturn{
-          .valuePtr = retOutPtr,
-          .isVoid = retType.isVoid,
-          .isFloat = retType.isFloat,
-          .isIndirect = retType.isIndirectArg,
-          .numBits = retType.numBits,
+    const auto        retOutPtr = retType.isIndirectArg ? nullptr : ret.valuePtr;
+    const auto        retMeta   = MicroABICallReturn{
+                 .valuePtr   = retOutPtr,
+                 .isVoid     = retType.isVoid,
+                 .isFloat    = retType.isFloat,
+                 .isIndirect = retType.isIndirectArg,
+                 .numBits    = retType.numBits,
     };
     emitMicroABICallByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.encodeRet(EncodeFlagsE::Zero);

@@ -75,7 +75,7 @@ public:
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                  access_ = SymbolAccess::Private;
+    SymbolAccess                  access_                  = SymbolAccess::Private;
     bool                          globalCompilerIfEnabled_ = true;
     AttributeList                 attributes_;
     SmallVector8<IdentifierRef>   nsPath_;

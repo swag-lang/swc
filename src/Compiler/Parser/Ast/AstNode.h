@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 class TypeInfo;
 class Sema;
+class CodeGen;
 class Ast;
 class SourceFile;
 class TaskContext;
@@ -70,6 +71,10 @@ struct AstNode
     static Result     semaPostNode(Sema&) { return Result::Continue; }
     static void       semaErrorCleanup(Sema&, AstNodeRef) {}
     static AstNodeRef semaClone(Sema&, const CloneContext&) { return AstNodeRef::invalid(); }
+    static Result     codeGenPreNode(CodeGen&) { return Result::Continue; }
+    static Result     codeGenPreNodeChild(CodeGen&, AstNodeRef&) { return Result::Continue; }
+    static Result     codeGenPostNodeChild(CodeGen&, AstNodeRef&) { return Result::Continue; }
+    static Result     codeGenPostNode(CodeGen&) { return Result::Continue; }
 
     uint16_t&       semaBits() { return semaBits_; }
     const uint16_t& semaBits() const { return semaBits_; }

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -632,9 +634,21 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
-    // TODO
-    const SemaNodeView nodeView(sema, nodeExprRef);
-    SWC_ASSERT(nodeView.type && nodeView.type->isStruct());
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+
+    SemaNodeView        nodeView(sema, nodeExprRef);
+    auto&               ctx   = sema.ctx();
+    const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+    SymbolFunction*     symFn = Symbol::make<SymbolFunction>(ctx, this, tokRef(), idRef, sema.frame().flagsForCurrentAccess());
+    symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
+    symFn->setReturnTypeRef(nodeView.typeRef);
+    symFn->setMicroInstrBuilder(sema.compiler().allocate<MicroInstrBuilder>(ctx));
+    sema.setSymbol(sema.curNodeRef(), symFn);
+
+    CodeGen codeGen(sema);
+    RESULT_VERIFY(codeGen.exec(*symFn, sema.curNodeRef()));
+
+    SWC_ASSERT(nodeView.type->isStruct());
     const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cv));
 

@@ -6,6 +6,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class CodeGen;
+
 // ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstNamedNodeT : AstNodeT<I, E>
@@ -358,13 +360,17 @@ struct AstNodeIdInfo
     std::string_view name;
     AstNodeIdFlags   flags;
 
-    using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaPreNode        = Result (*)(Sema&, AstNode&);
-    using SemaPreNodeChild   = Result (*)(Sema&, AstNode&, AstNodeRef&);
-    using SemaPostNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
-    using SemaPostNode       = Result (*)(Sema&, AstNode&);
-    using SemaErrorCleanup   = void (*)(Sema&, AstNode&, AstNodeRef);
-    using SemaClone          = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
+    using AstCollectChildren   = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
+    using SemaPreNode          = Result (*)(Sema&, AstNode&);
+    using SemaPreNodeChild     = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNodeChild    = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNode         = Result (*)(Sema&, AstNode&);
+    using SemaErrorCleanup     = void (*)(Sema&, AstNode&, AstNodeRef);
+    using SemaClone            = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
+    using CodeGenPreNode       = Result (*)(CodeGen&, AstNode&);
+    using CodeGenPreNodeChild  = Result (*)(CodeGen&, AstNode&, AstNodeRef&);
+    using CodeGenPostNodeChild = Result (*)(CodeGen&, AstNode&, AstNodeRef&);
+    using CodeGenPostNode      = Result (*)(CodeGen&, AstNode&);
 
     AstCollectChildren collectChildren;
 
@@ -373,12 +379,16 @@ struct AstNodeIdInfo
     SemaPostNodeChild semaPostDeclChild;
     SemaPostNode      semaPostDecl;
 
-    SemaPreNode       semaPreNode;
-    SemaPreNodeChild  semaPreNodeChild;
-    SemaPostNodeChild semaPostNodeChild;
-    SemaPostNode      semaPostNode;
-    SemaErrorCleanup  semaErrorCleanup;
-    SemaClone         semaClone;
+    SemaPreNode          semaPreNode;
+    SemaPreNodeChild     semaPreNodeChild;
+    SemaPostNodeChild    semaPostNodeChild;
+    SemaPostNode         semaPostNode;
+    SemaErrorCleanup     semaErrorCleanup;
+    SemaClone            semaClone;
+    CodeGenPreNode       codeGenPreNode;
+    CodeGenPreNodeChild  codeGenPreNodeChild;
+    CodeGenPostNodeChild codeGenPostNodeChild;
+    CodeGenPostNode      codeGenPostNode;
 
     bool hasFlag(AstNodeIdFlagsE flag) const { return flags.has(flag); }
 };
@@ -462,21 +472,55 @@ AstNodeRef semaClone(Sema& sema, AstNode& node, const CloneContext& cloneContext
     return node.cast<NodeType>()->semaClone(sema, cloneContext);
 }
 
+template<AstNodeId ID>
+Result codeGenPreNode(CodeGen& codeGen, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->codeGenPreNode(codeGen);
+}
+
+template<AstNodeId ID>
+Result codeGenPreNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRef)
+{
+    SWC_ASSERT(childRef.isValid());
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->codeGenPreNodeChild(codeGen, childRef);
+}
+
+template<AstNodeId ID>
+Result codeGenPostNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRef)
+{
+    SWC_ASSERT(childRef.isValid());
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->codeGenPostNodeChild(codeGen, childRef);
+}
+
+template<AstNodeId ID>
+Result codeGenPostNode(CodeGen& codeGen, AstNode& node)
+{
+    using NodeType = AstTypeOf<ID>::type;
+    return node.cast<NodeType>()->codeGenPostNode(codeGen);
+}
+
 constexpr std::array AST_NODE_ID_INFOS = {
-#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                             \
-                                          #__enum,                               \
-                                          __flags,                               \
-                                          &collectChildren<AstNodeId::__enum>,   \
-                                          &semaPreDecl<AstNodeId::__enum>,       \
-                                          &semaPreDeclChild<AstNodeId::__enum>,  \
-                                          &semaPostDeclChild<AstNodeId::__enum>, \
-                                          &semaPostDecl<AstNodeId::__enum>,      \
-                                          &semaPreNode<AstNodeId::__enum>,       \
-                                          &semaPreNodeChild<AstNodeId::__enum>,  \
-                                          &semaPostNodeChild<AstNodeId::__enum>, \
-                                          &semaPostNode<AstNodeId::__enum>,      \
-                                          &semaErrorCleanup<AstNodeId::__enum>,  \
-                                          &semaClone<AstNodeId::__enum>},
+#define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                                \
+                                          #__enum,                                  \
+                                          __flags,                                  \
+                                          &collectChildren<AstNodeId::__enum>,      \
+                                          &semaPreDecl<AstNodeId::__enum>,          \
+                                          &semaPreDeclChild<AstNodeId::__enum>,     \
+                                          &semaPostDeclChild<AstNodeId::__enum>,    \
+                                          &semaPostDecl<AstNodeId::__enum>,         \
+                                          &semaPreNode<AstNodeId::__enum>,          \
+                                          &semaPreNodeChild<AstNodeId::__enum>,     \
+                                          &semaPostNodeChild<AstNodeId::__enum>,    \
+                                          &semaPostNode<AstNodeId::__enum>,         \
+                                          &semaErrorCleanup<AstNodeId::__enum>,     \
+                                          &semaClone<AstNodeId::__enum>,            \
+                                          &codeGenPreNode<AstNodeId::__enum>,       \
+                                          &codeGenPreNodeChild<AstNodeId::__enum>,  \
+                                          &codeGenPostNodeChild<AstNodeId::__enum>, \
+                                          &codeGenPostNode<AstNodeId::__enum>},
 #include "Compiler/Parser/Ast/AstNodes.Def.inc"
 
 #undef SWC_NODE_DEF

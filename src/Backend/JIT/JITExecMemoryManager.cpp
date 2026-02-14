@@ -48,7 +48,7 @@ bool JITExecMemoryManager::allocateAndCopy(ByteSpan bytes, JITExecMemory& outExe
 
     if (!targetBlock)
     {
-        const auto blockSize = std::max(defaultBlockSize, alignUp(requestSize, 4096));
+        const auto blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSize, 4096));
         auto*      ptr       = Os::allocExecutableMemory(blockSize);
         if (!ptr)
             return false;

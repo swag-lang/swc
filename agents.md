@@ -4,6 +4,9 @@
 - If you add a new feature, add new tests in Sema/ that cover it:
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
+- Do not add standard library includes in source files; they are already provided (or must be) via the precompiled
+  header pch.h.
+- When designing code, avoid excessive use of lambdas. I want code clarity and readability.
 
   Add this section:
 

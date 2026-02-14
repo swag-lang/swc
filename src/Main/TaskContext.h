@@ -77,7 +77,6 @@ public:
         SWC_ASSERT(compilerInstance_);
         return *compilerInstance_;
     }
-    bool hasCompilerInstance() const { return compilerInstance_ != nullptr; }
 
     TaskState&               state() { return state_; }
     const TaskState&         state() const { return state_; }

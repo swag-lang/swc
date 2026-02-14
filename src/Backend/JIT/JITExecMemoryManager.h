@@ -1,8 +1,6 @@
 #pragma once
 #include "Backend/JIT/JITExecMemory.h"
 #include "Support/Core/ByteSpan.h"
-#include <mutex>
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,7 +23,7 @@ private:
         uint32_t allocated = 0;
     };
 
-    static constexpr uint32_t defaultBlockSize = 64 * 1024;
+    static constexpr uint32_t DEFAULT_BLOCK_SIZE = 64 * 1024;
 
     std::mutex         mutex_;
     std::vector<Block> blocks_;

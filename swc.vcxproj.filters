@@ -174,7 +174,19 @@
     <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp">
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Call.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Intrinsic.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Member.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.RunExpr.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Unary.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp">

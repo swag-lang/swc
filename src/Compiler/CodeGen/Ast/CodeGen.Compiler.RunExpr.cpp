@@ -1,12 +1,9 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/MachineCode/CallConv.h"
-#include "Backend/MachineCode/Micro/MicroAbiCall.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -35,111 +32,43 @@ namespace
         uint64_t offset  = 0;
         uint32_t remain  = sizeInBytes;
 
-        const auto emitChunk = [&](const uint32_t chunk) {
-            const MicroOpBits bits = bitsForChunk(chunk);
-            builder.encodeLoadRegMem(tmpReg, srcReg, offset, bits, EncodeFlagsE::Zero);
-            builder.encodeLoadMemReg(dstReg, offset, tmpReg, bits, EncodeFlagsE::Zero);
-            offset += chunk;
-            remain -= chunk;
-        };
-
         while (remain >= 8)
-            emitChunk(8);
+        {
+            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B64, EncodeFlagsE::Zero);
+            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+            offset += 8;
+            remain -= 8;
+        }
+
         if (remain >= 4)
-            emitChunk(4);
+        {
+            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B32, EncodeFlagsE::Zero);
+            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B32, EncodeFlagsE::Zero);
+            offset += 4;
+            remain -= 4;
+        }
+
         if (remain >= 2)
-            emitChunk(2);
+        {
+            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B16, EncodeFlagsE::Zero);
+            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B16, EncodeFlagsE::Zero);
+            offset += 2;
+            remain -= 2;
+        }
+
         if (remain >= 1)
-            emitChunk(1);
+        {
+            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B8, EncodeFlagsE::Zero);
+            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B8, EncodeFlagsE::Zero);
+        }
     }
-}
-
-Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    const Token& tok = codeGen.sema().token(codeRef());
-    if (tok.id != TokenId::IntrinsicCompiler)
-        return Result::Continue;
-
-    const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
-    const auto nodeView          = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::AddressValue, compilerIfAddress, nodeView.typeRef);
-    return Result::Continue;
-}
-
-Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    const auto* leftPayload = codeGen.payload(nodeLeftRef);
-    if (!leftPayload || leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
-        return Result::Continue;
-
-    const SemaNodeView rightView(codeGen.sema(), nodeRightRef);
-
-    const Symbol* methodSym = rightView.sym;
-    if (!methodSym && !rightView.symList.empty())
-        methodSym = rightView.symList.front();
-    if (!methodSym || !methodSym->isFunction())
-        return Result::Continue;
-
-    if (methodSym->name(codeGen.ctx()) != "getBuildCfg")
-        return Result::Continue;
-
-    auto& runtimeCompiler = codeGen.ctx().compiler().runtimeCompiler();
-    SWC_ASSERT(runtimeCompiler.itable != nullptr);
-    const auto targetAddress = reinterpret_cast<uint64_t>(runtimeCompiler.itable[1]);
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, targetAddress);
-    return Result::Continue;
-}
-
-Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    const auto* calleePayload = codeGen.payload(nodeExprRef);
-    if (!calleePayload || calleePayload->kind != CodeGenNodePayloadKind::ExternalFunctionAddress)
-        return Result::Continue;
-
-    SmallVector<AstNodeRef> args;
-    collectArguments(args, codeGen.ast());
-    SWC_ASSERT(args.empty());
-    if (!args.empty())
-        return Result::Continue;
-
-    auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
-    *resultStorage      = 0;
-
-    const MicroABICallReturn ret = {
-        .valuePtr   = resultStorage,
-        .isVoid     = false,
-        .isFloat    = false,
-        .isIndirect = false,
-        .numBits    = 64,
-    };
-
-    emitMicroABICallByAddress(codeGen.builder(), CallConvKind::Host, calleePayload->valueU64, std::span<const MicroABICallArg>{}, ret);
-
-    const auto nodeView = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::PointerStorageU64, reinterpret_cast<uint64_t>(resultStorage), nodeView.typeRef);
-    return Result::Continue;
-}
-
-Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    const Token& tok = codeGen.sema().token(codeRef());
-    if (tok.id != TokenId::KwdDRef)
-        return Result::Continue;
-
-    const auto* childPayload = codeGen.payload(nodeExprRef);
-    if (!childPayload || childPayload->kind != CodeGenNodePayloadKind::PointerStorageU64)
-        return Result::Continue;
-
-    const auto nodeView = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::DerefPointerStorageU64, childPayload->valueU64, nodeView.typeRef);
-    return Result::Continue;
 }
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    auto&             ctx      = codeGen.ctx();
-    const auto&       callConv = CallConv::host();
-    MicroInstrBuilder& builder = codeGen.builder();
+    auto&              ctx      = codeGen.ctx();
+    const auto&        callConv = CallConv::host();
+    MicroInstrBuilder& builder  = codeGen.builder();
     const SemaNodeView exprView(codeGen.sema(), nodeExprRef);
     if (exprView.cst && exprView.type && !exprView.type->isStruct())
     {
@@ -148,7 +77,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     else if (exprView.type && exprView.type->isStruct())
     {
         const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
-        const auto passing = callConv.classifyStructReturnPassing(structSize);
+        const auto     passing    = callConv.classifyStructReturnPassing(structSize);
 
         if (passing == StructArgPassingKind::ByReference)
         {

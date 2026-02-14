@@ -206,7 +206,11 @@
         <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPass.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Call.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Intrinsic.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Member.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.RunExpr.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Unary.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp" />
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp" />

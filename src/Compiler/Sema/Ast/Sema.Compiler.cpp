@@ -1,8 +1,8 @@
 #include "pch.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Backend/FFI/FFI.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -665,6 +665,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 
     const SemaNodeView nodeView(sema, nodeExprRef);
 
+    // TODO
     if (nodeView.type->isStruct())
     {
         const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
@@ -677,9 +678,8 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     JITExecMemory executableMemory;
     RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));
 
-    void* targetFn = executableMemory.entryPoint<void*>();
-    if (!targetFn)
-        return Result::Error;
+    auto targetFn = executableMemory.entryPoint<void*>();
+    SWC_ASSERT(targetFn != nullptr);
 
     const TypeInfo& nodeType         = *nodeView.type;
     TypeRef         resultStorageRef = nodeView.typeRef;
@@ -688,24 +688,18 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     else if (nodeType.isAlias())
         resultStorageRef = nodeType.payloadSymAlias().underlyingTypeRef();
 
-    const uint64_t resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
-    if (!resultSize)
-        return Result::Error;
-
+    const uint64_t         resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
     std::vector<std::byte> resultStorage(resultSize);
     const FFIReturn        returnValue = {
-        .typeRef  = nodeView.typeRef,
-        .valuePtr = resultStorage.data(),
+               .typeRef  = nodeView.typeRef,
+               .valuePtr = resultStorage.data(),
     };
-    FFI::callFFI(ctx, targetFn, std::span<const FFIArgument>{}, returnValue);
+    FFI::call(ctx, targetFn, std::span<const FFIArgument>{}, returnValue);
 
     ConstantValue resultConstant;
     if (nodeType.isEnum())
     {
-        ConstantValue enumStorage = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef, ConstantValue::PayloadOwnership::Borrowed);
-        if (!enumStorage.isValid())
-            return Result::Error;
-
+        ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef, ConstantValue::PayloadOwnership::Borrowed);
         const ConstantRef enumStorageRef = sema.cstMgr().addConstant(ctx, enumStorage);
         resultConstant                   = ConstantValue::makeEnumValue(ctx, enumStorageRef, nodeView.typeRef);
     }
@@ -713,9 +707,6 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     {
         resultConstant = ConstantValue::make(ctx, resultStorage.data(), nodeView.typeRef, ConstantValue::PayloadOwnership::Borrowed);
     }
-
-    if (!resultConstant.isValid())
-        return Result::Error;
 
     sema.setConstant(nodeRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;

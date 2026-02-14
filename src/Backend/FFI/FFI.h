@@ -20,7 +20,7 @@ struct FFIReturn
 class FFI final
 {
 public:
-    static void callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
+    static void call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
 };
 
 SWC_END_NAMESPACE();

@@ -35,7 +35,7 @@ namespace
 
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
-        FFI::callFFI(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        FFI::call(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
         return Result::Continue;
     }
 }

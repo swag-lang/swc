@@ -152,7 +152,7 @@ namespace
 
 }
 
-void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
+void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
 

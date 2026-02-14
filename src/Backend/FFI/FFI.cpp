@@ -156,7 +156,7 @@ namespace
         }
     }
 
-    void exceptionMessage(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    void exceptionMessage(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
         auto& logger = ctx.global().logger();
 
@@ -172,7 +172,7 @@ namespace
         logger.unlock();
     }
 
-    int exceptionHandler(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
         exceptionMessage(ctx, args);
         Os::panicBox("hardware exception raised!");

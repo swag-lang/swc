@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -408,10 +409,14 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible, and returns its rank.
-    ConvRank probeImplicitConversion(Sema& sema, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
+    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
+        outRank = ConvRank::Bad;
         if (from == to)
-            return ConvRank::Exact;
+        {
+            outRank = ConvRank::Exact;
+            return Result::Continue;
+        }
 
         const SemaNodeView argNodeView(sema, argRef);
         auto               castKind  = CastKind::Parameter;
@@ -432,11 +437,17 @@ namespace
         castRequest.setConstantFoldingSrc(argNodeView.cstRef);
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
-        if (Cast::castAllowed(sema, castRequest, from, to) == Result::Continue)
-            return ConvRank::Standard;
+        const Result castResult = Cast::castAllowed(sema, castRequest, from, to);
+        if (castResult == Result::Pause)
+            return Result::Pause;
+        if (castResult == Result::Continue)
+        {
+            outRank = ConvRank::Standard;
+            return Result::Continue;
+        }
 
         outCastFailure = castRequest.failure;
-        return ConvRank::Bad;
+        return Result::Continue;
     }
 
     Result probeAutoEnumArg(Sema& sema, AstNodeRef argRef, TypeRef paramTy, AutoEnumArgProbe& out, CastFailure& cf)
@@ -603,6 +614,13 @@ namespace
             TypeRef     argTy = sema.typeRefOf(argRef);
             if (argTy.isInvalid())
             {
+                const SemaNodeView argNodeView(sema, argRef);
+                if (argNodeView.cstRef.isValid())
+                    argTy = sema.cstMgr().get(argNodeView.cstRef).typeRef();
+            }
+
+            if (argTy.isInvalid())
+            {
                 AutoEnumArgProbe probe;
                 RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
                 if (probe.matched)
@@ -613,14 +631,27 @@ namespace
             {
                 // Likely an unresolved auto-member (`.Value`) without a type hint.
                 // Consider it not viable for this overload.
+                if (cf.diagId == DiagnosticId::None)
+                {
+                    cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+                    cf.srcTypeRef = argTy;
+                    cf.dstTypeRef = paramTy;
+                }
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
 
-            const bool     isUfcsArgument = ufcsArg.isValid() && i == 0;
-            const ConvRank r              = probeImplicitConversion(sema, argRef, argTy, paramTy, cf, isUfcsArgument);
+            const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
+            ConvRank   r              = ConvRank::Bad;
+            RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
             {
+                if (cf.diagId == DiagnosticId::None)
+                {
+                    cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+                    cf.srcTypeRef = argTy;
+                    cf.dstTypeRef = paramTy;
+                }
                 failBadType(outFail, mapping.paramArgs[i].callArgIndex, i, cf);
                 return Result::Continue;
             }
@@ -644,10 +675,17 @@ namespace
                 {
                     const AstNodeRef argRef = entry.argRef;
                     const TypeRef    argTy  = sema.typeRefOf(argRef);
-                    CastFailure      cf{};
-                    const ConvRank   r = probeImplicitConversion(sema, argRef, argTy, variadicTy, cf, false);
+                    CastFailure cf{};
+                    ConvRank    r = ConvRank::Bad;
+                    RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
                     if (r == ConvRank::Bad)
                     {
+                        if (cf.diagId == DiagnosticId::None)
+                        {
+                            cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+                            cf.srcTypeRef = argTy;
+                            cf.dstTypeRef = variadicTy;
+                        }
                         // paramIndex points at the variadic parameter
                         failBadType(outFail, entry.callArgIndex, startVariadic, cf);
                         return Result::Continue;

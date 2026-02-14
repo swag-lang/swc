@@ -11,10 +11,13 @@ class PagedStoreTyped;
 
 struct MicroPassContext
 {
+    MicroPassContext() = default;
+
     Encoder*                            encoder      = nullptr;
     PagedStoreTyped<MicroInstr>*        instructions = nullptr;
     PagedStoreTyped<MicroInstrOperand>* operands     = nullptr;
     CallConvKind                        callConvKind = CallConvKind::Host;
+    bool                                preservePersistentRegs = false;
 };
 
 class MicroPass

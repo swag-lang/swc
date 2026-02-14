@@ -7,6 +7,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t alignUpU64(uint64_t value, uint64_t alignment)
+    {
+        if (!alignment)
+            return value;
+
+        const uint64_t rem = value % alignment;
+        if (!rem)
+            return value;
+
+        return value + alignment - rem;
+    }
+
+    bool containsReg(std::span<const MicroReg> regs, MicroReg reg)
+    {
+        for (const auto value : regs)
+        {
+            if (value == reg)
+                return true;
+        }
+
+        return false;
+    }
+
     size_t resolveJumpIndex(uint64_t valueA)
     {
         if (valueA == 0)
@@ -60,6 +83,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
             encoder.encodeNop(inst.emitFlags);
             break;
         case MicroInstrOpcode::Ret:
+            encodeSavedRegsEpilogue(context, CallConv::get(context.callConvKind), inst.emitFlags);
             encoder.encodeRet(inst.emitFlags);
             break;
         case MicroInstrOpcode::CallLocal:
@@ -203,6 +227,18 @@ void MicroEncodePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 
+    if (context.preservePersistentRegs)
+    {
+        const auto& conv = CallConv::get(context.callConvKind);
+        buildSavedRegsPlan(context, conv);
+        encodeSavedRegsPrologue(context, conv);
+    }
+    else
+    {
+        savedRegSlots_.clear();
+        savedRegsFrameSize_ = 0;
+    }
+
     const uint32_t instructionCount = context.instructions->count();
     jumps_.clear();
     jumps_.resize(instructionCount);
@@ -214,6 +250,102 @@ void MicroEncodePass::run(MicroPassContext& context)
         encodeInstruction(context, inst, idx);
         ++idx;
     }
+}
+
+bool MicroEncodePass::containsSavedSlot(MicroReg reg) const
+{
+    for (const auto& slot : savedRegSlots_)
+    {
+        if (slot.reg == reg)
+            return true;
+    }
+
+    return false;
+}
+
+void MicroEncodePass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
+{
+    SWC_ASSERT(context.instructions);
+    SWC_ASSERT(context.operands);
+
+    savedRegSlots_.clear();
+    savedRegsFrameSize_ = 0;
+
+    auto& storeOps = context.operands->store();
+    for (const auto& inst : context.instructions->view())
+    {
+        SmallVector<MicroInstrRegOperandRef> refs;
+        inst.collectRegOperands(storeOps, refs, context.encoder);
+        for (const auto& ref : refs)
+        {
+            if (!ref.reg)
+                continue;
+
+            const MicroReg reg = *ref.reg;
+            if (!reg.isValid() || reg.isVirtual())
+                continue;
+
+            if (reg.isInt())
+            {
+                if (!containsReg(conv.intPersistentRegs, reg))
+                    continue;
+
+                if (!containsSavedSlot(reg))
+                    savedRegSlots_.push_back({.reg = reg, .offset = 0, .slotBits = MicroOpBits::B64});
+            }
+            else if (reg.isFloat())
+            {
+                if (!containsReg(conv.floatPersistentRegs, reg))
+                    continue;
+
+                if (!containsSavedSlot(reg))
+                    savedRegSlots_.push_back({.reg = reg, .offset = 0, .slotBits = MicroOpBits::B128});
+            }
+        }
+    }
+
+    if (savedRegSlots_.empty())
+        return;
+
+    uint64_t frameOffset = 0;
+    for (auto& slot : savedRegSlots_)
+    {
+        const uint64_t slotSize = slot.slotBits == MicroOpBits::B128 ? 16 : 8;
+        frameOffset             = alignUpU64(frameOffset, slotSize);
+        slot.offset             = frameOffset;
+        frameOffset += slotSize;
+    }
+
+    const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
+    savedRegsFrameSize_           = alignUpU64(frameOffset, stackAlignment);
+}
+
+void MicroEncodePass::encodeSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv) const
+{
+    SWC_ASSERT(context.encoder);
+    auto& encoder = *context.encoder;
+
+    if (!savedRegsFrameSize_)
+        return;
+
+    encoder.encodeOpBinaryRegImm(conv.stackPointer, savedRegsFrameSize_, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
+
+    for (const auto& slot : savedRegSlots_)
+        encoder.encodeLoadMemReg(conv.stackPointer, slot.offset, slot.reg, slot.slotBits, EncodeFlagsE::Zero);
+}
+
+void MicroEncodePass::encodeSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, EncodeFlags emitFlags) const
+{
+    SWC_ASSERT(context.encoder);
+    auto& encoder = *context.encoder;
+
+    if (!savedRegsFrameSize_)
+        return;
+
+    for (const auto& slot : savedRegSlots_)
+        encoder.encodeLoadRegMem(slot.reg, conv.stackPointer, slot.offset, slot.slotBits, emitFlags);
+
+    encoder.encodeOpBinaryRegImm(conv.stackPointer, savedRegsFrameSize_, MicroOp::Add, MicroOpBits::B64, emitFlags);
 }
 
 SWC_END_NAMESPACE();

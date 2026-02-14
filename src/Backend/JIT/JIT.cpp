@@ -21,7 +21,8 @@ namespace
         passManager.add(encodePass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Host;
+        passContext.callConvKind           = CallConvKind::Host;
+        passContext.preservePersistentRegs = true;
         builder.runPasses(passManager, &encoder, passContext);
         const auto codeSize = encoder.size();
         if (!codeSize)

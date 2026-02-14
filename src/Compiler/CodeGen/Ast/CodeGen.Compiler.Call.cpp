@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/Runtime.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroAbiCall.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -23,7 +23,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
         const SemaNodeView         rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
-        const Symbol*      methodSym = rightView.sym;
+        const Symbol*              methodSym = rightView.sym;
         if (!methodSym && !rightView.symList.empty())
             methodSym = rightView.symList.front();
 
@@ -38,9 +38,9 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
             SWC_ASSERT(runtimeInterface->obj != nullptr);
             auto* callArgStorage = codeGen.ctx().compiler().allocate<MicroABICallArg>();
             *callArgStorage      = {
-                .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
-                .isFloat = false,
-                .numBits = 64,
+                     .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
+                     .isFloat = false,
+                     .numBits = 64,
             };
             callArgs = std::span<const MicroABICallArg>(callArgStorage, 1);
         }

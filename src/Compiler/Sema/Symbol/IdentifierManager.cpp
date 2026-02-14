@@ -145,7 +145,8 @@ IdentifierRef IdentifierManager::addIdentifierOwned(std::string_view name, uint3
 IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, uint32_t hash, bool copyName)
 {
     const uint32_t shardIndex = hash & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
 
     {
         std::shared_lock lk(shard.mutex);
@@ -188,13 +189,15 @@ const Identifier& IdentifierManager::getNoLock(IdentifierRef idRef) const
 {
     SWC_ASSERT(idRef.isValid());
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = idRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].store.ptr<Identifier>(localIndex);
 }
 
 const Identifier& IdentifierManager::get(IdentifierRef idRef) const
 {
-    const auto       shardIndex = idRef.get() >> LOCAL_BITS;
+    const auto shardIndex = idRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
     std::shared_lock lk(shards_[shardIndex].mutex);
     return getNoLock(idRef);
 }

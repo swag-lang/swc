@@ -56,7 +56,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
 
     JITExecMemory calleeExecMemory;
     RESULT_VERIFY(JIT::compile(ctx, calleeBuilder, calleeExecMemory));
-    using CalleeFnType = uint64_t (*)();
+    using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = calleeExecMemory.entryPoint<CalleeFnType>();
     SWC_ASSERT(calleeFn != nullptr);
     SWC_ASSERT(calleeFn() == 1);
@@ -71,7 +71,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
 
     JITExecMemory callerExecMemory;
     RESULT_VERIFY(JIT::compile(ctx, callerBuilder, callerExecMemory));
-    using CallerFnType = uint64_t (*)();
+    using CallerFnType  = uint64_t (*)();
     const auto callerFn = callerExecMemory.entryPoint<CallerFnType>();
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);

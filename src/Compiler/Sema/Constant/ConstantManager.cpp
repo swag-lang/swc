@@ -32,7 +32,8 @@ ConstantRef ConstantManager::addInt(TaskContext& ctx, uint64_t value)
 std::string_view ConstantManager::addString(const TaskContext&, std::string_view str)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
     return shard.dataSegment.addString(str).first;
 }
 
@@ -138,7 +139,8 @@ namespace
 ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
 
     if (value.isStruct())
     {
@@ -167,7 +169,8 @@ ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
     return shard.dataSegment.addString(payload).first;
 }
 
@@ -190,6 +193,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = constantRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex);
 }
@@ -198,7 +202,8 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
 {
     auto&          ctx        = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
 
     TypeGen::TypeGenResult infoResult;
 

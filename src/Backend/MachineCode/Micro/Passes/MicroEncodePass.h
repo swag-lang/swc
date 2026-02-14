@@ -28,7 +28,7 @@ private:
 
     uint64_t                  savedRegsFrameSize_ = 0;
     std::vector<SavedRegSlot> savedRegSlots_;
-    std::vector<MicroJump> jumps_;
+    std::vector<MicroJump>    jumps_;
 };
 
 SWC_END_NAMESPACE();

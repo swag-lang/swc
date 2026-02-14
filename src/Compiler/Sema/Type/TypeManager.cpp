@@ -170,7 +170,8 @@ TypeRef TypeManager::typeFloat(uint32_t bits) const
 TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 {
     const uint32_t shardIndex = typeInfo.hash() & (SHARD_COUNT - 1);
-    auto&          shard      = shards_[shardIndex];
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    auto& shard = shards_[shardIndex];
 
     {
         std::shared_lock lk(shard.mutex);
@@ -207,13 +208,16 @@ const TypeInfo& TypeManager::getNoLock(TypeRef typeRef) const
 {
     SWC_ASSERT(typeRef.isValid());
     const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = typeRef.get() & LOCAL_MASK;
     return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex);
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const
 {
-    const auto       shardIndex = typeRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(typeRef.isValid());
+    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
     std::shared_lock lk(shards_[shardIndex].mutex);
     return getNoLock(typeRef);
 }

@@ -92,13 +92,13 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     ConstantValue resultConstant;
     if (nodeType.isEnum())
     {
-        ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef, ConstantValue::PayloadOwnership::Borrowed);
+        ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef);
         const ConstantRef enumStorageRef = sema.cstMgr().addConstant(ctx, enumStorage);
         resultConstant                   = ConstantValue::makeEnumValue(ctx, enumStorageRef, nodeView.typeRef);
     }
     else
     {
-        resultConstant = ConstantValue::make(ctx, resultStorage.data(), nodeView.typeRef, ConstantValue::PayloadOwnership::Borrowed);
+        resultConstant = ConstantValue::make(ctx, resultStorage.data(), nodeView.typeRef);
     }
 
     sema.setConstant(nodeExprRef, sema.cstMgr().addConstant(ctx, resultConstant));

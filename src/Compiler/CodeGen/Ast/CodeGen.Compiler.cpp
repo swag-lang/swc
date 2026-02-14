@@ -13,23 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
-    {
-        switch (bitWidth)
-        {
-            case 8:
-                return MicroOpBits::B8;
-            case 16:
-                return MicroOpBits::B16;
-            case 32:
-                return MicroOpBits::B32;
-            case 64:
-                return MicroOpBits::B64;
-            default:
-                SWC_INTERNAL_ERROR();
-        }
-    }
-
     Result emitConstReturnValue(CodeGen& codeGen, const SemaNodeView& exprView)
     {
         SWC_ASSERT(exprView.cst);
@@ -58,7 +41,9 @@ namespace
             else
                 return Result::Continue;
 
-            builder->encodeLoadRegImm(callConv.intReturn, value, microOpBitsFromBitWidth(ty.payloadIntLikeBits()), EncodeFlagsE::Zero);
+            const MicroOpBits bits = microOpBitsFromBitWidth(ty.payloadIntLikeBits());
+            SWC_ASSERT(bits != MicroOpBits::Zero);
+            builder->encodeLoadRegImm(callConv.intReturn, value, bits, EncodeFlagsE::Zero);
             return Result::Continue;
         }
 
@@ -72,13 +57,16 @@ namespace
                 return Result::Continue;
 
             const uint64_t value = enumStorageCst->getInt().isUnsigned() ? enumStorageCst->getInt().as64() : std::bit_cast<uint64_t>(enumStorageCst->getInt().as64Signed());
-            builder->encodeLoadRegImm(callConv.intReturn, value, microOpBitsFromBitWidth(underlyingTy.payloadIntLikeBits()), EncodeFlagsE::Zero);
+            const MicroOpBits bits = microOpBitsFromBitWidth(underlyingTy.payloadIntLikeBits());
+            SWC_ASSERT(bits != MicroOpBits::Zero);
+            builder->encodeLoadRegImm(callConv.intReturn, value, bits, EncodeFlagsE::Zero);
             return Result::Continue;
         }
 
         if (ty.isFloat())
         {
             const MicroOpBits bits = microOpBitsFromBitWidth(ty.payloadFloatBits());
+            SWC_ASSERT(bits != MicroOpBits::Zero);
             const uint64_t    raw  = bits == MicroOpBits::B32 ? static_cast<uint64_t>(std::bit_cast<uint32_t>(cst.getFloat().asFloat())) : std::bit_cast<uint64_t>(cst.getFloat().asDouble());
             builder->encodeLoadRegImm(callConv.intReturn, raw, bits, EncodeFlagsE::Zero);
             builder->encodeLoadRegReg(callConv.floatReturn, callConv.intReturn, bits, EncodeFlagsE::Zero);

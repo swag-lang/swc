@@ -17,6 +17,23 @@ inline uint32_t getNumBits(MicroOpBits opBits)
     return static_cast<uint32_t>(opBits);
 }
 
+inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
+{
+    switch (bitWidth)
+    {
+        case 8:
+            return MicroOpBits::B8;
+        case 16:
+            return MicroOpBits::B16;
+        case 32:
+            return MicroOpBits::B32;
+        case 64:
+            return MicroOpBits::B64;
+        default:
+            return MicroOpBits::Zero;
+    }
+}
+
 enum class MicroOp : uint8_t
 {
     Add,

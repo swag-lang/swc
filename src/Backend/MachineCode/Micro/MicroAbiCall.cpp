@@ -7,18 +7,6 @@ namespace
 {
     constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
 
-    MicroOpBits opBitsForArg(uint8_t numBits)
-    {
-        switch (numBits)
-        {
-            case 8: return MicroOpBits::B8;
-            case 16: return MicroOpBits::B16;
-            case 32: return MicroOpBits::B32;
-            case 64: return MicroOpBits::B64;
-            default: return MicroOpBits::Zero;
-        }
-    }
-
     uint32_t computeCallStackAdjust(const CallConv& conv, uint32_t numArgs)
     {
         const uint32_t numRegArgs    = conv.numArgRegisterSlots();
@@ -44,7 +32,7 @@ namespace
         {
             const auto& arg      = args[i];
             const auto  argAddr  = static_cast<uint64_t>(i) * sizeof(MicroABICallArg);
-            const auto  argBits  = arg.isFloat ? opBitsForArg(arg.numBits) : MicroOpBits::B64;
+            const auto  argBits  = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
             const bool  isRegArg = i < numRegArgs;
 
             if (isRegArg)
@@ -83,7 +71,7 @@ void emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConv
     if (!ret.isVoid && !ret.isIndirect)
     {
         SWC_ASSERT(ret.valuePtr != nullptr);
-        const auto retBits = ret.numBits ? opBitsForArg(ret.numBits) : MicroOpBits::B64;
+        const auto retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
         builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr), MicroOpBits::B64, EncodeFlagsE::Zero);
         if (ret.isFloat)
             builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, retBits, EncodeFlagsE::Zero);

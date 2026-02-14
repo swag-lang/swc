@@ -67,9 +67,9 @@ namespace
 
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
-    auto& ffiCtx = ctx;
-    bool  result = false;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const FFIArgument>{}, ffiCtx.typeMgr().typeBool(), &result));
+    const auto& typeMgr = ctx.typeMgr();
+    bool  result  = false;
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const FFIArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;
 }
@@ -77,18 +77,18 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeU8)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr uint8_t a = 19;
     constexpr uint8_t b = 23;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeU8(), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeU8(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeU8(), .valuePtr = &b},
     };
 
     uint8_t result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddU8), args, ffiCtx.typeMgr().typeU8(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddU8), args, typeMgr.typeU8(), &result));
     if (result != 42)
         return Result::Error;
 }
@@ -96,18 +96,18 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeI32)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr int32_t a = -1200;
     constexpr int32_t b = -137;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeS32(), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeS32(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeS32(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeS32(), .valuePtr = &b},
     };
 
     int32_t result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddI32), args, ffiCtx.typeMgr().typeS32(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddI32), args, typeMgr.typeS32(), &result));
     if (result != -1337)
         return Result::Error;
 }
@@ -115,18 +115,18 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF32)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr float a = 0.5f;
     constexpr float b = 1.25f;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeFloat(32), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(32), .valuePtr = &b},
+        {.typeRef = typeMgr.typeFloat(32), .valuePtr = &a},
+        {.typeRef = typeMgr.typeFloat(32), .valuePtr = &b},
     };
 
     float result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddF32), args, ffiCtx.typeMgr().typeFloat(32), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF32), args, typeMgr.typeFloat(32), &result));
     if (result != 1.75f)
         return Result::Error;
 }
@@ -134,18 +134,18 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr double a = 1.5;
     constexpr double b = 2.5;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &b},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &a},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &b},
     };
 
     double result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeAddF64), args, ffiCtx.typeMgr().typeFloat(64), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF64), args, typeMgr.typeFloat(64), &result));
     if (result != 4.0)
         return Result::Error;
 }
@@ -153,7 +153,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr double a = 1.0;
     constexpr double b = 2.0;
@@ -162,15 +162,15 @@ SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
     constexpr double e = 5.0;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &b},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &c},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &d},
-        {.typeRef = ffiCtx.typeMgr().typeFloat(64), .valuePtr = &e},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &a},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &b},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &c},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &d},
+        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &e},
     };
 
     double result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, ffiCtx.typeMgr().typeFloat(64), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, typeMgr.typeFloat(64), &result));
     if (result != 15.0)
         return Result::Error;
 }
@@ -178,7 +178,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr uint8_t  a = 1;
     constexpr uint16_t b = 2;
@@ -186,14 +186,14 @@ SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
     constexpr uint64_t d = 0;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeU8(), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeU16(), .valuePtr = &b},
-        {.typeRef = ffiCtx.typeMgr().typeU32(), .valuePtr = &c},
-        {.typeRef = ffiCtx.typeMgr().typeU64(), .valuePtr = &d},
+        {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeU16(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeU32(), .valuePtr = &c},
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &d},
     };
 
     uint64_t result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeMixArgs), args, ffiCtx.typeMgr().typeU64(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeMixArgs), args, typeMgr.typeU64(), &result));
     if (result != 70003ULL)
         return Result::Error;
 }
@@ -201,7 +201,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     constexpr int64_t a = 1;
     constexpr int64_t b = 2;
@@ -211,16 +211,16 @@ SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
     constexpr int64_t f = 6;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &a},
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &b},
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &c},
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &d},
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &e},
-        {.typeRef = ffiCtx.typeMgr().typeS64(), .valuePtr = &f},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &c},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &d},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &e},
+        {.typeRef = typeMgr.typeS64(), .valuePtr = &f},
     };
 
     int64_t result = 0;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeStackArgs), args, ffiCtx.typeMgr().typeS64(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStackArgs), args, typeMgr.typeS64(), &result));
     if (result != 21)
         return Result::Error;
 }
@@ -228,16 +228,16 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 {
-    auto& ffiCtx = ctx;
+    const auto& typeMgr = ctx.typeMgr();
 
     const void* ptr = reinterpret_cast<void*>(0x10);
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = ffiCtx.typeMgr().typeConstValuePtrVoid(), .valuePtr = &ptr},
+        {.typeRef = typeMgr.typeConstValuePtrVoid(), .valuePtr = &ptr},
     };
 
     bool result = false;
-    RESULT_VERIFY(callCaseTyped(ffiCtx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, ffiCtx.typeMgr().typeBool(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;
 }

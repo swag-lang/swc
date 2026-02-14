@@ -2874,7 +2874,7 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     const auto endIdx     = store_.size();
     uint32_t   patchValue = 0;
     std::memcpy(&patchValue, patchPtr, sizeof(patchValue));
-    patchValue += static_cast<uint32_t>(endIdx - startIdx);
+    patchValue += endIdx - startIdx;
     std::memcpy(patchPtr, &patchValue, sizeof(patchValue));
 
     const auto tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);

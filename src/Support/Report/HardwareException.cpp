@@ -16,6 +16,43 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // ============================================================================
+    // Host Identity
+    // ============================================================================
+
+    const char* hostOsName()
+    {
+#if defined(_WIN32)
+        return "windows";
+#else
+        return "unknown-os";
+#endif
+    }
+
+    const char* hostCpuName()
+    {
+#if defined(_M_X64)
+        return "x64";
+#elif defined(_M_IX86)
+        return "x86";
+#else
+        return "unknown-cpu";
+#endif
+    }
+
+    const char* hostExceptionBackendName()
+    {
+#if defined(_WIN32)
+        return "windows seh";
+#else
+        return "unknown-backend";
+#endif
+    }
+
+    // ============================================================================
+    // Windows Symbol Engine
+    // ============================================================================
+
     struct SymbolEngineState
     {
         std::mutex mutex;
@@ -120,7 +157,11 @@ namespace
         }
     }
 
-    const char* exceptionCodeName(const uint32_t code)
+    // ============================================================================
+    // Windows Exception Decoding
+    // ============================================================================
+
+    const char* windowsExceptionCodeName(const uint32_t code)
     {
         switch (code)
         {
@@ -169,7 +210,7 @@ namespace
         }
     }
 
-    const char* accessViolationOpName(const ULONG_PTR op)
+    const char* windowsAccessViolationOpName(const ULONG_PTR op)
     {
         switch (op)
         {
@@ -184,7 +225,7 @@ namespace
         }
     }
 
-    const char* protectToString(const DWORD protect)
+    const char* windowsProtectToString(const DWORD protect)
     {
         switch (protect & 0xFF)
         {
@@ -209,7 +250,7 @@ namespace
         }
     }
 
-    const char* stateToString(const DWORD state)
+    const char* windowsStateToString(const DWORD state)
     {
         switch (state)
         {
@@ -224,7 +265,7 @@ namespace
         }
     }
 
-    const char* typeToString(const DWORD type)
+    const char* windowsTypeToString(const DWORD type)
     {
         switch (type)
         {
@@ -239,7 +280,7 @@ namespace
         }
     }
 
-    void appendAddressSymbol(Utf8& outMsg, const uint64_t address)
+    void appendWindowsAddressSymbol(Utf8& outMsg, const uint64_t address)
     {
         if (!address)
             return;
@@ -320,7 +361,7 @@ namespace
         appendCodeLocation(outMsg, ctx, "task code location", state.codeRef);
     }
 
-    void appendAddress(Utf8& outMsg, const uint64_t address, const bool rich)
+    void appendWindowsAddress(Utf8& outMsg, const uint64_t address, const bool rich)
     {
         outMsg += std::format("0x{:016X}", address);
         if (!address)
@@ -358,17 +399,17 @@ namespace
             }
         }
 
-        appendAddressSymbol(outMsg, address);
-        outMsg += std::format("    memory: state={}, type={}, protect={}\n", stateToString(mbi.State), typeToString(mbi.Type), protectToString(mbi.Protect));
+        appendWindowsAddressSymbol(outMsg, address);
+        outMsg += std::format("    memory: state={}, type={}, protect={}\n", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect));
     }
 
-    void appendAnalysis(Utf8& outMsg, const EXCEPTION_RECORD* record, const CONTEXT* context)
+    void appendWindowsAnalysis(Utf8& outMsg, const EXCEPTION_RECORD* record, const CONTEXT* context)
     {
         if (!record)
             return;
 
         appendSectionHeader(outMsg, "Analysis");
-        outMsg += std::format("  exception: 0x{:08X} ({})\n", record->ExceptionCode, exceptionCodeName(record->ExceptionCode));
+        outMsg += std::format("  exception: 0x{:08X} ({})\n", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode));
 
         if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION || record->ExceptionCode == EXCEPTION_IN_PAGE_ERROR)
         {
@@ -380,7 +421,7 @@ namespace
 
             const auto op         = record->ExceptionInformation[0];
             const auto accessAddr = static_cast<uint64_t>(record->ExceptionInformation[1]);
-            outMsg += std::format("  fault: {} at 0x{:016X}\n", accessViolationOpName(op), accessAddr);
+            outMsg += std::format("  fault: {} at 0x{:016X}\n", windowsAccessViolationOpName(op), accessAddr);
 
             if (accessAddr < 0x10000)
                 outMsg += "  likely cause: null pointer dereference or null+offset access\n";
@@ -421,7 +462,7 @@ namespace
         }
     }
 
-    void appendExceptionSummary(Utf8& outMsg, const EXCEPTION_RECORD* record, const bool rich)
+    void appendWindowsExceptionSummary(Utf8& outMsg, const EXCEPTION_RECORD* record, const bool rich)
     {
         appendSectionHeader(outMsg, "Exception");
         if (!record)
@@ -430,9 +471,9 @@ namespace
             return;
         }
 
-        outMsg += std::format("  code: 0x{:08X} ({})\n", record->ExceptionCode, exceptionCodeName(record->ExceptionCode));
+        outMsg += std::format("  code: 0x{:08X} ({})\n", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode));
         outMsg += "  address: ";
-        appendAddress(outMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress), rich);
+        appendWindowsAddress(outMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress), rich);
         outMsg += "\n";
 
         if (record->NumberParameters && rich)
@@ -440,13 +481,17 @@ namespace
 
         if ((record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION || record->ExceptionCode == EXCEPTION_IN_PAGE_ERROR) && record->NumberParameters >= 2)
         {
-            outMsg += std::format("  access: {} at ", accessViolationOpName(record->ExceptionInformation[0]));
-            appendAddress(outMsg, static_cast<uint64_t>(record->ExceptionInformation[1]), rich);
+            outMsg += std::format("  access: {} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
+            appendWindowsAddress(outMsg, static_cast<uint64_t>(record->ExceptionInformation[1]), rich);
             outMsg += "\n";
         }
     }
 
-    void appendCpuContext(Utf8& outMsg, const CONTEXT* context)
+    // ============================================================================
+    // CPU Context Decoding
+    // ============================================================================
+
+    void appendCpuContextForHost(Utf8& outMsg, const CONTEXT* context)
     {
         appendSectionHeader(outMsg, "CPU Context");
         if (!context)
@@ -470,7 +515,11 @@ namespace
 #endif
     }
 
-    void appendHandlerStack(Utf8& outMsg)
+    // ============================================================================
+    // Windows Stack Trace
+    // ============================================================================
+
+    void appendWindowsHandlerStack(Utf8& outMsg)
     {
         appendSectionHeader(outMsg, "Handler Stack Trace");
         void* frames[64]{};
@@ -500,7 +549,7 @@ namespace
             }
 
             outMsg += "\n";
-            appendAddressSymbol(outMsg, address);
+            appendWindowsAddressSymbol(outMsg, address);
         }
     }
 }
@@ -519,6 +568,9 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
 
     appendSectionHeader(msg, "Environment");
+    msg += std::format("  host os: {}\n", hostOsName());
+    msg += std::format("  host cpu: {}\n", hostCpuName());
+    msg += std::format("  host exception backend: {}\n", hostExceptionBackendName());
     msg += std::format("  process id: {}\n", static_cast<uint32_t>(::GetCurrentProcessId()));
     msg += std::format("  thread id: {}\n", static_cast<uint32_t>(::GetCurrentThreadId()));
 
@@ -531,8 +583,8 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     const CONTEXT*          context = args ? args->ContextRecord : nullptr;
 
     appendTaskReadableContext(msg, ctx);
-    appendExceptionSummary(msg, record, rich);
-    appendAnalysis(msg, record, context);
+    appendWindowsExceptionSummary(msg, record, rich);
+    appendWindowsAnalysis(msg, record, context);
 
     appendSectionHeader(msg, "Path Context");
     if (extraInfoFn)
@@ -542,8 +594,8 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
 
     if (rich)
     {
-        appendCpuContext(msg, context);
-        appendHandlerStack(msg);
+        appendCpuContextForHost(msg, context);
+        appendWindowsHandlerStack(msg);
     }
 
     Logger::print(ctx, msg);

@@ -12,9 +12,21 @@ enum class MicroOpBits : uint8_t
     B128 = 128,
 };
 
-inline uint32_t getNumBits(MicroOpBits opBits)
+inline MicroOpBits microOpBitsFromChunkSize(uint32_t chunkSize)
 {
-    return static_cast<uint32_t>(opBits);
+    switch (chunkSize)
+    {
+        case 1:
+            return MicroOpBits::B8;
+        case 2:
+            return MicroOpBits::B16;
+        case 4:
+            return MicroOpBits::B32;
+        case 8:
+            return MicroOpBits::B64;
+        default:
+            SWC_UNREACHABLE();
+    }
 }
 
 inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
@@ -22,16 +34,18 @@ inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
     switch (bitWidth)
     {
         case 8:
-            return MicroOpBits::B8;
         case 16:
-            return MicroOpBits::B16;
         case 32:
-            return MicroOpBits::B32;
         case 64:
-            return MicroOpBits::B64;
+            return microOpBitsFromChunkSize(bitWidth / 8);
         default:
             return MicroOpBits::Zero;
     }
+}
+
+inline uint32_t getNumBits(MicroOpBits opBits)
+{
+    return static_cast<uint32_t>(opBits);
 }
 
 enum class MicroOp : uint8_t

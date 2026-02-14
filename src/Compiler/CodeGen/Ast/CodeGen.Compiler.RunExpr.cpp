@@ -9,23 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits bitsForChunk(uint32_t chunkSize)
-    {
-        switch (chunkSize)
-        {
-            case 1:
-                return MicroOpBits::B8;
-            case 2:
-                return MicroOpBits::B16;
-            case 4:
-                return MicroOpBits::B32;
-            case 8:
-                return MicroOpBits::B64;
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
     void emitStructCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, MicroReg tmpReg, uint32_t sizeInBytes)
     {
         auto&    builder = codeGen.builder();
@@ -107,7 +90,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         else
         {
             SWC_ASSERT(structSize == 1 || structSize == 2 || structSize == 4 || structSize == 8);
-            const MicroOpBits retBits = bitsForChunk(structSize);
+            const MicroOpBits retBits = microOpBitsFromChunkSize(structSize);
 
             if (exprView.cst && exprView.cst->isStruct())
             {

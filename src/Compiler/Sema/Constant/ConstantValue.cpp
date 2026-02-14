@@ -478,7 +478,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
     SWC_ASSERT(values.size() == names.size());
     (void) fieldRefs;
     ConstantValue        cv;
-    std::vector<TypeRef> memberTypes;
+    SmallVector<TypeRef> memberTypes;
     memberTypes.reserve(values.size());
     for (const auto& v : values)
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
@@ -496,7 +496,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
     (void) fieldRefs;
 
     ConstantValue        cv;
-    std::vector<TypeRef> elemTypes;
+    SmallVector<TypeRef> elemTypes;
     elemTypes.reserve(values.size());
     for (const auto& v : values)
         elemTypes.push_back(ctx.cstMgr().get(v).typeRef());

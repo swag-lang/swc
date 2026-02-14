@@ -285,7 +285,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> out;
     sema.ast().appendNodes(out, spanDimensionsRef);
 
-    std::vector<uint64_t> dims;
+    SmallVector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
         SemaNodeView dimView(sema, dimRef);

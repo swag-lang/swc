@@ -155,7 +155,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         }
 
         bool                            allConstant = nodeExprView.cst != nullptr;
-        std::vector<int64_t>            constIndexes;
+        SmallVector<int64_t>            constIndexes;
         const std::vector<ConstantRef>* curValues = allConstant ? &nodeExprView.cst->getAggregateArray() : nullptr;
 
         for (size_t i = 0; i < numGot; i++)
@@ -197,7 +197,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot < numExpected)
         {
-            std::vector<uint64_t> dims;
+            SmallVector<uint64_t> dims;
             for (size_t i = numGot; i < numExpected; i++)
                 dims.push_back(arrayDims[i]);
             const auto typeArray = TypeInfo::makeArray(dims, nodeExprView.type->payloadArrayElemTypeRef(), nodeExprView.type->flags());

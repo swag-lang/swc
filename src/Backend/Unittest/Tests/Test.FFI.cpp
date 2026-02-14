@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -82,7 +83,7 @@ SWC_TEST_BEGIN(FFI_CallNativeU8)
     constexpr uint8_t a = 19;
     constexpr uint8_t b = 23;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU8(), .valuePtr = &b},
     };
@@ -101,7 +102,7 @@ SWC_TEST_BEGIN(FFI_CallNativeI32)
     constexpr int32_t a = -1200;
     constexpr int32_t b = -137;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeS32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeS32(), .valuePtr = &b},
     };
@@ -120,7 +121,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF32)
     constexpr float a = 0.5f;
     constexpr float b = 1.25f;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeF32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF32(), .valuePtr = &b},
     };
@@ -139,7 +140,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64)
     constexpr double a = 1.5;
     constexpr double b = 2.5;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
     };
@@ -161,7 +162,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
     constexpr double d = 4.0;
     constexpr double e = 5.0;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &c},
@@ -185,7 +186,7 @@ SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
     constexpr uint32_t c = 70000;
     constexpr uint64_t d = 0;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU16(), .valuePtr = &b},
         {.typeRef = typeMgr.typeU32(), .valuePtr = &c},
@@ -210,7 +211,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
     constexpr int64_t e = 5;
     constexpr int64_t f = 6;
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeS64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeS64(), .valuePtr = &b},
         {.typeRef = typeMgr.typeS64(), .valuePtr = &c},
@@ -232,7 +233,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 
     const void* ptr = reinterpret_cast<void*>(0x10);
 
-    const std::vector<FFIArgument> args = {
+    const SmallVector<FFIArgument> args = {
         {.typeRef = typeMgr.typeConstValuePtrVoid(), .valuePtr = &ptr},
     };
 

@@ -107,7 +107,7 @@ namespace
             return failArrayConst(args, "expected an array constant");
 
         const auto&              values = cst.getAggregateArray();
-        std::vector<ConstantRef> newValues;
+        SmallVector<ConstantRef> newValues;
         newValues.reserve(values.size());
 
         for (const auto& valueRef : values)
@@ -148,7 +148,7 @@ namespace
             return failArrayConst(args, "expected an array constant");
 
         const auto&              values = cst.getAggregateArray();
-        std::vector<ConstantRef> newValues;
+        SmallVector<ConstantRef> newValues;
         newValues.reserve(values.size());
 
         for (size_t i = 0; i < values.size(); ++i)

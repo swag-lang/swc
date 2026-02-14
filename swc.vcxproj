@@ -329,6 +329,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp" />
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp" />
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaJit.cpp" />
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp" />
         <ClCompile Include="src\Compiler\Sema\Match\Match.cpp" />
         <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp" />
@@ -463,6 +464,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaJit.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>

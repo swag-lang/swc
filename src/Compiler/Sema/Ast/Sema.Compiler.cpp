@@ -1,9 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/FFI/FFI.h"
-#include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemory.h"
-#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -13,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaJit.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -638,71 +635,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-
-    auto&            ctx     = sema.ctx();
-    const AstNodeRef nodeRef = sema.curNodeRef();
-    SymbolFunction*  symFn   = nullptr;
-    if (sema.hasSymbol(nodeRef))
-    {
-        symFn = &sema.symbolOf(nodeRef).cast<SymbolFunction>();
-    }
-    else
-    {
-        const SemaNodeView  nodeView(sema, nodeExprRef);
-        const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-        symFn                     = Symbol::make<SymbolFunction>(ctx, this, tokRef(), idRef, sema.frame().flagsForCurrentAccess());
-        symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
-        symFn->setReturnTypeRef(nodeView.typeRef);
-        symFn->setDeclared(ctx);
-        symFn->setTyped(ctx);
-        sema.setSymbol(nodeRef, symFn);
-
-        const auto job = heapNew<CodeGenJob>(ctx, sema, *symFn, nodeRef);
-        sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
-    }
-
-    RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, codeRef()));
-
-    const SemaNodeView nodeView(sema, nodeExprRef);
-
-    MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
-
-    JITExecMemory executableMemory;
-    RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));
-
-    auto targetFn = executableMemory.entryPoint<void*>();
-    SWC_ASSERT(targetFn != nullptr);
-
-    const TypeInfo& nodeType         = *nodeView.type;
-    TypeRef         resultStorageRef = nodeView.typeRef;
-    if (nodeType.isEnum())
-        resultStorageRef = nodeType.payloadSymEnum().underlyingTypeRef();
-    else if (nodeType.isAlias())
-        resultStorageRef = nodeType.payloadSymAlias().underlyingTypeRef();
-
-    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
-    const uint64_t         resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
-    std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
-    const FFIReturn        returnValue = {
-               .typeRef  = nodeView.typeRef,
-               .valuePtr = resultStorage.data(),
-    };
-    FFI::call(ctx, targetFn, std::span<const FFIArgument>{}, returnValue);
-
-    ConstantValue resultConstant;
-    if (nodeType.isEnum())
-    {
-        ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef, ConstantValue::PayloadOwnership::Borrowed);
-        const ConstantRef enumStorageRef = sema.cstMgr().addConstant(ctx, enumStorage);
-        resultConstant                   = ConstantValue::makeEnumValue(ctx, enumStorageRef, nodeView.typeRef);
-    }
-    else
-    {
-        resultConstant = ConstantValue::make(ctx, resultStorage.data(), nodeView.typeRef, ConstantValue::PayloadOwnership::Borrowed);
-    }
-
-    sema.setConstant(nodeRef, sema.cstMgr().addConstant(ctx, resultConstant));
-    return Result::Continue;
+    return SemaJit::runExpr(sema, *this);
 }
 
 SWC_END_NAMESPACE();

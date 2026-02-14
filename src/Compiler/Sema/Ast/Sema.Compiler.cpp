@@ -645,6 +645,12 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 
     RESULT_VERIFY(SemaJit::runExpr(sema, nodeExprRef));
     sema.inheritPayload(sema.node(sema.curNodeRef()), nodeExprRef);
+
+    // TODO
+    const SemaNodeView nodeView(sema, sema.curNodeRef());
+    SWC_ASSERT(nodeView.cst);
+    printf(nodeView.cst->toString(sema.ctx()).c_str());
+
     return Result::Continue;
 }
 

@@ -10,7 +10,7 @@ struct S
     const V = #run S{42}
     #assert(#typeof(V) == S)
 }
-/*
+
 #test
 {
     const V = #run 40's32 + 2's32
@@ -31,13 +31,16 @@ struct S
 
 #test
 {
+    const V = #run dref @compiler // swc-expected-error {{sema_err_unary_operand_type}}
+}
+
+/*
+#test
+{
     const Cfg = #run dref @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 //    #assert(Cfg.tempAllocatorCapacity > 0)
 }
 
-#test
-{
-    const V = #run dref @compiler // swc-expected-error {{sema_err_unary_operand_type}}
-}
+
 */

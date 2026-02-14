@@ -74,11 +74,12 @@ ConstantRef NodePayloadContext::getConstantRef(const TaskContext& ctx, AstNodeRe
         return ConstantRef::invalid();
 
     const AstNode& node = ast().node(nodeRef);
-    switch (payloadKind(node))
+    const auto     info = payloadInfo(node);
+    switch (info.kind)
     {
         case NodePayloadKind::ConstantRef:
         {
-            ConstantRef value{node.payloadRef()};
+            ConstantRef value{info.ref};
 #if SWC_HAS_REF_DEBUG_INFO
             value.dbgPtr = &ctx.cstMgr().get(value);
 #endif
@@ -129,7 +130,7 @@ bool NodePayloadContext::hasSubstitute(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return payloadKind(node) == NodePayloadKind::Substitute;
+    return payloadInfo(node).kind == NodePayloadKind::Substitute;
 }
 
 void NodePayloadContext::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
@@ -147,9 +148,9 @@ AstNodeRef NodePayloadContext::getSubstituteRef(AstNodeRef nodeRef) const
         return nodeRef;
 
     const AstNode* node = &ast().node(nodeRef);
-    while (payloadKind(*node) == NodePayloadKind::Substitute)
+    while (payloadInfo(*node).kind == NodePayloadKind::Substitute)
     {
-        nodeRef = AstNodeRef{node->payloadRef()};
+        nodeRef = AstNodeRef{payloadInfo(*node).ref};
         node    = &ast().node(nodeRef);
     }
 
@@ -173,7 +174,8 @@ TypeRef NodePayloadContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRe
         return TypeRef::invalid();
 
     const AstNode&        node  = ast().node(nodeRef);
-    const NodePayloadKind kind  = payloadKind(node);
+    const auto            info  = payloadInfo(node);
+    const NodePayloadKind kind  = info.kind;
     TypeRef               value = TypeRef::invalid();
     switch (kind)
     {
@@ -181,7 +183,7 @@ TypeRef NodePayloadContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRe
             value = getConstant(ctx, nodeRef).typeRef();
             break;
         case NodePayloadKind::TypeRef:
-            value = TypeRef{node.payloadRef()};
+            value = TypeRef{info.ref};
             break;
         case NodePayloadKind::SymbolRef:
             value = getSymbol(ctx, nodeRef).typeRef();
@@ -219,16 +221,17 @@ bool NodePayloadContext::hasSymbol(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return payloadKind(node) == NodePayloadKind::SymbolRef;
+    return payloadInfo(node).kind == NodePayloadKind::SymbolRef;
 }
 
 const Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = payloadShard(node);
+    const auto     info     = payloadInfo(node);
+    const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.payloadRef());
+    const Symbol&  value    = **shard.store.ptr<Symbol*>(info.ref);
     return value;
 }
 
@@ -236,9 +239,10 @@ Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeRef)
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = payloadShard(node);
+    const auto     info     = payloadInfo(node);
+    const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    Symbol&        value    = **shard.store.ptr<Symbol*>(node.payloadRef());
+    Symbol&        value    = **shard.store.ptr<Symbol*>(info.ref);
     return value;
 }
 
@@ -263,16 +267,17 @@ bool NodePayloadContext::hasSymbolList(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return payloadKind(node) == NodePayloadKind::SymbolList;
+    return payloadInfo(node).kind == NodePayloadKind::SymbolList;
 }
 
 std::span<const Symbol*> NodePayloadContext::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = payloadShard(node);
+    const auto     info     = payloadInfo(node);
+    const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    const auto     spanView = shard.store.span<const Symbol*>(node.payloadRef());
+    const auto     spanView = shard.store.span<const Symbol*>(info.ref);
 
     if (spanView.empty())
         return {};
@@ -367,7 +372,7 @@ bool NodePayloadContext::hasPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return payloadKind(node) == NodePayloadKind::Payload;
+    return payloadInfo(node).kind == NodePayloadKind::Payload;
 }
 
 void NodePayloadContext::setPayload(AstNodeRef nodeRef, void* payload)
@@ -390,20 +395,18 @@ void* NodePayloadContext::getPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasPayload(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = payloadShard(node);
+    const auto     info     = payloadInfo(node);
+    const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    return *shard.store.ptr<void*>(node.payloadRef());
+    return *shard.store.ptr<void*>(info.ref);
 }
 
 bool NodePayloadContext::hasCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-
-    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const auto&      shard    = shards_[shardIdx];
-    std::shared_lock lock(shard.mutex);
-    return shard.codeGenPayloads.contains(nodeRef.get());
+    const AstNode& node = ast().node(nodeRef);
+    return payloadKind(node) == NodePayloadKind::CodeGenPayload;
 }
 
 void NodePayloadContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
@@ -411,20 +414,38 @@ void NodePayloadContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
 
+    AstNode& node = ast().node(nodeRef);
+    if (payloadKind(node) == NodePayloadKind::CodeGenPayload)
+    {
+        CodeGenPayloadStorage* storage = codeGenPayloadStorage(node);
+        SWC_ASSERT(storage);
+        storage->payload = payload;
+        return;
+    }
+
+    const NodePayloadKind originalKind  = payloadKind(node);
+    const uint32_t        originalRef   = node.payloadRef();
+    const uint32_t        originalShard = payloadShard(node);
+
     const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
-    shard.codeGenPayloads[nodeRef.get()] = payload;
+
+    const Ref value = shard.store.pushBack(CodeGenPayloadStorage{payload, originalKind, originalRef, originalShard});
+    setPayloadKind(node, NodePayloadKind::CodeGenPayload);
+    setPayloadShard(node, shardIdx);
+    node.setPayloadRef(value);
 }
 
 void* NodePayloadContext::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
-    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const auto&      shard    = shards_[shardIdx];
-    std::shared_lock lock(shard.mutex);
-    const auto       it = shard.codeGenPayloads.find(nodeRef.get());
-    return it == shard.codeGenPayloads.end() ? nullptr : it->second;
+    if (!hasCodeGenPayload(nodeRef))
+        return nullptr;
+    const AstNode&               node    = ast().node(nodeRef);
+    const CodeGenPayloadStorage* storage = codeGenPayloadStorage(node);
+    SWC_ASSERT(storage);
+    return storage->payload;
 }
 
 void NodePayloadContext::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
@@ -446,6 +467,35 @@ void NodePayloadContext::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc
 {
     propagatePayloadFlags(nodeDst, nodeSrc, NODE_PAYLOAD_FLAGS_MASK, false);
     inheritPayloadKindRef(nodeDst, nodeSrc);
+}
+
+NodePayloadContext::PayloadInfo NodePayloadContext::payloadInfo(const AstNode& node) const
+{
+    const NodePayloadKind kind = payloadKind(node);
+    if (kind != NodePayloadKind::CodeGenPayload)
+    {
+        return {
+            .kind     = kind,
+            .ref      = node.payloadRef(),
+            .shardIdx = payloadShard(node),
+        };
+    }
+
+    const CodeGenPayloadStorage* storage = codeGenPayloadStorage(node);
+    SWC_ASSERT(storage);
+    return {
+        .kind     = storage->originalKind,
+        .ref      = storage->originalRef,
+        .shardIdx = storage->originalShard,
+    };
+}
+
+NodePayloadContext::CodeGenPayloadStorage* NodePayloadContext::codeGenPayloadStorage(const AstNode& node) const
+{
+    SWC_ASSERT(payloadKind(node) == NodePayloadKind::CodeGenPayload);
+    const uint32_t shardIdx = payloadShard(node);
+    auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
+    return shard.store.ptr<CodeGenPayloadStorage>(node.payloadRef());
 }
 
 SWC_END_NAMESPACE();

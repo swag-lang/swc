@@ -1,7 +1,6 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include <unordered_map>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,13 +16,14 @@ constexpr static uint32_t NODE_PAYLOAD_SHARD_NUM   = 1 << NODE_PAYLOAD_SHARD_SHI
 
 enum class NodePayloadKind : uint16_t
 {
-    Invalid     = 0,
-    ConstantRef = 1,
-    TypeRef     = 2,
-    SymbolRef   = 3,
-    Substitute  = 4,
-    Payload     = 5,
-    SymbolList  = 6,
+    Invalid        = 0,
+    ConstantRef    = 1,
+    TypeRef        = 2,
+    SymbolRef      = 3,
+    Substitute     = 4,
+    Payload        = 5,
+    SymbolList     = 6,
+    CodeGenPayload = 7,
 };
 
 enum class NodePayloadFlags : uint16_t
@@ -96,10 +96,27 @@ protected:
     static void inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc);
 
 private:
+    struct CodeGenPayloadStorage
+    {
+        void*           payload       = nullptr;
+        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
+        uint32_t        originalRef   = 0;
+        uint32_t        originalShard = 0;
+    };
+
+    struct PayloadInfo
+    {
+        NodePayloadKind kind     = NodePayloadKind::Invalid;
+        uint32_t        ref      = 0;
+        uint32_t        shardIdx = 0;
+    };
+
     std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void              updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
+    PayloadInfo              payloadInfo(const AstNode& node) const;
+    CodeGenPayloadStorage*   codeGenPayloadStorage(const AstNode& node) const;
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
@@ -107,9 +124,8 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex           mutex;
-        PagedStore                          store;
-        std::unordered_map<uint32_t, void*> codeGenPayloads;
+        mutable std::shared_mutex mutex;
+        PagedStore                store;
     };
 
     Shard shards_[NODE_PAYLOAD_SHARD_NUM];

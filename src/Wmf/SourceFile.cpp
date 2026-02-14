@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Wmf/SourceFile.h"
 #include "Compiler/Sema/Core/NodePayloadContext.h"
 #include "Main/CompilerInstance.h"
@@ -17,7 +17,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     flags_(flags)
 {
     nodePayloadContext_ = std::make_unique<NodePayloadContext>();
-    unitTest_    = std::make_unique<Verify>(this);
+    unitTest_           = std::make_unique<Verify>(this);
 }
 
 SourceFile::~SourceFile() = default;

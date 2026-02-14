@@ -143,10 +143,10 @@ public:
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
-    SemaScope*         pushScope(SemaScopeFlags flags);
-    void               popScope();
-    void               pushFrame(const SemaFrame& frame);
-    void               popFrame();
+    SemaScope*                pushScope(SemaScopeFlags flags);
+    void                      popScope();
+    void                      pushFrame(const SemaFrame& frame);
+    void                      popFrame();
     NodePayloadContext&       nodePayloadContext() { return *nodePayloadContext_; }
     const NodePayloadContext& nodePayloadContext() const { return *nodePayloadContext_; }
 
@@ -166,9 +166,9 @@ private:
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
-    TaskContext* ctx_         = nullptr;
+    TaskContext*        ctx_                = nullptr;
     NodePayloadContext* nodePayloadContext_ = nullptr;
-    AstVisit     visit_;
+    AstVisit            visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

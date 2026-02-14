@@ -11,6 +11,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef makeAggregateStructType(TypeManager& typeMgr, SmallVector<TypeRef>& fieldTypes)
+    {
+        SmallVector<IdentifierRef> fieldNames;
+        fieldNames.resize(fieldTypes.size());
+        for (auto& fieldName : fieldNames)
+            fieldName = IdentifierRef::invalid();
+
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, fieldTypes));
+    }
+
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
         FFI::callFFI(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
@@ -20,6 +30,19 @@ namespace
 
 namespace
 {
+    struct FFIStructPair32
+    {
+        uint32_t a;
+        uint32_t b;
+    };
+
+    struct FFIStructTriple64
+    {
+        uint64_t a;
+        uint64_t b;
+        uint64_t c;
+    };
+
     bool ffiNativeReturnTrue()
     {
         return true;
@@ -63,6 +86,22 @@ namespace
     bool ffiNativeConsumePtr(const void* ptr)
     {
         return ptr != nullptr;
+    }
+
+    uint64_t ffiNativeStructPair32Sum(FFIStructPair32 value)
+    {
+        return static_cast<uint64_t>(value.a) + value.b;
+    }
+
+    uint64_t ffiNativeStructPair32Stack(uint64_t a, uint64_t b, uint64_t c, uint64_t d, FFIStructPair32 value)
+    {
+        return a + b + c + d + value.a + value.b;
+    }
+
+    uint64_t ffiNativeStructTriple64Mutate(FFIStructTriple64 value)
+    {
+        value.a += 5;
+        return value.a + value.b + value.c;
     }
 }
 
@@ -240,6 +279,84 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
     bool result = false;
     RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeConsumePtr), args, typeMgr.typeBool(), &result));
     if (!result)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
+{
+    auto& typeMgr = ctx.typeMgr();
+
+    SmallVector fieldTypes = {
+        typeMgr.typeU32(),
+        typeMgr.typeU32(),
+    };
+    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+
+    constexpr FFIStructPair32      value = {.a = 18, .b = 24};
+    const SmallVector<FFIArgument> args  = {
+        {.typeRef = structTypeRef, .valuePtr = &value},
+    };
+
+    uint64_t result = 0;
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Sum), args, typeMgr.typeU64(), &result));
+    if (result != 42)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
+{
+    auto& typeMgr = ctx.typeMgr();
+
+    SmallVector fieldTypes = {
+        typeMgr.typeU32(),
+        typeMgr.typeU32(),
+    };
+    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+
+    constexpr uint64_t        a     = 1;
+    constexpr uint64_t        b     = 2;
+    constexpr uint64_t        c     = 3;
+    constexpr uint64_t        d     = 4;
+    constexpr FFIStructPair32 value = {.a = 10, .b = 20};
+
+    const SmallVector<FFIArgument> args = {
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &c},
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &d},
+        {.typeRef = structTypeRef, .valuePtr = &value},
+    };
+
+    uint64_t result = 0;
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructPair32Stack), args, typeMgr.typeU64(), &result));
+    if (result != 40)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
+{
+    auto& typeMgr = ctx.typeMgr();
+
+    SmallVector fieldTypes = {
+        typeMgr.typeU64(),
+        typeMgr.typeU64(),
+        typeMgr.typeU64(),
+    };
+    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+
+    FFIStructTriple64              value = {.a = 10, .b = 20, .c = 30};
+    const SmallVector<FFIArgument> args  = {
+        {.typeRef = structTypeRef, .valuePtr = &value},
+    };
+
+    uint64_t result = 0;
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeStructTriple64Mutate), args, typeMgr.typeU64(), &result));
+    if (result != 65)
+        return Result::Error;
+    if (value.a != 10 || value.b != 20 || value.c != 30)
         return Result::Error;
 }
 SWC_TEST_END()

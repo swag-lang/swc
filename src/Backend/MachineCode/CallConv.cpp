@@ -92,12 +92,15 @@ namespace
         };
 
         conv.floatPersistentRegs.clear();
-        conv.stackAlignment       = 16;
-        conv.stackParamAlignment  = 8;
-        conv.stackParamSlotSize   = 8;
-        conv.stackShadowSpace     = 32;
-        conv.argRegisterSlotCount = 4;
-        conv.stackRedZone         = false;
+        conv.stackAlignment                            = 16;
+        conv.stackParamAlignment                       = 8;
+        conv.stackParamSlotSize                        = 8;
+        conv.stackShadowSpace                          = 32;
+        conv.argRegisterSlotCount                      = 4;
+        conv.structArgPassing.passByValueSizeMask      = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
+        conv.structArgPassing.passByValueInIntSlots    = true;
+        conv.structArgPassing.passByReferenceNeedsCopy = true;
+        conv.stackRedZone                              = false;
     }
 }
 
@@ -118,6 +121,23 @@ uint32_t CallConv::stackSlotSize() const
     if (stackParamAlignment)
         return stackParamAlignment;
     return sizeof(uint64_t);
+}
+
+bool CallConv::canPassStructArgByValue(uint32_t sizeInBytes) const
+{
+    if (!sizeInBytes || sizeInBytes >= 64)
+        return false;
+
+    const uint64_t sizeBit = uint64_t{1} << sizeInBytes;
+    return (structArgPassing.passByValueSizeMask & sizeBit) != 0;
+}
+
+StructArgPassingKind CallConv::classifyStructArgPassing(uint32_t sizeInBytes) const
+{
+    if (canPassStructArgByValue(sizeInBytes))
+        return StructArgPassingKind::ByValue;
+
+    return StructArgPassingKind::ByReference;
 }
 
 bool CallConv::isIntArgReg(MicroReg reg) const

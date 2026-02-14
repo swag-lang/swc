@@ -19,9 +19,13 @@ namespace
 
     struct FFINormalizedType
     {
-        bool    isVoid  = true;
-        bool    isFloat = false;
-        uint8_t numBits = 0;
+        bool     isVoid             = true;
+        bool     isFloat            = false;
+        bool     isIndirectArg      = false;
+        bool     needsIndirectCopy  = false;
+        uint8_t  numBits            = 0;
+        uint32_t indirectCopySize   = 0;
+        uint32_t indirectCopyAlign  = 0;
     };
 
     struct FFIPackedArg
@@ -36,7 +40,17 @@ namespace
         return FFINormalizedType{.isVoid = isVoid, .isFloat = isFloat, .numBits = numBits};
     }
 
-    FFINormalizedType normalizeType(TaskContext& ctx, TypeRef typeRef)
+    FFINormalizedType makeIndirectStructType(uint32_t copySize, uint32_t copyAlign, bool needsCopy)
+    {
+        FFINormalizedType outType = makeNormalizedType(false, false, 64);
+        outType.isIndirectArg     = true;
+        outType.needsIndirectCopy = needsCopy;
+        outType.indirectCopySize  = copySize;
+        outType.indirectCopyAlign = copyAlign;
+        return outType;
+    }
+
+    FFINormalizedType normalizeType(TaskContext& ctx, const CallConv& conv, TypeRef typeRef)
     {
         SWC_ASSERT(typeRef.isValid());
 
@@ -62,8 +76,33 @@ namespace
         if (ty.isPointerLike() || ty.isNull())
             return makeNormalizedType(false, false, 64);
 
+        if (ty.isStruct() || ty.isAggregateStruct())
+        {
+            const uint64_t rawSize = ty.sizeOf(ctx);
+            SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+            const uint32_t size = static_cast<uint32_t>(rawSize);
+
+            if (conv.classifyStructArgPassing(size) == StructArgPassingKind::ByValue)
+            {
+                SWC_ASSERT(size == 1 || size == 2 || size == 4 || size == 8);
+                return makeNormalizedType(false, false, static_cast<uint8_t>(size * 8));
+            }
+
+            const uint32_t align = std::max(ty.alignOf(ctx), uint32_t{1});
+            return makeIndirectStructType(size, align, conv.structArgPassing.passByReferenceNeedsCopy);
+        }
+
         SWC_ASSERT(false);
         return makeNormalizedType(true, false, 0);
+    }
+
+    uint32_t alignValue(uint32_t value, uint32_t alignment)
+    {
+        SWC_ASSERT(alignment != 0);
+        const uint32_t rem = value % alignment;
+        if (!rem)
+            return value;
+        return value + alignment - rem;
     }
 
     MicroOpBits opBitsFor(uint8_t numBits)
@@ -81,6 +120,7 @@ namespace
     FFIPackedArg packArgValue(const FFINormalizedType& argType, const void* valuePtr)
     {
         SWC_ASSERT(valuePtr != nullptr);
+        SWC_ASSERT(!argType.isIndirectArg);
 
         FFIPackedArg outArg;
         outArg.isFloat = argType.isFloat;
@@ -173,20 +213,64 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 
     constexpr auto          callConvKind = CallConvKind::Host;
     const auto&             conv         = CallConv::get(callConvKind);
-    const FFINormalizedType retType      = normalizeType(ctx, ret.typeRef);
+    const FFINormalizedType retType      = normalizeType(ctx, conv, ret.typeRef);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
+    SWC_ASSERT(!retType.isIndirectArg);
 
-    uint64_t                  intRetTemp = 0;
-    SmallVector<FFIPackedArg> packedArgs;
+    uint64_t                       intRetTemp            = 0;
+    SmallVector<FFIPackedArg>      packedArgs;
+    SmallVector<FFINormalizedType> normalizedArgTypes;
+    uint32_t                       indirectArgStorageSize = 0;
     packedArgs.resize(args.size());
+    normalizedArgTypes.resize(args.size());
 
     const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
         const auto&             arg     = args[i];
-        const FFINormalizedType argType = normalizeType(ctx, arg.typeRef);
+        const FFINormalizedType argType = normalizeType(ctx, conv, arg.typeRef);
         SWC_ASSERT(!argType.isVoid);
-        packedArgs[i] = packArgValue(argType, arg.valuePtr);
+        normalizedArgTypes[i] = argType;
+
+        if (argType.isIndirectArg && argType.needsIndirectCopy)
+        {
+            indirectArgStorageSize = alignValue(indirectArgStorageSize, argType.indirectCopyAlign);
+            const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectCopySize;
+            SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
+            indirectArgStorageSize = static_cast<uint32_t>(nextStorageSize);
+        }
+    }
+
+    SmallVector<uint8_t> indirectArgStorage;
+    if (indirectArgStorageSize)
+        indirectArgStorage.resize(indirectArgStorageSize);
+
+    uint32_t indirectArgStorageOffset = 0;
+    for (uint32_t i = 0; i < numArgs; ++i)
+    {
+        const auto&             arg     = args[i];
+        const FFINormalizedType argType = normalizedArgTypes[i];
+        SWC_ASSERT(arg.valuePtr != nullptr);
+
+        if (!argType.isIndirectArg)
+        {
+            packedArgs[i] = packArgValue(argType, arg.valuePtr);
+            continue;
+        }
+
+        const void* indirectValuePtr = arg.valuePtr;
+        if (argType.needsIndirectCopy)
+        {
+            indirectArgStorageOffset = alignValue(indirectArgStorageOffset, argType.indirectCopyAlign);
+            auto* const copyPtr      = indirectArgStorage.data() + indirectArgStorageOffset;
+            std::memcpy(copyPtr, arg.valuePtr, argType.indirectCopySize);
+            indirectValuePtr          = copyPtr;
+            indirectArgStorageOffset += argType.indirectCopySize;
+        }
+
+        packedArgs[i].value   = reinterpret_cast<uint64_t>(indirectValuePtr);
+        packedArgs[i].isFloat = false;
+        packedArgs[i].numBits = 64;
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();

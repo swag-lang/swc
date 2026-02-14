@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
+#include "Backend/MachineCode/CallConv.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -297,6 +298,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
 {
+    if (CallConv::get(CallConvKind::Host).classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+        return Result::Continue;
+
     const auto& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
@@ -319,6 +323,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
 {
+    if (CallConv::get(CallConvKind::Host).classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+        return Result::Continue;
+
     const auto& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
@@ -350,6 +357,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
 {
+    if (CallConv::get(CallConvKind::Host).classifyStructArgPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
+        return Result::Continue;
+
     const auto& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {

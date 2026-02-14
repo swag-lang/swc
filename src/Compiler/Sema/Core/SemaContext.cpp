@@ -74,18 +74,18 @@ ConstantRef SemaContext::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
         return ConstantRef::invalid();
 
     const AstNode& node = ast().node(nodeRef);
-    switch (semaKind(node))
+    switch (payloadKind(node))
     {
-        case NodeSemaKind::ConstantRef:
+        case NodePayloadKind::ConstantRef:
         {
-            ConstantRef value{node.semaRef()};
+            ConstantRef value{node.payloadRef()};
 #if SWC_HAS_REF_DEBUG_INFO
             value.dbgPtr = &ctx.cstMgr().get(value);
 #endif
             return value;
         }
 
-        case NodeSemaKind::SymbolRef:
+        case NodePayloadKind::SymbolRef:
         {
             const Symbol& sym = getSymbol(ctx, nodeRef);
             if (sym.isConstant())
@@ -95,7 +95,7 @@ ConstantRef SemaContext::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
             break;
         }
 
-        case NodeSemaKind::SymbolList:
+        case NodePayloadKind::SymbolList:
         {
             const std::span<const Symbol*> symList = getSymbolList(nodeRef);
             if (symList.size() > 1)
@@ -119,9 +119,9 @@ void SemaContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::ConstantRef);
-    node.setSemaRef(ref.get());
-    addSemaFlags(node, NodeSemaFlags::Value);
+    setPayloadKind(node, NodePayloadKind::ConstantRef);
+    node.setPayloadRef(ref.get());
+    addPayloadFlags(node, NodePayloadFlags::Value);
 }
 
 bool SemaContext::hasSubstitute(AstNodeRef nodeRef) const
@@ -129,7 +129,7 @@ bool SemaContext::hasSubstitute(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::Substitute;
+    return payloadKind(node) == NodePayloadKind::Substitute;
 }
 
 void SemaContext::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
@@ -137,8 +137,8 @@ void SemaContext::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::Substitute);
-    node.setSemaRef(substNodeRef.get());
+    setPayloadKind(node, NodePayloadKind::Substitute);
+    node.setPayloadRef(substNodeRef.get());
 }
 
 AstNodeRef SemaContext::getSubstituteRef(AstNodeRef nodeRef) const
@@ -147,9 +147,9 @@ AstNodeRef SemaContext::getSubstituteRef(AstNodeRef nodeRef) const
         return nodeRef;
 
     const AstNode* node = &ast().node(nodeRef);
-    while (semaKind(*node) == NodeSemaKind::Substitute)
+    while (payloadKind(*node) == NodePayloadKind::Substitute)
     {
-        nodeRef = AstNodeRef{node->semaRef()};
+        nodeRef = AstNodeRef{node->payloadRef()};
         node    = &ast().node(nodeRef);
     }
 
@@ -173,20 +173,20 @@ TypeRef SemaContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
         return TypeRef::invalid();
 
     const AstNode&     node  = ast().node(nodeRef);
-    const NodeSemaKind kind  = semaKind(node);
+    const NodePayloadKind kind  = payloadKind(node);
     TypeRef            value = TypeRef::invalid();
     switch (kind)
     {
-        case NodeSemaKind::ConstantRef:
+        case NodePayloadKind::ConstantRef:
             value = getConstant(ctx, nodeRef).typeRef();
             break;
-        case NodeSemaKind::TypeRef:
-            value = TypeRef{node.semaRef()};
+        case NodePayloadKind::TypeRef:
+            value = TypeRef{node.payloadRef()};
             break;
-        case NodeSemaKind::SymbolRef:
+        case NodePayloadKind::SymbolRef:
             value = getSymbol(ctx, nodeRef).typeRef();
             break;
-        case NodeSemaKind::SymbolList:
+        case NodePayloadKind::SymbolList:
         {
             const auto symbols = getSymbolList(nodeRef);
             SWC_ASSERT(!symbols.empty());
@@ -210,8 +210,8 @@ void SemaContext::setType(AstNodeRef nodeRef, TypeRef ref)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::TypeRef);
-    node.setSemaRef(ref.get());
+    setPayloadKind(node, NodePayloadKind::TypeRef);
+    node.setPayloadRef(ref.get());
 }
 
 bool SemaContext::hasSymbol(AstNodeRef nodeRef) const
@@ -219,16 +219,16 @@ bool SemaContext::hasSymbol(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::SymbolRef;
+    return payloadKind(node) == NodePayloadKind::SymbolRef;
 }
 
 const Symbol& SemaContext::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = semaShard(node);
+    const uint32_t shardIdx = payloadShard(node);
     auto&          shard    = shards_[shardIdx];
-    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.semaRef());
+    const Symbol&  value    = **shard.store.ptr<Symbol*>(node.payloadRef());
     return value;
 }
 
@@ -236,26 +236,26 @@ Symbol& SemaContext::getSymbol(const TaskContext&, AstNodeRef nodeRef)
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = semaShard(node);
+    const uint32_t shardIdx = payloadShard(node);
     auto&          shard    = shards_[shardIdx];
-    Symbol&        value    = **shard.store.ptr<Symbol*>(node.semaRef());
+    Symbol&        value    = **shard.store.ptr<Symbol*>(node.payloadRef());
     return value;
 }
 
 void SemaContext::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     SWC_ASSERT(symbol);
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolRef);
-    setSemaShard(node, shardIdx);
+    setPayloadKind(node, NodePayloadKind::SymbolRef);
+    setPayloadShard(node, shardIdx);
 
     const Ref value = shard.store.pushBack(symbol);
-    node.setSemaRef(value);
-    updateSemaFlags(node, std::span{&symbol, 1});
+    node.setPayloadRef(value);
+    updatePayloadFlags(node, std::span{&symbol, 1});
 }
 
 bool SemaContext::hasSymbolList(AstNodeRef nodeRef) const
@@ -263,16 +263,16 @@ bool SemaContext::hasSymbolList(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::SymbolList;
+    return payloadKind(node) == NodePayloadKind::SymbolList;
 }
 
 std::span<const Symbol*> SemaContext::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = semaShard(node);
+    const uint32_t shardIdx = payloadShard(node);
     auto&          shard    = shards_[shardIdx];
-    const auto     spanView = shard.store.span<const Symbol*>(node.semaRef());
+    const auto     spanView = shard.store.span<const Symbol*>(node.payloadRef());
 
     if (spanView.empty())
         return {};
@@ -296,37 +296,37 @@ std::span<Symbol*> SemaContext::getSymbolList(AstNodeRef nodeRef)
 
 void SemaContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolList);
-    setSemaShard(node, shardIdx);
+    setPayloadKind(node, NodePayloadKind::SymbolList);
+    setPayloadShard(node, shardIdx);
 
     const Ref value = shard.store.pushSpan(symbols).get();
-    node.setSemaRef(value);
-    updateSemaFlags(node, symbols);
+    node.setPayloadRef(value);
+    updatePayloadFlags(node, symbols);
 }
 
 void SemaContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::SymbolList);
-    setSemaShard(node, shardIdx);
+    setPayloadKind(node, NodePayloadKind::SymbolList);
+    setPayloadShard(node, shardIdx);
 
     const Ref value = shard.store.pushSpan(symbols).get();
-    node.setSemaRef(value);
+    node.setPayloadRef(value);
 
     SmallVector<const Symbol*> tmp;
     tmp.reserve(symbols.size());
     for (const auto* s : symbols)
         tmp.push_back(s);
-    updateSemaFlags(node, std::span{tmp.data(), tmp.size()});
+    updatePayloadFlags(node, std::span{tmp.data(), tmp.size()});
 }
 
 void SemaContext::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
@@ -339,7 +339,7 @@ void SemaContext::setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols)
     setSymbolListImpl(nodeRef, symbols);
 }
 
-void SemaContext::updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols)
+void SemaContext::updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols)
 {
     bool isValue  = true;
     bool isLValue = true;
@@ -352,14 +352,14 @@ void SemaContext::updateSemaFlags(AstNode& node, std::span<const Symbol*> symbol
     }
 
     if (isValue)
-        addSemaFlags(node, NodeSemaFlags::Value);
+        addPayloadFlags(node, NodePayloadFlags::Value);
     else
-        removeSemaFlags(node, NodeSemaFlags::Value);
+        removePayloadFlags(node, NodePayloadFlags::Value);
 
     if (isLValue)
-        addSemaFlags(node, NodeSemaFlags::LValue);
+        addPayloadFlags(node, NodePayloadFlags::LValue);
     else
-        removeSemaFlags(node, NodeSemaFlags::LValue);
+        removePayloadFlags(node, NodePayloadFlags::LValue);
 }
 
 bool SemaContext::hasPayload(AstNodeRef nodeRef) const
@@ -367,32 +367,32 @@ bool SemaContext::hasPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return semaKind(node) == NodeSemaKind::Payload;
+    return payloadKind(node) == NodePayloadKind::Payload;
 }
 
 void SemaContext::setPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
 
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
-    setSemaKind(node, NodeSemaKind::Payload);
-    setSemaShard(node, shardIdx);
+    setPayloadKind(node, NodePayloadKind::Payload);
+    setPayloadShard(node, shardIdx);
 
     const Ref value = shard.store.pushBack(payload);
-    node.setSemaRef(value);
+    node.setPayloadRef(value);
 }
 
 void* SemaContext::getPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasPayload(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
-    const uint32_t shardIdx = semaShard(node);
+    const uint32_t shardIdx = payloadShard(node);
     auto&          shard    = shards_[shardIdx];
-    return *shard.store.ptr<void*>(node.semaRef());
+    return *shard.store.ptr<void*>(node.payloadRef());
 }
 
 bool SemaContext::hasCodeGenPayload(AstNodeRef nodeRef) const
@@ -400,7 +400,7 @@ bool SemaContext::hasCodeGenPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
 
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&      shard    = shards_[shardIdx];
     std::shared_lock lock(shard.mutex);
     return shard.codeGenPayloads.contains(nodeRef.get());
@@ -411,7 +411,7 @@ void SemaContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
 
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
     shard.codeGenPayloads[nodeRef.get()] = payload;
@@ -420,32 +420,32 @@ void SemaContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
 void* SemaContext::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
-    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const auto&      shard    = shards_[shardIdx];
     std::shared_lock lock(shard.mutex);
     const auto       it = shard.codeGenPayloads.find(nodeRef.get());
     return it == shard.codeGenPayloads.end() ? nullptr : it->second;
 }
 
-void SemaContext::propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
+void SemaContext::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
     if (merge)
-        nodeDst.semaBits() |= (nodeSrc.semaBits() & mask);
+        nodeDst.payloadBits() |= (nodeSrc.payloadBits() & mask);
     else
-        nodeDst.semaBits() = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
+        nodeDst.payloadBits() = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
 }
 
-void SemaContext::inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
+void SemaContext::inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    constexpr uint16_t mask = SEMA_KIND_MASK | SEMA_SHARD_MASK;
-    nodeDst.semaBits()      = (nodeDst.semaBits() & ~mask) | (nodeSrc.semaBits() & mask);
-    nodeDst.setSemaRef(nodeSrc.semaRef());
+    constexpr uint16_t mask = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
+    nodeDst.payloadBits()      = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
+    nodeDst.setPayloadRef(nodeSrc.payloadRef());
 }
 
-void SemaContext::inheritSema(AstNode& nodeDst, const AstNode& nodeSrc)
+void SemaContext::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
 {
-    propagateSemaFlags(nodeDst, nodeSrc, SEMA_FLAGS_MASK, false);
-    inheritSemaKindRef(nodeDst, nodeSrc);
+    propagatePayloadFlags(nodeDst, nodeSrc, NODE_PAYLOAD_FLAGS_MASK, false);
+    inheritPayloadKindRef(nodeDst, nodeSrc);
 }
 
 SWC_END_NAMESPACE();

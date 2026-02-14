@@ -9,13 +9,13 @@ class SymbolNamespace;
 class Symbol;
 class SemaScope;
 
-constexpr uint16_t        SEMA_KIND_MASK   = 0x000F;
-constexpr uint16_t        SEMA_SHARD_MASK  = 0x00F0;
-constexpr uint16_t        SEMA_FLAGS_MASK  = 0xFF00;
-constexpr uint16_t        SEMA_SHARD_SHIFT = 4;
-constexpr static uint32_t SEMA_SHARD_NUM   = 1 << SEMA_SHARD_SHIFT;
+constexpr uint16_t        NODE_PAYLOAD_KIND_MASK   = 0x000F;
+constexpr uint16_t        NODE_PAYLOAD_SHARD_MASK  = 0x00F0;
+constexpr uint16_t        NODE_PAYLOAD_FLAGS_MASK  = 0xFF00;
+constexpr uint16_t        NODE_PAYLOAD_SHARD_SHIFT = 4;
+constexpr static uint32_t NODE_PAYLOAD_SHARD_NUM   = 1 << NODE_PAYLOAD_SHARD_SHIFT;
 
-enum class NodeSemaKind : uint16_t
+enum class NodePayloadKind : uint16_t
 {
     Invalid     = 0,
     ConstantRef = 1,
@@ -26,7 +26,7 @@ enum class NodeSemaKind : uint16_t
     SymbolList  = 6,
 };
 
-enum class NodeSemaFlags : uint16_t
+enum class NodePayloadFlags : uint16_t
 {
     FoldedTypedConst = 1 << 13,
     LValue           = 1 << 14,
@@ -43,14 +43,14 @@ protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodeSemaKind  semaKind(const AstNode& node) { return static_cast<NodeSemaKind>(node.semaBits() & SEMA_KIND_MASK); }
-    static void          setSemaKind(AstNode& node, NodeSemaKind value) { node.semaBits() = (node.semaBits() & ~SEMA_KIND_MASK) | static_cast<uint16_t>(value); }
-    static uint32_t      semaShard(const AstNode& node) { return (node.semaBits() & SEMA_SHARD_MASK) >> SEMA_SHARD_SHIFT; }
-    static void          setSemaShard(AstNode& node, uint32_t shard) { node.semaBits() = (node.semaBits() & ~SEMA_SHARD_MASK) | static_cast<uint16_t>(shard << SEMA_SHARD_SHIFT); }
-    static void          addSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() |= static_cast<uint16_t>(value); }
-    static void          removeSemaFlags(AstNode& node, NodeSemaFlags value) { node.semaBits() &= ~static_cast<uint16_t>(value); }
-    static bool          hasSemaFlags(const AstNode& node, NodeSemaFlags value) { return (node.semaBits() & static_cast<uint16_t>(value)) != 0; }
-    static NodeSemaFlags semaFlags(const AstNode& node) { return static_cast<NodeSemaFlags>(node.semaBits() & ~SEMA_KIND_MASK & ~SEMA_SHARD_MASK); }
+    static NodePayloadKind  payloadKind(const AstNode& node) { return static_cast<NodePayloadKind>(node.payloadBits() & NODE_PAYLOAD_KIND_MASK); }
+    static void          setPayloadKind(AstNode& node, NodePayloadKind value) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK) | static_cast<uint16_t>(value); }
+    static uint32_t      payloadShard(const AstNode& node) { return (node.payloadBits() & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT; }
+    static void          setPayloadShard(AstNode& node, uint32_t shard) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_SHARD_MASK) | static_cast<uint16_t>(shard << NODE_PAYLOAD_SHARD_SHIFT); }
+    static void          addPayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() |= static_cast<uint16_t>(value); }
+    static void          removePayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() &= ~static_cast<uint16_t>(value); }
+    static bool          hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
+    static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
     SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }
@@ -91,15 +91,15 @@ protected:
     void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
     void* getCodeGenPayload(AstNodeRef nodeRef) const;
 
-    static void propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
-    static void inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
-    static void inheritSema(AstNode& nodeDst, const AstNode& nodeSrc);
+    static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
+    static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
+    static void inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc);
 
 private:
     std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
-    static void              updateSemaFlags(AstNode& node, std::span<const Symbol*> symbols);
+    static void              updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
@@ -112,7 +112,7 @@ private:
         std::unordered_map<uint32_t, void*> codeGenPayloads;
     };
 
-    Shard shards_[SEMA_SHARD_NUM];
+    Shard shards_[NODE_PAYLOAD_SHARD_NUM];
 };
 
 SWC_END_NAMESPACE();

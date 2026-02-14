@@ -122,13 +122,13 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
 Result AstParenExpr::semaPostNode(Sema& sema)
 {
-    sema.inheritSema(*this, nodeExprRef);
+    sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;
 }
 
 Result AstNamedArgument::semaPostNode(Sema& sema)
 {
-    sema.inheritSema(*this, nodeArgRef);
+    sema.inheritPayload(*this, nodeArgRef);
     return Result::Continue;
 }
 

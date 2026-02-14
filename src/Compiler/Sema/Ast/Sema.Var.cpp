@@ -554,7 +554,7 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
                                          AstModifierFlagsE::MoveRaw;
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
-    sema.inheritSema(*this, nodeExprRef);
+    sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;
 }
 

@@ -26,7 +26,7 @@ SWC_BEGIN_NAMESPACE();
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
     RESULT_VERIFY(SemaCheck::isConstant(sema, nodeExprRef));
-    sema.inheritSema(*this, nodeExprRef);
+    sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;
 }
 
@@ -634,7 +634,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
     RESULT_VERIFY(SemaJit::runExpr(sema, nodeExprRef));
-    sema.inheritSema(sema.node(sema.curNodeRef()), nodeExprRef);
+    sema.inheritPayload(sema.node(sema.curNodeRef()), nodeExprRef);
     return Result::Continue;
 }
 

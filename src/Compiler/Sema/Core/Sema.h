@@ -88,22 +88,22 @@ public:
     bool                     hasCodeGenPayload(AstNodeRef n) const { return semaContext().hasCodeGenPayload(n); }
     void                     setCodeGenPayload(AstNodeRef n, void* payload) { semaContext().setCodeGenPayload(n, payload); }
 
-    bool isLValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::LValue); }
-    bool isValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Value); }
-    bool isFoldedTypedConst(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::FoldedTypedConst); }
-    void setIsLValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::LValue); }
-    void setIsValue(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::Value); }
-    void setFoldedTypedConst(AstNode& node) { SemaContext::addSemaFlags(node, NodeSemaFlags::FoldedTypedConst); }
-    bool isLValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::LValue); }
-    bool isValue(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::Value); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return SemaContext::hasSemaFlags(node(ref), NodeSemaFlags::FoldedTypedConst); }
-    void setIsLValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::LValue); }
-    void setIsValue(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::Value); }
-    void setFoldedTypedConst(AstNodeRef ref) { SemaContext::addSemaFlags(node(ref), NodeSemaFlags::FoldedTypedConst); }
+    bool isLValue(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::LValue); }
+    bool isValue(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::LValue); }
+    void setIsValue(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    bool isValue(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    void setIsValue(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
 
-    void inheritSemaFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::propagateSemaFlags(nodeDst, node(srcRef), SEMA_FLAGS_MASK, false); }
-    void inheritSemaKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSemaKindRef(nodeDst, node(srcRef)); }
-    void inheritSema(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritSema(nodeDst, node(srcRef)); }
+    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
+    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritPayloadKindRef(nodeDst, node(srcRef)); }
+    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritPayload(nodeDst, node(srcRef)); }
 
     template<typename T>
     T* payload(AstNodeRef n) const

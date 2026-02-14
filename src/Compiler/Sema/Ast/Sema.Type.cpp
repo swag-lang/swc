@@ -263,7 +263,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
         return Result::Error;
     }
 
-    sema.inheritSema(*this, nodeIdentRef);
+    sema.inheritPayload(*this, nodeIdentRef);
     return Result::Continue;
 }
 

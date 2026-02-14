@@ -53,7 +53,7 @@ struct AstNode
     void clearFlags()
     {
         parserFlags_ = 0;
-        semaBits_    = 0;
+        payloadBits_    = 0;
     }
 
     static void collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
@@ -76,10 +76,10 @@ struct AstNode
     static Result     codeGenPostNodeChild(CodeGen&, AstNodeRef&) { return Result::Continue; }
     static Result     codeGenPostNode(CodeGen&) { return Result::Continue; }
 
-    uint16_t&       semaBits() { return semaBits_; }
-    const uint16_t& semaBits() const { return semaBits_; }
-    uint32_t        semaRef() const { return semaRef_; }
-    void            setSemaRef(uint32_t val) { semaRef_ = val; }
+    uint16_t&       payloadBits() { return payloadBits_; }
+    const uint16_t& payloadBits() const { return payloadBits_; }
+    uint32_t        payloadRef() const { return payloadRef_; }
+    void            setPayloadRef(uint32_t val) { payloadRef_ = val; }
 
     ParserFlags parserFlags() const { return parserFlags_; }
 
@@ -134,11 +134,11 @@ struct AstNode
 #endif
 
 protected:
-    uint16_t      semaBits_ = 0;
+    uint16_t      payloadBits_ = 0;
     AstNodeId     id_       = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
     SourceCodeRef codeRef_;
-    uint32_t      semaRef_ = 0;
+    uint32_t      payloadRef_ = 0;
 };
 
 template<AstNodeId I, typename E = void>

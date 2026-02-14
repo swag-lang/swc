@@ -2,7 +2,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
-#include "Compiler/Sema/Core/SemaContext.h"
+#include "Compiler/Sema/Core/NodePayloadContext.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -19,7 +19,7 @@ class IdentifierManager;
 class Sema
 {
 public:
-    Sema(TaskContext& ctx, SemaContext& semInfo, bool declPass);
+    Sema(TaskContext& ctx, NodePayloadContext& payloadContext, bool declPass);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
@@ -56,65 +56,65 @@ public:
     const SourceFile*        file() const;
     const Ast&               ast() const;
 
-    const SymbolNamespace& moduleNamespace() const { return semaContext().moduleNamespace(); }
-    SymbolNamespace&       moduleNamespace() { return semaContext().moduleNamespace(); }
-    void                   setModuleNamespace(SymbolNamespace& ns) { semaContext().setModuleNamespace(ns); }
-    const SymbolNamespace& fileNamespace() const { return semaContext().fileNamespace(); }
-    SymbolNamespace&       fileNamespace() { return semaContext().fileNamespace(); }
-    void                   setFileNamespace(SymbolNamespace& ns) { semaContext().setFileNamespace(ns); }
+    const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
+    SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }
+    void                   setModuleNamespace(SymbolNamespace& ns) { nodePayloadContext().setModuleNamespace(ns); }
+    const SymbolNamespace& fileNamespace() const { return nodePayloadContext().fileNamespace(); }
+    SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
+    void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
 
-    TypeRef                  typeRefOf(AstNodeRef n) const { return semaContext().getTypeRef(ctx(), n); }
-    ConstantRef              constantRefOf(AstNodeRef n) const { return semaContext().getConstantRef(ctx(), n); }
-    const ConstantValue&     constantOf(AstNodeRef n) const { return semaContext().getConstant(ctx(), n); }
-    const Symbol&            symbolOf(AstNodeRef n) const { return semaContext().getSymbol(ctx(), n); }
-    Symbol&                  symbolOf(AstNodeRef n) { return semaContext().getSymbol(ctx(), n); }
-    void                     setType(AstNodeRef n, TypeRef ref) { semaContext().setType(n, ref); }
-    void                     setConstant(AstNodeRef n, ConstantRef ref) { semaContext().setConstant(n, ref); }
-    void                     setSymbol(AstNodeRef n, Symbol* symbol) { semaContext().setSymbol(n, symbol); }
-    void                     setSymbol(AstNodeRef n, const Symbol* symbol) { semaContext().setSymbol(n, symbol); }
-    bool                     hasType(AstNodeRef n) const { return semaContext().hasType(ctx(), n); }
-    bool                     hasConstant(AstNodeRef n) const { return semaContext().hasConstant(ctx(), n); }
-    bool                     hasSymbol(AstNodeRef n) const { return semaContext().hasSymbol(n); }
-    bool                     hasSubstitute(AstNodeRef n) const { return semaContext().hasSubstitute(n); }
-    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return semaContext().getSubstituteRef(n); }
-    void                     setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { semaContext().setSubstitute(n, substNodeRef); }
-    void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { semaContext().setSymbolList(n, symbols); }
-    void                     setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { semaContext().setSymbolList(n, symbols); }
-    bool                     hasSymbolList(AstNodeRef n) const { return semaContext().hasSymbolList(n); }
-    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return semaContext().getSymbolList(n); }
-    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return semaContext().getSymbolList(n); }
-    bool                     hasPayload(AstNodeRef n) const { return semaContext().hasPayload(n); }
-    void                     setPayload(AstNodeRef n, void* payload) { semaContext().setPayload(n, payload); }
-    bool                     hasCodeGenPayload(AstNodeRef n) const { return semaContext().hasCodeGenPayload(n); }
-    void                     setCodeGenPayload(AstNodeRef n, void* payload) { semaContext().setCodeGenPayload(n, payload); }
+    TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
+    ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
+    const ConstantValue&     constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), n); }
+    const Symbol&            symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&                  symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    void                     setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
+    void                     setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }
+    void                     setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
+    void                     setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
+    bool                     hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), n); }
+    bool                     hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), n); }
+    bool                     hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    bool                     hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
+    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
+    void                     setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
+    void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
+    void                     setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
+    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
+    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    bool                     hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
+    void                     setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
+    bool                     hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
+    void                     setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
 
-    bool isLValue(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::LValue); }
-    bool isValue(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(const AstNode& node) const { return SemaContext::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::LValue); }
-    void setIsValue(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNode& node) { SemaContext::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    bool isLValue(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    bool isValue(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return SemaContext::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    void setIsValue(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNodeRef ref) { SemaContext::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::LValue); }
+    bool isValue(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::LValue); }
+    void setIsValue(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    bool isValue(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    void setIsValue(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
 
-    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
-    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritPayloadKindRef(nodeDst, node(srcRef)); }
-    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { SemaContext::inheritPayload(nodeDst, node(srcRef)); }
+    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
+    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::inheritPayloadKindRef(nodeDst, node(srcRef)); }
+    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::inheritPayload(nodeDst, node(srcRef)); }
 
     template<typename T>
     T* payload(AstNodeRef n) const
     {
-        return static_cast<T*>(semaContext().getPayload(n));
+        return static_cast<T*>(nodePayloadContext().getPayload(n));
     }
 
     template<typename T>
     T* codeGenPayload(AstNodeRef n) const
     {
-        return static_cast<T*>(semaContext().getCodeGenPayload(n));
+        return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
     }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
@@ -147,8 +147,8 @@ private:
     void               popScope();
     void               pushFrame(const SemaFrame& frame);
     void               popFrame();
-    SemaContext&       semaContext() { return *semaContext_; }
-    const SemaContext& semaContext() const { return *semaContext_; }
+    NodePayloadContext&       nodePayloadContext() { return *nodePayloadContext_; }
+    const NodePayloadContext& nodePayloadContext() const { return *nodePayloadContext_; }
 
     void   setVisitors();
     Result preDecl(AstNode& node);
@@ -167,7 +167,7 @@ private:
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
     TaskContext* ctx_         = nullptr;
-    SemaContext* semaContext_ = nullptr;
+    NodePayloadContext* nodePayloadContext_ = nullptr;
     AstVisit     visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

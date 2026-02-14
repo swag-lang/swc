@@ -322,7 +322,7 @@
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp" />
         <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp" />
         <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp" />
-        <ClCompile Include="src\Compiler\Sema\Core\SemaContext.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\NodePayloadContext.cpp" />
         <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp" />
         <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp" />
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp" />
@@ -456,7 +456,7 @@
         <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\Sema.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaContext.h"/>
+        <ClInclude Include="src\Compiler\Sema\Core\NodePayloadContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>

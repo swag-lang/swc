@@ -59,7 +59,7 @@ namespace Command
         for (SourceFile* f : files)
         {
             f->setModuleNamespace(*moduleNamespace);
-            const auto job = heapNew<SemaJob>(ctx, f->semaContext(), true);
+            const auto job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -67,7 +67,7 @@ namespace Command
 
         for (SourceFile* f : files)
         {
-            const auto job = heapNew<SemaJob>(ctx, f->semaContext(), false);
+            const auto job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

@@ -387,7 +387,7 @@
     <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Core\SemaContext.cpp">
+    <ClCompile Include="src\Compiler\Sema\Core\NodePayloadContext.cpp">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp">
@@ -740,7 +740,7 @@
     <ClInclude Include="src\Compiler\Sema\Core\Sema.h">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Core\SemaContext.h">
+    <ClInclude Include="src\Compiler\Sema\Core\NodePayloadContext.h">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h">

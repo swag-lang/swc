@@ -1,8 +1,8 @@
-﻿#pragma once
+#pragma once
 
 SWC_BEGIN_NAMESPACE();
 
-class SemaContext;
+class NodePayloadContext;
 class SymbolNamespace;
 class Ast;
 class TaskContext;
@@ -35,8 +35,8 @@ public:
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t             size() const { return content_.size() - TRAILING_0; }
-    SemaContext&       semaContext() { return *semaContext_; }
-    const SemaContext& semaContext() const { return *semaContext_; }
+    NodePayloadContext&       nodePayloadContext() { return *nodePayloadContext_; }
+    const NodePayloadContext& nodePayloadContext() const { return *nodePayloadContext_; }
     FileFlags&         flags() { return flags_; }
     const FileFlags&   flags() const { return flags_; }
     bool               hasFlag(FileFlags flag) const { return flags_.has(flag); }
@@ -61,7 +61,7 @@ private:
     fs::path                     path_;
     std::vector<char8_t>         content_;
     FileFlags                    flags_ = FileFlagsE::Zero;
-    std::unique_ptr<SemaContext> semaContext_;
+    std::unique_ptr<NodePayloadContext> nodePayloadContext_;
     std::unique_ptr<Verify>      unitTest_;
     bool                         hasError_   = false;
     bool                         hasWarning_ = false;

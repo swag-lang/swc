@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/SemaContext.h"
+#include "Compiler/Sema/Core/NodePayloadContext.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
@@ -15,23 +15,23 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Sema::Sema(TaskContext& ctx, SemaContext& semInfo, bool declPass) :
+Sema::Sema(TaskContext& ctx, NodePayloadContext& payloadContext, bool declPass) :
     ctx_(&ctx),
-    semaContext_(&semInfo),
-    startSymMap_(semaContext().moduleNamespace().ownerSymMap()),
+    nodePayloadContext_(&payloadContext),
+    startSymMap_(nodePayloadContext().moduleNamespace().ownerSymMap()),
     declPass_(declPass)
 {
-    visit_.start(semaContext_->ast(), semaContext_->ast().root());
+    visit_.start(nodePayloadContext_->ast(), nodePayloadContext_->ast().root());
     setVisitors();
     pushFrame({});
 }
 
 Sema::Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root) :
     ctx_(&ctx),
-    semaContext_(parent.semaContext_),
+    nodePayloadContext_(parent.nodePayloadContext_),
     startSymMap_(parent.curScope_ ? parent.curScope_->symMap() : parent.startSymMap_)
 {
-    visit_.start(semaContext_->ast(), root);
+    visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
     setVisitors();
 
@@ -101,7 +101,7 @@ const SourceView& Sema::srcView(SourceViewRef srcViewRef) const
 
 Ast& Sema::ast()
 {
-    return semaContext_->ast();
+    return nodePayloadContext_->ast();
 }
 
 Utf8 Sema::fileName() const
@@ -116,7 +116,7 @@ const SourceFile* Sema::file() const
 
 const Ast& Sema::ast() const
 {
-    return semaContext_->ast();
+    return nodePayloadContext_->ast();
 }
 
 SemaScope* Sema::pushScope(SemaScopeFlags flags)

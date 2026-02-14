@@ -1,6 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Wmf/SourceFile.h"
-#include "Compiler/Sema/Core/SemaContext.h"
+#include "Compiler/Sema/Core/NodePayloadContext.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -16,7 +16,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    semaContext_ = std::make_unique<SemaContext>();
+    nodePayloadContext_ = std::make_unique<NodePayloadContext>();
     unitTest_    = std::make_unique<Verify>(this);
 }
 
@@ -24,17 +24,17 @@ SourceFile::~SourceFile() = default;
 
 Ast& SourceFile::ast()
 {
-    return semaContext_->ast();
+    return nodePayloadContext_->ast();
 }
 
 const Ast& SourceFile::ast() const
 {
-    return semaContext_->ast();
+    return nodePayloadContext_->ast();
 }
 
 void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
 {
-    semaContext_->setModuleNamespace(ns);
+    nodePayloadContext_->setModuleNamespace(ns);
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)

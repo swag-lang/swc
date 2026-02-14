@@ -33,7 +33,7 @@ enum class NodePayloadFlags : uint16_t
     Value            = 1 << 15,
 };
 
-class SemaContext
+class NodePayloadContext
 {
     friend class Sema;
     friend class SourceFile;

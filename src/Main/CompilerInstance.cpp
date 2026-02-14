@@ -23,6 +23,23 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    const Runtime::CompilerMessage* runtimeCompilerGetMessage()
+    {
+        return nullptr;
+    }
+
+    Runtime::BuildCfg* runtimeCompilerGetBuildCfg()
+    {
+        return nullptr;
+    }
+
+    void runtimeCompilerCompileString(Runtime::String)
+    {
+    }
+}
+
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
@@ -33,6 +50,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
     jitMemMgr_ = std::make_unique<JITExecMemoryManager>();
+    setupRuntimeCompiler();
 }
 
 CompilerInstance::~CompilerInstance() = default;
@@ -131,6 +149,15 @@ void CompilerInstance::processCommand()
         default:
             SWC_UNREACHABLE();
     }
+}
+
+void CompilerInstance::setupRuntimeCompiler()
+{
+    runtimeCompiler_.obj = nullptr;
+    runtimeCompiler_.itable = runtimeCompilerITable_;
+    runtimeCompilerITable_[0] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
+    runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
+    runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);
 }
 
 ExitCode CompilerInstance::run()

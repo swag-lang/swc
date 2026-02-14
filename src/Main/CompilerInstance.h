@@ -48,6 +48,8 @@ public:
     const DataSegment&          compilerSegment() const { return compilerSegment_; }
     Runtime::BuildCfg&          buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg&    buildCfg() const { return buildCfg_; }
+    Runtime::ICompiler&         runtimeCompiler() { return runtimeCompiler_; }
+    const Runtime::ICompiler&   runtimeCompiler() const { return runtimeCompiler_; }
     JITExecMemoryManager&       jitMemMgr() { return *jitMemMgr_; }
     const JITExecMemoryManager& jitMemMgr() const { return *jitMemMgr_; }
 
@@ -122,6 +124,9 @@ private:
     DataSegment                              constantSegment_;
     DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
+    Runtime::ICompiler                       runtimeCompiler_{};
+    Runtime::CompilerMessage                 runtimeCompilerMessage_{};
+    void*                                    runtimeCompilerITable_[3]{};
     std::mutex                               mutex_;
     bool                                     changed_ = true;
 
@@ -142,6 +147,7 @@ private:
     void logAfter();
     void logStats();
     void processCommand();
+    void setupRuntimeCompiler();
 };
 
 SWC_END_NAMESPACE();

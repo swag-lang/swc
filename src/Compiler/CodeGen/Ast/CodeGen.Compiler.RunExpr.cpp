@@ -2,50 +2,11 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Backend/MachineCode/Micro/MicroInstrHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    void emitStructCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, MicroReg tmpReg, uint32_t sizeInBytes)
-    {
-        auto&    builder = codeGen.builder();
-        uint64_t offset  = 0;
-        uint32_t remain  = sizeInBytes;
-
-        while (remain >= 8)
-        {
-            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B64, EncodeFlagsE::Zero);
-            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-            offset += 8;
-            remain -= 8;
-        }
-
-        if (remain >= 4)
-        {
-            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B32, EncodeFlagsE::Zero);
-            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B32, EncodeFlagsE::Zero);
-            offset += 4;
-            remain -= 4;
-        }
-
-        if (remain >= 2)
-        {
-            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B16, EncodeFlagsE::Zero);
-            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B16, EncodeFlagsE::Zero);
-            offset += 2;
-            remain -= 2;
-        }
-
-        if (remain >= 1)
-        {
-            builder.encodeLoadRegMem(tmpReg, srcReg, offset, MicroOpBits::B8, EncodeFlagsE::Zero);
-            builder.encodeLoadMemReg(dstReg, offset, tmpReg, MicroOpBits::B8, EncodeFlagsE::Zero);
-        }
-    }
-}
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
@@ -77,14 +38,14 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
                 if (bytes.data() && bytes.size() >= structSize)
                 {
                     builder.encodeLoadRegImm(srcReg, reinterpret_cast<uint64_t>(bytes.data()), MicroOpBits::B64, EncodeFlagsE::Zero);
-                    emitStructCopy(codeGen, hiddenRetPtrReg, srcReg, tmpReg, structSize);
+                    MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
                 }
             }
             else if (const auto* payload = codeGen.payload(nodeExprRef); payload && payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64)
             {
                 builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
                 builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-                emitStructCopy(codeGen, hiddenRetPtrReg, srcReg, tmpReg, structSize);
+                MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
             }
         }
         else

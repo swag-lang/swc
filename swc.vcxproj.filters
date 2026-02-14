@@ -144,6 +144,9 @@
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.cpp">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstr.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
@@ -627,6 +630,9 @@
       <Filter>src\Backend\MachineCode\Encoder</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroAbiCall.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.h">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc">

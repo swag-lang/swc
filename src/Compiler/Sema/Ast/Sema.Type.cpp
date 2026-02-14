@@ -48,10 +48,10 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
             return Result::Continue;
 
         case TokenId::TypeF32:
-            sema.setType(nodeRef, typeMgr.typeFloat(32));
+            sema.setType(nodeRef, typeMgr.typeF32());
             return Result::Continue;
         case TokenId::TypeF64:
-            sema.setType(nodeRef, typeMgr.typeFloat(64));
+            sema.setType(nodeRef, typeMgr.typeF64());
             return Result::Continue;
 
         case TokenId::TypeBool:

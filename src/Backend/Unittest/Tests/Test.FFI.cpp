@@ -121,12 +121,12 @@ SWC_TEST_BEGIN(FFI_CallNativeF32)
     constexpr float b = 1.25f;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = typeMgr.typeFloat(32), .valuePtr = &a},
-        {.typeRef = typeMgr.typeFloat(32), .valuePtr = &b},
+        {.typeRef = typeMgr.typeF32(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeF32(), .valuePtr = &b},
     };
 
     float result = 0;
-    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF32), args, typeMgr.typeFloat(32), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF32), args, typeMgr.typeF32(), &result));
     if (result != 1.75f)
         return Result::Error;
 }
@@ -140,12 +140,12 @@ SWC_TEST_BEGIN(FFI_CallNativeF64)
     constexpr double b = 2.5;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &a},
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &b},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
     };
 
     double result = 0;
-    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF64), args, typeMgr.typeFloat(64), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeAddF64), args, typeMgr.typeF64(), &result));
     if (result != 4.0)
         return Result::Error;
 }
@@ -162,15 +162,15 @@ SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
     constexpr double e = 5.0;
 
     const std::vector<FFIArgument> args = {
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &a},
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &b},
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &c},
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &d},
-        {.typeRef = typeMgr.typeFloat(64), .valuePtr = &e},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &c},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &d},
+        {.typeRef = typeMgr.typeF64(), .valuePtr = &e},
     };
 
     double result = 0;
-    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, typeMgr.typeFloat(64), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeSum5F64), args, typeMgr.typeF64(), &result));
     if (result != 15.0)
         return Result::Error;
 }
@@ -247,4 +247,3 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
-

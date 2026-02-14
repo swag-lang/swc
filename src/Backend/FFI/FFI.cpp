@@ -31,51 +31,39 @@ namespace
         uint8_t  numBits = 0;
     };
 
-    void normalizeType(TaskContext& ctx, TypeRef typeRef, FFINormalizedType& outType)
+    FFINormalizedType makeNormalizedType(bool isVoid, bool isFloat, uint8_t numBits)
+    {
+        return FFINormalizedType{.isVoid = isVoid, .isFloat = isFloat, .numBits = numBits};
+    }
+
+    FFINormalizedType normalizeType(TaskContext& ctx, TypeRef typeRef)
     {
         SWC_ASSERT(typeRef.isValid());
 
-        const auto expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         SWC_ASSERT(expanded.isValid());
 
-        const auto& ty = ctx.typeMgr().get(expanded);
+        const TypeInfo& ty = ctx.typeMgr().get(expanded);
         if (ty.isVoid())
-        {
-            outType = {.isVoid = true, .isFloat = false, .numBits = 0};
-            return;
-        }
+            return makeNormalizedType(true, false, 0);
 
         if (ty.isBool())
-        {
-            outType = {.isVoid = false, .isFloat = false, .numBits = 8};
-            return;
-        }
+            return makeNormalizedType(false, false, 8);
 
         if (ty.isCharRune())
-        {
-            outType = {.isVoid = false, .isFloat = false, .numBits = 32};
-            return;
-        }
+            return makeNormalizedType(false, false, 32);
 
         if (ty.isInt() && ty.payloadIntBits() <= 64 && ty.payloadIntBits() != 0)
-        {
-            outType = {.isVoid = false, .isFloat = false, .numBits = static_cast<uint8_t>(ty.payloadIntBits())};
-            return;
-        }
+            return makeNormalizedType(false, false, static_cast<uint8_t>(ty.payloadIntBits()));
 
         if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
-        {
-            outType = {.isVoid = false, .isFloat = true, .numBits = static_cast<uint8_t>(ty.payloadFloatBits())};
-            return;
-        }
+            return makeNormalizedType(false, true, static_cast<uint8_t>(ty.payloadFloatBits()));
 
         if (ty.isPointerLike() || ty.isNull())
-        {
-            outType = {.isVoid = false, .isFloat = false, .numBits = 64};
-            return;
-        }
+            return makeNormalizedType(false, false, 64);
 
         SWC_ASSERT(false);
+        return makeNormalizedType(true, false, 0);
     }
 
     MicroOpBits opBitsFor(uint8_t numBits)
@@ -90,10 +78,11 @@ namespace
         }
     }
 
-    void packArgValue(const FFINormalizedType& argType, const void* valuePtr, FFIPackedArg& outArg)
+    FFIPackedArg packArgValue(const FFINormalizedType& argType, const void* valuePtr)
     {
         SWC_ASSERT(valuePtr != nullptr);
 
+        FFIPackedArg outArg;
         outArg.isFloat = argType.isFloat;
         outArg.numBits = argType.numBits;
 
@@ -103,37 +92,37 @@ namespace
             {
                 const auto value = *static_cast<const float*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(float));
-                return;
+                return outArg;
             }
 
             if (argType.numBits == 64)
             {
                 const auto value = *static_cast<const double*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(double));
-                return;
+                return outArg;
             }
 
             SWC_ASSERT(false);
-            return;
+            return outArg;
         }
 
         switch (argType.numBits)
         {
             case 8:
                 outArg.value = *static_cast<const uint8_t*>(valuePtr);
-                return;
+                return outArg;
             case 16:
                 outArg.value = *static_cast<const uint16_t*>(valuePtr);
-                return;
+                return outArg;
             case 32:
                 outArg.value = *static_cast<const uint32_t*>(valuePtr);
-                return;
+                return outArg;
             case 64:
                 std::memcpy(&outArg.value, valuePtr, sizeof(uint64_t));
-                return;
+                return outArg;
             default:
                 SWC_ASSERT(false);
-                return;
+                return outArg;
         }
     }
 
@@ -175,8 +164,6 @@ namespace
             builder.encodeLoadRegMem(regTmp, regBase, argAddr, argBits, EncodeFlagsE::Zero);
             builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits, EncodeFlagsE::Zero);
         }
-
-        return;
     }
 }
 
@@ -184,10 +171,9 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 {
     SWC_ASSERT(targetFn != nullptr);
 
-    constexpr auto    callConvKind = CallConvKind::Host;
-    const auto&       conv         = CallConv::get(callConvKind);
-    FFINormalizedType retType;
-    normalizeType(ctx, ret.typeRef, retType);
+    constexpr auto          callConvKind = CallConvKind::Host;
+    const auto&             conv         = CallConv::get(callConvKind);
+    const FFINormalizedType retType      = normalizeType(ctx, ret.typeRef);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
     uint64_t                  intRetTemp = 0;
@@ -197,11 +183,10 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto&       arg = args[i];
-        FFINormalizedType argType;
-        normalizeType(ctx, arg.typeRef, argType);
+        const auto&             arg     = args[i];
+        const FFINormalizedType argType = normalizeType(ctx, arg.typeRef);
         SWC_ASSERT(!argType.isVoid);
-        packArgValue(argType, arg.valuePtr, packedArgs[i]);
+        packedArgs[i] = packArgValue(argType, arg.valuePtr);
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();

@@ -107,8 +107,8 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex mutex;
-        PagedStore        store;
+        mutable std::shared_mutex           mutex;
+        PagedStore                          store;
         std::unordered_map<uint32_t, void*> codeGenPayloads;
     };
 

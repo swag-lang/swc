@@ -39,12 +39,12 @@ enum class SymbolKind : uint8_t
 
 enum class SymbolFlagsE : uint8_t
 {
-    Zero      = 0,
-    Public    = 1 << 0,
-    Declared  = 1 << 1,
-    SemaCompleted = 1 << 2,
-    Ignored   = 1 << 3,
-    Typed     = 1 << 4,
+    Zero             = 0,
+    Public           = 1 << 0,
+    Declared         = 1 << 1,
+    SemaCompleted    = 1 << 2,
+    Ignored          = 1 << 3,
+    Typed            = 1 << 4,
     CodeGenCompleted = 1 << 5,
 };
 

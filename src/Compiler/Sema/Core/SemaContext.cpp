@@ -400,8 +400,8 @@ bool SemaContext::hasCodeGenPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
 
-    const uint32_t shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
-    const auto&    shard    = shards_[shardIdx];
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const auto&      shard    = shards_[shardIdx];
     std::shared_lock lock(shard.mutex);
     return shard.codeGenPayloads.contains(nodeRef.get());
 }
@@ -420,10 +420,10 @@ void SemaContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
 void* SemaContext::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
-    const uint32_t shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
-    const auto&    shard    = shards_[shardIdx];
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const auto&      shard    = shards_[shardIdx];
     std::shared_lock lock(shard.mutex);
-    const auto it = shard.codeGenPayloads.find(nodeRef.get());
+    const auto       it = shard.codeGenPayloads.find(nodeRef.get());
     return it == shard.codeGenPayloads.end() ? nullptr : it->second;
 }
 

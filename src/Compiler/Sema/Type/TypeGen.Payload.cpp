@@ -1,10 +1,10 @@
 #include "pch.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
-#include "Backend/Runtime.h"
 #include "Support/Core/DataSegment.h"
 
 SWC_BEGIN_NAMESPACE();

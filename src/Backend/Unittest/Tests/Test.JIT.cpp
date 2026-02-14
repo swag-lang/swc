@@ -14,7 +14,7 @@ namespace
 {
     Result runCase(TaskContext& ctx, void (*buildFn)(MicroInstrBuilder&, const CallConv&), uint64_t expectedResult)
     {
-        const auto& callConv = CallConv::get(CallConvKind::Host);
+        const auto& callConv = CallConv::host();
 
         MicroInstrBuilder builder(ctx);
         buildFn(builder, callConv);

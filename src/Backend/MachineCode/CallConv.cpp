@@ -209,4 +209,9 @@ const CallConv& CallConv::get(CallConvKind kind)
     return g_CallConvs[index];
 }
 
+const CallConv& CallConv::host()
+{
+    return get(CallConvKind::Host);
+}
+
 SWC_END_NAMESPACE();

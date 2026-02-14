@@ -61,6 +61,7 @@ struct CallConv
 
     static void            setup();
     static const CallConv& get(CallConvKind kind);
+    static const CallConv& host();
 };
 
 SWC_END_NAMESPACE();

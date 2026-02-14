@@ -442,8 +442,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
 Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
-    if (!cmdLine_->verboseDiagFilter.empty())
-        cmdLine_->verboseDiag = true;
+    if (!cmdLine_->verboseVerifyFilter.empty())
+        cmdLine_->verboseVerify = true;
 
     // Resolve all folders
     std::set<fs::path> resolvedFolders;
@@ -490,10 +490,11 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
     addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
     addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify special test annotations or comments.");
-    addArg("all", "--unittest", nullptr, CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal unit tests before executing command.");
-    addArg("all", "--verbose-unittest", "-ve", CommandLineType::Bool, &cmdLine_->verboseDiag, nullptr, "Log raised diagnostics during tests.");
-    addArg("all", "--verbose-unittest-filter", "-vef", CommandLineType::String, &cmdLine_->verboseDiagFilter, nullptr, "Filter verbose diagnostics logs by matching a specific string.");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify source-file expected diagnostics comments.");
+    addArg("all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by --verify.");
+    addArg("all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
+    addArg("all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
+    addArg("all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
     addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
     addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
     addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");

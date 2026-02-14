@@ -35,6 +35,15 @@ namespace Unittest
                                    ok ? LogColor::BrightGreen : LogColor::BrightRed,
                                    ok ? "ok" : "fail");
         }
+
+        void logUnittestSummary(const TaskContext& ctx, uint32_t total, uint32_t failures)
+        {
+            Logger::printHeaderDot(ctx,
+                                   LogColor::BrightCyan,
+                                   "Internal-Unittest",
+                                   failures ? LogColor::BrightRed : LogColor::BrightGreen,
+                                   std::format("{} passed / {} failed / {} total", total - failures, failures, total));
+        }
     }
 
     void registerTest(TestCase test)
@@ -53,7 +62,10 @@ namespace Unittest
         TaskContext      testCtx(compiler);
         compiler.setupSema(testCtx);
 
-        bool hasFailure = false;
+        bool       hasFailure      = false;
+        uint32_t   totalTests      = 0;
+        uint32_t   numFailedTests  = 0;
+        const bool verboseUnittest = ctx.cmdLine().verboseInternalUnittest;
 
         for (const auto setupFn : setupRegistry())
         {
@@ -63,10 +75,12 @@ namespace Unittest
 
         for (const auto& test : testRegistry())
         {
+            totalTests++;
             const Result result = test.fn(testCtx);
             if (result == Result::Continue)
             {
-                logUnittestStatus(testCtx, test.name, true);
+                if (verboseUnittest)
+                    logUnittestStatus(testCtx, test.name, true);
             }
             else
             {
@@ -74,8 +88,12 @@ namespace Unittest
                 if (CommandLine::dbgDevMode)
                     Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;
+                numFailedTests++;
             }
         }
+
+        if (verboseUnittest)
+            logUnittestSummary(testCtx, totalTests, numFailedTests);
 
         return hasFailure ? Result::Error : Result::Continue;
     }

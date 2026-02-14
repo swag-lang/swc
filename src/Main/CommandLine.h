@@ -34,9 +34,10 @@ struct CommandLine
     bool errorId      = false;
     bool silent       = false;
     bool stats        = false;
-    bool verboseDiag  = false;
+    bool verboseVerify = false;
     bool verify       = true;
-    bool unittest     = true;
+    bool internalUnittest = true;
+    bool verboseInternalUnittest = false;
     bool runtime      = false;
 
     static inline bool dbgDevMode = false;
@@ -51,7 +52,7 @@ struct CommandLine
     uint32_t tabSize        = 4;
     uint32_t diagMaxColumn  = 120;
 
-    Utf8           verboseDiagFilter;
+    Utf8           verboseVerifyFilter;
     std::set<Utf8> fileFilter;
 
     std::set<fs::path> directories;

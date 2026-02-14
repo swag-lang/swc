@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
     global.initialize(cmdLine);
 
 #if SWC_HAS_UNITTEST
-    if (cmdLine.unittest)
+    if (cmdLine.internalUnittest)
     {
         swc::TaskContext ctx(global, cmdLine);
         if (swc::Unittest::runAll(ctx) != swc::Result::Continue)
         {
-            swc::Logger::print(ctx, "[unittest] failure detected\n");
+            swc::Logger::print(ctx, "[internal-unittest] failure detected\n");
             return static_cast<int>(swc::ExitCode::ErrorCommand);
         }
     }

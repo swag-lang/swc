@@ -237,9 +237,9 @@ void Diagnostic::report(TaskContext& ctx) const
 
     // In tests, suppress diagnostics unless verbose errors are explicitly requested and match the filter.
     const bool orgDismissed = dismiss;
-    if (dismiss && ctx.cmdLine().verboseDiag)
+    if (dismiss && ctx.cmdLine().verboseVerify)
     {
-        const auto& filter = ctx.cmdLine().verboseDiagFilter;
+        const auto& filter = ctx.cmdLine().verboseVerifyFilter;
         if (filter.empty())
             dismiss = false;
         else if (msg.find(filter) != Utf8::npos)

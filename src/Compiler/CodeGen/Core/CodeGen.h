@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 class MicroInstrBuilder;
+struct SemaNodeView;
 
 class CodeGen
 {
@@ -22,10 +23,11 @@ public:
     const Ast&               ast() const;
     AstVisit&                visit() { return visit_; }
     const AstVisit&          visit() const { return visit_; }
-    SymbolFunction*          currentFunction() { return currentFunction_; }
-    const SymbolFunction*    currentFunction() const { return currentFunction_; }
-    MicroInstrBuilder*       builder() { return builder_; }
-    const MicroInstrBuilder* builder() const { return builder_; }
+    SymbolFunction&          function() { return *function_; }
+    const SymbolFunction&    function() const { return *function_; }
+    Result                   emitConstReturnValue(const SemaNodeView& exprView);
+    MicroInstrBuilder&       builder() { return *builder_; }
+    const MicroInstrBuilder& builder() const { return *builder_; }
 
 private:
     void   setVisitors();
@@ -36,7 +38,7 @@ private:
 
     Sema*              sema_ = nullptr;
     AstVisit           visit_;
-    SymbolFunction*    currentFunction_ = nullptr;
+    SymbolFunction*    function_ = nullptr;
     MicroInstrBuilder* builder_         = nullptr;
 };
 

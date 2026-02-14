@@ -1,7 +1,13 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/MachineCode/CallConv.h"
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -14,7 +20,7 @@ CodeGen::CodeGen(Sema& sema) :
 Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 {
     visit_.start(ast(), root);
-    currentFunction_ = &symbolFunc;
+    function_ = &symbolFunc;
     builder_         = &symbolFunc.microInstrBuilder(ctx());
 
     while (true)
@@ -47,6 +53,81 @@ Ast& CodeGen::ast()
 const Ast& CodeGen::ast() const
 {
     return sema().ast();
+}
+
+Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
+{
+    SWC_ASSERT(exprView.cst);
+    SWC_ASSERT(exprView.type);
+
+    auto&       instrBuilder = builder();
+    const auto& callConv     = CallConv::host();
+    const auto& cst          = *exprView.cst;
+    const auto& ty           = *exprView.type;
+
+    if (ty.isBool())
+    {
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, cst.getBool() ? 1 : 0, MicroOpBits::B8, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    if (ty.isIntLike())
+    {
+        uint64_t value = 0;
+        if (cst.isInt())
+            value = cst.getInt().isUnsigned() ? cst.getInt().as64() : std::bit_cast<uint64_t>(cst.getInt().as64Signed());
+        else if (cst.isChar())
+            value = cst.getChar();
+        else if (cst.isRune())
+            value = cst.getRune();
+        else
+            return Result::Continue;
+
+        const MicroOpBits bits = microOpBitsFromBitWidth(ty.payloadIntLikeBits());
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, value, bits, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    if (ty.isEnum())
+    {
+        const TypeInfo&      underlyingTy   = ctx().typeMgr().get(ty.payloadSymEnum().underlyingTypeRef());
+        const ConstantValue* enumStorageCst = &cst;
+        if (cst.isEnumValue())
+            enumStorageCst = &sema().cstMgr().get(cst.getEnumValue());
+        if (!enumStorageCst->isInt())
+            return Result::Continue;
+
+        const uint64_t    value = enumStorageCst->getInt().isUnsigned() ? enumStorageCst->getInt().as64() : std::bit_cast<uint64_t>(enumStorageCst->getInt().as64Signed());
+        const MicroOpBits bits  = microOpBitsFromBitWidth(underlyingTy.payloadIntLikeBits());
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, value, bits, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    if (ty.isFloat())
+    {
+        const MicroOpBits bits = microOpBitsFromBitWidth(ty.payloadFloatBits());
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        const uint64_t raw = bits == MicroOpBits::B32 ? static_cast<uint64_t>(std::bit_cast<uint32_t>(cst.getFloat().asFloat())) : std::bit_cast<uint64_t>(cst.getFloat().asDouble());
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, raw, bits, EncodeFlagsE::Zero);
+        instrBuilder.encodeLoadRegReg(callConv.floatReturn, callConv.intReturn, bits, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    if (ty.isValuePointer())
+    {
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, cst.getValuePointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    if (ty.isBlockPointer())
+    {
+        instrBuilder.encodeLoadRegImm(callConv.intReturn, cst.getBlockPointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    return Result::Continue;
 }
 
 void CodeGen::setVisitors()

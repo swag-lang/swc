@@ -42,6 +42,8 @@ public:
 
     SymbolAccess         currentAccess() const { return access_; }
     void                 setCurrentAccess(SymbolAccess access) { access_ = access; }
+    bool                 globalCompilerIfEnabled() const { return globalCompilerIfEnabled_; }
+    void                 setGlobalCompilerIfEnabled(bool value) { globalCompilerIfEnabled_ = value; }
     AttributeList&       currentAttributes() { return attributes_; }
     const AttributeList& currentAttributes() const { return attributes_; }
 
@@ -74,6 +76,7 @@ public:
 
 private:
     SymbolAccess                  access_ = SymbolAccess::Private;
+    bool                          globalCompilerIfEnabled_ = true;
     AttributeList                 attributes_;
     SmallVector8<IdentifierRef>   nsPath_;
     SemaCompilerIf*               compilerIf_ = nullptr;

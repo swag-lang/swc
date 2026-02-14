@@ -289,20 +289,34 @@ Result AstCompilerGlobal::semaPreNode(Sema& sema) const
     return semaPreDecl(sema);
 }
 
-Result AstCompilerGlobal::semaPostNode(Sema&) const
+Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
     {
         case Mode::Skip:
-        case Mode::SkipFmt:
         case Mode::Generated:
             return Result::Continue;
 
+        case Mode::CompilerIf:
+        {
+            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeModeRef));
+            const SemaNodeView condView(sema, nodeModeRef);
+
+            SWC_ASSERT(condView.cst);
+            if (!condView.cst->isBool())
+                return SemaError::raiseInvalidType(sema, nodeModeRef, condView.cst->typeRef(), sema.typeMgr().typeBool());
+
+            sema.frame().setGlobalCompilerIfEnabled(condView.cst->getBool());
+            return Result::SkipChildren;
+        }
+
         case Mode::Export:
         case Mode::AttributeList:
-        case Mode::CompilerIf:
         case Mode::Using:
+        case Mode::SkipFmt:
+            // TODO
             return Result::SkipChildren;
+
         default:
             break;
     }

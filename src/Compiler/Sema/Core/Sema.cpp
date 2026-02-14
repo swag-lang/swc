@@ -393,11 +393,17 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
+    if (curScope_->isTopLevel() && (ast().hasFlag(AstFlagsE::GlobalSkip) || !frame().globalCompilerIfEnabled()))
+        return Result::SkipChildren;
+
+    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    RESULT_VERIFY(info.semaPreNodeChild(*this, node, childRef));
+
     if (curScope_->isTopLevel())
     {
-        const AstNode&       child = ast().node(childRef);
-        const AstNodeIdInfo& info  = Ast::nodeIdInfos(child.id());
-        if (info.hasFlag(AstNodeIdFlagsE::SemaJob))
+        const AstNode&       child     = ast().node(childRef);
+        const AstNodeIdInfo& childInfo = Ast::nodeIdInfos(child.id());
+        if (childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
             const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
             compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
@@ -405,8 +411,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         }
     }
 
-    const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.semaPreNodeChild(*this, node, childRef);
+    return Result::Continue;
 }
 
 Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)

@@ -20,6 +20,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
 
     Result        semaPreDecl(Sema& sema) const;
     static Result semaPreNode(Sema& sema);
+    static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
 };
 
 // -----------------------------------------------------------------------------

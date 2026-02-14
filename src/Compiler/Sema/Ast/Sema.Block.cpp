@@ -25,6 +25,13 @@ Result AstFile::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstFile::semaPreNodeChild(Sema& sema, const AstNodeRef&)
+{
+    if (!sema.frame().globalCompilerIfEnabled())
+        return Result::SkipChildren;
+    return Result::Continue;
+}
+
 Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
 {
     auto& ctx = sema.ctx();

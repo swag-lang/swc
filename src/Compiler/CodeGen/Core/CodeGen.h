@@ -59,8 +59,8 @@ private:
 
     Sema*              sema_ = nullptr;
     AstVisit           visit_;
-    SymbolFunction*    function_ = nullptr;
-    MicroInstrBuilder* builder_         = nullptr;
+    SymbolFunction*    function_            = nullptr;
+    MicroInstrBuilder* builder_             = nullptr;
     uint32_t           nextVirtualRegister_ = 1;
 };
 

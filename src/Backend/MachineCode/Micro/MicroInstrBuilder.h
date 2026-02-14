@@ -23,7 +23,7 @@ public:
     MicroInstrBuilder(MicroInstrBuilder&&) noexcept            = default;
     MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
-    void              setContext(TaskContext& ctx) { ctx_ = &ctx; }
+    void               setContext(TaskContext& ctx) { ctx_ = &ctx; }
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 

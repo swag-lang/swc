@@ -53,7 +53,7 @@ struct AstNode
     void clearFlags()
     {
         parserFlags_ = 0;
-        payloadBits_    = 0;
+        payloadBits_ = 0;
     }
 
     static void collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
@@ -135,7 +135,7 @@ struct AstNode
 
 protected:
     uint16_t      payloadBits_ = 0;
-    AstNodeId     id_       = AstNodeId::Invalid;
+    AstNodeId     id_          = AstNodeId::Invalid;
     ParserFlags   parserFlags_{};
     SourceCodeRef codeRef_;
     uint32_t      payloadRef_ = 0;

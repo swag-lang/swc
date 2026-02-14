@@ -172,9 +172,9 @@ TypeRef SemaContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     if (nodeRef.isInvalid())
         return TypeRef::invalid();
 
-    const AstNode&     node  = ast().node(nodeRef);
+    const AstNode&        node  = ast().node(nodeRef);
     const NodePayloadKind kind  = payloadKind(node);
-    TypeRef            value = TypeRef::invalid();
+    TypeRef               value = TypeRef::invalid();
     switch (kind)
     {
         case NodePayloadKind::ConstantRef:
@@ -438,7 +438,7 @@ void SemaContext::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc
 void SemaContext::inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 {
     constexpr uint16_t mask = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
-    nodeDst.payloadBits()      = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
+    nodeDst.payloadBits()   = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
     nodeDst.setPayloadRef(nodeSrc.payloadRef());
 }
 

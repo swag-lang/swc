@@ -48,8 +48,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global)
 {
     g_RuntimeCompilerOwner = this;
-    jobClientId_ = global.jobMgr().newClientId();
-    exeFullName_ = Os::getExeFullName();
+    jobClientId_           = global.jobMgr().newClientId();
+    exeFullName_           = Os::getExeFullName();
 
     const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
@@ -161,8 +161,8 @@ void CompilerInstance::processCommand()
 
 void CompilerInstance::setupRuntimeCompiler()
 {
-    runtimeCompiler_.obj = nullptr;
-    runtimeCompiler_.itable = runtimeCompilerITable_;
+    runtimeCompiler_.obj      = nullptr;
+    runtimeCompiler_.itable   = runtimeCompilerITable_;
     runtimeCompilerITable_[0] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
     runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);
     runtimeCompilerITable_[2] = reinterpret_cast<void*>(&runtimeCompilerCompileString);

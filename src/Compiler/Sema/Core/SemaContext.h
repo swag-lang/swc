@@ -44,12 +44,12 @@ protected:
     const Ast& ast() const { return ast_; }
 
     static NodePayloadKind  payloadKind(const AstNode& node) { return static_cast<NodePayloadKind>(node.payloadBits() & NODE_PAYLOAD_KIND_MASK); }
-    static void          setPayloadKind(AstNode& node, NodePayloadKind value) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK) | static_cast<uint16_t>(value); }
-    static uint32_t      payloadShard(const AstNode& node) { return (node.payloadBits() & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT; }
-    static void          setPayloadShard(AstNode& node, uint32_t shard) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_SHARD_MASK) | static_cast<uint16_t>(shard << NODE_PAYLOAD_SHARD_SHIFT); }
-    static void          addPayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() |= static_cast<uint16_t>(value); }
-    static void          removePayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() &= ~static_cast<uint16_t>(value); }
-    static bool          hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
+    static void             setPayloadKind(AstNode& node, NodePayloadKind value) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK) | static_cast<uint16_t>(value); }
+    static uint32_t         payloadShard(const AstNode& node) { return (node.payloadBits() & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT; }
+    static void             setPayloadShard(AstNode& node, uint32_t shard) { node.payloadBits() = (node.payloadBits() & ~NODE_PAYLOAD_SHARD_MASK) | static_cast<uint16_t>(shard << NODE_PAYLOAD_SHARD_SHIFT); }
+    static void             addPayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() |= static_cast<uint16_t>(value); }
+    static void             removePayloadFlags(AstNode& node, NodePayloadFlags value) { node.payloadBits() &= ~static_cast<uint16_t>(value); }
+    static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
     static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
 
     const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }

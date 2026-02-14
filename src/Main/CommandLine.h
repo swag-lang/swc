@@ -26,19 +26,19 @@ struct CommandLine
 
     Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
 
-    bool logColor     = true;
-    bool logAscii     = false;
-    bool syntaxColor  = true;
-    bool diagAbsolute = false;
-    bool diagOneLine  = false;
-    bool errorId      = false;
-    bool silent       = false;
-    bool stats        = false;
-    bool verboseVerify = false;
-    bool verify       = true;
-    bool internalUnittest = true;
+    bool logColor                = true;
+    bool logAscii                = false;
+    bool syntaxColor             = true;
+    bool diagAbsolute            = false;
+    bool diagOneLine             = false;
+    bool errorId                 = false;
+    bool silent                  = false;
+    bool stats                   = false;
+    bool verboseVerify           = false;
+    bool verify                  = true;
+    bool internalUnittest        = true;
     bool verboseInternalUnittest = false;
-    bool runtime      = false;
+    bool runtime                 = false;
 
     static inline bool dbgDevMode = false;
 

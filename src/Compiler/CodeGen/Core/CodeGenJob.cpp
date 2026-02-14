@@ -26,7 +26,7 @@ JobResult CodeGenJob::exec()
     const Result result = codeGen.exec(*symbolFunc_, root_);
     if (result == Result::Continue)
     {
-        symbolFunc_->setCompleted(ctx());
+        symbolFunc_->setCodeGenCompleted(ctx());
         return JobResult::Done;
     }
 

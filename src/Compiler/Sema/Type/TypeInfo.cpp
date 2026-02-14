@@ -912,13 +912,13 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return payloadSymStruct().isCompleted();
+            return payloadSymStruct().isSemaCompleted();
         case TypeInfoKind::Enum:
-            return payloadSymEnum().isCompleted();
+            return payloadSymEnum().isSemaCompleted();
         case TypeInfoKind::Interface:
-            return payloadSymInterface().isCompleted();
+            return payloadSymInterface().isSemaCompleted();
         case TypeInfoKind::Alias:
-            return payloadSymAlias().isCompleted();
+            return payloadSymAlias().isSemaCompleted();
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(payloadArray_.typeRef).isCompleted(ctx);
@@ -978,7 +978,7 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
     };
 
     const auto getDirectBlockingSymbol = [](Symbol* sym) -> Symbol* {
-        if (!sym || sym->isCompleted())
+        if (!sym || sym->isSemaCompleted())
             return nullptr;
         return sym;
     };

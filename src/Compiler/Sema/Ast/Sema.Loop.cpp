@@ -125,7 +125,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
                 symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
                 symVar.setTyped(sema.ctx());
-                symVar.setCompleted(sema.ctx());
+                symVar.setSemaCompleted(sema.ctx());
                 symbols.push_back(&symVar);
             }
 
@@ -181,7 +181,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             symVar.setTypeRef(nodeView.typeRef);
             symVar.setTyped(sema.ctx());
-            symVar.setCompleted(sema.ctx());
+            symVar.setSemaCompleted(sema.ctx());
         }
     }
 

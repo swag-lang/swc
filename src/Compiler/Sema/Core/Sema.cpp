@@ -290,12 +290,12 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
     return Result::Pause;
 }
 
-Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
+Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
-    if (!symbol || symbol->isCompleted())
+    if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
     TaskState& wait   = ctx().state();
-    wait.kind         = TaskStateKind::SemaWaitSymCompleted;
+    wait.kind         = TaskStateKind::SemaWaitSymSemaCompleted;
     wait.nodeRef      = curNodeRef();
     wait.codeRef      = codeRef;
     wait.symbol       = symbol;
@@ -303,7 +303,20 @@ Result Sema::waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
     return Result::Pause;
 }
 
-Result Sema::waitCompleted(const TypeInfo* type, AstNodeRef nodeRef)
+Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
+{
+    if (!symbol || symbol->isCodeGenCompleted())
+        return Result::Continue;
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
+    wait.nodeRef      = curNodeRef();
+    wait.codeRef      = codeRef;
+    wait.symbol       = symbol;
+    wait.waiterSymbol = guessCurrentSymbol(*this);
+    return Result::Pause;
+}
+
+Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))
         return Result::Continue;

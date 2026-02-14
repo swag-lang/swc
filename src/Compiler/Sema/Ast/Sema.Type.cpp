@@ -379,7 +379,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     }
 
     sym.setTyped(sema.ctx());
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
 

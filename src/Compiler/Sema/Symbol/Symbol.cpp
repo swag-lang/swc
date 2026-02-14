@@ -38,11 +38,19 @@ void Symbol::setTyped(TaskContext& ctx)
     ctx.compiler().notifyAlive();
 }
 
-void Symbol::setCompleted(TaskContext& ctx)
+void Symbol::setSemaCompleted(TaskContext& ctx)
 {
-    if (flags_.has(SymbolFlagsE::Completed))
+    if (flags_.has(SymbolFlagsE::SemaCompleted))
         return;
-    flags_.add(SymbolFlagsE::Completed);
+    flags_.add(SymbolFlagsE::SemaCompleted);
+    ctx.compiler().notifyAlive();
+}
+
+void Symbol::setCodeGenCompleted(TaskContext& ctx)
+{
+    if (flags_.has(SymbolFlagsE::CodeGenCompleted))
+        return;
+    flags_.add(SymbolFlagsE::CodeGenCompleted);
     ctx.compiler().notifyAlive();
 }
 

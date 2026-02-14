@@ -289,11 +289,11 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const CastStructArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
-    RESULT_VERIFY(sema.waitCompleted(&dstType, castRequest.errorNodeRef));
+    RESULT_VERIFY(sema.waitSemaCompleted(&dstType, castRequest.errorNodeRef));
 
     if (srcType.isStruct())
     {
-        RESULT_VERIFY(ctx.sema->waitCompleted(ctx.srcType, ctx.castRequest->errorNodeRef));
+        RESULT_VERIFY(ctx.sema->waitSemaCompleted(ctx.srcType, ctx.castRequest->errorNodeRef));
         return castStructToStruct(ctx);
     }
 

@@ -51,7 +51,7 @@ Result AstInterfaceDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();
     RESULT_VERIFY(sym.canBeCompleted(sema));
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
 

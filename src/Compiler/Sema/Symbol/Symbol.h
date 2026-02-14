@@ -42,9 +42,10 @@ enum class SymbolFlagsE : uint8_t
     Zero      = 0,
     Public    = 1 << 0,
     Declared  = 1 << 1,
-    Completed = 1 << 2,
+    SemaCompleted = 1 << 2,
     Ignored   = 1 << 3,
     Typed     = 1 << 4,
+    CodeGenCompleted = 1 << 5,
 };
 
 using SymbolFlags = AtomicEnumFlags<SymbolFlagsE>;
@@ -81,8 +82,10 @@ public:
 
     bool isTyped() const noexcept { return flags_.has(SymbolFlagsE::Typed); }
     void setTyped(TaskContext& ctx);
-    bool isCompleted() const noexcept { return flags_.has(SymbolFlagsE::Completed); }
-    void setCompleted(TaskContext& ctx);
+    bool isSemaCompleted() const noexcept { return flags_.has(SymbolFlagsE::SemaCompleted); }
+    void setSemaCompleted(TaskContext& ctx);
+    bool isCodeGenCompleted() const noexcept { return flags_.has(SymbolFlagsE::CodeGenCompleted); }
+    void setCodeGenCompleted(TaskContext& ctx);
     bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }
     void setDeclared(TaskContext& ctx);
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }

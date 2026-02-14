@@ -118,7 +118,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
 
@@ -169,7 +169,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
-    SymbolFlags         flags    = SymbolFlagsE::Declared | SymbolFlagsE::Completed;
+    SymbolFlags         flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
     SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 

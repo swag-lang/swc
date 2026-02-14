@@ -86,12 +86,12 @@ namespace TypeGenInternal
             const IdentifierRef idRef = typeInfoIdentifierFor(kind, sema.idMgr());
             RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
             for (const Symbol* sym : lookUpCxt.symbols())
-                RESULT_VERIFY(sema.waitCompleted(sym, node.codeRef()));
+                RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
             return Result::Pause;
         }
 
         const auto& structType = tm.get(rtTypeRef);
-        RESULT_VERIFY(sema.waitCompleted(&structType.payloadSymStruct(), node.codeRef()));
+        RESULT_VERIFY(sema.waitSemaCompleted(&structType.payloadSymStruct(), node.codeRef()));
 
         return Result::Continue;
     }

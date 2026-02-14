@@ -92,7 +92,7 @@ namespace TypeGenInternal
             // Be sure the type is completed.
             const LayoutKind kind = layoutKindOf(type);
             if (const Symbol* sym = type.getSymbol())
-                RESULT_VERIFY(sema.waitCompleted(sym, node.codeRef()));
+                RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
 
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())

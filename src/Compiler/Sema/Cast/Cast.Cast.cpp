@@ -680,7 +680,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     if (srcType.isStruct())
     {
         const SymbolStruct& fromStruct = srcType.payloadSymStruct();
-        RESULT_VERIFY(sema.waitCompleted(&srcType, castRequest.errorNodeRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
             return Result::Continue;

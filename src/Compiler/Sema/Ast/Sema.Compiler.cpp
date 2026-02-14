@@ -376,7 +376,7 @@ namespace
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->sizeOf(sema.ctx())));
         return Result::Continue;
@@ -400,7 +400,7 @@ namespace
         const SemaNodeView nodeView(sema, childRef);
         if (!nodeView.type)
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        RESULT_VERIFY(sema.waitCompleted(nodeView.type, childRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, childRef));
 
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type->alignOf(sema.ctx())));
         return Result::Continue;
@@ -658,7 +658,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
     }
 
-    RESULT_VERIFY(sema.waitCompleted(symFn, codeRef()));
+    RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
     SWC_ASSERT(nodeView.type->isStruct());

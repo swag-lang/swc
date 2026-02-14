@@ -101,7 +101,7 @@ namespace
     Result memberEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolEnum& enumSym = nodeLeftView.type->payloadSymEnum();
-        RESULT_VERIFY(sema.waitCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
+        RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -117,7 +117,7 @@ namespace
     Result memberInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type->payloadSymInterface();
-        RESULT_VERIFY(sema.waitCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
+        RESULT_VERIFY(sema.waitSemaCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -137,7 +137,7 @@ namespace
     Result memberStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
     {
         const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
-        RESULT_VERIFY(sema.waitCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
+        RESULT_VERIFY(sema.waitSemaCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};

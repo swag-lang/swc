@@ -33,7 +33,7 @@ namespace
             if (symCst.typeRef().isInvalid())
                 symCst.setTypeRef(typeRef);
             symCst.setTyped(sema.ctx());
-            symCst.setCompleted(sema.ctx());
+            symCst.setSemaCompleted(sema.ctx());
         }
     }
 
@@ -45,7 +45,7 @@ namespace
             if (symVar.typeRef().isInvalid())
                 symVar.setTypeRef(typeRef);
             symVar.setTyped(sema.ctx());
-            symVar.setCompleted(sema.ctx());
+            symVar.setSemaCompleted(sema.ctx());
         }
     }
 
@@ -327,7 +327,7 @@ namespace
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
         if (nodeInitRef.isInvalid() && explicitTypeRef.isValid() && explicitType && explicitType->isStruct() && (isConst || isLet))
         {
-            RESULT_VERIFY(sema.waitCompleted(explicitType, nodeTypeRef));
+            RESULT_VERIFY(sema.waitSemaCompleted(explicitType, nodeTypeRef));
             implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
@@ -536,7 +536,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         const SymbolVariable* field = fields[i];
         sym.setTypeRef(field->typeRef());
         sym.setTyped(sema.ctx());
-        sym.setCompleted(sema.ctx());
+        sym.setSemaCompleted(sema.ctx());
 
         RESULT_VERIFY(Match::ghosting(sema, sym));
     }

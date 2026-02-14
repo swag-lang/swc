@@ -79,12 +79,12 @@ namespace
         auto addCandidate = [&](const TypeInfo* typeInfo, const SymbolVariable* symVar) -> Result {
             if (typeInfo->isStruct())
             {
-                RESULT_VERIFY(sema.waitCompleted(typeInfo, sema.curNodeRef()));
+                RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymStruct(), .symVar = symVar});
             }
             else if (typeInfo->isEnum())
             {
-                RESULT_VERIFY(sema.waitCompleted(typeInfo, sema.curNodeRef()));
+                RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymEnum(), .symVar = symVar});
             }
             return Result::Continue;

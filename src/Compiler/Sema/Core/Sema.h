@@ -127,10 +127,11 @@ public:
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitCompleted(const TypeInfo* type, AstNodeRef nodeRef);
+    Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:

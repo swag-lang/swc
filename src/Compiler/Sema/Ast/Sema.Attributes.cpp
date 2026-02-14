@@ -132,7 +132,7 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
     RESULT_VERIFY(Match::ghosting(sema, sym));
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
 

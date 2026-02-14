@@ -66,7 +66,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
 
@@ -116,7 +116,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
     RESULT_VERIFY(sym.computeLayout(sema.ctx()));
-    sym.setCompleted(sema.ctx());
+    sym.setSemaCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;
 }

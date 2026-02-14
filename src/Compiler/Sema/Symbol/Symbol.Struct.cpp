@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -110,7 +110,7 @@ namespace
 
 bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
 {
-    SWC_ASSERT(isCompleted());
+    SWC_ASSERT(isSemaCompleted());
     for (const auto itfImpl : interfaces())
     {
         if (itfImpl && itfImpl->idRef() == itf.idRef())
@@ -179,7 +179,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         if (type.isStruct() && &type.payloadSymStruct() == this)
             return SemaError::raise(sema, DiagnosticId::sema_err_struct_circular_reference, typeNodeRef);
 
-        RESULT_VERIFY(sema.waitCompleted(&type, typeNodeRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(&type, typeNodeRef));
     }
 
     return Result::Continue;

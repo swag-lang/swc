@@ -176,7 +176,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break;
             }
 
-            case TaskStateKind::SemaWaitSymCompleted:
+            case TaskStateKind::SemaWaitSymSemaCompleted:
+            case TaskStateKind::SemaWaitSymCodeGenCompleted:
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 SWC_ASSERT(state.symbol);

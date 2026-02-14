@@ -54,7 +54,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), {node->srcViewRef(), tokRef});
         sema.frame().pushNs(idRef);
 
-        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::Completed;
+        constexpr SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
         SymbolNamespace*      ns    = Symbol::make<SymbolNamespace>(ctx, node, tokRef, idRef, flags);
         Symbol*               res   = symMap->addSingleSymbol(ctx, ns);
 

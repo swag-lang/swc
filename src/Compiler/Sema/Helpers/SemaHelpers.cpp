@@ -184,7 +184,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 
     if (nodeView.type->isEnum())
     {
-        RESULT_VERIFY(sema.waitCompleted(nodeView.type, nodeView.nodeRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeView.nodeRef));
         sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, nodeView.type->payloadSymEnum().count()));
         return Result::Continue;
     }

@@ -508,10 +508,8 @@ namespace Runtime
         CompilerMsgKind kind;
     };
 
-    struct ICompiler
+    struct ICompiler : Interface
     {
-        void*  obj;
-        void** itable;
     };
 }
 

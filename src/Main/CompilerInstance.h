@@ -1,6 +1,6 @@
 #pragma once
 #include "Main/ExitCodes.h"
-#include "Runtime/Runtime.h"
+#include "Backend/Runtime.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"

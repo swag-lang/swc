@@ -3,7 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Runtime/Runtime.h"
+#include "Backend/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
 

@@ -438,7 +438,7 @@
         <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
-        <ClInclude Include="src\Runtime\Runtime.h"/>
+        <ClInclude Include="src\\Backend\\Runtime.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
         <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>

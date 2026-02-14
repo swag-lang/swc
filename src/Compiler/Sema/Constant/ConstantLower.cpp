@@ -6,7 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Runtime/Runtime.h"
+#include "Backend/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
 

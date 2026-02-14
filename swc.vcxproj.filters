@@ -212,7 +212,7 @@
     <ClInclude Include="src\Report\Msg\Errors.Misc.inc" />
     <ClInclude Include="src\Report\Msg\Notes.Parser.inc" />
     <ClInclude Include="src\Report\Msg\Notes.Sema.inc" />
-    <ClInclude Include="src\Runtime\Runtime.h" />
+    <ClInclude Include="src\\Backend\\Runtime.h" />
     <ClInclude Include="src\Sema\Ast\Sema.Payload.h" />
     <ClInclude Include="src\Sema\Cast\Cast.h" />
     <ClInclude Include="src\Sema\Cast\CastContext.h" />

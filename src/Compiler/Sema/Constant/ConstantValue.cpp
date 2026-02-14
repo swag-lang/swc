@@ -4,7 +4,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
-#include "Runtime/Runtime.h"
+#include "Backend/Runtime.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();

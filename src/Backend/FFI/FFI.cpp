@@ -6,15 +6,18 @@
 #include "Backend/MachineCode/Micro/MicroAbiCall.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
-#if defined(_WIN32) && defined(_MSC_VER)
-#include <excpt.h>
-#endif
+#include "Support/Os/Os.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using FFIInvokerFn = void (*)();
+
     enum class FFITypeUsage : uint8_t
     {
         Argument,
@@ -153,25 +156,41 @@ namespace
         }
     }
 
-#if defined(_WIN32) && defined(_MSC_VER)
-    using FFIInvokerFn = void (*)();
-    bool invokeWithHardwareExceptionGuard(FFIInvokerFn invoker)
+    void exceptionMessage(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
-        __try
+        auto& logger = ctx.global().logger();
+
+        logger.lock();
+
+        Utf8 msg;
+        msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
+        msg += "fatal error: hardware exception during ffi call!\n";
+        msg += std::format("exception code: 0x{}\n", args->ExceptionRecord->ExceptionCode);
+        msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        Logger::print(ctx, msg);
+
+        logger.unlock();
+    }
+
+    int exceptionHandler(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    {
+        exceptionMessage(ctx, args);
+        Os::panicBox("hardware exception raised!");
+        return SWC_EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    void invokeCall(TaskContext& ctx, FFIInvokerFn invoker)
+    {
+        SWC_TRY
         {
             invoker();
-            return true;
         }
-        __except (EXCEPTION_EXECUTE_HANDLER)
+        SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS()))
         {
-            SWC_ASSERT(false);
-            return false;
         }
     }
-#endif
 }
 
-#pragma optimize("", off)
 void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
@@ -260,16 +279,10 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     JITExecMemory executableMemory;
     SWC_ASSERT(JIT::compile(ctx, builder, executableMemory) == Result::Continue);
 
-    using FFIInvokerFn = void (*)();
     const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
     SWC_ASSERT(invoker != nullptr);
 
-#if defined(_WIN32) && defined(_MSC_VER)
-    if (!invokeWithHardwareExceptionGuard(invoker))
-        return;
-#else
-    invoker();
-#endif
+    invokeCall(ctx, invoker);
 }
 
 SWC_END_NAMESPACE();

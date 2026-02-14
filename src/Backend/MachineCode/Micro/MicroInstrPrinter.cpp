@@ -34,8 +34,10 @@ namespace
     {
         switch (op)
         {
-#define SWC_MICRO_INSTR_DEF(__enum, ...) case MicroInstrOpcode::__enum: return #__enum;
+#define SWC_MICRO_INSTR_DEF(__enum, ...) \
+    case MicroInstrOpcode::__enum: return #__enum;
 #include "Backend/MachineCode/Micro/MicroInstr.Def.inc"
+
 #undef SWC_MICRO_INSTR_DEF
             default:
                 return "Unknown";
@@ -267,31 +269,7 @@ namespace
             return "nobase";
 
         if (reg.isInt())
-        {
-            static constexpr std::array K_INT_REG_NAMES = {
-                "rax",
-                "rbx",
-                "rcx",
-                "rdx",
-                "rsp",
-                "rbp",
-                "rsi",
-                "rdi",
-                "r8",
-                "r9",
-                "r10",
-                "r11",
-                "r12",
-                "r13",
-                "r14",
-                "r15",
-            };
-
-            if (reg.index() < K_INT_REG_NAMES.size())
-                return std::string(K_INT_REG_NAMES[reg.index()]);
-
             return std::format("r{}", reg.index());
-        }
 
         if (reg.isFloat())
             return std::format("xmm{}", reg.index());
@@ -393,10 +371,7 @@ namespace
     }
 }
 
-std::string MicroInstrPrinter::format(const TaskContext&                         ctx,
-                                      const PagedStoreTyped<MicroInstr>&         instructions,
-                                      const PagedStoreTyped<MicroInstrOperand>& operands,
-                                      bool                                        colorize)
+std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, bool colorize)
 {
     std::string out;
     auto&       storeOps      = operands.store();
@@ -740,10 +715,7 @@ std::string MicroInstrPrinter::format(const TaskContext&                        
     return out;
 }
 
-void MicroInstrPrinter::print(const TaskContext&                         ctx,
-                              const PagedStoreTyped<MicroInstr>&         instructions,
-                              const PagedStoreTyped<MicroInstrOperand>& operands,
-                              bool                                        colorize)
+void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, bool colorize)
 {
     Logger::print(ctx, format(ctx, instructions, operands, colorize));
 }

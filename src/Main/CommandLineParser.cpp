@@ -445,6 +445,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
 
+#if SWC_DEV_MODE
+    if (cmdLine_->randSeed)
+        cmdLine_->randomize = true;
+
+    if (cmdLine_->randomize)
+        cmdLine_->numCores = 1;
+#endif
+
     // Resolve all folders
     std::set<fs::path> resolvedFolders;
     for (const auto& folder : cmdLine_->directories)
@@ -504,8 +512,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg("all", "--runtime", nullptr, CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Add runtime files.");
 
 #if SWC_DEV_MODE
-    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior.");
-    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior.");
+    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior. Forces --num-cores=1.");
+    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
 #endif
 }
 

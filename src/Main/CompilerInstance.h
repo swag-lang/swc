@@ -18,6 +18,7 @@ class TypeGen;
 class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
+class JITExecMemoryManager;
 class Global;
 class SourceFile;
 struct CommandLine;
@@ -47,6 +48,8 @@ public:
     const DataSegment&       compilerSegment() const { return compilerSegment_; }
     Runtime::BuildCfg&       buildCfg() { return buildCfg_; }
     const Runtime::BuildCfg& buildCfg() const { return buildCfg_; }
+    JITExecMemoryManager&    jitExecMemoryManager() { return *jitExecMemoryManager_; }
+    const JITExecMemoryManager& jitExecMemoryManager() const { return *jitExecMemoryManager_; }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -110,6 +113,7 @@ private:
     std::unique_ptr<TypeGen>                 typeGen_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
+    std::unique_ptr<JITExecMemoryManager>    jitExecMemoryManager_;
     SymbolModule*                            symModule_   = nullptr;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;

@@ -25,6 +25,7 @@ namespace Os
     bool isDebuggerAttached();
 
     void* allocExecutableMemory(uint32_t size);
+    bool  makeWritableExecutableMemory(void* ptr, uint32_t size);
     bool  makeExecutableMemory(void* ptr, uint32_t size);
     void  freeExecutableMemory(void* ptr);
 }

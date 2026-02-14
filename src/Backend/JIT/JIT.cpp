@@ -5,12 +5,23 @@
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result compileWithEncoder(MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
+    JITExecMemoryManager& getExecMemoryManager(TaskContext& ctx)
+    {
+        if (ctx.hasCompilerInstance())
+            return ctx.compiler().jitExecMemoryManager();
+
+        static JITExecMemoryManager fallback;
+        return fallback;
+    }
+
+    Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegAllocPass regAllocPass;
         MicroEncodePass   encodePass;
@@ -28,7 +39,7 @@ namespace
         std::vector<std::byte> linearCode(codeSize);
         encoder.copyTo(linearCode);
 
-        if (!outExecutableMemory.allocateAndCopy(asByteSpan(linearCode)))
+        if (!getExecMemoryManager(ctx).allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
             return Result::Error;
 
         return Result::Continue;
@@ -39,7 +50,7 @@ Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory&
 {
 #ifdef _M_X64
     X64Encoder encoder(ctx);
-    return compileWithEncoder(builder, encoder, outExecutableMemory);
+    return compileWithEncoder(ctx, builder, encoder, outExecutableMemory);
 #else
     SWC_UNREACHABLE();
 #endif

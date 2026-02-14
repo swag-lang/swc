@@ -114,6 +114,12 @@ namespace Os
         return VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 
+    bool makeWritableExecutableMemory(void* ptr, uint32_t size)
+    {
+        DWORD oldProtect = 0;
+        return VirtualProtect(ptr, size, PAGE_EXECUTE_READWRITE, &oldProtect) ? true : false;
+    }
+
     bool makeExecutableMemory(void* ptr, uint32_t size)
     {
         DWORD oldProtect = 0;

@@ -44,6 +44,33 @@ SWC_TEST_BEGIN(JIT_Return42)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
+{
+    JITExecMemoryManager manager;
+    JITExecMemory        memA;
+    JITExecMemory        memB;
+
+    const std::array code = {std::byte{0xC3}};
+    const ByteSpan   bytes(code.data(), code.size());
+
+    SWC_ASSERT(manager.allocateAndCopy(bytes, memA));
+    SWC_ASSERT(manager.allocateAndCopy(bytes, memB));
+
+    using Fn = void (*)();
+    const auto fnA = memA.entryPoint<Fn>();
+    const auto fnB = memB.entryPoint<Fn>();
+    SWC_ASSERT(fnA != nullptr);
+    SWC_ASSERT(fnB != nullptr);
+    fnA();
+    fnB();
+
+    const auto ptrA = std::bit_cast<uintptr_t>(fnA);
+    const auto ptrB = std::bit_cast<uintptr_t>(fnB);
+    SWC_ASSERT(ptrB > ptrA);
+    SWC_ASSERT(ptrB - ptrA < 64 * 1024);
+}
+SWC_TEST_END()
+
 #endif
 #endif
 

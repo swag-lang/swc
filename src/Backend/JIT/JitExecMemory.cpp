@@ -4,11 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-JITExecMemory::~JITExecMemory()
-{
-    reset();
-}
-
 JITExecMemory::JITExecMemory(JITExecMemory&& other) noexcept :
     ptr_(other.ptr_),
     size_(other.size_)
@@ -21,7 +16,6 @@ JITExecMemory& JITExecMemory::operator=(JITExecMemory&& other) noexcept
 {
     if (this != &other)
     {
-        reset();
         ptr_        = other.ptr_;
         size_       = other.size_;
         other.ptr_  = nullptr;
@@ -33,34 +27,77 @@ JITExecMemory& JITExecMemory::operator=(JITExecMemory&& other) noexcept
 
 void JITExecMemory::reset()
 {
-    if (ptr_)
-        Os::freeExecutableMemory(ptr_);
     ptr_  = nullptr;
     size_ = 0;
 }
 
-bool JITExecMemory::allocateAndCopy(ByteSpan bytes)
+namespace
 {
-    reset();
+    uint32_t alignUp(uint32_t value, uint32_t alignment)
+    {
+        SWC_ASSERT(alignment != 0);
+        return (value + alignment - 1) & ~(alignment - 1);
+    }
+}
+
+JITExecMemoryManager::~JITExecMemoryManager()
+{
+    std::unique_lock lock(mutex_);
+    for (const auto& block : blocks_)
+    {
+        if (block.ptr)
+            Os::freeExecutableMemory(block.ptr);
+    }
+    blocks_.clear();
+}
+
+bool JITExecMemoryManager::allocateAndCopy(ByteSpan bytes, JITExecMemory& outExecutableMemory)
+{
+    outExecutableMemory.reset();
     SWC_ASSERT(bytes.data() || bytes.empty());
     if (bytes.empty())
         return false;
 
     SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
-    const auto size = static_cast<uint32_t>(bytes.size());
+    const auto requestSize = static_cast<uint32_t>(bytes.size());
 
-    ptr_ = Os::allocExecutableMemory(size);
-    if (!ptr_)
-        return false;
+    std::unique_lock lock(mutex_);
 
-    std::memcpy(ptr_, bytes.data(), bytes.size());
-    if (!Os::makeExecutableMemory(ptr_, size))
+    Block* targetBlock = nullptr;
+    for (auto& block : blocks_)
     {
-        reset();
-        return false;
+        if (block.size - block.allocated >= requestSize)
+        {
+            targetBlock = &block;
+            break;
+        }
     }
 
-    size_ = size;
+    if (!targetBlock)
+    {
+        const auto blockSize = std::max(defaultBlockSize, alignUp(requestSize, 4096));
+        auto*      ptr       = Os::allocExecutableMemory(blockSize);
+        if (!ptr)
+            return false;
+
+        blocks_.push_back({.ptr = ptr, .size = blockSize, .allocated = 0});
+        targetBlock = &blocks_.back();
+    }
+
+    SWC_ASSERT(targetBlock);
+    if (!Os::makeWritableExecutableMemory(targetBlock->ptr, targetBlock->size))
+        return false;
+
+    auto* dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
+    std::memcpy(dst, bytes.data(), bytes.size());
+
+    const auto newAllocated = targetBlock->allocated + requestSize;
+    if (!Os::makeExecutableMemory(targetBlock->ptr, newAllocated))
+        return false;
+
+    targetBlock->allocated    = newAllocated;
+    outExecutableMemory.ptr_  = dst;
+    outExecutableMemory.size_ = requestSize;
     return true;
 }
 

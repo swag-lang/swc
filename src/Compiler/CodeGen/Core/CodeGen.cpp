@@ -130,6 +130,27 @@ Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
     return Result::Continue;
 }
 
+CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
+{
+    return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+}
+
+CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef)
+{
+    CodeGenNodePayload* nodePayload = payload(nodeRef);
+    if (!nodePayload)
+    {
+        nodePayload = sema().compiler().allocate<CodeGenNodePayload>();
+        sema().setCodeGenPayload(nodeRef, nodePayload);
+    }
+
+    nodePayload->virtualRegister = nextVirtualRegister();
+    nodePayload->kind            = kind;
+    nodePayload->valueU64        = valueU64;
+    nodePayload->typeRef         = typeRef;
+    return *nodePayload;
+}
+
 void CodeGen::setVisitors()
 {
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });

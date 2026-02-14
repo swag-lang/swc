@@ -85,6 +85,8 @@ public:
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return semaContext().getSymbolList(n); }
     bool                     hasPayload(AstNodeRef n) const { return semaContext().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { semaContext().setPayload(n, payload); }
+    bool                     hasCodeGenPayload(AstNodeRef n) const { return semaContext().hasCodeGenPayload(n); }
+    void                     setCodeGenPayload(AstNodeRef n, void* payload) { semaContext().setCodeGenPayload(n, payload); }
 
     bool isLValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::LValue); }
     bool isValue(const AstNode& node) const { return SemaContext::hasSemaFlags(node, NodeSemaFlags::Value); }
@@ -107,6 +109,12 @@ public:
     T* payload(AstNodeRef n) const
     {
         return static_cast<T*>(semaContext().getPayload(n));
+    }
+
+    template<typename T>
+    T* codeGenPayload(AstNodeRef n) const
+    {
+        return static_cast<T*>(semaContext().getCodeGenPayload(n));
     }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }

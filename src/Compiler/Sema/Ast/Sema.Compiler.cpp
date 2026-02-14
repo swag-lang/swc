@@ -665,14 +665,6 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 
     const SemaNodeView nodeView(sema, nodeExprRef);
 
-    // TODO
-    if (nodeView.type->isStruct())
-    {
-        const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
-        sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), cv));
-        return Result::Continue;
-    }
-
     MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
 
     JITExecMemory executableMemory;
@@ -688,8 +680,9 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     else if (nodeType.isAlias())
         resultStorageRef = nodeType.payloadSymAlias().underlyingTypeRef();
 
+    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
     const uint64_t         resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
-    std::vector<std::byte> resultStorage(resultSize);
+    std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
     const FFIReturn        returnValue = {
                .typeRef  = nodeView.typeRef,
                .valuePtr = resultStorage.data(),

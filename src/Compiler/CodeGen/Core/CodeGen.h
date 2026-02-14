@@ -9,6 +9,24 @@ class SymbolFunction;
 class MicroInstrBuilder;
 struct SemaNodeView;
 
+enum class CodeGenNodePayloadKind : uint8_t
+{
+    None,
+    ValueStorageU64,
+    PointerStorageU64,
+    DerefPointerStorageU64,
+    ExternalFunctionAddress,
+    AddressValue,
+};
+
+struct CodeGenNodePayload
+{
+    uint32_t               virtualRegister = 0;
+    CodeGenNodePayloadKind kind            = CodeGenNodePayloadKind::None;
+    uint64_t               valueU64        = 0;
+    TypeRef                typeRef         = TypeRef::invalid();
+};
+
 class CodeGen
 {
 public:
@@ -26,6 +44,9 @@ public:
     SymbolFunction&          function() { return *function_; }
     const SymbolFunction&    function() const { return *function_; }
     Result                   emitConstReturnValue(const SemaNodeView& exprView);
+    CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
+    CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef = TypeRef::invalid());
+    uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
     MicroInstrBuilder&       builder() { return *builder_; }
     const MicroInstrBuilder& builder() const { return *builder_; }
 
@@ -40,6 +61,7 @@ private:
     AstVisit           visit_;
     SymbolFunction*    function_ = nullptr;
     MicroInstrBuilder* builder_         = nullptr;
+    uint32_t           nextVirtualRegister_ = 1;
 };
 
 SWC_END_NAMESPACE();

@@ -411,6 +411,7 @@ struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 // -----------------------------------------------------------------------------
 struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -418,6 +419,7 @@ struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -547,6 +549,7 @@ struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
     AstNodeRef nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -703,6 +706,7 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
     AstNodeRef nodeRightRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

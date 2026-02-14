@@ -1,12 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
-    <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 1 --runtime --devmode --no-internal-unittest</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>tools/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>sema --verify -d bin/tests/sema --num-cores 1 -ff sema3</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 1 --runtime --devmode ---no-internal-unittest</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>tools/</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
+    <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 0 --runtime --devmode</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>.\tools</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

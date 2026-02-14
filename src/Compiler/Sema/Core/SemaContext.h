@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include <unordered_map>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -86,6 +87,9 @@ protected:
     bool  hasPayload(AstNodeRef nodeRef) const;
     void  setPayload(AstNodeRef nodeRef, void* payload);
     void* getPayload(AstNodeRef nodeRef) const;
+    bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
+    void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
+    void* getCodeGenPayload(AstNodeRef nodeRef) const;
 
     static void propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritSemaKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -103,8 +107,9 @@ private:
 
     struct Shard
     {
-        std::shared_mutex mutex;
+        mutable std::shared_mutex mutex;
         PagedStore        store;
+        std::unordered_map<uint32_t, void*> codeGenPayloads;
     };
 
     Shard shards_[SEMA_SHARD_NUM];

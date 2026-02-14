@@ -7,6 +7,9 @@
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
+#if defined(_WIN32) && defined(_MSC_VER)
+#include <excpt.h>
+#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -150,8 +153,25 @@ namespace
         }
     }
 
+#if defined(_WIN32) && defined(_MSC_VER)
+    using FFIInvokerFn = void (*)();
+    bool invokeWithHardwareExceptionGuard(FFIInvokerFn invoker)
+    {
+        __try
+        {
+            invoker();
+            return true;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            SWC_ASSERT(false);
+            return false;
+        }
+    }
+#endif
 }
 
+#pragma optimize("", off)
 void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
@@ -244,7 +264,12 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
     SWC_ASSERT(invoker != nullptr);
 
+#if defined(_WIN32) && defined(_MSC_VER)
+    if (!invokeWithHardwareExceptionGuard(invoker))
+        return;
+#else
     invoker();
+#endif
 }
 
 SWC_END_NAMESPACE();

@@ -395,6 +395,38 @@ void* SemaContext::getPayload(AstNodeRef nodeRef) const
     return *shard.store.ptr<void*>(node.semaRef());
 }
 
+bool SemaContext::hasCodeGenPayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+
+    const uint32_t shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const auto&    shard    = shards_[shardIdx];
+    std::shared_lock lock(shard.mutex);
+    return shard.codeGenPayloads.contains(nodeRef.get());
+}
+
+void SemaContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(payload);
+
+    const uint32_t   shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    auto&            shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+    shard.codeGenPayloads[nodeRef.get()] = payload;
+}
+
+void* SemaContext::getCodeGenPayload(AstNodeRef nodeRef) const
+{
+    SWC_ASSERT(nodeRef.isValid());
+    const uint32_t shardIdx = nodeRef.get() % SEMA_SHARD_NUM;
+    const auto&    shard    = shards_[shardIdx];
+    std::shared_lock lock(shard.mutex);
+    const auto it = shard.codeGenPayloads.find(nodeRef.get());
+    return it == shard.codeGenPayloads.end() ? nullptr : it->second;
+}
+
 void SemaContext::propagateSemaFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
     if (merge)

@@ -25,6 +25,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CompilerInstance* g_RuntimeCompilerOwner = nullptr;
+
     const Runtime::CompilerMessage* runtimeCompilerGetMessage()
     {
         return nullptr;
@@ -32,7 +34,8 @@ namespace
 
     Runtime::BuildCfg* runtimeCompilerGetBuildCfg()
     {
-        return nullptr;
+        SWC_ASSERT(g_RuntimeCompilerOwner != nullptr);
+        return &g_RuntimeCompilerOwner->buildCfg();
     }
 
     void runtimeCompilerCompileString(Runtime::String)
@@ -44,6 +47,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     cmdLine_(&cmdLine),
     global_(&global)
 {
+    g_RuntimeCompilerOwner = this;
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 
@@ -53,7 +57,11 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     setupRuntimeCompiler();
 }
 
-CompilerInstance::~CompilerInstance() = default;
+CompilerInstance::~CompilerInstance()
+{
+    if (g_RuntimeCompilerOwner == this)
+        g_RuntimeCompilerOwner = nullptr;
+}
 
 void CompilerInstance::setupSema(TaskContext& ctx)
 {

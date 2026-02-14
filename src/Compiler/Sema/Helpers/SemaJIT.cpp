@@ -1,19 +1,17 @@
 #include "pch.h"
-
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Backend/FFI/FFI.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaJit.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Global.h"
-#include "SemaCheck.h"
 #include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -49,7 +47,7 @@ namespace
     }
 }
 
-Result SemaJit::runExpr(Sema& sema, AstNodeRef nodeExprRef)
+Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
 

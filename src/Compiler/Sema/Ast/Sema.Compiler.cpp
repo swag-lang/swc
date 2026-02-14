@@ -9,7 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaJit.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -643,7 +643,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    RESULT_VERIFY(SemaJit::runExpr(sema, nodeExprRef));
+    RESULT_VERIFY(SemaJIT::runExpr(sema, nodeExprRef));
     sema.inheritPayload(sema.node(sema.curNodeRef()), nodeExprRef);
 
     // TODO

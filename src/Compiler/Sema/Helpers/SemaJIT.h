@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 struct AstCompilerRunExpr;
 class Sema;
 
-namespace SemaJit
+namespace SemaJIT
 {
     Result runExpr(Sema& sema, AstNodeRef nodeExprRef);
 }

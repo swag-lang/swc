@@ -25,21 +25,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    CompilerInstance* g_RuntimeCompilerOwner = nullptr;
-
-    const Runtime::CompilerMessage* runtimeCompilerGetMessage()
+    const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
     {
+        SWC_ASSERT(owner != nullptr);
         return nullptr;
     }
 
-    Runtime::BuildCfg* runtimeCompilerGetBuildCfg()
+    Runtime::BuildCfg* runtimeCompilerGetBuildCfg(CompilerInstance* owner)
     {
-        SWC_ASSERT(g_RuntimeCompilerOwner != nullptr);
-        return &g_RuntimeCompilerOwner->buildCfg();
+        SWC_ASSERT(owner != nullptr);
+        return &owner->buildCfg();
     }
 
-    void runtimeCompilerCompileString(Runtime::String)
+    void runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String)
     {
+        SWC_ASSERT(owner != nullptr);
     }
 }
 
@@ -47,9 +47,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    g_RuntimeCompilerOwner = this;
-    jobClientId_           = global.jobMgr().newClientId();
-    exeFullName_           = Os::getExeFullName();
+    jobClientId_ = global.jobMgr().newClientId();
+    exeFullName_ = Os::getExeFullName();
 
     const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
@@ -59,8 +58,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
 CompilerInstance::~CompilerInstance()
 {
-    if (g_RuntimeCompilerOwner == this)
-        g_RuntimeCompilerOwner = nullptr;
 }
 
 void CompilerInstance::setupSema(TaskContext& ctx)
@@ -161,7 +158,7 @@ void CompilerInstance::processCommand()
 
 void CompilerInstance::setupRuntimeCompiler()
 {
-    runtimeCompiler_.obj      = nullptr;
+    runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;
     runtimeCompilerITable_[0] = reinterpret_cast<void*>(&runtimeCompilerGetMessage);
     runtimeCompilerITable_[1] = reinterpret_cast<void*>(&runtimeCompilerGetBuildCfg);

@@ -633,6 +633,16 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
+    // TODO
+    if (sema.file()->isRuntime())
+    {
+        const SemaNodeView nodeView(sema, nodeExprRef);
+        SWC_ASSERT(nodeView.type->isStruct());
+        const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cv));
+        return Result::Continue;
+    }
+
     RESULT_VERIFY(SemaJit::runExpr(sema, nodeExprRef));
     sema.inheritPayload(sema.node(sema.curNodeRef()), nodeExprRef);
     return Result::Continue;

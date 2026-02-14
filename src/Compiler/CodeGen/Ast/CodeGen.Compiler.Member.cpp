@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,9 +24,10 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     if (methodSym->name(codeGen.ctx()) != "getBuildCfg")
         return Result::Continue;
 
-    auto& runtimeCompiler = codeGen.ctx().compiler().runtimeCompiler();
-    SWC_ASSERT(runtimeCompiler.itable != nullptr);
-    const auto targetAddress = reinterpret_cast<uint64_t>(runtimeCompiler.itable[1]);
+    const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
+    SWC_ASSERT(runtimeInterface != nullptr);
+    SWC_ASSERT(runtimeInterface->itable != nullptr);
+    const auto targetAddress = reinterpret_cast<uint64_t>(runtimeInterface->itable[1]);
     codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, targetAddress);
     return Result::Continue;
 }

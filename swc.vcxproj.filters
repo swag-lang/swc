@@ -1,244 +1,1016 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.cpp" />
-    <ClCompile Include="src\Backend\MachineCode\Encoder\MicroOps\ScbeMicro.cpp" />
-    <ClCompile Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.cpp" />
-    <ClCompile Include="src\pch.cpp" />
-    <ClCompile Include="src\Core\Utf8.cpp" />
-    <ClCompile Include="src\Lexer\LangSpec.cpp" />
-    <ClCompile Include="src\Lexer\Lexer.cpp" />
-    <ClCompile Include="src\Lexer\SourceCodeLocation.cpp" />
-    <ClCompile Include="src\Lexer\Token.cpp" />
-    <ClCompile Include="src\Main\CommandLineParser.cpp" />
-    <ClCompile Include="src\Os\OsWin32.cpp" />
-    <ClCompile Include="src\Report\Diagnostic.cpp" />
-    <ClCompile Include="src\Report\DiagnosticElement.cpp" />
-    <ClCompile Include="src\Report\Logger.cpp" />
-    <ClCompile Include="src\Thread\JobManager.cpp" />
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Main\Global.cpp" />
-    <ClCompile Include="src\Memory\Allocator.cpp" />
-    <ClCompile Include="src\Core\Utf8Helper.cpp" />
-    <ClCompile Include="src\Main\FileSystem.cpp" />
-    <ClCompile Include="src\Memory\Arena.cpp" />
-    <ClCompile Include="src\Report\LogColor.cpp" />
-    <ClCompile Include="src\Report\LogSymbol.cpp" />
-    <ClCompile Include="src\Main\CompilerInstance.cpp" />
-    <ClCompile Include="src\Report\DiagnosticBuilder.cpp" />
-    <ClCompile Include="src\Core\Store.cpp" />
-    <ClCompile Include="src\Lexer\SourceView.cpp" />
-    <ClCompile Include="src\Main\Stats.cpp" />
-    <ClCompile Include="src\Main\TakeContext.cpp" />
-    <ClCompile Include="src\Math\ApFloat.cpp" />
-    <ClCompile Include="src\Math\ApInt.cpp" />
-    <ClCompile Include="src\Math\ApsInt.cpp" />
-    <ClCompile Include="src\Math\Hash.cpp" />
-    <ClCompile Include="src\Math\Helpers.cpp" />
-    <ClCompile Include="src\Memory\Heap.cpp" />
-    <ClCompile Include="src\Memory\Mimalloc.cpp" />
-    <ClCompile Include="src\Report\Assert.cpp" />
-    <ClCompile Include="src\Sema\Constant\ConstantManager.cpp" />
-    <ClCompile Include="src\Sema\Constant\ConstantValue.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaCheck.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaError.cpp" />
-    <ClCompile Include="src\Sema\Symbol\IdentifierManager.cpp" />
-    <ClCompile Include="src\Sema\Symbol\SymbolMap.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeInfo.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeManager.cpp" />
-    <ClCompile Include="src\Thread\RaceCondition.cpp" />
-    <ClCompile Include="src\Wmf\SourceFile.cpp" />
-    <ClCompile Include="src\Wmf\Verify.cpp" />
-    <ClCompile Include="src\Core\DataSegment.cpp" />
-    <ClCompile Include="src\Lexer\SyntaxColor.cpp" />
-    <ClCompile Include="src\Main\Command.Sema.cpp" />
-    <ClCompile Include="src\Main\Command.Syntax.cpp" />
-    <ClCompile Include="src\Parser\Ast\Ast.cpp" />
-    <ClCompile Include="src\Parser\Ast\AstNode.cpp" />
-    <ClCompile Include="src\Parser\Ast\AstVisit.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Aggregate.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Call.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Compiler.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Compound.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Enum.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Expression.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Func.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Literal.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Stmt.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Type.cpp" />
-    <ClCompile Include="src\Parser\Parser\Parser.Var.cpp" />
-    <ClCompile Include="src\Parser\Parser\ParserJob.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Attributes.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Block.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Cast.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Compiler.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Enum.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Expr.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Binary.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Conditional.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Logical.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.MemberAccess.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Relational.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Switch.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Unary.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Function.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaSpecOp.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.If.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Impl.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Interface.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Intrinsic.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Literal.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Struct.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Type.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Var.cpp" />
-    <ClCompile Include="src\Sema\Ast\Sema.Loop.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.Array.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.Cast.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.Const.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.Convert.cpp" />
-    <ClCompile Include="src\Sema\Cast\CastContext.cpp" />
-    <ClCompile Include="src\Sema\Cast\CastFailure.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.Struct.cpp" />
-    <ClCompile Include="src\Sema\Cast\Cast.cpp" />
-    <ClCompile Include="src\Sema\Core\Sema.cpp" />
-    <ClCompile Include="src\Sema\Core\SemaFrame.cpp" />
-    <ClCompile Include="src\Sema\Core\SemaInfo.cpp" />
-    <ClCompile Include="src\Sema\Core\SemaJob.cpp" />
-    <ClCompile Include="src\Sema\Core\SemaNodeView.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaCycle.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaExtract.cpp" />
-    <ClCompile Include="src\Sema\Helpers\SemaHelpers.cpp" />
-    <ClCompile Include="src\Sema\Match\Match.cpp" />
-    <ClCompile Include="src\Sema\Match\Match.Func.cpp" />
-    <ClCompile Include="src\Sema\Match\MatchContext.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Attribute.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Enum.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Function.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Impl.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Interface.cpp" />
-    <ClCompile Include="src\Sema\Symbol\Symbol.Struct.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeGen.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeGen.Layout.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeGen.Payload.cpp" />
-    <ClCompile Include="src\Sema\Type\TypeGen.Process.cpp" />
+    <Filter Include="src">
+      <UniqueIdentifier>{C202D925-8342-8C3B-BBAC-54DFA101AD31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend">
+      <UniqueIdentifier>{ADE7606A-DE46-5533-9777-E445672AF74F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\FFI">
+      <UniqueIdentifier>{FDEFC08D-EC5F-CB3B-A37B-E4CC1DE9781C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\JIT">
+      <UniqueIdentifier>{89C8AF00-175F-FF3C-A7C3-CB670F61F359}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\MachineCode">
+      <UniqueIdentifier>{7B732E69-CB6C-BC37-925F-19F25409F3DE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\MachineCode\Encoder">
+      <UniqueIdentifier>{D15CB4E4-95D0-3F32-B697-CD2E87A7941C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\MachineCode\Micro">
+      <UniqueIdentifier>{2915C3C7-F9BE-8A37-9A87-0E98AB798D11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\MachineCode\Micro\Passes">
+      <UniqueIdentifier>{FDAAD3B2-242B-9D36-B146-7B8057CEA20B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\Unittest">
+      <UniqueIdentifier>{65FDA6EC-601D-B439-BF22-D2D9C7201DF5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\Unittest\Tests">
+      <UniqueIdentifier>{6D6D7F41-9E10-EB36-8D5A-9675F658BB45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler">
+      <UniqueIdentifier>{D75ADC24-606D-563F-90CA-323A7AC252E8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\CodeGen">
+      <UniqueIdentifier>{3659C457-CD19-C63C-A59A-7A09F227DEF6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\CodeGen\Ast">
+      <UniqueIdentifier>{B048F6BD-780F-1138-8229-287C1F7EA2A9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\CodeGen\Core">
+      <UniqueIdentifier>{EFF337B9-854D-D737-9AA6-0C09791EB507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Lexer">
+      <UniqueIdentifier>{27AFDAE9-FE6D-C738-9DDA-9ECC6F53A144}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Parser">
+      <UniqueIdentifier>{4BE4EA94-C59F-8632-A3A5-12A11F5C00CC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Parser\Ast">
+      <UniqueIdentifier>{851ED7D1-07EF-2A37-9D61-FC252105D237}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Parser\Parser">
+      <UniqueIdentifier>{48C96C08-D93E-6B39-9B02-F6B61FEA32E9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema">
+      <UniqueIdentifier>{89003AD2-083B-113D-B6C7-758CEAC03FC5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Ast">
+      <UniqueIdentifier>{CD1DCC2E-9DF6-073F-8B8E-D34A308D5A38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Cast">
+      <UniqueIdentifier>{D2D283AF-746A-883C-84EC-5934C5845C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Constant">
+      <UniqueIdentifier>{3E78CEC0-D729-2132-A8F3-025E347D35F0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Core">
+      <UniqueIdentifier>{B1750AB9-8A22-043F-BD56-2A876A947A3A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Helpers">
+      <UniqueIdentifier>{67CF5BE3-4FF5-8336-B251-8B2C79193503}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Match">
+      <UniqueIdentifier>{BDA1B829-CBD3-3932-8D05-F4D963362924}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Symbol">
+      <UniqueIdentifier>{D733130C-2169-DE3B-A0E2-04F94C58ADB6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Compiler\Sema\Type">
+      <UniqueIdentifier>{E2F87E94-C66F-383E-8610-EC4BA857EE9F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Main">
+      <UniqueIdentifier>{02D740A7-ED97-7336-96A9-AB8C2FED7F50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support">
+      <UniqueIdentifier>{EDDB589F-BF56-6336-9625-5E55DCAEC999}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Core">
+      <UniqueIdentifier>{BB43DF49-DD58-5B38-BB4C-DD4AB0F1BBAF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Math">
+      <UniqueIdentifier>{E708394E-F0CE-3535-B69F-79885F9846AD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Memory">
+      <UniqueIdentifier>{ACA3DF40-D866-1C36-8BB4-D3E81B8273FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Os">
+      <UniqueIdentifier>{201878D6-A61C-2233-8F86-E857812DC748}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Report">
+      <UniqueIdentifier>{B356AFA4-F4AD-3835-BC66-64D06A98B92D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Report\Msg">
+      <UniqueIdentifier>{EF0FD46B-2389-6235-BD11-4D4271DB708D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Thread">
+      <UniqueIdentifier>{AB8199D3-24C3-4C39-B3E7-938BC7C10FCB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Support\Unittest">
+      <UniqueIdentifier>{D16A3976-D5C6-B437-9EF3-141765A379DC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Wmf">
+      <UniqueIdentifier>{6595F4E4-E1E7-2B34-A187-15FB55DEC5B5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\MicroInstruction.h" />
-    <ClInclude Include="src\Backend\MachineCode\Encoder\MicroOps\ScbeMicro.h" />
-    <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuAbstraction.h" />
-    <ClInclude Include="src\Backend\MachineCode\Encoder\Core\CpuEncoder.h" />
-    <ClInclude Include="src\Backend\MachineCode\Encoder\X64\X64Encoder.h" />
-    <ClInclude Include="src\Wmf\Module.h" />
-    <ClInclude Include="src\Backend\Diagnostics\BackendReport.h" />
-    <ClInclude Include="src\pch.h" />
-    <ClInclude Include="src\Core\Flags.h" />
-    <ClInclude Include="src\Core\Utf8.h" />
-    <ClInclude Include="src\Lexer\LangSpec.h" />
-    <ClInclude Include="src\Lexer\Lexer.h" />
-    <ClInclude Include="src\Lexer\SourceCodeLocation.h" />
-    <ClInclude Include="src\Lexer\Token.h" />
-    <ClInclude Include="src\Main\CommandLine.h" />
-    <ClInclude Include="src\Main\CommandLineParser.h" />
-    <ClInclude Include="src\Os\Os.h" />
-    <ClInclude Include="src\Report\Diagnostic.h" />
-    <ClInclude Include="src\Report\DiagnosticElement.h" />
-    <ClInclude Include="src\Report\Logger.h" />
-    <ClInclude Include="src\Thread\Job.h" />
-    <ClInclude Include="src\Thread\JobManager.h" />
-    <ClInclude Include="src\Core\Timer.h" />
-    <ClInclude Include="src\Main\Global.h" />
-    <ClInclude Include="src\Report\LogColor.h" />
-    <ClInclude Include="src\Core\Utf8Helper.h" />
-    <ClInclude Include="src\Main\FileSystem.h" />
-    <ClInclude Include="src\Main\Version.h" />
-    <ClInclude Include="src\Memory\Arena.h" />
-    <ClInclude Include="src\Report\LogSymbol.h" />
-    <ClInclude Include="src\Core\SmallVector.h" />
-    <ClInclude Include="src\Main\CompilerInstance.h" />
-    <ClInclude Include="src\Core\StringMap.h" />
-    <ClInclude Include="src\Report\DiagnosticBuilder.h" />
-    <ClInclude Include="src\Report\DiagnosticDef.h" />
-    <ClInclude Include="src\Report\ExitCodes.h" />
-    <ClInclude Include="src\Core\Store.h" />
-    <ClInclude Include="src\Support\Core\TypedStore.h" />
-    <ClInclude Include="src\Core\StrongRef.h" />
-    <ClInclude Include="src\Lexer\SourceView.h" />
-    <ClInclude Include="src\Main\Command.h" />
-    <ClInclude Include="src\Main\Stats.h" />
-    <ClInclude Include="src\Main\TaskContext.h" />
-    <ClInclude Include="src\Math\ApFloat.h" />
-    <ClInclude Include="src\Math\ApInt.h" />
-    <ClInclude Include="src\Math\ApsInt.h" />
-    <ClInclude Include="src\Math\Hash.h" />
-    <ClInclude Include="src\Math\Helpers.h" />
-    <ClInclude Include="src\Memory\Heap.h" />
-    <ClInclude Include="src\Report\Assert.h" />
-    <ClInclude Include="src\Sema\Constant\ConstantManager.h" />
-    <ClInclude Include="src\Sema\Constant\ConstantValue.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaCheck.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaError.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaExtract.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaSpecOp.h" />
-    <ClInclude Include="src\Sema\Symbol\IdentifierManager.h" />
-    <ClInclude Include="src\Sema\Symbol\SymbolMap.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.h" />
-    <ClInclude Include="src\Sema\Type\TypeInfo.h" />
-    <ClInclude Include="src\Sema\Type\TypeManager.h" />
-    <ClInclude Include="src\Sema\Type\TypeGen.Internal.h" />
-    <ClInclude Include="src\Thread\RaceCondition.h" />
-    <ClInclude Include="src\Wmf\SourceFile.h" />
-    <ClInclude Include="src\Wmf\Verify.h" />
-    <ClInclude Include="src\Core\DataSegment.h" />
-    <ClInclude Include="src\Core\Result.h" />
-    <ClInclude Include="src\Lexer\SyntaxColor.h" />
-    <ClInclude Include="src\Lexer\Tokens.Def.inc" />
-    <ClInclude Include="src\Parser\Ast\Ast.h" />
-    <ClInclude Include="src\Parser\Ast\AstNode.h" />
-    <ClInclude Include="src\Parser\Ast\AstNodeId.h" />
-    <ClInclude Include="src\Parser\Ast\AstNodes.Def.inc" />
-    <ClInclude Include="src\Parser\Ast\AstNodes.h" />
-    <ClInclude Include="src\Parser\Ast\AstNodes.Struct.inc" />
-    <ClInclude Include="src\Parser\Ast\AstVisit.h" />
-    <ClInclude Include="src\Parser\Parser\Parser.h" />
-    <ClInclude Include="src\Parser\Parser\ParserJob.h" />
-    <ClInclude Include="src\Report\Msg\Errors.Cmd.inc" />
-    <ClInclude Include="src\Report\Msg\Errors.inc" />
-    <ClInclude Include="src\Report\Msg\Errors.Lex.inc" />
-    <ClInclude Include="src\Report\Msg\Notes.inc" />
-    <ClInclude Include="src\Report\Msg\Errors.Parser.inc" />
-    <ClInclude Include="src\Report\Msg\Errors.Sema.inc" />
-    <ClInclude Include="src\Report\Msg\Errors.Misc.inc" />
-    <ClInclude Include="src\Report\Msg\Notes.Parser.inc" />
-    <ClInclude Include="src\Report\Msg\Notes.Sema.inc" />
-    <ClInclude Include="src\\Backend\\Runtime.h" />
-    <ClInclude Include="src\Sema\Ast\Sema.Payload.h" />
-    <ClInclude Include="src\Sema\Cast\Cast.h" />
-    <ClInclude Include="src\Sema\Cast\CastContext.h" />
-    <ClInclude Include="src\Sema\Cast\CastFailure.h" />
-    <ClInclude Include="src\Sema\Core\AttributeList.h" />
-    <ClInclude Include="src\Sema\Core\Sema.h" />
-    <ClInclude Include="src\Sema\Core\SemaFrame.h" />
-    <ClInclude Include="src\Sema\Core\SemaInfo.h" />
-    <ClInclude Include="src\Sema\Core\SemaJob.h" />
-    <ClInclude Include="src\Sema\Core\SemaNodeView.h" />
-    <ClInclude Include="src\Sema\Core\SemaScope.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaCycle.h" />
-    <ClInclude Include="src\Sema\Helpers\SemaHelpers.h" />
-    <ClInclude Include="src\Sema\Match\Match.h" />
-    <ClInclude Include="src\Sema\Match\MatchContext.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Alias.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Attribute.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Constant.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Enum.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Function.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Impl.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Interface.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Module.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Struct.h" />
-    <ClInclude Include="src\Sema\Symbol\Symbol.Variable.h" />
-    <ClInclude Include="src\Sema\Type\TypeGen.h" />
+    <ClCompile Include="src\Backend\Backend.cpp">
+      <Filter>src\Backend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\FFI\FFI.cpp">
+      <Filter>src\Backend\FFI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JIT.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JitExecMemory.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JITExecMemoryManager.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\CallConv.cpp">
+      <Filter>src\Backend\MachineCode</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp">
+      <Filter>src\Backend\MachineCode\Encoder</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp">
+      <Filter>src\Backend\MachineCode\Encoder</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstr.cpp">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPass.cpp">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.cpp">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp">
+      <Filter>src\Backend\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeX64.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.FFI.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\Lexer.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\SourceView.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\SyntaxColor.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Lexer\Token.cpp">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Binary.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Conditional.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Enum.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Intrinsic.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Literal.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Struct.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Type.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Array.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantLower.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Core\SemaContext.cpp">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Match\Match.cpp">
+      <Filter>src\Compiler\Sema\Match</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp">
+      <Filter>src\Compiler\Sema\Match</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp">
+      <Filter>src\Compiler\Sema\Match</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Attribute.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Impl.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Interface.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Struct.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeGen.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Layout.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Payload.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Process.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeInfo.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command.Sema.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command.Syntax.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\CommandLineParser.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\CompilerInstance.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\FileSystem.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Global.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Stats.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\TakeContext.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\DataSegment.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\PagedStore.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\Utf8.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\Utf8Helper.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApFloat.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApInt.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApsInt.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\Hash.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\Helpers.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Allocator.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Arena.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Heap.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Os\OsWin32.cpp">
+      <Filter>src\Support\Os</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Assert.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Diagnostic.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\DiagnosticElement.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\LogColor.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Logger.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\LogSymbol.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Thread\JobManager.cpp">
+      <Filter>src\Support\Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Thread\RaceCondition.cpp">
+      <Filter>src\Support\Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Unittest\Unittest.cpp">
+      <Filter>src\Support\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Wmf\SourceFile.cpp">
+      <Filter>src\Wmf</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Wmf\Verify.cpp">
+      <Filter>src\Wmf</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Backend\Runtime.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Backend.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\FFI\FFI.h">
+      <Filter>src\Backend\FFI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JIT.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITExecMemory.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITExecMemoryManager.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\CallConv.h">
+      <Filter>src\Backend\MachineCode</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h">
+      <Filter>src\Backend\MachineCode\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h">
+      <Filter>src\Backend\MachineCode\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h">
+      <Filter>src\Backend\MachineCode\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroAbiCall.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.h">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPass.h">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.h">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h">
+      <Filter>src\Backend\Unittest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\LangSpec.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\Lexer.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\SourceView.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\Token.h">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc">
+      <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\Ast.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Def.inc">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Parser\Parser.h">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h">
+      <Filter>src\Compiler\Parser\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Cast\Cast.h">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\Sema.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\SemaContext.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h">
+      <Filter>src\Compiler\Sema\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Match\Match.h">
+      <Filter>src\Compiler\Sema\Match</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h">
+      <Filter>src\Compiler\Sema\Match</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Attribute.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Enum.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Struct.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Command.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CommandLine.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CommandLineParser.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CompilerInstance.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\ExitCodes.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\FileSystem.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Global.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Stats.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\TaskContext.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Version.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pch.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\ByteSpan.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\DataSegment.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Flags.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\PagedStore.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\PagedStoreTyped.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\RefTypes.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Result.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\SmallVector.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\StringMap.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\StrongRef.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Timer.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Utf8.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Utf8Helper.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApFloat.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApInt.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApsInt.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\Hash.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\Helpers.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Memory\Arena.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Memory\Heap.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Os\Os.h">
+      <Filter>src\Support\Os</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Assert.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Diagnostic.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticBuilder.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticDef.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticElement.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\LogColor.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Logger.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\LogSymbol.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Thread\Job.h">
+      <Filter>src\Support\Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Thread\JobManager.h">
+      <Filter>src\Support\Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Thread\RaceCondition.h">
+      <Filter>src\Support\Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Unittest\Unittest.h">
+      <Filter>src\Support\Unittest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Wmf\SourceFile.h">
+      <Filter>src\Wmf</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Wmf\Verify.h">
+      <Filter>src\Wmf</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="src\Support\Report\Msg\Errors.Cmd.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.Lex.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.Misc.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.Parser.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.Sema.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Notes.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Notes.Parser.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Notes.Sema.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
   </ItemGroup>
 </Project>
-

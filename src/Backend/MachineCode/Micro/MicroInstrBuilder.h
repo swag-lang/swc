@@ -11,6 +11,8 @@ struct MicroPassContext;
 class MicroInstrBuilder
 {
 public:
+    MicroInstrBuilder() = default;
+
     explicit MicroInstrBuilder(TaskContext& ctx) :
         ctx_(&ctx)
     {
@@ -21,6 +23,7 @@ public:
     MicroInstrBuilder(MicroInstrBuilder&&) noexcept            = default;
     MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
+    void              setContext(TaskContext& ctx) { ctx_ = &ctx; }
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 

@@ -15,9 +15,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 {
     visit_.start(ast(), root);
     currentFunction_ = &symbolFunc;
-    builder_         = symbolFunc.microInstrBuilder();
-    if (!builder_)
-        return Result::Error;
+    builder_         = &symbolFunc.microInstrBuilder(ctx());
 
     while (true)
     {

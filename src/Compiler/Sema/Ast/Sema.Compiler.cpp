@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -642,7 +641,6 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     SymbolFunction*     symFn = Symbol::make<SymbolFunction>(ctx, this, tokRef(), idRef, sema.frame().flagsForCurrentAccess());
     symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
     symFn->setReturnTypeRef(nodeView.typeRef);
-    symFn->setMicroInstrBuilder(sema.compiler().allocate<MicroInstrBuilder>(ctx));
     sema.setSymbol(sema.curNodeRef(), symFn);
 
     CodeGen codeGen(sema);

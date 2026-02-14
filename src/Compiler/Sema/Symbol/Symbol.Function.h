@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -7,7 +8,6 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolStruct;
-class MicroInstrBuilder;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
@@ -47,17 +47,20 @@ public:
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
 
-    SpecOpKind               specOpKind() const noexcept { return specOpKind_; }
-    void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    MicroInstrBuilder*       microInstrBuilder() noexcept { return microInstrBuilder_; }
-    const MicroInstrBuilder* microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    void                     setMicroInstrBuilder(MicroInstrBuilder* builder) noexcept { microInstrBuilder_ = builder; }
+    SpecOpKind         specOpKind() const noexcept { return specOpKind_; }
+    void               setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    MicroInstrBuilder& microInstrBuilder(TaskContext& ctx) noexcept
+    {
+        microInstrBuilder_.setContext(ctx);
+        return microInstrBuilder_;
+    }
+    const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
 
 private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_        = TypeRef::invalid();
     SpecOpKind                   specOpKind_        = SpecOpKind::None;
-    MicroInstrBuilder*           microInstrBuilder_ = nullptr;
+    MicroInstrBuilder            microInstrBuilder_;
 };
 
 SWC_END_NAMESPACE();

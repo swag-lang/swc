@@ -636,7 +636,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
 
-    auto&           ctx     = sema.ctx();
+    auto&            ctx     = sema.ctx();
     const AstNodeRef nodeRef = sema.curNodeRef();
     SymbolFunction*  symFn   = nullptr;
     if (sema.hasSymbol(nodeRef))
@@ -661,9 +661,13 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
-    SWC_ASSERT(nodeView.type->isStruct());
-    const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
-    sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), cv));
+
+    // TODO
+    if (nodeView.type->isStruct())
+    {
+        const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
+        sema.setConstant(nodeRef, sema.cstMgr().addConstant(sema.ctx(), cv));
+    }
 
     return Result::Continue;
 }

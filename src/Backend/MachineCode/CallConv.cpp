@@ -17,6 +17,15 @@ namespace
 #endif
     }
 
+    bool hasStructSizeBit(uint64_t sizeMask, uint32_t sizeInBytes)
+    {
+        if (!sizeInBytes || sizeInBytes >= 64)
+            return false;
+
+        const uint64_t sizeBit = uint64_t{1} << sizeInBytes;
+        return (sizeMask & sizeBit) != 0;
+    }
+
     void setupCallConvWindowsX64(CallConv& conv)
     {
         conv.stackPointer = MicroReg::intReg(4);
@@ -100,6 +109,7 @@ namespace
         conv.structArgPassing.passByValueSizeMask      = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
         conv.structArgPassing.passByValueInIntSlots    = true;
         conv.structArgPassing.passByReferenceNeedsCopy = true;
+        conv.structReturnPassing.passByValueSizeMask   = (uint64_t{1} << 1) | (uint64_t{1} << 2) | (uint64_t{1} << 4) | (uint64_t{1} << 8);
         conv.stackRedZone                              = false;
     }
 }
@@ -125,16 +135,25 @@ uint32_t CallConv::stackSlotSize() const
 
 bool CallConv::canPassStructArgByValue(uint32_t sizeInBytes) const
 {
-    if (!sizeInBytes || sizeInBytes >= 64)
-        return false;
+    return hasStructSizeBit(structArgPassing.passByValueSizeMask, sizeInBytes);
+}
 
-    const uint64_t sizeBit = uint64_t{1} << sizeInBytes;
-    return (structArgPassing.passByValueSizeMask & sizeBit) != 0;
+bool CallConv::canPassStructReturnByValue(uint32_t sizeInBytes) const
+{
+    return hasStructSizeBit(structReturnPassing.passByValueSizeMask, sizeInBytes);
 }
 
 StructArgPassingKind CallConv::classifyStructArgPassing(uint32_t sizeInBytes) const
 {
     if (canPassStructArgByValue(sizeInBytes))
+        return StructArgPassingKind::ByValue;
+
+    return StructArgPassingKind::ByReference;
+}
+
+StructArgPassingKind CallConv::classifyStructReturnPassing(uint32_t sizeInBytes) const
+{
+    if (canPassStructReturnByValue(sizeInBytes))
         return StructArgPassingKind::ByValue;
 
     return StructArgPassingKind::ByReference;

@@ -116,6 +116,16 @@ namespace
         return value.a + value.b + value.c;
     }
 
+    FFIStructPair32 ffiNativeReturnStructPair32(uint32_t a, uint32_t b)
+    {
+        return {.a = a, .b = b};
+    }
+
+    FFIStructTriple64 ffiNativeReturnStructTriple64(uint64_t seed)
+    {
+        return {.a = seed + 1, .b = seed + 2, .c = seed + 3};
+    }
+
 }
 
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
@@ -379,6 +389,59 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
     if (result != 65)
         return Result::Error;
     if (value.a != 10 || value.b != 20 || value.c != 30)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
+{
+    if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+        return Result::Continue;
+
+    const auto& typeMgr = ctx.typeMgr();
+
+    const std::array fieldTypes = {
+        typeMgr.typeU32(),
+        typeMgr.typeU32(),
+    };
+    const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
+
+    constexpr uint32_t        a = 11;
+    constexpr uint32_t        b = 31;
+    const SmallVector<FFIArgument> args = {
+        {.typeRef = typeMgr.typeU32(), .valuePtr = &a},
+        {.typeRef = typeMgr.typeU32(), .valuePtr = &b},
+    };
+
+    FFIStructPair32 result = {};
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructPair32), args, structTypeRef, &result));
+    if (result.a != a || result.b != b)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
+{
+    if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
+        return Result::Continue;
+
+    const auto& typeMgr = ctx.typeMgr();
+
+    const std::array fieldTypes = {
+        typeMgr.typeU64(),
+        typeMgr.typeU64(),
+        typeMgr.typeU64(),
+    };
+    const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
+
+    constexpr uint64_t       seed = 39;
+    const SmallVector<FFIArgument> args = {
+        {.typeRef = typeMgr.typeU64(), .valuePtr = &seed},
+    };
+
+    FFIStructTriple64 result = {};
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnStructTriple64), args, structTypeRef, &result));
+    if (result.a != 40 || result.b != 41 || result.c != 42)
         return Result::Error;
 }
 SWC_TEST_END()

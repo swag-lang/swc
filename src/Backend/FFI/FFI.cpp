@@ -11,6 +11,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class FFITypeUsage : uint8_t
+    {
+        Argument,
+        Return,
+    };
+
     struct FFIEmitRegs
     {
         MicroReg base = MicroReg::invalid();
@@ -50,7 +56,7 @@ namespace
         return outType;
     }
 
-    FFINormalizedType normalizeType(TaskContext& ctx, const CallConv& conv, TypeRef typeRef)
+    FFINormalizedType normalizeType(TaskContext& ctx, const CallConv& conv, TypeRef typeRef, FFITypeUsage usage)
     {
         SWC_ASSERT(typeRef.isValid());
 
@@ -82,14 +88,16 @@ namespace
             SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
             const uint32_t size = static_cast<uint32_t>(rawSize);
 
-            if (conv.classifyStructArgPassing(size) == StructArgPassingKind::ByValue)
+            const auto passingKind = usage == FFITypeUsage::Argument ? conv.classifyStructArgPassing(size) : conv.classifyStructReturnPassing(size);
+            if (passingKind == StructArgPassingKind::ByValue)
             {
                 SWC_ASSERT(size == 1 || size == 2 || size == 4 || size == 8);
                 return makeNormalizedType(false, false, static_cast<uint8_t>(size * 8));
             }
 
             const uint32_t align = std::max(ty.alignOf(ctx), uint32_t{1});
-            return makeIndirectStructType(size, align, conv.structArgPassing.passByReferenceNeedsCopy);
+            const bool needsCopy = usage == FFITypeUsage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
+            return makeIndirectStructType(size, align, needsCopy);
         }
 
         SWC_ASSERT(false);
@@ -213,22 +221,30 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 
     constexpr auto          callConvKind = CallConvKind::Host;
     const auto&             conv         = CallConv::get(callConvKind);
-    const FFINormalizedType retType      = normalizeType(ctx, conv, ret.typeRef);
+    const FFINormalizedType retType      = normalizeType(ctx, conv, ret.typeRef, FFITypeUsage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
-    SWC_ASSERT(!retType.isIndirectArg);
 
     uint64_t                       intRetTemp            = 0;
     SmallVector<FFIPackedArg>      packedArgs;
     SmallVector<FFINormalizedType> normalizedArgTypes;
     uint32_t                       indirectArgStorageSize = 0;
-    packedArgs.resize(args.size());
+    const bool                     hasIndirectRetArg      = retType.isIndirectArg;
+    const uint32_t                 packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+    packedArgs.resize(args.size() + packedArgBaseOffset);
     normalizedArgTypes.resize(args.size());
+
+    if (hasIndirectRetArg)
+    {
+        packedArgs[0].value   = reinterpret_cast<uint64_t>(ret.valuePtr);
+        packedArgs[0].isFloat = false;
+        packedArgs[0].numBits = 64;
+    }
 
     const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
         const auto&             arg     = args[i];
-        const FFINormalizedType argType = normalizeType(ctx, conv, arg.typeRef);
+        const FFINormalizedType argType = normalizeType(ctx, conv, arg.typeRef, FFITypeUsage::Argument);
         SWC_ASSERT(!argType.isVoid);
         normalizedArgTypes[i] = argType;
 
@@ -254,7 +270,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 
         if (!argType.isIndirectArg)
         {
-            packedArgs[i] = packArgValue(argType, arg.valuePtr);
+            packedArgs[i + packedArgBaseOffset] = packArgValue(argType, arg.valuePtr);
             continue;
         }
 
@@ -268,14 +284,15 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
             indirectArgStorageOffset += argType.indirectCopySize;
         }
 
-        packedArgs[i].value   = reinterpret_cast<uint64_t>(indirectValuePtr);
-        packedArgs[i].isFloat = false;
-        packedArgs[i].numBits = 64;
+        packedArgs[i + packedArgBaseOffset].value   = reinterpret_cast<uint64_t>(indirectValuePtr);
+        packedArgs[i + packedArgBaseOffset].isFloat = false;
+        packedArgs[i + packedArgBaseOffset].numBits = 64;
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
-    const uint32_t stackAdjust   = computeStackAdjust(conv, numArgs, numRegArgs, stackSlotSize);
+    const uint32_t callArgCount  = static_cast<uint32_t>(packedArgs.size());
+    const uint32_t stackAdjust   = computeStackAdjust(conv, callArgCount, numRegArgs, stackSlotSize);
     FFIEmitRegs    regs;
     SWC_ASSERT(conv.tryPickIntScratchRegs(regs.base, regs.tmp));
 
@@ -288,7 +305,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     builder.encodeLoadRegImm(regs.tmp, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regs.tmp, callConvKind, EncodeFlagsE::Zero);
 
-    if (!retType.isVoid)
+    if (!retType.isVoid && !retType.isIndirectArg)
     {
         const bool useIntTemp = !retType.isFloat;
         void*      retPtr     = useIntTemp ? static_cast<void*>(&intRetTemp) : ret.valuePtr;
@@ -312,7 +329,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
 
     invoker();
 
-    if (!retType.isVoid && !retType.isFloat)
+    if (!retType.isVoid && !retType.isFloat && !retType.isIndirectArg)
         std::memcpy(ret.valuePtr, &intRetTemp, retType.numBits / 8);
 }
 

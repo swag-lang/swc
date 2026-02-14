@@ -24,6 +24,11 @@ struct StructArgPassingInfo
     bool     passByReferenceNeedsCopy = true;
 };
 
+struct StructReturnPassingInfo
+{
+    uint64_t passByValueSizeMask = 0;
+};
+
 struct CallConv
 {
     MicroReg stackPointer = MicroReg::invalid();
@@ -43,19 +48,22 @@ struct CallConv
     SmallVector<MicroReg> floatTransientRegs;
     SmallVector<MicroReg> floatPersistentRegs;
 
-    uint32_t             stackAlignment       = 0;
-    uint32_t             stackParamAlignment  = 0;
-    uint32_t             stackParamSlotSize   = 0;
-    uint32_t             stackShadowSpace     = 0;
-    uint32_t             argRegisterSlotCount = 0;
-    StructArgPassingInfo structArgPassing;
+    uint32_t                stackAlignment       = 0;
+    uint32_t                stackParamAlignment  = 0;
+    uint32_t                stackParamSlotSize   = 0;
+    uint32_t                stackShadowSpace     = 0;
+    uint32_t                argRegisterSlotCount = 0;
+    StructArgPassingInfo    structArgPassing;
+    StructReturnPassingInfo structReturnPassing;
 
     bool stackRedZone = false;
 
     uint32_t             numArgRegisterSlots() const;
     uint32_t             stackSlotSize() const;
     bool                 canPassStructArgByValue(uint32_t sizeInBytes) const;
+    bool                 canPassStructReturnByValue(uint32_t sizeInBytes) const;
     StructArgPassingKind classifyStructArgPassing(uint32_t sizeInBytes) const;
+    StructArgPassingKind classifyStructReturnPassing(uint32_t sizeInBytes) const;
     bool                 isIntArgReg(MicroReg reg) const;
     bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden = {}) const;
 

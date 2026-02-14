@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Support/Report/HardwareException.h"
-#include <dbghelp.h>
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CommandLine.h"
@@ -10,7 +9,10 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
+#ifdef _WIN32
+#include <dbghelp.h>
 #pragma comment(lib, "Dbghelp.lib")
+#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,7 +24,7 @@ namespace
 
     const char* hostOsName()
     {
-#if defined(_WIN32)
+#ifdef _WIN32
         return "windows";
 #else
         return "unknown-os";
@@ -31,9 +33,9 @@ namespace
 
     const char* hostCpuName()
     {
-#if defined(_M_X64)
+#ifdef _M_X64
         return "x64";
-#elif defined(_M_IX86)
+#elifdef _M_IX86
         return "x86";
 #else
         return "unknown-cpu";
@@ -42,7 +44,7 @@ namespace
 
     const char* hostExceptionBackendName()
     {
-#if defined(_WIN32)
+#ifdef _WIN32
         return "windows seh";
 #else
         return "unknown-backend";
@@ -68,12 +70,12 @@ namespace
 
     bool ensureSymbolEngineInitialized()
     {
-        auto& state = symbolEngineState();
+        auto&            state = symbolEngineState();
         std::scoped_lock lock(state.mutex);
 
         if (!state.attempted)
         {
-            state.attempted = true;
+            state.attempted      = true;
             const HANDLE process = ::GetCurrentProcess();
             ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
             state.initialized = ::SymInitialize(process, nullptr, TRUE) == TRUE;
@@ -287,15 +289,15 @@ namespace
         if (!ensureSymbolEngineInitialized())
             return;
 
-        auto& state = symbolEngineState();
+        auto&            state = symbolEngineState();
         std::scoped_lock lock(state.mutex);
 
         const HANDLE process = ::GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        auto* symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen   = MAX_SYM_NAME;
+        auto*                                                   symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
         if (::SymFromAddr(process, address, &displacement, symbol))
@@ -303,7 +305,7 @@ namespace
 
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
-        DWORD lineDisp = 0;
+        DWORD lineDisp        = 0;
         if (::SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
             outMsg += std::format("    source: {}:{} (+{})\n", lineInfo.FileName, lineInfo.LineNumber, lineDisp);
     }
@@ -374,11 +376,11 @@ namespace
         const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
         if (modBase)
         {
-            char modulePath[MAX_PATH + 1]{};
+            char       modulePath[MAX_PATH + 1]{};
             const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
-                modulePath[len] = 0;
+                modulePath[len]       = 0;
                 const auto moduleName = fs::path(modulePath).filename().string();
                 outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
             }
@@ -390,7 +392,7 @@ namespace
         outMsg += "\n";
         if (modBase)
         {
-            char modulePath[MAX_PATH + 1]{};
+            char       modulePath[MAX_PATH + 1]{};
             const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
@@ -430,7 +432,7 @@ namespace
             if (::VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(accessAddr)), &mbi, sizeof(mbi)) && mbi.State == MEM_FREE)
                 outMsg += "  likely cause: use-after-free or wild pointer (target page is FREE)\n";
 
-#if defined(_M_X64)
+#ifdef _M_X64
             if (context)
             {
                 struct RegEntry
@@ -440,9 +442,22 @@ namespace
                 };
 
                 const RegEntry regs[] = {
-                    {"rax", context->Rax}, {"rbx", context->Rbx}, {"rcx", context->Rcx}, {"rdx", context->Rdx}, {"rsi", context->Rsi}, {"rdi", context->Rdi},
-                    {"r8", context->R8},   {"r9", context->R9},   {"r10", context->R10}, {"r11", context->R11}, {"r12", context->R12}, {"r13", context->R13},
-                    {"r14", context->R14}, {"r15", context->R15}, {"rbp", context->Rbp}, {"rsp", context->Rsp},
+                    {"rax", context->Rax},
+                    {"rbx", context->Rbx},
+                    {"rcx", context->Rcx},
+                    {"rdx", context->Rdx},
+                    {"rsi", context->Rsi},
+                    {"rdi", context->Rdi},
+                    {"r8", context->R8},
+                    {"r9", context->R9},
+                    {"r10", context->R10},
+                    {"r11", context->R11},
+                    {"r12", context->R12},
+                    {"r13", context->R13},
+                    {"r14", context->R14},
+                    {"r15", context->R15},
+                    {"rbp", context->Rbp},
+                    {"rsp", context->Rsp},
                 };
 
                 bool found = false;
@@ -500,13 +515,13 @@ namespace
             return;
         }
 
-#if defined(_M_X64)
+#ifdef _M_X64
         outMsg += std::format("  rip=0x{:016X} rsp=0x{:016X} rbp=0x{:016X}\n", context->Rip, context->Rsp, context->Rbp);
         outMsg += std::format("  rax=0x{:016X} rbx=0x{:016X} rcx=0x{:016X} rdx=0x{:016X}\n", context->Rax, context->Rbx, context->Rcx, context->Rdx);
         outMsg += std::format("  rsi=0x{:016X} rdi=0x{:016X} r8=0x{:016X} r9=0x{:016X}\n", context->Rsi, context->Rdi, context->R8, context->R9);
         outMsg += std::format("  r10=0x{:016X} r11=0x{:016X} r12=0x{:016X} r13=0x{:016X}\n", context->R10, context->R11, context->R12, context->R13);
         outMsg += std::format("  r14=0x{:016X} r15=0x{:016X} eflags=0x{:08X}\n", context->R14, context->R15, context->EFlags);
-#elif defined(_M_IX86)
+#elifdef _M_IX86
         outMsg += std::format("  eip=0x{:08X} esp=0x{:08X} ebp=0x{:08X}\n", context->Eip, context->Esp, context->Ebp);
         outMsg += std::format("  eax=0x{:08X} ebx=0x{:08X} ecx=0x{:08X} edx=0x{:08X}\n", context->Eax, context->Ebx, context->Ecx, context->Edx);
         outMsg += std::format("  esi=0x{:08X} edi=0x{:08X} eflags=0x{:08X}\n", context->Esi, context->Edi, context->EFlags);
@@ -522,7 +537,7 @@ namespace
     void appendWindowsHandlerStack(Utf8& outMsg)
     {
         appendSectionHeader(outMsg, "Handler Stack Trace");
-        void* frames[64]{};
+        void*      frames[64]{};
         const auto numFrames = ::CaptureStackBackTrace(0, static_cast<DWORD>(std::size(frames)), frames, nullptr);
         outMsg += std::format("  frames: {}\n", numFrames);
 
@@ -537,11 +552,11 @@ namespace
                 const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
                 if (modBase)
                 {
-                    char modulePath[MAX_PATH + 1]{};
+                    char       modulePath[MAX_PATH + 1]{};
                     const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                     if (len)
                     {
-                        modulePath[len] = 0;
+                        modulePath[len]       = 0;
                         const auto moduleName = fs::path(modulePath).filename().string();
                         outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }

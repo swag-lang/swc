@@ -558,6 +558,9 @@
     <ClCompile Include="src\Support\Report\Diagnostic.cpp">
       <Filter>src\Support\Report</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Report\HardwareException.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp">
       <Filter>src\Support\Report</Filter>
     </ClCompile>
@@ -945,6 +948,9 @@
       <Filter>src\Support\Report</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Report\DiagnosticElement.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\HardwareException.h">
       <Filter>src\Support\Report</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Report\LogColor.h">

@@ -493,6 +493,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify source-file expected diagnostics comments.");
     addArg("all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by --verify.");
     addArg("all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
+    addArg("all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
     addArg("all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
     addArg("all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
     addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");

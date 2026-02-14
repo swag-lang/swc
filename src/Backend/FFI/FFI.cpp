@@ -6,17 +6,22 @@
 #include "Backend/MachineCode/Micro/MicroAbiCall.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/LogColor.h"
-#include "Support/Report/Logger.h"
+#include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
     using FFIInvokerFn = void (*)();
+
+    struct FFIExceptionInfo
+    {
+        FFIInvokerFn invoker = nullptr;
+    };
 
     enum class FFITypeUsage : uint8_t
     {
@@ -156,36 +161,30 @@ namespace
         }
     }
 
-    void exceptionMessage(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    void appendFfiExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        auto& logger = ctx.global().logger();
-
-        logger.lock();
-
-        Utf8 msg;
-        msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
-        msg += "fatal error: hardware exception during ffi call!\n";
-        msg += std::format("exception code: 0x{}\n", args->ExceptionRecord->ExceptionCode);
-        msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
-        Logger::print(ctx, msg);
-
-        logger.unlock();
+        SWC_ASSERT(userData != nullptr);
+        const auto& info = *static_cast<const FFIExceptionInfo*>(userData);
+        outMsg += "  call site: ffi invoker\n";
+        if (ctx.cmdLine().verboseHardwareException)
+            outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));
     }
 
-    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const TaskContext& ctx, const FFIExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
     {
-        exceptionMessage(ctx, args);
+        HardwareException::log(ctx, "fatal error: hardware exception during ffi call!", args, appendFfiExtraInfo, &info);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
     void invokeCall(TaskContext& ctx, FFIInvokerFn invoker)
     {
+        const FFIExceptionInfo info{.invoker = invoker};
         SWC_TRY
         {
             invoker();
         }
-        SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS()))
+        SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
         {
         }
     }

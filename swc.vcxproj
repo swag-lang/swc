@@ -276,6 +276,7 @@
         </ClCompile>
         <ClCompile Include="src\Support\Report\Assert.cpp" />
         <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp" />
+        <ClCompile Include="src\Support\Report\HardwareException.cpp" />
         <ClCompile Include="src\Support\Report\LogColor.cpp" />
         <ClCompile Include="src\Support\Report\Diagnostic.cpp" />
         <ClCompile Include="src\Support\Report\DiagnosticElement.cpp" />
@@ -429,6 +430,7 @@
         <ClInclude Include="src\Support\Report\Assert.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticDef.h"/>
+        <ClInclude Include="src\Support\Report\HardwareException.h"/>
         <ClInclude Include="src\Support\Report\LogColor.h"/>
         <ClInclude Include="src\Support\Report\Diagnostic.h"/>
         <ClInclude Include="src\Support\Report\DiagnosticElement.h"/>

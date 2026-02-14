@@ -60,6 +60,7 @@ public:
     TaskContext&       ctx() { return ctx_; }
     const TaskContext& ctx() const { return ctx_; }
     JobManager*        owner() const { return owner_; }
+    JobKind            kind() const { return kind_; }
     void               setOwner(JobManager* owner) { owner_ = owner; }
     JobRecord*         rec() const { return rec_; }
     void               setRec(JobRecord* rec) { rec_ = rec; }

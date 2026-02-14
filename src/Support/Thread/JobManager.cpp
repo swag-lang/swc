@@ -3,8 +3,7 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/LogColor.h"
-#include "Support/Report/Logger.h"
+#include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -413,21 +412,56 @@ void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 
 namespace
 {
+    const char* jobKindName(const JobKind kind)
+    {
+        switch (kind)
+        {
+            case JobKind::Invalid:
+                return "Invalid";
+            case JobKind::Parser:
+                return "Parser";
+            case JobKind::Sema:
+                return "Sema";
+            case JobKind::CodeGen:
+                return "CodeGen";
+            default:
+                return "Unknown";
+        }
+    }
+
+    const char* jobPriorityName(const JobPriority priority)
+    {
+        switch (priority)
+        {
+            case JobPriority::High:
+                return "High";
+            case JobPriority::Normal:
+                return "Normal";
+            case JobPriority::Low:
+                return "Low";
+            default:
+                return "Unknown";
+        }
+    }
+
+    void appendJobExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
+    {
+        SWC_ASSERT(userData != nullptr);
+        const auto& job = *static_cast<const Job*>(userData);
+        outMsg += std::format("  thread index: {}\n", JobManager::threadIndex());
+        outMsg += std::format("  kind: {}\n", jobKindName(job.kind()));
+        outMsg += std::format("  client id: {}\n", job.clientId());
+        outMsg += std::format("  priority: {}\n", jobPriorityName(job.priority()));
+        if (ctx.cmdLine().verboseHardwareException)
+        {
+            outMsg += std::format("  owner: 0x{:016X}\n", reinterpret_cast<uintptr_t>(job.owner()));
+            outMsg += std::format("  record: 0x{:016X}\n", reinterpret_cast<uintptr_t>(job.rec()));
+        }
+    }
+
     void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        const auto& ctx    = job.ctx();
-        auto&       logger = ctx.global().logger();
-
-        logger.lock();
-
-        Utf8 msg;
-        msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
-        msg += "fatal error: hardware exception during job execution!\n";
-        msg += std::format("exception code: 0x{}\n", args->ExceptionRecord->ExceptionCode);
-        msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
-        Logger::print(ctx, msg);
-
-        logger.unlock();
+        HardwareException::log(job.ctx(), "fatal error: hardware exception during job execution!", args, appendJobExtraInfo, &job);
     }
 
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)

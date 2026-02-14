@@ -16,7 +16,6 @@
 #include "Main/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
@@ -634,8 +633,9 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-    return SemaJit::runExpr(sema, *this);
+    RESULT_VERIFY(SemaJit::runExpr(sema, nodeExprRef));
+    sema.inheritSema(sema.node(sema.curNodeRef()), nodeExprRef);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

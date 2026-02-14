@@ -30,7 +30,7 @@ namespace
         std::vector<std::byte> linearCode(codeSize);
         encoder.copyTo(linearCode);
 
-        if (!ctx.compiler().jitExecMemoryManager().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
+        if (!ctx.compiler().jitMemMgr().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
             return Result::Error;
 
         return Result::Continue;

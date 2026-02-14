@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Main/CompilerInstance.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -32,7 +32,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
     const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
-    jitExecMemoryManager_ = std::make_unique<JITExecMemoryManager>();
+    jitMemMgr_ = std::make_unique<JITExecMemoryManager>();
 }
 
 CompilerInstance::~CompilerInstance() = default;

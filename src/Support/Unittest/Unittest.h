@@ -47,9 +47,9 @@ namespace Unittest
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name}; \
         swc::Result                        __name(swc::TaskContext& ctx)   \
         {
-#define SWC_TEST_END() \
-        return swc::Result::Continue; \
-    }                  \
+#define SWC_TEST_END()            \
+    return swc::Result::Continue; \
+    }                             \
     }
 
 #endif

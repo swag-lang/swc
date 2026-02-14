@@ -286,7 +286,7 @@ namespace
 
     Result runCase(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
     {
-        const RunCaseFn  runOneCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
+        const RunCaseFn runOneCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
             X64Encoder encoder(ctx);
             return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
         };

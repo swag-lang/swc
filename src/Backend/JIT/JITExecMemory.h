@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 class JITExecMemory
 {
 public:
-    JITExecMemory() = default;
+    JITExecMemory()  = default;
     ~JITExecMemory() = default;
 
     JITExecMemory(const JITExecMemory&)            = default;

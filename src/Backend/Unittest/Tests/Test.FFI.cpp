@@ -69,7 +69,7 @@ namespace
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
     const auto& typeMgr = ctx.typeMgr();
-    bool  result  = false;
+    bool        result  = false;
     RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const FFIArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;

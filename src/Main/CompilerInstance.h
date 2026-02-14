@@ -31,25 +31,25 @@ public:
 
     ExitCode run();
 
-    const Global&            global() const { return *global_; }
-    const CommandLine&       cmdLine() const { return *cmdLine_; }
-    JobClientId              jobClientId() const { return jobClientId_; }
-    TypeManager&             typeMgr() { return *typeMgr_; }
-    const TypeManager&       typeMgr() const { return *typeMgr_; }
-    TypeGen&                 typeGen() { return *typeGen_; }
-    const TypeGen&           typeGen() const { return *typeGen_; }
-    ConstantManager&         cstMgr() { return *cstMgr_; }
-    const ConstantManager&   cstMgr() const { return *cstMgr_; }
-    IdentifierManager&       idMgr() { return *idMgr_; }
-    const IdentifierManager& idMgr() const { return *idMgr_; }
-    DataSegment&             constantSegment() { return constantSegment_; }
-    const DataSegment&       constantSegment() const { return constantSegment_; }
-    DataSegment&             compilerSegment() { return compilerSegment_; }
-    const DataSegment&       compilerSegment() const { return compilerSegment_; }
-    Runtime::BuildCfg&       buildCfg() { return buildCfg_; }
-    const Runtime::BuildCfg& buildCfg() const { return buildCfg_; }
-    JITExecMemoryManager&    jitExecMemoryManager() { return *jitExecMemoryManager_; }
-    const JITExecMemoryManager& jitExecMemoryManager() const { return *jitExecMemoryManager_; }
+    const Global&               global() const { return *global_; }
+    const CommandLine&          cmdLine() const { return *cmdLine_; }
+    JobClientId                 jobClientId() const { return jobClientId_; }
+    TypeManager&                typeMgr() { return *typeMgr_; }
+    const TypeManager&          typeMgr() const { return *typeMgr_; }
+    TypeGen&                    typeGen() { return *typeGen_; }
+    const TypeGen&              typeGen() const { return *typeGen_; }
+    ConstantManager&            cstMgr() { return *cstMgr_; }
+    const ConstantManager&      cstMgr() const { return *cstMgr_; }
+    IdentifierManager&          idMgr() { return *idMgr_; }
+    const IdentifierManager&    idMgr() const { return *idMgr_; }
+    DataSegment&                constantSegment() { return constantSegment_; }
+    const DataSegment&          constantSegment() const { return constantSegment_; }
+    DataSegment&                compilerSegment() { return compilerSegment_; }
+    const DataSegment&          compilerSegment() const { return compilerSegment_; }
+    Runtime::BuildCfg&          buildCfg() { return buildCfg_; }
+    const Runtime::BuildCfg&    buildCfg() const { return buildCfg_; }
+    JITExecMemoryManager&       jitMemMgr() { return *jitMemMgr_; }
+    const JITExecMemoryManager& jitMemMgr() const { return *jitMemMgr_; }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -113,7 +113,7 @@ private:
     std::unique_ptr<TypeGen>                 typeGen_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
-    std::unique_ptr<JITExecMemoryManager>    jitExecMemoryManager_;
+    std::unique_ptr<JITExecMemoryManager>    jitMemMgr_;
     SymbolModule*                            symModule_   = nullptr;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;

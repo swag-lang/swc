@@ -100,16 +100,6 @@ protected:
 
     virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
 
-    void emitLoadSymRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void emitClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-
     EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 

@@ -202,10 +202,8 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
     return Result::Continue;
 }
 
-Result SymbolStruct::computeLayout(Sema& sema)
+Result SymbolStruct::computeLayout(TaskContext& ctx)
 {
-    auto& ctx = sema.ctx();
-
     sizeInBytes_ = 0;
     alignment_   = 1;
 

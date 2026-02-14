@@ -47,7 +47,7 @@ public:
     bool                     implementsInterface(const SymbolInterface& itf) const;
     bool                     implementsInterfaceOrUsingFields(Sema& sema, const SymbolInterface& itf) const;
 
-    Result      computeLayout(Sema& sema);
+    Result      computeLayout(TaskContext& ctx);
     ConstantRef computeDefaultValue(Sema& sema, TypeRef typeRef);
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Unittest/Unittest.h"
@@ -11,14 +13,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef makeAggregateStructType(TypeManager& typeMgr, SmallVector<TypeRef>& fieldTypes)
+    SymbolVariable* makeStructField(TaskContext& ctx, TypeRef typeRef)
     {
-        SmallVector<IdentifierRef> fieldNames;
-        fieldNames.resize(fieldTypes.size());
-        for (auto& fieldName : fieldNames)
-            fieldName = IdentifierRef::invalid();
+        auto* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        field->setTypeRef(typeRef);
+        return field;
+    }
 
-        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, fieldTypes));
+    TypeRef makeStructType(TaskContext& ctx, std::span<const TypeRef> fieldTypes)
+    {
+        auto* symStruct = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        for (const auto fieldType : fieldTypes)
+            symStruct->addField(makeStructField(ctx, fieldType));
+        SWC_ASSERT(symStruct->computeLayout(ctx) == Result::Continue);
+
+        const TypeRef structTypeRef = ctx.typeMgr().addType(TypeInfo::makeStruct(symStruct));
+        symStruct->setTypeRef(structTypeRef);
+        return structTypeRef;
     }
 
     Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, TypeRef retTypeRef, void* outRetValue)
@@ -103,6 +114,7 @@ namespace
         value.a += 5;
         return value.a + value.b + value.c;
     }
+
 }
 
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
@@ -285,13 +297,13 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
 {
-    auto& typeMgr = ctx.typeMgr();
+    const auto& typeMgr = ctx.typeMgr();
 
-    SmallVector fieldTypes = {
+    const std::array fieldTypes = {
         typeMgr.typeU32(),
         typeMgr.typeU32(),
     };
-    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+    const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     constexpr FFIStructPair32      value = {.a = 18, .b = 24};
     const SmallVector<FFIArgument> args  = {
@@ -307,13 +319,13 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
 {
-    auto& typeMgr = ctx.typeMgr();
+    const auto& typeMgr = ctx.typeMgr();
 
-    SmallVector fieldTypes = {
+    const std::array fieldTypes = {
         typeMgr.typeU32(),
         typeMgr.typeU32(),
     };
-    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+    const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     constexpr uint64_t        a     = 1;
     constexpr uint64_t        b     = 2;
@@ -338,14 +350,14 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
 {
-    auto& typeMgr = ctx.typeMgr();
+    const auto& typeMgr = ctx.typeMgr();
 
-    SmallVector fieldTypes = {
+    const std::array fieldTypes = {
         typeMgr.typeU64(),
         typeMgr.typeU64(),
         typeMgr.typeU64(),
     };
-    const TypeRef structTypeRef = makeAggregateStructType(typeMgr, fieldTypes);
+    const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     FFIStructTriple64              value = {.a = 10, .b = 20, .c = 30};
     const SmallVector<FFIArgument> args  = {

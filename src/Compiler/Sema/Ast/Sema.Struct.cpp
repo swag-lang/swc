@@ -60,7 +60,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
     RESULT_VERIFY(sym.registerSpecOps(sema));
-    RESULT_VERIFY(sym.computeLayout(sema));
+    RESULT_VERIFY(sym.computeLayout(sema.ctx()));
 
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
@@ -115,7 +115,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 
     sym.removeIgnoredFields();
     RESULT_VERIFY(sym.canBeCompleted(sema));
-    RESULT_VERIFY(sym.computeLayout(sema));
+    RESULT_VERIFY(sym.computeLayout(sema.ctx()));
     sym.setCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;

@@ -76,7 +76,7 @@ namespace
         if (ty.isPointerLike() || ty.isNull())
             return makeNormalizedType(false, false, 64);
 
-        if (ty.isStruct() || ty.isAggregateStruct())
+        if (ty.isStruct())
         {
             const uint64_t rawSize = ty.sizeOf(ctx);
             SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());

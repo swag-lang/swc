@@ -14,6 +14,7 @@ enum class JobKind
     Invalid,
     Parser,
     Sema,
+    CodeGen,
 };
 
 enum class JobPriority : std::uint8_t

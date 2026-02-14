@@ -9,7 +9,7 @@ struct S
     const V = #run S{42}
     #assert(#typeof(V) == S)
 }
-/*
+
 #test
 {
     const V = #run 40's32 + 2's32
@@ -27,7 +27,7 @@ struct S
 {
     const V = #run unknownSymbol // swc-expected-error {{sema_err_unknown_symbol}}
 }
-
+/*
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()

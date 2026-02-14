@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemory.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"

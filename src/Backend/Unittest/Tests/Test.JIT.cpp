@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Support/Unittest/Unittest.h"
 

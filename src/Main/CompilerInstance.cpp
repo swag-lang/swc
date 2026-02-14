@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/JIT/JITExecMemory.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Main/CompilerInstance.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

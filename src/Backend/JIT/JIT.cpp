@@ -12,15 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    JITExecMemoryManager& getExecMemoryManager(TaskContext& ctx)
-    {
-        if (ctx.hasCompilerInstance())
-            return ctx.compiler().jitExecMemoryManager();
-
-        static JITExecMemoryManager fallback;
-        return fallback;
-    }
-
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegAllocPass regAllocPass;
@@ -39,7 +30,7 @@ namespace
         std::vector<std::byte> linearCode(codeSize);
         encoder.copyTo(linearCode);
 
-        if (!getExecMemoryManager(ctx).allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
+        if (!ctx.compiler().jitExecMemoryManager().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
             return Result::Error;
 
         return Result::Continue;
@@ -57,4 +48,3 @@ Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory&
 }
 
 SWC_END_NAMESPACE();
-

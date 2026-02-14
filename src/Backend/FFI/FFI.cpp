@@ -90,10 +90,9 @@ namespace
         }
     }
 
-    Result packArgValue(const FFINormalizedType& argType, const void* valuePtr, FFIPackedArg& outArg)
+    void packArgValue(const FFINormalizedType& argType, const void* valuePtr, FFIPackedArg& outArg)
     {
-        if (!valuePtr)
-            return Result::Error;
+        SWC_ASSERT(valuePtr != nullptr);
 
         outArg.isFloat = argType.isFloat;
         outArg.numBits = argType.numBits;
@@ -104,34 +103,37 @@ namespace
             {
                 const auto value = *static_cast<const float*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(float));
-                return Result::Continue;
+                return;
             }
 
             if (argType.numBits == 64)
             {
                 const auto value = *static_cast<const double*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(double));
-                return Result::Continue;
+                return;
             }
 
-            return Result::Error;
+            SWC_ASSERT(false);
+            return;
         }
 
         switch (argType.numBits)
         {
             case 8:
                 outArg.value = *static_cast<const uint8_t*>(valuePtr);
-                return Result::Continue;
+                return;
             case 16:
                 outArg.value = *static_cast<const uint16_t*>(valuePtr);
-                return Result::Continue;
+                return;
             case 32:
                 outArg.value = *static_cast<const uint32_t*>(valuePtr);
-                return Result::Continue;
+                return;
             case 64:
                 std::memcpy(&outArg.value, valuePtr, sizeof(uint64_t));
-                return Result::Continue;
-            default: return Result::Error;
+                return;
+            default:
+                SWC_ASSERT(false);
+                return;
         }
     }
 
@@ -146,10 +148,10 @@ namespace
         return frameBaseSize + alignPad;
     }
 
-    Result emitPackedArgs(const CallConv& conv, MicroInstrBuilder& builder, std::span<const FFIPackedArg> packedArgs, uint32_t numRegArgs, uint32_t stackSlotSize, MicroReg regBase, MicroReg regTmp)
+    void emitPackedArgs(const CallConv& conv, MicroInstrBuilder& builder, std::span<const FFIPackedArg> packedArgs, uint32_t numRegArgs, uint32_t stackSlotSize, MicroReg regBase, MicroReg regTmp)
     {
         if (packedArgs.empty())
-            return Result::Continue;
+            return;
 
         const auto numPackedArgs = static_cast<uint32_t>(packedArgs.size());
         builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(packedArgs.data()), MicroOpBits::B64, EncodeFlagsE::Zero);
@@ -174,7 +176,7 @@ namespace
             builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits, EncodeFlagsE::Zero);
         }
 
-        return Result::Continue;
+        return;
     }
 }
 
@@ -199,7 +201,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
         FFINormalizedType argType;
         normalizeType(ctx, arg.typeRef, argType);
         SWC_ASSERT(!argType.isVoid);
-        SWC_ASSERT(packArgValue(argType, arg.valuePtr, packedArgs[i]) == Result::Continue);
+        packArgValue(argType, arg.valuePtr, packedArgs[i]);
     }
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
@@ -212,7 +214,7 @@ void FFI::callFFI(TaskContext& ctx, void* targetFn, std::span<const FFIArgument>
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
-    SWC_ASSERT(emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp) == Result::Continue);
+    emitPackedArgs(conv, builder, packedArgs, numRegArgs, stackSlotSize, regs.base, regs.tmp);
 
     builder.encodeLoadRegImm(regs.tmp, reinterpret_cast<uint64_t>(targetFn), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regs.tmp, callConvKind, EncodeFlagsE::Zero);

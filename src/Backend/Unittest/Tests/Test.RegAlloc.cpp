@@ -178,6 +178,30 @@ SWC_TEST_BEGIN(RegAlloc_LotsOfVirtualRegs)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroInstr_PrintPretty)
+{
+    MicroInstrBuilder builder(ctx);
+
+    const IdentifierRef symRef = ctx.idMgr().addIdentifier("micro_print_test");
+    builder.encodeLoadRegImm(MicroReg::intReg(8), 0x2A, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeOpBinaryRegImm(MicroReg::intReg(8), 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Lock);
+    builder.encodeCallLocal(symRef, CallConvKind::Host, EncodeFlagsE::Zero);
+    builder.encodeLoadMemImm(MicroReg::intReg(5), 0x18, 0xFF, MicroOpBits::B8, EncodeFlagsE::Zero);
+
+    const std::string text = builder.formatInstructions(false);
+
+    SWC_ASSERT(text.find("micro-instructions: 4") != std::string::npos);
+    SWC_ASSERT(text.find("load_reg_imm") != std::string::npos);
+    SWC_ASSERT(text.find("op_binary_reg_imm") != std::string::npos);
+    SWC_ASSERT(text.find("call_local") != std::string::npos);
+    SWC_ASSERT(text.find("load_mem_imm") != std::string::npos);
+    SWC_ASSERT(text.find("micro_print_test") != std::string::npos);
+    SWC_ASSERT(text.find("r8") != std::string::npos);
+    SWC_ASSERT(text.find("0x2A") != std::string::npos);
+    SWC_ASSERT(text.find("flags=lock") != std::string::npos);
+}
+SWC_TEST_END()
+
 #endif
 
 SWC_END_NAMESPACE();

@@ -34,11 +34,10 @@ struct S
     const V = #run dref @compiler // swc-expected-error {{sema_err_unary_operand_type}}
 }
 */
-/*
+
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 //    #assert(Cfg.tempAllocatorCapacity > 0)
 }
-*/

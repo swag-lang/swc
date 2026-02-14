@@ -199,6 +199,7 @@
         <ClCompile Include="src\Backend\JIT\JIT.cpp" />
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp" />
+        <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstr.cpp" />
         <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp" />
@@ -352,6 +353,7 @@
         <ClInclude Include="src\Backend\MachineCode\CallConv.h" />
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc" />
+        <ClInclude Include="src\Backend\MachineCode\Micro\MicroAbiCall.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h" />
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h" />

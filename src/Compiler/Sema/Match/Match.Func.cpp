@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/Match.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -610,14 +609,9 @@ namespace
                 continue;
             }
 
-            CastFailure cf{};
-            TypeRef     argTy = sema.typeRefOf(argRef);
-            if (argTy.isInvalid())
-            {
-                const SemaNodeView argNodeView(sema, argRef);
-                if (argNodeView.cstRef.isValid())
-                    argTy = sema.cstMgr().get(argNodeView.cstRef).typeRef();
-            }
+            CastFailure        cf{};
+            const SemaNodeView argNodeView(sema, argRef);
+            TypeRef            argTy = argNodeView.typeRef;
 
             if (argTy.isInvalid())
             {
@@ -642,7 +636,7 @@ namespace
             }
 
             const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
-            ConvRank   r              = ConvRank::Bad;
+            auto       r              = ConvRank::Bad;
             RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
             {
@@ -674,9 +668,9 @@ namespace
                 for (const auto& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = sema.typeRefOf(argRef);
-                    CastFailure cf{};
-                    ConvRank    r = ConvRank::Bad;
+                    const TypeRef    argTy  = SemaNodeView(sema, argRef).typeRef;
+                    CastFailure      cf{};
+                    auto             r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
                     if (r == ConvRank::Bad)
                     {

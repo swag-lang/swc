@@ -109,28 +109,14 @@ enum class MicroCond : uint8_t
     NotAbove,
     NotEqual,
     NotEvenParity,
-    NotParity,
-    Overflow,
-    Parity,
-};
-
-enum class MicroCondJump : uint8_t
-{
-    Above,
-    AboveOrEqual,
-    Below,
-    BelowOrEqual,
-    Greater,
-    GreaterOrEqual,
-    Less,
-    LessOrEqual,
     NotOverflow,
     NotParity,
-    NotZero,
+    Overflow,
     Parity,
     Sign,
     Unconditional,
     Zero,
+    NotZero,
 };
 
 struct MicroJump

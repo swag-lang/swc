@@ -24,14 +24,14 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 
     builder.placeLabel(loopLabel, EncodeFlagsE::Zero);
     builder.encodeCmpRegImm(countReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeJumpToLabel(MicroCondJump::Zero, MicroOpBits::B32, doneLabel, EncodeFlagsE::Zero);
+    builder.encodeJumpToLabel(MicroCond::Zero, MicroOpBits::B32, doneLabel, EncodeFlagsE::Zero);
 
     builder.encodeLoadRegMem(tmpReg, srcReg, 0, MicroOpBits::B8, EncodeFlagsE::Zero);
     builder.encodeLoadMemReg(dstReg, 0, tmpReg, MicroOpBits::B8, EncodeFlagsE::Zero);
     builder.encodeOpBinaryRegImm(srcReg, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeOpBinaryRegImm(dstReg, 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeJumpToLabel(MicroCondJump::Unconditional, MicroOpBits::B32, loopLabel, EncodeFlagsE::Zero);
+    builder.encodeJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel, EncodeFlagsE::Zero);
     builder.placeLabel(doneLabel, EncodeFlagsE::Zero);
 }
 

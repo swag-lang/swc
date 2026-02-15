@@ -209,48 +209,48 @@ namespace
         }
     }
 
-    std::string_view condJumpName(MicroCondJump cond)
+    std::string_view condJumpName(MicroCond cond)
     {
         switch (cond)
         {
-            case MicroCondJump::Above:
+            case MicroCond::Above:
                 return "a";
-            case MicroCondJump::AboveOrEqual:
+            case MicroCond::AboveOrEqual:
                 return "ae";
-            case MicroCondJump::Below:
+            case MicroCond::Below:
                 return "b";
-            case MicroCondJump::BelowOrEqual:
+            case MicroCond::BelowOrEqual:
                 return "be";
-            case MicroCondJump::Greater:
+            case MicroCond::Greater:
                 return "g";
-            case MicroCondJump::GreaterOrEqual:
+            case MicroCond::GreaterOrEqual:
                 return "ge";
-            case MicroCondJump::Less:
+            case MicroCond::Less:
                 return "l";
-            case MicroCondJump::LessOrEqual:
+            case MicroCond::LessOrEqual:
                 return "le";
-            case MicroCondJump::NotOverflow:
+            case MicroCond::NotOverflow:
                 return "no";
-            case MicroCondJump::NotParity:
+            case MicroCond::NotParity:
                 return "np";
-            case MicroCondJump::NotZero:
+            case MicroCond::NotZero:
                 return "nz";
-            case MicroCondJump::Parity:
+            case MicroCond::Parity:
                 return "p";
-            case MicroCondJump::Sign:
+            case MicroCond::Sign:
                 return "s";
-            case MicroCondJump::Unconditional:
+            case MicroCond::Unconditional:
                 return "jmp";
-            case MicroCondJump::Zero:
+            case MicroCond::Zero:
                 return "z";
             default:
                 return "?";
         }
     }
 
-    bool isUnconditionalJump(MicroCondJump cond)
+    bool isUnconditionalJump(MicroCond cond)
     {
-        return cond == MicroCondJump::Unconditional;
+        return cond == MicroCond::Unconditional;
     }
 
     std::string_view callConvName(CallConvKind callConv)
@@ -583,19 +583,19 @@ namespace
             case MicroInstrOpcode::JumpReg:
                 return std::format("jump {}", regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::JumpCond:
-                if (isUnconditionalJump(ops[0].jumpType))
+                if (isUnconditionalJump(ops[0].cpuCond))
                 {
                     if (inst.numOperands >= 3)
                         return std::format("jump L{}", static_cast<Ref>(ops[2].valueU64));
                     return "jump";
                 }
                 if (inst.numOperands >= 3)
-                    return std::format("if {} jump L{}", condJumpName(ops[0].jumpType), static_cast<Ref>(ops[2].valueU64));
-                return std::format("if {} jump", condJumpName(ops[0].jumpType));
+                    return std::format("if {} jump L{}", condJumpName(ops[0].cpuCond), static_cast<Ref>(ops[2].valueU64));
+                return std::format("if {} jump", condJumpName(ops[0].cpuCond));
             case MicroInstrOpcode::JumpCondImm:
-                if (isUnconditionalJump(ops[0].jumpType))
+                if (isUnconditionalJump(ops[0].cpuCond))
                     return std::format("jump {}", ops[2].valueU64);
-                return std::format("if {} jump {}", condJumpName(ops[0].jumpType), ops[2].valueU64);
+                return std::format("if {} jump {}", condJumpName(ops[0].cpuCond), ops[2].valueU64);
 
             case MicroInstrOpcode::Ret:
                 return "ret";
@@ -1101,9 +1101,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 break;
 
             case MicroInstrOpcode::JumpCond:
-                if (!isUnconditionalJump(ops[0].jumpType))
+                if (!isUnconditionalJump(ops[0].cpuCond))
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
+                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].cpuCond));
                     appendSep(out);
                     appendTypeBits(out, ctx, colorize, ops[1].opBits);
                 }
@@ -1153,9 +1153,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
-                if (!isUnconditionalJump(ops[0].jumpType))
+                if (!isUnconditionalJump(ops[0].cpuCond))
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
+                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].cpuCond));
                     appendSep(out);
                     appendTypeBits(out, ctx, colorize, ops[1].opBits);
                     appendSep(out);

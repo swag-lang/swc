@@ -81,7 +81,7 @@ public:
     EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags);
-    EncodeResult encodeJumpToLabel(MicroCondJump jumpType, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags);
+    EncodeResult encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags);
     EncodeResult encodeJumpReg(MicroReg reg, EncodeFlags emitFlags);
     EncodeResult encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags);
     EncodeResult encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags);

@@ -2965,57 +2965,57 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
     return EncodeResult::Zero;
 }
 
-EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
+EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_ASSERT(opBits == MicroOpBits::B8 || opBits == MicroOpBits::B32);
 
     if (opBits == MicroOpBits::B8)
     {
-        switch (jumpType)
+        switch (cpuCond)
         {
-            case MicroCondJump::NotOverflow:
+            case MicroCond::NotOverflow:
                 emitCpuOp(store_, 0x71);
                 break;
-            case MicroCondJump::Below:
+            case MicroCond::Below:
                 emitCpuOp(store_, 0x72);
                 break;
-            case MicroCondJump::AboveOrEqual:
+            case MicroCond::AboveOrEqual:
                 emitCpuOp(store_, 0x73);
                 break;
-            case MicroCondJump::Zero:
+            case MicroCond::Zero:
                 emitCpuOp(store_, 0x74);
                 break;
-            case MicroCondJump::NotZero:
+            case MicroCond::NotZero:
                 emitCpuOp(store_, 0x75);
                 break;
-            case MicroCondJump::BelowOrEqual:
+            case MicroCond::BelowOrEqual:
                 emitCpuOp(store_, 0x76);
                 break;
-            case MicroCondJump::Above:
+            case MicroCond::Above:
                 store_.pushU8(0x77);
                 break;
-            case MicroCondJump::Sign:
+            case MicroCond::Sign:
                 emitCpuOp(store_, 0x78);
                 break;
-            case MicroCondJump::Parity:
+            case MicroCond::Parity:
                 emitCpuOp(store_, 0x7A);
                 break;
-            case MicroCondJump::NotParity:
+            case MicroCond::NotParity:
                 emitCpuOp(store_, 0x7B);
                 break;
-            case MicroCondJump::Less:
+            case MicroCond::Less:
                 emitCpuOp(store_, 0x7C);
                 break;
-            case MicroCondJump::GreaterOrEqual:
+            case MicroCond::GreaterOrEqual:
                 emitCpuOp(store_, 0x7D);
                 break;
-            case MicroCondJump::LessOrEqual:
+            case MicroCond::LessOrEqual:
                 emitCpuOp(store_, 0x7E);
                 break;
-            case MicroCondJump::Greater:
+            case MicroCond::Greater:
                 emitCpuOp(store_, 0x7F);
                 break;
-            case MicroCondJump::Unconditional:
+            case MicroCond::Unconditional:
                 emitCpuOp(store_, 0xEB);
                 break;
             default:
@@ -3031,65 +3031,65 @@ EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCondJump jumpType, Mic
         return EncodeResult::Zero;
     }
 
-    switch (jumpType)
+    switch (cpuCond)
     {
-        case MicroCondJump::NotOverflow:
+        case MicroCond::NotOverflow:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x81);
             break;
-        case MicroCondJump::Below:
+        case MicroCond::Below:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x82);
             break;
-        case MicroCondJump::AboveOrEqual:
+        case MicroCond::AboveOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x83);
             break;
-        case MicroCondJump::Zero:
+        case MicroCond::Zero:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x84);
             break;
-        case MicroCondJump::NotZero:
+        case MicroCond::NotZero:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x85);
             break;
-        case MicroCondJump::BelowOrEqual:
+        case MicroCond::BelowOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x86);
             break;
-        case MicroCondJump::Above:
+        case MicroCond::Above:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x87);
             break;
-        case MicroCondJump::Parity:
+        case MicroCond::Parity:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8A);
             break;
-        case MicroCondJump::Sign:
+        case MicroCond::Sign:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x88);
             break;
-        case MicroCondJump::NotParity:
+        case MicroCond::NotParity:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8B);
             break;
-        case MicroCondJump::Less:
+        case MicroCond::Less:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8C);
             break;
-        case MicroCondJump::GreaterOrEqual:
+        case MicroCond::GreaterOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8D);
             break;
-        case MicroCondJump::LessOrEqual:
+        case MicroCond::LessOrEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8E);
             break;
-        case MicroCondJump::Greater:
+        case MicroCond::Greater:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x8F);
             break;
-        case MicroCondJump::Unconditional:
+        case MicroCond::Unconditional:
             emitCpuOp(store_, 0xE9);
             break;
         default:

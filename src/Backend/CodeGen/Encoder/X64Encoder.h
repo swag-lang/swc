@@ -36,7 +36,7 @@ private:
     EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags) override;
     EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags) override;
     EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags) override;
-    EncodeResult encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags) override;
+    EncodeResult encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags) override;
     EncodeResult encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags) override;
     EncodeResult encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags) override;
     EncodeResult encodeJumpReg(MicroReg reg, EncodeFlags emitFlags) override;

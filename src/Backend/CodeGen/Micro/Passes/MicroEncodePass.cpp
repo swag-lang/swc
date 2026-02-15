@@ -85,7 +85,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
         case MicroInstrOpcode::JumpCond:
         {
             MicroJump jump;
-            encoder.encodeJump(jump, ops[0].jumpType, ops[1].opBits, inst.emitFlags);
+            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits, inst.emitFlags);
             jump.valid = true;
             SWC_ASSERT(inst.numOperands >= 3);
             pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64, .emitFlags = inst.emitFlags});
@@ -98,7 +98,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
         {
             MicroJump  jump;
             const auto opBits = ops[1].opBits == MicroOpBits::Zero ? MicroOpBits::B32 : ops[1].opBits;
-            encoder.encodeJump(jump, ops[0].jumpType, opBits, inst.emitFlags);
+            encoder.encodeJump(jump, ops[0].cpuCond, opBits, inst.emitFlags);
             encoder.encodePatchJump(jump, ops[2].valueU64, inst.emitFlags);
             break;
         }

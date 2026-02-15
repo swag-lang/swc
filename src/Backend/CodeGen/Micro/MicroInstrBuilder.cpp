@@ -170,11 +170,11 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
     return EncodeResult::Zero;
 }
 
-EncodeResult MicroInstrBuilder::encodeJumpToLabel(MicroCondJump jumpType, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags)
+EncodeResult MicroInstrBuilder::encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::JumpCond, emitFlags, 3);
     auto*       ops  = inst.ops(operands_);
-    ops[0].jumpType  = jumpType;
+    ops[0].cpuCond   = cpuCond;
     ops[1].opBits    = opBits;
     ops[2].valueU64  = labelRef;
     return EncodeResult::Zero;

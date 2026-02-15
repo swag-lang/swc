@@ -61,7 +61,6 @@ struct MicroInstrOperand
         MicroReg      reg;
         MicroOpBits   opBits;
         MicroCond     cpuCond;
-        MicroCondJump jumpType;
         MicroOp       microOp;
         uint32_t      valueU32;
         int32_t       valueI32;

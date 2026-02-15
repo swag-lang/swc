@@ -74,19 +74,19 @@ namespace
 
         ENCODE_CASE("jump_not_zero_b8_patch_here", "75 00",
                     const auto l = b.createLabel();
-                    b.encodeJumpToLabel(MicroCondJump::NotZero, MicroOpBits::B8, l, K_EMIT);
+                    b.encodeJumpToLabel(MicroCond::NotZero, MicroOpBits::B8, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
         ENCODE_CASE("jump_zero_b8_patch_here", "74 00",
                     const auto l = b.createLabel();
-                    b.encodeJumpToLabel(MicroCondJump::Zero, MicroOpBits::B8, l, K_EMIT);
+                    b.encodeJumpToLabel(MicroCond::Zero, MicroOpBits::B8, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
         ENCODE_CASE("jump_above_b32_patch_here", "0F 87 00 00 00 00",
                     const auto l = b.createLabel();
-                    b.encodeJumpToLabel(MicroCondJump::Above, MicroOpBits::B32, l, K_EMIT);
+                    b.encodeJumpToLabel(MicroCond::Above, MicroOpBits::B32, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
         ENCODE_CASE("jump_less_b32_patch_here", "0F 8C 00 00 00 00",
                     const auto l = b.createLabel();
-                    b.encodeJumpToLabel(MicroCondJump::Less, MicroOpBits::B32, l, K_EMIT);
+                    b.encodeJumpToLabel(MicroCond::Less, MicroOpBits::B32, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
         return Result::Continue;
     }

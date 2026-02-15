@@ -20,15 +20,15 @@ enum class MicroPassKind : uint8_t
 
 enum class MicroPassPrintFlagsE : uint32_t
 {
-    Zero                 = 0,
-    BeforeRegisterAllocation       = 1 << 0,
-    AfterRegisterAllocation        = 1 << 1,
-    BeforePrologEpilog = 1 << 2,
-    AfterPrologEpilog  = 1 << 3,
-    BeforeLegalize       = 1 << 4,
-    AfterLegalize        = 1 << 5,
-    BeforeEmit         = 1 << 6,
-    AfterEmit          = 1 << 7,
+    Zero                     = 0,
+    BeforeRegisterAllocation = 1 << 0,
+    AfterRegisterAllocation  = 1 << 1,
+    BeforePrologEpilog       = 1 << 2,
+    AfterPrologEpilog        = 1 << 3,
+    BeforeLegalize           = 1 << 4,
+    AfterLegalize            = 1 << 5,
+    BeforeEmit               = 1 << 6,
+    AfterEmit                = 1 << 7,
 };
 using MicroPassPrintFlags = EnumFlags<MicroPassPrintFlagsE>;
 

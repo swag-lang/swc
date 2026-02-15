@@ -1,12 +1,12 @@
 #include "pch.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
-#include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
@@ -16,10 +16,10 @@ namespace
 {
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
-        MicroRegisterAllocationPass       regAllocPass;
-        MicroPrologEpilogPass persistentRegsPass;
-        MicroLegalizePass      legalizePass;
-        MicroEmitPass         encodePass;
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPrologEpilogPass       persistentRegsPass;
+        MicroLegalizePass           legalizePass;
+        MicroEmitPass               encodePass;
 
         MicroPassContext passContext;
         passContext.callConvKind           = CallConvKind::Host;

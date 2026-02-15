@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 
 SWC_BEGIN_NAMESPACE();
 

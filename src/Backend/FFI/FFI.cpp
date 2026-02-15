@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Backend/FFI/FFI.h"
-#include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemory.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecMemory.h"
 #include "Main/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
@@ -112,16 +112,16 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
 {
     SWC_ASSERT(targetFn != nullptr);
 
-    constexpr auto          callConvKind = CallConvKind::Host;
-    const auto&             conv         = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType retType = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
+    constexpr auto                         callConvKind = CallConvKind::Host;
+    const auto&                            conv         = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType retType      = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
-    SmallVector<ABICall::Arg>              packedArgs;
+    SmallVector<ABICall::Arg>                     packedArgs;
     SmallVector<ABITypeNormalize::NormalizedType> normalizedArgTypes;
-    uint32_t                       indirectArgStorageSize = 0;
-    const bool                     hasIndirectRetArg      = retType.isIndirect;
-    const uint32_t                 packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+    uint32_t                                      indirectArgStorageSize = 0;
+    const bool                                    hasIndirectRetArg      = retType.isIndirect;
+    const uint32_t                                packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
     packedArgs.resize(args.size() + packedArgBaseOffset);
     normalizedArgTypes.resize(args.size());
 
@@ -135,7 +135,7 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto&             arg     = args[i];
+        const auto&                            arg     = args[i];
         const ABITypeNormalize::NormalizedType argType = ABITypeNormalize::normalize(ctx, conv, arg.typeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!argType.isVoid);
         normalizedArgTypes[i] = argType;
@@ -156,7 +156,7 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     uint32_t indirectArgStorageOffset = 0;
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto&             arg     = args[i];
+        const auto&                            arg     = args[i];
         const ABITypeNormalize::NormalizedType argType = normalizedArgTypes[i];
         SWC_ASSERT(arg.valuePtr != nullptr);
 

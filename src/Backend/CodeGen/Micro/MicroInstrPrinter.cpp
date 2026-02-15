@@ -489,22 +489,22 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegMem:
             {
-                const auto lhs      = regName(ops[0].reg, regPrintMode, encoder);
-                const auto rhs      = memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder);
+                const auto lhs = regName(ops[0].reg, regPrintMode, encoder);
+                const auto rhs = memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder);
                 return naturalBinaryExpression(lhs, ops[3].microOp, rhs);
             }
 
             case MicroInstrOpcode::OpBinaryMemReg:
             {
-                const auto lhs      = memBaseOffsetString(ops[0].reg, ops[4].valueU64, regPrintMode, encoder);
-                const auto rhs      = regName(ops[1].reg, regPrintMode, encoder);
+                const auto lhs = memBaseOffsetString(ops[0].reg, ops[4].valueU64, regPrintMode, encoder);
+                const auto rhs = regName(ops[1].reg, regPrintMode, encoder);
                 return naturalBinaryExpression(lhs, ops[3].microOp, rhs);
             }
 
             case MicroInstrOpcode::OpBinaryMemImm:
             {
-                const auto lhs      = memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
-                const auto rhs      = hexU64(ops[4].valueU64);
+                const auto lhs = memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
+                const auto rhs = hexU64(ops[4].valueU64);
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
             }
 
@@ -1302,4 +1302,3 @@ void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& i
 }
 
 SWC_END_NAMESPACE();
-

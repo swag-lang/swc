@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -13,11 +13,11 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    auto&              ctx              = codeGen.ctx();
-    const auto&        callConv         = CallConv::host();
-    constexpr auto     callConvKind     = CallConvKind::Host;
-    MicroInstrBuilder& builder          = codeGen.builder();
-    const auto         exprView         = codeGen.nodeView(nodeExprRef);
+    auto&              ctx          = codeGen.ctx();
+    const auto&        callConv     = CallConv::host();
+    constexpr auto     callConvKind = CallConvKind::Host;
+    MicroInstrBuilder& builder      = codeGen.builder();
+    const auto         exprView     = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
 
     const auto* payload = codeGen.payload(nodeExprRef);

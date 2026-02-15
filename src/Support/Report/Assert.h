@@ -60,14 +60,14 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
         std::unreachable();                   \
     } while (0)
 
-#define SWC_INTERNAL_CHECK(__expr)    \
-    do                                \
-    {                                 \
-        if (!(__expr))                \
-        {                             \
+#define SWC_INTERNAL_CHECK(__expr)                         \
+    do                                                     \
+    {                                                      \
+        if (!(__expr))                                     \
+        {                                                  \
             swcInternalError(__FILE__, __LINE__, #__expr); \
-            std::unreachable();       \
-        }                             \
+            std::unreachable();                            \
+        }                                                  \
     } while (0)
 
 #define SWC_FORCE_ASSERT(__expr)                    \

@@ -16,10 +16,10 @@ class MicroLegalizePass;
 
 enum class EncodeFlagsE : uint8_t
 {
-    Zero      = 0,
-    Overflow  = 1 << 0,
-    Lock      = 1 << 1,
-    B64       = 1 << 2,
+    Zero     = 0,
+    Overflow = 1 << 0,
+    Lock     = 1 << 1,
+    B64      = 1 << 2,
 };
 using EncodeFlags = EnumFlags<EncodeFlagsE>;
 
@@ -35,9 +35,9 @@ enum class MicroConformanceIssueKind : uint8_t
 
 struct MicroConformanceIssue
 {
-    MicroConformanceIssueKind kind            = MicroConformanceIssueKind::None;
-    uint8_t                   operandIndex    = 0;
-    uint64_t                  valueLimitU64   = 0;
+    MicroConformanceIssueKind kind             = MicroConformanceIssueKind::None;
+    uint8_t                   operandIndex     = 0;
+    uint64_t                  valueLimitU64    = 0;
     MicroOpBits               normalizedOpBits = MicroOpBits::Zero;
 };
 
@@ -74,7 +74,7 @@ protected:
     virtual void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                    = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                   = 0;
     virtual void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
-    virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                  = 0;
+    virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                   = 0;
     virtual void encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)                                                                                                   = 0;
     virtual void encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)                                                                                                                               = 0;
     virtual void encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                          = 0;
@@ -123,5 +123,3 @@ protected:
 };
 
 SWC_END_NAMESPACE();
-
-

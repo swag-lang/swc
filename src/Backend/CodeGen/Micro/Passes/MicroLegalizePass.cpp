@@ -67,14 +67,14 @@ namespace
             if (!ops || inst.op != MicroInstrOpcode::LoadAmcMemImm || inst.numOperands < 8)
                 return false;
 
-            const auto regBase        = ops[0].reg;
-            const auto regMul         = ops[1].reg;
-            const auto opBitsBaseMul  = ops[3].opBits;
-            const auto mulValue       = ops[5].valueU64;
-            const auto addValue       = ops[6].valueU64;
-            const auto value          = ops[7].valueU64;
-            const auto lowU32         = static_cast<uint32_t>(value & 0xFFFFFFFFu);
-            const auto highU32        = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
+            const auto regBase       = ops[0].reg;
+            const auto regMul        = ops[1].reg;
+            const auto opBitsBaseMul = ops[3].opBits;
+            const auto mulValue      = ops[5].valueU64;
+            const auto addValue      = ops[6].valueU64;
+            const auto value         = ops[7].valueU64;
+            const auto lowU32        = static_cast<uint32_t>(value & 0xFFFFFFFFu);
+            const auto highU32       = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
 
             inst.op          = MicroInstrOpcode::Ignore;
             inst.opsRef      = INVALID_REF;
@@ -165,7 +165,7 @@ void MicroLegalizePass::run(MicroPassContext& context)
         auto& inst = *it;
         for (;;)
         {
-            auto* const ops = inst.ops(*context.operands);
+            auto* const           ops = inst.ops(*context.operands);
             MicroConformanceIssue issue;
             if (!encoder.queryConformanceIssue(issue, inst, ops))
                 break;

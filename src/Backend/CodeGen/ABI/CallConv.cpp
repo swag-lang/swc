@@ -239,9 +239,9 @@ void CallConv::setup()
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto hostCallConvKind                          = resolveHostCallConvKind();
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)] = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)]    = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    const auto hostCallConvKind                               = resolveHostCallConvKind();
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)]      = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)]         = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
     g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "host";
     g_CallConvs[static_cast<size_t>(CallConvKind::C)].name    = "c";
 }

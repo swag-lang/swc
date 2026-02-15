@@ -14,7 +14,7 @@ enum class MicroInstrBuilderFlagsE : uint8_t
 {
     Zero              = 0,
     PrintBeforePasses = 1 << 0,
-    PrintBeforeEmit = 1 << 1,
+    PrintBeforeEmit   = 1 << 1,
     DebugInfo         = 1 << 2,
 };
 using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
@@ -73,7 +73,7 @@ public:
     void encodePush(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodePop(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeNop(EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    Ref          createLabel();
+    Ref  createLabel();
     void placeLabel(Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeRet(EncodeFlags emitFlags = EncodeFlagsE::Zero);
@@ -131,5 +131,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-
-

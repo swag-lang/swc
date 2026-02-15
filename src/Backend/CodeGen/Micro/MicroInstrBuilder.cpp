@@ -550,5 +550,3 @@ void MicroInstrBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_
 }
 
 SWC_END_NAMESPACE();
-
-

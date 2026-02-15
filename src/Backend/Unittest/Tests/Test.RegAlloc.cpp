@@ -68,7 +68,7 @@ namespace
             buildFn(builder, callConvKind);
 
             MicroRegisterAllocationPass regAllocPass;
-            MicroPassManager  passes;
+            MicroPassManager            passes;
             passes.add(regAllocPass);
 
             MicroPassContext passCtx;
@@ -252,9 +252,9 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         MicroInstrBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
-        MicroRegisterAllocationPass       regAllocPass;
-        MicroPrologEpilogPass persistentRegsPass;
-        MicroPassManager        passes;
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPrologEpilogPass       persistentRegsPass;
+        MicroPassManager            passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);
 
@@ -279,9 +279,9 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
         MicroInstrBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
-        MicroRegisterAllocationPass       regAllocPass;
-        MicroPrologEpilogPass persistentRegsPass;
-        MicroPassManager        passes;
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPrologEpilogPass       persistentRegsPass;
+        MicroPassManager            passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);
 
@@ -304,9 +304,9 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         MicroInstrBuilder builder(ctx);
         buildNoPersistentWithReturn(builder, callConvKind);
 
-        MicroRegisterAllocationPass       regAllocPass;
-        MicroPrologEpilogPass persistentRegsPass;
-        MicroPassManager        passes;
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPrologEpilogPass       persistentRegsPass;
+        MicroPassManager            passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);
 

@@ -53,7 +53,7 @@ protected:
     const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
 
     explicit Encoder(TaskContext& ctx);
-    virtual ~Encoder() = default;
+    virtual ~Encoder()                     = default;
     virtual uint64_t currentOffset() const = 0;
 
     virtual EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)                                                                                    = 0;

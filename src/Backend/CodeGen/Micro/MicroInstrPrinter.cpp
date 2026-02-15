@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr auto K_JUMP_LABEL_COLOR = SyntaxColor::Function;
+    constexpr auto K_JUMP_LABEL_COLOR     = SyntaxColor::Function;
     constexpr auto K_NATURAL_COLUMN_WIDTH = 56U;
 
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
@@ -590,10 +590,10 @@ namespace
             out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
     }
 
-    void appendNaturalColumn(std::string&                         out,
-                             const TaskContext&                   ctx,
-                             bool                                 colorize,
-                             std::string                          value,
+    void appendNaturalColumn(std::string&                           out,
+                             const TaskContext&                     ctx,
+                             bool                                   colorize,
+                             std::string                            value,
                              const std::unordered_set<std::string>& concreteRegs,
                              const std::unordered_set<std::string>& virtualRegs)
     {
@@ -810,12 +810,12 @@ namespace
 
 std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
 {
-    std::string                  out;
-    auto&                        storeOps      = operands;
-    auto&                        storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
-    auto&                        instructionsV = const_cast<MicroInstrStorage&>(instructions);
-    auto                         view          = instructionsV.view();
-    std::unordered_set<uint64_t> seenDebugLines;
+    std::string                       out;
+    auto&                             storeOps      = operands;
+    auto&                             storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
+    auto&                             instructionsV = const_cast<MicroInstrStorage&>(instructions);
+    auto                              view          = instructionsV.view();
+    std::unordered_set<uint64_t>      seenDebugLines;
     std::unordered_map<Ref, uint32_t> instIndexByRef;
     std::unordered_map<Ref, uint32_t> labelIndexByRef;
 
@@ -826,7 +826,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         const MicroInstr& inst     = *it;
         if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
         {
-            const auto* ops = inst.ops(storeOps);
+            const auto* ops                                    = inst.ops(storeOps);
             labelIndexByRef[static_cast<Ref>(ops[0].valueU64)] = scanIdx;
         }
         ++scanIdx;
@@ -835,10 +835,10 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {
-        const Ref         instRef = it.current;
-        const MicroInstr& inst    = *it;
-        const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
-        const auto        natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        const Ref                       instRef = it.current;
+        const MicroInstr&               inst    = *it;
+        const auto*                     ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        const auto                      natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
         std::unordered_set<std::string> concreteRegs;
         std::unordered_set<std::string> virtualRegs;
         if (inst.numOperands)

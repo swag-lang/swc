@@ -20,8 +20,8 @@ private:
 
     void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst);
 
-    std::unordered_map<Ref, uint64_t>  labelOffsets_;
-    std::vector<PendingLabelJump>      pendingLabelJumps_;
+    std::unordered_map<Ref, uint64_t> labelOffsets_;
+    std::vector<PendingLabelJump>     pendingLabelJumps_;
 };
 
 SWC_END_NAMESPACE();

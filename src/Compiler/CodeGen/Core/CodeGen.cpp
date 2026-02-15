@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/MachineCode/CallConv.h"
+#include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -159,6 +160,19 @@ Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+}
+
+MicroReg CodeGen::payloadVirtualReg(AstNodeRef nodeRef) const
+{
+    const CodeGenNodePayload* nodePayload = payload(nodeRef);
+    SWC_ASSERT(nodePayload != nullptr);
+    return payloadVirtualReg(*nodePayload);
+}
+
+MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload) const
+{
+    SWC_ASSERT(nodePayload.virtualRegister != 0);
+    return MicroReg::virtualReg(nodePayload.virtualRegister);
 }
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef)

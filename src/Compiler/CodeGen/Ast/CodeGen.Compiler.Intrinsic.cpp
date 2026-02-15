@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -14,9 +15,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicCompiler:
         {
-            const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
-            const auto nodeView          = codeGen.curNodeView();
-            codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::AddressValue, compilerIfAddress, nodeView.typeRef);
+            const auto  compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
+            const auto  nodeView          = codeGen.curNodeView();
+            const auto& payload           = codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::AddressValue, compilerIfAddress, nodeView.typeRef);
+            codeGen.builder().encodeLoadRegImm(codeGen.payloadVirtualReg(payload), compilerIfAddress, MicroOpBits::B64, EncodeFlagsE::Zero);
             return Result::Continue;
         }
 

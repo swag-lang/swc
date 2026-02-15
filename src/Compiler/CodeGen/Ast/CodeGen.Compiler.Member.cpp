@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -50,6 +51,7 @@ namespace
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    MicroInstrBuilder& builder = codeGen.builder();
     const auto* leftPayload = codeGen.payload(nodeLeftRef);
     SWC_ASSERT(leftPayload != nullptr);
     SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue); // TODO: replace assert with a proper codegen diagnostic.
@@ -61,11 +63,11 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     uint32_t methodSlot = 0;
     SWC_ASSERT(tryFindInterfaceMethodSlot(methodSlot, *methodSym)); // TODO: replace assert with a proper codegen diagnostic.
 
-    const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
-    SWC_ASSERT(runtimeInterface != nullptr);
-    SWC_ASSERT(runtimeInterface->itable != nullptr);
-    const auto targetAddress = reinterpret_cast<uint64_t>(runtimeInterface->itable[methodSlot]);
-    codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, targetAddress);
+    auto& payload = codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, 0);
+    const MicroReg leftReg = codeGen.payloadVirtualReg(*leftPayload);
+    const MicroReg dstReg  = codeGen.payloadVirtualReg(payload);
+    builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeLoadRegMem(dstReg, dstReg, methodSlot * sizeof(void*), MicroOpBits::B64, EncodeFlagsE::Zero);
     return Result::Continue;
 }
 

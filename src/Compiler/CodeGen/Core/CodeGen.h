@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 class MicroInstrBuilder;
+struct MicroReg;
 struct SemaNodeView;
 struct Token;
 
@@ -52,6 +53,8 @@ public:
     const SymbolFunction&    function() const { return *function_; }
     Result                   emitConstReturnValue(const SemaNodeView& exprView);
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
+    MicroReg                 payloadVirtualReg(AstNodeRef nodeRef) const;
+    MicroReg                 payloadVirtualReg(const CodeGenNodePayload& nodePayload) const;
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef = TypeRef::invalid());
     uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
     MicroInstrBuilder&       builder() { return *builder_; }

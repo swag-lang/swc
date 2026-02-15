@@ -32,7 +32,8 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(payload != nullptr);
     SWC_ASSERT(payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64); // TODO: replace assert with a proper codegen diagnostic.
 
-    builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
+    const MicroReg payloadReg = codeGen.payloadVirtualReg(*payload);
+    builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
     MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
 

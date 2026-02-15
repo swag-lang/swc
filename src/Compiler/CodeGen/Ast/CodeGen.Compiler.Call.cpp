@@ -93,27 +93,25 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const uint32_t numAbiArgs  = ABICall::prepareArgs(builder, callConvKind, preparedArgs);
     const auto&    nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const MicroReg resultReg   = CodeGen::payloadVirtualReg(nodePayload);
-
-    auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
-    *resultStorage      = 0;
-
-    ABICall::Return retMeta;
-    retMeta.valuePtr   = resultStorage;
-    retMeta.isVoid     = normalizedRet.isVoid;
-    retMeta.isFloat    = normalizedRet.isFloat;
-    retMeta.isIndirect = normalizedRet.isIndirect;
-    retMeta.numBits    = normalizedRet.numBits;
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
-    ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs, retMeta);
+    ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
+
+    if (normalizedRet.isVoid)
+        return Result::Continue;
 
     if (normalizedRet.isIndirect)
     {
-        builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.encodeLoadRegReg(resultReg, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
         return Result::Continue;
     }
 
-    builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
+    const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
+    SWC_ASSERT(retBits != MicroOpBits::Zero);
+    if (normalizedRet.isFloat)
+        builder.encodeLoadRegReg(resultReg, callConv.floatReturn, retBits, EncodeFlagsE::Zero);
+    else
+        builder.encodeLoadRegReg(resultReg, callConv.intReturn, retBits, EncodeFlagsE::Zero);
+
     return Result::Continue;
 }
 

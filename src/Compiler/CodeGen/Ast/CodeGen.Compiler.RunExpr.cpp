@@ -4,6 +4,7 @@
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -25,14 +26,10 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
     const MicroReg payloadReg = CodeGen::payloadVirtualReg(*payload);
+    const bool     isLValue   = codeGen.sema().isLValue(nodeExprRef);
 
     if (!exprView.type->isStruct())
     {
-        MicroReg srcReg = MicroReg::invalid();
-        MicroReg tmpReg = MicroReg::invalid();
-        SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg));
-        builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-
         if (exprView.type->isVoid())
         {
             builder.encodeRet(EncodeFlagsE::Zero);
@@ -43,7 +40,10 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         {
             const MicroOpBits bits = microOpBitsFromBitWidth(exprView.type->payloadFloatBits());
             SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
-            builder.encodeLoadRegMem(callConv.floatReturn, srcReg, 0, bits, EncodeFlagsE::Zero);
+            if (isLValue)
+                builder.encodeLoadRegMem(callConv.floatReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
+            else
+                builder.encodeLoadRegReg(callConv.floatReturn, payloadReg, bits, EncodeFlagsE::Zero);
             builder.encodeRet(EncodeFlagsE::Zero);
             return Result::Continue;
         }
@@ -57,7 +57,10 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
             bits = microOpBitsFromBitWidth(exprView.type->payloadIntLikeBits());
         SWC_ASSERT(bits != MicroOpBits::Zero);
 
-        builder.encodeLoadRegMem(callConv.intReturn, srcReg, 0, bits, EncodeFlagsE::Zero);
+        if (isLValue)
+            builder.encodeLoadRegMem(callConv.intReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
+        else
+            builder.encodeLoadRegReg(callConv.intReturn, payloadReg, bits, EncodeFlagsE::Zero);
         builder.encodeRet(EncodeFlagsE::Zero);
         return Result::Continue;
     }
@@ -74,7 +77,6 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&hiddenRetPtrReg, 1}));
 
     builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
     MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
 
     builder.encodeRet(EncodeFlagsE::Zero);

@@ -14,6 +14,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr auto K_JUMP_LABEL_COLOR = SyntaxColor::Function;
+    constexpr auto K_NATURAL_COLUMN_WIDTH = 56U;
 
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {
@@ -322,6 +323,260 @@ namespace
         return std::format("0x{:X}", value);
     }
 
+    std::string memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    {
+        std::string out = "[";
+        out += regName(baseReg, regPrintMode, encoder);
+        if (offset != 0)
+            out += std::format(" + {}", hexU64(offset));
+        out += "]";
+        return out;
+    }
+
+    std::string memAmcString(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    {
+        std::string out = "[";
+        if (!baseReg.isNoBase())
+            out += regName(baseReg, regPrintMode, encoder);
+
+        if (!mulReg.isNoBase())
+        {
+            if (!baseReg.isNoBase())
+                out += " + ";
+            out += regName(mulReg, regPrintMode, encoder);
+            if (mulValue != 1)
+                out += std::format(" * {}", hexU64(mulValue));
+        }
+
+        if (addValue != 0)
+        {
+            if (!baseReg.isNoBase() || !mulReg.isNoBase())
+                out += " + ";
+            out += hexU64(addValue);
+        }
+
+        if (baseReg.isNoBase() && mulReg.isNoBase() && addValue == 0)
+            out += "0";
+
+        out += "]";
+        return out;
+    }
+
+    std::string_view binaryAssignOperator(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::FloatAdd:
+                return "+=";
+            case MicroOp::Subtract:
+            case MicroOp::FloatSubtract:
+                return "-=";
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+            case MicroOp::FloatMultiply:
+                return "*=";
+            case MicroOp::DivideSigned:
+            case MicroOp::DivideUnsigned:
+            case MicroOp::FloatDivide:
+                return "/=";
+            case MicroOp::ModuloSigned:
+            case MicroOp::ModuloUnsigned:
+                return "%=";
+            case MicroOp::And:
+            case MicroOp::FloatAnd:
+                return "&=";
+            case MicroOp::Or:
+                return "|=";
+            case MicroOp::Xor:
+            case MicroOp::FloatXor:
+                return "^=";
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+                return "<<=";
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                return ">>=";
+            default:
+                return {};
+        }
+    }
+
+    std::string_view binaryInfixOperator(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::FloatAdd:
+                return "+";
+            case MicroOp::Subtract:
+            case MicroOp::FloatSubtract:
+                return "-";
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+            case MicroOp::FloatMultiply:
+                return "*";
+            case MicroOp::DivideSigned:
+            case MicroOp::DivideUnsigned:
+            case MicroOp::FloatDivide:
+                return "/";
+            case MicroOp::ModuloSigned:
+            case MicroOp::ModuloUnsigned:
+                return "%";
+            case MicroOp::And:
+            case MicroOp::FloatAnd:
+                return "&";
+            case MicroOp::Or:
+                return "|";
+            case MicroOp::Xor:
+            case MicroOp::FloatXor:
+                return "^";
+            case MicroOp::ShiftLeft:
+            case MicroOp::ShiftArithmeticLeft:
+                return "<<";
+            case MicroOp::ShiftRight:
+            case MicroOp::ShiftArithmeticRight:
+                return ">>";
+            default:
+                return {};
+        }
+    }
+
+    std::string naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::Label:
+                if (inst.numOperands >= 1)
+                    return std::format("L{}:", static_cast<Ref>(ops[0].valueU64));
+                return "label";
+
+            case MicroInstrOpcode::LoadRegReg:
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadRegImm:
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+            case MicroInstrOpcode::LoadRegMem:
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadAddrRegMem:
+                return std::format("{} = &{}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadMemReg:
+                return std::format("{} = {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadMemImm:
+                return std::format("{} = {}", memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
+            case MicroInstrOpcode::LoadAmcRegMem:
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memAmcString(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadAmcMemReg:
+                return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadAmcMemImm:
+                return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), hexU64(ops[7].valueU64));
+            case MicroInstrOpcode::ClearReg:
+                return std::format("{} = 0", regName(ops[0].reg, regPrintMode, encoder));
+
+            case MicroInstrOpcode::OpUnaryReg:
+                return std::format("{} = {} {}", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[2].microOp), regName(ops[0].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::OpUnaryMem:
+                return std::format("{} {}", microOpName(ops[2].microOp), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
+
+            case MicroInstrOpcode::OpBinaryRegImm:
+            {
+                const auto assignOp = binaryAssignOperator(ops[2].microOp);
+                if (!assignOp.empty())
+                    return std::format("{} {} {}", regName(ops[0].reg, regPrintMode, encoder), assignOp, hexU64(ops[3].valueU64));
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[2].microOp), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[3].valueU64));
+            }
+
+            case MicroInstrOpcode::OpBinaryRegReg:
+            {
+                const auto assignOp = binaryAssignOperator(ops[3].microOp);
+                if (!assignOp.empty())
+                    return std::format("{} {} {}", regName(ops[0].reg, regPrintMode, encoder), assignOp, regName(ops[1].reg, regPrintMode, encoder));
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[3].microOp), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            }
+
+            case MicroInstrOpcode::OpBinaryRegMem:
+            {
+                const auto assignOp = binaryAssignOperator(ops[3].microOp);
+                const auto rhs      = memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder);
+                if (!assignOp.empty())
+                    return std::format("{} {} {}", regName(ops[0].reg, regPrintMode, encoder), assignOp, rhs);
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[3].microOp), regName(ops[0].reg, regPrintMode, encoder), rhs);
+            }
+
+            case MicroInstrOpcode::OpBinaryMemReg:
+            {
+                const auto assignOp = binaryAssignOperator(ops[3].microOp);
+                const auto lhs      = memBaseOffsetString(ops[0].reg, ops[4].valueU64, regPrintMode, encoder);
+                if (!assignOp.empty())
+                    return std::format("{} {} {}", lhs, assignOp, regName(ops[1].reg, regPrintMode, encoder));
+                return std::format("{} = {}({}, {})", lhs, microOpName(ops[3].microOp), lhs, regName(ops[1].reg, regPrintMode, encoder));
+            }
+
+            case MicroInstrOpcode::OpBinaryMemImm:
+            {
+                const auto assignOp = binaryAssignOperator(ops[2].microOp);
+                const auto lhs      = memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
+                if (!assignOp.empty())
+                    return std::format("{} {} {}", lhs, assignOp, hexU64(ops[4].valueU64));
+                return std::format("{} = {}({}, {})", lhs, microOpName(ops[2].microOp), lhs, hexU64(ops[4].valueU64));
+            }
+
+            case MicroInstrOpcode::OpTernaryRegRegReg:
+            {
+                const auto infixOp = binaryInfixOperator(ops[4].microOp);
+                if (!infixOp.empty())
+                    return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
+                return std::format("{} = {}({}, {}, {})",
+                                   regName(ops[0].reg, regPrintMode, encoder),
+                                   microOpName(ops[4].microOp),
+                                   regName(ops[1].reg, regPrintMode, encoder),
+                                   regName(ops[2].reg, regPrintMode, encoder),
+                                   std::format("b{}", opBitsName(ops[3].opBits)));
+            }
+
+            case MicroInstrOpcode::CmpRegReg:
+                return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::CmpRegImm:
+                return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+            case MicroInstrOpcode::CmpMemReg:
+                return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::CmpMemImm:
+                return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
+
+            case MicroInstrOpcode::SetCondReg:
+                return std::format("{} = set{}", regName(ops[0].reg, regPrintMode, encoder), condName(ops[1].cpuCond));
+            case MicroInstrOpcode::LoadCondRegReg:
+                return std::format("{} = {} if {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), condName(ops[2].cpuCond));
+
+            case MicroInstrOpcode::CallLocal:
+            case MicroInstrOpcode::CallExtern:
+                return std::format("call {}", ops[0].name.isValid() ? std::string(ctx.idMgr().get(ops[0].name).name) : std::string("<invalid-symbol>"));
+            case MicroInstrOpcode::CallIndirect:
+                return std::format("call {}", regName(ops[0].reg, regPrintMode, encoder));
+
+            case MicroInstrOpcode::JumpReg:
+                return std::format("jump {}", regName(ops[0].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::JumpCond:
+                if (inst.numOperands >= 3)
+                    return std::format("if {} jump L{}", condJumpName(ops[0].jumpType), static_cast<Ref>(ops[2].valueU64));
+                return std::format("if {} jump", condJumpName(ops[0].jumpType));
+            case MicroInstrOpcode::JumpCondImm:
+                return std::format("if {} jump {}", condJumpName(ops[0].jumpType), ops[2].valueU64);
+
+            case MicroInstrOpcode::Ret:
+                return "ret";
+            case MicroInstrOpcode::Enter:
+                return "enter";
+            case MicroInstrOpcode::Leave:
+                return "leave";
+            case MicroInstrOpcode::Push:
+                return std::format("push {}", regName(ops[0].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::Pop:
+                return std::format("pop {}", regName(ops[0].reg, regPrintMode, encoder));
+            default:
+                return std::string(opcodeName(inst.op));
+        }
+    }
+
     void appendColored(std::string& out, const TaskContext& ctx, bool colorize, SyntaxColor color, std::string_view value)
     {
         SyntaxColor effectiveColor = color;
@@ -333,6 +588,176 @@ namespace
         out += value;
         if (colorize)
             out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
+    }
+
+    void appendNaturalColumn(std::string& out, const TaskContext& ctx, bool colorize, std::string value)
+    {
+        if (value.size() > K_NATURAL_COLUMN_WIDTH)
+            value = std::format("{}...", value.substr(0, K_NATURAL_COLUMN_WIDTH - 3));
+        auto appendNaturalToken = [&](std::string_view token) {
+            auto isHex = [](std::string_view t) {
+                if (t.size() < 3 || t[0] != '0' || (t[1] != 'x' && t[1] != 'X'))
+                    return false;
+                for (size_t i = 2; i < t.size(); ++i)
+                {
+                    const unsigned char c = static_cast<unsigned char>(t[i]);
+                    if (!std::isxdigit(c))
+                        return false;
+                }
+                return true;
+            };
+
+            auto isConcreteRegister = [](std::string_view t) {
+                static constexpr std::array<std::string_view, 19> kNamedRegs = {
+                    "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "rip", "r8",
+                    "r9",  "r10", "r11", "r12", "r13", "r14", "r15", "ip",  "nobase",
+                };
+
+                for (const auto& name : kNamedRegs)
+                {
+                    if (t == name)
+                        return true;
+                }
+
+                if (t.size() >= 2 && t[0] == 'r')
+                {
+                    bool allDigits = true;
+                    for (size_t i = 1; i < t.size(); ++i)
+                    {
+                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
+                        {
+                            allDigits = false;
+                            break;
+                        }
+                    }
+                    if (allDigits)
+                        return true;
+                }
+
+                if ((t.starts_with("xmm") || t.starts_with("ymm") || t.starts_with("zmm")) && t.size() > 3)
+                {
+                    for (size_t i = 3; i < t.size(); ++i)
+                    {
+                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
+                            return false;
+                    }
+                    return true;
+                }
+
+                if (t.size() >= 2 && t[0] == 'f')
+                {
+                    for (size_t i = 1; i < t.size(); ++i)
+                    {
+                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
+                            return false;
+                    }
+                    return true;
+                }
+
+                return false;
+            };
+
+            auto isVirtualRegister = [](std::string_view t) {
+                if (!t.starts_with('%') || t.size() < 2)
+                    return false;
+
+                size_t i = 1;
+                if (i < t.size() && t[i] == 'f')
+                    ++i;
+                if (i >= t.size())
+                    return false;
+                for (; i < t.size(); ++i)
+                {
+                    if (!std::isdigit(static_cast<unsigned char>(t[i])))
+                        return false;
+                }
+                return true;
+            };
+
+            if (isVirtualRegister(token))
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
+            }
+            else if (isConcreteRegister(token))
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::Register, token);
+            }
+            else if (isHex(token))
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::Number, token);
+            }
+            else if (!token.empty() && token.back() == ':' && token.starts_with('L'))
+            {
+                appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, token);
+            }
+            else if (token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>")
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::Logic, token);
+            }
+            else
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::Code, token);
+            }
+        };
+
+        const auto padded = std::format("{:<{}}", value, K_NATURAL_COLUMN_WIDTH);
+        size_t     pos    = 0;
+        while (pos < padded.size())
+        {
+            if (std::isspace(static_cast<unsigned char>(padded[pos])))
+            {
+                size_t start = pos;
+                while (pos < padded.size() && std::isspace(static_cast<unsigned char>(padded[pos])))
+                    ++pos;
+                appendColored(out, ctx, colorize, SyntaxColor::Code, std::string_view(padded).substr(start, pos - start));
+                continue;
+            }
+
+            const char c = padded[pos];
+            if (std::ispunct(static_cast<unsigned char>(c)) && c != '_' && c != '%' && c != 'x')
+            {
+                if (pos + 2 < padded.size())
+                {
+                    const auto three = std::string_view(padded).substr(pos, 3);
+                    if (three == "<<=" || three == ">>=")
+                    {
+                        appendNaturalToken(three);
+                        pos += 3;
+                        continue;
+                    }
+                }
+
+                if (pos + 1 < padded.size())
+                {
+                    const auto two = std::string_view(padded).substr(pos, 2);
+                    if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<")
+                    {
+                        appendNaturalToken(two);
+                        pos += 2;
+                        continue;
+                    }
+                }
+
+                appendNaturalToken(std::string_view(padded).substr(pos, 1));
+                ++pos;
+                continue;
+            }
+
+            size_t start = pos;
+            while (pos < padded.size())
+            {
+                const char cc = padded[pos];
+                if (std::isspace(static_cast<unsigned char>(cc)))
+                    break;
+                if (std::ispunct(static_cast<unsigned char>(cc)) && cc != '_' && cc != '%' && cc != 'x')
+                    break;
+                ++pos;
+            }
+
+            appendNaturalToken(std::string_view(padded).substr(start, pos - start));
+        }
+
+        appendColored(out, ctx, colorize, SyntaxColor::Compiler, " | ");
     }
 
     void appendRegister(std::string& out, const TaskContext& ctx, bool colorize, MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
@@ -473,9 +898,11 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         const Ref         instRef = it.current;
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        const auto        natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
+        appendNaturalColumn(out, ctx, colorize, natural);
 
         if (inst.op == MicroInstrOpcode::Label)
         {

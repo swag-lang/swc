@@ -35,7 +35,7 @@ namespace
 
         outSymFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         outSymFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
-        outSymFn->setReturnTypeRef(nodeView.typeRef);
+        outSymFn->setReturnTypeRef(sema.typeMgr().typeVoid());
         outSymFn->setAttributes(sema.frame().currentAttributes());
         outSymFn->setDeclared(ctx);
         outSymFn->setTyped(ctx);
@@ -61,7 +61,6 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     SymbolFunction* symFn = nullptr;
     RESULT_VERIFY(getOrCreateRunExprSymbol(sema, symFn, nodeExprRef));
     SWC_ASSERT(symFn != nullptr);
-
     RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.node(nodeRef).codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
@@ -76,21 +75,25 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     SWC_ASSERT(targetFn != nullptr);
 
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
-    TypeRef         resultStorageRef = nodeView.typeRef;
-    if (nodeType.isEnum())
-        resultStorageRef = nodeType.payloadSymEnum().underlyingTypeRef();
-    else if (nodeType.isAlias())
-        resultStorageRef = nodeType.payloadSymAlias().underlyingTypeRef();
+    const TypeRef   resultStorageRef = nodeType.unwrap(ctx, nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);
+    if (resultStorageTy.isVoid())
+        return Result::Continue;
 
-    const uint64_t         resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
+    const uint64_t         resultSize = resultStorageTy.sizeOf(ctx);
     std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
-
-    const FFIReturn returnValue = {
-        .typeRef  = nodeView.typeRef,
-        .valuePtr = resultStorage.data(),
+    const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
+    const FFIArgument      resultStorageArg     = {
+                 .typeRef  = sema.typeMgr().typeU64(),
+                 .valuePtr = &resultStorageAddress,
     };
 
-    FFI::call(ctx, targetFn, std::span<const FFIArgument>{}, returnValue);
+    const FFIReturn returnValue = {
+        .typeRef  = sema.typeMgr().typeVoid(),
+        .valuePtr = nullptr,
+    };
+
+    FFI::call(ctx, targetFn, std::span{&resultStorageArg, 1}, returnValue);
 
     ConstantValue resultConstant;
     if (nodeType.isEnum())
@@ -98,6 +101,11 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
         ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef);
         const ConstantRef enumStorageRef = sema.cstMgr().addConstant(ctx, enumStorage);
         resultConstant                   = ConstantValue::makeEnumValue(ctx, enumStorageRef, nodeView.typeRef);
+    }
+    else if (nodeType.isAlias())
+    {
+        resultConstant = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef);
+        resultConstant.setTypeRef(nodeView.typeRef);
     }
     else
     {

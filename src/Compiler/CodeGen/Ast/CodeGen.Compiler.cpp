@@ -22,56 +22,66 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg payloadReg = payload->reg;
     const bool     isLValue   = codeGen.sema().isLValue(nodeExprRef);
 
-    if (!exprView.type->isStruct())
+    SWC_ASSERT(!callConv.intArgRegs.empty());
+    const MicroReg outputStorageReg = callConv.intArgRegs[0];
+    const TypeRef  exprStorageRef   = exprView.type->unwrap(ctx, exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeInfo& exprStorageType = codeGen.ctx().typeMgr().get(exprStorageRef);
+
+    if (exprStorageType.isVoid())
     {
-        if (exprView.type->isVoid())
-        {
-            builder.encodeRet(EncodeFlagsE::Zero);
-            return Result::Continue;
-        }
+        builder.encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
 
-        if (exprView.type->isFloat())
-        {
-            const MicroOpBits bits = microOpBitsFromBitWidth(exprView.type->payloadFloatBits());
-            SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
-            if (isLValue)
-                builder.encodeLoadRegMem(callConv.floatReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
-            else
-                builder.encodeLoadRegReg(callConv.floatReturn, payloadReg, bits, EncodeFlagsE::Zero);
-            builder.encodeRet(EncodeFlagsE::Zero);
-            return Result::Continue;
-        }
+    if (exprStorageType.isFloat())
+    {
+        const MicroOpBits bits = microOpBitsFromBitWidth(exprStorageType.payloadFloatBits());
+        SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
+        if (isLValue)
+            builder.encodeLoadRegMem(callConv.floatReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
+        else
+            builder.encodeLoadRegReg(callConv.floatReturn, payloadReg, bits, EncodeFlagsE::Zero);
+        builder.encodeLoadMemReg(outputStorageReg, 0, callConv.floatReturn, bits, EncodeFlagsE::Zero);
+        builder.encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
 
+    if (exprStorageType.isBool() || exprStorageType.isCharRune() || exprStorageType.isIntLike() || exprStorageType.isPointerLike() || exprStorageType.isNull())
+    {
         MicroOpBits bits = MicroOpBits::B64;
-        if (exprView.type->isBool())
+        if (exprStorageType.isBool())
             bits = MicroOpBits::B8;
-        else if (exprView.type->isCharRune())
+        else if (exprStorageType.isCharRune())
             bits = MicroOpBits::B32;
-        else if (exprView.type->isIntLike())
-            bits = microOpBitsFromBitWidth(exprView.type->payloadIntLikeBits());
+        else if (exprStorageType.isIntLike())
+            bits = microOpBitsFromBitWidth(exprStorageType.payloadIntLikeBits());
         SWC_ASSERT(bits != MicroOpBits::Zero);
 
         if (isLValue)
             builder.encodeLoadRegMem(callConv.intReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
         else
             builder.encodeLoadRegReg(callConv.intReturn, payloadReg, bits, EncodeFlagsE::Zero);
+        builder.encodeLoadMemReg(outputStorageReg, 0, callConv.intReturn, bits, EncodeFlagsE::Zero);
         builder.encodeRet(EncodeFlagsE::Zero);
         return Result::Continue;
     }
 
-    const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
-    const auto     passing    = callConv.classifyStructReturnPassing(structSize);
-    SWC_ASSERT(passing == StructArgPassingKind::ByReference); // TODO: replace assert with a proper codegen diagnostic.
-
-    SWC_ASSERT(!callConv.intArgRegs.empty());
-    const MicroReg hiddenRetPtrReg = callConv.intArgRegs[0];
+    const uint64_t rawSize = exprStorageType.sizeOf(ctx);
+    SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+    const uint32_t storageSize = static_cast<uint32_t>(rawSize);
 
     MicroReg srcReg = MicroReg::invalid();
     MicroReg tmpReg = MicroReg::invalid();
-    SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&hiddenRetPtrReg, 1}));
-
-    builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-    MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
+    SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&outputStorageReg, 1}));
+    if (isLValue)
+        builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+    else
+    {
+        builder.encodeLoadMemReg(outputStorageReg, 0, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+    MicroInstrHelpers::emitMemCopy(builder, outputStorageReg, srcReg, tmpReg, storageSize);
 
     builder.encodeRet(EncodeFlagsE::Zero);
     return Result::Continue;

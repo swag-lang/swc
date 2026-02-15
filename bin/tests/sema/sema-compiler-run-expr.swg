@@ -52,3 +52,17 @@ struct S
     const Cfg = #run dref (@compiler.getBuildCfg)()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 }
+
+#test
+{
+    const Cfg1 = #run dref @compiler.getBuildCfg()
+    const Cfg2 = #run dref @compiler.getBuildCfg()
+    #assert(#typeof(Cfg1) == Swag.BuildCfg)
+    #assert(#typeof(Cfg2) == Swag.BuildCfg)
+}
+
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+    #assert(#typeof(Cfg) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+}

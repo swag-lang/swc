@@ -45,6 +45,7 @@ SWC_DIAG_DEF(sema_err_wait_impl_registration, Error, "impl blocks for struct '{s
 SWC_DIAG_DEF(sema_err_wait_sym_typed, Error, "symbol '{sym}' is not typed")
 SWC_DIAG_DEF(sema_err_wait_sym_completed, Error, "symbol '{sym}' is not completed")
 SWC_DIAG_DEF(sema_err_wait_sym_sema_completed, Error, "symbol '{sym}' sema is not completed")
+SWC_DIAG_DEF(sema_err_wait_sym_codegen_presolved, Error, "symbol '{sym}' codegen is not pre-solved")
 SWC_DIAG_DEF(sema_err_wait_sym_codegen_completed, Error, "symbol '{sym}' codegen is not completed")
 SWC_DIAG_DEF(sema_err_wait_type_completed, Error, "type '{sym}' is not completed")
 SWC_DIAG_DEF(sema_err_division_zero, Error, "division by zero")

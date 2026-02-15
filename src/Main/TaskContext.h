@@ -23,6 +23,7 @@ enum class TaskStateKind : uint8_t
     SemaWaitSymDeclared,
     SemaWaitSymTyped,
     SemaWaitSymSemaCompleted,
+    SemaWaitSymCodeGenPreSolved,
     SemaWaitSymCodeGenCompleted,
     SemaWaitTypeCompleted,
 };

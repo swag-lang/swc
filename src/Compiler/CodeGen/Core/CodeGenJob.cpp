@@ -10,10 +10,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    JobResult waitCodeGenCompleted(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
+    JobResult waitCodeGenPreSolved(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
     {
         TaskState& wait   = ctx.state();
-        wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
+        wait.kind         = TaskStateKind::SemaWaitSymCodeGenPreSolved;
         wait.nodeRef      = nodeRef;
         wait.codeRef      = waiterSymbol.codeRef();
         wait.symbol       = &waitedSymbol;
@@ -87,7 +87,7 @@ JobResult CodeGenJob::exec()
     for (const auto* dep : deps)
     {
         if (!dep->isCodeGenPreSolved())
-            return waitCodeGenCompleted(ctx(), *symbolFunc_, *dep, root_);
+            return waitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_);
     }
 
     symbolFunc_->setCodeGenCompleted(ctx());

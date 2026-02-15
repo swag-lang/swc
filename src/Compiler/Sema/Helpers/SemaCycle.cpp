@@ -202,6 +202,17 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 break;
             }
 
+            case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_codegen_presolved, state.codeRef);
+                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                diag.report(ctx);
+                break;
+            }
+
             case TaskStateKind::SemaWaitSymCodeGenCompleted:
             {
                 SWC_ASSERT(state.symbol);

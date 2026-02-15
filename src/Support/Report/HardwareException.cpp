@@ -150,6 +150,8 @@ namespace
                 return "SemaWaitSymTyped";
             case TaskStateKind::SemaWaitSymSemaCompleted:
                 return "SemaWaitSymSemaCompleted";
+            case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+                return "SemaWaitSymCodeGenPreSolved";
             case TaskStateKind::SemaWaitSymCodeGenCompleted:
                 return "SemaWaitSymCodeGenCompleted";
             case TaskStateKind::SemaWaitTypeCompleted:

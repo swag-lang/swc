@@ -66,9 +66,8 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
         const PredefinedAttr predefined[] = {
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti), .fl = RtAttributeFlagsE::AttrMulti},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr), .fl = RtAttributeFlagsE::ConstExpr},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBc), .fl = RtAttributeFlagsE::PrintBc},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintBcGen), .fl = RtAttributeFlagsE::PrintBcGen},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintAsm), .fl = RtAttributeFlagsE::PrintAsm},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro), .fl = RtAttributeFlagsE::PrintMicro},
+            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintMicroRaw), .fl = RtAttributeFlagsE::PrintMicroRaw},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::Compiler), .fl = RtAttributeFlagsE::Compiler},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::Inline), .fl = RtAttributeFlagsE::Inline},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoInline), .fl = RtAttributeFlagsE::NoInline},

@@ -22,7 +22,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     visit_.start(ast(), root);
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
-    builder_->setPrintFlags(symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintBcGen), symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintBc));
+    builder_->setPrintFlags(symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw), symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro));
 
     while (true)
     {

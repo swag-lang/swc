@@ -5,7 +5,7 @@ struct S
     value: s32
 }
 
-#[Swag.PrintBcGen]
+#[Swag.PrintMicro]
 #test
 {
     const V = #run S{42}

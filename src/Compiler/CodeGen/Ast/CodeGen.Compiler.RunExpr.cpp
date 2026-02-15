@@ -13,7 +13,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     auto&              ctx      = codeGen.ctx();
     const auto&        callConv = CallConv::host();
     MicroInstrBuilder& builder  = codeGen.builder();
-    const SemaNodeView exprView(codeGen.sema(), nodeExprRef);
+    const auto         exprView = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
     if (!exprView.type->isStruct())
         SWC_INTERNAL_ERROR();

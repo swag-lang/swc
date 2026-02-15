@@ -66,6 +66,21 @@ const Ast& CodeGen::ast() const
     return sema().ast();
 }
 
+SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef)
+{
+    return {sema(), nodeRef};
+}
+
+SemaNodeView CodeGen::curNodeView()
+{
+    return nodeView(curNodeRef());
+}
+
+const Token& CodeGen::token(const SourceCodeRef& codeRef) const
+{
+    return sema().token(codeRef);
+}
+
 Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
 {
     SWC_ASSERT(exprView.cst);

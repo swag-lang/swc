@@ -15,15 +15,15 @@ namespace
         if (childPayload->kind != CodeGenNodePayloadKind::PointerStorageU64)
             SWC_INTERNAL_ERROR();
 
-        const auto nodeView = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-        codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::DerefPointerStorageU64, childPayload->valueU64, nodeView.typeRef);
+        const auto nodeView = codeGen.curNodeView();
+        codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::DerefPointerStorageU64, childPayload->valueU64, nodeView.typeRef);
         return Result::Continue;
     }
 }
 
 Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.sema().token(codeRef());
+    const Token& tok = codeGen.token(codeRef());
     switch (tok.id)
     {
         case TokenId::KwdDRef:

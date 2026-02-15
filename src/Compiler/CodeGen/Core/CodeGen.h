@@ -8,6 +8,7 @@ class Sema;
 class SymbolFunction;
 class MicroInstrBuilder;
 struct SemaNodeView;
+struct Token;
 
 enum class CodeGenNodePayloadKind : uint8_t
 {
@@ -39,8 +40,14 @@ public:
     const TaskContext&       ctx() const;
     Ast&                     ast();
     const Ast&               ast() const;
+    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     AstVisit&                visit() { return visit_; }
     const AstVisit&          visit() const { return visit_; }
+    AstNodeRef               curNodeRef() const { return visit_.currentNodeRef(); }
+    SemaNodeView             nodeView(AstNodeRef nodeRef);
+    SemaNodeView             curNodeView();
+    const Token&             token(const SourceCodeRef& codeRef) const;
     SymbolFunction&          function() { return *function_; }
     const SymbolFunction&    function() const { return *function_; }
     Result                   emitConstReturnValue(const SemaNodeView& exprView);

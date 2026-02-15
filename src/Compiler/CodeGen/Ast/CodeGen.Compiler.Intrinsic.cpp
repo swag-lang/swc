@@ -9,14 +9,14 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.sema().token(codeRef());
+    const Token& tok = codeGen.token(codeRef());
     switch (tok.id)
     {
         case TokenId::IntrinsicCompiler:
         {
             const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
-            const auto nodeView          = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-            codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::AddressValue, compilerIfAddress, nodeView.typeRef);
+            const auto nodeView          = codeGen.curNodeView();
+            codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::AddressValue, compilerIfAddress, nodeView.typeRef);
             return Result::Continue;
         }
 

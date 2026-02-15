@@ -43,17 +43,17 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     std::span<const MicroABICallArg> callArgs{};
 
-    const auto& calleeNode = codeGen.ast().node(nodeExprRef);
+    const auto& calleeNode = codeGen.node(nodeExprRef);
     if (calleeNode.id() != AstNodeId::MemberAccessExpr)
         SWC_INTERNAL_ERROR();
 
-    const SemaNodeView callView(codeGen.sema(), codeGen.visit().currentNodeRef());
+    const auto callView = codeGen.curNodeView();
     const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
 
     const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
     if (!calledFunction)
     {
-        const SemaNodeView rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
+        const auto rightView = codeGen.nodeView(memberAccessExpr->nodeRightRef);
         calledFunction = resolveFunctionSymbol(rightView);
     }
 
@@ -95,8 +95,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     emitMicroABICallByAddress(codeGen.builder(), CallConvKind::Host, calleePayload->valueU64, callArgs, ret);
 
-    const auto nodeView = SemaNodeView(codeGen.sema(), codeGen.visit().currentNodeRef());
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::PointerStorageU64, reinterpret_cast<uint64_t>(resultStorage), nodeView.typeRef);
+    const auto nodeView = codeGen.curNodeView();
+    codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::PointerStorageU64, reinterpret_cast<uint64_t>(resultStorage), nodeView.typeRef);
     return Result::Continue;
 }
 

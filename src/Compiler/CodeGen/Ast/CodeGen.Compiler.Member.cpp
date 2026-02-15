@@ -55,7 +55,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     if (leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
         SWC_INTERNAL_ERROR();
 
-    const SemaNodeView rightView(codeGen.sema(), nodeRightRef);
+    const auto rightView = codeGen.nodeView(nodeRightRef);
     const SymbolFunction* methodSym = resolveMethodSymbol(rightView);
     SWC_ASSERT(methodSym != nullptr);
 
@@ -67,7 +67,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(runtimeInterface != nullptr);
     SWC_ASSERT(runtimeInterface->itable != nullptr);
     const auto targetAddress = reinterpret_cast<uint64_t>(runtimeInterface->itable[methodSlot]);
-    codeGen.setPayload(codeGen.visit().currentNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, targetAddress);
+    codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, targetAddress);
     return Result::Continue;
 }
 

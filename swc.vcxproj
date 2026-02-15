@@ -202,6 +202,7 @@
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrStorage.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp"/>

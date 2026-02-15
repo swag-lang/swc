@@ -153,6 +153,9 @@
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrStorage.cpp">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
@@ -639,6 +642,9 @@
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h">
+      <Filter>src\Backend\MachineCode\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrStorage.h">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.h">

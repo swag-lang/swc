@@ -51,6 +51,12 @@ void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addExtraFlag(SymbolFunctionFlagsE::Const);
 }
 
+MicroInstrBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
+{
+    microInstrBuilder_.setContext(ctx);
+    return microInstrBuilder_;
+}
+
 bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 {
     if (this == &otherFunc)

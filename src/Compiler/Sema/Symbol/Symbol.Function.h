@@ -47,19 +47,22 @@ public:
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
 
-    SpecOpKind         specOpKind() const noexcept { return specOpKind_; }
-    void               setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    MicroInstrBuilder& microInstrBuilder(TaskContext& ctx) noexcept
-    {
-        microInstrBuilder_.setContext(ctx);
-        return microInstrBuilder_;
-    }
+    bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
+    uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
+    void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
+
+    SpecOpKind               specOpKind() const noexcept { return specOpKind_; }
+    void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    MicroInstrBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
     const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
 
 private:
+    static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
+
     std::vector<SymbolVariable*> parameters_;
-    TypeRef                      returnType_ = TypeRef::invalid();
-    SpecOpKind                   specOpKind_ = SpecOpKind::None;
+    TypeRef                      returnType_          = TypeRef::invalid();
+    SpecOpKind                   specOpKind_          = SpecOpKind::None;
+    uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
     MicroInstrBuilder            microInstrBuilder_;
 };
 

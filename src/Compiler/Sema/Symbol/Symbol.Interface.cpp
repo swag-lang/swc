@@ -5,6 +5,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void SymbolInterface::addFunction(SymbolFunction* sym)
+{
+    SWC_ASSERT(sym != nullptr);
+    sym->setInterfaceMethodSlot(static_cast<uint32_t>(functions_.size()));
+    functions_.push_back(sym);
+}
+
 Result SymbolInterface::canBeCompleted(Sema& sema) const
 {
     for (const auto method : functions_)

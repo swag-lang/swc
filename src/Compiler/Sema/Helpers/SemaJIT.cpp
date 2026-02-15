@@ -75,7 +75,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     auto targetFn = executableMemory.entryPoint<void*>();
     SWC_ASSERT(targetFn != nullptr);
 
-    const TypeInfo& nodeType         = *nodeView.type;
+    const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
     TypeRef         resultStorageRef = nodeView.typeRef;
     if (nodeType.isEnum())
         resultStorageRef = nodeType.payloadSymEnum().underlyingTypeRef();

@@ -66,22 +66,12 @@ namespace
             return Result::Continue;
         }
 
-        if (exprRef.isInvalid())
-            return Result::Error;
+        SWC_ASSERT(exprRef.isValid());
+        SWC_ASSERT(!normalizedRet.isIndirect);
 
-        const auto* exprPayload = codeGen.payload(exprRef);
-        if (!exprPayload || normalizedRet.isIndirect)
-            return Result::Error;
-
-        const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
-        if (retBits == MicroOpBits::Zero)
-            return Result::Error;
-
-        const MicroReg srcReg = exprPayload->reg;
-        if (normalizedRet.isFloat)
-            codeGen.builder().encodeLoadRegReg(callConv.floatReturn, srcReg, retBits);
-        else
-            codeGen.builder().encodeLoadRegReg(callConv.intReturn, srcReg, retBits);
+        const auto* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
+        const bool  isLValue    = codeGen.sema().isLValue(exprRef);
+        ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isLValue, normalizedRet);
 
         codeGen.builder().encodeRet();
         return Result::Continue;

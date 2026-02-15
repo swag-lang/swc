@@ -187,9 +187,24 @@ void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind 
     if (ret.isVoid)
         return;
 
+    materializeValueToReturnRegs(builder, callConvKind, valueReg, valueIsLValue, ret);
     const auto& conv = CallConv::get(callConvKind);
+    const auto  retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+
+    if (ret.isFloat)
+        builder.encodeLoadMemReg(outputStorageReg, 0, conv.floatReturn, retBits);
+    else
+        builder.encodeLoadMemReg(outputStorageReg, 0, conv.intReturn, retBits);
+}
+
+void ABICall::materializeValueToReturnRegs(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret)
+{
+    if (ret.isVoid)
+        return;
+
     SWC_ASSERT(!ret.isIndirect);
 
+    const auto&      conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
     SWC_ASSERT(retBits != MicroOpBits::Zero);
 
@@ -199,7 +214,6 @@ void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind 
             builder.encodeLoadRegMem(conv.floatReturn, valueReg, 0, retBits);
         else
             builder.encodeLoadRegReg(conv.floatReturn, valueReg, retBits);
-        builder.encodeLoadMemReg(outputStorageReg, 0, conv.floatReturn, retBits);
         return;
     }
 
@@ -207,7 +221,6 @@ void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind 
         builder.encodeLoadRegMem(conv.intReturn, valueReg, 0, retBits);
     else
         builder.encodeLoadRegReg(conv.intReturn, valueReg, retBits);
-    builder.encodeLoadMemReg(outputStorageReg, 0, conv.intReturn, retBits);
 }
 
 void ABICall::materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)

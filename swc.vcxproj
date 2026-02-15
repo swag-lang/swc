@@ -205,7 +205,7 @@
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrStorage.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstr.cpp" />
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroConformancePass.cpp" />
+        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroEncodePass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPersistentRegsPass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroRegAllocPass.cpp" />
@@ -375,7 +375,7 @@
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstr.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrPrinter.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.h" />
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroConformancePass.h" />
+        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroEncodePass.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPersistentRegsPass.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroRegAllocPass.h" />

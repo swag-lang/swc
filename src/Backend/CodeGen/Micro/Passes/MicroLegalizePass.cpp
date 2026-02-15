@@ -1,12 +1,12 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/Passes/MicroConformancePass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool applyConformanceIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    bool applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -153,7 +153,7 @@ namespace
     }
 }
 
-void MicroConformancePass::run(MicroPassContext& context)
+void MicroLegalizePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
@@ -170,7 +170,7 @@ void MicroConformancePass::run(MicroPassContext& context)
             if (!encoder.queryConformanceIssue(issue, inst, ops))
                 break;
 
-            if (!applyConformanceIssue(context, encoder, it.current, inst, ops, issue))
+            if (!applyLegalizeIssue(context, encoder, it.current, inst, ops, issue))
                 SWC_INTERNAL_ERROR();
         }
     }

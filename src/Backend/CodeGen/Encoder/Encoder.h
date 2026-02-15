@@ -12,7 +12,7 @@ struct MicroInstr;
 struct MicroInstrOperand;
 struct MicroInstrUseDef;
 class MicroEncodePass;
-class MicroConformancePass;
+class MicroLegalizePass;
 
 enum class EncodeFlagsE : uint8_t
 {
@@ -45,7 +45,7 @@ class Encoder
 {
     friend class MicroInstrBuilder;
     friend class MicroEncodePass;
-    friend class MicroConformancePass;
+    friend class MicroLegalizePass;
     friend struct MicroInstr;
 
 public:

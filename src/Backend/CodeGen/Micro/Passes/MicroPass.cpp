@@ -18,8 +18,8 @@ namespace
                 return before ? "before-regalloc" : "after-regalloc";
             case MicroPassKind::PersistentRegs:
                 return before ? "before-persistent-regs" : "after-persistent-regs";
-            case MicroPassKind::Conformance:
-                return before ? "before-conformance" : "after-conformance";
+            case MicroPassKind::Legalize:
+                return before ? "before-legalize" : "after-legalize";
             case MicroPassKind::Encode:
                 return before ? "before-encode" : "after-encode";
             default:
@@ -42,8 +42,8 @@ namespace
                 return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegAlloc) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegAlloc);
             case MicroPassKind::PersistentRegs:
                 return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePersistentRegs) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPersistentRegs);
-            case MicroPassKind::Conformance:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeConformance) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterConformance);
+            case MicroPassKind::Legalize:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeLegalize) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterLegalize);
             case MicroPassKind::Encode:
                 return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEncode) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEncode);
             default:

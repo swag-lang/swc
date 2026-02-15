@@ -14,7 +14,7 @@ enum class MicroPassKind : uint8_t
 {
     RegAlloc,
     PersistentRegs,
-    Conformance,
+    Legalize,
     Encode,
 };
 
@@ -25,8 +25,8 @@ enum class MicroPassPrintFlagsE : uint32_t
     AfterRegAlloc        = 1 << 1,
     BeforePersistentRegs = 1 << 2,
     AfterPersistentRegs  = 1 << 3,
-    BeforeConformance    = 1 << 4,
-    AfterConformance     = 1 << 5,
+    BeforeLegalize       = 1 << 4,
+    AfterLegalize        = 1 << 5,
     BeforeEncode         = 1 << 6,
     AfterEncode          = 1 << 7,
 };

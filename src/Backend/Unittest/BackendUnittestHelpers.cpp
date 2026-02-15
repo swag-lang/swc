@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/Passes/MicroConformancePass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEncodePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Support/Report/Logger.h"
@@ -73,10 +73,10 @@ namespace Backend::Unittest
         MicroInstrBuilder builder(ctx);
         fn(builder);
 
-        MicroConformancePass conformPass;
-        MicroEncodePass      encodePass;
-        MicroPassManager     passes;
-        passes.add(conformPass);
+        MicroLegalizePass legalizePass;
+        MicroEncodePass   encodePass;
+        MicroPassManager  passes;
+        passes.add(legalizePass);
         passes.add(encodePass);
 
         MicroPassContext passCtx;

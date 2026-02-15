@@ -211,8 +211,8 @@
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroRegAllocPass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Encoder\X64Encoder.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Call.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp" />

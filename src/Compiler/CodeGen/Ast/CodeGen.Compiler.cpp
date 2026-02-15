@@ -9,12 +9,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
-{
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
-    return Result::Continue;
-}
-
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     auto&              ctx      = codeGen.ctx();

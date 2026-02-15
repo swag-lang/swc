@@ -41,6 +41,10 @@ namespace
             const auto lowU32    = static_cast<uint32_t>(value & 0xFFFFFFFFu);
             const auto highU32   = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
 
+            inst.op          = MicroInstrOpcode::Ignore;
+            inst.opsRef      = INVALID_REF;
+            inst.numOperands = 0;
+
             std::array<MicroInstrOperand, 4> lowOps;
             lowOps[0].reg      = memReg;
             lowOps[1].opBits   = MicroOpBits::B32;
@@ -54,10 +58,6 @@ namespace
             highOps[2].valueU64 = memOffset + 4;
             highOps[3].valueU64 = highU32;
             context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, highOps);
-
-            inst.op          = MicroInstrOpcode::Ignore;
-            inst.opsRef      = INVALID_REF;
-            inst.numOperands = 0;
             return true;
         }
 
@@ -75,6 +75,10 @@ namespace
             const auto value          = ops[7].valueU64;
             const auto lowU32         = static_cast<uint32_t>(value & 0xFFFFFFFFu);
             const auto highU32        = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
+
+            inst.op          = MicroInstrOpcode::Ignore;
+            inst.opsRef      = INVALID_REF;
+            inst.numOperands = 0;
 
             std::array<MicroInstrOperand, 8> lowOps;
             lowOps[0].reg      = regBase;
@@ -95,10 +99,53 @@ namespace
             highOps[6].valueU64 = addValue + 4;
             highOps[7].valueU64 = highU32;
             context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, highOps);
+            return true;
+        }
+
+        ///////////////////////////////////////////
+        if (issue.kind == MicroConformanceIssueKind::RewriteLoadFloatRegImm)
+        {
+            if (!ops || inst.op != MicroInstrOpcode::LoadRegImm || inst.numOperands < 3)
+                return false;
+
+            const auto dstReg   = ops[0].reg;
+            auto       opBits   = ops[1].opBits;
+            const auto immValue = ops[2].valueU64;
+            const auto rspReg   = MicroReg::intReg(4);
+            if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
+                opBits = MicroOpBits::B64;
 
             inst.op          = MicroInstrOpcode::Ignore;
             inst.opsRef      = INVALID_REF;
             inst.numOperands = 0;
+
+            std::array<MicroInstrOperand, 4> subOps;
+            subOps[0].reg      = rspReg;
+            subOps[1].opBits   = MicroOpBits::B64;
+            subOps[2].microOp  = MicroOp::Subtract;
+            subOps[3].valueU64 = 8;
+            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, subOps);
+
+            std::array<MicroInstrOperand, 4> storeOps;
+            storeOps[0].reg      = rspReg;
+            storeOps[1].opBits   = opBits;
+            storeOps[2].valueU64 = 0;
+            storeOps[3].valueU64 = immValue;
+            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, storeOps);
+
+            std::array<MicroInstrOperand, 4> loadOps;
+            loadOps[0].reg      = dstReg;
+            loadOps[1].reg      = rspReg;
+            loadOps[2].opBits   = opBits;
+            loadOps[3].valueU64 = 0;
+            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, inst.emitFlags, loadOps);
+
+            std::array<MicroInstrOperand, 4> addOps;
+            addOps[0].reg      = rspReg;
+            addOps[1].opBits   = MicroOpBits::B64;
+            addOps[2].microOp  = MicroOp::Add;
+            addOps[3].valueU64 = 8;
+            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, addOps);
             return true;
         }
 

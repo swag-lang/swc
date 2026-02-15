@@ -30,6 +30,7 @@ enum class MicroConformanceIssueKind : uint8_t
     NormalizeOpBits,
     SplitLoadMemImm64,
     SplitLoadAmcMemImm64,
+    RewriteLoadFloatRegImm,
 };
 
 struct MicroConformanceIssue

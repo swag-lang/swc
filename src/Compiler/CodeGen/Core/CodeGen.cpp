@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/MachineCode/CallConv.h"
-#include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Backend/MachineCode/Micro/MicroReg.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -166,13 +166,26 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
 }
 
+CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)
+{
+    const CodeGenNodePayload* srcPayload = payload(srcNodeRef);
+    SWC_ASSERT(srcPayload != nullptr);
+
+    if (typeRef.isInvalid())
+        typeRef = srcPayload->typeRef;
+
+    auto& dstPayload           = setPayload(dstNodeRef, typeRef);
+    dstPayload.virtualRegister = srcPayload->virtualRegister;
+    return dstPayload;
+}
+
 MicroReg CodeGen::payloadVirtualReg(AstNodeRef nodeRef) const
 {
     const CodeGenNodePayload* nodePayload = payload(nodeRef);
     return payloadVirtualReg(*SWC_CHECK_NOT_NULL(nodePayload));
 }
 
-MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload) const
+MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload)
 {
     SWC_ASSERT(nodePayload.virtualRegister != 0);
     return MicroReg::virtualReg(nodePayload.virtualRegister);

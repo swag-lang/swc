@@ -41,8 +41,9 @@ public:
     const SymbolFunction&    function() const { return *SWC_CHECK_NOT_NULL(function_); }
     Result                   emitConstReturnValue(const SemaNodeView& exprView);
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
+    CodeGenNodePayload&      inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     MicroReg                 payloadVirtualReg(AstNodeRef nodeRef) const;
-    MicroReg                 payloadVirtualReg(const CodeGenNodePayload& nodePayload) const;
+    static MicroReg          payloadVirtualReg(const CodeGenNodePayload& nodePayload);
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
     MicroInstrBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }

@@ -10,11 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const auto* childPayload = codeGen.payload(nodeExprRef);
-    SWC_ASSERT(childPayload != nullptr);
-
-    auto& payload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    payload.virtualRegister = childPayload->virtualRegister;
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
     return Result::Continue;
 }
 

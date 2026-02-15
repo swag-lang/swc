@@ -248,6 +248,11 @@ namespace
         }
     }
 
+    bool isUnconditionalJump(MicroCondJump cond)
+    {
+        return cond == MicroCondJump::Unconditional;
+    }
+
     std::string_view callConvName(CallConvKind callConv)
     {
         switch (callConv)
@@ -316,6 +321,28 @@ namespace
         }
 
         return false;
+    }
+
+    bool isJumpLabelToken(std::string_view token)
+    {
+        if (token.size() < 2 || token[0] != 'L')
+            return false;
+
+        size_t end = token.size();
+        if (token.back() == ':')
+        {
+            if (token.size() < 3)
+                return false;
+            --end;
+        }
+
+        for (size_t i = 1; i < end; ++i)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(token[i])))
+                return false;
+        }
+
+        return true;
     }
 
     std::string hexU64(uint64_t value)
@@ -556,10 +583,18 @@ namespace
             case MicroInstrOpcode::JumpReg:
                 return std::format("jump {}", regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::JumpCond:
+                if (isUnconditionalJump(ops[0].jumpType))
+                {
+                    if (inst.numOperands >= 3)
+                        return std::format("jump L{}", static_cast<Ref>(ops[2].valueU64));
+                    return "jump";
+                }
                 if (inst.numOperands >= 3)
                     return std::format("if {} jump L{}", condJumpName(ops[0].jumpType), static_cast<Ref>(ops[2].valueU64));
                 return std::format("if {} jump", condJumpName(ops[0].jumpType));
             case MicroInstrOpcode::JumpCondImm:
+                if (isUnconditionalJump(ops[0].jumpType))
+                    return std::format("jump {}", ops[2].valueU64);
                 return std::format("if {} jump {}", condJumpName(ops[0].jumpType), ops[2].valueU64);
 
             case MicroInstrOpcode::Ret:
@@ -595,11 +630,26 @@ namespace
                              bool                                   colorize,
                              std::string                            value,
                              const std::unordered_set<std::string>& concreteRegs,
-                             const std::unordered_set<std::string>& virtualRegs)
+                             const std::unordered_set<std::string>& virtualRegs,
+                             const std::optional<std::string>&      jumpTargetInstIndex)
     {
+        size_t jumpTargetIndexStart = std::string::npos;
+        if (jumpTargetInstIndex)
+        {
+            value += " ";
+            jumpTargetIndexStart = value.size();
+            value += *jumpTargetInstIndex;
+        }
+
         if (value.size() > K_NATURAL_COLUMN_WIDTH)
             value = std::format("{}...", value.substr(0, K_NATURAL_COLUMN_WIDTH - 3));
-        auto appendNaturalToken = [&](std::string_view token) {
+        auto appendNaturalToken = [&](std::string_view token, size_t tokenStart) {
+            if (tokenStart == jumpTargetIndexStart && jumpTargetInstIndex && token == *jumpTargetInstIndex)
+            {
+                appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, token);
+                return;
+            }
+
             auto isHex = [](std::string_view t) {
                 if (t.size() < 3 || t[0] != '0' || (t[1] != 'x' && t[1] != 'X'))
                     return false;
@@ -625,7 +675,7 @@ namespace
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Number, token);
             }
-            else if (!token.empty() && token.back() == ':' && token.starts_with('L'))
+            else if (isJumpLabelToken(token))
             {
                 appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, token);
             }
@@ -660,7 +710,7 @@ namespace
                     const auto three = std::string_view(padded).substr(pos, 3);
                     if (three == "<<=" || three == ">>=")
                     {
-                        appendNaturalToken(three);
+                        appendNaturalToken(three, pos);
                         pos += 3;
                         continue;
                     }
@@ -671,13 +721,13 @@ namespace
                     const auto two = std::string_view(padded).substr(pos, 2);
                     if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>")
                     {
-                        appendNaturalToken(two);
+                        appendNaturalToken(two, pos);
                         pos += 2;
                         continue;
                     }
                 }
 
-                appendNaturalToken(std::string_view(padded).substr(pos, 1));
+                appendNaturalToken(std::string_view(padded).substr(pos, 1), pos);
                 ++pos;
                 continue;
             }
@@ -693,7 +743,7 @@ namespace
                 ++pos;
             }
 
-            appendNaturalToken(std::string_view(padded).substr(start, pos - start));
+            appendNaturalToken(std::string_view(padded).substr(start, pos - start), start);
         }
 
         appendColored(out, ctx, colorize, SyntaxColor::Compiler, " | ");
@@ -938,7 +988,8 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         const Ref                       instRef = it.current;
         const MicroInstr&               inst    = *it;
         const auto*                     ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
-        const auto                      natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        auto                            natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        std::optional<std::string>      naturalJumpTargetIndex;
         std::unordered_set<std::string> concreteRegs;
         std::unordered_set<std::string> virtualRegs;
         if (inst.numOperands)
@@ -958,9 +1009,19 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             }
         }
 
+        if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
+        {
+            const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
+            auto      labelIt  = labelIndexByRef.find(labelRef);
+            if (labelIt != labelIndexByRef.end())
+                naturalJumpTargetIndex = std::format("{:04}", labelIt->second);
+            else
+                naturalJumpTargetIndex = "????";
+        }
+
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
-        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs);
+        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
 
         if (inst.op == MicroInstrOpcode::Label)
         {
@@ -1040,14 +1101,21 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 break;
 
             case MicroInstrOpcode::JumpCond:
-                appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
-                appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                if (!isUnconditionalJump(ops[0].jumpType))
+                {
+                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
+                    appendSep(out);
+                    appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                }
+                else
+                {
+                    appendColored(out, ctx, colorize, SyntaxColor::Code, "jump");
+                }
                 if (inst.numOperands >= 3)
                 {
                     const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
                     out += " ";
-                    appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}:", labelRef));
+                    appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}", labelRef));
                     auto labelIt = labelIndexByRef.find(labelRef);
                     if (labelIt != labelIndexByRef.end())
                     {
@@ -1085,10 +1153,18 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
-                appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
-                appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
-                appendSep(out);
+                if (!isUnconditionalJump(ops[0].jumpType))
+                {
+                    appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
+                    appendSep(out);
+                    appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                    appendSep(out);
+                }
+                else
+                {
+                    appendColored(out, ctx, colorize, SyntaxColor::Code, "jump");
+                    appendSep(out);
+                }
                 appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to={}", ops[2].valueU64));
                 break;
 

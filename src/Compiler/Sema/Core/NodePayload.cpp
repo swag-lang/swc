@@ -403,7 +403,7 @@ void* NodePayload::getPayload(AstNodeRef nodeRef) const
     return *SWC_CHECK_NOT_NULL(shard.store.ptr<void*>(info.ref));
 }
 
-void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args)
+void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)
 {
     SWC_ASSERT(nodeRef.isValid());
 
@@ -436,7 +436,7 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const A
     node.setPayloadRef(value);
 }
 
-void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const
+void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const
 {
     if (nodeRef.isInvalid())
         return;
@@ -467,7 +467,14 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<As
             auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const auto* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
-            ast().appendNodes(out, storage->argsSpan);
+            if (storage->argsSpan.isInvalid())
+                return;
+            const auto spanView = shard.store.span<ResolvedCallArgument>(storage->argsSpan.get());
+            for (PagedStore::SpanView::ChunkIterator it = spanView.chunksBegin(); it != spanView.chunksEnd(); ++it)
+            {
+                const PagedStore::SpanView::Chunk& chunk = *it;
+                out.append(static_cast<const ResolvedCallArgument*>(chunk.ptr), chunk.count);
+            }
             return;
         }
 

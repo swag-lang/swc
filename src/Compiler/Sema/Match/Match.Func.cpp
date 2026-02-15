@@ -950,27 +950,39 @@ namespace
         return finalRef;
     }
 
-    void buildResolvedCallArgs(Sema& sema, const CallArgMapping& mapping, SmallVector<AstNodeRef>& outResolvedArgs)
+    void buildResolvedCallArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, SmallVector<ResolvedCallArgument>& outResolvedArgs)
     {
         outResolvedArgs.clear();
 
-        for (const auto& entry : mapping.paramArgs)
+        for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
+            const auto& entry = mapping.paramArgs[i];
             if (entry.argRef.isInvalid())
                 continue;
-            outResolvedArgs.push_back(resolveFinalCallArgRef(sema, entry.argRef));
+
+            const AstNodeRef finalArgRef = resolveFinalCallArgRef(sema, entry.argRef);
+            auto             passKind    = CallArgumentPassKind::Direct;
+            if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
+            {
+                const auto argView = sema.nodeView(finalArgRef);
+                if (argView.type && argView.type->isInterface())
+                    passKind = CallArgumentPassKind::InterfaceObject;
+            }
+
+            outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = passKind});
         }
 
         for (const auto& entry : mapping.variadicArgs)
         {
             if (entry.argRef.isInvalid())
                 continue;
-            outResolvedArgs.push_back(resolveFinalCallArgRef(sema, entry.argRef));
+            const AstNodeRef finalArgRef = resolveFinalCallArgRef(sema, entry.argRef);
+            outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = CallArgumentPassKind::Direct});
         }
     }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<AstNodeRef>* outResolvedArgs)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs)
 {
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
@@ -998,7 +1010,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
     if (outResolvedArgs)
-        buildResolvedCallArgs(sema, mapping, *outResolvedArgs);
+        buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, *outResolvedArgs);
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.node(sema.curNodeRef()));

@@ -14,7 +14,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const AstNodeRef> args)
+    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args)
     {
         const CallConvKind callConvKind = calledFunction.callConvKind();
         const CallConv&    callConv     = CallConv::get(callConvKind);
@@ -24,20 +24,28 @@ namespace
 
         for (uint32_t i = 0; i < args.size(); ++i)
         {
-            const AstNodeRef argRef     = args[i];
+            const auto&      arg        = args[i];
+            const AstNodeRef argRef     = arg.argRef;
             const auto*      argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
-            const MicroReg argReg  = callConv.intArgRegs[i];
-            const auto     argView = codeGen.nodeView(argRef);
-            if (i == 0 && calledFunction.hasInterfaceMethodSlot() && argView.type && argView.type->isInterface())
+            const MicroReg argReg = callConv.intArgRegs[i];
+            switch (arg.passKind)
             {
-                const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*argPayload);
-                builder.encodeLoadRegMem(argReg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
-            }
-            else
-            {
-                builder.encodeLoadRegReg(argReg, CodeGen::payloadVirtualReg(*argPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
+                case CallArgumentPassKind::Direct:
+                    builder.encodeLoadRegReg(argReg, CodeGen::payloadVirtualReg(*argPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
+                    break;
+
+                case CallArgumentPassKind::InterfaceObject:
+                {
+                    SWC_ASSERT(i == 0);
+                    const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*argPayload);
+                    builder.encodeLoadRegMem(argReg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+                    break;
+                }
+
+                default:
+                    SWC_UNREACHABLE();
             }
         }
 
@@ -57,7 +65,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const CallConvKind    callConvKind   = calledFunction.callConvKind();
     const CallConv&       callConv       = CallConv::get(callConvKind);
 
-    SmallVector<AstNodeRef> args;
+    SmallVector<ResolvedCallArgument> args;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     const uint32_t numAbiArgs = emitPreparedCallArguments(codeGen, calledFunction, args);
 

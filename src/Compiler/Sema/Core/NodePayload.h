@@ -34,6 +34,18 @@ enum class NodePayloadFlags : uint16_t
     Value            = 1 << 15,
 };
 
+enum class CallArgumentPassKind : uint8_t
+{
+    Direct          = 0,
+    InterfaceObject = 1,
+};
+
+struct ResolvedCallArgument
+{
+    AstNodeRef            argRef   = AstNodeRef::invalid();
+    CallArgumentPassKind  passKind = CallArgumentPassKind::Direct;
+};
+
 class NodePayload
 {
     friend class Sema;
@@ -88,8 +100,8 @@ protected:
     bool  hasPayload(AstNodeRef nodeRef) const;
     void  setPayload(AstNodeRef nodeRef, void* payload);
     void* getPayload(AstNodeRef nodeRef) const;
-    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args);
-    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const;
+    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
+    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
     void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
     void* getCodeGenPayload(AstNodeRef nodeRef) const;

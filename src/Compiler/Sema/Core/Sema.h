@@ -85,8 +85,8 @@ public:
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
     bool                     hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
-    void                     setResolvedCallArguments(AstNodeRef n, std::span<const AstNodeRef> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
-    void                     appendResolvedCallArguments(AstNodeRef n, SmallVector<AstNodeRef>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
+    void                     setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
+    void                     appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
     bool                     hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
     void                     setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
 

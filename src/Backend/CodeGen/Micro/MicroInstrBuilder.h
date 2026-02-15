@@ -53,7 +53,7 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    std::string                formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
+    Utf8                       formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
     void                       printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
     void                       setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
     MicroInstrBuilderFlags     flags() const { return flags_; }
@@ -61,9 +61,9 @@ public:
     void                       setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
     void                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
     const MicroInstrDebugInfo* debugInfo(Ref instructionRef) const;
-    void                       setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
-    const std::string&         printSymbolName() const { return printSymbolName_; }
-    const std::string&         printFilePath() const { return printFilePath_; }
+    void                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    const Utf8&                printSymbolName() const { return printSymbolName_; }
+    const Utf8&                printFilePath() const { return printFilePath_; }
     uint32_t                   printSourceLine() const { return printSourceLine_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
@@ -124,8 +124,8 @@ private:
     MicroInstrBuilderFlags                          flags_ = MicroInstrBuilderFlagsE::Zero;
     std::vector<std::optional<MicroInstrDebugInfo>> debugInfos_;
     MicroInstrDebugInfo                             currentDebugInfo_;
-    std::string                                     printSymbolName_;
-    std::string                                     printFilePath_;
+    Utf8                                            printSymbolName_;
+    Utf8                                            printFilePath_;
     uint32_t                                        printSourceLine_ = 0;
     std::vector<Ref>                                labels_;
 };

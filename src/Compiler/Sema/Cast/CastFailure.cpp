@@ -12,7 +12,7 @@ void CastFailure::set(AstNodeRef errorNodeRef, DiagnosticId d, TypeRef srcRef, T
     codeRef    = SourceCodeRef::invalid();
     srcTypeRef = srcRef;
     dstTypeRef = dstRef;
-    valueStr   = std::string(value);
+    valueStr   = value;
     noteId     = note;
 }
 

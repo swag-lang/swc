@@ -213,7 +213,7 @@ namespace
         MicroInstrBuilder builder(ctx);
         builder.encodeLoadRegReg(MicroReg::virtualIntReg(2), MicroReg::intReg(2), MicroOpBits::B64, EncodeFlagsE::Zero);
 
-        const std::string out = builder.formatInstructions(MicroInstrRegPrintMode::Virtual, nullptr, false);
+        const Utf8 out = builder.formatInstructions(MicroInstrRegPrintMode::Virtual, nullptr, false);
         if (out.find("%2, r2") == std::string::npos)
             return Result::Error;
 

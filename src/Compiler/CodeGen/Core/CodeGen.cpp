@@ -33,7 +33,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
     const SourceView&     srcView   = sema().srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();
-    builder_->setPrintLocation(std::string(symbolFunc.getFullScopedName(ctx())), file ? file->path().string() : std::string{}, codeRange.line);
+    builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), file ? Utf8(file->path().string()) : Utf8{}, codeRange.line);
 
     while (true)
     {

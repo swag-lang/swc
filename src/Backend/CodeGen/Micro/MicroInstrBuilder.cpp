@@ -532,7 +532,7 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
     passes.run(context);
 }
 
-std::string MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
+Utf8 MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
 {
     return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
 }
@@ -542,7 +542,7 @@ void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, c
     MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
 }
 
-void MicroInstrBuilder::setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine)
+void MicroInstrBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine)
 {
     printSymbolName_ = std::move(symbolName);
     printFilePath_   = std::move(filePath);

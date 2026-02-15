@@ -10,46 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result waitSymbolSemaCompletion(Sema& sema, const Symbol& symbol)
-    {
-        return sema.waitSemaCompleted(&symbol, symbol.codeRef());
-    }
-
-    Result waitSelfAndDepsSema(Sema& sema, const SymbolFunction& symbolFunc, const SmallVector<SymbolFunction*>& deps)
-    {
-        const Result selfWaitResult = waitSymbolSemaCompletion(sema, symbolFunc);
-        if (selfWaitResult != Result::Continue)
-            return selfWaitResult;
-
-        for (const auto* dep : deps)
-        {
-            SWC_ASSERT(dep);
-            const Result depWaitResult = waitSymbolSemaCompletion(sema, *dep);
-            if (depWaitResult != Result::Continue)
-                return depWaitResult;
-        }
-
-        return Result::Continue;
-    }
-
-    void scheduleDepCodeGenJobs(TaskContext& ctx, Sema& sema, const SmallVector<SymbolFunction*>& deps)
-    {
-        for (auto* dep : deps)
-        {
-            SWC_ASSERT(dep);
-
-            if (!dep->tryMarkCodeGenJobScheduled())
-                continue;
-
-            const AstNodeRef depRoot = dep->declNodeRef();
-            if (!depRoot.isValid())
-                continue;
-
-            const auto depJob = heapNew<CodeGenJob>(ctx, sema, *dep, depRoot);
-            sema.compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema.compiler().jobClientId());
-        }
-    }
-
     bool areDepsReadyForCompletion(const SmallVector<SymbolFunction*>& deps)
     {
         for (const auto* dep : deps)
@@ -62,13 +22,6 @@ namespace
         }
 
         return true;
-    }
-
-    Result generateFunctionCodeGen(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root)
-    {
-        SWC_ASSERT(root.isValid());
-        CodeGen codeGen(sema);
-        return codeGen.exec(symbolFunc, root);
     }
 }
 
@@ -92,15 +45,35 @@ JobResult CodeGenJob::exec()
     symbolFunc_->appendCallDependencies(deps);
 
     ///////////////////////////////////////////
-    const Result waitSemaResult = waitSelfAndDepsSema(*sema_, *symbolFunc_, deps);
-    if (waitSemaResult != Result::Continue)
-        return toJobResult(waitSemaResult);
+    const Result selfWaitResult = sema_->waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
+    if (selfWaitResult != Result::Continue)
+        return toJobResult(selfWaitResult);
+    for (const auto* dep : deps)
+    {
+        SWC_ASSERT(dep);
+        const Result depWaitResult = sema_->waitSemaCompleted(dep, dep->codeRef());
+        if (depWaitResult != Result::Continue)
+            return toJobResult(depWaitResult);
+    }
 
     ///////////////////////////////////////////
-    scheduleDepCodeGenJobs(ctx(), *sema_, deps);
+    for (auto* dep : deps)
+    {
+        SWC_ASSERT(dep);
+
+        if (!dep->tryMarkCodeGenJobScheduled())
+            continue;
+        const AstNodeRef depRoot = dep->declNodeRef();
+        if (!depRoot.isValid())
+            continue;
+        const auto depJob = heapNew<CodeGenJob>(ctx(), *sema_, *dep, depRoot);
+        sema_->compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema_->compiler().jobClientId());
+    }
 
     ///////////////////////////////////////////
-    const Result codeGenResult = generateFunctionCodeGen(*sema_, *symbolFunc_, root_);
+    SWC_ASSERT(root_.isValid());
+    CodeGen      codeGen(*sema_);
+    const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
     if (codeGenResult != Result::Continue)
         return toJobResult(codeGenResult);
     symbolFunc_->setCodeGenPreSolved(ctx());

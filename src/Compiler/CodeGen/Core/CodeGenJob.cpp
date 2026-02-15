@@ -49,7 +49,6 @@ JobResult CodeGenJob::exec()
         return toJobResult(selfWaitResult);
     for (const auto* dep : deps)
     {
-        SWC_ASSERT(dep);
         const Result depWaitResult = sema_->waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
             return toJobResult(depWaitResult);
@@ -59,8 +58,6 @@ JobResult CodeGenJob::exec()
     ///////////////////////////////////////////
     for (auto* dep : deps)
     {
-        SWC_ASSERT(dep);
-
         if (!dep->tryMarkCodeGenJobScheduled())
             continue;
         const AstNodeRef depRoot = dep->declNodeRef();

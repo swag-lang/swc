@@ -37,6 +37,7 @@ struct CommandLine
     bool verboseVerify            = false;
     bool verboseHardwareException = false;
     bool verify                   = true;
+    bool debugInfo                = false;
     bool internalUnittest         = true;
     bool verboseInternalUnittest  = false;
     bool runtime                  = false;

@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CommandLine.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -29,7 +30,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforePasses);
     if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro))
         builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEncode);
+    if (ctx().cmdLine().debugInfo)
+        builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);
+    builder_->setCurrentDebugInfo({});
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
     const SourceView&     srcView   = sema().srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();
@@ -198,24 +202,30 @@ void CodeGen::setVisitors()
 
 Result CodeGen::preNode(AstNode& node)
 {
+    builder().setCurrentDebugSourceCodeRef(node.codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPreNode(*this, node);
 }
 
 Result CodeGen::postNode(AstNode& node)
 {
+    builder().setCurrentDebugSourceCodeRef(node.codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPostNode(*this, node);
 }
 
 Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
+    if (childRef.isValid())
+        builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPreNodeChild(*this, node, childRef);
 }
 
 Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 {
+    if (childRef.isValid())
+        builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPostNodeChild(*this, node, childRef);
 }

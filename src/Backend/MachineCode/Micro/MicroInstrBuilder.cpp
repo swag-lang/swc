@@ -5,9 +5,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
+std::pair<Ref, MicroInstr&> MicroInstrBuilder::addInstructionWithRef(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
 {
-    auto [_, inst]    = instructions_.emplaceUninit();
+    auto [instRef, inst] = instructions_.emplaceUninit();
     inst->op          = op;
     inst->emitFlags   = emitFlags;
     inst->numOperands = numOperands;
@@ -22,7 +22,39 @@ MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags e
     {
         inst->opsRef = std::numeric_limits<Ref>::max();
     }
-    return *SWC_CHECK_NOT_NULL(inst);
+
+    storeInstructionDebugInfo(instRef);
+    return {instRef, *SWC_CHECK_NOT_NULL(inst)};
+}
+
+MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
+{
+    return addInstructionWithRef(op, emitFlags, numOperands).second;
+}
+
+void MicroInstrBuilder::storeInstructionDebugInfo(Ref instructionRef)
+{
+    if (!hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+        return;
+
+    if (!currentDebugInfo_.hasData())
+        return;
+
+    if (instructionRef >= debugInfos_.size())
+        debugInfos_.resize(instructionRef + 1);
+
+    debugInfos_[instructionRef] = currentDebugInfo_;
+}
+
+const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) const
+{
+    if (instructionRef >= debugInfos_.size())
+        return nullptr;
+
+    const auto& info = debugInfos_[instructionRef];
+    if (!info.has_value())
+        return nullptr;
+    return &info.value();
 }
 
 EncodeResult MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
@@ -115,14 +147,8 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
 
 EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    auto [ref, inst]   = instructions_.emplaceUninit();
-    inst->op           = MicroInstrOpcode::JumpCond;
-    inst->emitFlags    = emitFlags;
-    inst->numOperands  = 2;
-    auto [opsRef, ops] = operands_.emplaceUninitArray(2);
-    inst->opsRef       = opsRef;
-    for (uint8_t idx = 0; idx < 2; ++idx)
-        new (ops + idx) MicroInstrOperand();
+    auto [ref, inst]   = addInstructionWithRef(MicroInstrOpcode::JumpCond, emitFlags, 2);
+    auto* ops          = inst.ops(operands_);
 
     jump.offsetStart = ref;
     jump.opBits      = opBits;
@@ -503,12 +529,12 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
 
 std::string MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
 {
-    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, colorize);
+    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
 }
 
 void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
 {
-    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, colorize);
+    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
 }
 
 void MicroInstrBuilder::setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine)

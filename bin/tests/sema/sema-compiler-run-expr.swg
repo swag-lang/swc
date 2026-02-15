@@ -41,4 +41,3 @@ struct S
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 //    #assert(Cfg.tempAllocatorCapacity > 0)
 }
-

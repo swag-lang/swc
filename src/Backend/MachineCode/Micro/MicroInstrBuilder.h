@@ -3,6 +3,7 @@
 #include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
 #include "Backend/MachineCode/Micro/MicroInstrStorage.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -14,8 +15,19 @@ enum class MicroInstrBuilderFlagsE : uint8_t
     Zero              = 0,
     PrintBeforePasses = 1 << 0,
     PrintBeforeEncode = 1 << 1,
+    DebugInfo         = 1 << 2,
 };
 using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
+
+struct MicroInstrDebugInfo
+{
+    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+
+    bool hasData() const
+    {
+        return sourceCodeRef.isValid();
+    }
+};
 
 class MicroInstrBuilder
 {
@@ -46,6 +58,9 @@ public:
     void                   setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
     MicroInstrBuilderFlags flags() const { return flags_; }
     bool                   hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                   setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
+    void                   setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
+    const MicroInstrDebugInfo* debugInfo(Ref instructionRef) const;
     void                   setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
     const std::string&     printSymbolName() const { return printSymbolName_; }
     const std::string&     printFilePath() const { return printFilePath_; }
@@ -98,12 +113,16 @@ public:
     EncodeResult encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags);
 
 private:
+    std::pair<Ref, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
+    void        storeInstructionDebugInfo(Ref instructionRef);
 
     TaskContext*           ctx_ = nullptr;
     MicroInstrStorage      instructions_;
     MicroOperandStorage    operands_;
     MicroInstrBuilderFlags flags_ = MicroInstrBuilderFlagsE::Zero;
+    std::vector<std::optional<MicroInstrDebugInfo>> debugInfos_;
+    MicroInstrDebugInfo                       currentDebugInfo_;
     std::string            printSymbolName_;
     std::string            printFilePath_;
     uint32_t               printSourceLine_ = 0;

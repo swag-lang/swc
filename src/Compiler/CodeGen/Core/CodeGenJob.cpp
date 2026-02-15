@@ -14,6 +14,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result waitSymbolSemaCompletion(Sema& sema, const Symbol& symbol)
+    {
+        return sema.waitSemaCompleted(&symbol, symbol.codeRef());
+    }
+
     bool isFunctionDeclRoot(Sema& sema, AstNodeRef root)
     {
         return root.isValid() && sema.node(root).is(AstNodeId::FunctionDecl);
@@ -148,8 +153,9 @@ JobResult CodeGenJob::exec()
     SWC_ASSERT(sema_);
     SWC_ASSERT(symbolFunc_);
 
-    if (!symbolFunc_->isSemaCompleted())
-        return JobResult::Sleep;
+    const Result selfWaitResult = waitSymbolSemaCompletion(*sema_, *symbolFunc_);
+    if (selfWaitResult != Result::Continue)
+        return toJobResult(selfWaitResult);
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
@@ -173,8 +179,9 @@ JobResult CodeGenJob::exec()
         if (!dep)
             continue;
 
-        if (!dep->isSemaCompleted())
-            return JobResult::Sleep;
+        const Result depWaitResult = waitSymbolSemaCompletion(*sema_, *dep);
+        if (depWaitResult != Result::Continue)
+            return toJobResult(depWaitResult);
 
         if (dep->tryMarkCodeGenJobScheduled())
         {

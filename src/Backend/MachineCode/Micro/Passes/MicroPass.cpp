@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 
@@ -52,6 +54,7 @@ namespace
 
         const auto& ctx     = *context.taskContext;
         const auto& builder = *context.builder;
+        Logger::ScopedLock loggerLock(ctx.global().logger());
 
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};

@@ -571,8 +571,7 @@ namespace
 
 void HardwareException::log(const TaskContext& ctx, const std::string_view title, SWC_LP_EXCEPTION_POINTERS args, HardwareExceptionExtraInfoFn extraInfoFn, const void* userData)
 {
-    auto& logger = ctx.global().logger();
-    logger.lock();
+    Logger::ScopedLock loggerLock(ctx.global().logger());
 
     const bool rich = useRichFormatting(ctx);
     Utf8       msg;
@@ -614,7 +613,6 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     }
 
     Logger::print(ctx, msg);
-    logger.unlock();
 }
 
 SWC_END_NAMESPACE();

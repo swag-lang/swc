@@ -94,7 +94,7 @@ void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);
 
-    ctx.global().logger().lock();
+    Logger::ScopedLock loggerLock(ctx.global().logger());
 
 #if SWC_DEBUG
     Logger::printHeaderCentered(ctx, LogColor::Magenta, "[Debug]", LogColor::Magenta, "ON");
@@ -109,7 +109,6 @@ void CompilerInstance::logBefore()
         Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
 #endif
 
-    ctx.global().logger().unlock();
 }
 
 void CompilerInstance::logAfter()
@@ -117,7 +116,7 @@ void CompilerInstance::logAfter()
     const TaskContext ctx(*this);
 
     const auto timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
-    ctx.global().logger().lock();
+    Logger::ScopedLock loggerLock(ctx.global().logger());
     if (Stats::get().numErrors.load() == 1)
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, "1 error");
     else if (Stats::get().numErrors.load() > 1)
@@ -128,7 +127,6 @@ void CompilerInstance::logAfter()
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::Magenta, std::format("{} ({} warnings)", timeSrc, Stats::get().numWarnings.load()));
     else
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::White, timeSrc);
-    ctx.global().logger().unlock();
 }
 
 void CompilerInstance::logStats()

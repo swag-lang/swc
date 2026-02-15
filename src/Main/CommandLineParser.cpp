@@ -293,7 +293,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
 
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
-    ctx.global().logger().lock();
+    Logger::ScopedLock loggerLock(ctx.global().logger());
     Logger::printDim(ctx, std::format("swc: swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     Logger::printDim(ctx, "Usage:\n");
 
@@ -355,8 +355,6 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             Logger::printDim(ctx, "\n");
         }
     }
-
-    ctx.global().logger().unlock();
 }
 
 Result CommandLineParser::parse(int argc, char* argv[])

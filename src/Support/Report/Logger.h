@@ -8,6 +8,28 @@ class TaskContext;
 class Logger
 {
 public:
+    class ScopedLock
+    {
+    public:
+        explicit ScopedLock(Logger& logger) :
+            logger_(&logger)
+        {
+            logger_->lock();
+        }
+
+        ~ScopedLock()
+        {
+            if (logger_)
+                logger_->unlock();
+        }
+
+        ScopedLock(const ScopedLock&)            = delete;
+        ScopedLock& operator=(const ScopedLock&) = delete;
+
+    private:
+        Logger* logger_ = nullptr;
+    };
+
     void lock() { mutexAccess_.lock(); }
     void unlock() { mutexAccess_.unlock(); }
 

@@ -257,10 +257,10 @@ void Diagnostic::report(TaskContext& ctx) const
     // Log diagnostic
     if (!dismiss)
     {
-        auto& logger = ctx.global().logger();
-        logger.lock();
-        Logger::print(ctx, msg);
-        logger.unlock();
+        {
+            Logger::ScopedLock loggerLock(ctx.global().logger());
+            Logger::print(ctx, msg);
+        }
 
         if (CommandLine::dbgDevMode && !orgDismissed)
             Os::panicBox("[DevMode] ERROR raised!");

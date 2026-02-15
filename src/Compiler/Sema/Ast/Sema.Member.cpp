@@ -17,28 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void attachInterfaceMethodSlot(const SymbolInterface& symInterface, const Symbol* sym)
-    {
-        if (!sym || !sym->isFunction())
-            return;
-
-        auto&       symFunc  = const_cast<SymbolFunction&>(sym->cast<SymbolFunction>());
-        const auto& methods  = symInterface.functions();
-        bool        hasMatch = false;
-
-        for (size_t idx = 0; idx < methods.size(); idx++)
-        {
-            if (methods[idx] == &symFunc || methods[idx]->deepCompare(symFunc))
-            {
-                symFunc.setInterfaceMethodSlot(static_cast<uint32_t>(idx));
-                hasMatch = true;
-                break;
-            }
-        }
-
-        (void) hasMatch;
-    }
-
     // A call callee may legitimately bind to an overload set, but only for callable candidates.
     // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
     // If no callable candidates exist:
@@ -150,8 +128,6 @@ namespace
             lookUpCxt.symMapHint = &symInterface;
 
         RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-        for (const Symbol* sym : lookUpCxt.symbols())
-            attachInterfaceMethodSlot(symInterface, sym);
         RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 

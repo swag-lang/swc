@@ -130,7 +130,10 @@ Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.codeGenPostNode(*this, node);
+    const Result result = info.codeGenPostNode(*this, node);
+    if (result != Result::Continue)
+        return result;
+    return lowerConstant(curNodeRef());
 }
 
 Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)

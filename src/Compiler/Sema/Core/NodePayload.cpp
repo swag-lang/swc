@@ -410,9 +410,12 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     AstNode& node = ast().node(nodeRef);
     if (payloadKind(node) == NodePayloadKind::ResolvedCallArgs)
     {
+        const uint32_t        shardIdx = payloadShard(node);
+        auto&                 shard    = shards_[shardIdx];
+        std::unique_lock      lock(shard.mutex);
         ResolvedCallArgsStorage* storage = resolvedCallArgsStorage(node);
         SWC_ASSERT(storage);
-        storage->argsSpan = args.empty() ? SpanRef::invalid() : ast().pushSpan(args);
+        storage->argsSpan = args.empty() ? SpanRef::invalid() : shard.store.pushSpan(args);
         return;
     }
 
@@ -425,7 +428,7 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     std::unique_lock lock(shard.mutex);
 
     const ResolvedCallArgsStorage storage = {
-        .argsSpan      = args.empty() ? SpanRef::invalid() : ast().pushSpan(args),
+        .argsSpan      = args.empty() ? SpanRef::invalid() : shard.store.pushSpan(args),
         .originalKind  = originalKind,
         .originalRef   = originalRef,
         .originalShard = originalShard,

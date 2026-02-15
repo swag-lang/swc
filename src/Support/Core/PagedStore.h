@@ -83,24 +83,28 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
+        SWC_ASSERT(ref != INVALID_REF);
         return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
+        SWC_ASSERT(ref != INVALID_REF);
         return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
     }
 
     template<class T>
     T& at(Ref ref) noexcept
     {
+        SWC_ASSERT(ref != INVALID_REF);
         return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
     }
 
     template<class T>
     const T& at(Ref ref) const noexcept
     {
+        SWC_ASSERT(ref != INVALID_REF);
         return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
     }
 
@@ -114,6 +118,7 @@ public:
     template<class T>
     SpanView span(Ref ref) const
     {
+        SWC_ASSERT(ref != INVALID_REF);
         static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
         return spanView(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
     }

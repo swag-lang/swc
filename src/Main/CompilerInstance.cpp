@@ -47,7 +47,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    buildCfg_.backendDebugInformations = cmdLine.debugInfo;
+    if (cmdLine.debugInfo)
+        buildCfg_.backendDebugInformations = true;
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 

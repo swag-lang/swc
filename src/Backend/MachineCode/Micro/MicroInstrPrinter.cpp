@@ -400,39 +400,47 @@ namespace
         }
     }
 
-    void appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef)
+    bool appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef, std::unordered_set<uint64_t>& seenDebugLines)
     {
         if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
-            return;
+            return false;
 
         const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
         if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
-            return;
+            return false;
 
         const auto& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
         const auto  range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
         if (range.line == 0)
-            return;
+            return false;
+
+        const uint64_t debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(range.line);
+        if (seenDebugLines.contains(debugKey))
+            return false;
+        seenDebugLines.insert(debugKey);
 
         out += '\n';
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, "      src: ");
-        appendColored(out, ctx, colorize, SyntaxColor::Code, srcView.codeLine(ctx, range.line));
+        Utf8 codeLine = srcView.codeLine(ctx, range.line);
+        codeLine.trim();
+        out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, colorize);
+        return true;
     }
 }
 
 std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
 {
-    std::string out;
-    auto&       storeOps      = operands;
-    auto&       instructionsV = const_cast<MicroInstrStorage&>(instructions);
-    auto        view          = instructionsV.view();
+    std::string                  out;
+    auto&                        storeOps      = operands;
+    auto&                        instructionsV = const_cast<MicroInstrStorage&>(instructions);
+    auto                         view          = instructionsV.view();
+    std::unordered_set<uint64_t> seenDebugLines;
 
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {
         const Ref         instRef = it.current;
         const MicroInstr& inst    = *it;
-        const auto* ops = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
@@ -758,7 +766,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         }
 
         appendInstFlags(out, ctx, colorize, inst.emitFlags);
-        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef);
+        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
         out += '\n';
         ++idx;
     }

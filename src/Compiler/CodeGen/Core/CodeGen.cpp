@@ -9,7 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -30,7 +30,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforePasses);
     if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro))
         builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEncode);
-    if (ctx().cmdLine().debugInfo)
+    if (ctx().compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);
     builder_->setCurrentDebugInfo({});

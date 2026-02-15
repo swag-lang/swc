@@ -489,4 +489,9 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     return result;
 }
 
+Utf8 SyntaxColorHelper::toAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode)
+{
+    return syntaxColorToAnsi(ctx, color, mode);
+}
+
 SWC_END_NAMESPACE();

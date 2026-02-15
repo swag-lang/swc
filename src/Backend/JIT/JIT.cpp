@@ -5,9 +5,9 @@
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
+#include "Compiler/Lexer/SyntaxColor.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -20,9 +20,9 @@ namespace
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
         const uint32_t         sourceLine = builder.printSourceLine();
 
-        Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Yellow));
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, std::format("[micro:{}] {} @ {}:{}", stage, symbolName, filePath, sourceLine));
-        Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
         Logger::print(ctx, "\n");
     }
 

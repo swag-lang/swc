@@ -50,7 +50,7 @@ namespace
         }
     }
 
-    std::string opcodeName(MicroInstrOpcode op)
+    Utf8 opcodeName(MicroInstrOpcode op)
     {
         return Utf8Helper::toLowerSnake(opcodeEnumName(op));
     }
@@ -230,7 +230,7 @@ namespace
         return CallConv::get(callConv).name;
     }
 
-    std::string regName(MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 regName(MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         if (!reg.isValid())
             return "inv";
@@ -307,14 +307,14 @@ namespace
         return true;
     }
 
-    std::string hexU64(uint64_t value)
+    Utf8 hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
     }
 
-    std::string memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        std::string out = "[";
+        Utf8 out = "[";
         out += regName(baseReg, regPrintMode, encoder);
         if (offset != 0)
             out += std::format(" + {}", hexU64(offset));
@@ -322,9 +322,9 @@ namespace
         return out;
     }
 
-    std::string memAmcString(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 memAmcString(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        std::string out = "[";
+        Utf8 out = "[";
         if (!baseReg.isNoBase())
             out += regName(baseReg, regPrintMode, encoder);
 
@@ -431,7 +431,7 @@ namespace
         }
     }
 
-    std::string naturalBinaryExpression(std::string_view lhs, MicroOp op, std::string_view rhs)
+    Utf8 naturalBinaryExpression(std::string_view lhs, MicroOp op, std::string_view rhs)
     {
         const auto assignOp = binaryAssignOperator(op);
         if (!assignOp.empty())
@@ -439,7 +439,7 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
-    std::string naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         switch (inst.op)
         {
@@ -538,7 +538,7 @@ namespace
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                return std::format("call {}", ops[0].name.isValid() ? std::string(ctx.idMgr().get(ops[0].name).name) : std::string("<invalid-symbol>"));
+                return std::format("call {}", ops[0].name.isValid() ? Utf8(ctx.idMgr().get(ops[0].name).name) : Utf8("<invalid-symbol>"));
             case MicroInstrOpcode::CallIndirect:
                 return std::format("call {}", regName(ops[0].reg, regPrintMode, encoder));
 
@@ -570,7 +570,7 @@ namespace
             case MicroInstrOpcode::Pop:
                 return std::format("pop {}", regName(ops[0].reg, regPrintMode, encoder));
             default:
-                return std::string(opcodeName(inst.op));
+                return opcodeName(inst.op);
         }
     }
 
@@ -941,14 +941,14 @@ namespace
         return std::max<uint32_t>(3, width);
     }
 
-    std::string formatInstructionIndex(uint32_t index, uint32_t width)
+    Utf8 formatInstructionIndex(uint32_t index, uint32_t width)
     {
         return std::format("{:0{}}", index, width);
     }
 
-    std::string unknownInstructionIndex(uint32_t width)
+    Utf8 unknownInstructionIndex(uint32_t width)
     {
-        return std::string(width, '?');
+        return Utf8(width, '?');
     }
 
     void trimTrailingSpaces(std::string& out)
@@ -1004,9 +1004,9 @@ namespace
     }
 }
 
-std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
+Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
 {
-    std::string                       out;
+    Utf8                              out;
     auto&                             storeOps      = operands;
     auto&                             storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
     auto&                             instructionsV = const_cast<MicroInstrStorage&>(instructions);

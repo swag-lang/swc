@@ -63,6 +63,7 @@ namespace
         const uint32_t         sourceLine = builder.printSourceLine();
         const auto             stageName  = passStageName(passKind, before);
 
+        Logger::print(ctx, "\n");
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, std::format("[micro:{}] {} @ {}:{}", stageName, symbolName, filePath, sourceLine));
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));

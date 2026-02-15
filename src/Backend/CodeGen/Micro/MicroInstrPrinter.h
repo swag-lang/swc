@@ -18,13 +18,13 @@ enum class MicroInstrRegPrintMode : uint8_t
 class MicroInstrPrinter
 {
 public:
-    static std::string format(const TaskContext&         ctx,
-                              const MicroInstrStorage&   instructions,
-                              const MicroOperandStorage& operands,
-                              MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
-                              const Encoder*             encoder      = nullptr,
-                              bool                       colorize     = false,
-                              const MicroInstrBuilder*   builder      = nullptr);
+    static Utf8 format(const TaskContext&         ctx,
+                       const MicroInstrStorage&   instructions,
+                       const MicroOperandStorage& operands,
+                       MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
+                       const Encoder*             encoder      = nullptr,
+                       bool                       colorize     = false,
+                       const MicroInstrBuilder*   builder      = nullptr);
 
     static void print(const TaskContext&         ctx,
                       const MicroInstrStorage&   instructions,

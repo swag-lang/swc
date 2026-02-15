@@ -16,6 +16,18 @@ namespace Math
     {
         return (v + (a - 1)) & ~(a - 1);
     }
+
+    static constexpr uint64_t alignUpU64(uint64_t v, uint64_t a) noexcept
+    {
+        if (!a)
+            return v;
+
+        const uint64_t rem = v % a;
+        if (!rem)
+            return v;
+
+        return v + a - rem;
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -146,6 +146,28 @@ Ref MicroInstrStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
     return ref;
 }
 
+Ref MicroInstrStorage::insertInstructionBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
+{
+    MicroInstr inst;
+    inst.op          = op;
+    inst.emitFlags   = emitFlags;
+    inst.numOperands = static_cast<uint8_t>(opsData.size());
+
+    if (!opsData.empty())
+    {
+        auto [opsRef, dstOps] = operands.emplaceUninitArray(inst.numOperands);
+        inst.opsRef           = opsRef;
+        for (uint32_t i = 0; i < inst.numOperands; ++i)
+            dstOps[i] = opsData[i];
+    }
+    else
+    {
+        inst.opsRef = INVALID_REF;
+    }
+
+    return insertBefore(beforeRef, inst);
+}
+
 MicroInstrStorage::View MicroInstrStorage::view() noexcept
 {
     return View(this);

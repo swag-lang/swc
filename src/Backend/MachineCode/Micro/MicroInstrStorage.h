@@ -56,6 +56,7 @@ public:
     void                        clear() noexcept;
     std::pair<Ref, MicroInstr*> emplaceUninit();
     Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
+    Ref                         insertInstructionBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData);
     View                        view() noexcept;
 
 private:

@@ -3,6 +3,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool MicroInstrHelpers::containsReg(std::span<const MicroReg> regs, MicroReg reg)
+{
+    for (const auto value : regs)
+    {
+        if (value == reg)
+            return true;
+    }
+
+    return false;
+}
+
 void MicroInstrHelpers::emitMemCopy(MicroInstrBuilder& builder, MicroReg dstReg, MicroReg srcReg, MicroReg tmpReg, uint32_t sizeInBytes)
 {
     uint64_t offset = 0;

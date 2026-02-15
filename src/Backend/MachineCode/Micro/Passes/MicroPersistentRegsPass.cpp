@@ -1,55 +1,10 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPersistentRegsPass.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Backend/MachineCode/Micro/MicroInstrHelpers.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    uint64_t alignUpU64(uint64_t value, uint64_t alignment)
-    {
-        if (!alignment)
-            return value;
-
-        const uint64_t rem = value % alignment;
-        if (!rem)
-            return value;
-
-        return value + alignment - rem;
-    }
-
-    bool containsReg(std::span<const MicroReg> regs, MicroReg reg)
-    {
-        for (const auto value : regs)
-        {
-            if (value == reg)
-                return true;
-        }
-
-        return false;
-    }
-
-    Ref insertInstructionBefore(MicroInstrStorage& instructions, MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
-    {
-        MicroInstr inst;
-        inst.op          = op;
-        inst.emitFlags   = emitFlags;
-        inst.numOperands = static_cast<uint8_t>(opsData.size());
-        if (!opsData.empty())
-        {
-            auto [opsRef, dstOps] = operands.emplaceUninitArray(inst.numOperands);
-            inst.opsRef           = opsRef;
-            for (uint32_t i = 0; i < inst.numOperands; ++i)
-                dstOps[i] = opsData[i];
-        }
-        else
-        {
-            inst.opsRef = INVALID_REF;
-        }
-
-        return instructions.insertBefore(beforeRef, inst);
-    }
-}
 
 void MicroPersistentRegsPass::run(MicroPassContext& context)
 {
@@ -121,7 +76,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
 
             if (reg.isInt())
             {
-                if (!containsReg(conv.intPersistentRegs, reg))
+                if (!MicroInstrHelpers::containsReg(conv.intPersistentRegs, reg))
                     continue;
 
                 if (!containsSavedSlot(reg))
@@ -129,7 +84,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
             }
             else if (reg.isFloat())
             {
-                if (!containsReg(conv.floatPersistentRegs, reg))
+                if (!MicroInstrHelpers::containsReg(conv.floatPersistentRegs, reg))
                     continue;
 
                 if (!containsSavedSlot(reg))
@@ -145,13 +100,13 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
     for (auto& slot : savedRegSlots_)
     {
         const uint64_t slotSize = slot.slotBits == MicroOpBits::B128 ? 16 : 8;
-        frameOffset             = alignUpU64(frameOffset, slotSize);
+        frameOffset             = Math::alignUpU64(frameOffset, slotSize);
         slot.offset             = frameOffset;
         frameOffset += slotSize;
     }
 
     const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
-    savedRegsFrameSize_           = alignUpU64(frameOffset, stackAlignment);
+    savedRegsFrameSize_           = Math::alignUpU64(frameOffset, stackAlignment);
 }
 
 void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
@@ -170,7 +125,7 @@ void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& co
     subOps[1].opBits   = MicroOpBits::B64;
     subOps[2].microOp  = MicroOp::Subtract;
     subOps[3].valueU64 = savedRegsFrameSize_;
-    insertInstructionBefore(instructions, operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
+    instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
 
     for (const auto& slot : savedRegSlots_)
     {
@@ -179,7 +134,7 @@ void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& co
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
         storeOps[3].valueU64 = slot.offset;
-        insertInstructionBefore(instructions, operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, EncodeFlagsE::Zero, storeOps);
+        instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, EncodeFlagsE::Zero, storeOps);
     }
 }
 
@@ -201,7 +156,7 @@ void MicroPersistentRegsPass::insertSavedRegsEpilogue(const MicroPassContext& co
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
         loadOps[3].valueU64 = slot.offset;
-        insertInstructionBefore(instructions, operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, emitFlags, loadOps);
+        instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, emitFlags, loadOps);
     }
 
     MicroInstrOperand addOps[4];
@@ -209,7 +164,7 @@ void MicroPersistentRegsPass::insertSavedRegsEpilogue(const MicroPassContext& co
     addOps[1].opBits   = MicroOpBits::B64;
     addOps[2].microOp  = MicroOp::Add;
     addOps[3].valueU64 = savedRegsFrameSize_;
-    insertInstructionBefore(instructions, operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
+    instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
 }
 
 SWC_END_NAMESPACE();

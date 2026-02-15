@@ -18,6 +18,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void collectRunExprCallDependencies(Sema& sema, SymbolFunction& owner, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedRef = sema.getSubstituteRef(nodeRef);
+        if (!resolvedRef.isValid())
+            return;
+
+        const AstNode& node = sema.node(resolvedRef);
+        if (node.is(AstNodeId::CallExpr))
+        {
+            if (sema.hasSymbol(resolvedRef))
+            {
+                Symbol& sym = sema.symbolOf(resolvedRef);
+                if (sym.isFunction())
+                {
+                    auto& calledFn = sym.cast<SymbolFunction>();
+                    if (owner.decl() && calledFn.decl() && owner.srcViewRef() == calledFn.srcViewRef())
+                        owner.addCallDependency(&calledFn);
+                }
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildren(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            collectRunExprCallDependencies(sema, owner, childRef);
+    }
+
     Result getOrCreateRunExprSymbol(Sema& sema, SymbolFunction*& outSymFn, AstNodeRef nodeExprRef)
     {
         auto&            ctx     = sema.ctx();
@@ -35,10 +62,13 @@ namespace
 
         outSymFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         outSymFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
+        outSymFn->setDeclNodeRef(nodeRef);
         outSymFn->setReturnTypeRef(sema.typeMgr().typeVoid());
         outSymFn->setAttributes(sema.frame().currentAttributes());
         outSymFn->setDeclared(ctx);
         outSymFn->setTyped(ctx);
+        outSymFn->setSemaCompleted(ctx);
+        SWC_ASSERT(outSymFn->tryMarkCodeGenJobScheduled());
 
         sema.setSymbol(nodeRef, outSymFn);
 
@@ -61,6 +91,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     SymbolFunction* symFn = nullptr;
     RESULT_VERIFY(getOrCreateRunExprSymbol(sema, symFn, nodeExprRef));
     SWC_ASSERT(symFn != nullptr);
+    collectRunExprCallDependencies(sema, *symFn, nodeExprRef);
     RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.node(nodeRef).codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);

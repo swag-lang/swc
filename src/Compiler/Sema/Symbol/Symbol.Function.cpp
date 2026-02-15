@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -55,6 +56,50 @@ MicroInstrBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
 {
     microInstrBuilder_.setContext(ctx);
     return microInstrBuilder_;
+}
+
+bool SymbolFunction::tryMarkCodeGenJobScheduled() noexcept
+{
+    bool expected = false;
+    return codeGenJobScheduled_.compare_exchange_strong(expected, true, std::memory_order_acq_rel);
+}
+
+void SymbolFunction::addCallDependency(SymbolFunction* sym)
+{
+    if (!sym || sym == this)
+        return;
+
+    std::scoped_lock lock(callDepsMutex_);
+    if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())
+        return;
+    callDependencies_.push_back(sym);
+}
+
+void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
+{
+    std::scoped_lock lock(callDepsMutex_);
+    out.reserve(out.size() + callDependencies_.size());
+    for (auto* dep : callDependencies_)
+        out.push_back(dep);
+}
+
+Result SymbolFunction::ensureJitEntry(TaskContext& ctx)
+{
+    if (hasJitEntryAddress())
+        return Result::Continue;
+
+    std::scoped_lock lock(jitMutex_);
+    if (hasJitEntryAddress())
+        return Result::Continue;
+
+    RESULT_VERIFY(JIT::compile(ctx, microInstrBuilder(ctx), jitExecMemory_));
+    const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
+    if (!entry)
+        return Result::Error;
+
+    jitEntryAddress_.store(entry, std::memory_order_release);
+    ctx.compiler().notifyAlive();
+    return Result::Continue;
 }
 
 bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept

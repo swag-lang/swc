@@ -54,6 +54,14 @@ void Symbol::setCodeGenCompleted(TaskContext& ctx)
     ctx.compiler().notifyAlive();
 }
 
+void Symbol::setCodeGenPreSolved(TaskContext& ctx)
+{
+    if (flags_.has(SymbolFlagsE::CodeGenPreSolved))
+        return;
+    flags_.add(SymbolFlagsE::CodeGenPreSolved);
+    ctx.compiler().notifyAlive();
+}
+
 void Symbol::setDeclared(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Declared))

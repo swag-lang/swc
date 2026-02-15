@@ -22,6 +22,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
 
     sym.setExtraFlags(flags());
+    sym.setDeclNodeRef(sema.curNodeRef());
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
@@ -98,6 +99,12 @@ namespace
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
+        if (auto* currentFn = sema.frame().currentFunction())
+        {
+            auto* calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
+            if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef())
+                currentFn->addCallDependency(calledFn);
+        }
 
         if (tryIntrinsicFold)
         {

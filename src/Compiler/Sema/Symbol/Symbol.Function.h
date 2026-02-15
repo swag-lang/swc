@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -57,6 +58,14 @@ public:
     void                     setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
     MicroInstrBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
     const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    AstNodeRef               declNodeRef() const noexcept { return declNodeRef_; }
+    void                     setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    bool                     tryMarkCodeGenJobScheduled() noexcept;
+    void                     addCallDependency(SymbolFunction* sym);
+    void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    uint64_t                 jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    bool                     hasJitEntryAddress() const noexcept { return jitEntryAddress() != 0; }
+    Result                   ensureJitEntry(TaskContext& ctx);
 
 private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
@@ -65,8 +74,16 @@ private:
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
+    AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
+
     MicroInstrBuilder            microInstrBuilder_;
+    mutable std::mutex           callDepsMutex_;
+    std::vector<SymbolFunction*> callDependencies_;
+    std::mutex                   jitMutex_;
+    JITExecMemory                jitExecMemory_;
+    std::atomic<uint64_t>        jitEntryAddress_     = 0;
+    std::atomic<bool>            codeGenJobScheduled_ = false;
 };
 
 SWC_END_NAMESPACE();

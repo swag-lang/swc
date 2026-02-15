@@ -1014,6 +1014,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.node(sema.curNodeRef()));
+    sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
 }
 

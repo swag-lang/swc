@@ -264,6 +264,7 @@ namespace
             resultTypeRef = sema.typeMgr().addType(ty);
         }
 
+        RESULT_VERIFY(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsLValue(node);
         return Result::Continue;

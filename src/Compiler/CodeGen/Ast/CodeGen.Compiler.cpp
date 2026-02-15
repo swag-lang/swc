@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
@@ -24,64 +25,44 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SWC_ASSERT(!callConv.intArgRegs.empty());
     const MicroReg outputStorageReg = callConv.intArgRegs[0];
-    const TypeRef  exprStorageRef   = exprView.type->unwrap(ctx, exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    const TypeInfo& exprStorageType = codeGen.ctx().typeMgr().get(exprStorageRef);
+    const auto     abiRet           = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
-    if (exprStorageType.isVoid())
+    if (abiRet.isVoid)
     {
         builder.encodeRet(EncodeFlagsE::Zero);
         return Result::Continue;
     }
 
-    if (exprStorageType.isFloat())
+    if (abiRet.isIndirect)
     {
-        const MicroOpBits bits = microOpBitsFromBitWidth(exprStorageType.payloadFloatBits());
-        SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
+        SWC_ASSERT(abiRet.indirectSize != 0);
+        MicroReg srcReg = MicroReg::invalid();
+        MicroReg tmpReg = MicroReg::invalid();
+        SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&outputStorageReg, 1}));
+        builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+        MicroInstrHelpers::emitMemCopy(builder, outputStorageReg, srcReg, tmpReg, abiRet.indirectSize);
+        builder.encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    const MicroOpBits bits = microOpBitsFromBitWidth(abiRet.numBits);
+    SWC_ASSERT(bits != MicroOpBits::Zero);
+    if (abiRet.isFloat)
+    {
         if (isLValue)
             builder.encodeLoadRegMem(callConv.floatReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
         else
             builder.encodeLoadRegReg(callConv.floatReturn, payloadReg, bits, EncodeFlagsE::Zero);
         builder.encodeLoadMemReg(outputStorageReg, 0, callConv.floatReturn, bits, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
-        return Result::Continue;
     }
-
-    if (exprStorageType.isBool() || exprStorageType.isCharRune() || exprStorageType.isIntLike() || exprStorageType.isPointerLike() || exprStorageType.isNull())
+    else
     {
-        MicroOpBits bits = MicroOpBits::B64;
-        if (exprStorageType.isBool())
-            bits = MicroOpBits::B8;
-        else if (exprStorageType.isCharRune())
-            bits = MicroOpBits::B32;
-        else if (exprStorageType.isIntLike())
-            bits = microOpBitsFromBitWidth(exprStorageType.payloadIntLikeBits());
-        SWC_ASSERT(bits != MicroOpBits::Zero);
-
         if (isLValue)
             builder.encodeLoadRegMem(callConv.intReturn, payloadReg, 0, bits, EncodeFlagsE::Zero);
         else
             builder.encodeLoadRegReg(callConv.intReturn, payloadReg, bits, EncodeFlagsE::Zero);
         builder.encodeLoadMemReg(outputStorageReg, 0, callConv.intReturn, bits, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
-        return Result::Continue;
     }
-
-    const uint64_t rawSize = exprStorageType.sizeOf(ctx);
-    SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
-    const uint32_t storageSize = static_cast<uint32_t>(rawSize);
-
-    MicroReg srcReg = MicroReg::invalid();
-    MicroReg tmpReg = MicroReg::invalid();
-    SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&outputStorageReg, 1}));
-    if (isLValue)
-        builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-    else
-    {
-        builder.encodeLoadMemReg(outputStorageReg, 0, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
-        return Result::Continue;
-    }
-    MicroInstrHelpers::emitMemCopy(builder, outputStorageReg, srcReg, tmpReg, storageSize);
 
     builder.encodeRet(EncodeFlagsE::Zero);
     return Result::Continue;

@@ -19,7 +19,6 @@ enum class EncodeFlagsE : uint8_t
     Overflow  = 1 << 0,
     Lock      = 1 << 1,
     B64       = 1 << 2,
-    CanEncode = 1 << 3,
 };
 using EncodeFlags = EnumFlags<EncodeFlagsE>;
 
@@ -102,4 +101,5 @@ protected:
 };
 
 SWC_END_NAMESPACE();
+
 

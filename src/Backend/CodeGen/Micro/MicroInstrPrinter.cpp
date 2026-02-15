@@ -888,12 +888,6 @@ namespace
             out += "b64";
             first = false;
         }
-
-        if (flags.has(EncodeFlagsE::CanEncode))
-        {
-            out += first ? "" : "|";
-            out += "can_encode";
-        }
     }
 
     bool appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef, std::unordered_set<uint64_t>& seenDebugLines)
@@ -1308,3 +1302,4 @@ void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& i
 }
 
 SWC_END_NAMESPACE();
+

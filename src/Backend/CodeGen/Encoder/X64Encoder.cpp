@@ -6,8 +6,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-#define SWC_X64_ENCODE_CHECK(__expr) SWC_INTERNAL_CHECK(__expr)
-
 enum class ModRmMode : uint8_t
 {
     Memory         = 0b00,
@@ -759,7 +757,6 @@ void X64Encoder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBi
 void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (reg.isFloat())
@@ -782,10 +779,8 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
 
 void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    SWC_ASSERT(numBitsSrc != numBitsDst);
-
+    SWC_INTERNAL_CHECK(numBitsSrc != numBitsDst);
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
@@ -816,8 +811,7 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
 
 void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    SWC_ASSERT(numBitsSrc != numBitsDst);
-
+    SWC_INTERNAL_CHECK(numBitsSrc != numBitsDst);
     SWC_INTERNAL_CHECK(!(regDst.isFloat() || regSrc.isFloat()));
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
@@ -848,10 +842,8 @@ void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, Mi
 
 void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    SWC_ASSERT(numBitsSrc != numBitsDst);
-
+    SWC_INTERNAL_CHECK(numBitsSrc != numBitsDst);
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (numBitsSrc == MicroOpBits::B8)
@@ -885,8 +877,7 @@ void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uin
 
 void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
-    SWC_ASSERT(numBitsSrc != numBitsDst);
-
+    SWC_INTERNAL_CHECK(numBitsSrc != numBitsDst);
     SWC_INTERNAL_CHECK(!(regDst.isFloat() || regSrc.isFloat()));
 
     if (numBitsSrc == MicroOpBits::B8)
@@ -922,7 +913,6 @@ void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, 
 void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (memReg.isInstructionPointer())
@@ -1113,7 +1103,6 @@ void X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsD
 void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (reg.isFloat())
@@ -1137,11 +1126,8 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
-
     SWC_INTERNAL_CHECK(opBits != MicroOpBits::B128);
-
     SWC_INTERNAL_CHECK(!(opBits == MicroOpBits::B64 && value > 0x7FFFFFFF && value >> 32 != 0xFFFFFFFF));
 
     emitRex(store_, opBits, MicroReg{}, memReg);
@@ -1327,9 +1313,7 @@ void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBit
 void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
-
     SWC_INTERNAL_CHECK(!reg.isFloat());
 
     emitRex(store_, opBits, reg, memReg);
@@ -1342,7 +1326,6 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
 void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     if (opBits == MicroOpBits::B8)
@@ -1379,7 +1362,6 @@ void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t v
 void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     ///////////////////////////////////////////
@@ -1465,7 +1447,6 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits, 
 void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
 
     ///////////////////////////////////////////
@@ -1715,14 +1696,8 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
-
-    ///////////////////////////////////////////
-
     SWC_INTERNAL_CHECK(!reg.isFloat());
-
-    ///////////////////////////////////////////
     SWC_INTERNAL_CHECK(!(op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned));
 
     ///////////////////////////////////////////
@@ -2038,11 +2013,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, 
 void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_INTERNAL_CHECK(!memReg.isFloat());
-
     SWC_INTERNAL_CHECK(memOffset <= 0x7FFFFFFF);
-
-    ///////////////////////////////////////////
-
     SWC_INTERNAL_CHECK(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned));
 
     ///////////////////////////////////////////
@@ -2574,10 +2545,3 @@ void X64Encoder::encodeNop(EncodeFlags emitFlags)
 }
 
 SWC_END_NAMESPACE();
-
-
-
-
-
-
-

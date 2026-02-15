@@ -50,6 +50,9 @@ namespace
 
 Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
 {
+    if (sema.hasConstant(nodeExprRef))
+        return Result::Continue;
+
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
 
     auto&            ctx     = sema.ctx();
@@ -62,6 +65,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.node(nodeRef).codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
+    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
     MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
 
@@ -77,8 +81,6 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
         resultStorageRef = nodeType.payloadSymEnum().underlyingTypeRef();
     else if (nodeType.isAlias())
         resultStorageRef = nodeType.payloadSymAlias().underlyingTypeRef();
-
-    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
     const uint64_t         resultSize = sema.typeMgr().get(resultStorageRef).sizeOf(ctx);
     std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);

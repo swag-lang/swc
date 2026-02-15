@@ -23,7 +23,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     visit_.start(ast(), root);
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
-    builder_->setPrintFlags(symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw), symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro));
+    MicroInstrBuilderFlags builderFlags = MicroInstrBuilderFlagsE::Zero;
+    if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw))
+        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforePasses);
+    if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro))
+        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEncode);
+    builder_->setFlags(builderFlags);
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
     const SourceView&     srcView   = sema().srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();

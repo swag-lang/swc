@@ -8,6 +8,14 @@ SWC_BEGIN_NAMESPACE();
 class MicroPassManager;
 struct MicroPassContext;
 
+enum class MicroInstrBuilderFlagsE : uint8_t
+{
+    Zero              = 0,
+    PrintBeforePasses = 1 << 0,
+    PrintBeforeEncode = 1 << 1,
+};
+using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
+
 class MicroInstrBuilder
 {
 public:
@@ -32,15 +40,15 @@ public:
     PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
     const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
 
-    std::string        formatInstructions(bool colorize = false) const;
-    void               printInstructions(bool colorize = true) const;
-    void               setPrintFlags(bool printBeforePasses, bool printBeforeEncode);
-    bool               shouldPrintBeforePasses() const { return printBeforePasses_; }
-    bool               shouldPrintBeforeEncode() const { return printBeforeEncode_; }
-    void               setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
-    const std::string& printSymbolName() const { return printSymbolName_; }
-    const std::string& printFilePath() const { return printFilePath_; }
-    uint32_t           printSourceLine() const { return printSourceLine_; }
+    std::string            formatInstructions(bool colorize = false) const;
+    void                   printInstructions(bool colorize = true) const;
+    void                   setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
+    MicroInstrBuilderFlags flags() const { return flags_; }
+    bool                   hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                   setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
+    const std::string&     printSymbolName() const { return printSymbolName_; }
+    const std::string&     printFilePath() const { return printFilePath_; }
+    uint32_t               printSourceLine() const { return printSourceLine_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -94,8 +102,7 @@ private:
     TaskContext*                       ctx_ = nullptr;
     PagedStoreTyped<MicroInstr>        instructions_;
     PagedStoreTyped<MicroInstrOperand> operands_;
-    bool                               printBeforePasses_ = false;
-    bool                               printBeforeEncode_ = false;
+    MicroInstrBuilderFlags             flags_ = MicroInstrBuilderFlagsE::Zero;
     std::string                        printSymbolName_;
     std::string                        printFilePath_;
     uint32_t                           printSourceLine_ = 0;

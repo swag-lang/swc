@@ -35,13 +35,13 @@ namespace
         passContext.callConvKind           = CallConvKind::Host;
         passContext.preservePersistentRegs = true;
 
-        if (builder.shouldPrintBeforePasses())
+        if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforePasses))
         {
             printMicroHeader(ctx, builder, "raw");
             builder.printInstructions();
         }
 
-        if (builder.shouldPrintBeforeEncode())
+        if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEncode))
         {
             MicroPassManager regAllocManager;
             regAllocManager.add(regAllocPass);

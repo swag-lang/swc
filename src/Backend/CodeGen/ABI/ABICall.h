@@ -44,10 +44,10 @@ namespace ABICall
     void     storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
     void     materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
     void     callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
-    void     callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret);
-    void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret);
-    void     callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs);
-    void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs);
+    void     callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol = nullptr);
+    void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol = nullptr);
+    void     callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, Symbol* callDebugSymbol = nullptr);
+    void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, Symbol* callDebugSymbol = nullptr);
 }
 
 SWC_END_NAMESPACE();

@@ -253,7 +253,7 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret)
+void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
@@ -261,7 +261,9 @@ void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind cal
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
+    builder.setCurrentDebugSymbol(callDebugSymbol);
     builder.encodeCallJitRelocAddress(targetAddress, callConvKind, EncodeFlagsE::Zero);
+    builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
     {
@@ -275,7 +277,7 @@ void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind cal
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret)
+void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
@@ -283,7 +285,9 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
+    builder.setCurrentDebugSymbol(callDebugSymbol);
     builder.encodeCallReg(targetReg, callConvKind, EncodeFlagsE::Zero);
+    builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
     {
@@ -297,14 +301,14 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
+void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
 {
-    callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{});
+    callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
-void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs)
+void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
 {
-    callByJitRelocAddress(builder, callConvKind, targetAddress, numPreparedArgs, Return{});
+    callByJitRelocAddress(builder, callConvKind, targetAddress, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
 SWC_END_NAMESPACE();

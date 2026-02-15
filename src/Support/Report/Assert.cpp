@@ -9,7 +9,7 @@ void swcAssert(const char* expr, const char* file, int line)
     Os::panicBox(msg.c_str());
 }
 
-[[noreturn]] void swcInternalError(const char* file, int line)
+void swcInternalError(const char* file, int line)
 {
     const Utf8 msg = std::format("internal error!\n\nFile: {}({})\n", file ? file : "<null>", line);
     Os::panicBox(msg.c_str());

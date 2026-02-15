@@ -76,9 +76,9 @@ namespace
         if (!state.attempted)
         {
             state.attempted      = true;
-            const HANDLE process = ::GetCurrentProcess();
-            ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
-            state.initialized = ::SymInitialize(process, nullptr, TRUE) == TRUE;
+            const HANDLE process = GetCurrentProcess();
+            SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+            state.initialized = SymInitialize(process, nullptr, TRUE) == TRUE;
         }
 
         return state.initialized;
@@ -292,7 +292,7 @@ namespace
         auto&            state = symbolEngineState();
         std::scoped_lock lock(state.mutex);
 
-        const HANDLE process = ::GetCurrentProcess();
+        const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
         auto*                                                   symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
@@ -300,13 +300,13 @@ namespace
         symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
-        if (::SymFromAddr(process, address, &displacement, symbol))
+        if (SymFromAddr(process, address, &displacement, symbol))
             outMsg += std::format("    symbol: {} + 0x{:X}\n", symbol->Name, static_cast<uint64_t>(displacement));
 
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
         DWORD lineDisp        = 0;
-        if (::SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
+        if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
             outMsg += std::format("    source: {}:{} (+{})\n", lineInfo.FileName, lineInfo.LineNumber, lineDisp);
     }
 
@@ -370,14 +370,14 @@ namespace
             return;
 
         MEMORY_BASIC_INFORMATION mbi{};
-        if (!::VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(address)), &mbi, sizeof(mbi)))
+        if (!VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(address)), &mbi, sizeof(mbi)))
             return;
 
         const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
         if (modBase)
         {
             char       modulePath[MAX_PATH + 1]{};
-            const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+            const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
                 modulePath[len]       = 0;
@@ -393,7 +393,7 @@ namespace
         if (modBase)
         {
             char       modulePath[MAX_PATH + 1]{};
-            const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+            const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
                 modulePath[len] = 0;
@@ -429,7 +429,7 @@ namespace
                 outMsg += "  likely cause: null pointer dereference or null+offset access\n";
 
             MEMORY_BASIC_INFORMATION mbi{};
-            if (::VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(accessAddr)), &mbi, sizeof(mbi)) && mbi.State == MEM_FREE)
+            if (VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(accessAddr)), &mbi, sizeof(mbi)) && mbi.State == MEM_FREE)
                 outMsg += "  likely cause: use-after-free or wild pointer (target page is FREE)\n";
 
 #ifdef _M_X64
@@ -497,7 +497,7 @@ namespace
         if ((record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION || record->ExceptionCode == EXCEPTION_IN_PAGE_ERROR) && record->NumberParameters >= 2)
         {
             outMsg += std::format("  access: {} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
-            appendWindowsAddress(outMsg, static_cast<uint64_t>(record->ExceptionInformation[1]), rich);
+            appendWindowsAddress(outMsg, record->ExceptionInformation[1], rich);
             outMsg += "\n";
         }
     }
@@ -538,7 +538,7 @@ namespace
     {
         appendSectionHeader(outMsg, "Handler Stack Trace");
         void*      frames[64]{};
-        const auto numFrames = ::CaptureStackBackTrace(0, static_cast<DWORD>(std::size(frames)), frames, nullptr);
+        const auto numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
         outMsg += std::format("  frames: {}\n", numFrames);
 
         for (uint32_t i = 0; i < numFrames; ++i)
@@ -547,13 +547,13 @@ namespace
             outMsg += std::format("  [{}] 0x{:016X}", i, address);
 
             MEMORY_BASIC_INFORMATION mbi{};
-            if (::VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
+            if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
             {
                 const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
                 if (modBase)
                 {
                     char       modulePath[MAX_PATH + 1]{};
-                    const auto len = ::GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+                    const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                     if (len)
                     {
                         modulePath[len]       = 0;
@@ -586,8 +586,8 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     msg += std::format("  host os: {}\n", hostOsName());
     msg += std::format("  host cpu: {}\n", hostCpuName());
     msg += std::format("  host exception backend: {}\n", hostExceptionBackendName());
-    msg += std::format("  process id: {}\n", static_cast<uint32_t>(::GetCurrentProcessId()));
-    msg += std::format("  thread id: {}\n", static_cast<uint32_t>(::GetCurrentThreadId()));
+    msg += std::format("  process id: {}\n", static_cast<uint32_t>(GetCurrentProcessId()));
+    msg += std::format("  thread id: {}\n", static_cast<uint32_t>(GetCurrentThreadId()));
 
 #if SWC_DEV_MODE
     msg += std::format("  cmd randomize: {}, seed: {}\n", ctx.cmdLine().randomize, ctx.cmdLine().randSeed);

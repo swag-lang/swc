@@ -56,7 +56,7 @@ namespace Unittest
         setupRegistry().push_back(setupFn);
     }
 
-    Result runAll(TaskContext& ctx)
+    Result runAll(const TaskContext& ctx)
     {
         CompilerInstance compiler(ctx.global(), ctx.cmdLine());
         TaskContext      testCtx(compiler);

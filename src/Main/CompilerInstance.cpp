@@ -56,9 +56,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     setupRuntimeCompiler();
 }
 
-CompilerInstance::~CompilerInstance()
-{
-}
+CompilerInstance::~CompilerInstance() = default;
 
 void CompilerInstance::setupSema(TaskContext& ctx)
 {

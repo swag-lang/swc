@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Main/TaskContext.h"
@@ -197,7 +196,7 @@ namespace TypeGenInternal
         }
     }
 
-    void initFunc(Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
+    void initFunc(const Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
         (void) rtType;
         (void) type;

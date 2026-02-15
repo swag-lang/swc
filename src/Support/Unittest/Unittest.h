@@ -19,7 +19,7 @@ namespace Unittest
 
     void   registerTest(TestCase test);
     void   registerSetup(SetupFn setupFn);
-    Result runAll(TaskContext& ctx);
+    Result runAll(const TaskContext& ctx);
 
     class TestRegistrar
     {

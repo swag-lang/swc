@@ -57,7 +57,7 @@ MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator++()
 
 MicroInstrStorage::Iterator MicroInstrStorage::Iterator::operator++(int)
 {
-    Iterator copy = *this;
+    const Iterator copy = *this;
     ++(*this);
     return copy;
 }
@@ -78,7 +78,7 @@ MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator--()
 
 MicroInstrStorage::Iterator MicroInstrStorage::Iterator::operator--(int)
 {
-    Iterator copy = *this;
+    const Iterator copy = *this;
     --(*this);
     return copy;
 }

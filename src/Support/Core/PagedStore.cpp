@@ -76,7 +76,7 @@ void PagedStore::copyTo(std::span<std::byte> dst) const
         const uint32_t chunkSize = std::min(remaining, page->used);
         if (chunkSize)
         {
-            std::memcpy(out, page->bytes(), static_cast<size_t>(chunkSize));
+            std::memcpy(out, page->bytes(), chunkSize);
             out += chunkSize;
             remaining -= chunkSize;
         }

@@ -3,8 +3,8 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
-void              swcAssert(const char* expr, const char* file, int line);
-[[noreturn]] void swcInternalError(const char* file, int line);
+void swcAssert(const char* expr, const char* file, int line);
+void swcInternalError(const char* file, int line);
 
 // Only enable assertions in debug builds
 #if SWC_HAS_ASSERT

@@ -7,7 +7,6 @@
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
-#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"

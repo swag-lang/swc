@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 
@@ -39,6 +40,7 @@ namespace ABICall
     };
 
     uint32_t prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);
+    void     materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
     void     callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
     void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret);
     void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs);

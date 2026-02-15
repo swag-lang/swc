@@ -149,6 +149,27 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
     return numPreparedArgs;
 }
 
+void ABICall::materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)
+{
+    if (ret.isVoid)
+        return;
+
+    const auto& conv = CallConv::get(callConvKind);
+    if (ret.isIndirect)
+    {
+        builder.encodeLoadRegReg(dstReg, conv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
+        return;
+    }
+
+    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+    SWC_ASSERT(retBits != MicroOpBits::Zero);
+
+    if (ret.isFloat)
+        builder.encodeLoadRegReg(dstReg, conv.floatReturn, retBits, EncodeFlagsE::Zero);
+    else
+        builder.encodeLoadRegReg(dstReg, conv.intReturn, retBits, EncodeFlagsE::Zero);
+}
+
 void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);

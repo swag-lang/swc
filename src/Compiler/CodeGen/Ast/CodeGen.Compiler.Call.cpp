@@ -95,23 +95,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg resultReg   = CodeGen::payloadVirtualReg(nodePayload);
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
     ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
-
-    if (normalizedRet.isVoid)
-        return Result::Continue;
-
-    if (normalizedRet.isIndirect)
-    {
-        builder.encodeLoadRegReg(resultReg, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
-        return Result::Continue;
-    }
-
-    const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
-    SWC_ASSERT(retBits != MicroOpBits::Zero);
-    if (normalizedRet.isFloat)
-        builder.encodeLoadRegReg(resultReg, callConv.floatReturn, retBits, EncodeFlagsE::Zero);
-    else
-        builder.encodeLoadRegReg(resultReg, callConv.intReturn, retBits, EncodeFlagsE::Zero);
-
+    ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     return Result::Continue;
 }
 

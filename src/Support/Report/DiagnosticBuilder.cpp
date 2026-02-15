@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Compiler/Lexer/Lexer.h"
-#include "Compiler/Lexer/SyntaxColor.h"
+#include "Support/Report/SyntaxColor.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
@@ -843,3 +843,4 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
 }
 
 SWC_END_NAMESPACE();
+

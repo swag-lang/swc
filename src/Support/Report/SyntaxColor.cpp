@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Lexer/SyntaxColor.h"
+#include "Support/Report/SyntaxColor.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Token.h"
 #include "Main/CommandLine.h"
@@ -495,3 +495,4 @@ Utf8 SyntaxColorHelper::toAnsi(const TaskContext& ctx, SyntaxColor color, Syntax
 }
 
 SWC_END_NAMESPACE();
+

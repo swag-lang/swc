@@ -213,8 +213,8 @@
     <ClCompile Include="src\Compiler\Lexer\SourceView.cpp">
       <Filter>src\Compiler\Lexer</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Lexer\SyntaxColor.cpp">
-      <Filter>src\Compiler\Lexer</Filter>
+    <ClCompile Include="src\Support\Report\SyntaxColor.cpp">
+      <Filter>src\Support\Report</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Lexer\Token.cpp">
       <Filter>src\Compiler\Lexer</Filter>
@@ -683,8 +683,8 @@
     <ClInclude Include="src\Compiler\Lexer\SourceView.h">
       <Filter>src\Compiler\Lexer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h">
-      <Filter>src\Compiler\Lexer</Filter>
+    <ClInclude Include="src\Support\Report\SyntaxColor.h">
+      <Filter>src\Support\Report</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\Token.h">
       <Filter>src\Compiler\Lexer</Filter>
@@ -1050,3 +1050,5 @@
     </Content>
   </ItemGroup>
 </Project>
+
+

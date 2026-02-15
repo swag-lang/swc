@@ -228,7 +228,7 @@
         <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\SyntaxColor.cpp"/>
+        <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
@@ -400,7 +400,7 @@
         <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>
-        <ClInclude Include="src\Compiler\Lexer\SyntaxColor.h"/>
+        <ClInclude Include="src\Support\Report\SyntaxColor.h"/>
         <ClInclude Include="src\Compiler\Lexer\Token.h"/>
         <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
@@ -519,4 +519,6 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
+
+
 

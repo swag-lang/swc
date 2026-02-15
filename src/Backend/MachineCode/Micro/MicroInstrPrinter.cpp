@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
-#include "Compiler/Lexer/SyntaxColor.h"
+#include "Support/Report/SyntaxColor.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
@@ -733,5 +733,6 @@ void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<Micr
 }
 
 SWC_END_NAMESPACE();
+
 
 

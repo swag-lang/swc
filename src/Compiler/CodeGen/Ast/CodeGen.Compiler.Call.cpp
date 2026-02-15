@@ -8,7 +8,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -59,41 +58,20 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroInstrBuilder&    builder        = codeGen.builder();
     const auto            calleeView     = codeGen.nodeView(nodeExprRef);
-    const auto*           calleePayload  = codeGen.payload(calleeView.nodeRef);
-    SWC_ASSERT(calleePayload != nullptr);
     const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
     const CallConvKind    callConvKind   = calledFunction.callConvKind();
     const CallConv&       callConv       = CallConv::get(callConvKind);
     const auto            normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
 
-    SmallVector<ResolvedCallArgument>      args;
+    SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
-    if (normalizedRet.isIndirect)
-    {
-        SWC_ASSERT(!callConv.intArgRegs.empty());
-        SWC_ASSERT(normalizedRet.indirectSize != 0);
-
-        void* indirectRetStorage = codeGen.ctx().compiler().allocateArray<uint8_t>(normalizedRet.indirectSize);
-
-        MicroReg hiddenRetArgSrcReg = MicroReg::invalid();
-        MicroReg hiddenRetArgTmpReg = MicroReg::invalid();
-        SWC_ASSERT(callConv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg));
-        builder.encodeLoadRegImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
-
-        ABICall::PreparedArg hiddenRetArg;
-        hiddenRetArg.srcReg  = hiddenRetArgSrcReg;
-        hiddenRetArg.kind    = ABICall::PreparedArgKind::Direct;
-        hiddenRetArg.isFloat = false;
-        hiddenRetArg.numBits = 64;
-        preparedArgs.insert(preparedArgs.begin(), hiddenRetArg);
-    }
-
-    const uint32_t numAbiArgs  = ABICall::prepareArgs(builder, callConvKind, preparedArgs);
-    const auto&    nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const MicroReg resultReg   = CodeGen::payloadVirtualReg(nodePayload);
-    const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
+    const uint32_t numAbiArgs    = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
+    const auto&    nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
+    const MicroReg resultReg     = CodeGen::payloadVirtualReg(nodePayload);
+    const MicroReg calleeReg     = CodeGen::payloadVirtualReg(*SWC_CHECK_NOT_NULL(calleePayload));
     ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     return Result::Continue;

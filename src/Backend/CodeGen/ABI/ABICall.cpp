@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/Runtime.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -147,6 +148,38 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
     }
 
     return numPreparedArgs;
+}
+
+uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret)
+{
+    if (!ret.isIndirect)
+        return prepareArgs(builder, callConvKind, args);
+
+    const auto& conv = CallConv::get(callConvKind);
+    SWC_ASSERT(!conv.intArgRegs.empty());
+    SWC_ASSERT(ret.indirectSize != 0);
+
+    void* indirectRetStorage = builder.ctx().compiler().allocateArray<uint8_t>(ret.indirectSize);
+
+    MicroReg hiddenRetArgSrcReg = MicroReg::invalid();
+    MicroReg hiddenRetArgTmpReg = MicroReg::invalid();
+    SWC_ASSERT(conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg));
+    builder.encodeLoadRegImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
+
+    SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;
+    preparedArgsWithHiddenRetArg.reserve(args.size() + 1);
+
+    PreparedArg hiddenRetArg;
+    hiddenRetArg.srcReg  = hiddenRetArgSrcReg;
+    hiddenRetArg.kind    = PreparedArgKind::Direct;
+    hiddenRetArg.isFloat = false;
+    hiddenRetArg.numBits = 64;
+    preparedArgsWithHiddenRetArg.push_back(hiddenRetArg);
+
+    for (const auto& arg : args)
+        preparedArgsWithHiddenRetArg.push_back(arg);
+
+    return prepareArgs(builder, callConvKind, preparedArgsWithHiddenRetArg);
 }
 
 void ABICall::materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)

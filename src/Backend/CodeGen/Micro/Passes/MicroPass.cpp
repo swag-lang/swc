@@ -36,19 +36,17 @@ namespace
 
     bool shouldPrintPass(const MicroPassContext& context, MicroPassKind passKind, bool before)
     {
-        switch (passKind)
+        if (context.passPrintOptions.empty())
+            return false;
+
+        const auto stageName = passStageName(passKind, before);
+        for (const auto& options : context.passPrintOptions)
         {
-            case MicroPassKind::RegisterAllocation:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegisterAllocation) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegisterAllocation);
-            case MicroPassKind::PrologEpilog:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePrologEpilog) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPrologEpilog);
-            case MicroPassKind::Legalize:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeLegalize) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterLegalize);
-            case MicroPassKind::Emit:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEmit) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEmit);
-            default:
-                SWC_UNREACHABLE();
+            if (std::string_view{options} == stageName)
+                return true;
         }
+
+        return false;
     }
 
     void printPassInstructions(const MicroPassContext& context, MicroPassKind passKind, bool before)

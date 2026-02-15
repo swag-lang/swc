@@ -11,6 +11,47 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Result collectPrintMicroOptions(Sema& sema, const AstAttribute& nodeAttr, AttributeList& outAttributes)
+    {
+        if (nodeAttr.nodeArgsRef.isInvalid())
+        {
+            outAttributes.printMicroPassOptions.push_back(Utf8{"before-emit"});
+            return Result::Continue;
+        }
+
+        const auto* argsList = sema.node(nodeAttr.nodeArgsRef).safeCast<AstNamedArgumentList>();
+        if (!argsList)
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> args;
+        sema.ast().appendNodes(args, argsList->spanChildrenRef);
+        if (args.empty())
+        {
+            outAttributes.printMicroPassOptions.push_back(Utf8{"before-emit"});
+            return Result::Continue;
+        }
+
+        for (auto argValueRef : args)
+        {
+            if (const auto* namedArg = sema.node(argValueRef).safeCast<AstNamedArgument>())
+                argValueRef = namedArg->nodeArgRef;
+
+            const SemaNodeView argView = sema.nodeView(argValueRef);
+            if (!argView.cst)
+                return SemaError::raiseExprNotConst(sema, argValueRef);
+
+            if (!argView.cst->isString())
+                return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeString());
+
+            outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst->getString()});
+        }
+
+        return Result::Continue;
+    }
+}
+
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
 {
     const Token& tok = sema.token(codeRef());
@@ -67,7 +108,6 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti), .fl = RtAttributeFlagsE::AttrMulti},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr), .fl = RtAttributeFlagsE::ConstExpr},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro), .fl = RtAttributeFlagsE::PrintMicro},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintMicroRaw), .fl = RtAttributeFlagsE::PrintMicroRaw},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::Compiler), .fl = RtAttributeFlagsE::Compiler},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::Inline), .fl = RtAttributeFlagsE::Inline},
             {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoInline), .fl = RtAttributeFlagsE::NoInline},
@@ -162,6 +202,9 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
+        if (attrSym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::PrintMicro))
+            RESULT_VERIFY(collectPrintMicroOptions(sema, *this, sema.frame().currentAttributes()));
+
         sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;
     }

@@ -18,20 +18,6 @@ enum class MicroPassKind : uint8_t
     Emit,
 };
 
-enum class MicroPassPrintFlagsE : uint32_t
-{
-    Zero                     = 0,
-    BeforeRegisterAllocation = 1 << 0,
-    AfterRegisterAllocation  = 1 << 1,
-    BeforePrologEpilog       = 1 << 2,
-    AfterPrologEpilog        = 1 << 3,
-    BeforeLegalize           = 1 << 4,
-    AfterLegalize            = 1 << 5,
-    BeforeEmit               = 1 << 6,
-    AfterEmit                = 1 << 7,
-};
-using MicroPassPrintFlags = EnumFlags<MicroPassPrintFlagsE>;
-
 struct MicroPassContext
 {
     MicroPassContext() = default;
@@ -41,7 +27,7 @@ struct MicroPassContext
     MicroInstrBuilder*   builder                = nullptr;
     MicroInstrStorage*   instructions           = nullptr;
     MicroOperandStorage* operands               = nullptr;
-    MicroPassPrintFlags  passPrintFlags         = MicroPassPrintFlagsE::Zero;
+    std::span<const Utf8> passPrintOptions      = {};
     CallConvKind         callConvKind           = CallConvKind::Host;
     bool                 preservePersistentRegs = false;
 };

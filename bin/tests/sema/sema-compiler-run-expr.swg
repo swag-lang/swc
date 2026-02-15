@@ -39,7 +39,7 @@ struct S
     const V = #run dref (@compiler.unknownMethod)() // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
-#[Swag.PrintMicro]
+#[Swag.PrintMicro("before-register-allocation", "after-emit")]
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
@@ -64,4 +64,10 @@ struct S
 {
     const Cfg = #run dref @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+}
+
+#[Swag.PrintMicro(123)] // swc-expected-error {{sema_err_invalid_type}}
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
 }

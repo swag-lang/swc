@@ -22,10 +22,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     function_                           = &symbolFunc;
     builder_                            = &symbolFunc.microInstrBuilder(ctx());
     MicroInstrBuilderFlags builderFlags = MicroInstrBuilderFlagsE::Zero;
-    if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw))
-        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforePasses);
-    if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro))
-        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEmit);
+    builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     if (ctx().compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);

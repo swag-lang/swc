@@ -30,13 +30,11 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]
     attr ConstExpr()
 
-    // On a function or a struct, this prints generated micro instructions right before the encode pass
+    // On a function or a struct, this prints generated micro instructions.
+    // If no parameter is provided, this prints right before the emit pass.
+    // Otherwise, parameters are strings of the form before-passname / after-passname.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintMicro()
-
-    // On a function or a struct, this prints generated micro instructions right after generation, before backend passes
-    #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
-    attr PrintMicroRaw()
+    attr PrintMicro(stages: string...)
 
     // The following function or variable is only defined at compile time
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]

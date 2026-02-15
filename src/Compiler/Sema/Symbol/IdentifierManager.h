@@ -22,7 +22,6 @@ public:
         AttrMulti,
         ConstExpr,
         PrintMicro,
-        PrintMicroRaw,
         Compiler,
         Inline,
         NoInline,

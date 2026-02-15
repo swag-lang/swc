@@ -16,7 +16,6 @@ enum class RtAttributeFlagsE : uint64_t
     AttrMulti     = 1 << 4,
     ConstExpr     = 1 << 5,
     PrintMicro    = 1 << 6,
-    PrintMicroRaw = 1 << 7,
     Compiler      = 1 << 9,
     Inline        = 1 << 10,
     NoInline      = 1 << 11,
@@ -50,6 +49,7 @@ struct AttributeList
 {
     SmallVector4<AttributeInstance> attributes;
     RtAttributeFlags                rtFlags = RtAttributeFlagsE::Zero;
+    SmallVector4<Utf8>              printMicroPassOptions;
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }

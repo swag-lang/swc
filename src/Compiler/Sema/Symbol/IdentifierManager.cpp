@@ -26,7 +26,6 @@ void IdentifierManager::setup(TaskContext&)
         {.name = PredefinedName::AttrMulti, .str = "AttrMulti"},
         {.name = PredefinedName::ConstExpr, .str = "ConstExpr"},
         {.name = PredefinedName::PrintMicro, .str = "PrintMicro"},
-        {.name = PredefinedName::PrintMicroRaw, .str = "PrintMicroRaw"},
         {.name = PredefinedName::Compiler, .str = "Compiler"},
         {.name = PredefinedName::Inline, .str = "Inline"},
         {.name = PredefinedName::NoInline, .str = "NoInline"},

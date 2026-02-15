@@ -12,10 +12,8 @@ struct MicroPassContext;
 
 enum class MicroInstrBuilderFlagsE : uint8_t
 {
-    Zero              = 0,
-    PrintBeforePasses = 1 << 0,
-    PrintBeforeEmit   = 1 << 1,
-    DebugInfo         = 1 << 2,
+    Zero      = 0,
+    DebugInfo = 1 << 0,
 };
 using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
 
@@ -61,6 +59,7 @@ public:
     void                       setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
     void                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
     const MicroInstrDebugInfo* debugInfo(Ref instructionRef) const;
+    void                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
     const Utf8&                printSymbolName() const { return printSymbolName_; }
     const Utf8&                printFilePath() const { return printFilePath_; }
@@ -127,6 +126,7 @@ private:
     Utf8                                            printSymbolName_;
     Utf8                                            printFilePath_;
     uint32_t                                        printSourceLine_ = 0;
+    std::vector<Utf8>                               printPassOptions_;
     std::vector<Ref>                                labels_;
 };
 

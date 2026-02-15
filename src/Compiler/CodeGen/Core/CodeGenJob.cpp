@@ -14,6 +14,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isFunctionDeclRoot(Sema& sema, AstNodeRef root)
+    {
+        return root.isValid() && sema.node(root).is(AstNodeId::FunctionDecl);
+    }
+
+    JobResult toJobResult(Result result)
+    {
+        if (result == Result::Pause)
+            return JobResult::Sleep;
+
+        return JobResult::Done;
+    }
+
+    bool areDepsReadyForCompletion(const SmallVector<SymbolFunction*>& deps)
+    {
+        for (const auto* dep : deps)
+        {
+            if (!dep)
+                continue;
+
+            if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
+                return false;
+        }
+
+        return true;
+    }
+
     Result extractSimpleFunctionReturnExpr(Sema& sema, const SymbolFunction& symbolFunc, AstNodeRef& outExprRef)
     {
         outExprRef = AstNodeRef::invalid();
@@ -126,8 +153,9 @@ JobResult CodeGenJob::exec()
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
+    const bool functionDeclRoot = isFunctionDeclRoot(*sema_, root_);
 
-    if (deps.empty() && root_.isValid() && !sema_->node(root_).is(AstNodeId::FunctionDecl))
+    if (deps.empty() && root_.isValid() && !functionDeclRoot)
     {
         CodeGen      codeGen(*sema_);
         const Result result = codeGen.exec(*symbolFunc_, root_);
@@ -137,10 +165,7 @@ JobResult CodeGenJob::exec()
             return JobResult::Done;
         }
 
-        if (result == Result::Pause)
-            return JobResult::Sleep;
-
-        return JobResult::Done;
+        return toJobResult(result);
     }
 
     for (auto* dep : deps)
@@ -162,36 +187,18 @@ JobResult CodeGenJob::exec()
     }
 
     const Result result = generateFunctionCodeGen(*sema_, *symbolFunc_, root_);
-    if (result == Result::Continue)
-    {
-        symbolFunc_->setCodeGenPreSolved(ctx());
+    if (result != Result::Continue)
+        return toJobResult(result);
 
-        if (root_.isValid() && sema_->node(root_).is(AstNodeId::FunctionDecl))
-            if (symbolFunc_->ensureJitEntry(ctx()) != Result::Continue)
-                return JobResult::Done;
+    symbolFunc_->setCodeGenPreSolved(ctx());
 
-        bool depsReady = true;
-        for (auto* dep : deps)
-        {
-            if (!dep)
-                continue;
-            if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
-            {
-                depsReady = false;
-                break;
-            }
-        }
-
-        if (!depsReady)
-            return JobResult::Sleep;
-
-        symbolFunc_->setCodeGenCompleted(ctx());
+    if (functionDeclRoot && symbolFunc_->ensureJitEntry(ctx()) != Result::Continue)
         return JobResult::Done;
-    }
 
-    if (result == Result::Pause)
+    if (!areDepsReadyForCompletion(deps))
         return JobResult::Sleep;
 
+    symbolFunc_->setCodeGenCompleted(ctx());
     return JobResult::Done;
 }
 

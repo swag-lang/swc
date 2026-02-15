@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class MicroPersistentRegsPass final : public MicroPass
 {
 public:
+    MicroPassKind kind() const override { return MicroPassKind::PersistentRegs; }
     void run(MicroPassContext& context) override;
 
 private:

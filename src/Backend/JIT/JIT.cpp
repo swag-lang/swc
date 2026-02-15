@@ -8,25 +8,11 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Support/Report/Logger.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void printMicroHeader(const TaskContext& ctx, const MicroInstrBuilder& builder, std::string_view stage)
-    {
-        const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
-        const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
-        const uint32_t         sourceLine = builder.printSourceLine();
-
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
-        Logger::print(ctx, std::format("[micro:{}] {} @ {}:{}", stage, symbolName, filePath, sourceLine));
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
-        Logger::print(ctx, "\n");
-    }
-
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegAllocPass       regAllocPass;
@@ -37,33 +23,11 @@ namespace
         passContext.callConvKind           = CallConvKind::Host;
         passContext.preservePersistentRegs = true;
 
-        if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforePasses))
-        {
-            printMicroHeader(ctx, builder, "raw");
-            builder.printInstructions(MicroInstrRegPrintMode::Virtual);
-        }
-
-        if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEncode))
-        {
-            MicroPassManager regAllocManager;
-            regAllocManager.add(regAllocPass);
-            regAllocManager.add(persistentRegsPass);
-            builder.runPasses(regAllocManager, &encoder, passContext);
-            printMicroHeader(ctx, builder, "pre-encode");
-            builder.printInstructions(MicroInstrRegPrintMode::Concrete, &encoder);
-
-            MicroPassManager encodeManager;
-            encodeManager.add(encodePass);
-            builder.runPasses(encodeManager, &encoder, passContext);
-        }
-        else
-        {
-            MicroPassManager passManager;
-            passManager.add(regAllocPass);
-            passManager.add(persistentRegsPass);
-            passManager.add(encodePass);
-            builder.runPasses(passManager, &encoder, passContext);
-        }
+        MicroPassManager passManager;
+        passManager.add(regAllocPass);
+        passManager.add(persistentRegsPass);
+        passManager.add(encodePass);
+        builder.runPasses(passManager, &encoder, passContext);
 
         const auto codeSize = encoder.size();
         if (!codeSize)

@@ -10,6 +10,7 @@ struct MicroJump;
 class MicroEncodePass final : public MicroPass
 {
 public:
+    MicroPassKind kind() const override { return MicroPassKind::Encode; }
     void run(MicroPassContext& context) override;
 
 private:

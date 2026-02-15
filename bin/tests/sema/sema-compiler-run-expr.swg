@@ -34,7 +34,7 @@ struct S
     const V = #run dref @compiler // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
-#[Swag.PrintMicro]
+#[Swag.PrintMicroRaw]
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()

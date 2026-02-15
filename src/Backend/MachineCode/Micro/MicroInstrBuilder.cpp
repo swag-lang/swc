@@ -488,8 +488,16 @@ EncodeResult MicroInstrBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg
 void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
     context.encoder      = encoder;
+    context.taskContext  = ctx_;
+    context.builder      = this;
     context.instructions = &instructions_;
     context.operands     = &operands_;
+
+    if (hasFlag(MicroInstrBuilderFlagsE::PrintBeforePasses))
+        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeRegAlloc);
+    if (hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEncode))
+        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeEncode);
+
     passes.run(context);
 }
 

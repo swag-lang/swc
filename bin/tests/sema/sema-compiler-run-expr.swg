@@ -7,6 +7,17 @@ struct S
 
 #test
 {
+    const V = #run 100's32 + 23's32
+    #assert(V == 123)
+}
+
+#test
+{
+    const V = #run @compiler.compileString("const _x = 0") // swc-expected-error {{sema_err_run_expr_void}}
+}
+
+#test
+{
     const V = #run S{42}
     #assert(#typeof(V) == S)
 }

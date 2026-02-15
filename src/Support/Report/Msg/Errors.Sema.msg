@@ -124,6 +124,7 @@ SWC_DIAG_DEF(sema_err_switch_incomplete_no_expr, Error, "switch without an expre
 SWC_DIAG_DEF(sema_err_fallthrough_outside_switch_case, Error, "'fallthrough' is used outside a switch case")
 SWC_DIAG_DEF(sema_err_fallthrough_not_last_stmt, Error, "'fallthrough' is not the last statement of a switch case")
 SWC_DIAG_DEF(sema_err_fallthrough_in_last_case, Error, "'fallthrough' is used in the last switch case")
+SWC_DIAG_DEF(sema_err_run_expr_void, Error, "a '#run' expression cannot have type 'void'")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a void function")
 SWC_DIAG_DEF(sema_err_return_missing_value, Error, "missing return value for a function that returns '{requested-type}'")
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "implementation block expects a struct, but '{sym}' is {a-sym-fam}")

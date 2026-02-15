@@ -639,10 +639,14 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
+    const SemaNodeView nodeView = sema.nodeView(nodeExprRef);
+    SWC_ASSERT(nodeView.type != nullptr);
+    if (nodeView.type->isVoid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
+
     // TODO
     if (sema.file()->isRuntime())
     {
-        const SemaNodeView nodeView = sema.nodeView(nodeExprRef);
         SWC_ASSERT(nodeView.type->isStruct());
         const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cv));

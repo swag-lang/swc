@@ -123,9 +123,9 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
         didCall = true;
     }
-    else if (calledFunction.hasJitEntryAddress())
+    else if (calledFunction.hasEntryAddress())
     {
-        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
+        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.entryAddress(), numAbiArgs, &calledFunction);
         didCall = true;
     }
     else

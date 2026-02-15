@@ -63,9 +63,9 @@ public:
     bool                     tryMarkCodeGenJobScheduled() noexcept;
     void                     addCallDependency(SymbolFunction* sym);
     void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    uint64_t                 jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    bool                     hasJitEntryAddress() const noexcept { return jitEntryAddress() != 0; }
-    void                     ensureEntryAddress(TaskContext& ctx);
+    uint64_t                 entryAddress() const noexcept { return entryAddress_.load(std::memory_order_acquire); }
+    bool                     hasEntryAddress() const noexcept { return entryAddress() != 0; }
+    void                     emit(TaskContext& ctx);
 
 private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
@@ -82,7 +82,7 @@ private:
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   jitMutex_;
     JITExecMemory                jitExecMemory_;
-    std::atomic<uint64_t>        jitEntryAddress_     = 0;
+    std::atomic<uint64_t>        entryAddress_     = 0;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };
 

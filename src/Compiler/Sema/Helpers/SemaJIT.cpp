@@ -100,7 +100,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
 
     JITExecMemory executableMemory;
-    JIT::compile(ctx, builder, executableMemory);
+    JIT::emit(ctx, builder, executableMemory);
 
     auto targetFn = executableMemory.entryPoint<void*>();
     SWC_ASSERT(targetFn != nullptr);

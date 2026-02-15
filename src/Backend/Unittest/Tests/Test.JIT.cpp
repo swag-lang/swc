@@ -20,7 +20,7 @@ namespace
         buildFn(builder, callConv);
 
         JITExecMemory executableMemory;
-        JIT::compile(ctx, builder, executableMemory);
+        JIT::emit(ctx, builder, executableMemory);
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();
@@ -55,7 +55,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     calleeBuilder.encodeRet();
 
     JITExecMemory calleeExecMemory;
-    JIT::compile(ctx, calleeBuilder, calleeExecMemory);
+    JIT::emit(ctx, calleeBuilder, calleeExecMemory);
     using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = calleeExecMemory.entryPoint<CalleeFnType>();
     SWC_ASSERT(calleeFn != nullptr);
@@ -70,7 +70,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     callerBuilder.encodeRet();
 
     JITExecMemory callerExecMemory;
-    JIT::compile(ctx, callerBuilder, callerExecMemory);
+    JIT::emit(ctx, callerBuilder, callerExecMemory);
     using CallerFnType  = uint64_t (*)();
     const auto callerFn = callerExecMemory.entryPoint<CallerFnType>();
     SWC_ASSERT(callerFn != nullptr);

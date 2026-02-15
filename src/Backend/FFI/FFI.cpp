@@ -194,7 +194,7 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     builder.encodeRet();
 
     JITExecMemory executableMemory;
-    JIT::compile(ctx, builder, executableMemory);
+    JIT::emit(ctx, builder, executableMemory);
 
     const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
     SWC_ASSERT(invoker != nullptr);

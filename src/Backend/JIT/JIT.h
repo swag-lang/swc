@@ -9,7 +9,7 @@ class JITExecMemory;
 class JIT final
 {
 public:
-    static void compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
+    static void emit(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
 };
 
 SWC_END_NAMESPACE();

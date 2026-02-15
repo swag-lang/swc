@@ -80,7 +80,7 @@ namespace
     }
 }
 
-void JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
+void JIT::emit(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
 {
 #ifdef _M_X64
     X64Encoder encoder(ctx);

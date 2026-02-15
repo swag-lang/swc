@@ -46,6 +46,7 @@ public:
     const uint8_t* data() const;
     uint8_t        byteAt(uint32_t index) const;
     void           copyTo(std::span<std::byte> dst) const;
+    virtual std::string formatRegisterName(MicroReg reg) const;
 
 protected:
     TaskContext&       ctx() { return *ctx_; }

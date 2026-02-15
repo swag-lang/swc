@@ -1,5 +1,5 @@
 #global internal
-#global #[Swag.PrintMicro]
+#global #[Swag.PrintMicroRaw]
 
 struct S
 {

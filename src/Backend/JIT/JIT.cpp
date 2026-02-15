@@ -38,7 +38,7 @@ namespace
         if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforePasses))
         {
             printMicroHeader(ctx, builder, "raw");
-            builder.printInstructions();
+            builder.printInstructions(MicroInstrRegPrintMode::Virtual);
         }
 
         if (builder.hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEncode))
@@ -47,7 +47,7 @@ namespace
             regAllocManager.add(regAllocPass);
             builder.runPasses(regAllocManager, &encoder, passContext);
             printMicroHeader(ctx, builder, "pre-encode");
-            builder.printInstructions();
+            builder.printInstructions(MicroInstrRegPrintMode::Concrete, &encoder);
 
             MicroPassManager encodeManager;
             encodeManager.add(encodePass);

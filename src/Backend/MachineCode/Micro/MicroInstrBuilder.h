@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
+#include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
 #include "Support/Core/PagedStoreTyped.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -40,8 +41,8 @@ public:
     PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
     const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
 
-    std::string            formatInstructions(bool colorize = false) const;
-    void                   printInstructions(bool colorize = true) const;
+    std::string            formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
+    void                   printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
     void                   setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
     MicroInstrBuilderFlags flags() const { return flags_; }
     bool                   hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }

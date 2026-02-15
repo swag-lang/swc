@@ -21,6 +21,28 @@ void Encoder::copyTo(std::span<std::byte> dst) const
     store_.copyTo(dst);
 }
 
+std::string Encoder::formatRegisterName(MicroReg reg) const
+{
+    if (!reg.isValid())
+        return "inv";
+
+    if (reg.isInstructionPointer())
+        return "ip";
+    if (reg.isNoBase())
+        return "nobase";
+
+    if (reg.isInt())
+        return std::format("r{}", reg.index());
+    if (reg.isFloat())
+        return std::format("f{}", reg.index());
+    if (reg.isVirtualInt())
+        return std::format("v{}", reg.index());
+    if (reg.isVirtualFloat())
+        return std::format("vf{}", reg.index());
+
+    return std::format("reg#{}", reg.packed);
+}
+
 Encoder::Encoder(TaskContext& ctx) :
     ctx_(&ctx)
 {

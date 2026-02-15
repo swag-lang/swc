@@ -20,6 +20,8 @@ public:
     {
     }
 
+    std::string formatRegisterName(MicroReg reg) const override;
+
 private:
     void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const override;
 

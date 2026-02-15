@@ -487,14 +487,14 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
     passes.run(context);
 }
 
-std::string MicroInstrBuilder::formatInstructions(bool colorize) const
+std::string MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
 {
-    return MicroInstrPrinter::format(ctx(), instructions_, operands_, colorize);
+    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, colorize);
 }
 
-void MicroInstrBuilder::printInstructions(bool colorize) const
+void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
 {
-    MicroInstrPrinter::print(ctx(), instructions_, operands_, colorize);
+    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, colorize);
 }
 
 void MicroInstrBuilder::setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine)

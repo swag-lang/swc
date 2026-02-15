@@ -136,6 +136,57 @@ namespace
         }
     }
 
+    std::string_view x64RegName(X64Reg reg)
+    {
+        switch (reg)
+        {
+            case X64Reg::Rax:
+                return "rax";
+            case X64Reg::Rbx:
+                return "rbx";
+            case X64Reg::Rcx:
+                return "rcx";
+            case X64Reg::Rdx:
+                return "rdx";
+            case X64Reg::Rsp:
+                return "rsp";
+            case X64Reg::Rbp:
+                return "rbp";
+            case X64Reg::Rsi:
+                return "rsi";
+            case X64Reg::Rdi:
+                return "rdi";
+            case X64Reg::R8:
+                return "r8";
+            case X64Reg::R9:
+                return "r9";
+            case X64Reg::R10:
+                return "r10";
+            case X64Reg::R11:
+                return "r11";
+            case X64Reg::R12:
+                return "r12";
+            case X64Reg::R13:
+                return "r13";
+            case X64Reg::R14:
+                return "r14";
+            case X64Reg::R15:
+                return "r15";
+            case X64Reg::Xmm0:
+                return "xmm0";
+            case X64Reg::Xmm1:
+                return "xmm1";
+            case X64Reg::Xmm2:
+                return "xmm2";
+            case X64Reg::Xmm3:
+                return "xmm3";
+            case X64Reg::Rip:
+                return "rip";
+            default:
+                return "?";
+        }
+    }
+
     X64Reg microRegToX64Reg(MicroReg reg)
     {
         if (reg.isInstructionPointer())
@@ -513,6 +564,27 @@ namespace
     {
         emitSpecB8(store, op, opBits);
     }
+}
+
+// ============================================================================
+
+std::string X64Encoder::formatRegisterName(MicroReg reg) const
+{
+    if (!reg.isValid())
+        return "inv";
+
+    if (reg.isNoBase())
+        return "nobase";
+
+    if (reg.isVirtualInt())
+        return std::format("v{}", reg.index());
+    if (reg.isVirtualFloat())
+        return std::format("vf{}", reg.index());
+
+    if (reg.isInt() || reg.isFloat() || reg.isInstructionPointer())
+        return std::string(x64RegName(microRegToX64Reg(reg)));
+
+    return std::format("reg#{}", reg.packed);
 }
 
 // ============================================================================

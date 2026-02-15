@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -237,7 +238,7 @@ namespace
         }
     }
 
-    std::string regName(MicroReg reg)
+    std::string regNameDefault(MicroReg reg)
     {
         if (!reg.isValid())
             return "inv";
@@ -248,34 +249,10 @@ namespace
             return "nobase";
 
         if (reg.isInt())
-        {
-            static constexpr std::array K_INT_REG_NAMES = {
-                "rax",
-                "rbx",
-                "rcx",
-                "rdx",
-                "rsp",
-                "rbp",
-                "rsi",
-                "rdi",
-                "r8",
-                "r9",
-                "r10",
-                "r11",
-                "r12",
-                "r13",
-                "r14",
-                "r15",
-            };
-
-            if (reg.index() < K_INT_REG_NAMES.size())
-                return std::string(K_INT_REG_NAMES[reg.index()]);
-
             return std::format("r{}", reg.index());
-        }
 
         if (reg.isFloat())
-            return std::format("xmm{}", reg.index());
+            return std::format("f{}", reg.index());
 
         if (reg.isVirtualInt())
             return std::format("v{}", reg.index());
@@ -286,29 +263,63 @@ namespace
         return std::format("reg#{}", reg.packed);
     }
 
+    std::string regNameVirtual(MicroReg reg)
+    {
+        if (!reg.isValid())
+            return "inv";
+
+        if (reg.isInstructionPointer())
+            return "ip";
+        if (reg.isNoBase())
+            return "nobase";
+
+        if (reg.isInt() || reg.isVirtualInt())
+            return std::format("v{}", reg.index());
+
+        if (reg.isFloat() || reg.isVirtualFloat())
+            return std::format("vf{}", reg.index());
+
+        return std::format("reg#{}", reg.packed);
+    }
+
+    std::string regName(MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    {
+        if (regPrintMode == MicroInstrRegPrintMode::Virtual)
+            return regNameVirtual(reg);
+
+        if (regPrintMode == MicroInstrRegPrintMode::Concrete)
+        {
+            if (encoder)
+                return encoder->formatRegisterName(reg);
+            return regNameDefault(reg);
+        }
+
+        return regNameDefault(reg);
+    }
+
     std::string hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
     }
 
-    std::string memBaseOffset(MicroReg baseReg, uint64_t offset)
+    std::string memBaseOffset(MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         if (offset == 0)
-            return std::format("[{}]", regName(baseReg));
-        return std::format("[{} + {}]", regName(baseReg), hexU64(offset));
+            return std::format("[{}]", regName(baseReg, regPrintMode, encoder));
+        return std::format("[{} + {}]", regName(baseReg, regPrintMode, encoder), hexU64(offset));
     }
 
-    std::string memAmc(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue)
+    std::string memAmc(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         std::string out = "[";
         if (!baseReg.isNoBase())
-            out += regName(baseReg);
+            out += regName(baseReg, regPrintMode, encoder);
 
         if (!mulReg.isNoBase())
         {
             if (!baseReg.isNoBase())
                 out += " + ";
-            out += regName(mulReg);
+            out += regName(mulReg, regPrintMode, encoder);
             if (mulValue != 1)
                 out += std::format(" * {}", hexU64(mulValue));
         }
@@ -374,7 +385,7 @@ namespace
     }
 }
 
-std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, bool colorize)
+std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
 {
     std::string out;
     auto&       storeOps      = operands.store();
@@ -405,11 +416,11 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::JumpReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 break;
 
             case MicroInstrOpcode::SymbolRelocAddr:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, std::format("sym#{}", ops[1].valueU32));
                 out += ", ";
@@ -417,7 +428,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::SymbolRelocValue:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[1].opBits)));
                 out += ", ";
@@ -434,15 +445,15 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::CallIndirect:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, callConvName(ops[1].callConv));
                 break;
 
             case MicroInstrOpcode::JumpTable:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, std::format("ip={}", ops[2].valueI32));
                 out += ", ";
@@ -474,15 +485,15 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::LoadRegReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadRegImm:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[1].opBits)));
                 out += ", ";
@@ -491,49 +502,49 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
 
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadAddrRegMem:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[3].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[4].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[4].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}<-b{}", opBitsName(ops[2].opBits), opBitsName(ops[3].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}<-b{}", opBitsName(ops[2].opBits), opBitsName(ops[3].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadAmcRegMem:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}<-b{}", opBitsName(ops[3].opBits), opBitsName(ops[4].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadAmcMemReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[2].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[2].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}<-b{}", opBitsName(ops[3].opBits), opBitsName(ops[4].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadAmcMemImm:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[7].valueU64));
                 out += ", ";
@@ -541,23 +552,23 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::LoadAddrAmcRegMem:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memAmc(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}<-b{}", opBitsName(ops[3].opBits), opBitsName(ops[4].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadMemReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
 
             case MicroInstrOpcode::LoadMemImm:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[2].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[2].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[3].valueU64));
                 out += ", ";
@@ -565,15 +576,15 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::CmpRegReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
 
             case MicroInstrOpcode::CmpRegImm:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[2].valueU64));
                 out += ", ";
@@ -581,15 +592,15 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::CmpMemReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
 
             case MicroInstrOpcode::CmpMemImm:
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[2].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[2].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[3].valueU64));
                 out += ", ";
@@ -597,15 +608,15 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::SetCondReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, condName(ops[1].cpuCond));
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, condName(ops[2].cpuCond));
                 out += ", ";
@@ -613,7 +624,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
                 break;
 
             case MicroInstrOpcode::ClearReg:
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[1].opBits)));
                 break;
@@ -621,7 +632,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpUnaryMem:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[2].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[1].opBits)));
                 break;
@@ -629,7 +640,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpUnaryReg:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[2].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[1].opBits)));
                 break;
@@ -637,9 +648,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpBinaryRegReg:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[3].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
@@ -647,9 +658,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpBinaryRegMem:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[3].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[4].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[1].reg, ops[4].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
@@ -657,9 +668,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpBinaryMemReg:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[3].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[4].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[4].valueU64, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[2].opBits)));
                 break;
@@ -667,7 +678,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpBinaryRegImm:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[2].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[3].valueU64));
                 out += ", ";
@@ -677,7 +688,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpBinaryMemImm:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[2].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64));
+                appendColored(out, ctx, colorize, LogColor::Yellow, memBaseOffset(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Green, hexU64(ops[4].valueU64));
                 out += ", ";
@@ -687,11 +698,11 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
             case MicroInstrOpcode::OpTernaryRegRegReg:
                 appendColored(out, ctx, colorize, LogColor::White, microOpName(ops[4].microOp));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[0].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[1].reg, regPrintMode, encoder));
                 out += ", ";
-                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[2].reg));
+                appendColored(out, ctx, colorize, LogColor::Yellow, regName(ops[2].reg, regPrintMode, encoder));
                 out += ", ";
                 appendColored(out, ctx, colorize, LogColor::Magenta, std::format("b{}", opBitsName(ops[3].opBits)));
                 break;
@@ -716,9 +727,10 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
     return out;
 }
 
-void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, bool colorize)
+void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
 {
-    Logger::print(ctx, format(ctx, instructions, operands, colorize));
+    Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, colorize));
 }
 
 SWC_END_NAMESPACE();
+

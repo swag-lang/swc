@@ -403,6 +403,35 @@ void* NodePayloadContext::getPayload(AstNodeRef nodeRef) const
     return *SWC_CHECK_NOT_NULL(shard.store.ptr<void*>(info.ref));
 }
 
+void NodePayloadContext::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args)
+{
+    SWC_ASSERT(nodeRef.isValid());
+
+    SpanRef spanRef = SpanRef::invalid();
+    if (!args.empty())
+        spanRef = ast().pushSpan(args);
+
+    std::unique_lock lock(resolvedCallArgsMutex_);
+    resolvedCallArgs_[nodeRef.get()] = spanRef;
+}
+
+void NodePayloadContext::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const
+{
+    if (nodeRef.isInvalid())
+        return;
+
+    SpanRef spanRef = SpanRef::invalid();
+    {
+        std::shared_lock lock(resolvedCallArgsMutex_);
+        const auto       it = resolvedCallArgs_.find(nodeRef.get());
+        if (it == resolvedCallArgs_.end())
+            return;
+        spanRef = it->second;
+    }
+
+    ast().appendNodes(out, spanRef);
+}
+
 bool NodePayloadContext::hasCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

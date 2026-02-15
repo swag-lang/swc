@@ -14,7 +14,7 @@ namespace Match
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
     Result ghosting(Sema& sema, const Symbol& sym);
 
-    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid());
+    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<AstNodeRef>* outResolvedArgs = nullptr);
 }
 
 SWC_END_NAMESPACE();

@@ -92,7 +92,9 @@ namespace
                 ufcsArg = nodeLeftView.nodeRef;
         }
 
-        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg));
+        SmallVector<AstNodeRef> resolvedArgs;
+        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs));
+        sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());

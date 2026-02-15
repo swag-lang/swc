@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -931,9 +932,45 @@ namespace
 
         return Result::Continue;
     }
+
+    AstNodeRef resolveFinalCallArgRef(Sema& sema, AstNodeRef argRef)
+    {
+        AstNodeRef finalRef = sema.getSubstituteRef(argRef);
+        if (finalRef.isInvalid())
+            finalRef = argRef;
+
+        if (const auto* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
+        {
+            AstNodeRef namedArgRef = sema.getSubstituteRef(namedArg->nodeArgRef);
+            if (namedArgRef.isInvalid())
+                namedArgRef = namedArg->nodeArgRef;
+            return namedArgRef;
+        }
+
+        return finalRef;
+    }
+
+    void buildResolvedCallArgs(Sema& sema, const CallArgMapping& mapping, SmallVector<AstNodeRef>& outResolvedArgs)
+    {
+        outResolvedArgs.clear();
+
+        for (const auto& entry : mapping.paramArgs)
+        {
+            if (entry.argRef.isInvalid())
+                continue;
+            outResolvedArgs.push_back(resolveFinalCallArgRef(sema, entry.argRef));
+        }
+
+        for (const auto& entry : mapping.variadicArgs)
+        {
+            if (entry.argRef.isInvalid())
+                continue;
+            outResolvedArgs.push_back(resolveFinalCallArgRef(sema, entry.argRef));
+        }
+    }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<AstNodeRef>* outResolvedArgs)
 {
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
@@ -960,6 +997,8 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
+    if (outResolvedArgs)
+        buildResolvedCallArgs(sema, mapping, *outResolvedArgs);
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.node(sema.curNodeRef()));

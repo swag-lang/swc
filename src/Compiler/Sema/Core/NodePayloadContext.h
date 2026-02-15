@@ -87,6 +87,8 @@ protected:
     bool  hasPayload(AstNodeRef nodeRef) const;
     void  setPayload(AstNodeRef nodeRef, void* payload);
     void* getPayload(AstNodeRef nodeRef) const;
+    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args);
+    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const;
     bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
     void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
     void* getCodeGenPayload(AstNodeRef nodeRef) const;
@@ -121,6 +123,8 @@ private:
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;
     SymbolNamespace* fileNamespace_   = nullptr;
+    mutable std::shared_mutex         resolvedCallArgsMutex_;
+    std::unordered_map<uint32_t, SpanRef> resolvedCallArgs_;
 
     struct Shard
     {

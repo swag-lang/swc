@@ -8,37 +8,37 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isInterfaceMethod(const SymbolFunction& methodSym)
+    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, const CallConv& callConv, std::span<const AstNodeRef> args)
     {
-        const SymbolMap* ownerSymMap = methodSym.ownerSymMap();
-        if (!ownerSymMap)
-            return false;
-        return ownerSymMap->safeCast<SymbolInterface>() != nullptr;
-    }
+        MicroInstrBuilder& builder = codeGen.builder();
+        SWC_ASSERT(args.size() <= callConv.intArgRegs.size());
 
-    bool tryResolveInterfaceReceiver(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction* calledFunction, AstNodeRef& outReceiverRef)
-    {
-        outReceiverRef = AstNodeRef::invalid();
-        if (!calledFunction || !isInterfaceMethod(*calledFunction))
-            return false;
+        for (uint32_t i = 0; i < args.size(); ++i)
+        {
+            const AstNodeRef argRef     = args[i];
+            const auto*      argPayload = codeGen.payload(argRef);
+            SWC_ASSERT(argPayload != nullptr);
 
-        const AstMemberAccessExpr* memberAccessExpr = codeGen.node(calleeRef).safeCast<AstMemberAccessExpr>();
-        if (!memberAccessExpr)
-            return false;
+            const MicroReg argReg = callConv.intArgRegs[i];
+            const auto     argView = codeGen.nodeView(argRef);
+            if (i == 0 && calledFunction.hasInterfaceMethodSlot() && argView.type && argView.type->isInterface())
+            {
+                const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*argPayload);
+                builder.encodeLoadRegMem(argReg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+            }
+            else
+            {
+                builder.encodeLoadRegReg(argReg, CodeGen::payloadVirtualReg(*argPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
+            }
+        }
 
-        const auto leftView = codeGen.nodeView(memberAccessExpr->nodeLeftRef);
-        if (!leftView.type || !leftView.type->isInterface())
-            return false;
-
-        outReceiverRef = memberAccessExpr->nodeLeftRef;
-        return true;
+        return static_cast<uint32_t>(args.size());
     }
 }
 
@@ -55,22 +55,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const CallConv&       callConv       = CallConv::get(callConvKind);
 
     SmallVector<AstNodeRef> args;
-    collectArguments(args, codeGen.ast());
-    SWC_ASSERT(args.empty()); // TODO: replace assert with a proper codegen diagnostic.
-
-    uint32_t   numAbiArgs           = 0;
-    AstNodeRef interfaceReceiverRef = AstNodeRef::invalid();
-    if (tryResolveInterfaceReceiver(codeGen, calleeView.nodeRef, &calledFunction, interfaceReceiverRef))
-    {
-        SWC_ASSERT(!callConv.intArgRegs.empty());
-        const auto* receiverPayload = codeGen.payload(interfaceReceiverRef);
-        SWC_ASSERT(receiverPayload != nullptr);
-
-        const MicroReg callArg0Reg  = callConv.intArgRegs[0];
-        const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*receiverPayload);
-        builder.encodeLoadRegMem(callArg0Reg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
-        numAbiArgs = 1;
-    }
+    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
+    const uint32_t numAbiArgs = emitPreparedCallArguments(codeGen, calledFunction, callConv, args);
 
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
     emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);

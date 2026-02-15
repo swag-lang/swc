@@ -7,6 +7,7 @@ class TaskContext;
 enum class SyntaxColor
 {
     Code,
+    InstructionIndex,
     Comment,
     Compiler,
     Function,
@@ -24,6 +25,7 @@ enum class SyntaxColor
 };
 
 static constexpr auto SYN_CODE      = "SCde";
+static constexpr auto SYN_INST_INDEX = "SIdx";
 static constexpr auto SYN_COMMENT   = "SCmt";
 static constexpr auto SYN_COMPILER  = "SCmp";
 static constexpr auto SYN_FUNCTION  = "SFct";

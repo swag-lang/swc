@@ -20,6 +20,9 @@ namespace
             case SyntaxColor::Code:
                 rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
                 break;
+            case SyntaxColor::InstructionIndex:
+                rgb = {.r = 0x56, .g = 0xD4, .b = 0xFF};
+                break;
             case SyntaxColor::Comment:
                 rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
                 break;
@@ -95,6 +98,9 @@ namespace
                         return "</span>";
                     case SyntaxColor::Code:
                         colorName = SYN_CODE;
+                        break;
+                    case SyntaxColor::InstructionIndex:
+                        colorName = SYN_INST_INDEX;
                         break;
                     case SyntaxColor::Comment:
                         colorName = SYN_COMMENT;
@@ -491,6 +497,9 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
 
 Utf8 SyntaxColorHelper::toAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode)
 {
+    if (mode == SyntaxColorMode::ForLog && !ctx.cmdLine().logColor)
+        return "";
+
     return syntaxColorToAnsi(ctx, color, mode);
 }
 

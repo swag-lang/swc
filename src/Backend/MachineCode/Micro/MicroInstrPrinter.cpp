@@ -396,7 +396,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
     {
         const auto* ops = inst.numOperands ? inst.ops(storeOps) : nullptr;
 
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:04}", idx));
+        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
         appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("{:>26}", opcodeName(inst.op)));
         out += " ";
@@ -730,6 +730,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
 void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
 {
     Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, colorize));
+    Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
 }
 
 SWC_END_NAMESPACE();

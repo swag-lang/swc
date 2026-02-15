@@ -74,7 +74,7 @@ namespace
     template<typename T>
     Result semaCallExprCommon(Sema& sema, const T& node, bool tryIntrinsicFold)
     {
-        const SemaNodeView nodeCallee(sema, node.nodeExprRef);
+        const SemaNodeView nodeCallee = sema.nodeView(node.nodeExprRef);
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
@@ -87,7 +87,7 @@ namespace
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
         {
-            const SemaNodeView nodeLeftView(sema, memberAccess->nodeLeftRef);
+            const SemaNodeView nodeLeftView = sema.nodeView(memberAccess->nodeLeftRef);
             if (sema.isValue(*nodeLeftView.node))
                 ufcsArg = nodeLeftView.nodeRef;
         }
@@ -233,7 +233,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
         if (returnType.isVoid())
             return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, nodeExprRef);
 
-        SemaNodeView nodeView(sema, nodeExprRef);
+        SemaNodeView nodeView = sema.nodeView(nodeExprRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, returnTypeRef, CastKind::Implicit));
     }
     else if (!returnType.isVoid())

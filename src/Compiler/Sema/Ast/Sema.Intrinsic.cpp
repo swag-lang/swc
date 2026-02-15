@@ -30,7 +30,7 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeView(sema, children[0]);
+        const SemaNodeView nodeView = sema.nodeView(children[0]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
 
@@ -70,7 +70,7 @@ namespace
 
     Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeView(sema, children[0]);
+        const SemaNodeView nodeView = sema.nodeView(children[0]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
 
@@ -89,8 +89,8 @@ namespace
 
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeViewPtr(sema, children[0]);
-        SemaNodeView       nodeViewType(sema, children[1]);
+        const SemaNodeView nodeViewPtr = sema.nodeView(children[0]);
+        SemaNodeView nodeViewType = sema.nodeView(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeViewType));
@@ -128,8 +128,8 @@ namespace
 
     Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
     {
-        const SemaNodeView nodeViewPtr(sema, children[0]);
-        SemaNodeView       nodeViewSize(sema, children[1]);
+        const SemaNodeView nodeViewPtr = sema.nodeView(children[0]);
+        SemaNodeView nodeViewSize = sema.nodeView(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));

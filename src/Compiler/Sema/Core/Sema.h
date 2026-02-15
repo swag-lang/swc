@@ -118,6 +118,8 @@ public:
     }
 
     AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
+    SemaNodeView     nodeView(AstNodeRef nodeRef);
+    SemaNodeView     curNodeView();
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }

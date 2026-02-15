@@ -239,11 +239,11 @@ namespace
                                  EnumFlags<AstVarDeclFlagsE> flags,
                                  const std::span<Symbol*>&   symbols)
     {
-        SemaNodeView nodeInitView(sema, nodeInitRef);
+        SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
         if (nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef;
 
         if (nodeInitView.typeRef.isValid())
@@ -399,7 +399,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
         auto               frame = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -471,7 +471,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
+        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
         auto               frame = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -488,7 +488,7 @@ Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 
 Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeInitView(sema, nodeInitRef);
+    const SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
     if (!nodeInitView.type->isStruct())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef);

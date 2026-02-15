@@ -96,7 +96,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeExprRef)
     {
-        SemaNodeView exprView(sema, nodeExprRef);
+        SemaNodeView exprView = sema.nodeView(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef);
@@ -148,7 +148,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         bool isUnconditionalDefault = nodeWhereRef.isInvalid();
         if (!isUnconditionalDefault)
         {
-            const SemaNodeView whereView(sema, nodeWhereRef);
+            const SemaNodeView whereView = sema.nodeView(nodeWhereRef);
             isUnconditionalDefault = whereView.cstRef == sema.cstMgr().cstTrue();
         }
         if (!isUnconditionalDefault)
@@ -198,13 +198,13 @@ namespace
 {
     Result castCaseToSwitch(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
     {
-        SemaNodeView view(sema, nodeRef);
+        SemaNodeView view = sema.nodeView(nodeRef);
         return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
     }
 
     Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)
     {
-        const SemaNodeView exprView(sema, exprRef);
+        const SemaNodeView exprView = sema.nodeView(exprRef);
         if (exprView.cstRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, exprRef);
         return Result::Continue;
@@ -232,7 +232,7 @@ namespace
         // if the where clause if a 'true' constant.
         if (whereRef.isValid())
         {
-            const SemaNodeView whereView(sema, whereRef);
+            const SemaNodeView whereView = sema.nodeView(whereRef);
             if (whereView.cstRef.isInvalid() || whereView.cstRef != sema.cstMgr().cstTrue())
                 return Result::Continue;
         }
@@ -240,7 +240,7 @@ namespace
         auto* seenSet = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
-        const SemaNodeView exprView(sema, caseExprRef);
+        const SemaNodeView exprView = sema.nodeView(caseExprRef);
 
         const auto it = seenSet->seen.find(exprView.cstRef);
         if (it == seenSet->seen.end())
@@ -262,7 +262,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 {
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView(sema, nodeWhereRef);
+        SemaNodeView nodeView = sema.nodeView(nodeWhereRef);
         return Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition);
     }
 
@@ -282,7 +282,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     // This is a switch without an expression
     if (switchTypeRef.isInvalid())
     {
-        SemaNodeView nodeView(sema, childRef);
+        SemaNodeView nodeView = sema.nodeView(childRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
         return Result::Continue;
     }
@@ -292,7 +292,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         return handleRangeCaseExpr(sema, childRef, switchTypeRef);
 
     // Be sure it's a value
-    SemaNodeView exprView(sema, childRef);
+    SemaNodeView exprView = sema.nodeView(childRef);
     RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
     RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));

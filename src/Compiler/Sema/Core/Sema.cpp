@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayloadContext.h"
 #include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -117,6 +118,16 @@ const SourceFile* Sema::file() const
 const Ast& Sema::ast() const
 {
     return nodePayloadContext_->ast();
+}
+
+SemaNodeView Sema::nodeView(AstNodeRef nodeRef)
+{
+    return {*this, nodeRef};
+}
+
+SemaNodeView Sema::curNodeView()
+{
+    return nodeView(curNodeRef());
 }
 
 SemaScope* Sema::pushScope(SemaScopeFlags flags)

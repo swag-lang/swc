@@ -69,7 +69,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 {
     if (childRef == nodeConditionRef)
     {
-        SemaNodeView nodeView(sema, nodeConditionRef);
+        SemaNodeView nodeView = sema.nodeView(nodeConditionRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
@@ -97,7 +97,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView(sema, nodeWhereRef);
+        SemaNodeView nodeView = sema.nodeView(nodeWhereRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 

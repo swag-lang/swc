@@ -11,10 +11,10 @@ SWC_BEGIN_NAMESPACE();
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     auto&              ctx = sema.ctx();
-    const SemaNodeView suffixView(sema, nodeSuffixRef);
+    const SemaNodeView suffixView = sema.nodeView(nodeSuffixRef);
     const TypeRef      typeRef = suffixView.typeRef;
 
-    SemaNodeView nodeLiteralView(sema, nodeLiteralRef);
+    SemaNodeView nodeLiteralView = sema.nodeView(nodeLiteralRef);
     SWC_ASSERT(nodeLiteralView.cstRef.isValid());
 
     ConstantRef cstRef = nodeLiteralView.cstRef;
@@ -59,8 +59,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 {
     if (hasFlag(AstCastExprFlagsE::Explicit))
     {
-        const SemaNodeView nodeTypeView(sema, nodeTypeRef);
-        SemaNodeView       nodeExprView(sema, nodeExprRef);
+        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
+        SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
 
         // Value-check
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
@@ -85,7 +85,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView(sema, nodeExprRef);
+    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));

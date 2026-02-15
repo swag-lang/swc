@@ -23,6 +23,9 @@ namespace
             case SyntaxColor::InstructionIndex:
                 rgb = {.r = 0x56, .g = 0xD4, .b = 0xFF};
                 break;
+            case SyntaxColor::MicroInstruction:
+                rgb = {.r = 0xD4, .g = 0xB1, .b = 0x93};
+                break;
             case SyntaxColor::Comment:
                 rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};
                 break;
@@ -104,6 +107,9 @@ namespace
                         break;
                     case SyntaxColor::InstructionIndex:
                         colorName = SYN_INST_INDEX;
+                        break;
+                    case SyntaxColor::MicroInstruction:
+                        colorName = SYN_MICRO_INST;
                         break;
                     case SyntaxColor::Comment:
                         colorName = SYN_COMMENT;

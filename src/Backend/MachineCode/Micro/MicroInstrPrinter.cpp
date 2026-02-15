@@ -13,6 +13,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
+    {
+        outSourceLine = 0;
+        if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+            return false;
+
+        const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
+        if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
+            return false;
+
+        const auto& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
+        const auto  range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
+        if (range.line == 0)
+            return false;
+
+        outSourceLine = range.line;
+        return true;
+    }
+
     std::string_view opcodeEnumName(MicroInstrOpcode op)
     {
         switch (op)
@@ -402,25 +421,21 @@ namespace
 
     bool appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef, std::unordered_set<uint64_t>& seenDebugLines)
     {
-        if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+        uint32_t sourceLine = 0;
+        if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
             return false;
 
-        const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
-        if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
-            return false;
-
+        const MicroInstrDebugInfo* dbgInfo = SWC_CHECK_NOT_NULL(builder->debugInfo(instRef));
         const auto& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
-        const auto  range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
-        if (range.line == 0)
-            return false;
-
-        const uint64_t debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(range.line);
+        const uint64_t debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;
         seenDebugLines.insert(debugKey);
 
         out += '\n';
-        Utf8 codeLine = srcView.codeLine(ctx, range.line);
+        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:04}", sourceLine));
+        out += "  ";
+        Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
         codeLine.trim();
         out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, colorize);
         return true;
@@ -444,7 +459,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
-        appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("{:>26}", opcodeName(inst.op)));
+        appendColored(out, ctx, colorize, SyntaxColor::MicroInstruction, std::format("{:>26}", opcodeName(inst.op)));
         out += " ";
 
         switch (inst.op)

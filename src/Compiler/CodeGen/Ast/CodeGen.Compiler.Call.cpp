@@ -3,7 +3,6 @@
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/MicroAbiCall.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
-#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -14,42 +13,44 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args)
+    void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<MicroABIPreparedArg>& outArgs)
     {
-        const CallConvKind callConvKind = calledFunction.callConvKind();
-        const CallConv&    callConv     = CallConv::get(callConvKind);
+        outArgs.clear();
+        outArgs.reserve(args.size());
 
-        MicroInstrBuilder& builder = codeGen.builder();
-        SWC_ASSERT(args.size() <= callConv.intArgRegs.size());
-
-        for (uint32_t i = 0; i < args.size(); ++i)
+        for (const auto& arg : args)
         {
-            const auto&      arg        = args[i];
-            const AstNodeRef argRef     = arg.argRef;
+            const AstNodeRef argRef = arg.argRef;
             const auto*      argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
-            const MicroReg argReg = callConv.intArgRegs[i];
+            MicroABIPreparedArg preparedArg;
+            preparedArg.srcReg = CodeGen::payloadVirtualReg(*argPayload);
+
+            const auto argView = codeGen.nodeView(argRef);
+            if (argView.type)
+            {
+                preparedArg.isFloat = argView.type->isFloat();
+                if (preparedArg.isFloat)
+                    preparedArg.numBits = static_cast<uint8_t>(argView.type->payloadFloatBits());
+            }
+
             switch (arg.passKind)
             {
                 case CallArgumentPassKind::Direct:
-                    builder.encodeLoadRegReg(argReg, CodeGen::payloadVirtualReg(*argPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
+                    preparedArg.kind = MicroABIPreparedArgKind::Direct;
                     break;
 
                 case CallArgumentPassKind::InterfaceObject:
-                {
-                    SWC_ASSERT(i == 0);
-                    const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*argPayload);
-                    builder.encodeLoadRegMem(argReg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+                    preparedArg.kind = MicroABIPreparedArgKind::InterfaceObject;
                     break;
-                }
 
                 default:
                     SWC_UNREACHABLE();
             }
-        }
 
-        return static_cast<uint32_t>(args.size());
+            outArgs.push_back(preparedArg);
+        }
     }
 }
 
@@ -67,7 +68,9 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<ResolvedCallArgument> args;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    const uint32_t numAbiArgs = emitPreparedCallArguments(codeGen, calledFunction, args);
+    SmallVector<MicroABIPreparedArg> preparedArgs;
+    buildPreparedABIArguments(codeGen, args, preparedArgs);
+    const uint32_t numAbiArgs = emitMicroABIPrepareCallArgs(builder, callConvKind, preparedArgs);
 
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
     emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/MicroAbiCall.h"
+#include "Backend/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,6 +50,88 @@ namespace
             builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits, EncodeFlagsE::Zero);
         }
     }
+
+    MicroOpBits preparedArgBits(const MicroABIPreparedArg& arg)
+    {
+        if (arg.isFloat)
+        {
+            const MicroOpBits bits = microOpBitsFromBitWidth(arg.numBits);
+            SWC_ASSERT(bits != MicroOpBits::Zero);
+            return bits;
+        }
+
+        return MicroOpBits::B64;
+    }
+}
+
+uint32_t emitMicroABIPrepareCallArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const MicroABIPreparedArg> args)
+{
+    const auto& conv            = CallConv::get(callConvKind);
+    const auto  numPreparedArgs = static_cast<uint32_t>(args.size());
+    if (args.empty())
+        return 0;
+
+    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
+    const uint32_t stackSlotSize = conv.stackSlotSize();
+
+    MicroReg regBase = MicroReg::invalid();
+    MicroReg regTmp  = MicroReg::invalid();
+    SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+
+    for (uint32_t i = 0; i < numPreparedArgs; ++i)
+    {
+        const auto& arg      = args[i];
+        const bool  isRegArg = i < numRegArgs;
+
+        switch (arg.kind)
+        {
+            case MicroABIPreparedArgKind::Direct:
+            {
+                const MicroOpBits argBits = preparedArgBits(arg);
+                if (isRegArg)
+                {
+                    if (arg.isFloat)
+                    {
+                        SWC_ASSERT(i < conv.floatArgRegs.size());
+                        builder.encodeLoadRegReg(conv.floatArgRegs[i], arg.srcReg, argBits, EncodeFlagsE::Zero);
+                    }
+                    else
+                    {
+                        SWC_ASSERT(i < conv.intArgRegs.size());
+                        builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits, EncodeFlagsE::Zero);
+                    }
+                }
+                else
+                {
+                    const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
+                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits, EncodeFlagsE::Zero);
+                }
+                break;
+            }
+
+            case MicroABIPreparedArgKind::InterfaceObject:
+            {
+                SWC_ASSERT(!arg.isFloat);
+                if (isRegArg)
+                {
+                    SWC_ASSERT(i < conv.intArgRegs.size());
+                    builder.encodeLoadRegMem(conv.intArgRegs[i], arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+                }
+                else
+                {
+                    const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
+                    builder.encodeLoadRegMem(regTmp, arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, MicroOpBits::B64, EncodeFlagsE::Zero);
+                }
+                break;
+            }
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    return numPreparedArgs;
 }
 
 void emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const MicroABICallArg> args, const MicroABICallReturn& ret)

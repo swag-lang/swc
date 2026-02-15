@@ -11,6 +11,20 @@ struct MicroABICallArg
     uint8_t  numBits = 0;
 };
 
+enum class MicroABIPreparedArgKind : uint8_t
+{
+    Direct          = 0,
+    InterfaceObject = 1,
+};
+
+struct MicroABIPreparedArg
+{
+    MicroReg                srcReg  = MicroReg::invalid();
+    MicroABIPreparedArgKind kind    = MicroABIPreparedArgKind::Direct;
+    bool                    isFloat = false;
+    uint8_t                 numBits = 0;
+};
+
 struct MicroABICallReturn
 {
     void*   valuePtr   = nullptr;
@@ -20,7 +34,8 @@ struct MicroABICallReturn
     uint8_t numBits    = 0;
 };
 
-void emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const MicroABICallArg> args, const MicroABICallReturn& ret);
-void emitMicroABICallByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs);
+uint32_t emitMicroABIPrepareCallArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const MicroABIPreparedArg> args);
+void     emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const MicroABICallArg> args, const MicroABICallReturn& ret);
+void     emitMicroABICallByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs);
 
 SWC_END_NAMESPACE();

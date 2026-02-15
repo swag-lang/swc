@@ -115,6 +115,7 @@ namespace
         ENCODE_CASE("load_reg_mem_r9_r12_80_b64", "4D 8B 8C 24 80 00 00 00", b.encodeLoadRegMem(R9, R12, 0x80, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_reg_mem_r8_r12_0_b64", "4D 8B 04 24", b.encodeLoadRegMem(R8, R12, 0, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_reg_mem_r9_rbp_7f_b32", "44 8B 4D 7F", b.encodeLoadRegMem(R9, RBP, 0x7F, MicroOpBits::B32, K_EMIT););
+        ENCODE_CASE("load_reg_mem_r8_rbp_neg80_b64", "4C 8B 45 80", b.encodeLoadRegMem(R8, RBP, 0xFFFFFFFFFFFFFF80, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_reg_mem_xmm0_rsp_1234_b64", "F2 40 0F 10 84 24 34 12 00 00", b.encodeLoadRegMem(XMM0, RSP, 0x1234, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_reg_mem_r10_r13_40_b16", "66 45 8B 55 40", b.encodeLoadRegMem(R10, R13, 0x40, MicroOpBits::B16, K_EMIT););
 
@@ -149,6 +150,7 @@ namespace
         ENCODE_CASE("load_mem_reg_r13_0_r8_b64", "4D 89 45 00", b.encodeLoadMemReg(R13, 0, R8, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_mem_reg_r12_r8_b64", "4D 89 04 24", b.encodeLoadMemReg(R12, 0, R8, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_mem_reg_r13_xmm0_b64", "F2 41 0F 11 45 7F", b.encodeLoadMemReg(R13, 0x7F, XMM0, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("load_mem_reg_r13_neg80_r8_b64", "4D 89 45 80", b.encodeLoadMemReg(R13, 0xFFFFFFFFFFFFFF80, R8, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("load_mem_reg_rsp_b32", "44 89 8C 24 20 01 00 00", b.encodeLoadMemReg(RSP, 0x120, R9, MicroOpBits::B32, K_EMIT););
         ENCODE_CASE("load_mem_imm_r12_b8", "41 C6 04 24 7F", b.encodeLoadMemImm(R12, 0, 0x7F, MicroOpBits::B8, K_EMIT););
         ENCODE_CASE("load_mem_imm_r13_80_b8", "41 C6 85 80 00 00 00 5A", b.encodeLoadMemImm(R13, 0x80, 0x5A, MicroOpBits::B8, K_EMIT););
@@ -164,7 +166,9 @@ namespace
         ENCODE_CASE("cmp_reg_reg_xmm0_xmm1_b64", "66 0F 2F C1", b.encodeCmpRegReg(XMM0, XMM1, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("cmp_reg_imm_r8_7f_b64", "49 83 F8 7F", b.encodeCmpRegImm(R8, 0x7F, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("cmp_reg_imm_r8_80_b64", "49 81 F8 80 00 00 00", b.encodeCmpRegImm(R8, 0x80, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("cmp_reg_imm_r8_neg2147483648_b64", "49 81 F8 00 00 00 80", b.encodeCmpRegImm(R8, 0xFFFFFFFF80000000, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("cmp_reg_imm_r10_b32", "41 81 FA 34 12 00 00", b.encodeCmpRegImm(R10, 0x1234, MicroOpBits::B32, K_EMIT););
+        ENCODE_CASE("cmp_reg_imm_r10_80000000_b32", "41 81 FA 00 00 00 80", b.encodeCmpRegImm(R10, 0x80000000, MicroOpBits::B32, K_EMIT););
         ENCODE_CASE("cmp_mem_reg_r12_r11_b64", "4D 39 5C 24 40", b.encodeCmpMemReg(R12, 0x40, R11, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("cmp_mem_imm_r12_12345678_b8", "41 80 BC 24 78 56 34 12 12", b.encodeCmpMemImm(R12, 0x12345678, 0x12, MicroOpBits::B8, K_EMIT););
         ENCODE_CASE("cmp_mem_imm_r13_b8", "41 80 7D 44 55", b.encodeCmpMemImm(R13, 0x44, 0x55, MicroOpBits::B8, K_EMIT););
@@ -251,6 +255,7 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_add_r8", "49 83 C0 02", b.encodeOpBinaryRegImm(R8, 2, MicroOp::Add, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_add_r8_7f_b64", "49 83 C0 7F", b.encodeOpBinaryRegImm(R8, 0x7F, MicroOp::Add, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_add_r8_80_b64", "49 81 C0 80 00 00 00", b.encodeOpBinaryRegImm(R8, 0x80, MicroOp::Add, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("op_binary_reg_imm_add_r8_neg2147483648_b64", "49 81 C0 00 00 00 80", b.encodeOpBinaryRegImm(R8, 0xFFFFFFFF80000000, MicroOp::Add, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_sub_r9", "49 83 E9 7F", b.encodeOpBinaryRegImm(R9, 0x7F, MicroOp::Subtract, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_sub_r9_ff_b64", "49 83 E9 FF", b.encodeOpBinaryRegImm(R9, 0xFFFFFFFFFFFFFFFF, MicroOp::Subtract, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_and_r10", "49 83 E2 7F", b.encodeOpBinaryRegImm(R10, 0x7F, MicroOp::And, MicroOpBits::B64, K_EMIT););
@@ -268,6 +273,7 @@ namespace
         ENCODE_CASE("op_binary_mem_imm_and_80_b64", "49 81 64 24 20 80 00 00 00", b.encodeOpBinaryMemImm(R12, 0x20, 0x80, MicroOp::And, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_and", "48 83 64 24 30 7F", b.encodeOpBinaryMemImm(RSP, 0x30, 0x7F, MicroOp::And, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_or", "48 83 4D 40 7F", b.encodeOpBinaryMemImm(RBP, 0x40, 0x7F, MicroOp::Or, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("op_binary_mem_imm_or_neg1", "48 83 4D 40 FF", b.encodeOpBinaryMemImm(RBP, 0x40, 0xFFFFFFFFFFFFFFFF, MicroOp::Or, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_xor", "49 83 74 24 50 7F", b.encodeOpBinaryMemImm(R12, 0x50, 0x7F, MicroOp::Xor, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_shl_1", "49 D1 65 60", b.encodeOpBinaryMemImm(R13, 0x60, 1, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_shr_4", "48 C1 6C 24 70 04", b.encodeOpBinaryMemImm(RSP, 0x70, 4, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););

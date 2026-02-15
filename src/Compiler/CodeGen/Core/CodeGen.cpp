@@ -174,21 +174,9 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     if (typeRef.isInvalid())
         typeRef = srcPayload->typeRef;
 
-    auto& dstPayload           = setPayload(dstNodeRef, typeRef);
-    dstPayload.virtualRegister = srcPayload->virtualRegister;
+    auto& dstPayload = setPayload(dstNodeRef, typeRef);
+    dstPayload.reg   = srcPayload->reg;
     return dstPayload;
-}
-
-MicroReg CodeGen::payloadVirtualReg(AstNodeRef nodeRef) const
-{
-    const CodeGenNodePayload* nodePayload = payload(nodeRef);
-    return payloadVirtualReg(*SWC_CHECK_NOT_NULL(nodePayload));
-}
-
-MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload)
-{
-    SWC_ASSERT(nodePayload.virtualRegister != 0);
-    return MicroReg::virtualReg(nodePayload.virtualRegister);
 }
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
@@ -200,8 +188,8 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
-    nodePayload->virtualRegister = nextVirtualRegister();
-    nodePayload->typeRef         = typeRef;
+    nodePayload->reg     = MicroReg::virtualReg(nextVirtualRegister());
+    nodePayload->typeRef = typeRef;
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 

@@ -3,7 +3,6 @@
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -25,7 +24,7 @@ namespace
             SWC_ASSERT(argPayload != nullptr);
 
             ABICall::PreparedArg preparedArg;
-            preparedArg.srcReg = CodeGen::payloadVirtualReg(*argPayload);
+            preparedArg.srcReg = argPayload->reg;
 
             const auto argView = codeGen.nodeView(argRef);
             if (argView.type)
@@ -70,8 +69,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const uint32_t numAbiArgs    = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     const auto&    nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
-    const MicroReg resultReg     = CodeGen::payloadVirtualReg(nodePayload);
-    const MicroReg calleeReg     = CodeGen::payloadVirtualReg(*SWC_CHECK_NOT_NULL(calleePayload));
+    const MicroReg resultReg     = nodePayload.reg;
+    const MicroReg calleeReg     = SWC_CHECK_NOT_NULL(calleePayload)->reg;
     ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     return Result::Continue;

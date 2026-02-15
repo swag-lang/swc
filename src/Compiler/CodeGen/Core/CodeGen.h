@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/CodeGen/Micro/MicroReg.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 
@@ -7,14 +8,13 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 class MicroInstrBuilder;
-struct MicroReg;
 struct SemaNodeView;
 struct Token;
 
 struct CodeGenNodePayload
 {
-    uint32_t virtualRegister = 0;
-    TypeRef  typeRef         = TypeRef::invalid();
+    MicroReg reg     = MicroReg::invalid();
+    TypeRef  typeRef = TypeRef::invalid();
 };
 
 class CodeGen
@@ -42,8 +42,6 @@ public:
     Result                   emitConstReturnValue(const SemaNodeView& exprView);
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
     CodeGenNodePayload&      inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
-    MicroReg                 payloadVirtualReg(AstNodeRef nodeRef) const;
-    static MicroReg          payloadVirtualReg(const CodeGenNodePayload& nodePayload);
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
     MicroInstrBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }

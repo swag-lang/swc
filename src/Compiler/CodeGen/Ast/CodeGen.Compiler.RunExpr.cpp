@@ -25,7 +25,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
-    const MicroReg payloadReg = CodeGen::payloadVirtualReg(*payload);
+    const MicroReg payloadReg = payload->reg;
     const bool     isLValue   = codeGen.sema().isLValue(nodeExprRef);
 
     if (!exprView.type->isStruct())

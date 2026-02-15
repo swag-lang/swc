@@ -30,6 +30,12 @@ namespace
 
         for (const auto& reloc : relocations)
         {
+            if (reloc.targetAddress == 0)
+                continue;
+
+            if (reloc.kind != MicroInstrCodeRelocation::Kind::Rel32)
+                return Result::Error;
+
             const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
             if (patchEndOffset > executableMemory.size())
                 return Result::Error;

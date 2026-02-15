@@ -57,9 +57,9 @@ const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) cons
     return &info.value();
 }
 
-void MicroInstrBuilder::addCodeRelocation(uint32_t codeOffset, uint64_t targetAddress)
+void MicroInstrBuilder::addCodeRelocation(MicroInstrCodeRelocation relocation)
 {
-    codeRelocations_.push_back({.codeOffset = codeOffset, .targetAddress = targetAddress});
+    codeRelocations_.push_back(relocation);
 }
 
 void MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
@@ -136,12 +136,13 @@ void MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
     return;
 }
 
-void MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
+void MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags, uint64_t targetAddress)
 {
-    const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 2);
+    const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 3);
     auto*       ops  = inst.ops(operands_);
     ops[0].name      = symbolName;
     ops[1].callConv  = callConv;
+    ops[2].valueU64  = targetAddress;
     return;
 }
 
@@ -150,15 +151,6 @@ void MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, CallConvKind 
     const auto& inst = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 2);
     auto*       ops  = inst.ops(operands_);
     ops[0].name      = symbolName;
-    ops[1].callConv  = callConv;
-    return;
-}
-
-void MicroInstrBuilder::encodeCallRelocAddress(uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)
-{
-    const auto& inst = addInstruction(MicroInstrOpcode::CallRelocAddress, emitFlags, 2);
-    auto*       ops  = inst.ops(operands_);
-    ops[0].valueU64  = targetAddress;
     ops[1].callConv  = callConv;
     return;
 }

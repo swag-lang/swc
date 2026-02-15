@@ -72,19 +72,23 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
             encoder.encodeRet(inst.emitFlags);
             break;
         case MicroInstrOpcode::CallLocal:
+        {
+            const uint32_t callOffset = encoder.size();
             encoder.encodeCallLocal(ops[0].name, ops[1].callConv, inst.emitFlags);
+            if (inst.numOperands >= 3)
+            {
+                context.builder->addCodeRelocation({
+                    .kind          = MicroInstrCodeRelocation::Kind::Rel32,
+                    .codeOffset    = callOffset + 1,
+                    .symbolName    = ops[0].name,
+                    .targetAddress = ops[2].valueU64,
+                });
+            }
             break;
+        }
         case MicroInstrOpcode::CallExtern:
             encoder.encodeCallExtern(ops[0].name, ops[1].callConv, inst.emitFlags);
             break;
-        case MicroInstrOpcode::CallRelocAddress:
-        {
-            const uint32_t callOffset = encoder.size();
-            encoder.encodeCallRelocAddress(ops[1].callConv, inst.emitFlags);
-            SWC_ASSERT(context.builder != nullptr);
-            context.builder->addCodeRelocation(callOffset + 1, ops[0].valueU64);
-            break;
-        }
         case MicroInstrOpcode::CallIndirect:
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv, inst.emitFlags);
             break;

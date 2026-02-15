@@ -72,7 +72,6 @@ protected:
     virtual void encodeRet(EncodeFlags emitFlags)                                                                                                                                                            = 0;
     virtual void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                     = 0;
     virtual void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                    = 0;
-    virtual void encodeCallRelocAddress(CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                        = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                   = 0;
     virtual void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
     virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                   = 0;

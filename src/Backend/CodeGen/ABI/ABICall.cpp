@@ -253,7 +253,7 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void ABICall::callByRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
@@ -262,7 +262,7 @@ void ABICall::callByRelocAddress(MicroInstrBuilder& builder, CallConvKind callCo
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
     builder.setCurrentDebugSymbol(callDebugSymbol);
-    builder.encodeCallRelocAddress(targetAddress, callConvKind, EncodeFlagsE::Zero);
+    builder.encodeCallLocal(symbolName, callConvKind, EncodeFlagsE::Zero, targetAddress);
     builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
@@ -306,9 +306,9 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
     callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
-void ABICall::callByRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint64_t targetAddress, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
 {
-    callByRelocAddress(builder, callConvKind, targetAddress, numPreparedArgs, Return{}, callDebugSymbol);
+    callByLocal(builder, callConvKind, symbolName, targetAddress, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
 SWC_END_NAMESPACE();

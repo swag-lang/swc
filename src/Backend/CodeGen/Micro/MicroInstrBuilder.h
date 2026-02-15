@@ -64,8 +64,15 @@ struct MicroInstrDebugInfo
 
 struct MicroInstrCodeRelocation
 {
-    uint32_t codeOffset    = 0;
-    uint64_t targetAddress = 0;
+    enum class Kind : uint8_t
+    {
+        Rel32,
+    };
+
+    Kind          kind          = Kind::Rel32;
+    uint32_t      codeOffset    = 0;
+    IdentifierRef symbolName    = IdentifierRef::invalid();
+    uint64_t      targetAddress = 0;
 };
 
 class MicroInstrBuilder
@@ -109,7 +116,7 @@ public:
     const Utf8&                printFilePath() const { return printFilePath_; }
     uint32_t                   printSourceLine() const { return printSourceLine_; }
     void                       clearCodeRelocations() { codeRelocations_.clear(); }
-    void                       addCodeRelocation(uint32_t codeOffset, uint64_t targetAddress);
+    void                       addCodeRelocation(MicroInstrCodeRelocation relocation);
     const std::vector<MicroInstrCodeRelocation>& codeRelocations() const { return codeRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
@@ -123,9 +130,8 @@ public:
     void placeLabel(Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeRet(EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero, uint64_t targetAddress = 0);
     void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void encodeCallRelocAddress(uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);

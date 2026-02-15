@@ -4,7 +4,7 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 
 void swcAssert(const char* expr, const char* file, int line);
-void swcInternalError(const char* file, int line);
+void swcInternalError(const char* file, int line, const char* expr = nullptr);
 
 template<typename T>
 constexpr T swcCheck(T value, const char* expr, const char* file, int line) noexcept
@@ -58,6 +58,16 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
     {                                         \
         swcInternalError(__FILE__, __LINE__); \
         std::unreachable();                   \
+    } while (0)
+
+#define SWC_INTERNAL_CHECK(__expr)    \
+    do                                \
+    {                                 \
+        if (!(__expr))                \
+        {                             \
+            swcInternalError(__FILE__, __LINE__, #__expr); \
+            std::unreachable();       \
+        }                             \
     } while (0)
 
 #define SWC_FORCE_ASSERT(__expr)                    \

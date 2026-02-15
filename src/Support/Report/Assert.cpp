@@ -9,9 +9,11 @@ void swcAssert(const char* expr, const char* file, int line)
     Os::panicBox(msg.c_str());
 }
 
-void swcInternalError(const char* file, int line)
+void swcInternalError(const char* file, int line, const char* expr)
 {
-    const Utf8 msg = std::format("internal error!\n\nFile: {}({})\n", file ? file : "<null>", line);
+    Utf8 msg = std::format("internal error!\n\nFile: {}({})\n", file ? file : "<null>", line);
+    if (expr)
+        msg += std::format("Expression: {}\n", expr);
     Os::panicBox(msg.c_str());
 }
 

@@ -6,6 +6,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+#define SWC_X64_ENCODE_CHECK(__expr) SWC_INTERNAL_CHECK(__expr)
+
 enum class ModRmMode : uint8_t
 {
     Memory         = 0b00,
@@ -633,23 +635,21 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     }
 }
 
-EncodeResult X64Encoder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::B64, reg);
     emitCpuOp(store_, 0x8D); // LEA
     emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
     addSymbolRelocation(store_.size() - textSectionOffset_, symbolIndex, IMAGE_REL_AMD64_REL32);
     store_.pushU32(offset);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (reg.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitSpecF64(store_, 0xF3, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitSpecF64(store_, 0xF3, opBits);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x10);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
@@ -658,9 +658,7 @@ EncodeResult X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIn
     }
     else if (emitFlags.has(EncodeFlagsE::B64))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        SWC_ASSERT(opBits == MicroOpBits::B64);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(opBits == MicroOpBits::B64);
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0xB8, reg); // MOV
         addSymbolRelocation(store_.size() - textSectionOffset_, symbolIndex, IMAGE_REL_AMD64_ADDR64);
@@ -668,9 +666,7 @@ EncodeResult X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIn
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        SWC_ASSERT(opBits == MicroOpBits::B64);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(opBits == MicroOpBits::B64);
         emitRex(store_, opBits, reg);
         emitCpuOp(store_, 0x8B); // MOV
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
@@ -678,49 +674,45 @@ EncodeResult X64Encoder::encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIn
         store_.pushU32(offset);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodePush(MicroReg reg, EncodeFlags emitFlags)
+void X64Encoder::encodePush(MicroReg reg, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0x50, reg);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodePop(MicroReg reg, EncodeFlags emitFlags)
+void X64Encoder::encodePop(MicroReg reg, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0x58, reg);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeRet(EncodeFlags emitFlags)
+void X64Encoder::encodeRet(EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0xC3);
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (regDst.isFloat() && regSrc.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitSpecF64(store_, 0xF3, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitSpecF64(store_, 0xF3, opBits);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x10);
         emitModRm(store_, regDst, regSrc);
     }
     else if (regDst.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitPrefixF64(store_, MicroOpBits::B64);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitPrefixF64(store_, MicroOpBits::B64);
         emitRex(store_, opBits, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x6E);
@@ -728,9 +720,7 @@ EncodeResult X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, Micr
     }
     else if (regSrc.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitPrefixF64(store_, MicroOpBits::B64);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitPrefixF64(store_, MicroOpBits::B64);
         emitRex(store_, opBits, regSrc, regDst);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x7E);
@@ -738,66 +728,67 @@ EncodeResult X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, Micr
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regSrc, regDst);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regSrc, regDst);
         emitSpecCpuOp(store_, 0x89, opBits);
         emitModRm(store_, regSrc, regDst);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (reg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Cst;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (opBits == MicroOpBits::B8)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0xB0, reg);
         emitValue(store_, value, opBits);
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0xB8, reg);
         emitValue(store_, value, opBits);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (reg.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitSpecF64(store_, 0xF3, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitSpecF64(store_, 0xF3, opBits);
         emitRex(store_, MicroOpBits::Zero, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x10);
@@ -805,48 +796,48 @@ EncodeResult X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, 0x8B, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
 
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB6);
         emitModRm(store_, memOffset, reg, memReg);
     }
     else if (numBitsSrc == MicroOpBits::B16 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB7);
         emitModRm(store_, memOffset, reg, memReg);
@@ -858,38 +849,40 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memRe
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
 
     if (regDst.isFloat() || regSrc.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB6);
         emitModRm(store_, regDst, regSrc);
     }
     else if (numBitsSrc == MicroOpBits::B16 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, MicroOpBits::B64, regDst, regSrc);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, MicroOpBits::B64, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xB7);
         emitModRm(store_, regDst, regSrc);
@@ -901,54 +894,57 @@ EncodeResult X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg re
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
 
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (numBitsSrc == MicroOpBits::B8)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, reg, memReg);
         store_.pushU8(0x0F);
         store_.pushU8(0xBE);
         emitModRm(store_, memOffset, reg, memReg);
     }
     else if (numBitsSrc == MicroOpBits::B16)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, reg, memReg);
         store_.pushU8(0x0F);
         store_.pushU8(0xBF);
         emitModRm(store_, memOffset, reg, memReg);
     }
     else if (numBitsSrc == MicroOpBits::B32)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        SWC_ASSERT(numBitsDst == MicroOpBits::B64);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(numBitsDst == MicroOpBits::B64);
         emitRex(store_, MicroOpBits::B64, reg, memReg);
         emitCpuOp(store_, 0x63);
         emitModRm(store_, memOffset, reg, memReg);
@@ -956,90 +952,97 @@ EncodeResult X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg mem
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)
 {
     SWC_ASSERT(numBitsSrc != numBitsDst);
 
     if (regDst.isFloat() || regSrc.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (numBitsSrc == MicroOpBits::B8)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xBE);
         emitModRm(store_, regDst, regSrc);
     }
     else if (numBitsSrc == MicroOpBits::B16)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0xBF);
         emitModRm(store_, regDst, regSrc);
     }
     else if (numBitsSrc == MicroOpBits::B32 && numBitsDst == MicroOpBits::B64)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, numBitsDst, regDst, regSrc);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, numBitsDst, regDst, regSrc);
         emitCpuOp(store_, 0x63);
         emitModRm(store_, regDst, regSrc);
     }
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (emitFlags.has(EncodeFlagsE::CanEncode))
     {
         if (opBits != MicroOpBits::B64)
-            return EncodeResult::NotSupported;
+            SWC_X64_ENCODE_CHECK(false); return;
     }
 
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memReg.isInstructionPointer())
     {
         SWC_ASSERT(memOffset == 0);
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, MicroOpBits::B64, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, MicroOpBits::B64, reg, memReg);
         emitCpuOp(store_, 0x8D);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
     }
@@ -1049,42 +1052,40 @@ EncodeResult X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, 
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, MicroOpBits::B64, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, MicroOpBits::B64, reg, memReg);
         emitCpuOp(store_, 0x8D);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
 namespace
 {
-    EncodeResult encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
+    void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (mulValue != 1 && mulValue != 2 && mulValue != 4 && mulValue != 8)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (opBitsBaseMul != MicroOpBits::B32 && opBitsBaseMul != MicroOpBits::B64)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (addValue > 0x7FFFFFFF)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (value > 0x7FFFFFFF)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (regBase.isFloat() || regMul.isFloat())
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             const bool baseIsNoBase = regBase.isNoBase();
             const auto mulX64       = microRegToX64Reg(regMul);
             const auto baseX64      = baseIsNoBase ? X64Reg::Rax : microRegToX64Reg(regBase);
             if (baseIsNoBase && mulX64 == X64Reg::Rsp)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (opBitsBaseMul != MicroOpBits::B64 && ((!baseIsNoBase && baseX64 == X64Reg::Rsp) || mulX64 == X64Reg::Rsp))
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (mulX64 == X64Reg::Rsp && mulValue != 1)
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         const bool baseIsNoBase = regBase.isNoBase();
@@ -1139,39 +1140,39 @@ namespace
 
         // Value
         emitValue(store, value, std::min(opBitsValue, MicroOpBits::B32));
-        return EncodeResult::Zero;
+        return;
     }
 
-    EncodeResult encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, EncodeFlags emitFlags, bool mr)
+    void encodeAmcReg(PagedStore& store, MicroReg reg, MicroOpBits opBitsReg, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroOp op, EncodeFlags emitFlags, bool mr)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (mulValue != 1 && mulValue != 2 && mulValue != 4 && mulValue != 8)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (op == MicroOp::LoadEffectiveAddress && opBitsReg == MicroOpBits::B8)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (opBitsBaseMul != MicroOpBits::B32 && opBitsBaseMul != MicroOpBits::B64)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (addValue > 0x7FFFFFFF)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (regBase.isFloat() || regMul.isFloat())
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (reg.isFloat() && op == MicroOp::LoadEffectiveAddress)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (reg.isFloat() && op == MicroOp::MoveSignExtend)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (reg.isFloat() && opBitsReg != MicroOpBits::B32 && opBitsReg != MicroOpBits::B64)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             const bool baseIsNoBase = regBase.isNoBase();
             const auto mulX64       = microRegToX64Reg(regMul);
             const auto baseX64      = baseIsNoBase ? X64Reg::Rax : microRegToX64Reg(regBase);
             if (baseIsNoBase && mulX64 == X64Reg::Rsp)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (opBitsBaseMul != MicroOpBits::B64 && ((!baseIsNoBase && baseX64 == X64Reg::Rsp) || mulX64 == X64Reg::Rsp))
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (mulX64 == X64Reg::Rsp && mulValue != 1)
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         const bool baseIsNoBase = regBase.isNoBase();
@@ -1251,53 +1252,57 @@ namespace
                 emitValue(store, addValue, addValue <= 0x7F ? MicroOpBits::B8 : MicroOpBits::B32);
         }
 
-        return EncodeResult::Zero;
+        return;
     }
 }
 
-EncodeResult X64Encoder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
 {
     return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsSrc, MicroOp::Move, emitFlags, false);
 }
 
-EncodeResult X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc, EncodeFlags emitFlags)
 {
     return encodeAmcReg(store_, regSrc, opBitsSrc, regBase, regMul, mulValue, addValue, opBitsBaseMul, MicroOp::Move, emitFlags, true);
 }
 
-EncodeResult X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
 {
     return encodeAmcImm(store_, regBase, regMul, mulValue, addValue, opBitsBaseMul, value, opBitsValue, emitFlags);
 }
 
-EncodeResult X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue, EncodeFlags emitFlags)
 {
     return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsValue, MicroOp::LoadEffectiveAddress, emitFlags, false);
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (reg.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitSpecF64(store_, 0xF3, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitSpecF64(store_, 0xF3, opBits);
         emitRex(store_, MicroOpBits::Zero, reg, memReg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x11);
@@ -1305,64 +1310,69 @@ EncodeResult X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, M
     }
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, reg, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, 0x89, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (opBits == MicroOpBits::B128)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (opBits == MicroOpBits::B64 && value > 0x7FFFFFFF && value >> 32 != 0xFFFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    if (emitFlags.has(EncodeFlagsE::CanEncode))
-        return EncodeResult::Zero;
-    emitRex(store_, opBits, MicroReg{}, memReg);
+    SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
     emitSpecB8(store_, 0xC7, opBits);
     emitModRm(store_, memOffset, MODRM_REG_0, memReg);
     emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
 
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    if (emitFlags.has(EncodeFlagsE::CanEncode))
-        return EncodeResult::Zero;
-
-    if (reg.isFloat())
+    SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (reg.isFloat())
     {
         emitPrefixF64(store_, opBits);
         emitCpuOp(store_, 0x0F);
@@ -1376,17 +1386,14 @@ EncodeResult X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits, Encode
         emitModRm(store_, reg, reg);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond, EncodeFlags emitFlags)
+void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond, EncodeFlags emitFlags)
 {
-    if (emitFlags.has(EncodeFlagsE::CanEncode))
-        return EncodeResult::Zero;
-
-    emitRex(store_, MicroOpBits::B8, MicroReg{}, reg);
+    SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, MicroOpBits::B8, MicroReg{}, reg);
     emitCpuOp(store_, 0x0F);
 
     switch (cpuCond)
@@ -1439,15 +1446,12 @@ EncodeResult X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond, Encod
     }
 
     emitModRm(store_, MODRM_REG_0, reg);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    if (emitFlags.has(EncodeFlagsE::CanEncode))
-        return EncodeResult::Zero;
-
-    opBits = std::max(opBits, MicroOpBits::B32);
+    SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));opBits = std::max(opBits, MicroOpBits::B32);
     emitRex(store_, opBits, regDst, regSrc);
     emitCpuOp(store_, 0x0F);
 
@@ -1477,25 +1481,26 @@ EncodeResult X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, 
     }
 
     emitModRm(store_, regDst, regSrc);
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (reg0.isFloat())
     {
         if (reg1.isInt())
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
 
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitPrefixF64(store_, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitPrefixF64(store_, opBits);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x2F);
         emitModRm(store_, reg0, reg1);
@@ -1505,8 +1510,8 @@ EncodeResult X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBi
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (reg1.isFloat())
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         emitRex(store_, opBits, reg1, reg0);
@@ -1514,41 +1519,38 @@ EncodeResult X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBi
         emitModRm(store_, reg1, reg0);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (reg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (opBits == MicroOpBits::B8)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x80);
         emitModRm(store_, MODRM_REG_7, reg);
         emitValue(store_, value, MicroOpBits::B8);
     }
     else if (canEncode8(value, opBits))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x83);
         emitModRm(store_, MODRM_REG_7, reg);
         emitValue(store_, value, MicroOpBits::B8);
     }
     else if ((opBits != MicroOpBits::B64 || value <= 0x7FFFFFFF))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x81);
         emitModRm(store_, MODRM_REG_7, reg);
         emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -1556,84 +1558,94 @@ EncodeResult X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBi
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (reg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Left2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    if (emitFlags.has(EncodeFlagsE::CanEncode))
-        return EncodeResult::Zero;
-    emitRex(store_, opBits, reg, memReg);
+    SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, reg, memReg);
     emitSpecCpuOp(store_, 0x39, opBits);
     emitModRm(store_, memOffset, reg, memReg);
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (opBits == MicroOpBits::B8)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x80);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
         emitValue(store_, value, MicroOpBits::B8);
     }
     else if (canEncode8(value, opBits))
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x83);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
         emitValue(store_, value, MicroOpBits::B8);
     }
     else if (value <= 0x7FFFFFFF)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x81);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
         emitValue(store_, value, opBits == MicroOpBits::B16 ? opBits : MicroOpBits::B32);
@@ -1641,37 +1653,44 @@ EncodeResult X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, ui
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     ///////////////////////////////////////////
     if (op == MicroOp::BitwiseNot)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits);
         emitSpecCpuOp(store_, 0xF7, opBits);
         emitModRm(store_, memOffset, MODRM_REG_2, memReg);
     }
@@ -1680,9 +1699,7 @@ EncodeResult X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, M
 
     else if (op == MicroOp::Negate)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits);
         emitSpecCpuOp(store_, 0xF7, opBits);
         emitModRm(store_, memOffset, MODRM_REG_3, memReg);
     }
@@ -1692,29 +1709,30 @@ EncodeResult X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, M
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (emitFlags.has(EncodeFlagsE::CanEncode))
     {
         if (reg.isFloat())
-            return EncodeResult::NotSupported;
-        return EncodeResult::Zero;
+            SWC_X64_ENCODE_CHECK(false); return;
+        return;
     }
 
     ///////////////////////////////////////////
 
     if (op == MicroOp::BitwiseNot)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitSpecCpuOp(store_, 0xF7, opBits);
         emitModRm(store_, MODRM_REG_2, reg);
     }
@@ -1726,13 +1744,14 @@ EncodeResult X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits 
         if (reg.isFloat())
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
 
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, MicroReg{}, reg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
         emitSpecCpuOp(store_, 0xF7, opBits);
         emitModRm(store_, MODRM_REG_3, reg);
     }
@@ -1741,9 +1760,7 @@ EncodeResult X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits 
 
     else if (op == MicroOp::ByteSwap)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        if (opBits == MicroOpBits::B16)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (opBits == MicroOpBits::B16)
         {
             // rol ax, 0x8
             emitRex(store_, opBits, MicroReg{}, reg);
@@ -1765,35 +1782,42 @@ EncodeResult X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits 
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     ///////////////////////////////////////////
     if (op == MicroOp::Add)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regDst, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, 0x03, opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
@@ -1802,9 +1826,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
 
     else if (op == MicroOp::Subtract)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regDst, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, 0x2B, opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
@@ -1813,9 +1835,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
 
     else if (op == MicroOp::And)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regDst, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, 0x23, opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
@@ -1824,9 +1844,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
 
     else if (op == MicroOp::Or)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regDst, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, 0x0B, opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
@@ -1835,9 +1853,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
 
     else if (op == MicroOp::Xor)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regDst, memReg);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, 0x33, opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
@@ -1846,9 +1862,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
 
     else if (op == MicroOp::MultiplySigned)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        if (opBits == MicroOpBits::B8)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (opBits == MicroOpBits::B8)
             encodeLoadSignedExtendRegReg(regDst, regDst, MicroOpBits::B32, opBits, EncodeFlagsE::Zero);
         emitRex(store_, opBits, regDst, memReg);
         emitCpuOp(store_, 0x0F);
@@ -1861,21 +1875,27 @@ EncodeResult X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, 
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     ///////////////////////////////////////////
 
     if (op == MicroOp::ConvertUIntToFloat64)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -1885,8 +1905,8 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (op != MicroOp::ConvertIntToFloat && op != MicroOp::ConvertUIntToFloat64)
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         emitSpecF64(store_, 0xF3, opBits);
@@ -1901,8 +1921,8 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (op != MicroOp::ConvertFloatToInt)
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         emitSpecF64(store_, 0xF3, opBits);
@@ -1914,10 +1934,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
 
     else if (regDst.isFloat() && regSrc.isFloat())
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (op != MicroOp::FloatSqrt && op != MicroOp::FloatAnd && op != MicroOp::FloatXor)
         {
             emitSpecF64(store_, 0xF3, opBits);
             emitRex(store_, emitFlags.has(EncodeFlagsE::B64) ? MicroOpBits::B64 : MicroOpBits::B32, regDst, regSrc);
@@ -1943,13 +1960,13 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (microRegToX64Reg(regDst) != X64Reg::Rax)
-                return EncodeResult::Left2Rax;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (microRegToX64Reg(regSrc) == X64Reg::Rax)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (microRegToX64Reg(regSrc) == X64Reg::Rdx)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
 
-            return EncodeResult::Zero;
+            return;
         }
 
         if ((op == MicroOp::DivideSigned || op == MicroOp::ModuloSigned) && opBits == MicroOpBits::B8)
@@ -1985,13 +2002,13 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (microRegToX64Reg(regDst) != X64Reg::Rax)
-                return EncodeResult::Left2Rax;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (microRegToX64Reg(regSrc) == X64Reg::Rax)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (microRegToX64Reg(regSrc) == X64Reg::Rdx)
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
 
-            return EncodeResult::Zero;
+            return;
         }
 
         emitRex(store_, opBits, rax, regSrc);
@@ -2003,10 +2020,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
 
     else if (op == MicroOp::MultiplySigned)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        if (opBits == MicroOpBits::B8)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (opBits == MicroOpBits::B8)
         {
             encodeLoadSignedExtendRegReg(regDst, regDst, MicroOpBits::B32, opBits, EncodeFlagsE::Zero);
             encodeLoadSignedExtendRegReg(regSrc, regSrc, MicroOpBits::B32, opBits, EncodeFlagsE::Zero);
@@ -2032,10 +2046,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
             if (microRegToX64Reg(regSrc) != X64Reg::Rcx)
             {
                 SWC_ASSERT(x64RegToMicroReg(X64Reg::Rcx) == MicroReg::intReg(2));
-                return EncodeResult::Right2Rcx;
+                SWC_X64_ENCODE_CHECK(false); return;
             }
 
-            return EncodeResult::Zero;
+            return;
         }
 
         SWC_ASSERT(microRegToX64Reg(regSrc) == X64Reg::Rcx);
@@ -2061,9 +2075,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
              op == MicroOp::And ||
              op == MicroOp::Or)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regSrc, regDst);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regSrc, regDst);
         emitSpecCpuOp(store_, op, opBits);
         emitModRm(store_, regSrc, regDst);
     }
@@ -2072,9 +2084,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
 
     else if (op == MicroOp::Exchange)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        emitRex(store_, opBits, regSrc, regDst);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, regSrc, regDst);
         emitSpecCpuOp(store_, 0x87, opBits);
         emitModRm(store_, regSrc, regDst);
     }
@@ -2086,8 +2096,8 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (opBits == MicroOpBits::B8)
-                return EncodeResult::ForceZero32;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         emitRex(store_, opBits, regDst, regSrc);
@@ -2103,8 +2113,8 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (opBits == MicroOpBits::B8)
-                return EncodeResult::ForceZero32;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
         emitCpuOp(store_, 0xF3);
         emitRex(store_, opBits, regDst, regSrc);
@@ -2118,26 +2128,35 @@ EncodeResult X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, 
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -2146,7 +2165,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffse
     if (reg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Left2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -2159,7 +2181,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffse
         op == MicroOp::MultiplyUnsigned)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Left2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -2174,10 +2199,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffse
             if (microRegToX64Reg(reg) != X64Reg::Rcx)
             {
                 SWC_ASSERT(x64RegToMicroReg(X64Reg::Rcx) == MicroReg::intReg(2));
-                return EncodeResult::Right2Rcx;
+                SWC_X64_ENCODE_CHECK(false); return;
             }
 
-            return EncodeResult::Zero;
+            return;
         }
 
         if (emitFlags.has(EncodeFlagsE::Lock))
@@ -2196,19 +2221,17 @@ EncodeResult X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffse
 
     else
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-        if (emitFlags.has(EncodeFlagsE::Lock))
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (emitFlags.has(EncodeFlagsE::Lock))
             store_.pushU8(0xF0);
         emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, op, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     ///////////////////////////////////////////
 
@@ -2216,27 +2239,21 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, MODRM_REG_6, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, MODRM_REG_6, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, MODRM_REG_6, reg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2244,7 +2261,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2255,27 +2275,21 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, MODRM_REG_1, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, MODRM_REG_1, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, MODRM_REG_1, reg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2283,7 +2297,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2294,27 +2311,21 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, MODRM_REG_4, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, MODRM_REG_4, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, MODRM_REG_4, reg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2322,7 +2333,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2333,35 +2347,27 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xFF, opBits);
             emitModRm(store_, MODRM_REG_0, reg);
         }
         else if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, MODRM_REG_0, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, MODRM_REG_0, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, MODRM_REG_0, reg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2369,7 +2375,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2380,35 +2389,27 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xFF, opBits);
             emitModRm(store_, MODRM_REG_1, reg);
         }
         else if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, MODRM_REG_5, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, MODRM_REG_5, reg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, reg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, MODRM_REG_5, reg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2416,7 +2417,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2430,7 +2434,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
              op == MicroOp::MultiplyUnsigned)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -2440,9 +2447,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     {
         if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            if (opBits == MicroOpBits::B8)
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (opBits == MicroOpBits::B8)
                 encodeLoadSignedExtendRegReg(reg, reg, MicroOpBits::B32, opBits, EncodeFlagsE::Zero);
             emitRex(store_, opBits, reg, reg);
             emitCpuOp(store_, 0x6B);
@@ -2451,9 +2456,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            if (opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16)
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (opBits == MicroOpBits::B8 || opBits == MicroOpBits::B16)
                 encodeLoadSignedExtendRegReg(reg, reg, MicroOpBits::B32, opBits, EncodeFlagsE::Zero);
             emitRex(store_, opBits, reg, reg);
             emitCpuOp(store_, 0x69);
@@ -2463,7 +2466,10 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2472,10 +2478,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
 
     else if (op == MicroOp::ShiftLeft)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        SWC_ASSERT(value <= 0x7F);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
@@ -2495,10 +2498,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
 
     else if (op == MicroOp::ShiftRight)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        SWC_ASSERT(value <= 0x7F);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
@@ -2518,10 +2518,7 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
 
     else if (op == MicroOp::ShiftArithmeticRight)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        SWC_ASSERT(value <= 0x7F);
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));SWC_ASSERT(value <= 0x7F);
         if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
@@ -2542,26 +2539,35 @@ EncodeResult X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, Micr
     else
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     if (memReg.isFloat())
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     if (memOffset > 0x7FFFFFFF)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::NotSupported;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
@@ -2575,17 +2581,17 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         op == MicroOp::MultiplyUnsigned)
     {
         if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
         SWC_INTERNAL_ERROR();
     }
 
     ///////////////////////////////////////////
     if (op == MicroOp::ShiftArithmeticRight)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        if (value == 1)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xD1, opBits);
@@ -2605,10 +2611,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
 
     else if (op == MicroOp::ShiftRight)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        if (value == 1)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xD1, opBits);
@@ -2628,10 +2631,7 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
 
     else if (op == MicroOp::ShiftLeft)
     {
-        if (emitFlags.has(EncodeFlagsE::CanEncode))
-            return EncodeResult::Zero;
-
-        if (value == 1)
+        SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));if (value == 1)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xD1, opBits);
@@ -2653,35 +2653,27 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
     {
         if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xFF, opBits);
             emitModRm(store_, memOffset, MODRM_REG_0, memReg);
         }
         else if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, memOffset, MODRM_REG_0, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, memOffset, MODRM_REG_0, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, memOffset, MODRM_REG_0, memReg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2689,7 +2681,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2700,35 +2695,27 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
     {
         if (value == 1 && !emitFlags.has(EncodeFlagsE::Overflow) && ctx().compiler().buildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xFF, opBits);
             emitModRm(store_, memOffset, MODRM_REG_1, memReg);
         }
         else if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2736,7 +2723,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2747,27 +2737,21 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, memOffset, MODRM_REG_1, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, memOffset, MODRM_REG_1, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, memOffset, MODRM_REG_1, memReg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2775,7 +2759,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2786,27 +2773,21 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2814,7 +2795,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2825,27 +2809,21 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
     {
         if (opBits == MicroOpBits::B8)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x80);
             emitModRm(store_, memOffset, MODRM_REG_6, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (canEncode8(value, opBits))
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x83);
             emitModRm(store_, memOffset, MODRM_REG_6, memReg);
             emitValue(store_, value, MicroOpBits::B8);
         }
         else if (value <= 0x7FFFFFFF)
         {
-            if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Zero;
-            emitRex(store_, opBits, MicroReg{}, memReg);
+            SWC_X64_ENCODE_CHECK(!emitFlags.has(EncodeFlagsE::CanEncode));emitRex(store_, opBits, MicroReg{}, memReg);
             emitCpuOp(store_, 0x81);
             emitModRm(store_, memOffset, MODRM_REG_6, memReg);
             emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
@@ -2853,7 +2831,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         else
         {
             if (emitFlags.has(EncodeFlagsE::CanEncode))
-                return EncodeResult::Right2Reg;
+        {
+            SWC_X64_ENCODE_CHECK(false);
+            return;
+        }
             SWC_INTERNAL_ERROR();
         }
     }
@@ -2865,10 +2846,10 @@ EncodeResult X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffse
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     ///////////////////////////////////////////
 
@@ -2877,10 +2858,10 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, 
         if (emitFlags.has(EncodeFlagsE::CanEncode))
         {
             if (reg0.isFloat() != reg1.isFloat() || reg0.isFloat() != reg2.isFloat())
-                return EncodeResult::NotSupported;
+                SWC_X64_ENCODE_CHECK(false); return;
             if (!reg0.isFloat())
-                return EncodeResult::NotSupported;
-            return EncodeResult::Zero;
+                SWC_X64_ENCODE_CHECK(false); return;
+            return;
         }
 
         SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
@@ -2903,10 +2884,10 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, 
         {
             if (microRegToX64Reg(reg0) != X64Reg::Rax)
             {
-                return EncodeResult::Left2Rax;
+                SWC_X64_ENCODE_CHECK(false); return;
             }
 
-            return EncodeResult::Zero;
+            return;
         }
 
         SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
@@ -2926,10 +2907,10 @@ EncodeResult X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, 
         SWC_INTERNAL_ERROR();
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)
+void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)
 {
     auto& compiler                                 = ctx().compiler();
     const auto [offsetTableConstant, addrConstant] = compiler.constantSegment().reserveSpan<uint32_t>(numEntries);
@@ -2962,10 +2943,10 @@ EncodeResult X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, 
         cpuFct_->labelsToSolve.push_back(label);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)
+void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     SWC_ASSERT(opBits == MicroOpBits::B8 || opBits == MicroOpBits::B32);
 
@@ -3028,7 +3009,7 @@ EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpB
         jump.patchOffsetAddr = store_.seekPtr() - 1;
         jump.offsetStart     = store_.size();
         jump.opBits          = opBits;
-        return EncodeResult::Zero;
+        return;
     }
 
     switch (cpuCond)
@@ -3102,10 +3083,10 @@ EncodeResult X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpB
     jump.patchOffsetAddr = store_.seekPtr() - sizeof(uint32_t);
     jump.offsetStart     = store_.size();
     jump.opBits          = opBits;
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)
+void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)
 {
     const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
     if (jump.opBits == MicroOpBits::B8)
@@ -3118,25 +3099,25 @@ EncodeResult X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetD
         *static_cast<uint32_t*>(jump.patchOffsetAddr) = static_cast<int32_t>(offset);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)
+void X64Encoder::encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)
 {
     return encodePatchJump(jump, store_.size(), emitFlags);
 }
 
-EncodeResult X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
+void X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Register, MODRM_REG_4, encodeReg(reg));
-    return EncodeResult::Zero;
+    return;
 }
 
 // ============================================================================
 
-EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
+void X64Encoder::encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
@@ -3144,10 +3125,10 @@ EncodeResult X64Encoder::encodeCallExtern(IdentifierRef symbolName, CallConvKind
     const auto callSym = getOrAddSymbol(symbolName, EncoderSymbolKind::Extern);
     addSymbolRelocation(store_.size() - textSectionOffset_, callSym->index, IMAGE_REL_AMD64_REL32);
     store_.pushU32(0);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
+void X64Encoder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0xE8);
 
@@ -3162,21 +3143,25 @@ EncodeResult X64Encoder::encodeCallLocal(IdentifierRef symbolName, CallConvKind 
         store_.pushU32(0);
     }
 
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
+void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, MODRM_REG_2, reg);
-    return EncodeResult::Zero;
+    return;
 }
 
-EncodeResult X64Encoder::encodeNop(EncodeFlags emitFlags)
+void X64Encoder::encodeNop(EncodeFlags emitFlags)
 {
     emitCpuOp(store_, 0x90);
-    return EncodeResult::Zero;
+    return;
 }
 
 SWC_END_NAMESPACE();
+
+
+
+

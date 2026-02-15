@@ -11,12 +11,12 @@ namespace
 {
     Result codeGenUnaryDeref(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        MicroInstrBuilder& builder = codeGen.builder();
-        const auto* childPayload = codeGen.payload(nodeExprRef);
+        MicroInstrBuilder& builder      = codeGen.builder();
+        const auto*        childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
 
-        const auto nodeView = codeGen.curNodeView();
-        auto&      payload  = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+        const auto  nodeView = codeGen.curNodeView();
+        const auto& payload  = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
         builder.encodeLoadRegReg(codeGen.payloadVirtualReg(payload), codeGen.payloadVirtualReg(*childPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
         return Result::Continue;
     }

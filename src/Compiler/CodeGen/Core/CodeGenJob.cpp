@@ -27,6 +27,7 @@ JobResult CodeGenJob::exec()
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
 
+    // Wait for sema completion on this function and all direct codegen dependencies.
     ///////////////////////////////////////////
     const Result selfWaitResult = sema_->waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
@@ -39,6 +40,7 @@ JobResult CodeGenJob::exec()
             return toJobResult(depWaitResult);
     }
 
+    // Schedule codegen jobs for dependencies that are not scheduled yet.
     ///////////////////////////////////////////
     for (auto* dep : deps)
     {
@@ -47,12 +49,12 @@ JobResult CodeGenJob::exec()
         if (!dep->tryMarkCodeGenJobScheduled())
             continue;
         const AstNodeRef depRoot = dep->declNodeRef();
-        if (!depRoot.isValid())
-            continue;
+        SWC_ASSERT(depRoot.isValid());
         const auto depJob = heapNew<CodeGenJob>(ctx(), *sema_, *dep, depRoot);
         sema_->compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema_->compiler().jobClientId());
     }
 
+    // Generate code for this function, mark pre-solved, and ensure JIT entry exists.
     ///////////////////////////////////////////
     SWC_ASSERT(root_.isValid());
     CodeGen      codeGen(*sema_);
@@ -65,6 +67,7 @@ JobResult CodeGenJob::exec()
     if (jitResult != Result::Continue)
         return toJobResult(jitResult);
 
+    // Finalize only when dependency codegen is already pre-solved or completed.
     ///////////////////////////////////////////
     for (const auto* dep : deps)
     {

@@ -16,14 +16,33 @@ namespace
     {
         MicroRegAllocPass regAllocPass;
         MicroEncodePass   encodePass;
-        MicroPassManager  passManager;
-        passManager.add(regAllocPass);
-        passManager.add(encodePass);
 
         MicroPassContext passContext;
         passContext.callConvKind           = CallConvKind::Host;
         passContext.preservePersistentRegs = true;
-        builder.runPasses(passManager, &encoder, passContext);
+
+        if (builder.shouldPrintBeforePasses())
+            builder.printInstructions();
+
+        if (builder.shouldPrintBeforeEncode())
+        {
+            MicroPassManager regAllocManager;
+            regAllocManager.add(regAllocPass);
+            builder.runPasses(regAllocManager, &encoder, passContext);
+            builder.printInstructions();
+
+            MicroPassManager encodeManager;
+            encodeManager.add(encodePass);
+            builder.runPasses(encodeManager, &encoder, passContext);
+        }
+        else
+        {
+            MicroPassManager passManager;
+            passManager.add(regAllocPass);
+            passManager.add(encodePass);
+            builder.runPasses(passManager, &encoder, passContext);
+        }
+
         const auto codeSize = encoder.size();
         if (!codeSize)
             return Result::Error;

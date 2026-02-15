@@ -1,16 +1,17 @@
 #global internal
-/*
+
 struct S
 {
     value: s32
 }
 
+#[Swag.PrintBcGen]
 #test
 {
     const V = #run S{42}
     #assert(#typeof(V) == S)
 }
-
+/*
 #test
 {
     const V = #run 40's32 + 2's32

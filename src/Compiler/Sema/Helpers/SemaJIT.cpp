@@ -36,6 +36,7 @@ namespace
         outSymFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         outSymFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
         outSymFn->setReturnTypeRef(nodeView.typeRef);
+        outSymFn->setAttributes(sema.frame().currentAttributes());
         outSymFn->setDeclared(ctx);
         outSymFn->setTyped(ctx);
 
@@ -63,7 +64,6 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const SemaNodeView nodeView(sema, nodeExprRef);
 
     MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
-    builder.printInstructions();
 
     JITExecMemory executableMemory;
     RESULT_VERIFY(JIT::compile(ctx, builder, executableMemory));

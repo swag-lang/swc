@@ -34,6 +34,13 @@ public:
 
     std::string formatInstructions(bool colorize = false) const;
     void        printInstructions(bool colorize = true) const;
+    void        setPrintFlags(bool printBeforePasses, bool printBeforeEncode)
+    {
+        printBeforePasses_ = printBeforePasses;
+        printBeforeEncode_ = printBeforeEncode;
+    }
+    bool shouldPrintBeforePasses() const { return printBeforePasses_; }
+    bool shouldPrintBeforeEncode() const { return printBeforeEncode_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -87,6 +94,8 @@ private:
     TaskContext*                       ctx_ = nullptr;
     PagedStoreTyped<MicroInstr>        instructions_;
     PagedStoreTyped<MicroInstrOperand> operands_;
+    bool                               printBeforePasses_ = false;
+    bool                               printBeforeEncode_ = false;
 };
 
 SWC_END_NAMESPACE();

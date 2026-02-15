@@ -319,6 +319,7 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
     {
         case Mode::Skip:
         case Mode::Generated:
+        case Mode::AttributeList:
             return Result::Continue;
 
         case Mode::CompilerIf:
@@ -329,9 +330,6 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::SkipFmt:
             // TODO
             return Result::SkipChildren;
-
-        case Mode::AttributeList:
-            return Result::Continue;
 
         default:
             break;
@@ -654,11 +652,6 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 
     RESULT_VERIFY(SemaJIT::runExpr(sema, nodeExprRef));
     sema.inheritPayload(sema.node(sema.curNodeRef()), nodeExprRef);
-
-    // TODO
-    const SemaNodeView nodeView(sema, sema.curNodeRef());
-    SWC_ASSERT(nodeView.cst);
-    printf(nodeView.cst->toString(sema.ctx()).c_str());
 
     return Result::Continue;
 }

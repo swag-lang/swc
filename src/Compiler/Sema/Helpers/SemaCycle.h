@@ -20,7 +20,7 @@ private:
     {
         struct NodeLoc
         {
-            SemaJob*   job     = nullptr;
+            Job*       job     = nullptr;
             AstNodeRef nodeRef = AstNodeRef::invalid();
         };
 
@@ -29,7 +29,7 @@ private:
     };
 
     void addNodeIfNeeded(const Symbol* sym);
-    void addEdge(const Symbol* from, const Symbol* to, SemaJob* job, const TaskState& state);
+    void addEdge(const Symbol* from, const Symbol* to, Job* job, const TaskState& state);
     void reportCycle(const std::vector<const Symbol*>& cycle);
     void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack);
     void detectAndReportCycles();

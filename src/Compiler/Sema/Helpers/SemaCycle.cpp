@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
+#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -9,13 +10,25 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Sema* jobSema(Job* job)
+    {
+        if (auto* semaJob = job->safeCast<SemaJob>())
+            return &semaJob->sema();
+        if (auto* codeGenJob = job->safeCast<CodeGenJob>())
+            return &codeGenJob->sema();
+        return nullptr;
+    }
+}
+
 void SemaCycle::addNodeIfNeeded(const Symbol* sym)
 {
     if (!graph_.adj.contains(sym))
         graph_.adj[sym] = {};
 }
 
-void SemaCycle::addEdge(const Symbol* from, const Symbol* to, SemaJob* job, const TaskState& state)
+void SemaCycle::addEdge(const Symbol* from, const Symbol* to, Job* job, const TaskState& state)
 {
     addNodeIfNeeded(from);
     addNodeIfNeeded(to);
@@ -41,7 +54,11 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     if (itLoc == graph_.edges.end())
         return;
 
-    auto diag = SemaError::report(itLoc->second.job->sema(), DiagnosticId::sema_err_cyclic_dependency, firstSym->codeRef());
+    Sema* sema = jobSema(itLoc->second.job);
+    if (!sema)
+        return;
+
+    auto diag = SemaError::report(*sema, DiagnosticId::sema_err_cyclic_dependency, firstSym->codeRef());
     diag.addArgument(Diagnostic::ARG_SYM, firstSym->name(*ctx_));
 
     for (size_t i = 0; i < cycle.size(); i++)
@@ -51,10 +68,12 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         const auto itEdge = graph_.edges.find({sym, next});
         if (itEdge == graph_.edges.end())
             continue;
-        Sema& sema = itEdge->second.job->sema();
+        Sema* edgeSema = jobSema(itEdge->second.job);
+        if (!edgeSema)
+            continue;
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
-        const SourceCodeRange codeRange = sema.node(itEdge->second.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+        const SourceCodeRange codeRange = edgeSema->node(itEdge->second.nodeRef).codeRangeWithChildren(edgeSema->ctx(), edgeSema->ast());
         diag.last().addSpan(codeRange, next->name(*ctx_), DiagnosticSeverity::Note);
     }
 
@@ -113,13 +132,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     for (const auto job : jobs)
     {
-        const auto semaJob = job->safeCast<SemaJob>();
-        if (!semaJob)
-            continue;
-
         const auto& state = job->ctx().state();
         if (state.waiterSymbol && state.symbol)
-            addEdge(state.waiterSymbol, state.symbol, semaJob, state);
+            addEdge(state.waiterSymbol, state.symbol, job, state);
     }
 
     detectAndReportCycles();
@@ -130,15 +145,15 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         if (state.symbol && state.symbol->isIgnored())
             continue;
 
-        const auto semaJob = job->safeCast<SemaJob>();
-        if (!semaJob)
+        Sema* sema = jobSema(job);
+        if (!sema)
             continue;
 
         switch (state.kind)
         {
             case TaskStateKind::SemaWaitIdentifier:
             {
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_unknown_symbol, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
                 diag.report(ctx);
                 break;
@@ -148,7 +163,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 // This is a per-struct barrier wait. If it reaches cycle detection,
                 // something prevents impl registrations for that struct from completing.
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_impl_registration, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_impl_registration, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
                 diag.report(ctx);
                 break;
@@ -159,7 +174,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_declared, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_declared, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
@@ -170,7 +185,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_typed, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_typed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
@@ -183,14 +198,14 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(semaJob->sema(), DiagnosticId::sema_err_wait_sym_completed, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_completed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;
             }
 
             default:
-                SWC_UNREACHABLE();
+                break;
         }
     }
 }

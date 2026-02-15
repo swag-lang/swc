@@ -8,6 +8,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    JobResult sleepCodeGenWaitingDependency(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
+    {
+        TaskState& wait   = ctx.state();
+        wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
+        wait.nodeRef      = nodeRef;
+        wait.codeRef      = waiterSymbol.codeRef();
+        wait.symbol       = &waitedSymbol;
+        wait.waiterSymbol = &waiterSymbol;
+        return JobResult::Sleep;
+    }
+}
+
 CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) :
     Job(ctx, JobKind::CodeGen),
     sema_(&sema),
@@ -23,6 +37,7 @@ JobResult CodeGenJob::exec()
 {
     SWC_ASSERT(sema_);
     SWC_ASSERT(symbolFunc_);
+    ctx().state().reset();
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
@@ -73,8 +88,8 @@ JobResult CodeGenJob::exec()
     ///////////////////////////////////////////
     for (const auto* dep : deps)
     {
-        if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
-            return JobResult::Sleep;
+        if (!dep->isCodeGenPreSolved())
+            return sleepCodeGenWaitingDependency(ctx(), *symbolFunc_, *dep, root_);
     }
 
     symbolFunc_->setCodeGenCompleted(ctx());

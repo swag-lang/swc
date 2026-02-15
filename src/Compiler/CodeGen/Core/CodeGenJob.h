@@ -13,6 +13,8 @@ public:
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
     JobResult exec();
+    Sema&     sema() { return *SWC_CHECK_NOT_NULL(sema_); }
+    const Sema& sema() const { return *SWC_CHECK_NOT_NULL(sema_); }
 
 private:
     Sema*           sema_       = nullptr;

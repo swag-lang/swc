@@ -590,7 +590,12 @@ namespace
             out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
     }
 
-    void appendNaturalColumn(std::string& out, const TaskContext& ctx, bool colorize, std::string value)
+    void appendNaturalColumn(std::string&                         out,
+                             const TaskContext&                   ctx,
+                             bool                                 colorize,
+                             std::string                          value,
+                             const std::unordered_set<std::string>& concreteRegs,
+                             const std::unordered_set<std::string>& virtualRegs)
     {
         if (value.size() > K_NATURAL_COLUMN_WIDTH)
             value = std::format("{}...", value.substr(0, K_NATURAL_COLUMN_WIDTH - 3));
@@ -607,78 +612,12 @@ namespace
                 return true;
             };
 
-            auto isConcreteRegister = [](std::string_view t) {
-                static constexpr std::array<std::string_view, 19> kNamedRegs = {
-                    "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "rip", "r8",
-                    "r9",  "r10", "r11", "r12", "r13", "r14", "r15", "ip",  "nobase",
-                };
-
-                for (const auto& name : kNamedRegs)
-                {
-                    if (t == name)
-                        return true;
-                }
-
-                if (t.size() >= 2 && t[0] == 'r')
-                {
-                    bool allDigits = true;
-                    for (size_t i = 1; i < t.size(); ++i)
-                    {
-                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
-                        {
-                            allDigits = false;
-                            break;
-                        }
-                    }
-                    if (allDigits)
-                        return true;
-                }
-
-                if ((t.starts_with("xmm") || t.starts_with("ymm") || t.starts_with("zmm")) && t.size() > 3)
-                {
-                    for (size_t i = 3; i < t.size(); ++i)
-                    {
-                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
-                            return false;
-                    }
-                    return true;
-                }
-
-                if (t.size() >= 2 && t[0] == 'f')
-                {
-                    for (size_t i = 1; i < t.size(); ++i)
-                    {
-                        if (!std::isdigit(static_cast<unsigned char>(t[i])))
-                            return false;
-                    }
-                    return true;
-                }
-
-                return false;
-            };
-
-            auto isVirtualRegister = [](std::string_view t) {
-                if (!t.starts_with('%') || t.size() < 2)
-                    return false;
-
-                size_t i = 1;
-                if (i < t.size() && t[i] == 'f')
-                    ++i;
-                if (i >= t.size())
-                    return false;
-                for (; i < t.size(); ++i)
-                {
-                    if (!std::isdigit(static_cast<unsigned char>(t[i])))
-                        return false;
-                }
-                return true;
-            };
-
-            if (isVirtualRegister(token))
+            const std::string tokenStr(token);
+            if (virtualRegs.contains(tokenStr))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
             }
-            else if (isConcreteRegister(token))
+            else if (concreteRegs.contains(tokenStr))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Register, token);
             }
@@ -730,7 +669,7 @@ namespace
                 if (pos + 1 < padded.size())
                 {
                     const auto two = std::string_view(padded).substr(pos, 2);
-                    if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<")
+                    if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>")
                     {
                         appendNaturalToken(two);
                         pos += 2;
@@ -873,6 +812,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 {
     std::string                  out;
     auto&                        storeOps      = operands;
+    auto&                        storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
     auto&                        instructionsV = const_cast<MicroInstrStorage&>(instructions);
     auto                         view          = instructionsV.view();
     std::unordered_set<uint64_t> seenDebugLines;
@@ -899,10 +839,28 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         const auto        natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        std::unordered_set<std::string> concreteRegs;
+        std::unordered_set<std::string> virtualRegs;
+        if (inst.numOperands)
+        {
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            inst.collectRegOperands(storeOpsMut, regRefs, encoder);
+            for (const auto& regRef : regRefs)
+            {
+                if (!regRef.reg || !regRef.reg->isValid())
+                    continue;
+
+                const auto regToken = regName(*regRef.reg, regPrintMode, encoder);
+                if (regRef.reg->isVirtual())
+                    virtualRegs.insert(regToken);
+                else
+                    concreteRegs.insert(regToken);
+            }
+        }
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
-        appendNaturalColumn(out, ctx, colorize, natural);
+        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs);
 
         if (inst.op == MicroInstrOpcode::Label)
         {

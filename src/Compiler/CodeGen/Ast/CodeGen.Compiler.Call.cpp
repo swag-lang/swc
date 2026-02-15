@@ -23,33 +23,6 @@ namespace
         return ownerSymMap->safeCast<SymbolInterface>() != nullptr;
     }
 
-    AstNodeRef resolveCalleeRef(CodeGen& codeGen, AstNodeRef calleeRef)
-    {
-        AstNodeRef currentRef = calleeRef;
-        for (uint32_t i = 0; i < 16 && currentRef.isValid(); ++i)
-        {
-            const AstNodeRef substituteRef = codeGen.sema().getSubstituteRef(currentRef);
-            if (substituteRef.isValid() && substituteRef != currentRef)
-            {
-                currentRef = substituteRef;
-                continue;
-            }
-
-            const AstNode& node = codeGen.node(currentRef);
-            if (node.id() == AstNodeId::MemberAccessExpr)
-                return currentRef;
-
-            SmallVector<AstNodeRef> children;
-            Ast::nodeIdInfos(node.id()).collectChildren(children, codeGen.ast(), node);
-            if (children.size() != 1 || !children.front().isValid())
-                break;
-
-            currentRef = children.front();
-        }
-
-        return currentRef;
-    }
-
     bool tryResolveInterfaceReceiver(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction* calledFunction, AstNodeRef& outReceiverRef)
     {
         outReceiverRef = AstNodeRef::invalid();
@@ -67,42 +40,14 @@ namespace
         outReceiverRef = memberAccessExpr->nodeLeftRef;
         return true;
     }
-
-    const CodeGenNodePayload* resolveCalleePayload(CodeGen& codeGen, AstNodeRef calleeRef)
-    {
-        AstNodeRef currentRef = resolveCalleeRef(codeGen, calleeRef);
-        for (uint32_t i = 0; i < 16 && currentRef.isValid(); ++i)
-        {
-            if (const auto* payload = codeGen.payload(currentRef))
-                return payload;
-
-            const AstNodeRef substituteRef = codeGen.sema().getSubstituteRef(currentRef);
-            if (substituteRef.isValid() && substituteRef != currentRef)
-            {
-                currentRef = substituteRef;
-                continue;
-            }
-
-            const AstNode&          node = codeGen.node(currentRef);
-            SmallVector<AstNodeRef> children;
-            Ast::nodeIdInfos(node.id()).collectChildren(children, codeGen.ast(), node);
-            if (children.size() != 1 || !children.front().isValid())
-                break;
-
-            currentRef = children.front();
-        }
-
-        return nullptr;
-    }
-
 }
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroInstrBuilder& builder = codeGen.builder();
 
-    const AstNodeRef resolvedCalleeRef = resolveCalleeRef(codeGen, nodeExprRef);
-    const auto*      calleePayload     = resolveCalleePayload(codeGen, resolvedCalleeRef);
+    const auto calleeView = codeGen.nodeView(nodeExprRef);
+    const auto* calleePayload = codeGen.payload(calleeView.nodeRef);
     SWC_ASSERT(calleePayload != nullptr);
 
     const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
@@ -115,7 +60,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     uint32_t   numAbiArgs           = 0;
     AstNodeRef interfaceReceiverRef = AstNodeRef::invalid();
-    if (tryResolveInterfaceReceiver(codeGen, resolvedCalleeRef, &calledFunction, interfaceReceiverRef))
+    if (tryResolveInterfaceReceiver(codeGen, calleeView.nodeRef, &calledFunction, interfaceReceiverRef))
     {
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const auto* receiverPayload = codeGen.payload(interfaceReceiverRef);

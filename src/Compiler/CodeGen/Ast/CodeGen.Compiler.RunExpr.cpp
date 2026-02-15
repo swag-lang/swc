@@ -8,6 +8,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    const auto* childPayload = codeGen.payload(nodeExprRef);
+    SWC_ASSERT(childPayload != nullptr);
+
+    auto& payload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    payload.virtualRegister = childPayload->virtualRegister;
+    return Result::Continue;
+}
+
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     auto&              ctx      = codeGen.ctx();

@@ -39,7 +39,6 @@ public:
     const Token&             token(const SourceCodeRef& codeRef) const;
     SymbolFunction&          function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction&    function() const { return *SWC_CHECK_NOT_NULL(function_); }
-    Result                   emitConstReturnValue(const SemaNodeView& exprView);
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
     CodeGenNodePayload&      inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());

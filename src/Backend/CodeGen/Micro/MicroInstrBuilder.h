@@ -62,6 +62,12 @@ struct MicroInstrDebugInfo
     }
 };
 
+struct MicroInstrJitRelocation
+{
+    uint32_t codeOffset    = 0;
+    uint64_t targetAddress = 0;
+};
+
 class MicroInstrBuilder
 {
 public:
@@ -102,6 +108,9 @@ public:
     const Utf8&                printSymbolName() const { return printSymbolName_; }
     const Utf8&                printFilePath() const { return printFilePath_; }
     uint32_t                   printSourceLine() const { return printSourceLine_; }
+    void                       clearJitRelocations() { jitRelocations_.clear(); }
+    void                       addJitRelocation(uint32_t codeOffset, uint64_t targetAddress);
+    const std::vector<MicroInstrJitRelocation>& jitRelocations() const { return jitRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -116,6 +125,7 @@ public:
     void encodeRet(EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void encodeCallJitRelocAddress(uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
@@ -166,6 +176,7 @@ private:
     uint32_t                                        printSourceLine_ = 0;
     std::vector<Utf8>                               printPassOptions_;
     std::vector<Ref>                                labels_;
+    std::vector<MicroInstrJitRelocation>            jitRelocations_;
 };
 
 SWC_END_NAMESPACE();

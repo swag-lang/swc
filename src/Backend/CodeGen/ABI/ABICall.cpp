@@ -253,6 +253,28 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
+void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret)
+{
+    const auto& conv        = CallConv::get(callConvKind);
+    const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
+
+    if (stackAdjust)
+        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
+
+    builder.encodeCallJitRelocAddress(targetAddress, callConvKind, EncodeFlagsE::Zero);
+
+    if (!ret.isVoid && !ret.isIndirect)
+    {
+        MicroReg regBase = MicroReg::invalid();
+        MicroReg regTmp  = MicroReg::invalid();
+        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+        emitReturnWriteBack(builder, conv, ret, regBase);
+    }
+
+    if (stackAdjust)
+        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+}
+
 void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
@@ -278,6 +300,11 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
 void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
 {
     callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{});
+}
+
+void ABICall::callByJitRelocAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, uint32_t numPreparedArgs)
+{
+    callByJitRelocAddress(builder, callConvKind, targetAddress, numPreparedArgs, Return{});
 }
 
 SWC_END_NAMESPACE();

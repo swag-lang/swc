@@ -57,6 +57,11 @@ const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) cons
     return &info.value();
 }
 
+void MicroInstrBuilder::addJitRelocation(uint32_t codeOffset, uint64_t targetAddress)
+{
+    jitRelocations_.push_back({.codeOffset = codeOffset, .targetAddress = targetAddress});
+}
+
 void MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::SymbolRelocAddr, emitFlags, 3);
@@ -145,6 +150,15 @@ void MicroInstrBuilder::encodeCallExtern(IdentifierRef symbolName, CallConvKind 
     const auto& inst = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 2);
     auto*       ops  = inst.ops(operands_);
     ops[0].name      = symbolName;
+    ops[1].callConv  = callConv;
+    return;
+}
+
+void MicroInstrBuilder::encodeCallJitRelocAddress(uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)
+{
+    const auto& inst = addInstruction(MicroInstrOpcode::CallJitRelocAddress, emitFlags, 2);
+    auto*       ops  = inst.ops(operands_);
+    ops[0].valueU64  = targetAddress;
     ops[1].callConv  = callConv;
     return;
 }

@@ -2752,6 +2752,13 @@ void X64Encoder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv
     return;
 }
 
+void X64Encoder::encodeCallJitRelocAddress(CallConvKind callConv, EncodeFlags emitFlags)
+{
+    emitCpuOp(store_, 0xE8);
+    store_.pushU32(0);
+    return;
+}
+
 void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
 {
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);

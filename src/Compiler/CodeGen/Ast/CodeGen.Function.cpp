@@ -71,26 +71,24 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto&    nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
     const MicroReg resultReg     = nodePayload.reg;
-    MicroReg       calleeReg     = MicroReg::invalid();
+    bool           didCall       = false;
 
     if (calleePayload)
     {
-        calleeReg = calleePayload->reg;
+        ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs);
+        didCall = true;
     }
     else if (calledFunction.hasJitEntryAddress())
     {
-        MicroReg tmpReg1 = MicroReg::invalid();
-        SWC_ASSERT(callConv.tryPickIntScratchRegs(calleeReg, tmpReg1));
-        builder.setCurrentDebugSymbol(&calledFunction);
-        builder.encodeLoadRegImm(calleeReg, calledFunction.jitEntryAddress(), MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.clearCurrentDebugPayload();
+        ABICall::callByJitRelocAddress(builder, callConvKind, calledFunction.jitEntryAddress(), numAbiArgs);
+        didCall = true;
     }
     else
     {
         return Result::Pause;
     }
 
-    ABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
+    SWC_ASSERT(didCall);
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     return Result::Continue;
 }

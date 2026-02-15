@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<MicroABIPreparedArg>& outArgs)
+    void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<MicroABICall::PreparedArg>& outArgs)
     {
         outArgs.clear();
         outArgs.reserve(args.size());
@@ -24,7 +24,7 @@ namespace
             const auto*      argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
-            MicroABIPreparedArg preparedArg;
+            MicroABICall::PreparedArg preparedArg;
             preparedArg.srcReg = CodeGen::payloadVirtualReg(*argPayload);
 
             const auto argView = codeGen.nodeView(argRef);
@@ -38,11 +38,11 @@ namespace
             switch (arg.passKind)
             {
                 case CallArgumentPassKind::Direct:
-                    preparedArg.kind = MicroABIPreparedArgKind::Direct;
+                    preparedArg.kind = MicroABICall::PreparedArgKind::Direct;
                     break;
 
                 case CallArgumentPassKind::InterfaceObject:
-                    preparedArg.kind = MicroABIPreparedArgKind::InterfaceObject;
+                    preparedArg.kind = MicroABICall::PreparedArgKind::InterfaceObject;
                     break;
 
                 default:
@@ -68,12 +68,12 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<ResolvedCallArgument> args;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    SmallVector<MicroABIPreparedArg> preparedArgs;
+    SmallVector<MicroABICall::PreparedArg> preparedArgs;
     buildPreparedABIArguments(codeGen, args, preparedArgs);
-    const uint32_t numAbiArgs = emitMicroABIPrepareCallArgs(builder, callConvKind, preparedArgs);
+    const uint32_t numAbiArgs = MicroABICall::prepareArgs(builder, callConvKind, preparedArgs);
 
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
-    emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);
+    MicroABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
 
     auto* resultStorage        = codeGen.ctx().compiler().allocate<uint64_t>();
     *resultStorage             = 0;

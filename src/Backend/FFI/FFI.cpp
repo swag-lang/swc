@@ -111,12 +111,12 @@ namespace
         return value + alignment - rem;
     }
 
-    MicroABICallArg packArgValue(const FFINormalizedType& argType, const void* valuePtr)
+    MicroABICall::Arg packArgValue(const FFINormalizedType& argType, const void* valuePtr)
     {
         SWC_ASSERT(valuePtr != nullptr);
         SWC_ASSERT(!argType.isIndirectArg);
 
-        MicroABICallArg outArg;
+        MicroABICall::Arg outArg;
         outArg.isFloat = argType.isFloat;
         outArg.numBits = argType.numBits;
 
@@ -197,7 +197,7 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     const FFINormalizedType retType      = normalizeType(ctx, conv, ret.typeRef, FFITypeUsage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
-    SmallVector<MicroABICallArg>   packedArgs;
+    SmallVector<MicroABICall::Arg> packedArgs;
     SmallVector<FFINormalizedType> normalizedArgTypes;
     uint32_t                       indirectArgStorageSize = 0;
     const bool                     hasIndirectRetArg      = retType.isIndirectArg;
@@ -263,14 +263,14 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
 
     MicroInstrBuilder builder(ctx);
     const auto        retOutPtr = retType.isIndirectArg ? nullptr : ret.valuePtr;
-    const auto        retMeta   = MicroABICallReturn{
+    const auto        retMeta   = MicroABICall::Return{
                  .valuePtr   = retOutPtr,
                  .isVoid     = retType.isVoid,
                  .isFloat    = retType.isFloat,
                  .isIndirect = retType.isIndirectArg,
                  .numBits    = retType.numBits,
     };
-    emitMicroABICallByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
+    MicroABICall::callByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.encodeRet(EncodeFlagsE::Zero);
 
     JITExecMemory executableMemory;

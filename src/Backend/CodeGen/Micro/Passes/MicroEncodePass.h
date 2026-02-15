@@ -4,8 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct MicroJump;
-
 class MicroEncodePass final : public MicroPass
 {
 public:
@@ -20,10 +18,8 @@ private:
         EncodeFlags emitFlags;
     };
 
-    void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, Ref instRef);
+    void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst);
 
-    std::unordered_map<Ref, MicroJump> jumps_;
-    std::unordered_map<Ref, uint64_t>  instructionOffsets_;
     std::unordered_map<Ref, uint64_t>  labelOffsets_;
     std::vector<PendingLabelJump>      pendingLabelJumps_;
 };

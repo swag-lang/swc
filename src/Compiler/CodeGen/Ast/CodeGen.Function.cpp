@@ -56,12 +56,12 @@ namespace
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    MicroInstrBuilder&    builder        = codeGen.builder();
-    const auto            calleeView     = codeGen.nodeView(nodeExprRef);
-    const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
-    const CallConvKind    callConvKind   = calledFunction.callConvKind();
-    const CallConv&       callConv       = CallConv::get(callConvKind);
-    const auto            normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
+    MicroInstrBuilder& builder        = codeGen.builder();
+    const auto         calleeView     = codeGen.nodeView(nodeExprRef);
+    SymbolFunction&    calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
+    const CallConvKind callConvKind   = calledFunction.callConvKind();
+    const CallConv&    callConv       = CallConv::get(callConvKind);
+    const auto         normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
@@ -81,7 +81,9 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         MicroReg tmpReg1 = MicroReg::invalid();
         SWC_ASSERT(callConv.tryPickIntScratchRegs(calleeReg, tmpReg1));
+        builder.setCurrentDebugSymbol(&calledFunction);
         builder.encodeLoadRegImm(calleeReg, calledFunction.jitEntryAddress(), MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.clearCurrentDebugPayload();
     }
     else
     {

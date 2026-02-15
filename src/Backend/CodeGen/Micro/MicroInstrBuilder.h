@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroPassManager;
 struct MicroPassContext;
+class Symbol;
 
 enum class MicroInstrBuilderFlagsE : uint8_t
 {
@@ -17,13 +18,47 @@ enum class MicroInstrBuilderFlagsE : uint8_t
 };
 using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
 
+enum class MicroInstrDebugInfoPayloadKind : uint8_t
+{
+    None,
+    Symbol,
+};
+
 struct MicroInstrDebugInfo
 {
     SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+    MicroInstrDebugInfoPayloadKind payloadKind = MicroInstrDebugInfoPayloadKind::None;
+    union
+    {
+        Symbol*  symbol;
+        uint64_t payloadU64;
+    };
+
+    MicroInstrDebugInfo() :
+        symbol(nullptr)
+    {
+    }
+
+    void clearPayload()
+    {
+        payloadKind = MicroInstrDebugInfoPayloadKind::None;
+        symbol      = nullptr;
+    }
+
+    void setPayloadSymbol(Symbol* payloadSymbol)
+    {
+        payloadKind = MicroInstrDebugInfoPayloadKind::Symbol;
+        symbol      = payloadSymbol;
+    }
+
+    Symbol* payloadSymbol() const
+    {
+        return payloadKind == MicroInstrDebugInfoPayloadKind::Symbol ? symbol : nullptr;
+    }
 
     bool hasData() const
     {
-        return sourceCodeRef.isValid();
+        return sourceCodeRef.isValid() || payloadSymbol() != nullptr;
     }
 };
 
@@ -57,7 +92,10 @@ public:
     MicroInstrBuilderFlags     flags() const { return flags_; }
     bool                       hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
     void                       setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
+    const MicroInstrDebugInfo& currentDebugInfo() const { return currentDebugInfo_; }
     void                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
+    void                       setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
+    void                       clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
     const MicroInstrDebugInfo* debugInfo(Ref instructionRef) const;
     void                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                       setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);

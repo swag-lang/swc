@@ -2,6 +2,7 @@
 #include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -890,6 +891,24 @@ namespace
         }
     }
 
+    void appendInstructionDebugPayload(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef)
+    {
+        if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+            return;
+
+        const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
+        if (!dbgInfo)
+            return;
+
+        Symbol* symbol = dbgInfo->payloadSymbol();
+        if (!symbol)
+            return;
+
+        out += "  ; ";
+        appendColored(out, ctx, colorize, SyntaxColor::Compiler, "symbol=");
+        appendColored(out, ctx, colorize, SyntaxColor::Code, symbol->name(ctx));
+    }
+
     bool appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef, std::unordered_set<uint64_t>& seenDebugLines)
     {
         uint32_t sourceLine = 0;
@@ -987,6 +1006,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             }
 
             appendInstFlags(out, ctx, colorize, inst.emitFlags);
+            appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
             appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
             out += '\n';
             ++idx;
@@ -1287,6 +1307,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         }
 
         appendInstFlags(out, ctx, colorize, inst.emitFlags);
+        appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
         appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
         out += '\n';
         ++idx;

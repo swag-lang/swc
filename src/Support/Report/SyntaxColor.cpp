@@ -504,4 +504,3 @@ Utf8 SyntaxColorHelper::toAnsi(const TaskContext& ctx, SyntaxColor color, Syntax
 }
 
 SWC_END_NAMESPACE();
-

@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
-#include "Support/Report/SyntaxColor.h"
+#include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
+#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -385,11 +385,11 @@ namespace
     }
 }
 
-std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
+std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
 {
     std::string out;
-    auto&       storeOps      = operands.store();
-    auto&       instructionsV = const_cast<PagedStoreTyped<MicroInstr>&>(instructions);
+    auto&       storeOps      = operands;
+    auto&       instructionsV = const_cast<MicroInstrStorage&>(instructions);
 
     uint32_t idx = 0;
     for (const auto& inst : instructionsV.view())
@@ -727,13 +727,10 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
     return out;
 }
 
-void MicroInstrPrinter::print(const TaskContext& ctx, const PagedStoreTyped<MicroInstr>& instructions, const PagedStoreTyped<MicroInstrOperand>& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
+void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize)
 {
     Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, colorize));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
 }
 
 SWC_END_NAMESPACE();
-
-
-

@@ -2,7 +2,7 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Support/Core/PagedStoreTyped.h"
+#include "Backend/MachineCode/Micro/MicroInstrStorage.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,7 +15,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
     // Function-level calling convention: defines available integer/float regs and which are call-preserved.
     const CallConv& funcConv = CallConv::get(context.callConvKind);
-    PagedStore&     storeOps = context.operands->store();
+    auto&           storeOps = *context.operands;
 
     const uint32_t instructionCount = context.instructions->count();
     if (instructionCount == 0)

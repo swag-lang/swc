@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Compiler/Lexer/Lexer.h"
-#include "Support/Report/SyntaxColor.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
@@ -12,6 +11,7 @@
 #include "Support/Report/DiagnosticElement.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/LogSymbol.h"
+#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -843,4 +843,3 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
 }
 
 SWC_END_NAMESPACE();
-

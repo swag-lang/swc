@@ -5,10 +5,10 @@
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
-#include "Support/Report/SyntaxColor.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
+#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -86,4 +86,3 @@ Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory&
 }
 
 SWC_END_NAMESPACE();
-

@@ -2,7 +2,7 @@
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Backend/MachineCode/Micro/MicroInstrPrinter.h"
-#include "Support/Core/PagedStoreTyped.h"
+#include "Backend/MachineCode/Micro/MicroInstrStorage.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -36,10 +36,10 @@ public:
     TaskContext&       ctx() { return *ctx_; }
     const TaskContext& ctx() const { return *ctx_; }
 
-    PagedStoreTyped<MicroInstr>&              instructions() { return instructions_; }
-    const PagedStoreTyped<MicroInstr>&        instructions() const { return instructions_; }
-    PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
-    const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
+    MicroInstrStorage&         instructions() { return instructions_; }
+    const MicroInstrStorage&   instructions() const { return instructions_; }
+    MicroOperandStorage&       operands() { return operands_; }
+    const MicroOperandStorage& operands() const { return operands_; }
 
     std::string            formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
     void                   printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
@@ -100,13 +100,13 @@ public:
 private:
     MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
 
-    TaskContext*                       ctx_ = nullptr;
-    PagedStoreTyped<MicroInstr>        instructions_;
-    PagedStoreTyped<MicroInstrOperand> operands_;
-    MicroInstrBuilderFlags             flags_ = MicroInstrBuilderFlagsE::Zero;
-    std::string                        printSymbolName_;
-    std::string                        printFilePath_;
-    uint32_t                           printSourceLine_ = 0;
+    TaskContext*           ctx_ = nullptr;
+    MicroInstrStorage      instructions_;
+    MicroOperandStorage    operands_;
+    MicroInstrBuilderFlags flags_ = MicroInstrBuilderFlagsE::Zero;
+    std::string            printSymbolName_;
+    std::string            printFilePath_;
+    uint32_t               printSourceLine_ = 0;
 };
 
 SWC_END_NAMESPACE();

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
 #include "Backend/MachineCode/Encoder/Encoder.h"
+#include "Backend/MachineCode/Micro/MicroInstrStorage.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -108,24 +109,24 @@ namespace
     }
 }
 
-MicroInstrOperand* MicroInstr::ops(PagedStore& store) const
+MicroInstrOperand* MicroInstr::ops(MicroOperandStorage& operands) const
 {
     if (!numOperands)
         return nullptr;
-    return store.ptr<MicroInstrOperand>(opsRef);
+    return operands.ptr(opsRef);
 }
 
-const MicroInstrOperand* MicroInstr::ops(const PagedStore& storeOps) const
+const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& operands) const
 {
     if (!numOperands)
         return nullptr;
-    return storeOps.ptr<MicroInstrOperand>(opsRef);
+    return operands.ptr(opsRef);
 }
 
-MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const
+MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
 {
     const MicroInstrInfo&    opcodeInfo = info(op);
-    const MicroInstrOperand* ops        = this->ops(storeOps);
+    const MicroInstrOperand* ops        = this->ops(operands);
 
     MicroInstrUseDef useDef;
     if (opcodeInfo.isCall)
@@ -143,10 +144,10 @@ MicroInstrUseDef MicroInstr::collectUseDef(const PagedStore& storeOps, const Enc
     return useDef;
 }
 
-void MicroInstr::collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
+void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
 {
     const MicroInstrInfo& opcodeInfo = info(op);
-    MicroInstrOperand*    ops        = this->ops(storeOps);
+    MicroInstrOperand*    ops        = this->ops(operands);
     const auto            modes      = resolveRegModes(opcodeInfo, ops);
     collectRegOperandsFromModes(out, ops, modes);
 }

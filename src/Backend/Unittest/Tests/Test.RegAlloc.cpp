@@ -25,7 +25,7 @@ namespace
 
     Result verifyCallConvConformity(MicroInstrBuilder& builder, const CallConv& conv)
     {
-        auto& storeOps = builder.operands().store();
+        auto& storeOps = builder.operands();
 
         for (const auto& inst : builder.instructions().view())
         {

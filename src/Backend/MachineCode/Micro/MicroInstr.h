@@ -8,6 +8,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Encoder;
+class MicroOperandStorage;
 
 enum class MicroInstrRegMode : uint8_t
 {
@@ -111,10 +112,10 @@ struct MicroInstr
     EncodeFlags      emitFlags   = EncodeFlagsE::Zero;
     uint8_t          numOperands = 0;
 
-    MicroInstrOperand*       ops(PagedStore& store) const;
-    const MicroInstrOperand* ops(const PagedStore& storeOps) const;
-    MicroInstrUseDef         collectUseDef(const PagedStore& storeOps, const Encoder* encoder) const;
-    void                     collectRegOperands(PagedStore& storeOps, SmallVector<MicroInstrRegOperandRef>& out, const Encoder* encoder) const;
+    MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
+    const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
+    MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
+    void                     collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };

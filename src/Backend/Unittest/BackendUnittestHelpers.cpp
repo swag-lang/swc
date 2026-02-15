@@ -122,7 +122,7 @@ namespace Backend::Unittest
 
     Result assertNoVirtualRegs(MicroInstrBuilder& builder)
     {
-        auto& storeOps = builder.operands().store();
+        auto& storeOps = builder.operands();
         for (const auto& inst : builder.instructions().view())
         {
             SmallVector<MicroInstrRegOperandRef> regs;

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/MicroInstr.h"
-#include "Support/Core/PagedStoreTyped.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -47,7 +46,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
     auto&       encoder = *context.encoder;
-    const auto* ops     = inst.ops(context.operands->store());
+    const auto* ops     = inst.ops(*context.operands);
     switch (inst.op)
     {
         case MicroInstrOpcode::End:
@@ -271,7 +270,7 @@ void MicroEncodePass::buildSavedRegsPlan(const MicroPassContext& context, const 
     savedRegSlots_.clear();
     savedRegsFrameSize_ = 0;
 
-    auto& storeOps = context.operands->store();
+    auto& storeOps = *context.operands;
     for (const auto& inst : context.instructions->view())
     {
         SmallVector<MicroInstrRegOperandRef> refs;

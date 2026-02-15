@@ -192,13 +192,33 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             }
 
             case TaskStateKind::SemaWaitSymSemaCompleted:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_sema_completed, state.codeRef);
+                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                diag.report(ctx);
+                break;
+            }
+
             case TaskStateKind::SemaWaitSymCodeGenCompleted:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_codegen_completed, state.codeRef);
+                diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
+                diag.report(ctx);
+                break;
+            }
+
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)
                     break;
-                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_sym_completed, state.codeRef);
+                auto diag = SemaError::report(*sema, DiagnosticId::sema_err_wait_type_completed, state.codeRef);
                 diag.addArgument(Diagnostic::ARG_SYM, state.symbol->name(ctx));
                 diag.report(ctx);
                 break;

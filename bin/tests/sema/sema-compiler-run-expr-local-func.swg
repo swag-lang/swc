@@ -1,6 +1,5 @@
 #global internal
 
-#[Swag.PrintMicro()]
 #test
 {
     func localConst()->s32 { return 42 }
@@ -27,3 +26,11 @@
     func takesArg(v: s32)->s32 { return 1 }
     const V = #run takesArg("bad") // swc-expected-error {{sema_err_cannot_cast}}
 }
+/*
+#[Swag.PrintMicro()]
+#test
+{
+    func takesArg(v: s32)->s32 { return v }
+    #assert(#run takesArg(1) == 1)
+}
+*/

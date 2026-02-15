@@ -207,6 +207,18 @@ namespace
             *outHasAdd = hasAdd;
         return hasSub && hasAdd && hasStore && hasLoad;
     }
+
+    Result verifyVirtualPrintModeKeepsConcreteNames(TaskContext& ctx)
+    {
+        MicroInstrBuilder builder(ctx);
+        builder.encodeLoadRegReg(MicroReg::virtualIntReg(2), MicroReg::intReg(2), MicroOpBits::B64, EncodeFlagsE::Zero);
+
+        const std::string out = builder.formatInstructions(MicroInstrRegPrintMode::Virtual, nullptr, false);
+        if (out.find("%2, r2") == std::string::npos)
+            return Result::Error;
+
+        return Result::Continue;
+    }
 }
 
 SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
@@ -307,6 +319,12 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         if (hasFrameOps)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_VirtualPrintModeKeepsConcreteNames)
+{
+    RESULT_VERIFY(verifyVirtualPrintModeKeepsConcreteNames(ctx));
 }
 SWC_TEST_END()
 

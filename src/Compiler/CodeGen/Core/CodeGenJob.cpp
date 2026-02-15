@@ -8,23 +8,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    bool areDepsReadyForCompletion(const SmallVector<SymbolFunction*>& deps)
-    {
-        for (const auto* dep : deps)
-        {
-            if (!dep)
-                continue;
-
-            if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
-                return false;
-        }
-
-        return true;
-    }
-}
-
 CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) :
     Job(ctx, JobKind::CodeGen),
     sema_(&sema),
@@ -83,8 +66,11 @@ JobResult CodeGenJob::exec()
         return toJobResult(jitResult);
 
     ///////////////////////////////////////////
-    if (!areDepsReadyForCompletion(deps))
-        return JobResult::Sleep;
+    for (const auto* dep : deps)
+    {
+        if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
+            return JobResult::Sleep;
+    }
 
     symbolFunc_->setCodeGenCompleted(ctx());
     return JobResult::Done;

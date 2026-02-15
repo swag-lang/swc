@@ -15,34 +15,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const SymbolFunction* resolveFunctionSymbol(const SemaNodeView& nodeView)
-    {
-        const Symbol* sym = nodeView.sym;
-        if (!sym && !nodeView.symList.empty())
-            sym = nodeView.symList.front();
-
-        if (!sym || !sym->isFunction())
-            return nullptr;
-
-        return &sym->cast<SymbolFunction>();
-    }
-
     bool isInterfaceMethod(const SymbolFunction& methodSym)
     {
         const SymbolMap* ownerSymMap = methodSym.ownerSymMap();
         if (!ownerSymMap)
             return false;
         return ownerSymMap->safeCast<SymbolInterface>() != nullptr;
-    }
-
-    const SymbolFunction* resolveCalledFunction(CodeGen& codeGen, AstNodeRef calleeRef)
-    {
-        const auto callView = codeGen.curNodeView();
-        if (const auto fromCall = resolveFunctionSymbol(callView))
-            return fromCall;
-
-        const auto calleeView = codeGen.nodeView(calleeRef);
-        return resolveFunctionSymbol(calleeView);
     }
 
     AstNodeRef resolveCalleeRef(CodeGen& codeGen, AstNodeRef calleeRef)
@@ -127,8 +105,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto*      calleePayload     = resolveCalleePayload(codeGen, resolvedCalleeRef);
     SWC_ASSERT(calleePayload != nullptr);
 
-    const SymbolFunction* calledFunction = resolveCalledFunction(codeGen, resolvedCalleeRef);
-    const CallConvKind    callConvKind   = calledFunction->callConvKind();
+    const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
+    const CallConvKind    callConvKind   = calledFunction.callConvKind();
     const CallConv&       callConv       = CallConv::get(callConvKind);
 
     SmallVector<AstNodeRef> args;
@@ -137,7 +115,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     uint32_t   numAbiArgs           = 0;
     AstNodeRef interfaceReceiverRef = AstNodeRef::invalid();
-    if (tryResolveInterfaceReceiver(codeGen, resolvedCalleeRef, calledFunction, interfaceReceiverRef))
+    if (tryResolveInterfaceReceiver(codeGen, resolvedCalleeRef, &calledFunction, interfaceReceiverRef))
     {
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const auto* receiverPayload = codeGen.payload(interfaceReceiverRef);

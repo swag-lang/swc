@@ -15,48 +15,41 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result patchCodeRelocations(MicroInstrBuilder& builder, JITExecMemory& executableMemory)
+    void patchCodeRelocations(MicroInstrBuilder& builder, JITExecMemory& executableMemory)
     {
         const auto& relocations = builder.codeRelocations();
         if (relocations.empty())
-            return Result::Continue;
+            return;
 
         auto* const basePtr = executableMemory.entryPoint<uint8_t*>();
-        if (!basePtr || executableMemory.empty())
-            return Result::Error;
+        SWC_FORCE_ASSERT(basePtr != nullptr);
+        SWC_FORCE_ASSERT(!executableMemory.empty());
 
-        if (!Os::makeWritableExecutableMemory(basePtr, executableMemory.size()))
-            return Result::Error;
+        SWC_FORCE_ASSERT(Os::makeWritableExecutableMemory(basePtr, executableMemory.size()));
 
         for (const auto& reloc : relocations)
         {
             if (reloc.targetAddress == 0)
                 continue;
 
-            if (reloc.kind != MicroInstrCodeRelocation::Kind::Rel32)
-                return Result::Error;
+            SWC_FORCE_ASSERT(reloc.kind == MicroInstrCodeRelocation::Kind::Rel32);
 
             const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
-            if (patchEndOffset > executableMemory.size())
-                return Result::Error;
+            SWC_FORCE_ASSERT(patchEndOffset <= executableMemory.size());
 
             const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
             const auto target      = reloc.targetAddress;
             const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
-            if (delta < std::numeric_limits<int32_t>::min() || delta > std::numeric_limits<int32_t>::max())
-                return Result::Error;
+            SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
 
             const int32_t disp32 = static_cast<int32_t>(delta);
             std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
         }
 
-        if (!Os::makeExecutableMemory(basePtr, executableMemory.size()))
-            return Result::Error;
-
-        return Result::Continue;
+        SWC_FORCE_ASSERT(Os::makeExecutableMemory(basePtr, executableMemory.size()));
     }
 
-    Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
+    void compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegisterAllocationPass regAllocPass;
         MicroPrologEpilogPass       persistentRegsPass;
@@ -76,25 +69,22 @@ namespace
         builder.runPasses(passManager, &encoder, passContext);
 
         const auto codeSize = encoder.size();
-        if (!codeSize)
-            return Result::Error;
+        SWC_FORCE_ASSERT(codeSize != 0);
 
         std::vector<std::byte> linearCode(codeSize);
         encoder.copyTo(linearCode);
 
-        if (!ctx.compiler().jitMemMgr().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
-            return Result::Error;
+        SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory));
 
-        RESULT_VERIFY(patchCodeRelocations(builder, outExecutableMemory));
-        return Result::Continue;
+        patchCodeRelocations(builder, outExecutableMemory);
     }
 }
 
-Result JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
+void JIT::compile(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory)
 {
 #ifdef _M_X64
     X64Encoder encoder(ctx);
-    return compileWithEncoder(ctx, builder, encoder, outExecutableMemory);
+    compileWithEncoder(ctx, builder, encoder, outExecutableMemory);
 #else
     SWC_UNREACHABLE();
 #endif

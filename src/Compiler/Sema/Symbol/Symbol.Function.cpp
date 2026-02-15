@@ -83,23 +83,21 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
         out.push_back(dep);
 }
 
-Result SymbolFunction::ensureEntryAddress(TaskContext& ctx)
+void SymbolFunction::ensureEntryAddress(TaskContext& ctx)
 {
     if (hasJitEntryAddress())
-        return Result::Continue;
+        return;
 
     std::scoped_lock lock(jitMutex_);
     if (hasJitEntryAddress())
-        return Result::Continue;
+        return;
 
-    RESULT_VERIFY(JIT::compile(ctx, microInstrBuilder(ctx), jitExecMemory_));
+    JIT::compile(ctx, microInstrBuilder(ctx), jitExecMemory_);
     const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
-    if (!entry)
-        return Result::Error;
+    SWC_FORCE_ASSERT(entry != 0);
 
     jitEntryAddress_.store(entry, std::memory_order_release);
     ctx.compiler().notifyAlive();
-    return Result::Continue;
 }
 
 bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept

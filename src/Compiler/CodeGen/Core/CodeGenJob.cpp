@@ -80,9 +80,7 @@ JobResult CodeGenJob::exec()
 
     // Materialize function entry address from generated micro instructions.
     ///////////////////////////////////////////
-    const Result entryResult = symbolFunc_->ensureEntryAddress(ctx());
-    if (entryResult != Result::Continue)
-        return toJobResult(entryResult);
+    symbolFunc_->ensureEntryAddress(ctx());
 
     // Finalize only when dependency codegen is already pre-solved or completed.
     ///////////////////////////////////////////

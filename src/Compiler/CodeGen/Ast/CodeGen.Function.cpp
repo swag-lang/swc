@@ -52,6 +52,61 @@ namespace
             outArgs.push_back(preparedArg);
         }
     }
+
+    Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
+    {
+        const CallConvKind callConvKind  = symbolFunc.callConvKind();
+        const CallConv&    callConv      = CallConv::get(callConvKind);
+        const TypeRef      returnTypeRef = symbolFunc.returnTypeRef();
+        const auto         normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+
+        if (normalizedRet.isVoid)
+        {
+            codeGen.builder().encodeRet(EncodeFlagsE::Zero);
+            return Result::Continue;
+        }
+
+        if (exprRef.isInvalid())
+            return Result::Error;
+
+        const auto* exprPayload = codeGen.payload(exprRef);
+        if (!exprPayload || normalizedRet.isIndirect)
+            return Result::Error;
+
+        const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
+        if (retBits == MicroOpBits::Zero)
+            return Result::Error;
+
+        const MicroReg srcReg = exprPayload->reg;
+        if (normalizedRet.isFloat)
+            codeGen.builder().encodeLoadRegReg(callConv.floatReturn, srcReg, retBits, EncodeFlagsE::Zero);
+        else
+            codeGen.builder().encodeLoadRegReg(callConv.intReturn, srcReg, retBits, EncodeFlagsE::Zero);
+
+        codeGen.builder().encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+}
+
+Result AstFunctionDecl::codeGenPreNodeChild(CodeGen&, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::SkipChildren;
+    return Result::Continue;
+}
+
+Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
+{
+    if (!hasFlag(AstFunctionFlagsE::Short))
+        return Result::Continue;
+    if (nodeBodyRef.isInvalid())
+        return Result::Error;
+    return emitFunctionReturn(codeGen, codeGen.function(), nodeBodyRef);
+}
+
+Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
+{
+    return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);
 }
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const

@@ -36,8 +36,8 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     if (leftView.type->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
 
-    SWC_ASSERT(false); // TODO: replace assert with a proper codegen diagnostic.
-    return Result::Error;
+    // TODO
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE();

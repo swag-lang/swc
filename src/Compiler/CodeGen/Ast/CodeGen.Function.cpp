@@ -89,8 +89,7 @@ Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 {
     if (!hasFlag(AstFunctionFlagsE::Short))
         return Result::Continue;
-    if (nodeBodyRef.isInvalid())
-        return Result::Error;
+    SWC_ASSERT(nodeBodyRef.isValid());
     return emitFunctionReturn(codeGen, codeGen.function(), nodeBodyRef);
 }
 
@@ -153,10 +152,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         }
 
         default:
-            SWC_ASSERT(false); // TODO: replace assert with a proper codegen diagnostic.
-            return Result::Error;
+            // TODO
+            SWC_UNREACHABLE();
     }
 }
 
 SWC_END_NAMESPACE();
-

@@ -31,8 +31,8 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenUnaryDeref(codeGen, nodeExprRef);
 
         default:
-            SWC_ASSERT(false); // TODO: replace assert with a proper codegen diagnostic.
-            return Result::Error;
+            // TODO
+            SWC_UNREACHABLE();
     }
 }
 

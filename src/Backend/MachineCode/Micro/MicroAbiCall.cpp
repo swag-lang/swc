@@ -83,4 +83,18 @@ void emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConv
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
+void emitMicroABICallByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
+{
+    const auto& conv        = CallConv::get(callConvKind);
+    const auto  stackAdjust = computeCallStackAdjust(conv, numPreparedArgs);
+
+    if (stackAdjust)
+        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
+
+    builder.encodeCallReg(targetReg, callConvKind, EncodeFlagsE::Zero);
+
+    if (stackAdjust)
+        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+}
+
 SWC_END_NAMESPACE();

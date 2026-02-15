@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/MachineCode/CallConv.h"
+#include "Backend/MachineCode/Micro/MicroAbiCall.h"
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -14,8 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
-
     const SymbolFunction* resolveFunctionSymbol(const SemaNodeView& nodeView)
     {
         const Symbol* sym = nodeView.sym;
@@ -106,7 +105,7 @@ namespace
                 continue;
             }
 
-            const AstNode& node = codeGen.node(currentRef);
+            const AstNode&          node = codeGen.node(currentRef);
             SmallVector<AstNodeRef> children;
             Ast::nodeIdInfos(node.id()).collectChildren(children, codeGen.ast(), node);
             if (children.size() != 1 || !children.front().isValid())
@@ -118,17 +117,6 @@ namespace
         return nullptr;
     }
 
-    uint32_t computeCallStackAdjust(const CallConv& conv, uint32_t numArgs)
-    {
-        const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-        const uint32_t stackSlotSize = conv.stackSlotSize();
-        const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
-        const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
-        const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-        const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
-        const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
-        return frameBaseSize + alignPad;
-    }
 }
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -147,7 +135,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     collectArguments(args, codeGen.ast());
     SWC_ASSERT(args.empty()); // TODO: replace assert with a proper codegen diagnostic.
 
-    uint32_t numAbiArgs = 0;
+    uint32_t   numAbiArgs           = 0;
     AstNodeRef interfaceReceiverRef = AstNodeRef::invalid();
     if (tryResolveInterfaceReceiver(codeGen, resolvedCalleeRef, calledFunction, interfaceReceiverRef))
     {
@@ -161,20 +149,13 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         numAbiArgs = 1;
     }
 
-    const uint32_t stackAdjust = computeCallStackAdjust(callConv, numAbiArgs);
-    if (stackAdjust)
-        builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
-
     const MicroReg calleeReg = codeGen.payloadVirtualReg(*calleePayload);
-    builder.encodeCallReg(calleeReg, callConvKind, EncodeFlagsE::Zero);
+    emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);
 
-    if (stackAdjust)
-        builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
-
-    auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
-    *resultStorage      = 0;
-    auto& nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const MicroReg resultReg = codeGen.payloadVirtualReg(nodePayload);
+    auto* resultStorage        = codeGen.ctx().compiler().allocate<uint64_t>();
+    *resultStorage             = 0;
+    const auto&    nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    const MicroReg resultReg   = codeGen.payloadVirtualReg(nodePayload);
     builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
 

@@ -21,5 +21,6 @@ struct MicroABICallReturn
 };
 
 void emitMicroABICallByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const MicroABICallArg> args, const MicroABICallReturn& ret);
+void emitMicroABICallByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs);
 
 SWC_END_NAMESPACE();

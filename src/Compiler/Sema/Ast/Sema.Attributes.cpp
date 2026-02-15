@@ -138,6 +138,14 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
 
 Result AstAttributeList::semaPreNode(Sema& sema)
 {
+    const AstNode* parentNode = sema.visit().parentNode();
+    if (parentNode && parentNode->is(AstNodeId::CompilerGlobal))
+    {
+        const auto* parentGlobal = parentNode->cast<AstCompilerGlobal>();
+        if (parentGlobal && parentGlobal->mode == AstCompilerGlobal::Mode::AttributeList)
+            return Result::Continue;
+    }
+
     const SemaFrame newFrame = sema.frame();
     sema.pushFramePopOnPostNode(newFrame);
     return Result::Continue;

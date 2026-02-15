@@ -103,6 +103,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
 };
 

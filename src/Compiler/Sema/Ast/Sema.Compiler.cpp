@@ -290,6 +290,13 @@ Result AstCompilerGlobal::semaPreNode(Sema& sema) const
     return semaPreDecl(sema);
 }
 
+Result AstCompilerGlobal::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (mode == Mode::AttributeList && childRef == nodeModeRef)
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Zero, childRef);
+    return Result::Continue;
+}
+
 namespace
 {
     Result semaCompilerGlobalIf(Sema& sema, const AstCompilerGlobal& node)
@@ -318,11 +325,13 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
             return semaCompilerGlobalIf(sema, *this);
 
         case Mode::Export:
-        case Mode::AttributeList:
         case Mode::Using:
         case Mode::SkipFmt:
             // TODO
             return Result::SkipChildren;
+
+        case Mode::AttributeList:
+            return Result::Continue;
 
         default:
             break;

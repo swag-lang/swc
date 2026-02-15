@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "Wmf/SourceFile.h"
-#include "Compiler/Sema/Core/NodePayloadContext.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -16,7 +16,7 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    nodePayloadContext_ = std::make_unique<NodePayloadContext>();
+    nodePayloadContext_ = std::make_unique<NodePayload>();
     unitTest_           = std::make_unique<Verify>(this);
 }
 

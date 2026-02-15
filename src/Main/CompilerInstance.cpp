@@ -108,14 +108,13 @@ void CompilerInstance::logBefore()
     if (ctx.cmdLine().randomize)
         Logger::printHeaderCentered(ctx, LogColor::Blue, "[Randomize]", LogColor::Blue, std::format("seed is {}", ctx.global().jobMgr().randSeed()));
 #endif
-
 }
 
 void CompilerInstance::logAfter()
 {
     const TaskContext ctx(*this);
 
-    const auto timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
+    const auto         timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     Logger::ScopedLock loggerLock(ctx.global().logger());
     if (Stats::get().numErrors.load() == 1)
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, "1 error");

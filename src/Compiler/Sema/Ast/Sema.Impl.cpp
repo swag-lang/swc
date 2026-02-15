@@ -13,9 +13,9 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView identView = sema.nodeView(nodeIdentRef);
-        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node->codeRef());
-        SymbolImpl*         sym   = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
+        const SemaNodeView  identView = sema.nodeView(nodeIdentRef);
+        const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node->codeRef());
+        SymbolImpl*         sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
         // An `impl` block will be registered to its target (struct/enum/interface) only in the
@@ -38,7 +38,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView = sema.nodeView(nodeIdentRef);
-        Symbol& sym = *SWC_CHECK_NOT_NULL(identView.sym);
+        Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym);
         if (hasFlag(AstImplFlagsE::Enum))
         {
             if (!sym.isEnum())
@@ -65,7 +65,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeForRef)
     {
         const SemaNodeView identView = sema.nodeView(nodeIdentRef);
-        const SemaNodeView forView = sema.nodeView(nodeForRef);
+        const SemaNodeView forView   = sema.nodeView(nodeForRef);
         SWC_ASSERT(forView.sym);
         if (!forView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);

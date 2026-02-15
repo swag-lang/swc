@@ -50,7 +50,7 @@ namespace
 Result AstIndexExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
-    const SemaNodeView nodeArgView = sema.nodeView(nodeArgRef);
+    const SemaNodeView nodeArgView  = sema.nodeView(nodeArgRef);
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
@@ -160,7 +160,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         for (size_t i = 0; i < numGot; i++)
         {
-            const auto         nodeRef = children[i];
+            const auto         nodeRef     = children[i];
             const SemaNodeView nodeArgView = sema.nodeView(nodeRef);
 
             int64_t constIndex    = 0;
@@ -225,7 +225,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot == 1)
         {
-            const SemaNodeView nodeArgView = sema.nodeView(children[0]);
+            const SemaNodeView nodeArgView   = sema.nodeView(children[0]);
             int64_t            constIndex    = 0;
             bool               hasConstIndex = false;
             RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));

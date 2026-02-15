@@ -52,8 +52,8 @@ namespace
         if (!context.taskContext || !context.builder)
             return;
 
-        const auto& ctx     = *context.taskContext;
-        const auto& builder = *context.builder;
+        const auto&        ctx     = *context.taskContext;
+        const auto&        builder = *context.builder;
         Logger::ScopedLock loggerLock(ctx.global().logger());
 
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};

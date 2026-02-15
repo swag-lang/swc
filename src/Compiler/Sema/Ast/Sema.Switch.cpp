@@ -149,7 +149,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         if (!isUnconditionalDefault)
         {
             const SemaNodeView whereView = sema.nodeView(nodeWhereRef);
-            isUnconditionalDefault = whereView.cstRef == sema.cstMgr().cstTrue();
+            isUnconditionalDefault       = whereView.cstRef == sema.cstMgr().cstTrue();
         }
         if (!isUnconditionalDefault)
             return Result::Continue;

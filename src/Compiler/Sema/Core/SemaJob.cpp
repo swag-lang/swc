@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SemaJob::SemaJob(const TaskContext& ctx, NodePayloadContext& nodePayloadContext, bool declPass) :
+SemaJob::SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass) :
     Job(ctx, JobKind::Sema),
     sema_(Job::ctx(), nodePayloadContext, declPass)
 {

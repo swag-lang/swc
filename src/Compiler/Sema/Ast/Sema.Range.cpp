@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 Result AstRangeExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeDownView = sema.nodeView(nodeExprDownRef);
-    SemaNodeView nodeUpView = sema.nodeView(nodeExprUpRef);
+    SemaNodeView nodeUpView   = sema.nodeView(nodeExprUpRef);
 
     if (nodeDownView.nodeRef.isValid())
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef));

@@ -2,7 +2,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
-#include "Compiler/Sema/Core/NodePayloadContext.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -19,7 +19,7 @@ class IdentifierManager;
 class Sema
 {
 public:
-    Sema(TaskContext& ctx, NodePayloadContext& payloadContext, bool declPass);
+    Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass);
     Sema(TaskContext& ctx, const Sema& parent, AstNodeRef root);
     ~Sema();
     JobResult exec();
@@ -90,22 +90,22 @@ public:
     bool                     hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
     void                     setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
 
-    bool isLValue(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::LValue); }
-    bool isValue(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(const AstNode& node) const { return NodePayloadContext::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::LValue); }
-    void setIsValue(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNode& node) { NodePayloadContext::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    bool isLValue(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    bool isValue(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayloadContext::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    void setIsValue(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNodeRef ref) { NodePayloadContext::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
+    bool isValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::LValue); }
+    void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
+    void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
 
-    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
-    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::inheritPayloadKindRef(nodeDst, node(srcRef)); }
-    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayloadContext::inheritPayload(nodeDst, node(srcRef)); }
+    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
+    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }
+    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
 
     template<typename T>
     T* payload(AstNodeRef n) const
@@ -147,12 +147,12 @@ public:
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
-    SemaScope*                pushScope(SemaScopeFlags flags);
-    void                      popScope();
-    void                      pushFrame(const SemaFrame& frame);
-    void                      popFrame();
-    NodePayloadContext&       nodePayloadContext() { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
-    const NodePayloadContext& nodePayloadContext() const { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
+    SemaScope*         pushScope(SemaScopeFlags flags);
+    void               popScope();
+    void               pushFrame(const SemaFrame& frame);
+    void               popFrame();
+    NodePayload&       nodePayloadContext() { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
+    const NodePayload& nodePayloadContext() const { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
 
     void   setVisitors();
     Result preDecl(AstNode& node);
@@ -170,9 +170,9 @@ private:
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
-    TaskContext*        ctx_                = nullptr;
-    NodePayloadContext* nodePayloadContext_ = nullptr;
-    AstVisit            visit_;
+    TaskContext* ctx_                = nullptr;
+    NodePayload* nodePayloadContext_ = nullptr;
+    AstVisit     visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_ = nullptr;

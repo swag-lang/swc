@@ -53,18 +53,18 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    std::string            formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
-    void                   printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
-    void                   setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
-    MicroInstrBuilderFlags flags() const { return flags_; }
-    bool                   hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                   setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
-    void                   setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
+    std::string                formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
+    void                       printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
+    void                       setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
+    MicroInstrBuilderFlags     flags() const { return flags_; }
+    bool                       hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                       setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
+    void                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
     const MicroInstrDebugInfo* debugInfo(Ref instructionRef) const;
-    void                   setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
-    const std::string&     printSymbolName() const { return printSymbolName_; }
-    const std::string&     printFilePath() const { return printFilePath_; }
-    uint32_t               printSourceLine() const { return printSourceLine_; }
+    void                       setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
+    const std::string&         printSymbolName() const { return printSymbolName_; }
+    const std::string&         printFilePath() const { return printFilePath_; }
+    uint32_t                   printSourceLine() const { return printSourceLine_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -114,18 +114,18 @@ public:
 
 private:
     std::pair<Ref, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
-    MicroInstr& addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
-    void        storeInstructionDebugInfo(Ref instructionRef);
+    MicroInstr&                 addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
+    void                        storeInstructionDebugInfo(Ref instructionRef);
 
-    TaskContext*           ctx_ = nullptr;
-    MicroInstrStorage      instructions_;
-    MicroOperandStorage    operands_;
-    MicroInstrBuilderFlags flags_ = MicroInstrBuilderFlagsE::Zero;
+    TaskContext*                                    ctx_ = nullptr;
+    MicroInstrStorage                               instructions_;
+    MicroOperandStorage                             operands_;
+    MicroInstrBuilderFlags                          flags_ = MicroInstrBuilderFlagsE::Zero;
     std::vector<std::optional<MicroInstrDebugInfo>> debugInfos_;
-    MicroInstrDebugInfo                       currentDebugInfo_;
-    std::string            printSymbolName_;
-    std::string            printFilePath_;
-    uint32_t               printSourceLine_ = 0;
+    MicroInstrDebugInfo                             currentDebugInfo_;
+    std::string                                     printSymbolName_;
+    std::string                                     printFilePath_;
+    uint32_t                                        printSourceLine_ = 0;
 };
 
 SWC_END_NAMESPACE();

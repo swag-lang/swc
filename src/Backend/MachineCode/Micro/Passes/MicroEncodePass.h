@@ -10,7 +10,7 @@ class MicroEncodePass final : public MicroPass
 {
 public:
     MicroPassKind kind() const override { return MicroPassKind::Encode; }
-    void run(MicroPassContext& context) override;
+    void          run(MicroPassContext& context) override;
 
 private:
     void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, Ref instRef);

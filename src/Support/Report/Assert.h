@@ -6,7 +6,7 @@ class TaskContext;
 void swcAssert(const char* expr, const char* file, int line);
 void swcInternalError(const char* file, int line);
 
-template <typename T>
+template<typename T>
 constexpr T swcCheck(T value, const char* expr, const char* file, int line) noexcept
 {
 #if SWC_HAS_ASSERT
@@ -16,7 +16,7 @@ constexpr T swcCheck(T value, const char* expr, const char* file, int line) noex
     return value;
 }
 
-template <typename T, typename U>
+template<typename T, typename U>
 constexpr T swcCheckNot(T value, const U& passValue, const char* expr, const char* file, int line) noexcept
 {
 #if SWC_HAS_ASSERT
@@ -26,7 +26,7 @@ constexpr T swcCheckNot(T value, const U& passValue, const char* expr, const cha
     return value;
 }
 
-template <typename T>
+template<typename T>
 constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int line) noexcept
 {
 #if SWC_HAS_ASSERT
@@ -76,8 +76,8 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
         std::unreachable(); \
     } while (0)
 
-#define SWC_CHECK(__expr) swcCheck((__expr), #__expr, __FILE__, __LINE__)
+#define SWC_CHECK(__expr)                   swcCheck((__expr), #__expr, __FILE__, __LINE__)
 #define SWC_CHECK_NOT(__expr, __pass_value) swcCheckNot((__expr), (__pass_value), #__expr " != " #__pass_value, __FILE__, __LINE__)
-#define SWC_CHECK_NOT_NULL(__expr) swcCheckNotNull((__expr), #__expr " != nullptr", __FILE__, __LINE__)
+#define SWC_CHECK_NOT_NULL(__expr)          swcCheckNotNull((__expr), #__expr " != nullptr", __FILE__, __LINE__)
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Compiler/Sema/Core/NodePayloadContext.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -52,7 +52,7 @@ namespace
     }
 }
 
-bool NodePayloadContext::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
+bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -60,7 +60,7 @@ bool NodePayloadContext::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef)
     return cstRef.isValid();
 }
 
-const ConstantValue& NodePayloadContext::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
+const ConstantValue& NodePayload::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasConstant(ctx, nodeRef));
     const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
@@ -68,7 +68,7 @@ const ConstantValue& NodePayloadContext::getConstant(const TaskContext& ctx, Ast
     return ctx.cstMgr().get(cstRef);
 }
 
-ConstantRef NodePayloadContext::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
+ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return ConstantRef::invalid();
@@ -115,7 +115,7 @@ ConstantRef NodePayloadContext::getConstantRef(const TaskContext& ctx, AstNodeRe
     return ConstantRef::invalid();
 }
 
-void NodePayloadContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
+void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
@@ -125,7 +125,7 @@ void NodePayloadContext::setConstant(AstNodeRef nodeRef, ConstantRef ref)
     addPayloadFlags(node, NodePayloadFlags::Value);
 }
 
-bool NodePayloadContext::hasSubstitute(AstNodeRef nodeRef) const
+bool NodePayload::hasSubstitute(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -133,7 +133,7 @@ bool NodePayloadContext::hasSubstitute(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::Substitute;
 }
 
-void NodePayloadContext::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
+void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
@@ -142,7 +142,7 @@ void NodePayloadContext::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeR
     node.setPayloadRef(substNodeRef.get());
 }
 
-AstNodeRef NodePayloadContext::getSubstituteRef(AstNodeRef nodeRef) const
+AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nodeRef;
@@ -160,7 +160,7 @@ AstNodeRef NodePayloadContext::getSubstituteRef(AstNodeRef nodeRef) const
     return nodeRef;
 }
 
-bool NodePayloadContext::hasType(const TaskContext& ctx, AstNodeRef nodeRef) const
+bool NodePayload::hasType(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -168,7 +168,7 @@ bool NodePayloadContext::hasType(const TaskContext& ctx, AstNodeRef nodeRef) con
     return typeRef.isValid();
 }
 
-TypeRef NodePayloadContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
+TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return TypeRef::invalid();
@@ -207,7 +207,7 @@ TypeRef NodePayloadContext::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRe
     return unwrapFunctionReturnTypeIfCall(ctx, node, value);
 }
 
-void NodePayloadContext::setType(AstNodeRef nodeRef, TypeRef ref)
+void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
@@ -216,7 +216,7 @@ void NodePayloadContext::setType(AstNodeRef nodeRef, TypeRef ref)
     node.setPayloadRef(ref.get());
 }
 
-bool NodePayloadContext::hasSymbol(AstNodeRef nodeRef) const
+bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -224,31 +224,31 @@ bool NodePayloadContext::hasSymbol(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::SymbolRef;
 }
 
-const Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
+const Symbol& NodePayload::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
+{
+    SWC_ASSERT(hasSymbol(nodeRef));
+    const AstNode&       node     = ast().node(nodeRef);
+    const auto           info     = payloadInfo(node);
+    const uint32_t       shardIdx = info.shardIdx;
+    auto&                shard    = shards_[shardIdx];
+    const Symbol* const* slot     = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    const Symbol&        value    = *SWC_CHECK_NOT_NULL(*slot);
+    return value;
+}
+
+Symbol& NodePayload::getSymbol(const TaskContext&, AstNodeRef nodeRef)
 {
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    const Symbol* const* slot = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    const Symbol&        value = *SWC_CHECK_NOT_NULL(*slot);
+    Symbol**       slot     = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    Symbol&        value    = *SWC_CHECK_NOT_NULL(*slot);
     return value;
 }
 
-Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeRef)
-{
-    SWC_ASSERT(hasSymbol(nodeRef));
-    const AstNode& node     = ast().node(nodeRef);
-    const auto     info     = payloadInfo(node);
-    const uint32_t shardIdx = info.shardIdx;
-    auto&          shard    = shards_[shardIdx];
-    Symbol** slot  = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    Symbol&  value = *SWC_CHECK_NOT_NULL(*slot);
-    return value;
-}
-
-void NodePayloadContext::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
+void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     SWC_ASSERT(symbol);
     const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
@@ -264,7 +264,7 @@ void NodePayloadContext::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     updatePayloadFlags(node, std::span{&symbol, 1});
 }
 
-bool NodePayloadContext::hasSymbolList(AstNodeRef nodeRef) const
+bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -272,7 +272,7 @@ bool NodePayloadContext::hasSymbolList(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::SymbolList;
 }
 
-std::span<const Symbol*> NodePayloadContext::getSymbolListImpl(AstNodeRef nodeRef) const
+std::span<const Symbol*> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
@@ -290,18 +290,18 @@ std::span<const Symbol*> NodePayloadContext::getSymbolListImpl(AstNodeRef nodeRe
     return std::span{static_cast<const Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
 }
 
-std::span<const Symbol*> NodePayloadContext::getSymbolList(AstNodeRef nodeRef) const
+std::span<const Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef) const
 {
     return getSymbolListImpl(nodeRef);
 }
 
-std::span<Symbol*> NodePayloadContext::getSymbolList(AstNodeRef nodeRef)
+std::span<Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef)
 {
     const auto res = getSymbolListImpl(nodeRef);
     return {const_cast<Symbol**>(res.data()), res.size()};
 }
 
-void NodePayloadContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
@@ -316,7 +316,7 @@ void NodePayloadContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<const S
     updatePayloadFlags(node, symbols);
 }
 
-void NodePayloadContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
+void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
     const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     auto&            shard    = shards_[shardIdx];
@@ -336,17 +336,17 @@ void NodePayloadContext::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*
     updatePayloadFlags(node, std::span{tmp.data(), tmp.size()});
 }
 
-void NodePayloadContext::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
+void NodePayload::setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     setSymbolListImpl(nodeRef, symbols);
 }
 
-void NodePayloadContext::setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols)
+void NodePayload::setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
     setSymbolListImpl(nodeRef, symbols);
 }
 
-void NodePayloadContext::updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols)
+void NodePayload::updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols)
 {
     bool isValue  = true;
     bool isLValue = true;
@@ -369,7 +369,7 @@ void NodePayloadContext::updatePayloadFlags(AstNode& node, std::span<const Symbo
         removePayloadFlags(node, NodePayloadFlags::LValue);
 }
 
-bool NodePayloadContext::hasPayload(AstNodeRef nodeRef) const
+bool NodePayload::hasPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -377,7 +377,7 @@ bool NodePayloadContext::hasPayload(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::Payload;
 }
 
-void NodePayloadContext::setPayload(AstNodeRef nodeRef, void* payload)
+void NodePayload::setPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
 
@@ -393,7 +393,7 @@ void NodePayloadContext::setPayload(AstNodeRef nodeRef, void* payload)
     node.setPayloadRef(value);
 }
 
-void* NodePayloadContext::getPayload(AstNodeRef nodeRef) const
+void* NodePayload::getPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasPayload(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
@@ -403,7 +403,7 @@ void* NodePayloadContext::getPayload(AstNodeRef nodeRef) const
     return *SWC_CHECK_NOT_NULL(shard.store.ptr<void*>(info.ref));
 }
 
-void NodePayloadContext::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args)
+void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const AstNodeRef> args)
 {
     SWC_ASSERT(nodeRef.isValid());
 
@@ -436,7 +436,7 @@ void NodePayloadContext::setResolvedCallArguments(AstNodeRef nodeRef, std::span<
     node.setPayloadRef(value);
 }
 
-void NodePayloadContext::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const
+void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<AstNodeRef>& out) const
 {
     if (nodeRef.isInvalid())
         return;
@@ -451,7 +451,7 @@ void NodePayloadContext::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVe
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto& shard = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const auto* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -464,7 +464,7 @@ void NodePayloadContext::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVe
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto& shard = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const auto* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             ast().appendNodes(out, storage->argsSpan);
@@ -475,7 +475,7 @@ void NodePayloadContext::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVe
     }
 }
 
-bool NodePayloadContext::hasCodeGenPayload(AstNodeRef nodeRef) const
+bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -483,7 +483,7 @@ bool NodePayloadContext::hasCodeGenPayload(AstNodeRef nodeRef) const
     return payloadKind(node) == NodePayloadKind::CodeGenPayload;
 }
 
-void NodePayloadContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
+void NodePayload::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
@@ -511,7 +511,7 @@ void NodePayloadContext::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
     node.setPayloadRef(value);
 }
 
-void* NodePayloadContext::getCodeGenPayload(AstNodeRef nodeRef) const
+void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     if (!hasCodeGenPayload(nodeRef))
@@ -522,7 +522,7 @@ void* NodePayloadContext::getCodeGenPayload(AstNodeRef nodeRef) const
     return storage->payload;
 }
 
-void NodePayloadContext::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
+void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)
 {
     if (merge)
         nodeDst.payloadBits() |= (nodeSrc.payloadBits() & mask);
@@ -530,20 +530,20 @@ void NodePayloadContext::propagatePayloadFlags(AstNode& nodeDst, const AstNode& 
         nodeDst.payloadBits() = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
 }
 
-void NodePayloadContext::inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
+void NodePayload::inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc)
 {
     constexpr uint16_t mask = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK;
     nodeDst.payloadBits()   = (nodeDst.payloadBits() & ~mask) | (nodeSrc.payloadBits() & mask);
     nodeDst.setPayloadRef(nodeSrc.payloadRef());
 }
 
-void NodePayloadContext::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
+void NodePayload::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
 {
     propagatePayloadFlags(nodeDst, nodeSrc, NODE_PAYLOAD_FLAGS_MASK, false);
     inheritPayloadKindRef(nodeDst, nodeSrc);
 }
 
-NodePayloadContext::PayloadInfo NodePayloadContext::payloadInfo(const AstNode& node) const
+NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 {
     PayloadInfo info = {
         .kind     = payloadKind(node),
@@ -555,7 +555,7 @@ NodePayloadContext::PayloadInfo NodePayloadContext::payloadInfo(const AstNode& n
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto& shard = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const auto* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -568,7 +568,7 @@ NodePayloadContext::PayloadInfo NodePayloadContext::payloadInfo(const AstNode& n
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto& shard = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const auto* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -583,7 +583,7 @@ NodePayloadContext::PayloadInfo NodePayloadContext::payloadInfo(const AstNode& n
     }
 }
 
-NodePayloadContext::CodeGenPayloadStorage* NodePayloadContext::codeGenPayloadStorage(const AstNode& node) const
+NodePayload::CodeGenPayloadStorage* NodePayload::codeGenPayloadStorage(const AstNode& node) const
 {
     SWC_ASSERT(payloadKind(node) == NodePayloadKind::CodeGenPayload);
     const uint32_t shardIdx = payloadShard(node);
@@ -591,7 +591,7 @@ NodePayloadContext::CodeGenPayloadStorage* NodePayloadContext::codeGenPayloadSto
     return shard.store.ptr<CodeGenPayloadStorage>(node.payloadRef());
 }
 
-NodePayloadContext::ResolvedCallArgsStorage* NodePayloadContext::resolvedCallArgsStorage(const AstNode& node) const
+NodePayload::ResolvedCallArgsStorage* NodePayload::resolvedCallArgsStorage(const AstNode& node) const
 {
     SWC_ASSERT(payloadKind(node) == NodePayloadKind::ResolvedCallArgs);
     const uint32_t shardIdx = payloadShard(node);

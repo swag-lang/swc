@@ -7,7 +7,7 @@ class MicroPersistentRegsPass final : public MicroPass
 {
 public:
     MicroPassKind kind() const override { return MicroPassKind::PersistentRegs; }
-    void run(MicroPassContext& context) override;
+    void          run(MicroPassContext& context) override;
 
 private:
     struct SavedRegSlot

@@ -114,8 +114,8 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     SWC_ASSERT(sema.hasConstant(nodeArgRef));
 
-    const Token&      tok     = sema.token(codeRef());
-    const SemaNodeView argView = sema.nodeView(nodeArgRef);
+    const Token&         tok      = sema.token(codeRef());
+    const SemaNodeView   argView  = sema.nodeView(nodeArgRef);
     const ConstantValue& constant = *SWC_CHECK_NOT_NULL(argView.cst);
     switch (tok.id)
     {
@@ -342,7 +342,7 @@ namespace
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView nodeView = sema.nodeView(childRef);
+        SemaNodeView     nodeView = sema.nodeView(childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.cstRef.isValid())
@@ -360,7 +360,7 @@ namespace
     Result semaCompilerKindOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView nodeView = sema.nodeView(childRef);
+        SemaNodeView     nodeView = sema.nodeView(childRef);
         SWC_ASSERT(nodeView.typeRef.isValid());
 
         if (nodeView.type->isEnum())
@@ -415,7 +415,7 @@ namespace
     {
         auto&            ctx      = sema.ctx();
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView nodeView = sema.nodeView(childRef);
+        SemaNodeView     nodeView = sema.nodeView(childRef);
 
         if (nodeView.sym)
         {

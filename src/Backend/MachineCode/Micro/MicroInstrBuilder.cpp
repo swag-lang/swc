@@ -8,9 +8,9 @@ SWC_BEGIN_NAMESPACE();
 std::pair<Ref, MicroInstr&> MicroInstrBuilder::addInstructionWithRef(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands)
 {
     auto [instRef, inst] = instructions_.emplaceUninit();
-    inst->op          = op;
-    inst->emitFlags   = emitFlags;
-    inst->numOperands = numOperands;
+    inst->op             = op;
+    inst->emitFlags      = emitFlags;
+    inst->numOperands    = numOperands;
     if (numOperands)
     {
         auto [opsRef, ops] = operands_.emplaceUninitArray(numOperands);
@@ -147,8 +147,8 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
 
 EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    auto [ref, inst]   = addInstructionWithRef(MicroInstrOpcode::JumpCond, emitFlags, 2);
-    auto* ops          = inst.ops(operands_);
+    auto [ref, inst] = addInstructionWithRef(MicroInstrOpcode::JumpCond, emitFlags, 2);
+    auto* ops        = inst.ops(operands_);
 
     jump.offsetStart = ref;
     jump.opBits      = opBits;

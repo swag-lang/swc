@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/NodePayloadContext.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
@@ -16,7 +16,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Sema::Sema(TaskContext& ctx, NodePayloadContext& payloadContext, bool declPass) :
+Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     ctx_(&ctx),
     nodePayloadContext_(&payloadContext),
     startSymMap_(nodePayloadContext().moduleNamespace().ownerSymMap()),

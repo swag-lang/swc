@@ -85,7 +85,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    SymbolEnum&  sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    SymbolEnum&  sym      = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
     SemaNodeView typeView = sema.nodeView(nodeTypeRef);
 
     if (nodeTypeRef.isValid())
@@ -124,7 +124,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
-    auto&        ctx = sema.ctx();
+    auto&        ctx          = sema.ctx();
     SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
 
     SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();

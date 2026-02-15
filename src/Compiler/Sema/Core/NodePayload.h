@@ -34,7 +34,7 @@ enum class NodePayloadFlags : uint16_t
     Value            = 1 << 15,
 };
 
-class NodePayloadContext
+class NodePayload
 {
     friend class Sema;
     friend class SourceFile;
@@ -109,10 +109,10 @@ private:
 
     struct ResolvedCallArgsStorage
     {
-        SpanRef         argsSpan       = SpanRef::invalid();
-        NodePayloadKind originalKind   = NodePayloadKind::Invalid;
-        uint32_t        originalRef    = 0;
-        uint32_t        originalShard  = 0;
+        SpanRef         argsSpan      = SpanRef::invalid();
+        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
+        uint32_t        originalRef   = 0;
+        uint32_t        originalShard = 0;
     };
 
     struct PayloadInfo

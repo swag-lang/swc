@@ -19,13 +19,13 @@ enum class MicroPassKind : uint8_t
 
 enum class MicroPassPrintFlagsE : uint32_t
 {
-    Zero                  = 0,
-    BeforeRegAlloc        = 1 << 0,
-    AfterRegAlloc         = 1 << 1,
-    BeforePersistentRegs  = 1 << 2,
-    AfterPersistentRegs   = 1 << 3,
-    BeforeEncode          = 1 << 4,
-    AfterEncode           = 1 << 5,
+    Zero                 = 0,
+    BeforeRegAlloc       = 1 << 0,
+    AfterRegAlloc        = 1 << 1,
+    BeforePersistentRegs = 1 << 2,
+    AfterPersistentRegs  = 1 << 3,
+    BeforeEncode         = 1 << 4,
+    AfterEncode          = 1 << 5,
 };
 using MicroPassPrintFlags = EnumFlags<MicroPassPrintFlagsE>;
 
@@ -46,9 +46,9 @@ struct MicroPassContext
 class MicroPass
 {
 public:
-    virtual ~MicroPass()                        = default;
-    virtual MicroPassKind kind() const          = 0;
-    virtual void run(MicroPassContext& context) = 0;
+    virtual ~MicroPass()                                 = default;
+    virtual MicroPassKind kind() const                   = 0;
+    virtual void          run(MicroPassContext& context) = 0;
 };
 
 class MicroPassManager

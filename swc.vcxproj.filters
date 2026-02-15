@@ -135,8 +135,8 @@
     <ClCompile Include="src\Backend\JIT\JITExecMemoryManager.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\CallConv.cpp">
-      <Filter>src\Backend\MachineCode</Filter>
+    <ClCompile Include="src\Backend\MachineCode\Abi\CallConv.cpp">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp">
       <Filter>src\Backend\MachineCode\Encoder</Filter>
@@ -629,8 +629,8 @@
     <ClInclude Include="src\Backend\JIT\JITExecMemoryManager.h">
       <Filter>src\Backend\JIT</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\CallConv.h">
-      <Filter>src\Backend\MachineCode</Filter>
+    <ClInclude Include="src\Backend\MachineCode\Abi\CallConv.h">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h">
       <Filter>src\Backend\MachineCode\Encoder</Filter>

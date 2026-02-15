@@ -197,7 +197,7 @@
         <ClCompile Include="src\Backend\JIT\JITExecMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JitExecMemory.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Abi\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Abi\ABICall.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Abi\ABITypeNormalize.cpp"/>
@@ -365,7 +365,7 @@
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrStorage.h"/>
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
-        <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Abi\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc"/>
         <ClInclude Include="src\Backend\MachineCode\Abi\ABICall.h"/>

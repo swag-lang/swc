@@ -168,6 +168,9 @@
     <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.cpp">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPersistentRegsPass.cpp">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp">
       <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
@@ -666,6 +669,9 @@
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.h">
+      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPersistentRegsPass.h">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h">

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/MachineCode/CallConv.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroPersistentRegsPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
@@ -152,6 +153,60 @@ namespace
                 b.encodeCallReg(MicroReg::intReg(0), callConvKind, EncodeFlagsE::Zero);
         }
     }
+
+    void buildPersistentWithReturn(MicroInstrBuilder& b, CallConvKind callConvKind)
+    {
+        constexpr auto v0 = MicroReg::virtualIntReg(3000);
+
+        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeCallReg(MicroReg::intReg(0), callConvKind, EncodeFlagsE::Zero);
+        b.encodeOpBinaryRegImm(v0, 2, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeRet(EncodeFlagsE::Zero);
+    }
+
+    void buildNoPersistentWithReturn(MicroInstrBuilder& b, CallConvKind)
+    {
+        constexpr auto v0 = MicroReg::virtualIntReg(3100);
+
+        b.encodeLoadRegImm(v0, 3, MicroOpBits::B64, EncodeFlagsE::Zero);
+        b.encodeRet(EncodeFlagsE::Zero);
+    }
+
+    bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
+    {
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+
+        const auto* ops = inst.ops(operands);
+        return ops[0].reg == stackPtr && ops[1].opBits == MicroOpBits::B64 && ops[2].microOp == op;
+    }
+
+    bool hasPersistentFrameOps(MicroInstrBuilder& builder, const CallConv& conv, bool* outHasSub = nullptr, bool* outHasAdd = nullptr)
+    {
+        auto& storeOps = builder.operands();
+        bool  hasSub   = false;
+        bool  hasAdd   = false;
+        bool  hasStore = false;
+        bool  hasLoad  = false;
+
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Subtract))
+                hasSub = true;
+            else if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Add))
+                hasAdd = true;
+            else if (inst.op == MicroInstrOpcode::LoadMemReg)
+                hasStore = true;
+            else if (inst.op == MicroInstrOpcode::LoadRegMem)
+                hasLoad = true;
+        }
+
+        if (outHasSub)
+            *outHasSub = hasSub;
+        if (outHasAdd)
+            *outHasAdd = hasAdd;
+        return hasSub && hasAdd && hasStore && hasLoad;
+    }
 }
 
 SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
@@ -175,6 +230,83 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(RegAlloc_LotsOfVirtualRegs)
 {
     RESULT_VERIFY(runCase(ctx, buildLotsOfVirtualRegs));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroInstrBuilder builder(ctx);
+        buildPersistentWithReturn(builder, callConvKind);
+
+        MicroRegAllocPass       regAllocPass;
+        MicroPersistentRegsPass persistentRegsPass;
+        MicroPassManager        passes;
+        passes.add(regAllocPass);
+        passes.add(persistentRegsPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = callConvKind;
+        passCtx.preservePersistentRegs = true;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        bool hasSub = false;
+        bool hasAdd = false;
+        const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind), &hasSub, &hasAdd);
+        if (!hasFrameOps || !hasSub || !hasAdd)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroInstrBuilder builder(ctx);
+        buildPersistentWithReturn(builder, callConvKind);
+
+        MicroRegAllocPass       regAllocPass;
+        MicroPersistentRegsPass persistentRegsPass;
+        MicroPassManager        passes;
+        passes.add(regAllocPass);
+        passes.add(persistentRegsPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = callConvKind;
+        passCtx.preservePersistentRegs = false;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
+        if (hasFrameOps)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroInstrBuilder builder(ctx);
+        buildNoPersistentWithReturn(builder, callConvKind);
+
+        MicroRegAllocPass       regAllocPass;
+        MicroPersistentRegsPass persistentRegsPass;
+        MicroPassManager        passes;
+        passes.add(regAllocPass);
+        passes.add(persistentRegsPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind           = callConvKind;
+        passCtx.preservePersistentRegs = true;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
+        if (hasFrameOps)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

@@ -115,11 +115,17 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
 
 EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
-    const uint32_t instructionIndex = instructions_.count();
-    jump.offsetStart                = static_cast<uint64_t>(instructionIndex) * sizeof(MicroInstr);
-    jump.opBits                     = opBits;
-    const auto& inst                = addInstruction(MicroInstrOpcode::JumpCond, emitFlags, 2);
-    auto*       ops                 = inst.ops(operands_);
+    auto [ref, inst] = instructions_.emplaceUninit();
+    inst->op         = MicroInstrOpcode::JumpCond;
+    inst->emitFlags  = emitFlags;
+    inst->numOperands = 2;
+    auto [opsRef, ops] = operands_.emplaceUninitArray(2);
+    inst->opsRef       = opsRef;
+    for (uint8_t idx = 0; idx < 2; ++idx)
+        new (ops + idx) MicroInstrOperand();
+
+    jump.offsetStart = ref;
+    jump.opBits      = opBits;
     ops[0].jumpType                 = jumpType;
     ops[1].opBits                   = opBits;
     return EncodeResult::Zero;

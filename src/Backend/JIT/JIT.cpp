@@ -4,6 +4,7 @@
 #include "Backend/MachineCode/Encoder/X64Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroEncodePass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/MachineCode/Micro/Passes/MicroPersistentRegsPass.h"
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -29,6 +30,7 @@ namespace
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegAllocPass regAllocPass;
+        MicroPersistentRegsPass persistentRegsPass;
         MicroEncodePass   encodePass;
 
         MicroPassContext passContext;
@@ -45,6 +47,7 @@ namespace
         {
             MicroPassManager regAllocManager;
             regAllocManager.add(regAllocPass);
+            regAllocManager.add(persistentRegsPass);
             builder.runPasses(regAllocManager, &encoder, passContext);
             printMicroHeader(ctx, builder, "pre-encode");
             builder.printInstructions(MicroInstrRegPrintMode::Concrete, &encoder);
@@ -57,6 +60,7 @@ namespace
         {
             MicroPassManager passManager;
             passManager.add(regAllocPass);
+            passManager.add(persistentRegsPass);
             passManager.add(encodePass);
             builder.runPasses(passManager, &encoder, passContext);
         }

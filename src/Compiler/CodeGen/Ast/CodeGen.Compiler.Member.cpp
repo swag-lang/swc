@@ -52,16 +52,14 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto* leftPayload = codeGen.payload(nodeLeftRef);
     SWC_ASSERT(leftPayload != nullptr);
-    if (leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto rightView = codeGen.nodeView(nodeRightRef);
     const SymbolFunction* methodSym = resolveMethodSymbol(rightView);
     SWC_ASSERT(methodSym != nullptr);
 
     uint32_t methodSlot = 0;
-    if (!tryFindInterfaceMethodSlot(methodSlot, *methodSym))
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(tryFindInterfaceMethodSlot(methodSlot, *methodSym)); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
     SWC_ASSERT(runtimeInterface != nullptr);

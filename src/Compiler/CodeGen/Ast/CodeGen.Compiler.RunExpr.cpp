@@ -15,13 +15,11 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroInstrBuilder& builder  = codeGen.builder();
     const auto         exprView = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
-    if (!exprView.type->isStruct())
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(exprView.type->isStruct()); // TODO: replace assert with a proper codegen diagnostic.
 
     const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
     const auto     passing    = callConv.classifyStructReturnPassing(structSize);
-    if (passing != StructArgPassingKind::ByReference)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(passing == StructArgPassingKind::ByReference); // TODO: replace assert with a proper codegen diagnostic.
 
     SWC_ASSERT(!callConv.intArgRegs.empty());
     const MicroReg hiddenRetPtrReg = callConv.intArgRegs[0];
@@ -32,8 +30,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
-    if (payload->kind != CodeGenNodePayloadKind::DerefPointerStorageU64)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64); // TODO: replace assert with a proper codegen diagnostic.
 
     builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);

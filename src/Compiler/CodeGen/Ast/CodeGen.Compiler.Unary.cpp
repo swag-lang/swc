@@ -12,8 +12,7 @@ namespace
     {
         const auto* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
-        if (childPayload->kind != CodeGenNodePayloadKind::PointerStorageU64)
-            SWC_INTERNAL_ERROR();
+        SWC_ASSERT(childPayload->kind == CodeGenNodePayloadKind::PointerStorageU64); // TODO: replace assert with a proper codegen diagnostic.
 
         const auto nodeView = codeGen.curNodeView();
         codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::DerefPointerStorageU64, childPayload->valueU64, nodeView.typeRef);
@@ -30,7 +29,8 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenUnaryDeref(codeGen, nodeExprRef);
 
         default:
-            SWC_INTERNAL_ERROR();
+            SWC_ASSERT(false); // TODO: replace assert with a proper codegen diagnostic.
+            return Result::Error;
     }
 }
 

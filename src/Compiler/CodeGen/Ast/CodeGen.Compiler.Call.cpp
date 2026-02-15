@@ -38,14 +38,12 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto* calleePayload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(calleePayload != nullptr);
-    if (calleePayload->kind != CodeGenNodePayloadKind::ExternalFunctionAddress)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(calleePayload->kind == CodeGenNodePayloadKind::ExternalFunctionAddress); // TODO: replace assert with a proper codegen diagnostic.
 
     std::span<const MicroABICallArg> callArgs{};
 
     const auto& calleeNode = codeGen.node(nodeExprRef);
-    if (calleeNode.id() != AstNodeId::MemberAccessExpr)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(calleeNode.id() == AstNodeId::MemberAccessExpr); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto callView = codeGen.curNodeView();
     const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
@@ -58,13 +56,11 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     }
 
     SWC_ASSERT(calledFunction != nullptr);
-    if (!isInterfaceMethod(*calledFunction))
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(isInterfaceMethod(*calledFunction)); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
     SWC_ASSERT(leftPayload != nullptr);
-    if (leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
     SWC_ASSERT(runtimeInterface != nullptr);
@@ -79,8 +75,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());
-    if (!args.empty())
-        SWC_INTERNAL_ERROR();
+    SWC_ASSERT(args.empty()); // TODO: replace assert with a proper codegen diagnostic.
 
     auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
     *resultStorage      = 0;

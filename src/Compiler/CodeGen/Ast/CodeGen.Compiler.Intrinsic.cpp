@@ -21,7 +21,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         }
 
         default:
-            SWC_INTERNAL_ERROR();
+            SWC_ASSERT(false); // TODO: replace assert with a proper codegen diagnostic.
+            return Result::Error;
     }
 }
 

@@ -32,15 +32,15 @@ public:
     PagedStoreTyped<MicroInstrOperand>&       operands() { return operands_; }
     const PagedStoreTyped<MicroInstrOperand>& operands() const { return operands_; }
 
-    std::string formatInstructions(bool colorize = false) const;
-    void        printInstructions(bool colorize = true) const;
-    void        setPrintFlags(bool printBeforePasses, bool printBeforeEncode)
-    {
-        printBeforePasses_ = printBeforePasses;
-        printBeforeEncode_ = printBeforeEncode;
-    }
-    bool shouldPrintBeforePasses() const { return printBeforePasses_; }
-    bool shouldPrintBeforeEncode() const { return printBeforeEncode_; }
+    std::string        formatInstructions(bool colorize = false) const;
+    void               printInstructions(bool colorize = true) const;
+    void               setPrintFlags(bool printBeforePasses, bool printBeforeEncode);
+    bool               shouldPrintBeforePasses() const { return printBeforePasses_; }
+    bool               shouldPrintBeforeEncode() const { return printBeforeEncode_; }
+    void               setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine);
+    const std::string& printSymbolName() const { return printSymbolName_; }
+    const std::string& printFilePath() const { return printFilePath_; }
+    uint32_t           printSourceLine() const { return printSourceLine_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -96,6 +96,9 @@ private:
     PagedStoreTyped<MicroInstrOperand> operands_;
     bool                               printBeforePasses_ = false;
     bool                               printBeforeEncode_ = false;
+    std::string                        printSymbolName_;
+    std::string                        printFilePath_;
+    uint32_t                           printSourceLine_ = 0;
 };
 
 SWC_END_NAMESPACE();

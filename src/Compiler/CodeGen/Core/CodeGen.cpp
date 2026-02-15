@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -23,6 +24,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
     builder_->setPrintFlags(symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw), symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro));
+    const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
+    const SourceView&     srcView   = sema().srcView(symbolFunc.srcViewRef());
+    const SourceFile*     file      = srcView.file();
+    builder_->setPrintLocation(std::string(symbolFunc.getFullScopedName(ctx())), file ? file->path().string() : std::string{}, codeRange.line);
 
     while (true)
     {

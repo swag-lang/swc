@@ -497,4 +497,17 @@ void MicroInstrBuilder::printInstructions(bool colorize) const
     MicroInstrPrinter::print(ctx(), instructions_, operands_, colorize);
 }
 
+void MicroInstrBuilder::setPrintFlags(bool printBeforePasses, bool printBeforeEncode)
+{
+    printBeforePasses_ = printBeforePasses;
+    printBeforeEncode_ = printBeforeEncode;
+}
+
+void MicroInstrBuilder::setPrintLocation(std::string symbolName, std::string filePath, uint32_t sourceLine)
+{
+    printSymbolName_ = std::move(symbolName);
+    printFilePath_   = std::move(filePath);
+    printSourceLine_ = sourceLine;
+}
+
 SWC_END_NAMESPACE();

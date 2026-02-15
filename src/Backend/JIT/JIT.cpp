@@ -7,11 +7,25 @@
 #include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/LogColor.h"
+#include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void printMicroHeader(const TaskContext& ctx, const MicroInstrBuilder& builder, std::string_view stage)
+    {
+        const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
+        const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
+        const uint32_t         sourceLine = builder.printSourceLine();
+
+        Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Yellow));
+        Logger::print(ctx, std::format("[micro:{}] {} @ {}:{}", stage, symbolName, filePath, sourceLine));
+        Logger::print(ctx, LogColorHelper::toAnsi(ctx, LogColor::Reset));
+        Logger::print(ctx, "\n");
+    }
+
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
         MicroRegAllocPass regAllocPass;
@@ -22,13 +36,17 @@ namespace
         passContext.preservePersistentRegs = true;
 
         if (builder.shouldPrintBeforePasses())
+        {
+            printMicroHeader(ctx, builder, "raw");
             builder.printInstructions();
+        }
 
         if (builder.shouldPrintBeforeEncode())
         {
             MicroPassManager regAllocManager;
             regAllocManager.add(regAllocPass);
             builder.runPasses(regAllocManager, &encoder, passContext);
+            printMicroHeader(ctx, builder, "pre-encode");
             builder.printInstructions();
 
             MicroPassManager encodeManager;

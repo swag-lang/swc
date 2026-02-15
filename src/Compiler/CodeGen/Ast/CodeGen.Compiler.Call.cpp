@@ -4,6 +4,7 @@
 #include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -35,6 +36,88 @@ namespace
         return ownerSymMap->safeCast<SymbolInterface>() != nullptr;
     }
 
+    const SymbolFunction* resolveCalledFunction(CodeGen& codeGen, AstNodeRef calleeRef)
+    {
+        const auto callView = codeGen.curNodeView();
+        if (const auto fromCall = resolveFunctionSymbol(callView))
+            return fromCall;
+
+        const auto calleeView = codeGen.nodeView(calleeRef);
+        return resolveFunctionSymbol(calleeView);
+    }
+
+    AstNodeRef resolveCalleeRef(CodeGen& codeGen, AstNodeRef calleeRef)
+    {
+        AstNodeRef currentRef = calleeRef;
+        for (uint32_t i = 0; i < 16 && currentRef.isValid(); ++i)
+        {
+            const AstNodeRef substituteRef = codeGen.sema().getSubstituteRef(currentRef);
+            if (substituteRef.isValid() && substituteRef != currentRef)
+            {
+                currentRef = substituteRef;
+                continue;
+            }
+
+            const AstNode& node = codeGen.node(currentRef);
+            if (node.id() == AstNodeId::MemberAccessExpr)
+                return currentRef;
+
+            SmallVector<AstNodeRef> children;
+            Ast::nodeIdInfos(node.id()).collectChildren(children, codeGen.ast(), node);
+            if (children.size() != 1 || !children.front().isValid())
+                break;
+
+            currentRef = children.front();
+        }
+
+        return currentRef;
+    }
+
+    bool tryResolveInterfaceReceiver(CodeGen& codeGen, AstNodeRef calleeRef, const SymbolFunction* calledFunction, AstNodeRef& outReceiverRef)
+    {
+        outReceiverRef = AstNodeRef::invalid();
+        if (!calledFunction || !isInterfaceMethod(*calledFunction))
+            return false;
+
+        const AstMemberAccessExpr* memberAccessExpr = codeGen.node(calleeRef).safeCast<AstMemberAccessExpr>();
+        if (!memberAccessExpr)
+            return false;
+
+        const auto leftView = codeGen.nodeView(memberAccessExpr->nodeLeftRef);
+        if (!leftView.type || !leftView.type->isInterface())
+            return false;
+
+        outReceiverRef = memberAccessExpr->nodeLeftRef;
+        return true;
+    }
+
+    const CodeGenNodePayload* resolveCalleePayload(CodeGen& codeGen, AstNodeRef calleeRef)
+    {
+        AstNodeRef currentRef = resolveCalleeRef(codeGen, calleeRef);
+        for (uint32_t i = 0; i < 16 && currentRef.isValid(); ++i)
+        {
+            if (const auto* payload = codeGen.payload(currentRef))
+                return payload;
+
+            const AstNodeRef substituteRef = codeGen.sema().getSubstituteRef(currentRef);
+            if (substituteRef.isValid() && substituteRef != currentRef)
+            {
+                currentRef = substituteRef;
+                continue;
+            }
+
+            const AstNode& node = codeGen.node(currentRef);
+            SmallVector<AstNodeRef> children;
+            Ast::nodeIdInfos(node.id()).collectChildren(children, codeGen.ast(), node);
+            if (children.size() != 1 || !children.front().isValid())
+                break;
+
+            currentRef = children.front();
+        }
+
+        return nullptr;
+    }
+
     uint32_t computeCallStackAdjust(const CallConv& conv, uint32_t numArgs)
     {
         const uint32_t numRegArgs    = conv.numArgRegisterSlots();
@@ -51,40 +134,33 @@ namespace
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroInstrBuilder& builder = codeGen.builder();
-    const auto& callConv = CallConv::host();
+    const auto&        callConv = CallConv::host();
 
-    const auto* calleePayload = codeGen.payload(nodeExprRef);
+    const AstNodeRef resolvedCalleeRef = resolveCalleeRef(codeGen, nodeExprRef);
+    const auto*      calleePayload     = resolveCalleePayload(codeGen, resolvedCalleeRef);
     SWC_ASSERT(calleePayload != nullptr);
 
-    const auto& calleeNode = codeGen.node(nodeExprRef);
-    SWC_ASSERT(calleeNode.id() == AstNodeId::MemberAccessExpr); // TODO: replace assert with a proper codegen diagnostic.
-
-    const auto callView = codeGen.curNodeView();
-    const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
-
-    const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
-    if (!calledFunction)
-    {
-        const auto rightView = codeGen.nodeView(memberAccessExpr->nodeRightRef);
-        calledFunction = resolveFunctionSymbol(rightView);
-    }
-
-    SWC_ASSERT(calledFunction != nullptr);
-    SWC_ASSERT(isInterfaceMethod(*calledFunction)); // TODO: replace assert with a proper codegen diagnostic.
-
-    const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
-    SWC_ASSERT(leftPayload != nullptr);
+    const SymbolFunction* calledFunction = resolveCalledFunction(codeGen, resolvedCalleeRef);
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());
     SWC_ASSERT(args.empty()); // TODO: replace assert with a proper codegen diagnostic.
 
-    SWC_ASSERT(!callConv.intArgRegs.empty());
-    const MicroReg callArg0Reg = callConv.intArgRegs[0];
-    const MicroReg interfaceReg = codeGen.payloadVirtualReg(*leftPayload);
-    builder.encodeLoadRegMem(callArg0Reg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+    uint32_t numAbiArgs = 0;
+    AstNodeRef interfaceReceiverRef = AstNodeRef::invalid();
+    if (tryResolveInterfaceReceiver(codeGen, resolvedCalleeRef, calledFunction, interfaceReceiverRef))
+    {
+        SWC_ASSERT(!callConv.intArgRegs.empty());
+        const auto* receiverPayload = codeGen.payload(interfaceReceiverRef);
+        SWC_ASSERT(receiverPayload != nullptr);
 
-    const uint32_t stackAdjust = computeCallStackAdjust(callConv, 1);
+        const MicroReg callArg0Reg  = callConv.intArgRegs[0];
+        const MicroReg interfaceReg = codeGen.payloadVirtualReg(*receiverPayload);
+        builder.encodeLoadRegMem(callArg0Reg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
+        numAbiArgs = 1;
+    }
+
+    const uint32_t stackAdjust = computeCallStackAdjust(callConv, numAbiArgs);
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 

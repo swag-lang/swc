@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
+#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
 
@@ -12,14 +12,14 @@ namespace
     {
         switch (passKind)
         {
-        case MicroPassKind::RegAlloc:
-            return before ? "before-regalloc" : "after-regalloc";
-        case MicroPassKind::PersistentRegs:
-            return before ? "before-persistent-regs" : "after-persistent-regs";
-        case MicroPassKind::Encode:
-            return before ? "before-encode" : "after-encode";
-        default:
-            SWC_UNREACHABLE();
+            case MicroPassKind::RegAlloc:
+                return before ? "before-regalloc" : "after-regalloc";
+            case MicroPassKind::PersistentRegs:
+                return before ? "before-persistent-regs" : "after-persistent-regs";
+            case MicroPassKind::Encode:
+                return before ? "before-encode" : "after-encode";
+            default:
+                SWC_UNREACHABLE();
         }
     }
 
@@ -34,14 +34,14 @@ namespace
     {
         switch (passKind)
         {
-        case MicroPassKind::RegAlloc:
-            return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegAlloc) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegAlloc);
-        case MicroPassKind::PersistentRegs:
-            return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePersistentRegs) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPersistentRegs);
-        case MicroPassKind::Encode:
-            return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEncode) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEncode);
-        default:
-            SWC_UNREACHABLE();
+            case MicroPassKind::RegAlloc:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegAlloc) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegAlloc);
+            case MicroPassKind::PersistentRegs:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePersistentRegs) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPersistentRegs);
+            case MicroPassKind::Encode:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEncode) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEncode);
+            default:
+                SWC_UNREACHABLE();
         }
     }
 
@@ -63,8 +63,8 @@ namespace
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
         Logger::print(ctx, "\n");
 
-        const auto printMode = passPrintMode(passKind, before);
-        const auto* encoder  = printMode == MicroInstrRegPrintMode::Concrete ? context.encoder : nullptr;
+        const auto  printMode = passPrintMode(passKind, before);
+        const auto* encoder   = printMode == MicroInstrRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
     }
 }

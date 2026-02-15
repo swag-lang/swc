@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/MachineCode/ABI/CallConv.h"
-#include "Backend/MachineCode/Micro/Passes/MicroPass.h"
-#include "Backend/MachineCode/Micro/Passes/MicroPersistentRegsPass.h"
-#include "Backend/MachineCode/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/CodeGen/ABI/CallConv.h"
+#include "Backend/CodeGen/Micro/Passes/MicroPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroRegAllocPass.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
 

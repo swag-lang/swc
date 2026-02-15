@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/MachineCode/ABI/CallConv.h"
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
-#include "Backend/MachineCode/Micro/MicroInstrHelpers.h"
+#include "Backend/CodeGen/ABI/CallConv.h"
+#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 

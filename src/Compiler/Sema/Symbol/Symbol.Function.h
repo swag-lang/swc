@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"

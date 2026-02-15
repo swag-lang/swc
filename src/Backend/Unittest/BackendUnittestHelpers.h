@@ -1,6 +1,6 @@
 #pragma once
-#include "Backend/MachineCode/Encoder/Encoder.h"
-#include "Backend/MachineCode/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Encoder/Encoder.h"
+#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 

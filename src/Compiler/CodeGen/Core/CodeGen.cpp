@@ -175,7 +175,7 @@ MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload) const
     return MicroReg::virtualReg(nodePayload.virtualRegister);
 }
 
-CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef)
+CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
     CodeGenNodePayload* nodePayload = payload(nodeRef);
     if (!nodePayload)
@@ -185,8 +185,6 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKi
     }
 
     nodePayload->virtualRegister = nextVirtualRegister();
-    nodePayload->kind            = kind;
-    nodePayload->valueU64        = valueU64;
     nodePayload->typeRef         = typeRef;
     return *nodePayload;
 }

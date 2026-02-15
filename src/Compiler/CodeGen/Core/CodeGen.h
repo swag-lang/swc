@@ -11,22 +11,10 @@ struct MicroReg;
 struct SemaNodeView;
 struct Token;
 
-enum class CodeGenNodePayloadKind : uint8_t
-{
-    None,
-    ValueStorageU64,
-    PointerStorageU64,
-    DerefPointerStorageU64,
-    ExternalFunctionAddress,
-    AddressValue,
-};
-
 struct CodeGenNodePayload
 {
-    uint32_t               virtualRegister = 0;
-    CodeGenNodePayloadKind kind            = CodeGenNodePayloadKind::None;
-    uint64_t               valueU64        = 0;
-    TypeRef                typeRef         = TypeRef::invalid();
+    uint32_t virtualRegister = 0;
+    TypeRef  typeRef         = TypeRef::invalid();
 };
 
 class CodeGen
@@ -55,7 +43,7 @@ public:
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
     MicroReg                 payloadVirtualReg(AstNodeRef nodeRef) const;
     MicroReg                 payloadVirtualReg(const CodeGenNodePayload& nodePayload) const;
-    CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, CodeGenNodePayloadKind kind, uint64_t valueU64, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
     MicroInstrBuilder&       builder() { return *builder_; }
     const MicroInstrBuilder& builder() const { return *builder_; }

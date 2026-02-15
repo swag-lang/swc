@@ -51,19 +51,18 @@ namespace
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    MicroInstrBuilder& builder = codeGen.builder();
-    const auto* leftPayload = codeGen.payload(nodeLeftRef);
+    MicroInstrBuilder& builder     = codeGen.builder();
+    const auto*        leftPayload = codeGen.payload(nodeLeftRef);
     SWC_ASSERT(leftPayload != nullptr);
-    SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue); // TODO: replace assert with a proper codegen diagnostic.
 
-    const auto rightView = codeGen.nodeView(nodeRightRef);
+    const auto            rightView = codeGen.nodeView(nodeRightRef);
     const SymbolFunction* methodSym = resolveMethodSymbol(rightView);
     SWC_ASSERT(methodSym != nullptr);
 
     uint32_t methodSlot = 0;
     SWC_ASSERT(tryFindInterfaceMethodSlot(methodSlot, *methodSym)); // TODO: replace assert with a proper codegen diagnostic.
 
-    auto& payload = codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::ExternalFunctionAddress, 0);
+    const auto&    payload = codeGen.setPayload(codeGen.curNodeRef());
     const MicroReg leftReg = codeGen.payloadVirtualReg(*leftPayload);
     const MicroReg dstReg  = codeGen.payloadVirtualReg(payload);
     builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64, EncodeFlagsE::Zero);

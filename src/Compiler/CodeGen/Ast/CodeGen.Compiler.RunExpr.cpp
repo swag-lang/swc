@@ -30,7 +30,6 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
-    SWC_ASSERT(payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64); // TODO: replace assert with a proper codegen diagnostic.
 
     const MicroReg payloadReg = codeGen.payloadVirtualReg(*payload);
     builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);

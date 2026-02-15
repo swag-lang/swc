@@ -14,10 +14,9 @@ namespace
         MicroInstrBuilder& builder = codeGen.builder();
         const auto* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
-        SWC_ASSERT(childPayload->kind == CodeGenNodePayloadKind::PointerStorageU64); // TODO: replace assert with a proper codegen diagnostic.
 
         const auto nodeView = codeGen.curNodeView();
-        auto&      payload  = codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::DerefPointerStorageU64, childPayload->valueU64, nodeView.typeRef);
+        auto&      payload  = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
         builder.encodeLoadRegReg(codeGen.payloadVirtualReg(payload), codeGen.payloadVirtualReg(*childPayload), MicroOpBits::B64, EncodeFlagsE::Zero);
         return Result::Continue;
     }

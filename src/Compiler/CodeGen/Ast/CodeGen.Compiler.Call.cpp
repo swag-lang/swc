@@ -55,7 +55,6 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const auto* calleePayload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(calleePayload != nullptr);
-    SWC_ASSERT(calleePayload->kind == CodeGenNodePayloadKind::ExternalFunctionAddress); // TODO: replace assert with a proper codegen diagnostic.
 
     const auto& calleeNode = codeGen.node(nodeExprRef);
     SWC_ASSERT(calleeNode.id() == AstNodeId::MemberAccessExpr); // TODO: replace assert with a proper codegen diagnostic.
@@ -75,7 +74,6 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
     SWC_ASSERT(leftPayload != nullptr);
-    SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue); // TODO: replace assert with a proper codegen diagnostic.
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());
@@ -98,7 +96,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
     *resultStorage      = 0;
-    auto& nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), CodeGenNodePayloadKind::PointerStorageU64, reinterpret_cast<uint64_t>(resultStorage), codeGen.curNodeView().typeRef);
+    auto& nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const MicroReg resultReg = codeGen.payloadVirtualReg(nodePayload);
     builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);

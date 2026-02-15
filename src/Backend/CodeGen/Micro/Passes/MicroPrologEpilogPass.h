@@ -3,10 +3,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroPersistentRegsPass final : public MicroPass
+class MicroPrologEpilogPass final : public MicroPass
 {
 public:
-    MicroPassKind kind() const override { return MicroPassKind::PersistentRegs; }
+    MicroPassKind kind() const override { return MicroPassKind::PrologEpilog; }
     void          run(MicroPassContext& context) override;
 
 private:

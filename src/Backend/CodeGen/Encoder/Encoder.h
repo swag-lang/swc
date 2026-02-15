@@ -11,7 +11,7 @@ class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
 struct MicroInstrUseDef;
-class MicroEncodePass;
+class MicroEmitPass;
 class MicroLegalizePass;
 
 enum class EncodeFlagsE : uint8_t
@@ -44,7 +44,7 @@ struct MicroConformanceIssue
 class Encoder
 {
     friend class MicroInstrBuilder;
-    friend class MicroEncodePass;
+    friend class MicroEmitPass;
     friend class MicroLegalizePass;
     friend struct MicroInstr;
 

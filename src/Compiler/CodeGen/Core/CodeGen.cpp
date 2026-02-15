@@ -25,7 +25,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicroRaw))
         builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforePasses);
     if (symbolFunc.attributes().hasRtFlag(RtAttributeFlagsE::PrintMicro))
-        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEncode);
+        builderFlags.add(MicroInstrBuilderFlagsE::PrintBeforeEmit);
     if (ctx().compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);

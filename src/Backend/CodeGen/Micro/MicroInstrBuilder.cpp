@@ -525,9 +525,9 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
     context.operands     = &operands_;
 
     if (hasFlag(MicroInstrBuilderFlagsE::PrintBeforePasses))
-        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeRegAlloc);
-    if (hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEncode))
-        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeEncode);
+        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeRegisterAllocation);
+    if (hasFlag(MicroInstrBuilderFlagsE::PrintBeforeEmit))
+        context.passPrintFlags.add(MicroPassPrintFlagsE::BeforeEmit);
 
     passes.run(context);
 }

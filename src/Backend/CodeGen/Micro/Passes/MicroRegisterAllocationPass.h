@@ -3,10 +3,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroRegAllocPass final : public MicroPass
+class MicroRegisterAllocationPass final : public MicroPass
 {
 public:
-    MicroPassKind kind() const override { return MicroPassKind::RegAlloc; }
+    MicroPassKind kind() const override { return MicroPassKind::RegisterAllocation; }
     void          run(MicroPassContext& context) override;
 };
 

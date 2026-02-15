@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/MicroInstrStorage.h"
@@ -7,7 +7,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroRegAllocPass::run(MicroPassContext& context)
+void MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     // Preconditions: this pass requires instruction stream and operand store.
     SWC_ASSERT(context.instructions);

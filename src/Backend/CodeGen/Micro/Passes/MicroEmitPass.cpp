@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/Passes/MicroEncodePass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -22,7 +22,7 @@ namespace
     }
 }
 
-void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const MicroInstr& inst)
+void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const MicroInstr& inst)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
@@ -198,7 +198,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
     }
 }
 
-void MicroEncodePass::run(MicroPassContext& context)
+void MicroEmitPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);

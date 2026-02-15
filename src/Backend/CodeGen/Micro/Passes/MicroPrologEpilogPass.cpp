@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroPersistentRegsPass::run(MicroPassContext& context)
+void MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
@@ -39,7 +39,7 @@ void MicroPersistentRegsPass::run(MicroPassContext& context)
         insertSavedRegsEpilogue(context, conv, retRef, emitFlags);
 }
 
-bool MicroPersistentRegsPass::containsSavedSlot(MicroReg reg) const
+bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const
 {
     for (const auto& slot : savedRegSlots_)
     {
@@ -50,7 +50,7 @@ bool MicroPersistentRegsPass::containsSavedSlot(MicroReg reg) const
     return false;
 }
 
-void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
+void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
 {
     SWC_ASSERT(context.instructions);
 
@@ -106,7 +106,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
     savedRegsFrameSize_           = Math::alignUpU64(frameOffset, stackAlignment);
 }
 
-void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
+void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
 {
     if (!savedRegsFrameSize_)
         return;
@@ -132,7 +132,7 @@ void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& co
     }
 }
 
-void MicroPersistentRegsPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef, EncodeFlags emitFlags) const
+void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef, EncodeFlags emitFlags) const
 {
     if (!savedRegsFrameSize_)
         return;

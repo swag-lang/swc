@@ -4,10 +4,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class MicroEncodePass final : public MicroPass
+class MicroEmitPass final : public MicroPass
 {
 public:
-    MicroPassKind kind() const override { return MicroPassKind::Encode; }
+    MicroPassKind kind() const override { return MicroPassKind::Emit; }
     void          run(MicroPassContext& context) override;
 
 private:

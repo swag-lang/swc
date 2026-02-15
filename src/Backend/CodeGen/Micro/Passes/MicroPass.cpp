@@ -14,14 +14,14 @@ namespace
     {
         switch (passKind)
         {
-            case MicroPassKind::RegAlloc:
-                return before ? "before-regalloc" : "after-regalloc";
-            case MicroPassKind::PersistentRegs:
-                return before ? "before-persistent-regs" : "after-persistent-regs";
+            case MicroPassKind::RegisterAllocation:
+                return before ? "before-register-allocation" : "after-register-allocation";
+            case MicroPassKind::PrologEpilog:
+                return before ? "before-prolog-epilog" : "after-prolog-epilog";
             case MicroPassKind::Legalize:
                 return before ? "before-legalize" : "after-legalize";
-            case MicroPassKind::Encode:
-                return before ? "before-encode" : "after-encode";
+            case MicroPassKind::Emit:
+                return before ? "before-emit" : "after-emit";
             default:
                 SWC_UNREACHABLE();
         }
@@ -29,7 +29,7 @@ namespace
 
     MicroInstrRegPrintMode passPrintMode(MicroPassKind passKind, bool before)
     {
-        if (passKind == MicroPassKind::RegAlloc && before)
+        if (passKind == MicroPassKind::RegisterAllocation && before)
             return MicroInstrRegPrintMode::Virtual;
         return MicroInstrRegPrintMode::Concrete;
     }
@@ -38,14 +38,14 @@ namespace
     {
         switch (passKind)
         {
-            case MicroPassKind::RegAlloc:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegAlloc) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegAlloc);
-            case MicroPassKind::PersistentRegs:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePersistentRegs) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPersistentRegs);
+            case MicroPassKind::RegisterAllocation:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeRegisterAllocation) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterRegisterAllocation);
+            case MicroPassKind::PrologEpilog:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforePrologEpilog) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterPrologEpilog);
             case MicroPassKind::Legalize:
                 return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeLegalize) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterLegalize);
-            case MicroPassKind::Encode:
-                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEncode) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEncode);
+            case MicroPassKind::Emit:
+                return before ? context.passPrintFlags.has(MicroPassPrintFlagsE::BeforeEmit) : context.passPrintFlags.has(MicroPassPrintFlagsE::AfterEmit);
             default:
                 SWC_UNREACHABLE();
         }

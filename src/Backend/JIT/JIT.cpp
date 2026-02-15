@@ -3,10 +3,10 @@
 #include "Backend/JIT/JITExecMemoryManager.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
 #include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroEncodePass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
@@ -16,10 +16,10 @@ namespace
 {
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
-        MicroRegAllocPass       regAllocPass;
-        MicroPersistentRegsPass persistentRegsPass;
+        MicroRegisterAllocationPass       regAllocPass;
+        MicroPrologEpilogPass persistentRegsPass;
         MicroLegalizePass      legalizePass;
-        MicroEncodePass         encodePass;
+        MicroEmitPass         encodePass;
 
         MicroPassContext passContext;
         passContext.callConvKind           = CallConvKind::Host;

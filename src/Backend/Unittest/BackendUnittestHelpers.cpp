@@ -2,7 +2,7 @@
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroEncodePass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Support/Report/Logger.h"
 
@@ -74,7 +74,7 @@ namespace Backend::Unittest
         fn(builder);
 
         MicroLegalizePass legalizePass;
-        MicroEncodePass   encodePass;
+        MicroEmitPass   encodePass;
         MicroPassManager  passes;
         passes.add(legalizePass);
         passes.add(encodePass);

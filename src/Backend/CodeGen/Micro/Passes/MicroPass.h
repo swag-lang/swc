@@ -12,23 +12,23 @@ struct MicroInstrOperand;
 
 enum class MicroPassKind : uint8_t
 {
-    RegAlloc,
-    PersistentRegs,
+    RegisterAllocation,
+    PrologEpilog,
     Legalize,
-    Encode,
+    Emit,
 };
 
 enum class MicroPassPrintFlagsE : uint32_t
 {
     Zero                 = 0,
-    BeforeRegAlloc       = 1 << 0,
-    AfterRegAlloc        = 1 << 1,
-    BeforePersistentRegs = 1 << 2,
-    AfterPersistentRegs  = 1 << 3,
+    BeforeRegisterAllocation       = 1 << 0,
+    AfterRegisterAllocation        = 1 << 1,
+    BeforePrologEpilog = 1 << 2,
+    AfterPrologEpilog  = 1 << 3,
     BeforeLegalize       = 1 << 4,
     AfterLegalize        = 1 << 5,
-    BeforeEncode         = 1 << 6,
-    AfterEncode          = 1 << 7,
+    BeforeEmit         = 1 << 6,
+    AfterEmit          = 1 << 7,
 };
 using MicroPassPrintFlags = EnumFlags<MicroPassPrintFlagsE>;
 

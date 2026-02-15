@@ -14,7 +14,7 @@ enum class MicroInstrBuilderFlagsE : uint8_t
 {
     Zero              = 0,
     PrintBeforePasses = 1 << 0,
-    PrintBeforeEncode = 1 << 1,
+    PrintBeforeEmit = 1 << 1,
     DebugInfo         = 1 << 2,
 };
 using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroRegAllocPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
+#include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -67,7 +67,7 @@ namespace
             MicroInstrBuilder builder(ctx);
             buildFn(builder, callConvKind);
 
-            MicroRegAllocPass regAllocPass;
+            MicroRegisterAllocationPass regAllocPass;
             MicroPassManager  passes;
             passes.add(regAllocPass);
 
@@ -252,8 +252,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         MicroInstrBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
-        MicroRegAllocPass       regAllocPass;
-        MicroPersistentRegsPass persistentRegsPass;
+        MicroRegisterAllocationPass       regAllocPass;
+        MicroPrologEpilogPass persistentRegsPass;
         MicroPassManager        passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);
@@ -279,8 +279,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
         MicroInstrBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
-        MicroRegAllocPass       regAllocPass;
-        MicroPersistentRegsPass persistentRegsPass;
+        MicroRegisterAllocationPass       regAllocPass;
+        MicroPrologEpilogPass persistentRegsPass;
         MicroPassManager        passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);
@@ -304,8 +304,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         MicroInstrBuilder builder(ctx);
         buildNoPersistentWithReturn(builder, callConvKind);
 
-        MicroRegAllocPass       regAllocPass;
-        MicroPersistentRegsPass persistentRegsPass;
+        MicroRegisterAllocationPass       regAllocPass;
+        MicroPrologEpilogPass persistentRegsPass;
         MicroPassManager        passes;
         passes.add(regAllocPass);
         passes.add(persistentRegsPass);

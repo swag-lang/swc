@@ -23,9 +23,7 @@ namespace
 
         for (const auto* dep : deps)
         {
-            if (!dep)
-                continue;
-
+            SWC_ASSERT(dep);
             const Result depWaitResult = waitSymbolSemaCompletion(sema, *dep);
             if (depWaitResult != Result::Continue)
                 return depWaitResult;
@@ -38,8 +36,7 @@ namespace
     {
         for (auto* dep : deps)
         {
-            if (!dep)
-                continue;
+            SWC_ASSERT(dep);
 
             if (!dep->tryMarkCodeGenJobScheduled())
                 continue;
@@ -69,8 +66,7 @@ namespace
 
     Result generateFunctionCodeGen(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root)
     {
-        if (!root.isValid())
-            return Result::Error;
+        SWC_ASSERT(root.isValid());
         CodeGen codeGen(sema);
         return codeGen.exec(symbolFunc, root);
     }

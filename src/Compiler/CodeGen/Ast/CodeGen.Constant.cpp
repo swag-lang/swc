@@ -17,19 +17,19 @@ namespace
         {
             case ConstantKind::Bool:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getBool() ? 1 : 0, MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, cst.getBool() ? 1 : 0, MicroOpBits::B64);
                 return;
             }
 
             case ConstantKind::Char:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getChar(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, cst.getChar(), MicroOpBits::B64);
                 return;
             }
 
             case ConstantKind::Rune:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getRune(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, cst.getRune(), MicroOpBits::B64);
                 return;
             }
 
@@ -37,7 +37,7 @@ namespace
             {
                 const auto& val = cst.getInt();
                 SWC_ASSERT(val.fits64());
-                builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(val.asI64()), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(val.asI64()), MicroOpBits::B64);
                 return;
             }
 
@@ -47,14 +47,14 @@ namespace
                 if (value.bitWidth() == 32)
                 {
                     const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());
-                    builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B32, EncodeFlagsE::Zero);
+                    builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B32);
                     return;
                 }
 
                 if (value.bitWidth() == 64)
                 {
                     const uint64_t bits = std::bit_cast<uint64_t>(value.asDouble());
-                    builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B64, EncodeFlagsE::Zero);
+                    builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B64);
                     return;
                 }
 
@@ -76,25 +76,25 @@ namespace
                 runtimeString->ptr    = data;
                 runtimeString->length = value.size();
 
-                builder.encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), MicroOpBits::B64);
                 return;
             }
 
             case ConstantKind::ValuePointer:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getValuePointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, cst.getValuePointer(), MicroOpBits::B64);
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getBlockPointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, cst.getBlockPointer(), MicroOpBits::B64);
                 return;
             }
 
             case ConstantKind::Null:
             {
-                builder.encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
+                builder.encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
                 return;
             }
 
@@ -123,3 +123,4 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
+

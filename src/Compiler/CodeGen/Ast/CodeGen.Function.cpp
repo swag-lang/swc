@@ -62,7 +62,7 @@ namespace
 
         if (normalizedRet.isVoid)
         {
-            codeGen.builder().encodeRet(EncodeFlagsE::Zero);
+            codeGen.builder().encodeRet();
             return Result::Continue;
         }
 
@@ -79,11 +79,11 @@ namespace
 
         const MicroReg srcReg = exprPayload->reg;
         if (normalizedRet.isFloat)
-            codeGen.builder().encodeLoadRegReg(callConv.floatReturn, srcReg, retBits, EncodeFlagsE::Zero);
+            codeGen.builder().encodeLoadRegReg(callConv.floatReturn, srcReg, retBits);
         else
-            codeGen.builder().encodeLoadRegReg(callConv.intReturn, srcReg, retBits, EncodeFlagsE::Zero);
+            codeGen.builder().encodeLoadRegReg(callConv.intReturn, srcReg, retBits);
 
-        codeGen.builder().encodeRet(EncodeFlagsE::Zero);
+        codeGen.builder().encodeRet();
         return Result::Continue;
     }
 }
@@ -158,7 +158,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             const auto  compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
             const auto  nodeView          = codeGen.curNodeView();
             const auto& payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
-            codeGen.builder().encodeLoadRegImm(payload.reg, compilerIfAddress, MicroOpBits::B64, EncodeFlagsE::Zero);
+            codeGen.builder().encodeLoadRegImm(payload.reg, compilerIfAddress, MicroOpBits::B64);
             return Result::Continue;
         }
 
@@ -169,3 +169,4 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

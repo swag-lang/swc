@@ -34,8 +34,8 @@ namespace
 
     void buildReturn42(MicroInstrBuilder& builder, const CallConv& callConv)
     {
-        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeRet(EncodeFlagsE::Zero);
+        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64);
+        builder.encodeRet();
     }
 }
 
@@ -50,9 +50,9 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const auto& callConv = CallConv::host();
 
     MicroInstrBuilder calleeBuilder(ctx);
-    calleeBuilder.encodeLoadRegImm(MicroReg::intReg(15), 0x1234, MicroOpBits::B64, EncodeFlagsE::Zero);
-    calleeBuilder.encodeLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64, EncodeFlagsE::Zero);
-    calleeBuilder.encodeRet(EncodeFlagsE::Zero);
+    calleeBuilder.encodeLoadRegImm(MicroReg::intReg(15), 0x1234, MicroOpBits::B64);
+    calleeBuilder.encodeLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
+    calleeBuilder.encodeRet();
 
     JITExecMemory calleeExecMemory;
     RESULT_VERIFY(JIT::compile(ctx, calleeBuilder, calleeExecMemory));
@@ -62,12 +62,12 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     SWC_ASSERT(calleeFn() == 1);
 
     MicroInstrBuilder callerBuilder(ctx);
-    callerBuilder.encodeLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64, EncodeFlagsE::Zero);
-    callerBuilder.encodeLoadRegImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn), MicroOpBits::B64, EncodeFlagsE::Zero);
-    callerBuilder.encodeCallReg(MicroReg::intReg(10), CallConvKind::Host, EncodeFlagsE::Zero);
-    callerBuilder.encodeOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
-    callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64, EncodeFlagsE::Zero);
-    callerBuilder.encodeRet(EncodeFlagsE::Zero);
+    callerBuilder.encodeLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64);
+    callerBuilder.encodeLoadRegImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn), MicroOpBits::B64);
+    callerBuilder.encodeCallReg(MicroReg::intReg(10), CallConvKind::Host);
+    callerBuilder.encodeOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64);
+    callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
+    callerBuilder.encodeRet();
 
     JITExecMemory callerExecMemory;
     RESULT_VERIFY(JIT::compile(ctx, callerBuilder, callerExecMemory));
@@ -109,3 +109,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

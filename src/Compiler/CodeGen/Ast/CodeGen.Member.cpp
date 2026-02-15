@@ -23,8 +23,8 @@ namespace
         const auto&    payload = codeGen.setPayload(codeGen.curNodeRef());
         const MicroReg leftReg = leftPayload->reg;
         const MicroReg dstReg  = payload.reg;
-        builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64, EncodeFlagsE::Zero);
-        builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+        builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
         return Result::Continue;
     }
 }
@@ -41,3 +41,4 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

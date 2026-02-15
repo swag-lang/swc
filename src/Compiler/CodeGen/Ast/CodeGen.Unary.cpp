@@ -17,7 +17,7 @@ namespace
 
         const auto  nodeView = codeGen.curNodeView();
         const auto& payload  = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
-        builder.encodeLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.encodeLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
         return Result::Continue;
     }
 }
@@ -37,3 +37,4 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

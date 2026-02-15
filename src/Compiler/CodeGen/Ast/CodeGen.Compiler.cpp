@@ -38,8 +38,9 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
     }
-    builder.encodeRet(EncodeFlagsE::Zero);
+    builder.encodeRet();
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
+

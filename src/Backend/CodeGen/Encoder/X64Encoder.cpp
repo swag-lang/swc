@@ -2767,3 +2767,4 @@ void X64Encoder::encodeNop(EncodeFlags emitFlags)
 }
 
 SWC_END_NAMESPACE();
+

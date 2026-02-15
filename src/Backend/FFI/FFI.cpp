@@ -191,7 +191,7 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
                  .numBits    = retType.numBits,
     };
     ABICall::callByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
-    builder.encodeRet(EncodeFlagsE::Zero);
+    builder.encodeRet();
 
     JITExecMemory executableMemory;
     SWC_ASSERT(JIT::compile(ctx, builder, executableMemory) == Result::Continue);
@@ -203,3 +203,4 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
 }
 
 SWC_END_NAMESPACE();
+

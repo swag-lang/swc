@@ -37,7 +37,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
 
-    const MicroReg payloadReg = codeGen.payloadVirtualReg(*payload);
+    const MicroReg payloadReg = CodeGen::payloadVirtualReg(*payload);
     builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
     MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);

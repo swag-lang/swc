@@ -67,18 +67,18 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         SWC_ASSERT(receiverPayload != nullptr);
 
         const MicroReg callArg0Reg  = callConv.intArgRegs[0];
-        const MicroReg interfaceReg = codeGen.payloadVirtualReg(*receiverPayload);
+        const MicroReg interfaceReg = CodeGen::payloadVirtualReg(*receiverPayload);
         builder.encodeLoadRegMem(callArg0Reg, interfaceReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64, EncodeFlagsE::Zero);
         numAbiArgs = 1;
     }
 
-    const MicroReg calleeReg = codeGen.payloadVirtualReg(*calleePayload);
+    const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
     emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);
 
     auto* resultStorage        = codeGen.ctx().compiler().allocate<uint64_t>();
     *resultStorage             = 0;
     const auto&    nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const MicroReg resultReg   = codeGen.payloadVirtualReg(nodePayload);
+    const MicroReg resultReg   = CodeGen::payloadVirtualReg(nodePayload);
     builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
 

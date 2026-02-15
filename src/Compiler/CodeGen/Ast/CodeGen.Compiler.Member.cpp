@@ -21,8 +21,8 @@ namespace
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
         const auto&    payload = codeGen.setPayload(codeGen.curNodeRef());
-        const MicroReg leftReg = codeGen.payloadVirtualReg(*leftPayload);
-        const MicroReg dstReg  = codeGen.payloadVirtualReg(payload);
+        const MicroReg leftReg = CodeGen::payloadVirtualReg(*leftPayload);
+        const MicroReg dstReg  = CodeGen::payloadVirtualReg(payload);
         builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64, EncodeFlagsE::Zero);
         builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64, EncodeFlagsE::Zero);
         return Result::Continue;

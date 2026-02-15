@@ -19,6 +19,9 @@
     <Filter Include="src\Backend\MachineCode\Encoder">
       <UniqueIdentifier>{D15CB4E4-95D0-3F32-B697-CD2E87A7941C}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Backend\MachineCode\Abi">
+      <UniqueIdentifier>{7C190AE0-26B8-4D43-A6D0-56877B150A3A}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Backend\MachineCode\Micro">
       <UniqueIdentifier>{2915C3C7-F9BE-8A37-9A87-0E98AB798D11}</UniqueIdentifier>
     </Filter>
@@ -141,8 +144,11 @@
     <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp">
       <Filter>src\Backend\MachineCode\Encoder</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
+    <ClCompile Include="src\Backend\MachineCode\Abi\ABICall.cpp">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\MachineCode\Abi\ABITypeNormalize.cpp">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
@@ -635,8 +641,11 @@
     <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h">
       <Filter>src\Backend\MachineCode\Encoder</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroAbiCall.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
+    <ClInclude Include="src\Backend\MachineCode\Abi\ABICall.h">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\MachineCode\Abi\ABITypeNormalize.h">
+      <Filter>src\Backend\MachineCode\Abi</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.h">
       <Filter>src\Backend\MachineCode\Micro</Filter>

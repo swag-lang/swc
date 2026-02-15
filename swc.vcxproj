@@ -199,7 +199,8 @@
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\CallConv.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp"/>
-        <ClCompile Include="src\Backend\MachineCode\Micro\MicroAbiCall.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Abi\ABICall.cpp"/>
+        <ClCompile Include="src\Backend\MachineCode\Abi\ABITypeNormalize.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.cpp"/>
         <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrStorage.cpp"/>
@@ -367,7 +368,8 @@
         <ClInclude Include="src\Backend\MachineCode\CallConv.h"/>
         <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc"/>
-        <ClInclude Include="src\Backend\MachineCode\Micro\MicroAbiCall.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Abi\ABICall.h"/>
+        <ClInclude Include="src\Backend\MachineCode\Abi\ABITypeNormalize.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h"/>

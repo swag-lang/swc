@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/MachineCode/Micro/MicroAbiCall.h"
+#include "Backend/MachineCode/Abi/ABICall.h"
 #include "Backend/Runtime.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -8,7 +8,7 @@ namespace
 {
     constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
 
-    void emitCallArgs(MicroInstrBuilder& builder, const CallConv& conv, std::span<const MicroABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
+    void emitCallArgs(MicroInstrBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
     {
         if (args.empty())
             return;
@@ -20,7 +20,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const auto& arg      = args[i];
-            const auto  argAddr  = static_cast<uint64_t>(i) * sizeof(MicroABICall::Arg);
+            const auto  argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
             const auto  argBits  = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
             const bool  isRegArg = i < numRegArgs;
 
@@ -39,7 +39,7 @@ namespace
         }
     }
 
-    MicroOpBits preparedArgBits(const MicroABICall::PreparedArg& arg)
+    MicroOpBits preparedArgBits(const ABICall::PreparedArg& arg)
     {
         if (arg.isFloat)
         {
@@ -51,7 +51,7 @@ namespace
         return MicroOpBits::B64;
     }
 
-    void emitReturnWriteBack(MicroInstrBuilder& builder, const CallConv& conv, const MicroABICall::Return& ret, MicroReg regBase)
+    void emitReturnWriteBack(MicroInstrBuilder& builder, const CallConv& conv, const ABICall::Return& ret, MicroReg regBase)
     {
         if (ret.isVoid || ret.isIndirect)
             return;
@@ -66,10 +66,10 @@ namespace
     }
 }
 
-uint32_t MicroABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
+uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
-    const auto&   conv         = CallConv::get(callConvKind);
-    const uint32_t numRegArgs   = conv.numArgRegisterSlots();
+    const auto&    conv          = CallConv::get(callConvKind);
+    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
     const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
@@ -79,7 +79,7 @@ uint32_t MicroABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_
     return frameBaseSize + alignPad;
 }
 
-uint32_t MicroABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
+uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
     const auto& conv            = CallConv::get(callConvKind);
     const auto  numPreparedArgs = static_cast<uint32_t>(args.size());
@@ -149,7 +149,7 @@ uint32_t MicroABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind call
     return numPreparedArgs;
 }
 
-void MicroABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
+void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  numArgs     = static_cast<uint32_t>(args.size());
@@ -171,7 +171,7 @@ void MicroABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callCo
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret)
+void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
@@ -193,7 +193,7 @@ void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKi
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
+void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
 {
     callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{});
 }

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace MicroABICall
+namespace ABICall
 {
     uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
 
@@ -23,10 +23,10 @@ namespace MicroABICall
 
     struct PreparedArg
     {
-        MicroReg        srcReg  = MicroReg::invalid();
-        PreparedArgKind kind    = PreparedArgKind::Direct;
-        bool            isFloat = false;
-        uint8_t         numBits = 0;
+        MicroReg         srcReg  = MicroReg::invalid();
+        PreparedArgKind  kind    = PreparedArgKind::Direct;
+        bool             isFloat = false;
+        uint8_t          numBits = 0;
     };
 
     struct Return

@@ -54,6 +54,7 @@ public:
     uint8_t             byteAt(uint32_t index) const;
     void                copyTo(std::span<std::byte> dst) const;
     virtual std::string formatRegisterName(MicroReg reg) const;
+    virtual MicroReg    stackPointerReg() const = 0;
 
 protected:
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }

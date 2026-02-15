@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool applyConformanceIssue(const MicroPassContext& context, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    bool applyConformanceIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -111,7 +111,7 @@ namespace
             const auto dstReg   = ops[0].reg;
             auto       opBits   = ops[1].opBits;
             const auto immValue = ops[2].valueU64;
-            const auto rspReg   = MicroReg::intReg(4);
+            const auto rspReg   = encoder.stackPointerReg();
             if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
                 opBits = MicroOpBits::B64;
 
@@ -170,7 +170,7 @@ void MicroConformancePass::run(MicroPassContext& context)
             if (!encoder.queryConformanceIssue(issue, inst, ops))
                 break;
 
-            if (!applyConformanceIssue(context, it.current, inst, ops, issue))
+            if (!applyConformanceIssue(context, encoder, it.current, inst, ops, issue))
                 SWC_INTERNAL_ERROR();
         }
     }

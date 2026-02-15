@@ -21,6 +21,7 @@ public:
     }
 
     std::string formatRegisterName(MicroReg reg) const override;
+    MicroReg    stackPointerReg() const override { return MicroReg::intReg(4); }
 
 private:
     uint64_t currentOffset() const override { return store_.size(); }

@@ -13,6 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr auto K_JUMP_LABEL_COLOR = SyntaxColor::Function;
+
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {
         outSourceLine = 0;
@@ -474,6 +476,22 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
         out += "  ";
+
+        if (inst.op == MicroInstrOpcode::Label)
+        {
+            if (inst.numOperands >= 1)
+            {
+                const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
+                appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}:", labelRef));
+            }
+
+            appendInstFlags(out, ctx, colorize, inst.emitFlags);
+            appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
+            out += '\n';
+            ++idx;
+            continue;
+        }
+
         appendColored(out, ctx, colorize, SyntaxColor::MicroInstruction, std::format("{:>26}", opcodeName(inst.op)));
         out += " ";
 
@@ -487,20 +505,6 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
                 break;
-            case MicroInstrOpcode::Label:
-                if (inst.numOperands >= 1)
-                {
-                    const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
-                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("L{}", labelRef));
-                    auto labelIt = labelIndexByRef.find(labelRef);
-                    if (labelIt != labelIndexByRef.end())
-                    {
-                        out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", labelIt->second));
-                    }
-                }
-                break;
-
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::JumpReg:
@@ -557,13 +561,18 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 if (inst.numOperands >= 3)
                 {
                     const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
-                    out += ", ";
-                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to=L{}", labelRef));
+                    out += " ";
+                    appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}:", labelRef));
                     auto labelIt = labelIndexByRef.find(labelRef);
                     if (labelIt != labelIndexByRef.end())
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", labelIt->second));
+                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", labelIt->second));
+                    }
+                    else
+                    {
+                        out += " ";
+                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, "????");
                     }
                 }
                 break;

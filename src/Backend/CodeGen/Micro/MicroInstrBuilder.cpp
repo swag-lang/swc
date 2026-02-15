@@ -100,6 +100,31 @@ EncodeResult MicroInstrBuilder::encodeNop(EncodeFlags emitFlags)
     return EncodeResult::Zero;
 }
 
+Ref MicroInstrBuilder::createLabel()
+{
+    const auto labelRef = static_cast<Ref>(labels_.size());
+    labels_.push_back(INVALID_REF);
+    return labelRef;
+}
+
+EncodeResult MicroInstrBuilder::placeLabel(Ref labelRef, EncodeFlags emitFlags)
+{
+    SWC_ASSERT(labelRef < labels_.size());
+    SWC_ASSERT(labels_[labelRef] == INVALID_REF);
+
+    auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::Label, emitFlags, 1);
+    auto* ops            = inst.ops(operands_);
+    ops[0].valueU64      = labelRef;
+    labels_[labelRef]    = instRef;
+    return EncodeResult::Zero;
+}
+
+EncodeResult MicroInstrBuilder::encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags)
+{
+    outLabelRef = createLabel();
+    return placeLabel(outLabelRef, emitFlags);
+}
+
 EncodeResult MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
 {
     addInstruction(MicroInstrOpcode::Ret, emitFlags, 0);
@@ -145,6 +170,16 @@ EncodeResult MicroInstrBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offs
     return EncodeResult::Zero;
 }
 
+EncodeResult MicroInstrBuilder::encodeJumpToLabel(MicroCondJump jumpType, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags)
+{
+    const auto& inst = addInstruction(MicroInstrOpcode::JumpCond, emitFlags, 3);
+    auto*       ops  = inst.ops(operands_);
+    ops[0].jumpType  = jumpType;
+    ops[1].opBits    = opBits;
+    ops[2].valueU64  = labelRef;
+    return EncodeResult::Zero;
+}
+
 EncodeResult MicroInstrBuilder::encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags)
 {
     auto [ref, inst] = addInstructionWithRef(MicroInstrOpcode::JumpCond, emitFlags, 2);
@@ -172,6 +207,16 @@ EncodeResult MicroInstrBuilder::encodePatchJump(const MicroJump& jump, EncodeFla
     const auto& inst = addInstruction(MicroInstrOpcode::PatchJump, emitFlags, 3);
     auto*       ops  = inst.ops(operands_);
     ops[0].valueU64  = jump.offsetStart;
+    return EncodeResult::Zero;
+}
+
+EncodeResult MicroInstrBuilder::encodePatchJumpToInstruction(const MicroJump& jump, Ref instructionRef, EncodeFlags emitFlags)
+{
+    const auto& inst = addInstruction(MicroInstrOpcode::PatchJump, emitFlags, 3);
+    auto*       ops  = inst.ops(operands_);
+    ops[0].valueU64  = jump.offsetStart;
+    ops[1].valueU64  = instructionRef;
+    ops[2].valueU64  = 2;
     return EncodeResult::Zero;
 }
 

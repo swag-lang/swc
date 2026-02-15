@@ -73,14 +73,19 @@ public:
     EncodeResult encodePush(MicroReg reg, EncodeFlags emitFlags);
     EncodeResult encodePop(MicroReg reg, EncodeFlags emitFlags);
     EncodeResult encodeNop(EncodeFlags emitFlags);
+    Ref          createLabel();
+    EncodeResult placeLabel(Ref labelRef, EncodeFlags emitFlags);
+    EncodeResult encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags);
     EncodeResult encodeRet(EncodeFlags emitFlags);
     EncodeResult encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags);
     EncodeResult encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags);
+    EncodeResult encodeJumpToLabel(MicroCondJump jumpType, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags);
     EncodeResult encodeJump(MicroJump& jump, MicroCondJump jumpType, MicroOpBits opBits, EncodeFlags emitFlags);
     EncodeResult encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags);
     EncodeResult encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags);
+    EncodeResult encodePatchJumpToInstruction(const MicroJump& jump, Ref instructionRef, EncodeFlags emitFlags);
     EncodeResult encodeJumpReg(MicroReg reg, EncodeFlags emitFlags);
     EncodeResult encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags);
     EncodeResult encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags);
@@ -126,6 +131,7 @@ private:
     std::string                                     printSymbolName_;
     std::string                                     printFilePath_;
     uint32_t                                        printSourceLine_ = 0;
+    std::vector<Ref>                                labels_;
 };
 
 SWC_END_NAMESPACE();

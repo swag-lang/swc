@@ -12,6 +12,26 @@ namespace
             return INVALID_REF;
         return static_cast<Ref>(valueA);
     }
+
+    Ref resolveJumpRefCompat(uint64_t valueA)
+    {
+        Ref jumpRef = resolveJumpRef(valueA);
+        if (jumpRef != INVALID_REF)
+            return jumpRef;
+
+        constexpr uint64_t stride = sizeof(MicroInstr);
+        if (valueA % stride != 0)
+            return INVALID_REF;
+        return resolveJumpRef(valueA / stride);
+    }
+
+    uint64_t resolveJumpDestination(const std::unordered_map<Ref, uint64_t>& labelOffsets, uint64_t labelRefRaw)
+    {
+        const Ref labelRef = resolveJumpRefCompat(labelRefRaw);
+        auto      it       = labelOffsets.find(labelRef);
+        SWC_ASSERT(it != labelOffsets.end());
+        return it->second;
+    }
 }
 
 void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, Ref instRef)
@@ -26,8 +46,13 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
             break;
 
         case MicroInstrOpcode::Ignore:
-        case MicroInstrOpcode::Label:
         case MicroInstrOpcode::Debug:
+            break;
+        case MicroInstrOpcode::Label:
+            if (inst.numOperands >= 1)
+            {
+                labelOffsets_[resolveJumpRefCompat(ops[0].valueU64)] = encoder.currentOffset();
+            }
             break;
 
         case MicroInstrOpcode::Enter:
@@ -73,29 +98,40 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
         {
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].jumpType, ops[1].opBits, inst.emitFlags);
-            jump.valid      = true;
-            jumps_[instRef] = jump;
+            jump.valid = true;
+            if (inst.numOperands >= 3)
+            {
+                pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64, .emitFlags = inst.emitFlags});
+            }
+            else
+            {
+                jumps_[instRef] = jump;
+            }
             break;
         }
         case MicroInstrOpcode::PatchJump:
         {
-            Ref  jumpRef = resolveJumpRef(ops[0].valueU64);
-            auto it      = jumps_.find(jumpRef);
-            if (it == jumps_.end())
-            {
-                constexpr uint64_t stride = sizeof(MicroInstr);
-                if (ops[0].valueU64 % stride == 0)
-                {
-                    jumpRef = resolveJumpRef(ops[0].valueU64 / stride);
-                    it      = jumps_.find(jumpRef);
-                }
-            }
-            SWC_ASSERT(it != jumps_.end());
-            SWC_ASSERT(it->second.valid);
+            const Ref jumpRef = resolveJumpRefCompat(ops[0].valueU64);
+            auto      jumpIt  = jumps_.find(jumpRef);
+            SWC_ASSERT(jumpIt != jumps_.end());
+            SWC_ASSERT(jumpIt->second.valid);
+
             if (ops[2].valueU64 == 1)
-                encoder.encodePatchJump(it->second, ops[1].valueU64, inst.emitFlags);
+            {
+                encoder.encodePatchJump(jumpIt->second, ops[1].valueU64, inst.emitFlags);
+            }
+            else if (ops[2].valueU64 == 2)
+            {
+                const Ref instructionRef = resolveJumpRefCompat(ops[1].valueU64);
+                auto      itDst          = instructionOffsets_.find(instructionRef);
+                SWC_ASSERT(itDst != instructionOffsets_.end());
+                const auto destination = itDst->second;
+                encoder.encodePatchJump(jumpIt->second, destination, inst.emitFlags);
+            }
             else
-                encoder.encodePatchJump(it->second, inst.emitFlags);
+            {
+                encoder.encodePatchJump(jumpIt->second, encoder.currentOffset(), inst.emitFlags);
+            }
             break;
         }
         case MicroInstrOpcode::JumpCondImm:
@@ -207,12 +243,23 @@ void MicroEncodePass::run(MicroPassContext& context)
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
+    auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
 
     jumps_.clear();
+    instructionOffsets_.clear();
+    labelOffsets_.clear();
+    pendingLabelJumps_.clear();
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
+        instructionOffsets_[it.current] = encoder.currentOffset();
         encodeInstruction(context, *it, it.current);
+    }
+
+    for (const auto& pending : pendingLabelJumps_)
+    {
+        const auto destination = resolveJumpDestination(labelOffsets_, pending.labelRef);
+        encoder.encodePatchJump(pending.jump, destination, pending.emitFlags);
     }
 }
 

@@ -54,6 +54,7 @@ protected:
 
     explicit Encoder(TaskContext& ctx);
     virtual ~Encoder() = default;
+    virtual uint64_t currentOffset() const = 0;
 
     virtual EncodeResult encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)                                                                                    = 0;
     virtual EncodeResult encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)                                                                     = 0;

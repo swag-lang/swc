@@ -13,9 +13,19 @@ public:
     void          run(MicroPassContext& context) override;
 
 private:
+    struct PendingLabelJump
+    {
+        MicroJump   jump;
+        uint64_t    labelRef = INVALID_REF;
+        EncodeFlags emitFlags;
+    };
+
     void encodeInstruction(const MicroPassContext& context, const MicroInstr& inst, Ref instRef);
 
     std::unordered_map<Ref, MicroJump> jumps_;
+    std::unordered_map<Ref, uint64_t>  instructionOffsets_;
+    std::unordered_map<Ref, uint64_t>  labelOffsets_;
+    std::vector<PendingLabelJump>      pendingLabelJumps_;
 };
 
 SWC_END_NAMESPACE();

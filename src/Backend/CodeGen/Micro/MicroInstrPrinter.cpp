@@ -449,6 +449,21 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
     auto&                        instructionsV = const_cast<MicroInstrStorage&>(instructions);
     auto                         view          = instructionsV.view();
     std::unordered_set<uint64_t> seenDebugLines;
+    std::unordered_map<Ref, uint32_t> instIndexByRef;
+    std::unordered_map<Ref, uint32_t> labelIndexByRef;
+
+    uint32_t scanIdx = 0;
+    for (auto it = view.begin(); it != view.end(); ++it)
+    {
+        instIndexByRef[it.current] = scanIdx;
+        const MicroInstr& inst     = *it;
+        if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
+        {
+            const auto* ops = inst.ops(storeOps);
+            labelIndexByRef[static_cast<Ref>(ops[0].valueU64)] = scanIdx;
+        }
+        ++scanIdx;
+    }
 
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
@@ -468,10 +483,22 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             case MicroInstrOpcode::Enter:
             case MicroInstrOpcode::Leave:
             case MicroInstrOpcode::Ignore:
-            case MicroInstrOpcode::Label:
             case MicroInstrOpcode::Debug:
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
+                break;
+            case MicroInstrOpcode::Label:
+                if (inst.numOperands >= 1)
+                {
+                    const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
+                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("L{}", labelRef));
+                    auto labelIt = labelIndexByRef.find(labelRef);
+                    if (labelIt != labelIndexByRef.end())
+                    {
+                        out += " ";
+                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", labelIt->second));
+                    }
+                }
                 break;
 
             case MicroInstrOpcode::Push:
@@ -527,12 +554,38 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                 appendColored(out, ctx, colorize, SyntaxColor::Type, condJumpName(ops[0].jumpType));
                 out += ", ";
                 appendColored(out, ctx, colorize, SyntaxColor::Type, std::format("b{}", opBitsName(ops[1].opBits)));
+                if (inst.numOperands >= 3)
+                {
+                    const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
+                    out += ", ";
+                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to=L{}", labelRef));
+                    auto labelIt = labelIndexByRef.find(labelRef);
+                    if (labelIt != labelIndexByRef.end())
+                    {
+                        out += " ";
+                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", labelIt->second));
+                    }
+                }
                 break;
 
             case MicroInstrOpcode::PatchJump:
                 appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("from={}", ops[0].valueU64));
                 out += ", ";
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to={}", ops[1].valueU64));
+                if (ops[2].valueU64 == 2)
+                {
+                    const Ref targetRef = static_cast<Ref>(ops[1].valueU64);
+                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to_ref={}", targetRef));
+                    auto itDst = instIndexByRef.find(targetRef);
+                    if (itDst != instIndexByRef.end())
+                    {
+                        out += " ";
+                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", itDst->second));
+                    }
+                }
+                else
+                {
+                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to={}", ops[1].valueU64));
+                }
                 out += ", ";
                 appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("imm={}", ops[2].valueU64));
                 break;

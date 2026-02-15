@@ -23,6 +23,23 @@ enum class EncodeFlagsE : uint8_t
 };
 using EncodeFlags = EnumFlags<EncodeFlagsE>;
 
+enum class MicroConformanceIssueKind : uint8_t
+{
+    None,
+    ClampImmediate,
+    NormalizeOpBits,
+    SplitLoadMemImm64,
+    SplitLoadAmcMemImm64,
+};
+
+struct MicroConformanceIssue
+{
+    MicroConformanceIssueKind kind            = MicroConformanceIssueKind::None;
+    uint8_t                   operandIndex    = 0;
+    uint64_t                  valueLimitU64   = 0;
+    MicroOpBits               normalizedOpBits = MicroOpBits::Zero;
+};
+
 class Encoder
 {
     friend class MicroInstrBuilder;
@@ -90,7 +107,7 @@ protected:
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
 
     virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
-    virtual void conformInstruction(MicroInstr&, MicroInstrOperand*) const {}
+    virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr&, const MicroInstrOperand*) const { return false; }
 
     EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);

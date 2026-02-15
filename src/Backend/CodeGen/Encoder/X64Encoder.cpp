@@ -661,37 +661,123 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     }
 }
 
-void X64Encoder::conformInstruction(MicroInstr& inst, MicroInstrOperand* ops) const
+bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const
 {
+    outIssue = {};
     if (!ops)
-        return;
+        return false;
 
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
     {
         if (!isShiftImmediateOp(ops[2].microOp))
-            return;
+            return false;
 
-        ops[3].valueU64 = std::min(ops[3].valueU64, uint64_t{0x7F});
-        return;
+        if (ops[3].valueU64 <= 0x7F)
+            return false;
+
+        outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
+        outIssue.operandIndex  = 3;
+        outIssue.valueLimitU64 = 0x7F;
+        return true;
     }
 
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
     {
         if (!isShiftImmediateOp(ops[2].microOp))
-            return;
+            return false;
 
-        ops[4].valueU64 = std::min(ops[4].valueU64, uint64_t{0x7F});
-        return;
+        if (ops[4].valueU64 <= 0x7F)
+            return false;
+
+        outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
+        outIssue.operandIndex  = 4;
+        outIssue.valueLimitU64 = 0x7F;
+        return true;
     }
 
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm)
     {
         if (ops[1].opBits != MicroOpBits::B8 && ops[1].opBits != MicroOpBits::B32)
-            ops[1].opBits = MicroOpBits::B32;
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 1;
+            outIssue.normalizedOpBits = MicroOpBits::B32;
+            return true;
+        }
+
+        return false;
     }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::LoadMemImm)
+    {
+        if (ops[1].opBits == MicroOpBits::B64 && !canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits))
+        {
+            outIssue.kind = MicroConformanceIssueKind::SplitLoadMemImm64;
+            return true;
+        }
+
+        if (!canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits))
+        {
+            outIssue.kind         = MicroConformanceIssueKind::ClampImmediate;
+            outIssue.operandIndex = 3;
+            switch (ops[1].opBits)
+            {
+                case MicroOpBits::B8:
+                    outIssue.valueLimitU64 = 0xFF;
+                    return true;
+                case MicroOpBits::B16:
+                    outIssue.valueLimitU64 = 0xFFFF;
+                    return true;
+                case MicroOpBits::B32:
+                    outIssue.valueLimitU64 = 0xFFFFFFFF;
+                    return true;
+                default:
+                    outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+                    outIssue.operandIndex     = 1;
+                    outIssue.normalizedOpBits = MicroOpBits::B64;
+                    return true;
+            }
+        }
+    }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::LoadAmcMemImm)
+    {
+        if (ops[4].opBits == MicroOpBits::B64 && !canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits))
+        {
+            outIssue.kind = MicroConformanceIssueKind::SplitLoadAmcMemImm64;
+            return true;
+        }
+
+        if (!canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits))
+        {
+            outIssue.kind         = MicroConformanceIssueKind::ClampImmediate;
+            outIssue.operandIndex = 7;
+            switch (ops[4].opBits)
+            {
+                case MicroOpBits::B8:
+                    outIssue.valueLimitU64 = 0xFF;
+                    return true;
+                case MicroOpBits::B16:
+                    outIssue.valueLimitU64 = 0xFFFF;
+                    return true;
+                case MicroOpBits::B32:
+                    outIssue.valueLimitU64 = 0xFFFFFFFF;
+                    return true;
+                default:
+                    outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+                    outIssue.operandIndex     = 4;
+                    outIssue.normalizedOpBits = MicroOpBits::B64;
+                    return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 void X64Encoder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
@@ -1193,7 +1279,25 @@ void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t 
     SWC_INTERNAL_CHECK(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     SWC_INTERNAL_CHECK(opBits != MicroOpBits::B128);
-    SWC_INTERNAL_CHECK(canEncodeOpImmediate(value, opBits));
+
+    if (!canEncodeOpImmediate(value, opBits))
+    {
+        if (opBits == MicroOpBits::B64)
+        {
+            const auto lowU32  = static_cast<uint32_t>(value & 0xFFFFFFFFu);
+            const auto highU32 = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
+            encodeLoadMemImm(memReg, memOffset, lowU32, MicroOpBits::B32, emitFlags);
+            encodeLoadMemImm(memReg, memOffset + 4, highU32, MicroOpBits::B32, emitFlags);
+            return;
+        }
+
+        if (opBits == MicroOpBits::B8)
+            value &= 0xFF;
+        else if (opBits == MicroOpBits::B16)
+            value &= 0xFFFF;
+        else if (opBits == MicroOpBits::B32)
+            value &= 0xFFFFFFFF;
+    }
 
     emitRex(store_, opBits, MicroReg{}, memReg);
     emitSpecB8(store_, 0xC7, opBits);

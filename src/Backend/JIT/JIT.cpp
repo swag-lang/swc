@@ -29,9 +29,9 @@ namespace
 
     Result compileWithEncoder(TaskContext& ctx, MicroInstrBuilder& builder, Encoder& encoder, JITExecMemory& outExecutableMemory)
     {
-        MicroRegAllocPass regAllocPass;
+        MicroRegAllocPass       regAllocPass;
         MicroPersistentRegsPass persistentRegsPass;
-        MicroEncodePass   encodePass;
+        MicroEncodePass         encodePass;
 
         MicroPassContext passContext;
         passContext.callConvKind           = CallConvKind::Host;

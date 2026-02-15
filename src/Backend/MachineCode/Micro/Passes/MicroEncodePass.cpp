@@ -73,14 +73,14 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
         {
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].jumpType, ops[1].opBits, inst.emitFlags);
-            jump.valid     = true;
+            jump.valid      = true;
             jumps_[instRef] = jump;
             break;
         }
         case MicroInstrOpcode::PatchJump:
         {
-            Ref jumpRef = resolveJumpRef(ops[0].valueU64);
-            auto it     = jumps_.find(jumpRef);
+            Ref  jumpRef = resolveJumpRef(ops[0].valueU64);
+            auto it      = jumps_.find(jumpRef);
             if (it == jumps_.end())
             {
                 constexpr uint64_t stride = sizeof(MicroInstr);

@@ -23,7 +23,7 @@ void MicroPersistentRegsPass::run(MicroPassContext& context)
     if (!savedRegsFrameSize_)
         return;
 
-    Ref firstRef = INVALID_REF;
+    Ref                                      firstRef = INVALID_REF;
     std::vector<std::pair<Ref, EncodeFlags>> retRefs;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {

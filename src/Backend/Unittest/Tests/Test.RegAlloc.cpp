@@ -251,8 +251,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         passCtx.preservePersistentRegs = true;
         builder.runPasses(passes, nullptr, passCtx);
 
-        bool hasSub = false;
-        bool hasAdd = false;
+        bool       hasSub      = false;
+        bool       hasAdd      = false;
         const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind), &hasSub, &hasAdd);
         if (!hasFrameOps || !hasSub || !hasAdd)
             return Result::Error;

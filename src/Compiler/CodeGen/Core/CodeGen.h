@@ -48,7 +48,7 @@ public:
 
 private:
     void   setVisitors();
-    Result lowerConstant(AstNodeRef nodeRef);
+    Result emitConstant(AstNodeRef nodeRef);
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);

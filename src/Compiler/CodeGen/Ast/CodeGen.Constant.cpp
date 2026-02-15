@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryEmitConstantToPayload(CodeGen& codeGen, AstNodeRef nodeRef, TypeRef typeRef, const ConstantValue& cst)
+    void emitConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, const ConstantValue& cst)
     {
         auto& builder = codeGen.builder();
 
@@ -17,54 +17,49 @@ namespace
         {
             case ConstantKind::Bool:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
                 builder.encodeLoadRegImm(payload.reg, cst.getBool() ? 1 : 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::Char:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
-                builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(cst.getChar()), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                builder.encodeLoadRegImm(payload.reg, cst.getChar(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                return;
             }
 
             case ConstantKind::Rune:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
-                builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(cst.getRune()), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                builder.encodeLoadRegImm(payload.reg, cst.getRune(), MicroOpBits::B64, EncodeFlagsE::Zero);
+                return;
             }
 
             case ConstantKind::Int:
             {
                 const auto& val = cst.getInt();
-                if (!val.fits64())
-                    return false;
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
+                SWC_ASSERT(val.fits64());
                 builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(val.asI64()), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::Float:
             {
                 const auto& value = cst.getFloat();
-                auto&       payload = codeGen.setPayload(nodeRef, typeRef);
                 if (value.bitWidth() == 32)
                 {
                     const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());
                     builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B32, EncodeFlagsE::Zero);
-                    return true;
+                    return;
                 }
 
                 if (value.bitWidth() == 64)
                 {
                     const uint64_t bits = std::bit_cast<uint64_t>(value.asDouble());
                     builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B64, EncodeFlagsE::Zero);
-                    return true;
+                    return;
                 }
 
-                return false;
+                SWC_ASSERT(false);
+                return;
             }
 
             case ConstantKind::String:
@@ -77,46 +72,43 @@ namespace
                     std::memcpy(data, value.data(), value.size());
                 }
 
-                auto* runtimeString = codeGen.ctx().compiler().allocate<Runtime::String>();
+                auto* runtimeString   = codeGen.ctx().compiler().allocate<Runtime::String>();
                 runtimeString->ptr    = data;
                 runtimeString->length = value.size();
 
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
                 builder.encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::ValuePointer:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
                 builder.encodeLoadRegImm(payload.reg, cst.getValuePointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
                 builder.encodeLoadRegImm(payload.reg, cst.getBlockPointer(), MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::Null:
             {
-                auto& payload = codeGen.setPayload(nodeRef, typeRef);
                 builder.encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-                return true;
+                return;
             }
 
             case ConstantKind::EnumValue:
-                return tryEmitConstantToPayload(codeGen, nodeRef, typeRef, codeGen.ctx().cstMgr().get(cst.getEnumValue()));
+                emitConstantToPayload(codeGen, payload, codeGen.ctx().cstMgr().get(cst.getEnumValue()));
+                return;
 
             default:
-                return false;
+                SWC_UNREACHABLE();
         }
     }
 }
 
-Result CodeGen::lowerConstant(AstNodeRef nodeRef)
+Result CodeGen::emitConstant(AstNodeRef nodeRef)
 {
     if (payload(nodeRef))
         return Result::Continue;
@@ -125,7 +117,8 @@ Result CodeGen::lowerConstant(AstNodeRef nodeRef)
     if (!nodeView.cst)
         return Result::Continue;
 
-    tryEmitConstantToPayload(*this, nodeRef, nodeView.typeRef, *nodeView.cst);
+    const auto& payload = setPayload(nodeRef, nodeView.typeRef);
+    emitConstantToPayload(*this, payload, *nodeView.cst);
     return Result::Continue;
 }
 

@@ -651,25 +651,24 @@ namespace
             }
         };
 
-        const auto padded = std::format("{:<{}}", value, K_NATURAL_COLUMN_WIDTH);
-        size_t     pos    = 0;
-        while (pos < padded.size())
+        size_t pos = 0;
+        while (pos < value.size())
         {
-            if (std::isspace(static_cast<unsigned char>(padded[pos])))
+            if (std::isspace(static_cast<unsigned char>(value[pos])))
             {
                 size_t start = pos;
-                while (pos < padded.size() && std::isspace(static_cast<unsigned char>(padded[pos])))
+                while (pos < value.size() && std::isspace(static_cast<unsigned char>(value[pos])))
                     ++pos;
-                appendColored(out, ctx, colorize, SyntaxColor::Code, std::string_view(padded).substr(start, pos - start));
+                appendColored(out, ctx, colorize, SyntaxColor::Code, std::string_view(value).substr(start, pos - start));
                 continue;
             }
 
-            const char c = padded[pos];
+            const char c = value[pos];
             if (std::ispunct(static_cast<unsigned char>(c)) && c != '_' && c != '%' && c != 'x' && c != ':')
             {
-                if (pos + 2 < padded.size())
+                if (pos + 2 < value.size())
                 {
-                    const auto three = std::string_view(padded).substr(pos, 3);
+                    const auto three = std::string_view(value).substr(pos, 3);
                     if (three == "<<=" || three == ">>=")
                     {
                         appendNaturalToken(three, pos);
@@ -678,9 +677,9 @@ namespace
                     }
                 }
 
-                if (pos + 1 < padded.size())
+                if (pos + 1 < value.size())
                 {
-                    const auto two = std::string_view(padded).substr(pos, 2);
+                    const auto two = std::string_view(value).substr(pos, 2);
                     if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>")
                     {
                         appendNaturalToken(two, pos);
@@ -689,15 +688,15 @@ namespace
                     }
                 }
 
-                appendNaturalToken(std::string_view(padded).substr(pos, 1), pos);
+                appendNaturalToken(std::string_view(value).substr(pos, 1), pos);
                 ++pos;
                 continue;
             }
 
             size_t start = pos;
-            while (pos < padded.size())
+            while (pos < value.size())
             {
-                const char cc = padded[pos];
+                const char cc = value[pos];
                 if (std::isspace(static_cast<unsigned char>(cc)))
                     break;
                 if (std::ispunct(static_cast<unsigned char>(cc)) && cc != '_' && cc != '%' && cc != 'x' && cc != ':')
@@ -705,10 +704,49 @@ namespace
                 ++pos;
             }
 
-            appendNaturalToken(std::string_view(padded).substr(start, pos - start), start);
+            appendNaturalToken(std::string_view(value).substr(start, pos - start), start);
         }
 
+    }
+
+    void appendColumnSeparator(std::string& out, const TaskContext& ctx, bool colorize)
+    {
         appendColored(out, ctx, colorize, SyntaxColor::Compiler, " | ");
+    }
+
+    size_t visibleTextLengthNoAnsi(std::string_view value)
+    {
+        size_t len = 0;
+        for (size_t i = 0; i < value.size();)
+        {
+            if (value[i] == '\x1B' && i + 1 < value.size() && value[i + 1] == '[')
+            {
+                i += 2;
+                while (i < value.size() && value[i] != 'm')
+                    ++i;
+                if (i < value.size())
+                    ++i;
+                continue;
+            }
+
+            ++len;
+            ++i;
+        }
+
+        return len;
+    }
+
+    void padLeftColumnToWidth(std::string& out, bool colorize, size_t lineColumnStart, uint32_t width)
+    {
+        if (lineColumnStart > out.size())
+            return;
+
+        const std::string_view lineColumn = std::string_view(out).substr(lineColumnStart);
+        const size_t           used       = colorize ? visibleTextLengthNoAnsi(lineColumn) : lineColumn.size();
+        if (used >= width)
+            return;
+
+        out.append(width - used, ' ');
     }
 
     void appendRegister(std::string& out, const TaskContext& ctx, bool colorize, MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
@@ -913,6 +951,12 @@ namespace
         return std::string(width, '?');
     }
 
+    void trimTrailingSpaces(std::string& out)
+    {
+        while (!out.empty() && out.back() == ' ')
+            out.pop_back();
+    }
+
     void appendInstructionDebugPayload(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef)
     {
         if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
@@ -926,9 +970,9 @@ namespace
         if (!symbol)
             return;
 
-        out += "  ; ";
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, "symbol=");
-        appendColored(out, ctx, colorize, SyntaxColor::Code, symbol->name(ctx));
+        trimTrailingSpaces(out);
+        out += "  ";
+        appendColored(out, ctx, colorize, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
     bool appendInstructionDebugInfo(std::string& out,
@@ -1024,7 +1068,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 
         appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, formatInstructionIndex(idx, indexWidth));
         out += "  ";
-        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
+        const size_t leftColumnStart = out.size();
 
         if (inst.op == MicroInstrOpcode::Label)
         {
@@ -1035,6 +1079,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             }
 
             appendInstFlags(out, ctx, colorize, inst.emitFlags);
+            padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
+            appendColumnSeparator(out, ctx, colorize);
+            appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
             appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
             appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
             out += '\n';
@@ -1336,6 +1383,9 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         }
 
         appendInstFlags(out, ctx, colorize, inst.emitFlags);
+        padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
+        appendColumnSeparator(out, ctx, colorize);
+        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
         appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
         appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
         out += '\n';

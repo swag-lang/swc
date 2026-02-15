@@ -53,6 +53,8 @@ public:
 
     SpecOpKind               specOpKind() const noexcept { return specOpKind_; }
     void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind             callConvKind() const noexcept { return callConvKind_; }
+    void                     setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
     MicroInstrBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
     const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
 
@@ -62,6 +64,7 @@ private:
     std::vector<SymbolVariable*> parameters_;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
+    CallConvKind                 callConvKind_        = CallConvKind::Host;
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
     MicroInstrBuilder            microInstrBuilder_;
 };

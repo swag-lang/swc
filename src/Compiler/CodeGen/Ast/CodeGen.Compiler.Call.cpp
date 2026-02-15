@@ -134,13 +134,14 @@ namespace
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroInstrBuilder& builder = codeGen.builder();
-    const auto&        callConv = CallConv::host();
 
     const AstNodeRef resolvedCalleeRef = resolveCalleeRef(codeGen, nodeExprRef);
     const auto*      calleePayload     = resolveCalleePayload(codeGen, resolvedCalleeRef);
     SWC_ASSERT(calleePayload != nullptr);
 
     const SymbolFunction* calledFunction = resolveCalledFunction(codeGen, resolvedCalleeRef);
+    const auto            callConvKind   = calledFunction ? calledFunction->callConvKind() : CallConvKind::Host;
+    const auto&           callConv       = CallConv::get(callConvKind);
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());
@@ -165,7 +166,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 
     const MicroReg calleeReg = codeGen.payloadVirtualReg(*calleePayload);
-    builder.encodeCallReg(calleeReg, CallConvKind::Host, EncodeFlagsE::Zero);
+    builder.encodeCallReg(calleeReg, callConvKind, EncodeFlagsE::Zero);
 
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);

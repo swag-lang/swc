@@ -68,6 +68,8 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
         return false;
     if (extraFlags() != otherFunc.extraFlags())
         return false;
+    if (callConvKind() != otherFunc.callConvKind())
+        return false;
 
     const auto& params1 = parameters();
     const auto& params2 = otherFunc.parameters();

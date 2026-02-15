@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/MachineCode/Encoder/Encoder.h"
 #include "Backend/MachineCode/Micro/Passes/MicroPass.h"
-#include <unordered_map>
 
 SWC_BEGIN_NAMESPACE();
 

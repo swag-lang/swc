@@ -211,11 +211,11 @@
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroRegAllocPass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPass.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Encoder\X64Encoder.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Call.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Intrinsic.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Member.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.RunExpr.cpp" />
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.Unary.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Call.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp" />
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp" />
@@ -525,6 +525,7 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
+
 
 
 

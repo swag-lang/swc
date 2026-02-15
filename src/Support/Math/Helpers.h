@@ -14,7 +14,14 @@ namespace Math
 
     static constexpr uint32_t alignUpU32(uint32_t v, uint32_t a) noexcept
     {
-        return (v + (a - 1)) & ~(a - 1);
+        if (!a)
+            return v;
+
+        const uint32_t rem = v % a;
+        if (!rem)
+            return v;
+
+        return v + a - rem;
     }
 
     static constexpr uint64_t alignUpU64(uint64_t v, uint64_t a) noexcept

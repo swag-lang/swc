@@ -15,7 +15,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 
     // Function-level calling convention: defines available integer/float regs and which are call-preserved.
     const CallConv& funcConv = CallConv::get(context.callConvKind);
-    auto&           storeOps = *context.operands;
+    auto&           storeOps = *SWC_CHECK_NOT_NULL(context.operands);
 
     const uint32_t instructionCount = context.instructions->count();
     if (instructionCount == 0)
@@ -207,7 +207,7 @@ void MicroRegAllocPass::run(MicroPassContext& context)
         // Allocation happens at first sight; later uses reuse the mapping.
         for (auto& regRef : regs)
         {
-            const MicroReg reg = *regRef.reg;
+            const MicroReg reg = *SWC_CHECK_NOT_NULL(regRef.reg);
             if (!reg.isVirtual())
                 continue;
 

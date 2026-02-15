@@ -31,17 +31,17 @@ public:
 
     ExitCode run();
 
-    const Global&               global() const { return *global_; }
-    const CommandLine&          cmdLine() const { return *cmdLine_; }
+    const Global&               global() const { return *SWC_CHECK_NOT_NULL(global_); }
+    const CommandLine&          cmdLine() const { return *SWC_CHECK_NOT_NULL(cmdLine_); }
     JobClientId                 jobClientId() const { return jobClientId_; }
-    TypeManager&                typeMgr() { return *typeMgr_; }
-    const TypeManager&          typeMgr() const { return *typeMgr_; }
-    TypeGen&                    typeGen() { return *typeGen_; }
-    const TypeGen&              typeGen() const { return *typeGen_; }
-    ConstantManager&            cstMgr() { return *cstMgr_; }
-    const ConstantManager&      cstMgr() const { return *cstMgr_; }
-    IdentifierManager&          idMgr() { return *idMgr_; }
-    const IdentifierManager&    idMgr() const { return *idMgr_; }
+    TypeManager&                typeMgr() { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
+    const TypeManager&          typeMgr() const { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
+    TypeGen&                    typeGen() { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
+    const TypeGen&              typeGen() const { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
+    ConstantManager&            cstMgr() { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
+    const ConstantManager&      cstMgr() const { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
+    IdentifierManager&          idMgr() { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
+    const IdentifierManager&    idMgr() const { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
     DataSegment&                constantSegment() { return constantSegment_; }
     const DataSegment&          constantSegment() const { return constantSegment_; }
     DataSegment&                compilerSegment() { return compilerSegment_; }
@@ -50,8 +50,8 @@ public:
     const Runtime::BuildCfg&    buildCfg() const { return buildCfg_; }
     Runtime::ICompiler&         runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&   runtimeCompiler() const { return runtimeCompiler_; }
-    JITExecMemoryManager&       jitMemMgr() { return *jitMemMgr_; }
-    const JITExecMemoryManager& jitMemMgr() const { return *jitMemMgr_; }
+    JITExecMemoryManager&       jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    const JITExecMemoryManager& jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -73,12 +73,12 @@ public:
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }
 
     SourceFile& addFile(fs::path path, FileFlags flags);
-    SourceFile& file(FileRef ref) const { return *files_[ref.get()].get(); }
+    SourceFile& file(FileRef ref) const { return *SWC_CHECK_NOT_NULL(files_[ref.get()].get()); }
 
     SourceView&       addSourceView();
     SourceView&       addSourceView(FileRef fileRef);
-    SourceView&       srcView(SourceViewRef ref) { return *srcViews_[ref.get()].get(); }
-    const SourceView& srcView(SourceViewRef ref) const { return *srcViews_[ref.get()].get(); }
+    SourceView&       srcView(SourceViewRef ref) { return *SWC_CHECK_NOT_NULL(srcViews_[ref.get()].get()); }
+    const SourceView& srcView(SourceViewRef ref) const { return *SWC_CHECK_NOT_NULL(srcViews_[ref.get()].get()); }
 
     Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;

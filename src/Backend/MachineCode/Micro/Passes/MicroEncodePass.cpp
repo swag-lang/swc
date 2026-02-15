@@ -18,7 +18,7 @@ void MicroEncodePass::encodeInstruction(const MicroPassContext& context, const M
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
-    auto&       encoder = *context.encoder;
+    auto&       encoder = *SWC_CHECK_NOT_NULL(context.encoder);
     const auto* ops     = inst.ops(*context.operands);
     switch (inst.op)
     {

@@ -89,8 +89,8 @@ Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
 
     auto&       instrBuilder = builder();
     const auto& callConv     = CallConv::host();
-    const auto& cst          = *exprView.cst;
-    const auto& ty           = *exprView.type;
+    const auto& cst          = *SWC_CHECK_NOT_NULL(exprView.cst);
+    const auto& ty           = *SWC_CHECK_NOT_NULL(exprView.type);
 
     if (ty.isBool())
     {
@@ -165,8 +165,7 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 MicroReg CodeGen::payloadVirtualReg(AstNodeRef nodeRef) const
 {
     const CodeGenNodePayload* nodePayload = payload(nodeRef);
-    SWC_ASSERT(nodePayload != nullptr);
-    return payloadVirtualReg(*nodePayload);
+    return payloadVirtualReg(*SWC_CHECK_NOT_NULL(nodePayload));
 }
 
 MicroReg CodeGen::payloadVirtualReg(const CodeGenNodePayload& nodePayload) const
@@ -186,7 +185,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 
     nodePayload->virtualRegister = nextVirtualRegister();
     nodePayload->typeRef         = typeRef;
-    return *nodePayload;
+    return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 
 void CodeGen::setVisitors()

@@ -231,7 +231,8 @@ const Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeR
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    const Symbol&  value    = **shard.store.ptr<Symbol*>(info.ref);
+    const Symbol* const* slot = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    const Symbol&        value = *SWC_CHECK_NOT_NULL(*slot);
     return value;
 }
 
@@ -242,7 +243,8 @@ Symbol& NodePayloadContext::getSymbol(const TaskContext&, AstNodeRef nodeRef)
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    Symbol&        value    = **shard.store.ptr<Symbol*>(info.ref);
+    Symbol** slot  = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    Symbol&  value = *SWC_CHECK_NOT_NULL(*slot);
     return value;
 }
 
@@ -398,7 +400,7 @@ void* NodePayloadContext::getPayload(AstNodeRef nodeRef) const
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    return *shard.store.ptr<void*>(info.ref);
+    return *SWC_CHECK_NOT_NULL(shard.store.ptr<void*>(info.ref));
 }
 
 bool NodePayloadContext::hasCodeGenPayload(AstNodeRef nodeRef) const

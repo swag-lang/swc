@@ -25,8 +25,8 @@ public:
     JobResult exec();
     Result    execResult();
 
-    TaskContext&               ctx() { return *ctx_; }
-    const TaskContext&         ctx() const { return *ctx_; }
+    TaskContext&               ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
+    const TaskContext&         ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
     bool                       isDeclPass() const { return declPass_; }
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
@@ -124,8 +124,8 @@ public:
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }
 
-    SemaScope&       curScope() { return *curScope_; }
-    const SemaScope& curScope() const { return *curScope_; }
+    SemaScope&       curScope() { return *SWC_CHECK_NOT_NULL(curScope_); }
+    const SemaScope& curScope() const { return *SWC_CHECK_NOT_NULL(curScope_); }
     void             pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
     void             pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
     SemaScope*       pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
@@ -149,8 +149,8 @@ private:
     void                      popScope();
     void                      pushFrame(const SemaFrame& frame);
     void                      popFrame();
-    NodePayloadContext&       nodePayloadContext() { return *nodePayloadContext_; }
-    const NodePayloadContext& nodePayloadContext() const { return *nodePayloadContext_; }
+    NodePayloadContext&       nodePayloadContext() { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
+    const NodePayloadContext& nodePayloadContext() const { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
 
     void   setVisitors();
     Result preDecl(AstNode& node);

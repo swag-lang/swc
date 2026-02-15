@@ -23,8 +23,8 @@ public:
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
-    Sema&                    sema() { return *sema_; }
-    const Sema&              sema() const { return *sema_; }
+    Sema&                    sema() { return *SWC_CHECK_NOT_NULL(sema_); }
+    const Sema&              sema() const { return *SWC_CHECK_NOT_NULL(sema_); }
     TaskContext&             ctx();
     const TaskContext&       ctx() const;
     Ast&                     ast();
@@ -37,16 +37,16 @@ public:
     SemaNodeView             nodeView(AstNodeRef nodeRef);
     SemaNodeView             curNodeView();
     const Token&             token(const SourceCodeRef& codeRef) const;
-    SymbolFunction&          function() { return *function_; }
-    const SymbolFunction&    function() const { return *function_; }
+    SymbolFunction&          function() { return *SWC_CHECK_NOT_NULL(function_); }
+    const SymbolFunction&    function() const { return *SWC_CHECK_NOT_NULL(function_); }
     Result                   emitConstReturnValue(const SemaNodeView& exprView);
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
     MicroReg                 payloadVirtualReg(AstNodeRef nodeRef) const;
     MicroReg                 payloadVirtualReg(const CodeGenNodePayload& nodePayload) const;
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     uint32_t                 nextVirtualRegister() { return nextVirtualRegister_++; }
-    MicroInstrBuilder&       builder() { return *builder_; }
-    const MicroInstrBuilder& builder() const { return *builder_; }
+    MicroInstrBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }
+    const MicroInstrBuilder& builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
 
 private:
     void   setVisitors();

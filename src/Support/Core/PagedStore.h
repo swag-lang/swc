@@ -95,13 +95,13 @@ public:
     template<class T>
     T& at(Ref ref) noexcept
     {
-        return *ptr<T>(ref);
+        return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
     }
 
     template<class T>
     const T& at(Ref ref) const noexcept
     {
-        return *ptr<T>(ref);
+        return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
     }
 
     template<class T>

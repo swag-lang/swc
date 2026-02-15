@@ -7,14 +7,14 @@ AstNode& Ast::node(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *nodePtr(g);
+    return *SWC_CHECK_NOT_NULL(nodePtr(g));
 }
 
 const AstNode& Ast::node(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(nodeRef.isValid());
     const uint32_t g = nodeRef.get();
-    return *nodePtr(g);
+    return *SWC_CHECK_NOT_NULL(nodePtr(g));
 }
 
 void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const

@@ -396,7 +396,7 @@ namespace
             }
 
             count++;
-            const Attempt& a = *sa.a;
+            const Attempt& a = *SWC_CHECK_NOT_NULL(sa.a);
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
             diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));

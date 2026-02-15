@@ -22,7 +22,7 @@ namespace
 
         if (nodeLeftView.type->isTypeValue() && nodeRightView.type->isTypeValue())
         {
-            result = sema.cstMgr().cstBool(*nodeLeftView.type == *nodeRightView.type);
+            result = sema.cstMgr().cstBool(*SWC_CHECK_NOT_NULL(nodeLeftView.type) == *SWC_CHECK_NOT_NULL(nodeRightView.type));
             return Result::Continue;
         }
 

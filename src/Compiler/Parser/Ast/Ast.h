@@ -28,8 +28,8 @@ public:
 
     AstNodeRef        root() const { return root_; }
     void              setRoot(AstNodeRef root) { root_ = root; }
-    SourceView&       srcView() { return *srcView_; }
-    const SourceView& srcView() const { return *srcView_; }
+    SourceView&       srcView() { return *SWC_CHECK_NOT_NULL(srcView_); }
+    const SourceView& srcView() const { return *SWC_CHECK_NOT_NULL(srcView_); }
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }
     bool              hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void              addFlag(AstFlags flag) { flags_.add(flag); }

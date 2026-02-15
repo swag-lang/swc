@@ -36,7 +36,7 @@ namespace SemaHelpers
         sym->registerCompilerIf(sema);
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        return *sym;
+        return *SWC_CHECK_NOT_NULL(sym);
     }
 
     inline IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name)
@@ -67,7 +67,7 @@ namespace SemaHelpers
 
         sema.setSymbol(sema.curNodeRef(), sym);
 
-        return *sym;
+        return *SWC_CHECK_NOT_NULL(sym);
     }
 
     template<typename T>

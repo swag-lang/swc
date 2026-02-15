@@ -63,7 +63,7 @@ public:
 
     DiagnosticElement& addElement(DiagnosticId id);
     void               addNote(DiagnosticId id);
-    DiagnosticElement& last() const { return *elements_.back(); }
+    DiagnosticElement& last() const { return *SWC_CHECK_NOT_NULL(elements_.back().get()); }
     void               addArgument(std::string_view name, std::string_view arg);
 
     static Diagnostic                        get(DiagnosticId id, FileRef file = FileRef::invalid());

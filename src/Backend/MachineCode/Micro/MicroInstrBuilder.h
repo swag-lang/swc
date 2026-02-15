@@ -33,8 +33,8 @@ public:
     MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
 
     void               setContext(TaskContext& ctx) { ctx_ = &ctx; }
-    TaskContext&       ctx() { return *ctx_; }
-    const TaskContext& ctx() const { return *ctx_; }
+    TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
+    const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
 
     MicroInstrStorage&         instructions() { return instructions_; }
     const MicroInstrStorage&   instructions() const { return instructions_; }

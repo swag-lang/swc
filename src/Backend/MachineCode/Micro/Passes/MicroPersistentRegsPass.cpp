@@ -60,7 +60,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
     savedRegSlots_.clear();
     savedRegsFrameSize_ = 0;
 
-    auto& storeOps = *context.operands;
+    auto& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
     for (const auto& inst : context.instructions->view())
     {
         SmallVector<MicroInstrRegOperandRef> refs;
@@ -70,7 +70,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
             if (!ref.reg)
                 continue;
 
-            const MicroReg reg = *ref.reg;
+            const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 
@@ -117,8 +117,8 @@ void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& co
     if (!savedRegsFrameSize_)
         return;
 
-    auto& instructions = *context.instructions;
-    auto& operands     = *context.operands;
+    auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
+    auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
     MicroInstrOperand subOps[4];
     subOps[0].reg      = conv.stackPointer;
@@ -146,8 +146,8 @@ void MicroPersistentRegsPass::insertSavedRegsEpilogue(const MicroPassContext& co
     if (!savedRegsFrameSize_)
         return;
 
-    auto& instructions = *context.instructions;
-    auto& operands     = *context.operands;
+    auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
+    auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
     for (const auto& slot : savedRegSlots_)
     {

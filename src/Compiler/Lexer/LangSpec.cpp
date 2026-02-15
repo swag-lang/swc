@@ -120,7 +120,7 @@ TokenId LangSpec::keyword(std::string_view name, uint32_t hash) const
     const auto ptr = keywordMap_.find(name, hash);
     if (!ptr)
         return TokenId::Identifier;
-    return *ptr;
+    return *SWC_CHECK_NOT_NULL(ptr);
 }
 
 TokenId LangSpec::keyword(std::string_view name) const

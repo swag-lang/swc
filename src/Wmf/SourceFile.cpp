@@ -24,17 +24,17 @@ SourceFile::~SourceFile() = default;
 
 Ast& SourceFile::ast()
 {
-    return nodePayloadContext_->ast();
+    return SWC_CHECK_NOT_NULL(nodePayloadContext_.get())->ast();
 }
 
 const Ast& SourceFile::ast() const
 {
-    return nodePayloadContext_->ast();
+    return SWC_CHECK_NOT_NULL(nodePayloadContext_.get())->ast();
 }
 
 void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
 {
-    nodePayloadContext_->setModuleNamespace(ns);
+    SWC_CHECK_NOT_NULL(nodePayloadContext_.get())->setModuleNamespace(ns);
 }
 
 Result SourceFile::loadContent(TaskContext& ctx)

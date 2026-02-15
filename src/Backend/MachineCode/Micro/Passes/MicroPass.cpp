@@ -50,8 +50,8 @@ namespace
         if (!context.taskContext || !context.builder)
             return;
 
-        const auto& ctx     = *context.taskContext;
-        const auto& builder = *context.builder;
+        const auto& ctx     = *SWC_CHECK_NOT_NULL(context.taskContext);
+        const auto& builder = *SWC_CHECK_NOT_NULL(context.builder);
 
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};

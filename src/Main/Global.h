@@ -13,9 +13,9 @@ public:
     Global();
     void initialize(const CommandLine& cmdLine) const;
 
-    Logger&     logger() const { return *logger_; }
-    LangSpec&   langSpec() const { return *langSpec_; }
-    JobManager& jobMgr() const { return *jobManager_; }
+    Logger&     logger() const { return *SWC_CHECK_NOT_NULL(logger_); }
+    LangSpec&   langSpec() const { return *SWC_CHECK_NOT_NULL(langSpec_); }
+    JobManager& jobMgr() const { return *SWC_CHECK_NOT_NULL(jobManager_); }
 
 private:
     Logger*     logger_     = nullptr;

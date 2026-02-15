@@ -52,12 +52,12 @@ protected:
     static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
     static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
 
-    const SymbolNamespace& moduleNamespace() const { return *moduleNamespace_; }
-    SymbolNamespace&       moduleNamespace() { return *moduleNamespace_; }
+    const SymbolNamespace& moduleNamespace() const { return *SWC_CHECK_NOT_NULL(moduleNamespace_); }
+    SymbolNamespace&       moduleNamespace() { return *SWC_CHECK_NOT_NULL(moduleNamespace_); }
     void                   setModuleNamespace(SymbolNamespace& ns) { moduleNamespace_ = &ns; }
 
-    const SymbolNamespace& fileNamespace() const { return *fileNamespace_; }
-    SymbolNamespace&       fileNamespace() { return *fileNamespace_; }
+    const SymbolNamespace& fileNamespace() const { return *SWC_CHECK_NOT_NULL(fileNamespace_); }
+    SymbolNamespace&       fileNamespace() { return *SWC_CHECK_NOT_NULL(fileNamespace_); }
     void                   setFileNamespace(SymbolNamespace& ns) { fileNamespace_ = &ns; }
 
     bool                 hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const;

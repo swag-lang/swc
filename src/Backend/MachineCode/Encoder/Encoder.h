@@ -49,8 +49,8 @@ public:
     virtual std::string formatRegisterName(MicroReg reg) const;
 
 protected:
-    TaskContext&       ctx() { return *ctx_; }
-    const TaskContext& ctx() const { return *ctx_; }
+    TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
+    const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
 
     explicit Encoder(TaskContext& ctx);
     virtual ~Encoder() = default;

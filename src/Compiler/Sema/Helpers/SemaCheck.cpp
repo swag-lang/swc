@@ -106,7 +106,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
     bool hasDefault = false;
     for (size_t i = 0; i < parameters.size(); i++)
     {
-        const SymbolVariable& param = *parameters[i];
+        const SymbolVariable& param = *SWC_CHECK_NOT_NULL(parameters[i]);
         const TypeInfo&       type  = param.type(sema.ctx());
 
         if (attribute)

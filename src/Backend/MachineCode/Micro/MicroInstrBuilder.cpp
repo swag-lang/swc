@@ -22,7 +22,7 @@ MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags e
     {
         inst->opsRef = std::numeric_limits<Ref>::max();
     }
-    return *inst;
+    return *SWC_CHECK_NOT_NULL(inst);
 }
 
 EncodeResult MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)

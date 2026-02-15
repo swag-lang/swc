@@ -195,7 +195,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     const auto shardIndex = constantRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = constantRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex);
+    return *SWC_CHECK_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)

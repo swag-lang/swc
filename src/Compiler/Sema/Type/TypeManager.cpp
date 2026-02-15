@@ -210,7 +210,7 @@ const TypeInfo& TypeManager::getNoLock(TypeRef typeRef) const
     const auto shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = typeRef.get() & LOCAL_MASK;
-    return *shards_[shardIndex].store.ptr<TypeInfo>(localIndex);
+    return *SWC_CHECK_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const

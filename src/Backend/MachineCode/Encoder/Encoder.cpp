@@ -13,7 +13,7 @@ const uint8_t* Encoder::data() const
 uint8_t Encoder::byteAt(uint32_t index) const
 {
     SWC_ASSERT(index < store_.size());
-    return *store_.ptr<uint8_t>(index);
+    return *SWC_CHECK_NOT_NULL(store_.ptr<uint8_t>(index));
 }
 
 void Encoder::copyTo(std::span<std::byte> dst) const

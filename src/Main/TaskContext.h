@@ -57,26 +57,22 @@ public:
 
     const Global& global() const
     {
-        SWC_ASSERT(global_);
-        return *global_;
+        return *SWC_CHECK_NOT_NULL(global_);
     }
 
     const CommandLine& cmdLine() const
     {
-        SWC_ASSERT(cmdLine_);
-        return *cmdLine_;
+        return *SWC_CHECK_NOT_NULL(cmdLine_);
     }
 
     CompilerInstance& compiler()
     {
-        SWC_ASSERT(compilerInstance_);
-        return *compilerInstance_;
+        return *SWC_CHECK_NOT_NULL(compilerInstance_);
     }
 
     const CompilerInstance& compiler() const
     {
-        SWC_ASSERT(compilerInstance_);
-        return *compilerInstance_;
+        return *SWC_CHECK_NOT_NULL(compilerInstance_);
     }
 
     TaskState&               state() { return state_; }

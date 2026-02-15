@@ -37,8 +37,8 @@ public:
     bool           enteringState() const { return stack_.back().firstPass; }
 
     AstNodeRef root() const { return rootRef_; }
-    const Ast& ast() const { return *ast_; }
-    Ast&       ast() { return *ast_; }
+    const Ast& ast() const { return *SWC_CHECK_NOT_NULL(ast_); }
+    Ast&       ast() { return *SWC_CHECK_NOT_NULL(ast_); }
 
 #if SWC_HAS_VISIT_DEBUG_INFO
     const SourceFile* dbgSrcFile = nullptr;

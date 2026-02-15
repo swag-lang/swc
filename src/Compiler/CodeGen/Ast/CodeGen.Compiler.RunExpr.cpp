@@ -21,7 +21,46 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroInstrBuilder& builder  = codeGen.builder();
     const auto         exprView = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
-    SWC_ASSERT(exprView.type->isStruct()); // TODO: replace assert with a proper codegen diagnostic.
+
+    const auto* payload = codeGen.payload(nodeExprRef);
+    SWC_ASSERT(payload != nullptr);
+    const MicroReg payloadReg = CodeGen::payloadVirtualReg(*payload);
+
+    if (!exprView.type->isStruct())
+    {
+        MicroReg srcReg = MicroReg::invalid();
+        MicroReg tmpReg = MicroReg::invalid();
+        SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg));
+        builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+
+        if (exprView.type->isVoid())
+        {
+            builder.encodeRet(EncodeFlagsE::Zero);
+            return Result::Continue;
+        }
+
+        if (exprView.type->isFloat())
+        {
+            const MicroOpBits bits = microOpBitsFromBitWidth(exprView.type->payloadFloatBits());
+            SWC_ASSERT(bits == MicroOpBits::B32 || bits == MicroOpBits::B64);
+            builder.encodeLoadRegMem(callConv.floatReturn, srcReg, 0, bits, EncodeFlagsE::Zero);
+            builder.encodeRet(EncodeFlagsE::Zero);
+            return Result::Continue;
+        }
+
+        MicroOpBits bits = MicroOpBits::B64;
+        if (exprView.type->isBool())
+            bits = MicroOpBits::B8;
+        else if (exprView.type->isCharRune())
+            bits = MicroOpBits::B32;
+        else if (exprView.type->isIntLike())
+            bits = microOpBitsFromBitWidth(exprView.type->payloadIntLikeBits());
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+
+        builder.encodeLoadRegMem(callConv.intReturn, srcReg, 0, bits, EncodeFlagsE::Zero);
+        builder.encodeRet(EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
 
     const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
     const auto     passing    = callConv.classifyStructReturnPassing(structSize);
@@ -34,10 +73,6 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroReg tmpReg = MicroReg::invalid();
     SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&hiddenRetPtrReg, 1}));
 
-    const auto* payload = codeGen.payload(nodeExprRef);
-    SWC_ASSERT(payload != nullptr);
-
-    const MicroReg payloadReg = CodeGen::payloadVirtualReg(*payload);
     builder.encodeLoadRegReg(srcReg, payloadReg, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
     MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);

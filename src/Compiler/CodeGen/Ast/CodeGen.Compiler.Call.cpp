@@ -13,6 +13,76 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
+
+    uint32_t computeCallStackAdjust(const CallConv& conv, uint32_t numArgs)
+    {
+        const uint32_t numRegArgs    = conv.numArgRegisterSlots();
+        const uint32_t stackSlotSize = conv.stackSlotSize();
+        const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
+        const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
+        const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
+        const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
+        const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
+        return frameBaseSize + alignPad;
+    }
+
+    struct NormalizedCallReturn
+    {
+        bool     isVoid           = true;
+        bool     isFloat          = false;
+        bool     isIndirect       = false;
+        uint8_t  numBits          = 0;
+        uint32_t indirectByteSize = 0;
+    };
+
+    NormalizedCallReturn normalizeCallReturn(CodeGen& codeGen, const CallConv& callConv, TypeRef typeRef)
+    {
+        constexpr NormalizedCallReturn out;
+        if (typeRef.isInvalid())
+            return out;
+
+        auto&           ctx      = codeGen.ctx();
+        const TypeRef   expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& ty       = ctx.typeMgr().get(expanded);
+
+        if (ty.isVoid())
+            return out;
+
+        if (ty.isBool())
+            return {.isVoid = false, .isFloat = false, .isIndirect = false, .numBits = 8};
+
+        if (ty.isCharRune())
+            return {.isVoid = false, .isFloat = false, .isIndirect = false, .numBits = 32};
+
+        if (ty.isInt() && ty.payloadIntBits() != 0 && ty.payloadIntBits() <= 64)
+            return {.isVoid = false, .isFloat = false, .isIndirect = false, .numBits = static_cast<uint8_t>(ty.payloadIntBits())};
+
+        if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
+            return {.isVoid = false, .isFloat = true, .isIndirect = false, .numBits = static_cast<uint8_t>(ty.payloadFloatBits())};
+
+        if (ty.isPointerLike() || ty.isNull())
+            return {.isVoid = false, .isFloat = false, .isIndirect = false, .numBits = 64};
+
+        if (ty.isStruct())
+        {
+            const uint64_t rawSize = ty.sizeOf(ctx);
+            SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
+            const uint32_t size        = static_cast<uint32_t>(rawSize);
+            const auto     passingKind = callConv.classifyStructReturnPassing(size);
+            if (passingKind == StructArgPassingKind::ByValue)
+            {
+                SWC_ASSERT(size == 1 || size == 2 || size == 4 || size == 8);
+                return {.isVoid = false, .isFloat = false, .isIndirect = false, .numBits = static_cast<uint8_t>(size * 8)};
+            }
+
+            return {.isVoid = false, .isFloat = false, .isIndirect = true, .numBits = 64, .indirectByteSize = size};
+        }
+
+        SWC_ASSERT(false);
+        return out;
+    }
+
     void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<MicroABICall::PreparedArg>& outArgs)
     {
         outArgs.clear();
@@ -20,7 +90,7 @@ namespace
 
         for (const auto& arg : args)
         {
-            const AstNodeRef argRef = arg.argRef;
+            const AstNodeRef argRef     = arg.argRef;
             const auto*      argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
@@ -56,32 +126,89 @@ namespace
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    MicroInstrBuilder& builder = codeGen.builder();
-
-    const auto  calleeView    = codeGen.nodeView(nodeExprRef);
-    const auto* calleePayload = codeGen.payload(calleeView.nodeRef);
-    SWC_ASSERT(calleePayload != nullptr);
-
+    MicroInstrBuilder&    builder        = codeGen.builder();
+    const auto            calleeView     = codeGen.nodeView(nodeExprRef);
+    const auto*           calleePayload  = codeGen.payload(calleeView.nodeRef);
     const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
     const CallConvKind    callConvKind   = calledFunction.callConvKind();
     const CallConv&       callConv       = CallConv::get(callConvKind);
+    const auto            normalizedRet  = normalizeCallReturn(codeGen, callConv, codeGen.curNodeView().typeRef);
 
-    SmallVector<ResolvedCallArgument> args;
-    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
+    SmallVector<ResolvedCallArgument>      args;
     SmallVector<MicroABICall::PreparedArg> preparedArgs;
+    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
-    const uint32_t numAbiArgs = MicroABICall::prepareArgs(builder, callConvKind, preparedArgs);
+    if (normalizedRet.isIndirect)
+    {
+        SWC_ASSERT(!callConv.intArgRegs.empty());
+        SWC_ASSERT(normalizedRet.indirectByteSize != 0);
 
-    const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
-    MicroABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs);
+        void* indirectRetStorage = codeGen.ctx().compiler().allocateArray<uint8_t>(normalizedRet.indirectByteSize);
 
-    auto* resultStorage        = codeGen.ctx().compiler().allocate<uint64_t>();
-    *resultStorage             = 0;
+        MicroReg hiddenRetArgSrcReg = MicroReg::invalid();
+        MicroReg hiddenRetArgTmpReg = MicroReg::invalid();
+        SWC_ASSERT(callConv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg));
+        builder.encodeLoadRegImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
+
+        MicroABICall::PreparedArg hiddenRetArg;
+        hiddenRetArg.srcReg  = hiddenRetArgSrcReg;
+        hiddenRetArg.kind    = MicroABICall::PreparedArgKind::Direct;
+        hiddenRetArg.isFloat = false;
+        hiddenRetArg.numBits = 64;
+        preparedArgs.insert(preparedArgs.begin(), hiddenRetArg);
+    }
+
+    const uint32_t numAbiArgs  = MicroABICall::prepareArgs(builder, callConvKind, preparedArgs);
     const auto&    nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const MicroReg resultReg   = CodeGen::payloadVirtualReg(nodePayload);
-    builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
-    builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
 
+    auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
+    *resultStorage      = 0;
+
+    MicroABICall::Return retMeta;
+    retMeta.valuePtr   = resultStorage;
+    retMeta.isVoid     = normalizedRet.isVoid;
+    retMeta.isFloat    = normalizedRet.isFloat;
+    retMeta.isIndirect = normalizedRet.isIndirect;
+    retMeta.numBits    = normalizedRet.numBits;
+    if (calleePayload)
+    {
+        const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
+        MicroABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs, retMeta);
+    }
+    else
+    {
+        const uint32_t stackAdjust = computeCallStackAdjust(callConv, numAbiArgs);
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
+
+        builder.encodeCallLocal(calledFunction.idRef(), callConvKind, EncodeFlagsE::Zero);
+
+        if (!retMeta.isVoid && !retMeta.isIndirect)
+        {
+            MicroReg retPtrReg = MicroReg::invalid();
+            MicroReg tmpReg    = MicroReg::invalid();
+            SWC_ASSERT(callConv.tryPickIntScratchRegs(retPtrReg, tmpReg));
+            builder.encodeLoadRegImm(retPtrReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
+            const MicroOpBits retBits = retMeta.numBits ? microOpBitsFromBitWidth(retMeta.numBits) : MicroOpBits::B64;
+            if (retMeta.isFloat)
+                builder.encodeLoadMemReg(retPtrReg, 0, callConv.floatReturn, retBits, EncodeFlagsE::Zero);
+            else
+                builder.encodeLoadMemReg(retPtrReg, 0, callConv.intReturn, retBits, EncodeFlagsE::Zero);
+        }
+
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+    }
+
+    if (normalizedRet.isIndirect)
+    {
+        builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
+        builder.encodeLoadMemReg(resultReg, 0, callConv.intReturn, MicroOpBits::B64, EncodeFlagsE::Zero);
+        return Result::Continue;
+    }
+
+    builder.encodeLoadRegImm(resultReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
     return Result::Continue;
 }
 

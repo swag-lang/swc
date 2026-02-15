@@ -62,6 +62,20 @@ namespace
 
         return MicroOpBits::B64;
     }
+
+    void emitReturnWriteBack(MicroInstrBuilder& builder, const CallConv& conv, const MicroABICall::Return& ret, MicroReg regBase)
+    {
+        if (ret.isVoid || ret.isIndirect)
+            return;
+
+        SWC_ASSERT(ret.valuePtr != nullptr);
+        const auto retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr), MicroOpBits::B64, EncodeFlagsE::Zero);
+        if (ret.isFloat)
+            builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, retBits, EncodeFlagsE::Zero);
+        else
+            builder.encodeLoadMemReg(regBase, 0, conv.intReturn, retBits, EncodeFlagsE::Zero);
+    }
 }
 
 uint32_t MicroABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
@@ -150,23 +164,13 @@ void MicroABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callCo
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.encodeLoadRegImm(regTmp, targetAddress, MicroOpBits::B64, EncodeFlagsE::Zero);
     builder.encodeCallReg(regTmp, callConvKind, EncodeFlagsE::Zero);
-
-    if (!ret.isVoid && !ret.isIndirect)
-    {
-        SWC_ASSERT(ret.valuePtr != nullptr);
-        const auto retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr), MicroOpBits::B64, EncodeFlagsE::Zero);
-        if (ret.isFloat)
-            builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, retBits, EncodeFlagsE::Zero);
-        else
-            builder.encodeLoadMemReg(regBase, 0, conv.intReturn, retBits, EncodeFlagsE::Zero);
-    }
+    emitReturnWriteBack(builder, conv, ret, regBase);
 
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
 }
 
-void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
+void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(conv, numPreparedArgs);
@@ -176,8 +180,21 @@ void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKi
 
     builder.encodeCallReg(targetReg, callConvKind, EncodeFlagsE::Zero);
 
+    if (!ret.isVoid && !ret.isIndirect)
+    {
+        MicroReg regBase = MicroReg::invalid();
+        MicroReg regTmp  = MicroReg::invalid();
+        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+        emitReturnWriteBack(builder, conv, ret, regBase);
+    }
+
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
+}
+
+void MicroABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs)
+{
+    callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{});
 }
 
 SWC_END_NAMESPACE();

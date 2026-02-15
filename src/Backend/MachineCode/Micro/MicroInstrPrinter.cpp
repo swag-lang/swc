@@ -380,9 +380,6 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
     auto&       storeOps      = operands.store();
     auto&       instructionsV = const_cast<PagedStoreTyped<MicroInstr>&>(instructions);
 
-    const uint32_t count = instructions.count();
-    out += std::format("micro-instructions: {}\n", count);
-
     uint32_t idx = 0;
     for (const auto& inst : instructionsV.view())
     {
@@ -390,7 +387,8 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const PagedStoreTy
 
         appendColored(out, ctx, colorize, LogColor::Dim, std::format("{:04}", idx));
         out += "  ";
-        appendColored(out, ctx, colorize, LogColor::BrightCyan, std::format("{:<26}", opcodeName(inst.op)));
+        appendColored(out, ctx, colorize, LogColor::BrightCyan, std::format("{:>26}", opcodeName(inst.op)));
+        out += " ";
 
         switch (inst.op)
         {

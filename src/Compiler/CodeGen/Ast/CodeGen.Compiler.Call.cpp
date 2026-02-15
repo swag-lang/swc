@@ -115,6 +115,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroInstrBuilder&    builder        = codeGen.builder();
     const auto            calleeView     = codeGen.nodeView(nodeExprRef);
     const auto*           calleePayload  = codeGen.payload(calleeView.nodeRef);
+    SWC_ASSERT(calleePayload != nullptr);
     const SymbolFunction& calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
     const CallConvKind    callConvKind   = calledFunction.callConvKind();
     const CallConv&       callConv       = CallConv::get(callConvKind);
@@ -157,35 +158,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     retMeta.isFloat    = normalizedRet.isFloat;
     retMeta.isIndirect = normalizedRet.isIndirect;
     retMeta.numBits    = normalizedRet.numBits;
-    if (calleePayload)
-    {
-        const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
-        MicroABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs, retMeta);
-    }
-    else
-    {
-        const uint32_t stackAdjust = MicroABICall::computeCallStackAdjust(callConvKind, numAbiArgs);
-        if (stackAdjust)
-            builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
-
-        builder.encodeCallLocal(calledFunction.idRef(), callConvKind, EncodeFlagsE::Zero);
-
-        if (!retMeta.isVoid && !retMeta.isIndirect)
-        {
-            MicroReg retPtrReg = MicroReg::invalid();
-            MicroReg tmpReg    = MicroReg::invalid();
-            SWC_ASSERT(callConv.tryPickIntScratchRegs(retPtrReg, tmpReg));
-            builder.encodeLoadRegImm(retPtrReg, reinterpret_cast<uint64_t>(resultStorage), MicroOpBits::B64, EncodeFlagsE::Zero);
-            const MicroOpBits retBits = retMeta.numBits ? microOpBitsFromBitWidth(retMeta.numBits) : MicroOpBits::B64;
-            if (retMeta.isFloat)
-                builder.encodeLoadMemReg(retPtrReg, 0, callConv.floatReturn, retBits, EncodeFlagsE::Zero);
-            else
-                builder.encodeLoadMemReg(retPtrReg, 0, callConv.intReturn, retBits, EncodeFlagsE::Zero);
-        }
-
-        if (stackAdjust)
-            builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64, EncodeFlagsE::Zero);
-    }
+    const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
+    MicroABICall::callByReg(builder, callConvKind, calleeReg, numAbiArgs, retMeta);
 
     if (normalizedRet.isIndirect)
     {

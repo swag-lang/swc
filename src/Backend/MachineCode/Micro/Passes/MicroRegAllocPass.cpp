@@ -11,7 +11,6 @@ void MicroRegAllocPass::run(MicroPassContext& context)
 {
     // Preconditions: this pass requires instruction stream and operand store.
     SWC_ASSERT(context.instructions);
-    SWC_ASSERT(context.operands);
 
     // Function-level calling convention: defines available integer/float regs and which are call-preserved.
     const CallConv& funcConv = CallConv::get(context.callConvKind);

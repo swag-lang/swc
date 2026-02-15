@@ -445,7 +445,7 @@ namespace
 
     void appendJobExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& job = *SWC_CHECK_NOT_NULL(static_cast<const Job*>(userData));
+        const auto& job = *static_cast<const Job*>(userData);
         outMsg += std::format("  thread index: {}\n", JobManager::threadIndex());
         outMsg += std::format("  kind: {}\n", jobKindName(job.kind()));
         outMsg += std::format("  client id: {}\n", job.clientId());

@@ -119,9 +119,9 @@ Diagnostic::Diagnostic(FileRef file) :
 DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
 {
     auto       ptr = std::make_shared<DiagnosticElement>(id);
-    const auto raw = SWC_CHECK_NOT_NULL(ptr.get());
+    const auto raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
-    return *SWC_CHECK_NOT_NULL(raw);
+    return *raw;
 }
 
 void Diagnostic::addNote(DiagnosticId id)
@@ -129,7 +129,7 @@ void Diagnostic::addNote(DiagnosticId id)
     if (id == DiagnosticId::None)
         return;
     auto       ptr = std::make_shared<DiagnosticElement>(id);
-    const auto raw = SWC_CHECK_NOT_NULL(ptr.get());
+    const auto raw = ptr.get();
     raw->setSeverity(DiagnosticSeverity::Note);
     elements_.emplace_back(std::move(ptr));
 }

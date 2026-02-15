@@ -9,7 +9,6 @@ SWC_BEGIN_NAMESPACE();
 void MicroPersistentRegsPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
-    SWC_ASSERT(context.operands);
 
     if (!context.preservePersistentRegs)
     {
@@ -55,7 +54,6 @@ bool MicroPersistentRegsPass::containsSavedSlot(MicroReg reg) const
 void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
 {
     SWC_ASSERT(context.instructions);
-    SWC_ASSERT(context.operands);
 
     savedRegSlots_.clear();
     savedRegsFrameSize_ = 0;
@@ -111,9 +109,6 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
 
 void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
 {
-    SWC_ASSERT(context.instructions);
-    SWC_ASSERT(context.operands);
-
     if (!savedRegsFrameSize_)
         return;
 
@@ -140,9 +135,6 @@ void MicroPersistentRegsPass::insertSavedRegsPrologue(const MicroPassContext& co
 
 void MicroPersistentRegsPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef, EncodeFlags emitFlags) const
 {
-    SWC_ASSERT(context.instructions);
-    SWC_ASSERT(context.operands);
-
     if (!savedRegsFrameSize_)
         return;
 

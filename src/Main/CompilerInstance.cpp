@@ -180,7 +180,7 @@ SourceView& CompilerInstance::addSourceView()
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
 #endif
-    return *SWC_CHECK_NOT_NULL(srcViews_.back().get());
+    return *srcViews_.back();
 }
 
 SourceView& CompilerInstance::addSourceView(FileRef fileRef)
@@ -194,7 +194,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
 #endif
-    return *SWC_CHECK_NOT_NULL(srcViews_.back().get());
+    return *srcViews_.back();
 }
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
@@ -228,7 +228,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
 #endif
-    return *SWC_CHECK_NOT_NULL(files_.back().get());
+    return *files_.back();
 }
 
 std::vector<SourceFile*> CompilerInstance::files() const

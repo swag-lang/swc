@@ -11,7 +11,7 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
     auto&            ptr = caches_[&storage];
     if (!ptr)
         ptr = std::make_unique<TypeGenCache>();
-    return *SWC_CHECK_NOT_NULL(ptr.get());
+    return *ptr;
 }
 
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)

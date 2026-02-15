@@ -162,7 +162,7 @@ namespace
 
     void appendFfiExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& info = *SWC_CHECK_NOT_NULL(static_cast<const FFIExceptionInfo*>(userData));
+        const auto& info = *static_cast<const FFIExceptionInfo*>(userData);
         outMsg += "  call site: ffi invoker\n";
         if (ctx.cmdLine().verboseHardwareException)
             outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));

@@ -89,8 +89,8 @@ Result CodeGen::emitConstReturnValue(const SemaNodeView& exprView)
 
     auto&       instrBuilder = builder();
     const auto& callConv     = CallConv::host();
-    const auto& cst          = *SWC_CHECK_NOT_NULL(exprView.cst);
-    const auto& ty           = *SWC_CHECK_NOT_NULL(exprView.type);
+    const auto& cst          = *exprView.cst;
+    const auto& ty           = *exprView.type;
 
     if (ty.isBool())
     {

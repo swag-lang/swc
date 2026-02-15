@@ -35,14 +35,14 @@ public:
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
 
     size_t                    size() const { return content_.size() - TRAILING_0; }
-    NodePayloadContext&       nodePayloadContext() { return *SWC_CHECK_NOT_NULL(nodePayloadContext_.get()); }
-    const NodePayloadContext& nodePayloadContext() const { return *SWC_CHECK_NOT_NULL(nodePayloadContext_.get()); }
+    NodePayloadContext&       nodePayloadContext() { return *nodePayloadContext_; }
+    const NodePayloadContext& nodePayloadContext() const { return *nodePayloadContext_; }
     FileFlags&                flags() { return flags_; }
     const FileFlags&          flags() const { return flags_; }
     bool                      hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void                      addFlag(FileFlags flag) { flags_.add(flag); }
-    Verify&                   unitTest() { return *SWC_CHECK_NOT_NULL(unitTest_.get()); }
-    const Verify&             unitTest() const { return *SWC_CHECK_NOT_NULL(unitTest_.get()); }
+    Verify&                   unitTest() { return *unitTest_; }
+    const Verify&             unitTest() const { return *unitTest_; }
     void                      setModuleNamespace(SymbolNamespace& ns) const;
     Ast&                      ast();
     const Ast&                ast() const;

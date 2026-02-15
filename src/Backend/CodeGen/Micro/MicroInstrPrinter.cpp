@@ -994,12 +994,14 @@ namespace
             return false;
         seenDebugLines.insert(debugKey);
 
-        out += '\n';
+        if (!out.empty())
+            out += '\n';
         appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
         out += "  ";
         Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
         codeLine.trim();
         out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, colorize);
+        out += '\n';
         return true;
     }
 }
@@ -1035,6 +1037,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
         const Ref                       instRef = it.current;
         const MicroInstr&               inst    = *it;
         const auto*                     ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
         auto                            natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
         std::optional<std::string>      naturalJumpTargetIndex;
         std::unordered_set<std::string> concreteRegs;
@@ -1083,7 +1086,6 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
             appendColumnSeparator(out, ctx, colorize);
             appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
             appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
-            appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
             out += '\n';
             ++idx;
             continue;
@@ -1387,7 +1389,6 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
         appendColumnSeparator(out, ctx, colorize);
         appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
         appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
-        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
         out += '\n';
         ++idx;
     }

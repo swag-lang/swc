@@ -54,7 +54,7 @@ JobResult CodeGenJob::exec()
         sema_->compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema_->compiler().jobClientId());
     }
 
-    // Generate code for this function, mark pre-solved, and ensure JIT entry exists.
+    // Generate micro instructions for this function and mark codegen as pre-solved.
     ///////////////////////////////////////////
     SWC_ASSERT(root_.isValid());
     CodeGen      codeGen(*sema_);
@@ -63,9 +63,11 @@ JobResult CodeGenJob::exec()
         return toJobResult(codeGenResult);
     symbolFunc_->setCodeGenPreSolved(ctx());
 
-    const Result jitResult = symbolFunc_->ensureJitEntry(ctx());
-    if (jitResult != Result::Continue)
-        return toJobResult(jitResult);
+    // Materialize function entry address from generated micro instructions.
+    ///////////////////////////////////////////
+    const Result entryResult = symbolFunc_->ensureEntryAddress(ctx());
+    if (entryResult != Result::Continue)
+        return toJobResult(entryResult);
 
     // Finalize only when dependency codegen is already pre-solved or completed.
     ///////////////////////////////////////////

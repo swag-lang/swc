@@ -83,7 +83,7 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
         out.push_back(dep);
 }
 
-Result SymbolFunction::ensureJitEntry(TaskContext& ctx)
+Result SymbolFunction::ensureEntryAddress(TaskContext& ctx)
 {
     if (hasJitEntryAddress())
         return Result::Continue;

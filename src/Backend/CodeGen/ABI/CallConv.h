@@ -31,6 +31,8 @@ struct StructReturnPassingInfo
 
 struct CallConv
 {
+    std::string_view name = "?";
+
     MicroReg stackPointer = MicroReg::invalid();
     MicroReg framePointer = MicroReg::invalid();
     MicroReg intReturn    = MicroReg::invalid();

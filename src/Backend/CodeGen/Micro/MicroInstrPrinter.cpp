@@ -226,17 +226,7 @@ namespace
 
     std::string_view callConvName(CallConvKind callConv)
     {
-        switch (callConv)
-        {
-            case CallConvKind::C:
-                return "c";
-            case CallConvKind::WindowsX64:
-                return "win64";
-            case CallConvKind::Host:
-                return "host";
-            default:
-                return "?";
-        }
+        return CallConv::get(callConv).name;
     }
 
     std::string regName(MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)

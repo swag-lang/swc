@@ -28,6 +28,7 @@ namespace
 
     void setupCallConvWindowsX64(CallConv& conv)
     {
+        conv.name         = "win64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
         conv.intReturn    = MicroReg::intReg(0);
@@ -241,6 +242,8 @@ void CallConv::setup()
     const auto hostCallConvKind                          = resolveHostCallConvKind();
     g_CallConvs[static_cast<size_t>(CallConvKind::Host)] = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
     g_CallConvs[static_cast<size_t>(CallConvKind::C)]    = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "host";
+    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name    = "c";
 }
 
 const CallConv& CallConv::get(CallConvKind kind)

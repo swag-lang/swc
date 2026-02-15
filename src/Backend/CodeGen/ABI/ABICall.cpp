@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
+#include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
 #include "Backend/Runtime.h"
 #include "Main/CompilerInstance.h"
 
@@ -180,6 +181,43 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
         preparedArgsWithHiddenRetArg.push_back(arg);
 
     return prepareArgs(builder, callConvKind, preparedArgsWithHiddenRetArg);
+}
+
+void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret)
+{
+    if (ret.isVoid)
+        return;
+
+    const auto& conv = CallConv::get(callConvKind);
+    if (ret.isIndirect)
+    {
+        SWC_ASSERT(ret.indirectSize != 0);
+        MicroReg srcReg = MicroReg::invalid();
+        MicroReg tmpReg = MicroReg::invalid();
+        SWC_ASSERT(conv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&outputStorageReg, 1}));
+        builder.encodeLoadRegReg(srcReg, valueReg, MicroOpBits::B64, EncodeFlagsE::Zero);
+        MicroInstrHelpers::emitMemCopy(builder, outputStorageReg, srcReg, tmpReg, ret.indirectSize);
+        return;
+    }
+
+    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+    SWC_ASSERT(retBits != MicroOpBits::Zero);
+
+    if (ret.isFloat)
+    {
+        if (valueIsLValue)
+            builder.encodeLoadRegMem(conv.floatReturn, valueReg, 0, retBits, EncodeFlagsE::Zero);
+        else
+            builder.encodeLoadRegReg(conv.floatReturn, valueReg, retBits, EncodeFlagsE::Zero);
+        builder.encodeLoadMemReg(outputStorageReg, 0, conv.floatReturn, retBits, EncodeFlagsE::Zero);
+        return;
+    }
+
+    if (valueIsLValue)
+        builder.encodeLoadRegMem(conv.intReturn, valueReg, 0, retBits, EncodeFlagsE::Zero);
+    else
+        builder.encodeLoadRegReg(conv.intReturn, valueReg, retBits, EncodeFlagsE::Zero);
+    builder.encodeLoadMemReg(outputStorageReg, 0, conv.intReturn, retBits, EncodeFlagsE::Zero);
 }
 
 void ABICall::materializeReturnToReg(MicroInstrBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret)

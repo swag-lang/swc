@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Global.h"
@@ -16,18 +15,11 @@ namespace
         return sema.waitSemaCompleted(&symbol, symbol.codeRef());
     }
 
-    bool isFunctionDeclRoot(Sema& sema, AstNodeRef root)
-    {
-        return root.isValid() && sema.node(root).is(AstNodeId::FunctionDecl);
-    }
-
     bool areDepsReadyForCompletion(const SmallVector<SymbolFunction*>& deps)
     {
         for (const auto* dep : deps)
         {
-            if (!dep)
-                continue;
-
+            SWC_ASSERT(dep);
             if (!(dep->isCodeGenCompleted() || dep->isCodeGenPreSolved()))
                 return false;
         }
@@ -66,20 +58,6 @@ JobResult CodeGenJob::exec()
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
-    const bool functionDeclRoot = isFunctionDeclRoot(*sema_, root_);
-
-    if (deps.empty() && root_.isValid() && !functionDeclRoot)
-    {
-        CodeGen      codeGen(*sema_);
-        const Result result = codeGen.exec(*symbolFunc_, root_);
-        if (result == Result::Continue)
-        {
-            symbolFunc_->setCodeGenCompleted(ctx());
-            return JobResult::Done;
-        }
-
-        return toJobResult(result);
-    }
 
     for (auto* dep : deps)
     {
@@ -106,8 +84,9 @@ JobResult CodeGenJob::exec()
 
     symbolFunc_->setCodeGenPreSolved(ctx());
 
-    if (functionDeclRoot && symbolFunc_->ensureJitEntry(ctx()) != Result::Continue)
-        return JobResult::Done;
+    const Result jitResult = symbolFunc_->ensureJitEntry(ctx());
+    if (jitResult != Result::Continue)
+        return toJobResult(jitResult);
 
     if (!areDepsReadyForCompletion(deps))
         return JobResult::Sleep;

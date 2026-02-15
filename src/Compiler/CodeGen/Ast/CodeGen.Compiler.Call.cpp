@@ -14,8 +14,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, const CallConv& callConv, std::span<const AstNodeRef> args)
+    uint32_t emitPreparedCallArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const AstNodeRef> args)
     {
+        const CallConvKind callConvKind = calledFunction.callConvKind();
+        const CallConv&    callConv     = CallConv::get(callConvKind);
+
         MicroInstrBuilder& builder = codeGen.builder();
         SWC_ASSERT(args.size() <= callConv.intArgRegs.size());
 
@@ -25,7 +28,7 @@ namespace
             const auto*      argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
-            const MicroReg argReg = callConv.intArgRegs[i];
+            const MicroReg argReg  = callConv.intArgRegs[i];
             const auto     argView = codeGen.nodeView(argRef);
             if (i == 0 && calledFunction.hasInterfaceMethodSlot() && argView.type && argView.type->isInterface())
             {
@@ -46,7 +49,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroInstrBuilder& builder = codeGen.builder();
 
-    const auto calleeView = codeGen.nodeView(nodeExprRef);
+    const auto  calleeView    = codeGen.nodeView(nodeExprRef);
     const auto* calleePayload = codeGen.payload(calleeView.nodeRef);
     SWC_ASSERT(calleePayload != nullptr);
 
@@ -56,7 +59,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<AstNodeRef> args;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    const uint32_t numAbiArgs = emitPreparedCallArguments(codeGen, calledFunction, callConv, args);
+    const uint32_t numAbiArgs = emitPreparedCallArguments(codeGen, calledFunction, args);
 
     const MicroReg calleeReg = CodeGen::payloadVirtualReg(*calleePayload);
     emitMicroABICallByReg(builder, callConvKind, calleeReg, numAbiArgs);

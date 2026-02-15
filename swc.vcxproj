@@ -217,6 +217,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenHelpers.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp" />
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp" />
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp" />
@@ -387,6 +388,7 @@
         <ClInclude Include="src\Backend\CodeGen\Encoder\X64Encoder.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroReg.h" />
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>

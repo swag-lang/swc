@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
-#include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
 #include "Backend/Runtime.h"
 #include "Main/CompilerInstance.h"
 
@@ -189,16 +188,7 @@ void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind 
         return;
 
     const auto& conv = CallConv::get(callConvKind);
-    if (ret.isIndirect)
-    {
-        SWC_ASSERT(ret.indirectSize != 0);
-        MicroReg srcReg = MicroReg::invalid();
-        MicroReg tmpReg = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&outputStorageReg, 1}));
-        builder.encodeLoadRegReg(srcReg, valueReg, MicroOpBits::B64, EncodeFlagsE::Zero);
-        MicroInstrHelpers::emitMemCopy(builder, outputStorageReg, srcReg, tmpReg, ret.indirectSize);
-        return;
-    }
+    SWC_ASSERT(!ret.isIndirect);
 
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
     SWC_ASSERT(retBits != MicroOpBits::Zero);

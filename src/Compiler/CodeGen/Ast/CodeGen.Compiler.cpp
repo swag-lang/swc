@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
@@ -28,7 +29,15 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg outputStorageReg = callConv.intArgRegs[0];
     const auto     normalizedRet    = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
-    ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+    if (normalizedRet.isIndirect)
+    {
+        SWC_ASSERT(normalizedRet.indirectSize != 0);
+        CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+    }
+    else
+    {
+        ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+    }
     builder.encodeRet(EncodeFlagsE::Zero);
     return Result::Continue;
 }

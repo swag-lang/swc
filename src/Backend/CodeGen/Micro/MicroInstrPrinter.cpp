@@ -891,6 +891,28 @@ namespace
         }
     }
 
+    uint32_t computeInstructionIndexWidth(uint32_t numInstructions)
+    {
+        uint32_t width = 1;
+        while (numInstructions >= 10)
+        {
+            numInstructions /= 10;
+            ++width;
+        }
+
+        return std::max<uint32_t>(3, width);
+    }
+
+    std::string formatInstructionIndex(uint32_t index, uint32_t width)
+    {
+        return std::format("{:0{}}", index, width);
+    }
+
+    std::string unknownInstructionIndex(uint32_t width)
+    {
+        return std::string(width, '?');
+    }
+
     void appendInstructionDebugPayload(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef)
     {
         if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
@@ -909,7 +931,13 @@ namespace
         appendColored(out, ctx, colorize, SyntaxColor::Code, symbol->name(ctx));
     }
 
-    bool appendInstructionDebugInfo(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef, std::unordered_set<uint64_t>& seenDebugLines)
+    bool appendInstructionDebugInfo(std::string& out,
+                                    const TaskContext&            ctx,
+                                    bool                          colorize,
+                                    const MicroInstrBuilder*      builder,
+                                    Ref                           instRef,
+                                    uint32_t                      instructionIndexWidth,
+                                    std::unordered_set<uint64_t>& seenDebugLines)
     {
         uint32_t sourceLine = 0;
         if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
@@ -923,7 +951,7 @@ namespace
         seenDebugLines.insert(debugKey);
 
         out += '\n';
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:04}", sourceLine));
+        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
         out += "  ";
         Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
         codeLine.trim();
@@ -955,6 +983,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
         }
         ++scanIdx;
     }
+    const uint32_t indexWidth = computeInstructionIndexWidth(scanIdx);
 
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
@@ -988,12 +1017,12 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
             const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
             auto      labelIt  = labelIndexByRef.find(labelRef);
             if (labelIt != labelIndexByRef.end())
-                naturalJumpTargetIndex = std::format("{:04}", labelIt->second);
+                naturalJumpTargetIndex = formatInstructionIndex(labelIt->second, indexWidth);
             else
-                naturalJumpTargetIndex = "????";
+                naturalJumpTargetIndex = unknownInstructionIndex(indexWidth);
         }
 
-        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", idx));
+        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, formatInstructionIndex(idx, indexWidth));
         out += "  ";
         appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
 
@@ -1007,7 +1036,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 
             appendInstFlags(out, ctx, colorize, inst.emitFlags);
             appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
-            appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
+            appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
             out += '\n';
             ++idx;
             continue;
@@ -1095,12 +1124,12 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
                     if (labelIt != labelIndexByRef.end())
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, std::format("{:04}", labelIt->second));
+                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, formatInstructionIndex(labelIt->second, indexWidth));
                     }
                     else
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, "????");
+                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, unknownInstructionIndex(indexWidth));
                     }
                 }
                 break;
@@ -1308,7 +1337,7 @@ std::string MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrSt
 
         appendInstFlags(out, ctx, colorize, inst.emitFlags);
         appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
-        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, seenDebugLines);
+        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
         out += '\n';
         ++idx;
     }

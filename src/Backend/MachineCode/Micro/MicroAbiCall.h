@@ -6,6 +6,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace MicroABICall
 {
+    uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
+
     struct Arg
     {
         uint64_t value   = 0;

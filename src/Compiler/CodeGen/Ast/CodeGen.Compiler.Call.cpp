@@ -13,20 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
-
-    uint32_t computeCallStackAdjust(const CallConv& conv, uint32_t numArgs)
-    {
-        const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-        const uint32_t stackSlotSize = conv.stackSlotSize();
-        const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
-        const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
-        const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-        const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
-        const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
-        return frameBaseSize + alignPad;
-    }
-
     struct NormalizedCallReturn
     {
         bool     isVoid           = true;
@@ -178,7 +164,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        const uint32_t stackAdjust = computeCallStackAdjust(callConv, numAbiArgs);
+        const uint32_t stackAdjust = MicroABICall::computeCallStackAdjust(callConvKind, numAbiArgs);
         if (stackAdjust)
             builder.encodeOpBinaryRegImm(callConv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64, EncodeFlagsE::Zero);
 

@@ -51,17 +51,17 @@ namespace
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto* leftPayload = codeGen.payload(nodeLeftRef);
-    if (!leftPayload || leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
-        return Result::Continue;
+    SWC_ASSERT(leftPayload != nullptr);
+    if (leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
+        SWC_INTERNAL_ERROR();
 
     const SemaNodeView rightView(codeGen.sema(), nodeRightRef);
     const SymbolFunction* methodSym = resolveMethodSymbol(rightView);
-    if (!methodSym)
-        return Result::Continue;
+    SWC_ASSERT(methodSym != nullptr);
 
     uint32_t methodSlot = 0;
     if (!tryFindInterfaceMethodSlot(methodSlot, *methodSym))
-        return Result::Continue;
+        SWC_INTERNAL_ERROR();
 
     const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
     SWC_ASSERT(runtimeInterface != nullptr);

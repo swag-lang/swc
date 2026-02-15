@@ -14,66 +14,30 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto&        callConv = CallConv::host();
     MicroInstrBuilder& builder  = codeGen.builder();
     const SemaNodeView exprView(codeGen.sema(), nodeExprRef);
-    if (exprView.cst && exprView.type && !exprView.type->isStruct())
-    {
-        RESULT_VERIFY(codeGen.emitConstReturnValue(exprView));
-    }
-    else if (exprView.type && exprView.type->isStruct())
-    {
-        const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
-        const auto     passing    = callConv.classifyStructReturnPassing(structSize);
+    SWC_ASSERT(exprView.type);
+    if (!exprView.type->isStruct())
+        SWC_INTERNAL_ERROR();
 
-        if (passing == StructArgPassingKind::ByReference)
-        {
-            SWC_ASSERT(!callConv.intArgRegs.empty());
-            const MicroReg hiddenRetPtrReg = callConv.intArgRegs[0];
+    const uint32_t structSize = static_cast<uint32_t>(exprView.type->sizeOf(ctx));
+    const auto     passing    = callConv.classifyStructReturnPassing(structSize);
+    if (passing != StructArgPassingKind::ByReference)
+        SWC_INTERNAL_ERROR();
 
-            MicroReg srcReg = MicroReg::invalid();
-            MicroReg tmpReg = MicroReg::invalid();
-            SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&hiddenRetPtrReg, 1}));
+    SWC_ASSERT(!callConv.intArgRegs.empty());
+    const MicroReg hiddenRetPtrReg = callConv.intArgRegs[0];
 
-            if (exprView.cst && exprView.cst->isStruct())
-            {
-                const ByteSpan bytes = exprView.cst->getStruct();
-                if (bytes.data() && bytes.size() >= structSize)
-                {
-                    builder.encodeLoadRegImm(srcReg, reinterpret_cast<uint64_t>(bytes.data()), MicroOpBits::B64, EncodeFlagsE::Zero);
-                    MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
-                }
-            }
-            else if (const auto* payload = codeGen.payload(nodeExprRef); payload && payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64)
-            {
-                builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
-                builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-                MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
-            }
-        }
-        else
-        {
-            SWC_ASSERT(structSize == 1 || structSize == 2 || structSize == 4 || structSize == 8);
-            const MicroOpBits retBits = microOpBitsFromChunkSize(structSize);
+    MicroReg srcReg = MicroReg::invalid();
+    MicroReg tmpReg = MicroReg::invalid();
+    SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg, std::span{&hiddenRetPtrReg, 1}));
 
-            if (exprView.cst && exprView.cst->isStruct())
-            {
-                const ByteSpan bytes = exprView.cst->getStruct();
-                if (bytes.data() && bytes.size() >= structSize)
-                {
-                    uint64_t raw = 0;
-                    std::memcpy(&raw, bytes.data(), structSize);
-                    builder.encodeLoadRegImm(callConv.intReturn, raw, retBits, EncodeFlagsE::Zero);
-                }
-            }
-            else if (const auto* payload = codeGen.payload(nodeExprRef); payload && payload->kind == CodeGenNodePayloadKind::DerefPointerStorageU64)
-            {
-                MicroReg srcReg = MicroReg::invalid();
-                MicroReg tmpReg = MicroReg::invalid();
-                SWC_ASSERT(callConv.tryPickIntScratchRegs(srcReg, tmpReg));
-                builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
-                builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
-                builder.encodeLoadRegMem(callConv.intReturn, srcReg, 0, retBits, EncodeFlagsE::Zero);
-            }
-        }
-    }
+    const auto* payload = codeGen.payload(nodeExprRef);
+    SWC_ASSERT(payload != nullptr);
+    if (payload->kind != CodeGenNodePayloadKind::DerefPointerStorageU64)
+        SWC_INTERNAL_ERROR();
+
+    builder.encodeLoadRegImm(srcReg, payload->valueU64, MicroOpBits::B64, EncodeFlagsE::Zero);
+    builder.encodeLoadRegMem(srcReg, srcReg, 0, MicroOpBits::B64, EncodeFlagsE::Zero);
+    MicroInstrHelpers::emitMemCopy(builder, hiddenRetPtrReg, srcReg, tmpReg, structSize);
 
     builder.encodeRet(EncodeFlagsE::Zero);
     return Result::Continue;

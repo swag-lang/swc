@@ -37,47 +37,50 @@ namespace
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto* calleePayload = codeGen.payload(nodeExprRef);
-    if (!calleePayload || calleePayload->kind != CodeGenNodePayloadKind::ExternalFunctionAddress)
-        return Result::Continue;
+    SWC_ASSERT(calleePayload != nullptr);
+    if (calleePayload->kind != CodeGenNodePayloadKind::ExternalFunctionAddress)
+        SWC_INTERNAL_ERROR();
 
     std::span<const MicroABICallArg> callArgs{};
 
     const auto& calleeNode = codeGen.ast().node(nodeExprRef);
-    if (calleeNode.id() == AstNodeId::MemberAccessExpr)
+    if (calleeNode.id() != AstNodeId::MemberAccessExpr)
+        SWC_INTERNAL_ERROR();
+
+    const SemaNodeView callView(codeGen.sema(), codeGen.visit().currentNodeRef());
+    const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
+
+    const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
+    if (!calledFunction)
     {
-        const SemaNodeView callView(codeGen.sema(), codeGen.visit().currentNodeRef());
-        const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
-
-        const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
-        if (!calledFunction)
-        {
-            const SemaNodeView rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
-            calledFunction = resolveFunctionSymbol(rightView);
-        }
-
-        if (calledFunction && isInterfaceMethod(*calledFunction))
-        {
-            const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
-            if (leftPayload && leftPayload->kind == CodeGenNodePayloadKind::AddressValue)
-            {
-                const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
-                SWC_ASSERT(runtimeInterface != nullptr);
-                SWC_ASSERT(runtimeInterface->obj != nullptr);
-                auto* callArgStorage = codeGen.ctx().compiler().allocate<MicroABICallArg>();
-                *callArgStorage      = {
-                    .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
-                    .isFloat = false,
-                    .numBits = 64,
-                };
-                callArgs = std::span<const MicroABICallArg>(callArgStorage, 1);
-            }
-        }
+        const SemaNodeView rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
+        calledFunction = resolveFunctionSymbol(rightView);
     }
+
+    SWC_ASSERT(calledFunction != nullptr);
+    if (!isInterfaceMethod(*calledFunction))
+        SWC_INTERNAL_ERROR();
+
+    const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
+    SWC_ASSERT(leftPayload != nullptr);
+    if (leftPayload->kind != CodeGenNodePayloadKind::AddressValue)
+        SWC_INTERNAL_ERROR();
+
+    const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
+    SWC_ASSERT(runtimeInterface != nullptr);
+    SWC_ASSERT(runtimeInterface->obj != nullptr);
+    auto* callArgStorage = codeGen.ctx().compiler().allocate<MicroABICallArg>();
+    *callArgStorage      = {
+        .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
+        .isFloat = false,
+        .numBits = 64,
+    };
+    callArgs = std::span<const MicroABICallArg>(callArgStorage, 1);
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());
     if (!args.empty())
-        return Result::Continue;
+        SWC_INTERNAL_ERROR();
 
     auto* resultStorage = codeGen.ctx().compiler().allocate<uint64_t>();
     *resultStorage      = 0;

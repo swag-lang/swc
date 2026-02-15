@@ -128,8 +128,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(calleePayload != nullptr);
 
     const SymbolFunction* calledFunction = resolveCalledFunction(codeGen, resolvedCalleeRef);
-    const auto            callConvKind   = calledFunction ? calledFunction->callConvKind() : CallConvKind::Host;
-    const auto&           callConv       = CallConv::get(callConvKind);
+    const CallConvKind    callConvKind   = calledFunction->callConvKind();
+    const CallConv&       callConv       = CallConv::get(callConvKind);
 
     SmallVector<AstNodeRef> args;
     collectArguments(args, codeGen.ast());

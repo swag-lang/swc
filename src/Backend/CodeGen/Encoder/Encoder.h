@@ -12,6 +12,7 @@ struct MicroInstr;
 struct MicroInstrOperand;
 struct MicroInstrUseDef;
 class MicroEncodePass;
+class MicroConformancePass;
 
 enum class EncodeFlagsE : uint8_t
 {
@@ -26,6 +27,7 @@ class Encoder
 {
     friend class MicroInstrBuilder;
     friend class MicroEncodePass;
+    friend class MicroConformancePass;
     friend struct MicroInstr;
 
 public:
@@ -88,6 +90,7 @@ protected:
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
 
     virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
+    virtual void conformInstruction(MicroInstr&, MicroInstrOperand*) const {}
 
     EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
     static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);

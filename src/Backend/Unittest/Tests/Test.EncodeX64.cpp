@@ -264,6 +264,7 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_mul", "4D 6B ED 07", b.encodeOpBinaryRegImm(R13, 7, MicroOp::MultiplySigned, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", b.encodeOpBinaryRegImm(R8, 0, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_shl_1", "49 D1 E0", b.encodeOpBinaryRegImm(R8, 1, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("op_binary_reg_imm_shl_80_b64_conform", "49 C1 E0 3F", b.encodeOpBinaryRegImm(R8, 0x80, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_shr_5", "49 C1 E9 05", b.encodeOpBinaryRegImm(R9, 5, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_shr_63_b64", "49 C1 E9 3F", b.encodeOpBinaryRegImm(R9, 63, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_reg_imm_sar_9", "49 C1 FA 09", b.encodeOpBinaryRegImm(R10, 9, MicroOp::ShiftArithmeticRight, MicroOpBits::B64, K_EMIT););
@@ -276,6 +277,7 @@ namespace
         ENCODE_CASE("op_binary_mem_imm_or_neg1", "48 83 4D 40 FF", b.encodeOpBinaryMemImm(RBP, 0x40, 0xFFFFFFFFFFFFFFFF, MicroOp::Or, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_xor", "49 83 74 24 50 7F", b.encodeOpBinaryMemImm(R12, 0x50, 0x7F, MicroOp::Xor, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_shl_1", "49 D1 65 60", b.encodeOpBinaryMemImm(R13, 0x60, 1, MicroOp::ShiftLeft, MicroOpBits::B64, K_EMIT););
+        ENCODE_CASE("op_binary_mem_imm_shr_80_b64_conform", "48 C1 AD 80 00 00 00 3F", b.encodeOpBinaryMemImm(RBP, 0x80, 0x80, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_shr_4", "48 C1 6C 24 70 04", b.encodeOpBinaryMemImm(RSP, 0x70, 4, MicroOp::ShiftRight, MicroOpBits::B64, K_EMIT););
         ENCODE_CASE("op_binary_mem_imm_sar", "48 C1 BD 80 00 00 00 08", b.encodeOpBinaryMemImm(RBP, 0x80, 8, MicroOp::ShiftArithmeticRight, MicroOpBits::B64, K_EMIT););
         return Result::Continue;

@@ -2,6 +2,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
+#include "Backend/CodeGen/Micro/Passes/MicroConformancePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEncodePass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
@@ -17,6 +18,7 @@ namespace
     {
         MicroRegAllocPass       regAllocPass;
         MicroPersistentRegsPass persistentRegsPass;
+        MicroConformancePass    conformancePass;
         MicroEncodePass         encodePass;
 
         MicroPassContext passContext;
@@ -26,6 +28,7 @@ namespace
         MicroPassManager passManager;
         passManager.add(regAllocPass);
         passManager.add(persistentRegsPass);
+        passManager.add(conformancePass);
         passManager.add(encodePass);
         builder.runPasses(passManager, &encoder, passContext);
 

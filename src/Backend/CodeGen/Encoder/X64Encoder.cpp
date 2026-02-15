@@ -259,6 +259,11 @@ namespace
         return false;
     }
 
+    bool isShiftImmediateOp(MicroOp op)
+    {
+        return op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight || op == MicroOp::ShiftArithmeticRight;
+    }
+
     uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
@@ -653,6 +658,39 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             break;
         default:
             break;
+    }
+}
+
+void X64Encoder::conformInstruction(MicroInstr& inst, MicroInstrOperand* ops) const
+{
+    if (!ops)
+        return;
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
+    {
+        if (!isShiftImmediateOp(ops[2].microOp))
+            return;
+
+        ops[3].valueU64 = std::min(ops[3].valueU64, uint64_t{0x7F});
+        return;
+    }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
+    {
+        if (!isShiftImmediateOp(ops[2].microOp))
+            return;
+
+        ops[4].valueU64 = std::min(ops[4].valueU64, uint64_t{0x7F});
+        return;
+    }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm)
+    {
+        if (ops[1].opBits != MicroOpBits::B8 && ops[1].opBits != MicroOpBits::B32)
+            ops[1].opBits = MicroOpBits::B32;
     }
 }
 

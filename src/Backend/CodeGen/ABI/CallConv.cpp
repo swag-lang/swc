@@ -170,6 +170,28 @@ bool CallConv::isIntArgReg(MicroReg reg) const
     return false;
 }
 
+bool CallConv::isIntPersistentReg(MicroReg reg) const
+{
+    for (const auto value : intPersistentRegs)
+    {
+        if (value == reg)
+            return true;
+    }
+
+    return false;
+}
+
+bool CallConv::isFloatPersistentReg(MicroReg reg) const
+{
+    for (const auto value : floatPersistentRegs)
+    {
+        if (value == reg)
+            return true;
+    }
+
+    return false;
+}
+
 bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden) const
 {
     auto isForbidden = [&](MicroReg reg) {

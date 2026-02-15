@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPersistentRegsPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/MicroInstrHelpers.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -74,7 +73,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
 
             if (reg.isInt())
             {
-                if (!MicroInstrHelpers::containsReg(conv.intPersistentRegs, reg))
+                if (!conv.isIntPersistentReg(reg))
                     continue;
 
                 if (!containsSavedSlot(reg))
@@ -82,7 +81,7 @@ void MicroPersistentRegsPass::buildSavedRegsPlan(const MicroPassContext& context
             }
             else if (reg.isFloat())
             {
-                if (!MicroInstrHelpers::containsReg(conv.floatPersistentRegs, reg))
+                if (!conv.isFloatPersistentReg(reg))
                     continue;
 
                 if (!containsSavedSlot(reg))

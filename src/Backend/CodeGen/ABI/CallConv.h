@@ -65,6 +65,8 @@ struct CallConv
     StructArgPassingKind classifyStructArgPassing(uint32_t sizeInBytes) const;
     StructArgPassingKind classifyStructReturnPassing(uint32_t sizeInBytes) const;
     bool                 isIntArgReg(MicroReg reg) const;
+    bool                 isIntPersistentReg(MicroReg reg) const;
+    bool                 isFloatPersistentReg(MicroReg reg) const;
     bool                 tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden = {}) const;
 
     static void            setup();

@@ -539,7 +539,7 @@ namespace
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
                 return std::format("call {}", ops[0].name.isValid() ? Utf8(ctx.idMgr().get(ops[0].name).name) : Utf8("<invalid-symbol>"));
-            case MicroInstrOpcode::CallJitRelocAddress:
+            case MicroInstrOpcode::CallRelocAddress:
                 return std::format("call {}", hexU64(ops[0].valueU64));
             case MicroInstrOpcode::CallIndirect:
                 return std::format("call {}", regName(ops[0].reg, regPrintMode, encoder));
@@ -1136,7 +1136,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
                 appendSep(out);
                 appendColored(out, ctx, colorize, SyntaxColor::Type, callConvName(ops[1].callConv));
                 break;
-            case MicroInstrOpcode::CallJitRelocAddress:
+            case MicroInstrOpcode::CallRelocAddress:
                 appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[0].valueU64));
                 appendSep(out);
                 appendColored(out, ctx, colorize, SyntaxColor::Type, callConvName(ops[1].callConv));

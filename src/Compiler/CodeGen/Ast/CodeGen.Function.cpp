@@ -80,7 +80,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else if (calledFunction.hasJitEntryAddress())
     {
-        ABICall::callByJitRelocAddress(builder, callConvKind, calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
+        ABICall::callByRelocAddress(builder, callConvKind, calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
         didCall = true;
     }
     else

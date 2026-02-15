@@ -15,9 +15,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result patchJitRelocations(MicroInstrBuilder& builder, JITExecMemory& executableMemory)
+    Result patchCodeRelocations(MicroInstrBuilder& builder, JITExecMemory& executableMemory)
     {
-        const auto& relocations = builder.jitRelocations();
+        const auto& relocations = builder.codeRelocations();
         if (relocations.empty())
             return Result::Continue;
 
@@ -66,7 +66,7 @@ namespace
         passManager.add(persistentRegsPass);
         passManager.add(legalizePass);
         passManager.add(encodePass);
-        builder.clearJitRelocations();
+        builder.clearCodeRelocations();
         builder.runPasses(passManager, &encoder, passContext);
 
         const auto codeSize = encoder.size();
@@ -79,7 +79,7 @@ namespace
         if (!ctx.compiler().jitMemMgr().allocateAndCopy(asByteSpan(linearCode), outExecutableMemory))
             return Result::Error;
 
-        RESULT_VERIFY(patchJitRelocations(builder, outExecutableMemory));
+        RESULT_VERIFY(patchCodeRelocations(builder, outExecutableMemory));
         return Result::Continue;
     }
 }

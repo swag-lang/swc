@@ -571,7 +571,7 @@ Result Sema::execResult()
 
 JobResult Sema::exec()
 {
-    return execResult() == Result::Pause ? JobResult::Sleep : JobResult::Done;
+    return toJobResult(execResult());
 }
 
 namespace

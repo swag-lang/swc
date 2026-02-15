@@ -30,6 +30,14 @@ enum class JobResult : std::uint8_t
     Sleep
 };
 
+inline JobResult toJobResult(Result result)
+{
+    if (result == Result::Pause)
+        return JobResult::Sleep;
+
+    return JobResult::Done;
+}
+
 struct JobRecord
 {
     Job*        job      = nullptr;

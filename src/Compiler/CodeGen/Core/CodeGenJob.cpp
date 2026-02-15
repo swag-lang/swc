@@ -21,14 +21,6 @@ namespace
         return root.isValid() && sema.node(root).is(AstNodeId::FunctionDecl);
     }
 
-    JobResult toJobResult(Result result)
-    {
-        if (result == Result::Pause)
-            return JobResult::Sleep;
-
-        return JobResult::Done;
-    }
-
     bool areDepsReadyForCompletion(const SmallVector<SymbolFunction*>& deps)
     {
         for (const auto* dep : deps)

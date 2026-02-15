@@ -5,10 +5,34 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    const SymbolFunction* resolveFunctionSymbol(const SemaNodeView& nodeView)
+    {
+        const Symbol* sym = nodeView.sym;
+        if (!sym && !nodeView.symList.empty())
+            sym = nodeView.symList.front();
+
+        if (!sym || !sym->isFunction())
+            return nullptr;
+
+        return &sym->cast<SymbolFunction>();
+    }
+
+    bool isInterfaceMethod(const SymbolFunction& methodSym)
+    {
+        const SymbolMap* ownerSymMap = methodSym.ownerSymMap();
+        if (!ownerSymMap)
+            return false;
+        return ownerSymMap->safeCast<SymbolInterface>() != nullptr;
+    }
+}
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
@@ -21,28 +45,32 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto& calleeNode = codeGen.ast().node(nodeExprRef);
     if (calleeNode.id() == AstNodeId::MemberAccessExpr)
     {
-        const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
-        const SemaNodeView         rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
-        const Symbol*              methodSym = rightView.sym;
-        if (!methodSym && !rightView.symList.empty())
-            methodSym = rightView.symList.front();
+        const SemaNodeView callView(codeGen.sema(), codeGen.visit().currentNodeRef());
+        const SymbolFunction* calledFunction = resolveFunctionSymbol(callView);
 
-        if (methodSym && methodSym->isFunction() && methodSym->name(codeGen.ctx()) == "getBuildCfg")
+        const AstMemberAccessExpr* memberAccessExpr = calleeNode.cast<AstMemberAccessExpr>();
+        if (!calledFunction)
+        {
+            const SemaNodeView rightView(codeGen.sema(), memberAccessExpr->nodeRightRef);
+            calledFunction = resolveFunctionSymbol(rightView);
+        }
+
+        if (calledFunction && isInterfaceMethod(*calledFunction))
         {
             const auto* leftPayload = codeGen.payload(memberAccessExpr->nodeLeftRef);
-            SWC_ASSERT(leftPayload != nullptr);
-            SWC_ASSERT(leftPayload->kind == CodeGenNodePayloadKind::AddressValue);
-
-            const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
-            SWC_ASSERT(runtimeInterface != nullptr);
-            SWC_ASSERT(runtimeInterface->obj != nullptr);
-            auto* callArgStorage = codeGen.ctx().compiler().allocate<MicroABICallArg>();
-            *callArgStorage      = {
-                     .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
-                     .isFloat = false,
-                     .numBits = 64,
-            };
-            callArgs = std::span<const MicroABICallArg>(callArgStorage, 1);
+            if (leftPayload && leftPayload->kind == CodeGenNodePayloadKind::AddressValue)
+            {
+                const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(leftPayload->valueU64);
+                SWC_ASSERT(runtimeInterface != nullptr);
+                SWC_ASSERT(runtimeInterface->obj != nullptr);
+                auto* callArgStorage = codeGen.ctx().compiler().allocate<MicroABICallArg>();
+                *callArgStorage      = {
+                    .value   = reinterpret_cast<uint64_t>(runtimeInterface->obj),
+                    .isFloat = false,
+                    .numBits = 64,
+                };
+                callArgs = std::span<const MicroABICallArg>(callArgStorage, 1);
+            }
         }
     }
 

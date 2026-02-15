@@ -46,7 +46,6 @@ struct S
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 }
 
-#[Swag.PrintMicroRaw]
 #test
 {
     const Cfg = #run dref (@compiler.getBuildCfg)()

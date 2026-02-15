@@ -714,7 +714,7 @@ namespace
             }
 
             const char c = padded[pos];
-            if (std::ispunct(static_cast<unsigned char>(c)) && c != '_' && c != '%' && c != 'x')
+            if (std::ispunct(static_cast<unsigned char>(c)) && c != '_' && c != '%' && c != 'x' && c != ':')
             {
                 if (pos + 2 < padded.size())
                 {
@@ -749,7 +749,7 @@ namespace
                 const char cc = padded[pos];
                 if (std::isspace(static_cast<unsigned char>(cc)))
                     break;
-                if (std::ispunct(static_cast<unsigned char>(cc)) && cc != '_' && cc != '%' && cc != 'x')
+                if (std::ispunct(static_cast<unsigned char>(cc)) && cc != '_' && cc != '%' && cc != 'x' && cc != ':')
                     break;
                 ++pos;
             }

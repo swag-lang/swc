@@ -77,31 +77,9 @@ namespace
         sema.ast().appendNodes(args, argsList->spanChildrenRef);
 
         for (const AstNodeRef argRef : args)
-        {
-            AstNodeRef finalArgRef = sema.getSubstituteRef(argRef);
-            if (finalArgRef.isInvalid())
-                finalArgRef = argRef;
-            outArgs.push_back(finalArgRef);
-        }
+            outArgs.push_back(Match::resolveCallArgumentRef(sema, argRef));
 
         return Result::Continue;
-    }
-
-    AstNodeRef resolveAttributeArgValueRef(const Sema& sema, AstNodeRef argRef)
-    {
-        AstNodeRef finalArgRef = sema.getSubstituteRef(argRef);
-        if (finalArgRef.isInvalid())
-            finalArgRef = argRef;
-
-        if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
-        {
-            AstNodeRef valueRef = sema.getSubstituteRef(namedArg->nodeArgRef);
-            if (valueRef.isInvalid())
-                valueRef = namedArg->nodeArgRef;
-            return valueRef;
-        }
-
-        return finalArgRef;
     }
 
     Result matchAttributeArguments(const SymbolAttribute*& outAttrSym, Sema& sema, const SemaNodeView& identView, std::span<const AstNodeRef> args)
@@ -219,13 +197,6 @@ namespace
         return Result::Continue;
     }
 
-    void collectAttributeArgumentValues(const Sema& sema, std::span<const AstNodeRef> args, SmallVector<AstNodeRef>& outValues)
-    {
-        outValues.clear();
-        outValues.reserve(args.size());
-        for (const AstNodeRef argRef : args)
-            outValues.push_back(resolveAttributeArgValueRef(sema, argRef));
-    }
 }
 
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
@@ -338,7 +309,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     SWC_ASSERT(attrSym != nullptr);
 
     SmallVector<AstNodeRef> argValues;
-    collectAttributeArgumentValues(sema, args.span(), argValues);
+    Match::resolveCallArgumentValues(sema, argValues, args.span());
     RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), *attrSym, sema.frame().currentAttributes()));
 
     const RtAttributeFlags attrFlags = attrSym->rtAttributeFlags();

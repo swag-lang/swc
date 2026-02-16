@@ -81,7 +81,7 @@ namespace
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
         for (auto& arg : args)
-            arg = sema.getSubstituteRef(arg);
+            arg = Match::resolveCallArgumentRef(sema, arg);
 
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);

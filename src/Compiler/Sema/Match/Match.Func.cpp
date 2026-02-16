@@ -933,23 +933,6 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef resolveFinalCallArgRef(Sema& sema, AstNodeRef argRef)
-    {
-        AstNodeRef finalRef = sema.getSubstituteRef(argRef);
-        if (finalRef.isInvalid())
-            finalRef = argRef;
-
-        if (const auto* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
-        {
-            AstNodeRef namedArgRef = sema.getSubstituteRef(namedArg->nodeArgRef);
-            if (namedArgRef.isInvalid())
-                namedArgRef = namedArg->nodeArgRef;
-            return namedArgRef;
-        }
-
-        return finalRef;
-    }
-
     void buildResolvedCallArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, SmallVector<ResolvedCallArgument>& outResolvedArgs)
     {
         outResolvedArgs.clear();
@@ -960,7 +943,7 @@ namespace
             if (entry.argRef.isInvalid())
                 continue;
 
-            const AstNodeRef finalArgRef = resolveFinalCallArgRef(sema, entry.argRef);
+            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
             auto             passKind    = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
@@ -976,10 +959,36 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            const AstNodeRef finalArgRef = resolveFinalCallArgRef(sema, entry.argRef);
+            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
             outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = CallArgumentPassKind::Direct});
         }
     }
+}
+
+AstNodeRef Match::resolveCallArgumentRef(const Sema& sema, AstNodeRef argRef)
+{
+    AstNodeRef finalRef = sema.getSubstituteRef(argRef);
+    if (finalRef.isInvalid())
+        finalRef = argRef;
+    return finalRef;
+}
+
+AstNodeRef Match::resolveCallArgumentValueRef(const Sema& sema, AstNodeRef argRef)
+{
+    const AstNodeRef finalRef = resolveCallArgumentRef(sema, argRef);
+
+    if (const auto* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
+        return resolveCallArgumentRef(sema, namedArg->nodeArgRef);
+
+    return finalRef;
+}
+
+void Match::resolveCallArgumentValues(const Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args)
+{
+    outArgs.clear();
+    outArgs.reserve(args.size());
+    for (const AstNodeRef argRef : args)
+        outArgs.push_back(resolveCallArgumentValueRef(sema, argRef));
 }
 
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs)

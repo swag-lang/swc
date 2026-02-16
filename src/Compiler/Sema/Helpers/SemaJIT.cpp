@@ -105,7 +105,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     // Call !
     symFn->emit(ctx);
     symFn->jit(ctx);
-    JIT::callVoidU64(ctx, symFn->jitEntryAddress(), resultStorageAddress);
+    JIT::callVoidU64(ctx, reinterpret_cast<JIT::JITInvokerVoidU64>(symFn->jitEntryAddress()), resultStorageAddress);
 
     // Create a constant based on the result
     ConstantValue resultConstant;

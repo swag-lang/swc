@@ -17,9 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using JITInvokerFn      = void (*)();
-    using JITInvokerVoidU64 = void (*)(uint64_t);
-
     struct JITExceptionInfo
     {
         void* invoker = nullptr;
@@ -96,18 +93,6 @@ namespace
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args, appendExtraInfo, &info);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
-    }
-
-    void invokeCall(TaskContext& ctx, JITInvokerFn invoker)
-    {
-        const JITExceptionInfo info{.invoker = static_cast<void*>(invoker)};
-        SWC_TRY
-        {
-            invoker();
-        }
-        SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
-        {
-        }
     }
 
     void patchCodeRelocations(std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, const JITExecMemory& executableMemory)
@@ -247,18 +232,28 @@ void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> ar
     const auto invoker = executableMemory.entryPoint<JITInvokerFn>();
     SWC_ASSERT(invoker != nullptr);
 
-    invokeCall(ctx, invoker);
+    callVoid(ctx, invoker);
 }
 
-void JIT::callVoidU64(TaskContext& ctx, void* targetFn, uint64_t arg0)
+void JIT::callVoid(TaskContext& ctx, JITInvokerFn invoker)
 {
-    SWC_ASSERT(targetFn != nullptr);
-    const auto typedFn = reinterpret_cast<JITInvokerVoidU64>(targetFn);
-
-    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(typedFn)};
+    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(invoker)};
     SWC_TRY
     {
-        typedFn(arg0);
+        invoker();
+    }
+    SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
+    {
+    }
+}
+
+void JIT::callVoidU64(TaskContext& ctx, JITInvokerVoidU64 invoker, uint64_t arg0)
+{
+    SWC_ASSERT(invoker != nullptr);
+    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(invoker)};
+    SWC_TRY
+    {
+        invoker(arg0);
     }
     SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
     {

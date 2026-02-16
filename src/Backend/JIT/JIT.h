@@ -22,9 +22,13 @@ struct JITReturn
 class JIT final
 {
 public:
+    using JITInvokerFn      = void (*)();
+    using JITInvokerVoidU64 = void (*)(uint64_t);
+
     static void emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory);
     static void call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
-    static void callVoidU64(TaskContext& ctx, void* targetFn, uint64_t arg0);
+    static void callVoid(TaskContext& ctx, JITInvokerFn invoker);
+    static void callVoidU64(TaskContext& ctx, JITInvokerVoidU64 invoker, uint64_t arg0);
 };
 
 SWC_END_NAMESPACE();

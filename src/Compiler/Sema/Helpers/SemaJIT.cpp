@@ -23,6 +23,29 @@ namespace
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
     }
+
+    TypeRef computeRunExprStorageTypeRef(Sema& sema, const SemaNodeView& nodeView)
+    {
+        SWC_ASSERT(nodeView.type);
+        return nodeView.type->unwrap(sema.ctx(), nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    }
+
+    ConstantValue makeRunExprConstant(Sema& sema, const SemaNodeView& nodeView, TypeRef storageTypeRef, const std::byte* storagePtr)
+    {
+        auto& ctx = sema.ctx();
+        SWC_ASSERT(nodeView.type);
+        if (nodeView.type->isEnum())
+        {
+            const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+            const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
+            return ConstantValue::makeEnumValue(ctx, storageRef, nodeView.typeRef);
+        }
+
+        ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+        if (nodeView.type->isAlias())
+            result.setTypeRef(nodeView.typeRef);
+        return result;
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
@@ -36,14 +59,13 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
-    auto&           ctx              = sema.ctx();
-    const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
-    const TypeRef   resultStorageRef = nodeType.unwrap(ctx, nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);
-    SWC_ASSERT(!resultStorageTy.isVoid());
+    auto&         ctx            = sema.ctx();
+    const TypeRef storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
+    const TypeInfo& storageType  = sema.typeMgr().get(storageTypeRef);
+    SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression
-    const uint64_t resultSize = resultStorageTy.sizeOf(ctx);
+    const uint64_t resultSize = storageType.sizeOf(ctx);
     SWC_ASSERT(resultSize > 0);
     SmallVector<std::byte> resultStorage(resultSize);
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
@@ -53,24 +75,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     symFn.jit(ctx);
     RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
-    // Create a constant based on the result
-    ConstantValue resultConstant;
-    if (nodeType.isEnum())
-    {
-        ConstantValue     enumStorage    = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef);
-        const ConstantRef enumStorageRef = sema.cstMgr().addConstant(ctx, enumStorage);
-        resultConstant                   = ConstantValue::makeEnumValue(ctx, enumStorageRef, nodeView.typeRef);
-    }
-    else if (nodeType.isAlias())
-    {
-        resultConstant = ConstantValue::make(ctx, resultStorage.data(), resultStorageRef);
-        resultConstant.setTypeRef(nodeView.typeRef);
-    }
-    else
-    {
-        resultConstant = ConstantValue::make(ctx, resultStorage.data(), nodeView.typeRef);
-    }
-
+    const ConstantValue resultConstant = makeRunExprConstant(sema, nodeView, storageTypeRef, resultStorage.data());
     sema.setConstant(nodeExprRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;
 }

@@ -83,24 +83,8 @@ namespace
             auto&          builder   = codeGen.builder();
             const MicroReg retPtrReg = codeGen.nextVirtualIntRegister();
             builder.encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
-
-            if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
-            {
-                CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-            }
-            else
-            {
-                const auto spillSize = normalizedRet.indirectSize;
-                auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
-                std::memset(spillData, 0, spillSize);
-
-                const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-
-                builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
-                builder.encodeLoadMemReg(spillAddrReg, 0, exprPayload->reg, MicroOpBits::B64);
-                CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
-            }
-
+            SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
+            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
             builder.encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
         }
         else

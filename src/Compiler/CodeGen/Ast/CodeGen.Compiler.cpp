@@ -55,10 +55,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
             auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 
-            MicroReg spillAddrReg = MicroReg::invalid();
-            MicroReg spillTmpReg  = MicroReg::invalid();
-            const std::array<MicroReg, 2> forbidden = {outputStorageReg, payloadReg};
-            SWC_ASSERT(callConv.tryPickIntScratchRegs(spillAddrReg, spillTmpReg, forbidden));
+            const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
 
             builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
             builder.encodeLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);

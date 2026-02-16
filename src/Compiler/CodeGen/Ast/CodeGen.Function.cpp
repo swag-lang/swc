@@ -94,10 +94,7 @@ namespace
                 auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
                 std::memset(spillData, 0, spillSize);
 
-                MicroReg         spillAddrReg = MicroReg::invalid();
-                MicroReg         spillTmpReg  = MicroReg::invalid();
-                const std::array forbidden    = {outputStorageReg, exprPayload->reg};
-                SWC_ASSERT(callConv.tryPickIntScratchRegs(spillAddrReg, spillTmpReg, forbidden));
+                const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
 
                 builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
                 builder.encodeLoadMemReg(spillAddrReg, 0, exprPayload->reg, MicroOpBits::B64);

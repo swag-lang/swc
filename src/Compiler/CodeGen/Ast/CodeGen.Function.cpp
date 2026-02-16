@@ -122,9 +122,15 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
         didCall = true;
     }
-    else if (calledFunction.hasEntryAddress())
+    else if (calledFunction.hasJitEntryAddress())
     {
-        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.entryAddress(), numAbiArgs, &calledFunction);
+        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
+        didCall = true;
+    }
+    else if (calledFunction.isCodeGenPreSolved())
+    {
+        calledFunction.jit(codeGen.ctx());
+        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
         didCall = true;
     }
     else

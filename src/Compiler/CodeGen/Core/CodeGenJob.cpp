@@ -75,7 +75,7 @@ JobResult CodeGenJob::exec()
         return toJobResult(codeGenResult);
     symbolFunc_->setCodeGenPreSolved(ctx());
 
-    // Materialize function entry address from generated micro instructions.
+    // Lowered microcode persisted on the symbol for later materialization.
     ///////////////////////////////////////////
     symbolFunc_->emit(ctx());
 

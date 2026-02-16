@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -63,11 +64,14 @@ public:
     bool                     tryMarkCodeGenJobScheduled() noexcept;
     void                     addCallDependency(SymbolFunction* sym);
     void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    uint64_t                 entryAddress() const noexcept { return entryAddress_.load(std::memory_order_acquire); }
-    bool                     hasEntryAddress() const noexcept { return entryAddress() != 0; }
+    uint64_t                 jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    bool                     hasJitEntryAddress() const noexcept { return jitEntryAddress() != 0; }
     void                     emit(TaskContext& ctx);
+    void                     jit(TaskContext& ctx);
 
 private:
+    bool hasLoweredCode() const noexcept;
+
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 
     std::vector<SymbolVariable*> parameters_;
@@ -78,11 +82,12 @@ private:
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
     MicroInstrBuilder            microInstrBuilder_;
+    LoweredMicroCode             loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
-    std::mutex                   jitMutex_;
+    std::mutex                   emitMutex_;
     JITExecMemory                jitExecMemory_;
-    std::atomic<uint64_t>        entryAddress_     = 0;
+    std::atomic<uint64_t>        jitEntryAddress_     = 0;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };
 

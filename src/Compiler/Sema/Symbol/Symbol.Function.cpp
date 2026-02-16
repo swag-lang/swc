@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -86,20 +85,32 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
 
 void SymbolFunction::emit(TaskContext& ctx)
 {
-    if (hasEntryAddress())
+    std::scoped_lock lock(emitMutex_);
+    if (hasLoweredCode())
         return;
+    lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredMicroCode_);
+    ctx.compiler().notifyAlive();
+}
 
-    std::scoped_lock lock(jitMutex_);
-    if (hasEntryAddress())
+bool SymbolFunction::hasLoweredCode() const noexcept
+{
+    return !loweredMicroCode_.bytes.empty();
+}
+
+void SymbolFunction::jit(TaskContext& ctx)
+{
+    if (hasJitEntryAddress())
         return;
+    std::scoped_lock lock(emitMutex_);
+    if (hasJitEntryAddress())
+        return;
+    if (!hasLoweredCode())
+        lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredMicroCode_);
 
-    LoweredMicroCode loweredCode;
-    lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredCode);
-    JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, jitExecMemory_);
+    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
     const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
     SWC_FORCE_ASSERT(entry != 0);
-
-    entryAddress_.store(entry, std::memory_order_release);
+    jitEntryAddress_.store(entry, std::memory_order_release);
     ctx.compiler().notifyAlive();
 }
 

@@ -1,9 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
 #include "Backend/FFI/FFI.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -98,14 +96,10 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const SemaNodeView nodeView(sema, nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
-    MicroInstrBuilder& builder = symFn->microInstrBuilder(ctx);
-    LoweredMicroCode   loweredCode;
-    lowerMicroInstructions(ctx, builder, loweredCode);
+    symFn->emit(ctx);
+    symFn->jit(ctx);
 
-    JITExecMemory executableMemory;
-    JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
-
-    auto targetFn = executableMemory.entryPoint<void*>();
+    const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
     SWC_ASSERT(targetFn != nullptr);
 
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);

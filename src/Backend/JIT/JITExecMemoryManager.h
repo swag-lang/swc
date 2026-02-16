@@ -13,6 +13,8 @@ public:
     JITExecMemoryManager(const JITExecMemoryManager&)            = delete;
     JITExecMemoryManager& operator=(const JITExecMemoryManager&) = delete;
 
+    std::mutex& memoryMutex() noexcept { return mutex_; }
+
     bool allocateAndCopy(ByteSpan bytes, JITExecMemory& outExecutableMemory);
 
 private:

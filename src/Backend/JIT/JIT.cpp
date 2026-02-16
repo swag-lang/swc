@@ -94,10 +94,12 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, const JITExecMemory& executableMemory)
+    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, const JITExecMemory& executableMemory)
     {
         if (relocations.empty())
             return;
+
+        std::unique_lock memoryLock(memoryManager.memoryMutex());
 
         SWC_FORCE_ASSERT(!linearCode.empty());
         auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
@@ -133,7 +135,7 @@ namespace
 void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory)
 {
     SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(linearCode, outExecutableMemory));
-    patchCodeRelocations(linearCode, relocations, outExecutableMemory);
+    patchCodeRelocations(ctx.compiler().jitMemMgr(), linearCode, relocations, outExecutableMemory);
 }
 
 void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

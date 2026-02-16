@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -10,10 +11,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void patchCodeRelocations(std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& executableMemory)
+    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& executableMemory)
     {
         if (relocations.empty())
             return;
+
+        std::unique_lock memoryLock(memoryManager.memoryMutex());
 
         SWC_FORCE_ASSERT(!linearCode.empty());
         auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
@@ -161,7 +164,7 @@ void SymbolFunction::jit(TaskContext& ctx)
             targetFunc.jit(ctx);
     }
 
-    patchCodeRelocations(asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
+    patchCodeRelocations(ctx.compiler().jitMemMgr(), asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
     ctx.compiler().notifyAlive();
 }
 

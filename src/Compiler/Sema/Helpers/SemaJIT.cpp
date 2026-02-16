@@ -91,9 +91,6 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const SemaNodeView nodeView(sema, nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
-    symFn->emit(ctx);
-    symFn->jit(ctx);
-
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
     const TypeRef   resultStorageRef = nodeType.unwrap(ctx, nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);
@@ -106,6 +103,8 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
+    symFn->emit(ctx);
+    symFn->jit(ctx);
     const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
     SWC_ASSERT(targetFn != nullptr);
     JIT::callVoidU64(ctx, targetFn, resultStorageAddress);

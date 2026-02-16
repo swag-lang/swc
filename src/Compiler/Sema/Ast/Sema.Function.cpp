@@ -86,8 +86,7 @@ namespace
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);
 
-        const AstNode* parentNode = sema.visit().parentNode();
-        if (parentNode && parentNode->is(AstNodeId::Attribute) && !symbols.empty())
+        if (node.hasFlag(AstCallExprFlagsE::AttributeContext))
         {
             bool hasAttributeCandidate = false;
             for (const Symbol* sym : symbols)

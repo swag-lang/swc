@@ -415,7 +415,13 @@ struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
+enum class AstCallExprFlagsE : AstNode::ParserFlags
+{
+    Zero             = 0,
+    AttributeContext = 1 << 0,
+};
+
+struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr, AstCallExprFlagsE>
 {
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
@@ -423,7 +429,7 @@ struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr>
 };
 
 // -----------------------------------------------------------------------------
-struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr>
+struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCallExprFlagsE>
 {
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;

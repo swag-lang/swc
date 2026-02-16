@@ -7,7 +7,8 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>(ref());
-    AstNodeRef              nodeIdentRef = parseQualifiedIdentifier();
+    PushContextFlags ctx(this, ParserContextFlagsE::InAttribute);
+    const AstNodeRef nodeIdentRef = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
     {
         nodePtr->nodeCallRef = parseFunctionArguments(nodeIdentRef);
@@ -30,10 +31,12 @@ AstNodeRef Parser::parseAttributeValue()
             break;
     }
 
-    auto [callRef, callPtr]    = ast_->makeNode<AstNodeId::CallExpr>(ref());
-    callPtr->nodeExprRef       = nodeIdentRef;
-    callPtr->spanChildrenRef   = SpanRef::invalid();
-    nodePtr->nodeCallRef       = callRef;
+    auto [callRef, callPtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
+    callPtr->nodeExprRef    = nodeIdentRef;
+    if (hasContextFlag(ParserContextFlagsE::InAttribute))
+        callPtr->addFlag(AstCallExprFlagsE::AttributeContext);
+    callPtr->spanChildrenRef = SpanRef::invalid();
+    nodePtr->nodeCallRef     = callRef;
     return nodeRef;
 }
 

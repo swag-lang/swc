@@ -301,10 +301,12 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
     nodePtr->nodeExprRef          = nodeExpr;
-    {
-        PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-        nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
-    }
+
+    if (hasContextFlag(ParserContextFlagsE::InAttribute))
+        nodePtr->addFlag(AstCallExprFlagsE::AttributeContext);
+
+    PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;
 }
 

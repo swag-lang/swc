@@ -307,6 +307,16 @@ namespace
         return true;
     }
 
+    bool isInstructionToken(std::string_view token)
+    {
+        return token == "if" || token == "call" || token == "ret" || token == "enter" || token == "leave" || token == "push" || token == "pop" || token == "jump" || token == "patch" || token == "cmp" || token == "jumptable";
+    }
+
+    bool isStrongInstructionToken(std::string_view token)
+    {
+        return token == "jump";
+    }
+
     Utf8 hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
@@ -632,6 +642,10 @@ namespace
             else if (concreteRegs.contains(tokenStr))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Register, token);
+            }
+            else if (isInstructionToken(token))
+            {
+                appendColored(out, ctx, colorize, isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
             }
             else if (isHex(token))
             {

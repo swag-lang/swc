@@ -14,32 +14,103 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result collectPrintMicroOptions(Sema& sema, const AstAttribute& nodeAttr, AttributeList& outAttributes)
+    AstNodeRef unwrapNamedArgumentValue(const Sema& sema, AstNodeRef argValueRef)
     {
+        if (const auto* namedArg = sema.node(argValueRef).safeCast<AstNamedArgument>())
+            return namedArg->nodeArgRef;
+        return argValueRef;
+    }
+
+    SmallVector<AstNodeRef> collectAttributeArgs(const Sema& sema, const AstAttribute& nodeAttr)
+    {
+        SmallVector<AstNodeRef> outArgs;
         if (nodeAttr.nodeArgsRef.isInvalid())
-        {
-            outAttributes.printMicroPassOptions.push_back(Utf8{"before-emit"});
-            return Result::Continue;
-        }
+            return outArgs;
 
         const auto* argsList = sema.node(nodeAttr.nodeArgsRef).safeCast<AstNamedArgumentList>();
+        SWC_ASSERT(argsList != nullptr);
         if (!argsList)
-            return Result::Continue;
+            return outArgs;
 
-        SmallVector<AstNodeRef> args;
-        sema.ast().appendNodes(args, argsList->spanChildrenRef);
+        sema.ast().appendNodes(outArgs, argsList->spanChildrenRef);
+        for (auto& argRef : outArgs)
+            argRef = unwrapNamedArgumentValue(sema, argRef);
+        return outArgs;
+    }
+
+    RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)
+    {
+        const auto& idMgr = sema.idMgr();
+
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti))
+            return RtAttributeFlagsE::AttrMulti;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr))
+            return RtAttributeFlagsE::ConstExpr;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
+            return RtAttributeFlagsE::PrintMicro;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Compiler))
+            return RtAttributeFlagsE::Compiler;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Inline))
+            return RtAttributeFlagsE::Inline;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NoInline))
+            return RtAttributeFlagsE::NoInline;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PlaceHolder))
+            return RtAttributeFlagsE::PlaceHolder;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NoPrint))
+            return RtAttributeFlagsE::NoPrint;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Macro))
+            return RtAttributeFlagsE::Macro;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Mixin))
+            return RtAttributeFlagsE::Mixin;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Implicit))
+            return RtAttributeFlagsE::Implicit;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::EnumFlags))
+            return RtAttributeFlagsE::EnumFlags;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::EnumIndex))
+            return RtAttributeFlagsE::EnumIndex;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NoDuplicate))
+            return RtAttributeFlagsE::NoDuplicate;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Complete))
+            return RtAttributeFlagsE::Complete;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Overload))
+            return RtAttributeFlagsE::Overload;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::CalleeReturn))
+            return RtAttributeFlagsE::CalleeReturn;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Discardable))
+            return RtAttributeFlagsE::Discardable;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NotGeneric))
+            return RtAttributeFlagsE::NotGeneric;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Tls))
+            return RtAttributeFlagsE::Tls;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NoCopy))
+            return RtAttributeFlagsE::NoCopy;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Opaque))
+            return RtAttributeFlagsE::Opaque;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Incomplete))
+            return RtAttributeFlagsE::Incomplete;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::NoDoc))
+            return RtAttributeFlagsE::NoDoc;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Strict))
+            return RtAttributeFlagsE::Strict;
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Global))
+            return RtAttributeFlagsE::Global;
+
+        return RtAttributeFlagsE::Zero;
+    }
+
+    Result collectPrintMicroOptions(Sema& sema, const AstAttribute& nodeAttr, AttributeList& outAttributes)
+    {
+        const auto args = collectAttributeArgs(sema, nodeAttr);
         if (args.empty())
         {
             outAttributes.printMicroPassOptions.push_back(Utf8{"before-emit"});
             return Result::Continue;
         }
 
-        for (auto argValueRef : args)
+        for (const auto argValueRef : args)
         {
-            if (const auto* namedArg = sema.node(argValueRef).safeCast<AstNamedArgument>())
-                argValueRef = namedArg->nodeArgRef;
-
             const SemaNodeView argView = sema.nodeView(argValueRef);
+            SWC_ASSERT(argView.cst != nullptr);
             if (!argView.cst)
                 return SemaError::raiseExprNotConst(sema, argValueRef);
 
@@ -52,46 +123,21 @@ namespace
         return Result::Continue;
     }
 
-    Result collectOptimizeLevel(Sema& sema, const AstAttribute& nodeAttr, AttributeList& outAttributes)
+    Result collectOptimizeLevel(Sema& sema, const AstAttribute& nodeAttr, const SymbolAttribute& attrSym, AttributeList& outAttributes)
     {
-        if (nodeAttr.nodeArgsRef.isInvalid())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeAttr);
-            diag.addArgument(Diagnostic::ARG_COUNT, 1);
-            diag.addArgument(Diagnostic::ARG_VALUE, 0);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        const auto* argsList = sema.node(nodeAttr.nodeArgsRef).safeCast<AstNamedArgumentList>();
-        if (!argsList)
+        SWC_ASSERT(attrSym.parameters().size() == 1);
+        if (attrSym.parameters().size() != 1)
             return Result::Continue;
 
-        SmallVector<AstNodeRef> args;
-        sema.ast().appendNodes(args, argsList->spanChildrenRef);
-        if (args.empty())
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeAttr);
-            diag.addArgument(Diagnostic::ARG_COUNT, 1);
-            diag.addArgument(Diagnostic::ARG_VALUE, 0);
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
+        const auto args = collectAttributeArgs(sema, nodeAttr);
+        SWC_ASSERT(args.size() == attrSym.parameters().size());
+        if (args.size() != attrSym.parameters().size())
+            return Result::Continue;
 
-        if (args.size() > 1)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeAttr);
-            diag.addArgument(Diagnostic::ARG_COUNT, 1);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(args.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        AstNodeRef argValueRef = args[0];
-        if (const auto* namedArg = sema.node(argValueRef).safeCast<AstNamedArgument>())
-            argValueRef = namedArg->nodeArgRef;
+        const AstNodeRef argValueRef = args[0];
 
         const SemaNodeView argView = sema.nodeView(argValueRef);
+        SWC_ASSERT(argView.cst != nullptr);
         if (!argView.cst)
             return SemaError::raiseExprNotConst(sema, argValueRef);
 
@@ -107,6 +153,20 @@ namespace
             return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeS32());
 
         outAttributes.setBackendOptimize(static_cast<Runtime::BuildCfgBackendOptim>(levelI64));
+        return Result::Continue;
+    }
+
+    Result collectPredefinedAttributeData(Sema& sema, const AstAttribute& nodeAttr, const SymbolAttribute& attrSym, AttributeList& outAttributes)
+    {
+        if (!attrSym.inSwagNamespace(sema.ctx()))
+            return Result::Continue;
+
+        const auto&         idMgr = sema.idMgr();
+        const IdentifierRef idRef = attrSym.idRef();
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
+            return collectOptimizeLevel(sema, nodeAttr, attrSym, outAttributes);
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
+            return collectPrintMicroOptions(sema, nodeAttr, outAttributes);
         return Result::Continue;
     }
 }
@@ -155,52 +215,9 @@ Result AstAttrDecl::semaPreDecl(Sema& sema) const
     // Predefined attributes
     if (sym.inSwagNamespace(sema.ctx()))
     {
-        struct PredefinedAttr
-        {
-            IdentifierRef    id;
-            RtAttributeFlags fl;
-        };
-
-        const auto& idMgr = sema.idMgr();
-
-        const PredefinedAttr predefined[] = {
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::AttrMulti), .fl = RtAttributeFlagsE::AttrMulti},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::ConstExpr), .fl = RtAttributeFlagsE::ConstExpr},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro), .fl = RtAttributeFlagsE::PrintMicro},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Compiler), .fl = RtAttributeFlagsE::Compiler},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Inline), .fl = RtAttributeFlagsE::Inline},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoInline), .fl = RtAttributeFlagsE::NoInline},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::PlaceHolder), .fl = RtAttributeFlagsE::PlaceHolder},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoPrint), .fl = RtAttributeFlagsE::NoPrint},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Macro), .fl = RtAttributeFlagsE::Macro},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Mixin), .fl = RtAttributeFlagsE::Mixin},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Implicit), .fl = RtAttributeFlagsE::Implicit},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumFlags), .fl = RtAttributeFlagsE::EnumFlags},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::EnumIndex), .fl = RtAttributeFlagsE::EnumIndex},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDuplicate), .fl = RtAttributeFlagsE::NoDuplicate},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Complete), .fl = RtAttributeFlagsE::Complete},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Overload), .fl = RtAttributeFlagsE::Overload},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::CalleeReturn), .fl = RtAttributeFlagsE::CalleeReturn},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Discardable), .fl = RtAttributeFlagsE::Discardable},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NotGeneric), .fl = RtAttributeFlagsE::NotGeneric},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Tls), .fl = RtAttributeFlagsE::Tls},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoCopy), .fl = RtAttributeFlagsE::NoCopy},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Opaque), .fl = RtAttributeFlagsE::Opaque},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Incomplete), .fl = RtAttributeFlagsE::Incomplete},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::NoDoc), .fl = RtAttributeFlagsE::NoDoc},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Strict), .fl = RtAttributeFlagsE::Strict},
-            {.id = idMgr.predefined(IdentifierManager::PredefinedName::Global), .fl = RtAttributeFlagsE::Global},
-        };
-
-        const IdentifierRef idRef = sym.idRef();
-        for (const auto& it : predefined)
-        {
-            if (idRef == it.id)
-            {
-                sym.setRtAttributeFlags(it.fl);
-                break;
-            }
-        }
+        const RtAttributeFlags attrFlag = predefinedRtAttributeFlag(sema, sym.idRef());
+        if (attrFlag != RtAttributeFlagsE::Zero)
+            sym.setRtAttributeFlags(attrFlag);
     }
 
     return Result::SkipChildren;
@@ -256,17 +273,12 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     if (!identView.sym->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
-    // Predefined attributes
     const SymbolAttribute& attrSym = identView.sym->cast<SymbolAttribute>();
-    if (attrSym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Optimize))
-        RESULT_VERIFY(collectOptimizeLevel(sema, *this, sema.frame().currentAttributes()));
+    RESULT_VERIFY(collectPredefinedAttributeData(sema, *this, attrSym, sema.frame().currentAttributes()));
 
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
-        if (attrSym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::PrintMicro))
-            RESULT_VERIFY(collectPrintMicroOptions(sema, *this, sema.frame().currentAttributes()));
-
         sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;
     }

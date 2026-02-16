@@ -22,14 +22,14 @@ struct MicroPassContext
 {
     MicroPassContext() = default;
 
-    Encoder*             encoder                = nullptr;
-    TaskContext*         taskContext            = nullptr;
-    MicroInstrBuilder*   builder                = nullptr;
-    MicroInstrStorage*   instructions           = nullptr;
-    MicroOperandStorage* operands               = nullptr;
-    std::span<const Utf8> passPrintOptions      = {};
-    CallConvKind         callConvKind           = CallConvKind::Host;
-    bool                 preservePersistentRegs = false;
+    Encoder*              encoder                = nullptr;
+    TaskContext*          taskContext            = nullptr;
+    MicroInstrBuilder*    builder                = nullptr;
+    MicroInstrStorage*    instructions           = nullptr;
+    MicroOperandStorage*  operands               = nullptr;
+    std::span<const Utf8> passPrintOptions       = {};
+    CallConvKind          callConvKind           = CallConvKind::Host;
+    bool                  preservePersistentRegs = false;
 };
 
 class MicroPass

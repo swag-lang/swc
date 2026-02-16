@@ -37,4 +37,3 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
-

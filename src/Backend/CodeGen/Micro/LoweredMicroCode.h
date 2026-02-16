@@ -8,7 +8,7 @@ class TaskContext;
 
 struct LoweredMicroCode
 {
-    std::vector<std::byte>               bytes;
+    std::vector<std::byte>                bytes;
     std::vector<MicroInstrCodeRelocation> codeRelocations;
 };
 

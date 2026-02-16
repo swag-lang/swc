@@ -2,8 +2,8 @@
 #include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -706,7 +706,6 @@ namespace
 
             appendNaturalToken(std::string_view(value).substr(start, pos - start), start);
         }
-
     }
 
     void appendColumnSeparator(std::string& out, const TaskContext& ctx, bool colorize)
@@ -975,7 +974,7 @@ namespace
         appendColored(out, ctx, colorize, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
-    bool appendInstructionDebugInfo(std::string& out,
+    bool appendInstructionDebugInfo(std::string&                  out,
                                     const TaskContext&            ctx,
                                     bool                          colorize,
                                     const MicroInstrBuilder*      builder,
@@ -1034,9 +1033,9 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {
-        const Ref                       instRef = it.current;
-        const MicroInstr&               inst    = *it;
-        const auto*                     ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        const Ref         instRef = it.current;
+        const MicroInstr& inst    = *it;
+        const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
         auto                            natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
         std::optional<std::string>      naturalJumpTargetIndex;

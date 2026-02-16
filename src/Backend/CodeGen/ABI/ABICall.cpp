@@ -188,7 +188,7 @@ void ABICall::storeValueToReturnBuffer(MicroInstrBuilder& builder, CallConvKind 
         return;
 
     materializeValueToReturnRegs(builder, callConvKind, valueReg, valueIsLValue, ret);
-    const auto& conv = CallConv::get(callConvKind);
+    const auto& conv    = CallConv::get(callConvKind);
     const auto  retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
 
     if (ret.isFloat)
@@ -204,7 +204,7 @@ void ABICall::materializeValueToReturnRegs(MicroInstrBuilder& builder, CallConvK
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const auto&      conv    = CallConv::get(callConvKind);
+    const auto&       conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
     SWC_ASSERT(retBits != MicroOpBits::Zero);
 
@@ -325,4 +325,3 @@ void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind,
 }
 
 SWC_END_NAMESPACE();
-

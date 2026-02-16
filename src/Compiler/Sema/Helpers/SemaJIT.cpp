@@ -102,14 +102,18 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);
     SWC_ASSERT(!resultStorageTy.isVoid());
 
-    const uint64_t         resultSize = resultStorageTy.sizeOf(ctx);
-    std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
+    // Storage, to store the call result of the expression
+    const uint64_t resultSize = resultStorageTy.sizeOf(ctx);
+    SWC_ASSERT(resultSize > 0);
+    SmallVector<std::byte> resultStorage(resultSize);
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
+    // Call !
     const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
     SWC_ASSERT(targetFn != nullptr);
     JIT::callVoidU64(ctx, targetFn, resultStorageAddress);
 
+    // Create a constant based on the result
     ConstantValue resultConstant;
     if (nodeType.isEnum())
     {

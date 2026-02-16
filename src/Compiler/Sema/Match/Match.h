@@ -12,6 +12,12 @@ class SymbolMap;
 
 namespace Match
 {
+    enum class ResolveCallMode : uint8_t
+    {
+        Normal,
+        AttributeOnly,
+    };
+
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
     Result ghosting(Sema& sema, const Symbol& sym);
 
@@ -19,7 +25,7 @@ namespace Match
     AstNodeRef resolveCallArgumentValueRef(const Sema& sema, AstNodeRef argRef);
     void       resolveCallArgumentValues(const Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args);
 
-    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<ResolvedCallArgument>* outResolvedArgs = nullptr);
+    Result resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg = AstNodeRef::invalid(), SmallVector<ResolvedCallArgument>* outResolvedArgs = nullptr, ResolveCallMode mode = ResolveCallMode::Normal);
 }
 
 SWC_END_NAMESPACE();

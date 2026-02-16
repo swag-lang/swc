@@ -15,6 +15,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isCallableForMode(const Symbol& sym, Match::ResolveCallMode mode)
+    {
+        if (mode == Match::ResolveCallMode::AttributeOnly)
+            return sym.isFunction() && sym.isAttribute();
+
+        if (sym.isFunction())
+            return !sym.isAttribute();
+        if (sym.isVariable())
+            return true;
+
+        return false;
+    }
+
     enum class ConvRank
     {
         Exact,    // same type (or identical canonical type)
@@ -991,12 +1004,25 @@ void Match::resolveCallArgumentValues(const Sema& sema, SmallVector<AstNodeRef>&
         outArgs.push_back(resolveCallArgumentValueRef(sema, argRef));
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)
 {
+    SmallVector<Symbol*> filteredSymbols;
+    filteredSymbols.reserve(symbols.size());
+    for (Symbol* sym : symbols)
+    {
+        if (!sym)
+            continue;
+        if (isCallableForMode(*sym, mode))
+            filteredSymbols.push_back(sym);
+    }
+
+    if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef);
+
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
-    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
+    RESULT_VERIFY(collectAttempts(sema, attempts, functions, filteredSymbols.span(), args, ufcsArg));
 
     // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;

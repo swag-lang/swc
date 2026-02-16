@@ -86,22 +86,6 @@ namespace
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);
 
-        if (node.hasFlag(AstCallExprFlagsE::AttributeContext))
-        {
-            bool hasAttributeCandidate = false;
-            for (const Symbol* sym : symbols)
-            {
-                if (sym && sym->isAttribute())
-                {
-                    hasAttributeCandidate = true;
-                    break;
-                }
-            }
-
-            if (!hasAttributeCandidate)
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, node.nodeExprRef);
-        }
-
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
         {
@@ -111,7 +95,8 @@ namespace
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs));
+        const auto resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());

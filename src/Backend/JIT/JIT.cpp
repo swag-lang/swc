@@ -11,6 +11,7 @@
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 
@@ -22,15 +23,6 @@ namespace
     {
         void* invoker = nullptr;
     };
-
-    uint32_t alignValue(uint32_t value, uint32_t alignment)
-    {
-        SWC_ASSERT(alignment != 0);
-        const uint32_t rem = value % alignment;
-        if (!rem)
-            return value;
-        return value + alignment - rem;
-    }
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
     {
@@ -138,7 +130,7 @@ namespace
     }
 }
 
-void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, JITExecMemory& outExecutableMemory)
+void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroInstrRelocation> relocations)
 {
     SWC_FORCE_ASSERT(!linearCode.empty());
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
@@ -189,7 +181,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
 
         if (argType.isIndirect && argType.needsIndirectCopy)
         {
-            indirectArgStorageSize         = alignValue(indirectArgStorageSize, argType.indirectAlign);
+            indirectArgStorageSize         = Math::alignUpU32(indirectArgStorageSize, argType.indirectAlign);
             const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectSize;
             SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
             indirectArgStorageSize = static_cast<uint32_t>(nextStorageSize);
@@ -216,7 +208,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
         const void* indirectValuePtr = arg.valuePtr;
         if (argType.needsIndirectCopy)
         {
-            indirectArgStorageOffset = alignValue(indirectArgStorageOffset, argType.indirectAlign);
+            indirectArgStorageOffset = Math::alignUpU32(indirectArgStorageOffset, argType.indirectAlign);
             auto* const copyPtr      = indirectArgStorage.data() + indirectArgStorageOffset;
             std::memcpy(copyPtr, arg.valuePtr, argType.indirectSize);
             indirectValuePtr = copyPtr;
@@ -245,7 +237,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     loweredCode.emit(ctx, builder);
 
     JITExecMemory executableMemory;
-    emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
+    emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
     const auto invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);

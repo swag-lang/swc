@@ -176,7 +176,7 @@ void SymbolFunction::jitEmit(TaskContext& ctx)
         return;
 
     SWC_ASSERT(hasLoweredCode());
-    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
+    JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations);
     auto* const entry = jitExecMemory_.entryPoint();
     SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);

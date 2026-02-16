@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MachineCode.h"
+#include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
-#include "Backend/JIT/FFI.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -24,7 +24,7 @@ namespace
         loweredCode.emit(ctx, builder);
 
         JITExecMemory executableMemory;
-        FFI::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
+        JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();
@@ -62,7 +62,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     loweredCalleeCode.emit(ctx, calleeBuilder);
 
     JITExecMemory calleeExecMemory;
-    FFI::emit(ctx, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, calleeExecMemory);
+    JIT::emit(ctx, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, calleeExecMemory);
     using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = calleeExecMemory.entryPoint<CalleeFnType>();
     SWC_ASSERT(calleeFn != nullptr);
@@ -80,7 +80,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     loweredCallerCode.emit(ctx, callerBuilder);
 
     JITExecMemory callerExecMemory;
-    FFI::emit(ctx, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, callerExecMemory);
+    JIT::emit(ctx, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, callerExecMemory);
     using CallerFnType  = uint64_t (*)();
     const auto callerFn = callerExecMemory.entryPoint<CallerFnType>();
     SWC_ASSERT(callerFn != nullptr);

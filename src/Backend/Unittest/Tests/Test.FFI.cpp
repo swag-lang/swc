@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/JIT/FFI.h"
+#include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -33,9 +33,9 @@ namespace
         return structTypeRef;
     }
 
-    Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, TypeRef retTypeRef, void* outRetValue)
+    Result callCaseTyped(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, TypeRef retTypeRef, void* outRetValue)
     {
-        FFI::call(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
+        JIT::call(ctx, targetFn, args, {.typeRef = retTypeRef, .valuePtr = outRetValue});
         return Result::Continue;
     }
 }
@@ -132,7 +132,7 @@ SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
     const auto& typeMgr = ctx.typeMgr();
     bool        result  = false;
-    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const FFIArgument>{}, typeMgr.typeBool(), &result));
+    RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const JITArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;
 }
@@ -145,7 +145,7 @@ SWC_TEST_BEGIN(FFI_CallNativeU8)
     constexpr uint8_t a = 19;
     constexpr uint8_t b = 23;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU8(), .valuePtr = &b},
     };
@@ -164,7 +164,7 @@ SWC_TEST_BEGIN(FFI_CallNativeI32)
     constexpr int32_t a = -1200;
     constexpr int32_t b = -137;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeS32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeS32(), .valuePtr = &b},
     };
@@ -183,7 +183,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF32)
     constexpr float a = 0.5f;
     constexpr float b = 1.25f;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeF32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF32(), .valuePtr = &b},
     };
@@ -202,7 +202,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64)
     constexpr double a = 1.5;
     constexpr double b = 2.5;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
     };
@@ -224,7 +224,7 @@ SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
     constexpr double d = 4.0;
     constexpr double e = 5.0;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeF64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &b},
         {.typeRef = typeMgr.typeF64(), .valuePtr = &c},
@@ -248,7 +248,7 @@ SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
     constexpr uint32_t c = 70000;
     constexpr uint64_t d = 0;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeU8(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU16(), .valuePtr = &b},
         {.typeRef = typeMgr.typeU32(), .valuePtr = &c},
@@ -273,7 +273,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
     constexpr int64_t e = 5;
     constexpr int64_t f = 6;
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeS64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeS64(), .valuePtr = &b},
         {.typeRef = typeMgr.typeS64(), .valuePtr = &c},
@@ -295,7 +295,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 
     const void* ptr = reinterpret_cast<void*>(0x10);
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeConstValuePtrVoid(), .valuePtr = &ptr},
     };
 
@@ -320,7 +320,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
     const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     constexpr FFIStructPair32      value = {.a = 18, .b = 24};
-    const SmallVector<FFIArgument> args  = {
+    const SmallVector<JITArgument> args  = {
         {.typeRef = structTypeRef, .valuePtr = &value},
     };
 
@@ -350,7 +350,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
     constexpr uint64_t        d     = 4;
     constexpr FFIStructPair32 value = {.a = 10, .b = 20};
 
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeU64(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU64(), .valuePtr = &b},
         {.typeRef = typeMgr.typeU64(), .valuePtr = &c},
@@ -380,7 +380,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
     const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     FFIStructTriple64              value = {.a = 10, .b = 20, .c = 30};
-    const SmallVector<FFIArgument> args  = {
+    const SmallVector<JITArgument> args  = {
         {.typeRef = structTypeRef, .valuePtr = &value},
     };
 
@@ -408,7 +408,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
 
     constexpr uint32_t             a    = 11;
     constexpr uint32_t             b    = 31;
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeU32(), .valuePtr = &a},
         {.typeRef = typeMgr.typeU32(), .valuePtr = &b},
     };
@@ -435,7 +435,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
     const TypeRef structTypeRef = makeStructType(ctx, fieldTypes);
 
     constexpr uint64_t             seed = 39;
-    const SmallVector<FFIArgument> args = {
+    const SmallVector<JITArgument> args = {
         {.typeRef = typeMgr.typeU64(), .valuePtr = &seed},
     };
 

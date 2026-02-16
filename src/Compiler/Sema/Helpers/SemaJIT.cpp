@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Backend/JIT/FFI.h"
+#include "Backend/JIT/JIT.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -54,7 +54,6 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView  nodeView(sema, nodeExprRef);
         const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
         const AstNode&      node  = sema.node(nodeRef);
 
@@ -110,17 +109,18 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const uint64_t         resultSize = resultStorageTy.sizeOf(ctx);
     std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
-    const FFIArgument      resultStorageArg     = {
-                 .typeRef  = sema.typeMgr().typeU64(),
-                 .valuePtr = &resultStorageAddress,
+
+    const JITArgument resultStorageArg = {
+        .typeRef  = sema.typeMgr().typeU64(),
+        .valuePtr = &resultStorageAddress,
     };
 
-    const FFIReturn returnValue = {
+    const JITReturn returnValue = {
         .typeRef  = sema.typeMgr().typeVoid(),
         .valuePtr = nullptr,
     };
 
-    FFI::call(ctx, targetFn, std::span{&resultStorageArg, 1}, returnValue);
+    JIT::call(ctx, targetFn, std::span{&resultStorageArg, 1}, returnValue);
 
     ConstantValue resultConstant;
     if (nodeType.isEnum())

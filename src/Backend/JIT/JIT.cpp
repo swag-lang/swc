@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/JIT/FFI.h"
+#include "Backend/JIT/JIT.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
@@ -17,11 +17,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using FFIInvokerFn = void (*)();
+    using JITInvokerFn = void (*)();
 
-    struct FFIExceptionInfo
+    struct JITExceptionInfo
     {
-        FFIInvokerFn invoker = nullptr;
+        JITInvokerFn invoker = nullptr;
     };
 
     uint32_t alignValue(uint32_t value, uint32_t alignment)
@@ -82,24 +82,24 @@ namespace
         }
     }
 
-    void appendFfiExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
+    void appendExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& info = *static_cast<const FFIExceptionInfo*>(userData);
-        outMsg += "  call site: ffi invoker\n";
+        const auto& info = *static_cast<const JITExceptionInfo*>(userData);
+        outMsg += "  call site: jit invoker\n";
         if (ctx.cmdLine().verboseHardwareException)
             outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));
     }
 
-    int exceptionHandler(const TaskContext& ctx, const FFIExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const TaskContext& ctx, const JITExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
     {
-        HardwareException::log(ctx, "fatal error: hardware exception during ffi call!", args, appendFfiExtraInfo, &info);
+        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args, appendExtraInfo, &info);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void invokeCall(TaskContext& ctx, FFIInvokerFn invoker)
+    void invokeCall(TaskContext& ctx, JITInvokerFn invoker)
     {
-        const FFIExceptionInfo info{.invoker = invoker};
+        const JITExceptionInfo info{.invoker = invoker};
         SWC_TRY
         {
             invoker();
@@ -145,13 +145,13 @@ namespace
     }
 }
 
-void FFI::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory)
+void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory)
 {
     SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(linearCode, outExecutableMemory));
     patchCodeRelocations(linearCode, relocations, outExecutableMemory);
 }
 
-void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret)
+void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
 
@@ -225,13 +225,14 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     }
 
     MicroInstrBuilder builder(ctx);
-    const auto        retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
-    const auto        retMeta   = ABICall::Return{
-                 .valuePtr   = retOutPtr,
-                 .isVoid     = retType.isVoid,
-                 .isFloat    = retType.isFloat,
-                 .isIndirect = retType.isIndirect,
-                 .numBits    = retType.numBits,
+
+    const auto retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
+    const auto retMeta   = ABICall::Return{
+          .valuePtr   = retOutPtr,
+          .isVoid     = retType.isVoid,
+          .isFloat    = retType.isFloat,
+          .isIndirect = retType.isIndirect,
+          .numBits    = retType.numBits,
     };
     ABICall::callByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.encodeRet();
@@ -240,9 +241,9 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     loweredCode.emit(ctx, builder);
 
     JITExecMemory executableMemory;
-    FFI::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
+    JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
-    const auto invoker = executableMemory.entryPoint<FFIInvokerFn>();
+    const auto invoker = executableMemory.entryPoint<JITInvokerFn>();
     SWC_ASSERT(invoker != nullptr);
 
     invokeCall(ctx, invoker);

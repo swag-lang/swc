@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
-#include "Support/Os/Os.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -141,18 +141,16 @@ bool SymbolFunction::hasLoweredCode() const noexcept
 
 void SymbolFunction::jit(TaskContext& ctx)
 {
-    if (hasJitEntryAddress())
-        return;
     std::scoped_lock lock(emitMutex_);
     if (hasJitEntryAddress())
         return;
-    if (!hasLoweredCode())
-        lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredMicroCode_);
+    SWC_ASSERT(hasLoweredCode());
 
     JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
     const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
     SWC_FORCE_ASSERT(entry != 0);
     jitEntryAddress_.store(entry, std::memory_order_release);
+
     for (const auto& reloc : loweredMicroCode_.codeRelocations)
     {
         if (!reloc.targetSymbol || !reloc.targetSymbol->isFunction())

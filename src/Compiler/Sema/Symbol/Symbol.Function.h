@@ -65,12 +65,12 @@ public:
     void                     addCallDependency(SymbolFunction* sym);
     void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     uint64_t                 jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    bool                     hasJitEntryAddress() const noexcept { return jitEntryAddress() != 0; }
     void                     emit(TaskContext& ctx);
     void                     jit(TaskContext& ctx);
 
 private:
     bool hasLoweredCode() const noexcept;
+    bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != 0; }
 
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 

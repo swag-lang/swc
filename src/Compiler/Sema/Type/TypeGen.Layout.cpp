@@ -8,6 +8,30 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    IdentifierRef typeInfoIdentifierFor(TypeGenInternal::LayoutKind kind, const IdentifierManager& idMgr)
+    {
+        using Pn = IdentifierManager::PredefinedName;
+        switch (kind)
+        {
+            case TypeGenInternal::LayoutKind::Native: return idMgr.predefined(Pn::TypeInfoNative);
+            case TypeGenInternal::LayoutKind::Enum: return idMgr.predefined(Pn::TypeInfoEnum);
+            case TypeGenInternal::LayoutKind::Array: return idMgr.predefined(Pn::TypeInfoArray);
+            case TypeGenInternal::LayoutKind::Slice: return idMgr.predefined(Pn::TypeInfoSlice);
+            case TypeGenInternal::LayoutKind::Pointer: return idMgr.predefined(Pn::TypeInfoPointer);
+            case TypeGenInternal::LayoutKind::Struct: return idMgr.predefined(Pn::TypeInfoStruct);
+            case TypeGenInternal::LayoutKind::Alias: return idMgr.predefined(Pn::TypeInfoAlias);
+            case TypeGenInternal::LayoutKind::Variadic: return idMgr.predefined(Pn::TypeInfoVariadic);
+            case TypeGenInternal::LayoutKind::TypedVariadic: return idMgr.predefined(Pn::TypeInfoVariadic);
+            case TypeGenInternal::LayoutKind::Func: return idMgr.predefined(Pn::TypeInfoFunc);
+            case TypeGenInternal::LayoutKind::Base: return idMgr.predefined(Pn::TypeInfo);
+        }
+
+        return idMgr.predefined(Pn::TypeInfo);
+    }
+}
+
 namespace TypeGenInternal
 {
     LayoutKind layoutKindOf(const TypeInfo& type)
@@ -54,27 +78,6 @@ namespace TypeGenInternal
         }
 
         return tm.structTypeInfo();
-    }
-
-    static IdentifierRef typeInfoIdentifierFor(LayoutKind kind, const IdentifierManager& idMgr)
-    {
-        using Pn = IdentifierManager::PredefinedName;
-        switch (kind)
-        {
-            case LayoutKind::Native: return idMgr.predefined(Pn::TypeInfoNative);
-            case LayoutKind::Enum: return idMgr.predefined(Pn::TypeInfoEnum);
-            case LayoutKind::Array: return idMgr.predefined(Pn::TypeInfoArray);
-            case LayoutKind::Slice: return idMgr.predefined(Pn::TypeInfoSlice);
-            case LayoutKind::Pointer: return idMgr.predefined(Pn::TypeInfoPointer);
-            case LayoutKind::Struct: return idMgr.predefined(Pn::TypeInfoStruct);
-            case LayoutKind::Alias: return idMgr.predefined(Pn::TypeInfoAlias);
-            case LayoutKind::Variadic: return idMgr.predefined(Pn::TypeInfoVariadic);
-            case LayoutKind::TypedVariadic: return idMgr.predefined(Pn::TypeInfoVariadic);
-            case LayoutKind::Func: return idMgr.predefined(Pn::TypeInfoFunc);
-            case LayoutKind::Base: return idMgr.predefined(Pn::TypeInfo);
-        }
-
-        return idMgr.predefined(Pn::TypeInfo);
     }
 
     Result ensureTypeInfoStructReady(Sema& sema, const TypeManager& tm, LayoutKind kind, TypeRef rtTypeRef, const AstNode& node)

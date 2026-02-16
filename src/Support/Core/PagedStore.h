@@ -116,12 +116,7 @@ public:
     }
 
     template<class T>
-    SpanView span(Ref ref) const
-    {
-        SWC_ASSERT(ref != INVALID_REF);
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-        return spanView(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
-    }
+    SpanView span(Ref ref) const;
 
 private:
     template<class T>
@@ -222,5 +217,13 @@ private:
     uint32_t          elementSize_  = 0;
     uint32_t          elementAlign_ = 0;
 };
+
+template<class T>
+PagedStore::SpanView PagedStore::span(Ref ref) const
+{
+    SWC_ASSERT(ref != INVALID_REF);
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+    return spanView(ref, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+}
 
 SWC_END_NAMESPACE();

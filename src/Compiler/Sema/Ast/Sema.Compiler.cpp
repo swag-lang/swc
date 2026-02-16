@@ -631,6 +631,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     sym.setParentFunction(sema.frame().currentFunction());
     auto frame = sema.frame();
+    frame.currentAttributes() = sym.attributes();
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
@@ -661,7 +662,9 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
     }
 
     SemaFrame frame = sema.frame();
-    frame.setCurrentFunction(&sema.symbolOf(nodeRef).cast<SymbolFunction>());
+    auto&     symFn = sema.symbolOf(nodeRef).cast<SymbolFunction>();
+    frame.currentAttributes() = symFn.attributes();
+    frame.setCurrentFunction(&symFn);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }

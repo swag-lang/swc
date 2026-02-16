@@ -45,6 +45,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     }
 
     SemaFrame frame = sema.frame();
+    frame.currentAttributes() = sym.attributes();
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;

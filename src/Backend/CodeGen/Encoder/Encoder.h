@@ -52,7 +52,7 @@ public:
     uint32_t            size() const { return store_.size(); }
     const uint8_t*      data() const;
     uint8_t             byteAt(uint32_t index) const;
-    void                copyTo(std::span<std::byte> dst) const;
+    void                copyTo(ByteSpanRW dst) const;
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 

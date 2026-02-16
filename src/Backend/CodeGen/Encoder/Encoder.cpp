@@ -16,7 +16,7 @@ uint8_t Encoder::byteAt(uint32_t index) const
     return *SWC_CHECK_NOT_NULL(store_.ptr<uint8_t>(index));
 }
 
-void Encoder::copyTo(std::span<std::byte> dst) const
+void Encoder::copyTo(ByteSpanRW dst) const
 {
     store_.copyTo(dst);
 }

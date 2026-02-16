@@ -62,7 +62,7 @@ uint32_t PagedStore::size() const noexcept
     return static_cast<uint32_t>(std::min<uint64_t>(totalBytes_, std::numeric_limits<uint32_t>::max()));
 }
 
-void PagedStore::copyTo(std::span<std::byte> dst) const
+void PagedStore::copyTo(ByteSpanRW dst) const
 {
     SWC_ASSERT(dst.size() <= size());
 

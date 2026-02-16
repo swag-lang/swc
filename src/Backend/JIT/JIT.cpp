@@ -87,7 +87,7 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(std::span<std::byte> writableCode, std::span<const MicroInstrRelocation> relocations)
+    void patchCodeRelocations(ByteSpanRW writableCode, std::span<const MicroInstrRelocation> relocations)
     {
         SWC_FORCE_ASSERT(!writableCode.empty());
 
@@ -137,10 +137,10 @@ void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan li
 
     auto&                memoryManager = ctx.compiler().jitMemMgr();
     const auto           codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
-    std::span<std::byte> writableCode;
+    ByteSpanRW writableCode;
 
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
-    writableCode = std::span{static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size()};
+    writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
     patchCodeRelocations(writableCode, relocations);
     SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));

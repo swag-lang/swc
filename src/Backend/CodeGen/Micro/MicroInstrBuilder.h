@@ -64,6 +64,8 @@ struct MicroInstrDebugInfo
 
 struct MicroInstrCodeRelocation
 {
+    static constexpr uint64_t KSelfAddress = std::numeric_limits<uint64_t>::max();
+
     enum class Kind : uint8_t
     {
         Rel32,

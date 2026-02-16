@@ -111,8 +111,11 @@ namespace
 
         for (const auto& reloc : relocations)
         {
-            if (reloc.targetAddress == 0)
+            auto target = reloc.targetAddress;
+            if (target == 0)
                 continue;
+            if (target == MicroInstrCodeRelocation::KSelfAddress)
+                target = reinterpret_cast<uint64_t>(basePtr);
 
             SWC_FORCE_ASSERT(reloc.kind == MicroInstrCodeRelocation::Kind::Rel32);
 
@@ -120,7 +123,6 @@ namespace
             SWC_FORCE_ASSERT(patchEndOffset <= executableMemory.size());
 
             const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
-            const auto target      = reloc.targetAddress;
             const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
             SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
 

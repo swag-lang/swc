@@ -7,6 +7,72 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    struct JITRecursionGuard
+    {
+        explicit JITRecursionGuard(SymbolFunction* function) :
+            function_(function)
+        {
+            SWC_ASSERT(function_ != nullptr);
+            const auto it = std::ranges::find(stack_, function_);
+            if (it != stack_.end())
+                isReentry_ = true;
+            else
+                stack_.push_back(function_);
+        }
+
+        ~JITRecursionGuard()
+        {
+            if (isReentry_)
+                return;
+            SWC_ASSERT(!stack_.empty() && stack_.back() == function_);
+            stack_.pop_back();
+        }
+
+        bool isReentry() const { return isReentry_; }
+
+    private:
+        static thread_local std::vector<SymbolFunction*> stack_;
+        SymbolFunction*                                  function_  = nullptr;
+        bool                                             isReentry_ = false;
+    };
+
+    thread_local std::vector<SymbolFunction*> JITRecursionGuard::stack_;
+
+    void jitDependencies(TaskContext& ctx, const SymbolFunction& owner, std::span<SymbolFunction* const> dependencies)
+    {
+        for (auto* dependency : dependencies)
+        {
+            if (!dependency || dependency == &owner)
+                continue;
+            dependency->jit(ctx);
+        }
+    }
+
+    void resolveJitRelocationTargets(std::span<MicroInstrCodeRelocation> relocations, const SymbolFunction& owner)
+    {
+        for (auto& reloc : relocations)
+        {
+            if (reloc.targetAddress != 0)
+                continue;
+            if (!reloc.targetSymbol || !reloc.targetSymbol->isFunction())
+                continue;
+
+            auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
+            if (&targetFunction == &owner)
+            {
+                reloc.targetAddress = MicroInstrCodeRelocation::KSelfAddress;
+                continue;
+            }
+
+            const auto targetAddress = targetFunction.jitEntryAddress();
+            SWC_FORCE_ASSERT(targetAddress != nullptr);
+            reloc.targetAddress = reinterpret_cast<uint64_t>(targetAddress);
+        }
+    }
+}
+
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 {
     Utf8 out;
@@ -99,38 +165,33 @@ bool SymbolFunction::hasLoweredCode() const noexcept
 
 void SymbolFunction::jit(TaskContext& ctx)
 {
+    const JITRecursionGuard recursionGuard(this);
+    SWC_ASSERT(!recursionGuard.isReentry());
+
+    SmallVector<SymbolFunction*>          dependencies;
+    std::vector<std::byte>                linearCode;
+    std::vector<MicroInstrCodeRelocation> relocations;
+
+    {
+        std::scoped_lock lock(emitMutex_);
+        if (hasJitEntryAddress())
+            return;
+        SWC_ASSERT(hasLoweredCode());
+
+        linearCode  = loweredMicroCode_.bytes;
+        relocations = loweredMicroCode_.codeRelocations;
+        appendCallDependencies(dependencies);
+    }
+
+    jitDependencies(ctx, *this, dependencies);
+    resolveJitRelocationTargets(relocations, *this);
+
     std::scoped_lock lock(emitMutex_);
     if (hasJitEntryAddress())
         return;
-    SWC_ASSERT(hasLoweredCode());
 
-    SmallVector<SymbolFunction*> dependencies;
-    appendCallDependencies(dependencies);
-    for (auto* dependency : dependencies)
-    {
-        if (!dependency || dependency == this)
-            continue;
-        dependency->jit(ctx);
-    }
-
-    auto relocations = loweredMicroCode_.codeRelocations;
-    for (auto& reloc : relocations)
-    {
-        if (reloc.targetAddress != 0)
-            continue;
-        if (!reloc.targetSymbol || !reloc.targetSymbol->isFunction())
-            continue;
-
-        auto& targetFunc = reloc.targetSymbol->cast<SymbolFunction>();
-        if (&targetFunc == this)
-            continue;
-
-        const auto targetAddress = targetFunc.jitEntryAddress();
-        SWC_FORCE_ASSERT(targetAddress != nullptr);
-        reloc.targetAddress = reinterpret_cast<uint64_t>(targetAddress);
-    }
-
-    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), relocations, jitExecMemory_);
+    SWC_ASSERT(!linearCode.empty());
+    JIT::emit(ctx, asByteSpan(linearCode), relocations, jitExecMemory_);
     auto* const entry = jitExecMemory_.entryPoint();
     SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);

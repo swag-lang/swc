@@ -160,6 +160,9 @@ bool SymbolFunction::hasLoweredCode() const noexcept
 
 void SymbolFunction::jit(TaskContext& ctx)
 {
+    if (hasJitEntryAddress())
+        return;
+
     SmallVector<SymbolFunction*> jitOrder;
     appendJitOrder(jitOrder, *this);
     for (auto* function : jitOrder)
@@ -168,27 +171,12 @@ void SymbolFunction::jit(TaskContext& ctx)
 
 void SymbolFunction::jitEmit(TaskContext& ctx)
 {
-    SmallVector<SymbolFunction*>      dependencies;
-    std::vector<std::byte>            linearCode;
-    std::vector<MicroInstrRelocation> relocations;
-
-    {
-        std::scoped_lock lock(emitMutex_);
-        if (hasJitEntryAddress())
-            return;
-        SWC_ASSERT(hasLoweredCode());
-
-        linearCode  = loweredMicroCode_.bytes;
-        relocations = loweredMicroCode_.codeRelocations;
-        appendCallDependencies(dependencies);
-    }
-
     std::scoped_lock lock(emitMutex_);
     if (hasJitEntryAddress())
         return;
 
-    SWC_ASSERT(!linearCode.empty());
-    JIT::emit(ctx, asByteSpan(linearCode), relocations, jitExecMemory_);
+    SWC_ASSERT(hasLoweredCode());
+    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
     auto* const entry = jitExecMemory_.entryPoint();
     SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);

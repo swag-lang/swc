@@ -30,12 +30,11 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
+    const SemaNodeView nodeView(sema, nodeExprRef);
+    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
-
-    const SemaNodeView nodeView(sema, nodeExprRef);
-    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
     auto&           ctx              = sema.ctx();
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);

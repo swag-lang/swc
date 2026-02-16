@@ -357,7 +357,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#os", State.Compiler)
         .mapWords.add("#arch", State.Compiler)
         .mapWords.add("#cpu", State.Compiler)
-        .mapWords.add("#backend", State.Compiler)
         .mapWords.add("#me", State.Compiler)
         .mapWords.add("#module", State.Compiler)
         .mapWords.add("#file", State.Compiler)

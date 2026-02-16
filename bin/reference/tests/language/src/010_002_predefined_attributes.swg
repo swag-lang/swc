@@ -158,7 +158,7 @@ attr Safety(what: string, value: bool)
 Enable or disable optimizations.
 Options:
 * 'bytecode' -> Toggle bytecode optimization
-* 'backend'  -> Toggle backend machine code optimization ('llvm' only)
+* 'backend'  -> Toggle backend machine code optimization
 If 'what' is null or empty, every option will be affected.
 */
 #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]

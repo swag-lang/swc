@@ -340,19 +340,14 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
-    struct BuildCfgBackendLlvm
+    struct BuildCfgBackend
     {
-        bool outputIr;
         bool fpMathFma;
         bool fpMathNoNaN;
         bool fpMathNoInf;
         bool fpMathNoSignedZero;
         bool fpMathUnsafe;
         bool fpMathApproxFunc;
-    };
-
-    struct BuildCfgBackendScbe
-    {
         uint32_t unrollMemLimit;
     };
 
@@ -463,8 +458,7 @@ namespace Runtime
         uint32_t               backendNumCu             = 0;
 
         String              linkerArgs;
-        BuildCfgBackendLlvm backendLlvm;
-        BuildCfgBackendScbe backendScbe;
+        BuildCfgBackend     backend;
 
         String         repoPath;
         String         resAppIcoFileName;

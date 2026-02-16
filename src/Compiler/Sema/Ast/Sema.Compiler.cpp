@@ -250,7 +250,6 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerBuildCfg:
         case TokenId::CompilerModule:
         case TokenId::CompilerSwagOs:
-        case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
             // TODO
             SWC_INTERNAL_ERROR();

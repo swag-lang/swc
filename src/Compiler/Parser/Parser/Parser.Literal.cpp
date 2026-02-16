@@ -76,7 +76,6 @@ AstNodeRef Parser::parseLiteral()
         case TokenId::CompilerArch:
         case TokenId::CompilerCpu:
         case TokenId::CompilerSwagOs:
-        case TokenId::CompilerBackend:
         case TokenId::CompilerScopeName:
         case TokenId::CompilerCurLocation:
         {

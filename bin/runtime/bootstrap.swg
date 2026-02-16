@@ -45,7 +45,7 @@ namespace Swag
     attr Inline()
 
     // Never inline the following function.
-    // This is a hint for the 'llvm' backend.
+    // This is a hint for the backend.
     #[AttrUsage(AttributeUsage.Function)]
     attr NoInline()
 
@@ -726,30 +726,16 @@ namespace Swag
         MaxOSX      // MacOS (**unsupported**)
     }
 
-    // The type of backend to use
-    enum Backend
+    // Backend options
+    struct BuildCfgBackend
     {
-        ByteCode     // Bytecode
-        SCBE         // SCBE backend (SwagCustomBackEnd)
-        LLVM         // LLVM backend
-    }
-
-    // 'LLVM' backend specific options
-    struct BuildCfgBackendLLVM
-    {
-        outputIR:               bool     // Output IR in a file
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'
         fpMathNoInf:            bool     // true in 'release'
         fpMathNoSignedZero:     bool     // true in 'release'
         fpMathUnsafe:           bool
         fpMathApproxFunc:       bool
-    }
-
-    // 'SCBE' backend specific options
-    struct BuildCfgBackendSCBE
-    {
-        unrollMemLimit: u32 // Maximum number of bytes to unroll memset/cpy in optimize mode
+        unrollMemLimit:         u32      // Maximum number of bytes to unroll memset/cpy in optimize mode
     }
 
     // The kind of native backend to generate.
@@ -869,8 +855,7 @@ namespace Swag
 
         linkerArgs:                    string                               // Additional linker arguments
 
-        backendLLVM:                   BuildCfgBackendLLVM                  // Specific LLVM options
-        backendSCBE:                   BuildCfgBackendSCBE                  // Specific SCBE options
+        backend:                       BuildCfgBackend                        // Backend options
 
         repoPath:                      string                               // Repository access path to the module
         resAppIcoFileName:             string                               // For an executable, the associated icon file name

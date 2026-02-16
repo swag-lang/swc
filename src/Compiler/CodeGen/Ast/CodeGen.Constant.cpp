@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 
@@ -9,7 +10,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void emitConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, const ConstantValue& cst)
+    void emitLoweredConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
+    {
+        auto&           ctx         = codeGen.ctx();
+        const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
+        const TypeInfo& typeInfo     = ctx.typeMgr().get(finalTypeRef);
+        const uint64_t  storageSize = typeInfo.sizeOf(ctx);
+        if (!storageSize)
+        {
+            codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+            return;
+        }
+
+        SmallVector<std::byte> tmpStorage(storageSize);
+        ByteSpanRW             tmpSpan{tmpStorage.data(), tmpStorage.size()};
+        std::memset(tmpSpan.data(), 0, tmpSpan.size());
+        ConstantLower::lowerToBytes(codeGen.sema(), tmpSpan, cstRef, finalTypeRef);
+
+        if (storageSize <= sizeof(uint64_t) && !typeInfo.isString() && !typeInfo.isSlice() && !typeInfo.isStruct() && !typeInfo.isArray())
+        {
+            uint64_t value = 0;
+            std::memcpy(&value, tmpSpan.data(), storageSize);
+            codeGen.builder().encodeLoadRegImm(payload.reg, value, MicroOpBits::B64);
+            return;
+        }
+
+        auto* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
+        std::memcpy(storage, tmpSpan.data(), tmpSpan.size());
+        codeGen.builder().encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(storage), MicroOpBits::B64);
+    }
+
+    void emitConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         auto& builder = codeGen.builder();
 
@@ -99,11 +130,19 @@ namespace
             }
 
             case ConstantKind::EnumValue:
-                emitConstantToPayload(codeGen, payload, codeGen.ctx().cstMgr().get(cst.getEnumValue()));
+                emitConstantToPayload(codeGen, payload, cst.getEnumValue(), codeGen.ctx().cstMgr().get(cst.getEnumValue()), targetTypeRef);
+                return;
+
+            case ConstantKind::Struct:
+            case ConstantKind::Array:
+            case ConstantKind::AggregateStruct:
+            case ConstantKind::AggregateArray:
+                emitLoweredConstantToPayload(codeGen, payload, cstRef, cst, targetTypeRef);
                 return;
 
             default:
-                SWC_UNREACHABLE();
+                emitLoweredConstantToPayload(codeGen, payload, cstRef, cst, targetTypeRef);
+                return;
         }
     }
 }
@@ -118,7 +157,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     const auto& payload = setPayload(nodeRef, nodeView.typeRef);
-    emitConstantToPayload(*this, payload, *nodeView.cst);
+    emitConstantToPayload(*this, payload, nodeView.cstRef, *nodeView.cst, nodeView.typeRef);
     return Result::Continue;
 }
 

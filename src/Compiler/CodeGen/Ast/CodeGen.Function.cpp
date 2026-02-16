@@ -70,7 +70,14 @@ namespace
         SWC_ASSERT(!normalizedRet.isIndirect);
 
         const auto* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
-        const bool  isLValue    = codeGen.sema().isLValue(exprRef);
+        bool        isLValue    = codeGen.sema().isLValue(exprRef);
+        if (!isLValue)
+        {
+            const auto exprView = codeGen.nodeView(exprRef);
+            if (exprView.type && (exprView.type->isStruct() || exprView.type->isArray()))
+                isLValue = true;
+        }
+
         ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isLValue, normalizedRet);
 
         codeGen.builder().encodeRet();

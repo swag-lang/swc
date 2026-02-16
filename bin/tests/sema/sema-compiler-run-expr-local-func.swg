@@ -157,7 +157,6 @@ struct LocalStruct
     #assert(cast(u16) V == 513'u16)
 }
 
-/*
 #test
 {
     func retStruct()->LocalStruct { return {x: 27, y: true} }
@@ -167,6 +166,7 @@ struct LocalStruct
     #assert(V.y == true)
 }
 
+/*
 #test
 {
     func retArray()->[3] s32 { return [1, 2, 3] }

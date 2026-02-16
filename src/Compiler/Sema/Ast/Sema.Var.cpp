@@ -231,41 +231,22 @@ namespace
         }
     }
 
-    bool hasExplicitLiteralSuffix(const Sema& sema, AstNodeRef initNodeRef)
+    struct SemaPostVarDeclArgs
     {
-        if (initNodeRef.isInvalid())
-            return false;
+        const AstNode*              owner;
+        TokenRef                    tokDiag;
+        AstNodeRef                  nodeInitRef;
+        AstNodeRef                  nodeTypeRef;
+        EnumFlags<AstVarDeclFlagsE> flags;
+    };
 
-        const AstNode* exprNode = &sema.node(initNodeRef);
-        if (const auto* initExpr = exprNode->safeCast<AstInitializerExpr>())
-            exprNode = &sema.node(initExpr->nodeExprRef);
-
-        if (exprNode->is(AstNodeId::SuffixLiteral))
-            return true;
-
-        if (const auto* unaryExpr = exprNode->safeCast<AstUnaryExpr>())
-        {
-            const AstNode& child = sema.node(unaryExpr->nodeExprRef);
-            if (child.is(AstNodeId::SuffixLiteral))
-                return true;
-        }
-
-        return false;
-    }
-
-    Result semaPostVarDeclCommon(Sema&                       sema,
-                                 const AstNode&              owner,
-                                 TokenRef                    tokDiag,
-                                 AstNodeRef                  nodeInitRef,
-                                 AstNodeRef                  nodeTypeRef,
-                                 EnumFlags<AstVarDeclFlagsE> flags,
-                                 const std::span<Symbol*>&   symbols)
+    Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
-        SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
-        if (nodeInitRef.isValid())
+        SemaNodeView nodeInitView = sema.nodeView(context.nodeInitRef);
+        if (context.nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
-        const SemaNodeView nodeTypeView    = sema.nodeView(nodeTypeRef);
+        const SemaNodeView nodeTypeView    = sema.nodeView(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef;
 
         if (nodeInitView.typeRef.isValid())
@@ -274,30 +255,30 @@ namespace
             if (deducedTypeRef.isValid())
             {
                 explicitTypeRef = deducedTypeRef;
-                if (nodeTypeRef.isValid())
-                    sema.setType(nodeTypeRef, explicitTypeRef);
+                if (context.nodeTypeRef.isValid())
+                    sema.setType(context.nodeTypeRef, explicitTypeRef);
             }
         }
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool isConst     = flags.has(AstVarDeclFlagsE::Const);
-        const bool isLet       = flags.has(AstVarDeclFlagsE::Let);
-        const bool isParameter = flags.has(AstVarDeclFlagsE::Parameter);
-        const bool isUsing     = flags.has(AstVarDeclFlagsE::Using);
+        const bool isConst     = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool isLet       = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool isParameter = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool isUsing     = context.flags.has(AstVarDeclFlagsE::Using);
 
         // Initialized to 'undefined'
-        if (nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
+        if (context.nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
         {
             if (isConst)
-                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
             if (isLet)
-                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
-            if (nodeTypeRef.isInvalid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
+                return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+            if (context.nodeTypeRef.isInvalid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
             if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
-                return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+                return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
             markExplicitUndefined(symbols);
         }
@@ -320,16 +301,16 @@ namespace
             }
         }
 
-        if (nodeInitRef.isValid())
+        if (context.nodeInitRef.isValid())
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef);
 
-        if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && nodeInitRef.isValid())
+        if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef));
 
         const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef;
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (isConst && isRefType)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
+            return SemaError::raise(sema, DiagnosticId::sema_err_const_ref_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
         if (isUsing && finalTypeRef.isValid())
         {
@@ -338,7 +319,7 @@ namespace
             {
                 if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.payloadTypeRef()).isStruct())
                 {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{owner.srcViewRef(), tokDiag});
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
                     diag.report(sema.ctx());
                     return Result::Error;
@@ -347,9 +328,9 @@ namespace
         }
 
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
-        if (nodeInitRef.isInvalid() && explicitTypeRef.isValid() && explicitType && explicitType->isStruct() && (isConst || isLet))
+        if (context.nodeInitRef.isInvalid() && explicitTypeRef.isValid() && explicitType && explicitType->isStruct() && (isConst || isLet))
         {
-            RESULT_VERIFY(sema.waitSemaCompleted(explicitType, nodeTypeRef));
+            RESULT_VERIFY(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
@@ -357,10 +338,10 @@ namespace
         // Constant
         if (isConst)
         {
-            if (nodeInitRef.isInvalid())
+            if (context.nodeInitRef.isInvalid())
             {
                 if (!hasImplicitStructInit)
-                    return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+                    return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
                 completeConst(sema, symbols, implicitStructCstRef, explicitTypeRef);
                 return Result::Continue;
             }
@@ -372,14 +353,14 @@ namespace
         }
 
         // Variable
-        if (isLet && nodeInitRef.isInvalid() && !hasImplicitStructInit)
-            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
-        if (!isLet && !isParameter && isRefType && nodeInitRef.isInvalid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{owner.srcViewRef(), tokDiag});
+        if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructInit)
+            return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+        if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
         completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef);
 
-        if (nodeInitRef.isValid() || hasImplicitStructInit)
+        if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {
             for (auto* s : symbols)
             {
@@ -434,7 +415,8 @@ Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
     Symbol& sym   = sema.symbolOf(sema.curNodeRef());
     Symbol* one[] = {&sym};
-    return semaPostVarDeclCommon(sema, *this, tokNameRef, nodeInitRef, nodeTypeRef, flags(), std::span<Symbol*>{one});
+    const SemaPostVarDeclArgs context = { this, tokNameRef, nodeInitRef, nodeTypeRef, flags() };
+    return semaPostVarDeclCommon(sema, context, std::span<Symbol*>{one});
 }
 
 Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
@@ -505,7 +487,8 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
     const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, nodeTypeRef, flags(), symbols);
+    const SemaPostVarDeclArgs context = { this, tokRef(), nodeInitRef, nodeTypeRef, flags() };
+    return semaPostVarDeclCommon(sema, context, symbols);
 }
 
 Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
@@ -564,7 +547,8 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
-    return semaPostVarDeclCommon(sema, *this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags(), symbols.span());
+    const SemaPostVarDeclArgs context = { this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags() };
+    return semaPostVarDeclCommon(sema, context, symbols.span());
 }
 
 Result AstInitializerExpr::semaPostNode(Sema& sema)

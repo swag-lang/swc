@@ -115,30 +115,12 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto&    nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
     const MicroReg resultReg     = nodePayload.reg;
-    bool           didCall       = false;
 
     if (calleePayload)
-    {
         ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
-        didCall = true;
-    }
-    else if (calledFunction.hasJitEntryAddress())
-    {
-        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
-        didCall = true;
-    }
-    else if (calledFunction.isCodeGenPreSolved())
-    {
-        calledFunction.jit(codeGen.ctx());
-        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), calledFunction.jitEntryAddress(), numAbiArgs, &calledFunction);
-        didCall = true;
-    }
     else
-    {
-        return Result::Pause;
-    }
+        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), numAbiArgs, &calledFunction);
 
-    SWC_ASSERT(didCall);
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     return Result::Continue;
 }

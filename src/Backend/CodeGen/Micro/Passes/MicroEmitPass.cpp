@@ -77,11 +77,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
             encoder.encodeCallLocal(ops[0].name, ops[1].callConv, inst.emitFlags);
             if (inst.numOperands >= 3)
             {
+                const auto targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
                 context.builder->addCodeRelocation({
                     .kind          = MicroInstrCodeRelocation::Kind::Rel32,
                     .codeOffset    = callOffset + 1,
                     .symbolName    = ops[0].name,
                     .targetAddress = ops[2].valueU64,
+                    .targetSymbol  = targetSymbol,
                 });
             }
             break;

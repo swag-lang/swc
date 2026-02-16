@@ -136,13 +136,14 @@ void MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
     return;
 }
 
-void MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags, uint64_t targetAddress)
+void MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags, uint64_t targetAddress, Symbol* targetSymbol)
 {
-    const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 3);
+    const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 4);
     auto*       ops  = inst.ops(operands_);
     ops[0].name      = symbolName;
     ops[1].callConv  = callConv;
     ops[2].valueU64  = targetAddress;
+    ops[3].valueU64  = reinterpret_cast<uint64_t>(targetSymbol);
     return;
 }
 

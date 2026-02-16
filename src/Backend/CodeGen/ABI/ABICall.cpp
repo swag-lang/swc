@@ -266,7 +266,7 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
 }
 
-void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint64_t targetAddress, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
@@ -275,7 +275,7 @@ void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind,
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
 
     builder.setCurrentDebugSymbol(callDebugSymbol);
-    builder.encodeCallLocal(symbolName, callConvKind, EncodeFlagsE::Zero, targetAddress);
+    builder.encodeCallLocal(symbolName, callConvKind, EncodeFlagsE::Zero, 0, callDebugSymbol);
     builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
@@ -319,9 +319,9 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
     callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
-void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint64_t targetAddress, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
 {
-    callByLocal(builder, callConvKind, symbolName, targetAddress, numPreparedArgs, Return{}, callDebugSymbol);
+    callByLocal(builder, callConvKind, symbolName, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
 SWC_END_NAMESPACE();

@@ -73,6 +73,7 @@ struct MicroInstrCodeRelocation
     uint32_t      codeOffset    = 0;
     IdentifierRef symbolName    = IdentifierRef::invalid();
     uint64_t      targetAddress = 0;
+    Symbol*       targetSymbol  = nullptr;
 };
 
 class MicroInstrBuilder
@@ -130,7 +131,7 @@ public:
     void placeLabel(Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeRet(EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero, uint64_t targetAddress = 0);
+    void encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero, uint64_t targetAddress = 0, Symbol* targetSymbol = nullptr);
     void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags = EncodeFlagsE::Zero);

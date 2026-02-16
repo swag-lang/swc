@@ -81,7 +81,7 @@ namespace
             }
 
             auto&          builder   = codeGen.builder();
-            const MicroReg retPtrReg = MicroReg::virtualIntReg(codeGen.nextVirtualRegister());
+            const MicroReg retPtrReg = codeGen.nextVirtualIntRegister();
             builder.encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
 
             if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
@@ -105,12 +105,12 @@ namespace
             }
 
             builder.encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
-            builder.encodeRet();
-            return Result::Continue;
         }
-
-        const bool isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
-        ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
+        else
+        {
+            const bool isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
+            ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
+        }
 
         codeGen.builder().encodeRet();
         return Result::Continue;

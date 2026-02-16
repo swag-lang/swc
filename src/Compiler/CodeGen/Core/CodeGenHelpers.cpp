@@ -12,9 +12,9 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 
     auto& builder = codeGen.builder();
 
-    const auto srcReg   = MicroReg::virtualIntReg(codeGen.nextVirtualRegister());
-    const auto tmpReg   = MicroReg::virtualIntReg(codeGen.nextVirtualRegister());
-    const auto countReg = MicroReg::virtualIntReg(codeGen.nextVirtualRegister());
+    const auto srcReg   = codeGen.nextVirtualIntRegister();
+    const auto tmpReg   = codeGen.nextVirtualIntRegister();
+    const auto countReg = codeGen.nextVirtualIntRegister();
 
     const auto loopLabel = builder.createLabel();
     const auto doneLabel = builder.createLabel();

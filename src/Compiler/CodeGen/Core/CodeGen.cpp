@@ -107,7 +107,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
-    nodePayload->reg     = MicroReg::virtualReg(nextVirtualRegister());
+    nodePayload->reg     = nextVirtualRegister();
     nodePayload->typeRef = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
     return *SWC_CHECK_NOT_NULL(nodePayload);

@@ -134,10 +134,10 @@ private:
         uint32_t        shardIdx = 0;
     };
 
-    std::span<const Symbol*> getSymbolListImpl(AstNodeRef nodeRef) const;
-    void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
-    void                     setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
-    static void              updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
+    std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
+    void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
+    void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
+    static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
     PayloadInfo              payloadInfo(const AstNode& node) const;
     CodeGenPayloadStorage*   codeGenPayloadStorage(const AstNode& node) const;
     ResolvedCallArgsStorage* resolvedCallArgsStorage(const AstNode& node) const;

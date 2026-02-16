@@ -272,7 +272,7 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::SymbolList;
 }
 
-std::span<const Symbol*> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
+std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
@@ -287,12 +287,13 @@ std::span<const Symbol*> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) cons
     const auto  it    = spanView.chunksBegin();
     const auto& chunk = *it;
     SWC_ASSERT(chunk.count == spanView.size());
-    return std::span{static_cast<const Symbol**>(const_cast<void*>(chunk.ptr)), chunk.count};
+    return std::span{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
 }
 
 std::span<const Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef) const
 {
-    return getSymbolListImpl(nodeRef);
+    const auto res = getSymbolListImpl(nodeRef);
+    return {const_cast<const Symbol**>(res.data()), res.size()};
 }
 
 std::span<Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef)

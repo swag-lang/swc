@@ -2,8 +2,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// A view of raw bytes.
-// Note: use `std::as_bytes` / `asByteSpan` to create from other spans.
 using ByteSpanR  = std::span<const std::byte>;
 using ByteSpanRW = std::span<std::byte>;
 using ByteSpan   = ByteSpanR;

@@ -135,8 +135,8 @@ void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan li
     SWC_FORCE_ASSERT(!linearCode.empty());
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
-    auto&                memoryManager = ctx.compiler().jitMemMgr();
-    const auto           codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
+    auto&      memoryManager = ctx.compiler().jitMemMgr();
+    const auto codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
     ByteSpanRW writableCode;
 
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));

@@ -102,24 +102,24 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                         formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
-    void                                         printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
-    void                                         setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
-    MicroInstrBuilderFlags                       flags() const { return flags_; }
-    bool                                         hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                                         setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
-    const MicroInstrDebugInfo&                   currentDebugInfo() const { return currentDebugInfo_; }
-    void                                         setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
-    void                                         setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
-    void                                         clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
-    const MicroInstrDebugInfo*                   debugInfo(Ref instructionRef) const;
-    void                                         setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    void                                         setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
-    const Utf8&                                  printSymbolName() const { return printSymbolName_; }
-    const Utf8&                                  printFilePath() const { return printFilePath_; }
-    uint32_t                                     printSourceLine() const { return printSourceLine_; }
-    void                                         clearCodeRelocations() { codeRelocations_.clear(); }
-    void                                         addCodeRelocation(MicroInstrRelocation relocation);
+    Utf8                                     formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
+    void                                     printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
+    void                                     setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
+    MicroInstrBuilderFlags                   flags() const { return flags_; }
+    bool                                     hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                                     setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
+    const MicroInstrDebugInfo&               currentDebugInfo() const { return currentDebugInfo_; }
+    void                                     setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
+    void                                     setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
+    void                                     clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
+    const MicroInstrDebugInfo*               debugInfo(Ref instructionRef) const;
+    void                                     setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    void                                     setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    const Utf8&                              printSymbolName() const { return printSymbolName_; }
+    const Utf8&                              printFilePath() const { return printFilePath_; }
+    uint32_t                                 printSourceLine() const { return printSourceLine_; }
+    void                                     clearCodeRelocations() { codeRelocations_.clear(); }
+    void                                     addCodeRelocation(MicroInstrRelocation relocation);
     const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
@@ -185,7 +185,7 @@ private:
     uint32_t                                        printSourceLine_ = 0;
     std::vector<Utf8>                               printPassOptions_;
     std::vector<Ref>                                labels_;
-    std::vector<MicroInstrRelocation>           codeRelocations_;
+    std::vector<MicroInstrRelocation>               codeRelocations_;
 };
 
 SWC_END_NAMESPACE();

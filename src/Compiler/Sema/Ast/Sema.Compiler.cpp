@@ -642,9 +642,9 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema) const
     const AstNodeRef nodeRef = sema.curNodeRef();
     if (!sema.hasSymbol(nodeRef))
     {
-        auto&         ctx   = sema.ctx();
-        IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-        const AstNode& node = sema.node(nodeRef);
+        auto&          ctx   = sema.ctx();
+        IdentifierRef  idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+        const AstNode& node  = sema.node(nodeRef);
 
         auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));

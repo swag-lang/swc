@@ -59,9 +59,9 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
-    auto&         ctx            = sema.ctx();
-    const TypeRef storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
-    const TypeInfo& storageType  = sema.typeMgr().get(storageTypeRef);
+    auto&           ctx            = sema.ctx();
+    const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
+    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
     SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression

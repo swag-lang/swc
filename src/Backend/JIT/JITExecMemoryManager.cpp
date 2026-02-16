@@ -67,7 +67,7 @@ bool JITExecMemoryManager::allocate(JITExecMemory& outExecutableMemory, uint32_t
     }
 
     SWC_ASSERT(targetBlock);
-    auto* const dst           = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
+    auto* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
     targetBlock->allocated += requestSizeAlign;
 
     outExecutableMemory.ptr_            = dst;

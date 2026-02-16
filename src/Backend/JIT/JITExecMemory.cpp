@@ -17,11 +17,11 @@ JITExecMemory& JITExecMemory::operator=(JITExecMemory&& other) noexcept
 {
     if (this != &other)
     {
-        ptr_              = other.ptr_;
-        size_             = other.size_;
-        allocationSize_   = other.allocationSize_;
-        other.ptr_        = nullptr;
-        other.size_       = 0;
+        ptr_                  = other.ptr_;
+        size_                 = other.size_;
+        allocationSize_       = other.allocationSize_;
+        other.ptr_            = nullptr;
+        other.size_           = 0;
         other.allocationSize_ = 0;
     }
 

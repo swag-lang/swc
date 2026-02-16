@@ -271,7 +271,7 @@ namespace
         if (context.nodeInitRef.isValid() && nodeInitView.cstRef == sema.cstMgr().cstUndefined())
         {
             if (isConst)
-            return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                return SemaError::raise(sema, DiagnosticId::sema_err_const_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
             if (isLet)
                 return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
             if (context.nodeTypeRef.isInvalid())
@@ -413,9 +413,9 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
-    Symbol& sym   = sema.symbolOf(sema.curNodeRef());
-    Symbol* one[] = {&sym};
-    const SemaPostVarDeclArgs context = { this, tokNameRef, nodeInitRef, nodeTypeRef, flags() };
+    Symbol&                   sym     = sema.symbolOf(sema.curNodeRef());
+    Symbol*                   one[]   = {&sym};
+    const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, std::span<Symbol*>{one});
 }
 
@@ -486,8 +486,8 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    const SemaPostVarDeclArgs context = { this, tokRef(), nodeInitRef, nodeTypeRef, flags() };
+    const auto                symbols = sema.getSymbolList(sema.curNodeRef());
+    const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }
 
@@ -547,7 +547,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
-    const SemaPostVarDeclArgs context = { this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags() };
+    const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, AstNodeRef::invalid(), flags()};
     return semaPostVarDeclCommon(sema, context, symbols.span());
 }
 

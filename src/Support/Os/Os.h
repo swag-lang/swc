@@ -25,10 +25,10 @@ namespace Os
     bool isDebuggerAttached();
 
     uint32_t memoryPageSize();
-    void* allocExecutableMemory(uint32_t size);
-    bool  makeWritableExecutableMemory(void* ptr, uint32_t size);
-    bool  makeExecutableMemory(void* ptr, uint32_t size);
-    void  freeExecutableMemory(void* ptr);
+    void*    allocExecutableMemory(uint32_t size);
+    bool     makeWritableExecutableMemory(void* ptr, uint32_t size);
+    bool     makeExecutableMemory(void* ptr, uint32_t size);
+    void     freeExecutableMemory(void* ptr);
 }
 
 #ifdef _WIN32

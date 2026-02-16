@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
+#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
@@ -19,8 +20,11 @@ namespace
         MicroInstrBuilder builder(ctx);
         buildFn(builder, callConv);
 
+        LoweredMicroCode loweredCode;
+        lowerMicroInstructions(ctx, builder, loweredCode);
+
         JITExecMemory executableMemory;
-        JIT::emit(ctx, builder, executableMemory);
+        JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
         using TestFn  = uint64_t (*)();
         const auto fn = executableMemory.entryPoint<TestFn>();
@@ -54,8 +58,11 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     calleeBuilder.encodeLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
     calleeBuilder.encodeRet();
 
+    LoweredMicroCode loweredCalleeCode;
+    lowerMicroInstructions(ctx, calleeBuilder, loweredCalleeCode);
+
     JITExecMemory calleeExecMemory;
-    JIT::emit(ctx, calleeBuilder, calleeExecMemory);
+    JIT::emit(ctx, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, calleeExecMemory);
     using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = calleeExecMemory.entryPoint<CalleeFnType>();
     SWC_ASSERT(calleeFn != nullptr);
@@ -69,8 +76,11 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
     callerBuilder.encodeRet();
 
+    LoweredMicroCode loweredCallerCode;
+    lowerMicroInstructions(ctx, callerBuilder, loweredCallerCode);
+
     JITExecMemory callerExecMemory;
-    JIT::emit(ctx, callerBuilder, callerExecMemory);
+    JIT::emit(ctx, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, callerExecMemory);
     using CallerFnType  = uint64_t (*)();
     const auto callerFn = callerExecMemory.entryPoint<CallerFnType>();
     SWC_ASSERT(callerFn != nullptr);
@@ -109,4 +119,3 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
-

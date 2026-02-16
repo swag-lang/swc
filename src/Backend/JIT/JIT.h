@@ -9,7 +9,7 @@ class JITExecMemory;
 class JIT final
 {
 public:
-    static void emit(TaskContext& ctx, MicroInstrBuilder& builder, JITExecMemory& outExecutableMemory);
+    static void emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory);
 };
 
 SWC_END_NAMESPACE();

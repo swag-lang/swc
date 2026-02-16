@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -92,7 +93,9 @@ void SymbolFunction::emit(TaskContext& ctx)
     if (hasEntryAddress())
         return;
 
-    JIT::emit(ctx, microInstrBuilder(ctx), jitExecMemory_);
+    LoweredMicroCode loweredCode;
+    lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredCode);
+    JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, jitExecMemory_);
     const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
     SWC_FORCE_ASSERT(entry != 0);
 

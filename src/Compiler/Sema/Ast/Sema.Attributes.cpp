@@ -149,7 +149,7 @@ namespace
         callArgs.reserve(args.size());
         for (const AstNodeRef argRef : args)
             callArgs.push_back(argRef);
-        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, identView, fnSymbols.span(), callArgs.span(), AstNodeRef::invalid(), nullptr, true));
+        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, identView, fnSymbols.span(), callArgs.span()));
 
         const Symbol* selectedFnSym = &sema.symbolOf(sema.curNodeRef());
         for (uint32_t i = 0; i < fnAdapters.size(); ++i)

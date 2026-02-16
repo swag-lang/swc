@@ -104,17 +104,28 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     if (castRequest.isConstantFolding())
     {
-        const ConstantValue& cv = sema.cstMgr().get(castRequest.constantFoldingSrc());
-        if (cv.isNull())
+        const ConstantValue* cv = &sema.cstMgr().get(castRequest.constantFoldingSrc());
+        if (srcType.isEnumFlags())
+        {
+            castRequest.setConstantFoldingSrc(cv->getEnumValue());
+            cv = &sema.cstMgr().get(castRequest.constantFoldingSrc());
+        }
+
+        if (cv->isNull())
             castRequest.setConstantFoldingResult(sema.cstMgr().cstFalse());
         else if (srcType.isIntLike())
         {
             if (!foldConstantIntLikeToBool(sema, castRequest))
                 return Result::Error;
         }
+        else if (srcType.isEnumFlags())
+        {
+            if (!foldConstantIntLikeToBool(sema, castRequest))
+                return Result::Error;
+        }
         else if (srcType.isString())
         {
-            castRequest.setConstantFoldingResult(cv.getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
+            castRequest.setConstantFoldingResult(cv->getString().data() ? sema.cstMgr().cstTrue() : sema.cstMgr().cstFalse());
         }
         else
             SWC_UNREACHABLE();
@@ -705,7 +716,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        if (castRequest.kind != CastKind::Explicit)
+        const bool allowAliasConditionToBool = castRequest.kind == CastKind::Condition && dstType.isBool();
+        if (castRequest.kind != CastKind::Explicit && !allowAliasConditionToBool)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
@@ -718,7 +730,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (srcType.isEnum() && !dstType.isEnum())
+    else if (srcType.isEnum() && !dstType.isEnum() && !(dstType.isBool() && castRequest.kind == CastKind::Condition))
         res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);

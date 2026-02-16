@@ -123,8 +123,10 @@ enum SS2 : u64
 #assert((JJ.A | JJ.B) == 3)
 #assert((JJ.A | JJ.C) == 5)
 #assert((JJ.A | JJ.B | JJ.C) == 7)
+#assert(#typeof(JJ.A | JJ.B) == JJ)
 #assert((JJ.A & JJ.B) == 0)
 #assert(((JJ.A | JJ.B) & JJ.B) == JJ.B)
+#assert(#typeof(JJ.A & JJ.B) == JJ)
 
 #assert((JJ.A & JJ.A) == JJ.A)
 #assert((JJ.A & JJ.B) == 0)
@@ -141,12 +143,21 @@ const AND2 = 1 & JJ.A
 #assert(((JJ.A | JJ.B) ^ JJ.B) == JJ.A)  // toggle off
 #assert(((JJ.A | JJ.B | JJ.C) ^ JJ.B) == (JJ.A | JJ.C))
 #assert((JJ.A ^ JJ.A) == 0)              // XOR cancels identical flag
+#assert(#typeof(JJ.A ^ JJ.B) == JJ)
 
 #assert((NN.A ^ NN.B) == 1)
 #assert((NN.B ^ NN.B) == 0)
 
 const XOR1 = JJ.A ^ 1
 const XOR2 = 1 ^ JJ.A
+
+#test
+{
+    let v = JJ.A | JJ.B
+    if v & JJ.B
+    {
+    }
+}
 
 const AA1 = ~JJ.A
 const AA2 = JJ.B & ~JJ.A

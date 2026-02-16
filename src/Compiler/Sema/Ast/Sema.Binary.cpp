@@ -16,14 +16,34 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool keepEnumFlagsResult(const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, TokenId op)
+    {
+        if (op != TokenId::SymPipe && op != TokenId::SymAmpersand && op != TokenId::SymCircumflex)
+            return false;
+        if (!nodeLeftView.type->isEnumFlags() || !nodeRightView.type->isEnumFlags())
+            return false;
+        return nodeLeftView.typeRef == nodeRightView.typeRef;
+    }
+
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         auto&       ctx         = sema.ctx();
         ConstantRef leftCstRef  = nodeLeftView.cstRef;
         ConstantRef rightCstRef = nodeRightView.cstRef;
+        const bool  keepEnumRes = keepEnumFlagsResult(nodeLeftView, nodeRightView, op);
+
+        if (keepEnumRes)
+        {
+            const ConstantValue& leftVal  = sema.cstMgr().get(leftCstRef);
+            const ConstantValue& rightVal = sema.cstMgr().get(rightCstRef);
+            SWC_ASSERT(leftVal.isEnumValue() && rightVal.isEnumValue());
+            leftCstRef  = leftVal.getEnumValue();
+            rightCstRef = rightVal.getEnumValue();
+        }
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+        if (!keepEnumRes)
+            RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -158,7 +178,16 @@ namespace
                 return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
+            ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
+            if (keepEnumRes)
+            {
+                const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef);
+                result                         = sema.cstMgr().addConstant(ctx, enumResult);
+            }
+            else
+            {
+                result = intResult;
+            }
             return Result::Continue;
         }
 
@@ -244,19 +273,28 @@ namespace
     {
         if (op == TokenId::SymPipe || op == TokenId::SymAmpersand || op == TokenId::SymCircumflex)
         {
+            const bool leftEnumFlags  = nodeLeftView.type->isEnumFlags();
+            const bool rightEnumFlags = nodeRightView.type->isEnumFlags();
+
             if (nodeLeftView.type->isEnum())
             {
-                if (!nodeLeftView.type->isEnumFlags())
+                if (!leftEnumFlags)
                     return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
-                Cast::convertEnumToUnderlying(sema, nodeLeftView);
             }
 
             if (nodeRightView.type->isEnum())
             {
-                if (!nodeRightView.type->isEnumFlags())
+                if (!rightEnumFlags)
                     return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
-                Cast::convertEnumToUnderlying(sema, nodeRightView);
             }
+
+            if (leftEnumFlags && rightEnumFlags && nodeLeftView.typeRef == nodeRightView.typeRef)
+                return Result::Continue;
+
+            if (nodeLeftView.type->isEnum())
+                Cast::convertEnumToUnderlying(sema, nodeLeftView);
+            if (nodeRightView.type->isEnum())
+                Cast::convertEnumToUnderlying(sema, nodeRightView);
         }
 
         return Result::Continue;

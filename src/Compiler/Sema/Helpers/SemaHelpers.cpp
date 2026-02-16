@@ -100,6 +100,14 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         case TokenId::SymCircumflex:
         case TokenId::SymGreaterGreater:
         case TokenId::SymLowerLower:
+            if (op == TokenId::SymAmpersand || op == TokenId::SymPipe || op == TokenId::SymCircumflex)
+            {
+                const bool leftEnumFlags  = leftView.type->isEnumFlags();
+                const bool rightEnumFlags = rightView.type->isEnumFlags();
+                if (leftEnumFlags && rightEnumFlags && leftView.typeRef == rightView.typeRef)
+                    break;
+            }
+
             if (!leftView.type->isInt())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef, rightView.typeRef);
             if (!rightView.type->isInt())

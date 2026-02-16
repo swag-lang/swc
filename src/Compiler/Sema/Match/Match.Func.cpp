@@ -409,22 +409,7 @@ namespace
     }
 
     // Probes if an implicit conversion from 'from' to 'to' is possible, and returns its rank.
-    bool isEnumFlagsUnderlyingMatch(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
-    {
-        if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
-            return false;
-
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-        if (!dstType.isEnumFlags())
-            return false;
-        if (!srcType.isInt())
-            return false;
-
-        return srcTypeRef == dstType.payloadSymEnum().underlyingTypeRef();
-    }
-
-    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument, bool allowEnumFlagsUnderlying)
+    Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
         outRank = ConvRank::Bad;
         if (from == to)
@@ -456,12 +441,6 @@ namespace
         if (castResult == Result::Pause)
             return Result::Pause;
         if (castResult == Result::Continue)
-        {
-            outRank = ConvRank::Standard;
-            return Result::Continue;
-        }
-
-        if (allowEnumFlagsUnderlying && isEnumFlagsUnderlyingMatch(sema, from, to))
         {
             outRank = ConvRank::Standard;
             return Result::Continue;
@@ -585,7 +564,7 @@ namespace
     // Try to build a candidate; if it fails, fill out why + where.
     // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
-    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail, bool allowEnumFlagsUnderlying)
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto&    params    = fn.parameters();
         const uint32_t numParams = static_cast<uint32_t>(params.size());
@@ -659,7 +638,7 @@ namespace
 
             const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
             auto       r              = ConvRank::Bad;
-            RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowEnumFlagsUnderlying));
+            RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -693,7 +672,7 @@ namespace
                     const TypeRef    argTy  = SemaNodeView(sema, argRef).typeRef;
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
-                    RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false, allowEnumFlagsUnderlying));
+                    RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
                     if (r == ConvRank::Bad)
                     {
                         if (cf.diagId == DiagnosticId::None)
@@ -744,7 +723,7 @@ namespace
 
     // Evaluate each function symbol to see how well it matches the given arguments.
     // This includes checking the number of parameters, types, and potential UFCS usage.
-    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowEnumFlagsUnderlying)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
@@ -778,7 +757,7 @@ namespace
             Candidate    candidate;
 
             // First: non-UFCS call shape.
-            RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail, allowEnumFlagsUnderlying));
+            RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
             if (candidate.viable)
             {
                 a.viable    = true;
@@ -789,7 +768,7 @@ namespace
                 // Second: UFCS call shape (implicit arg0).
                 candidate = {};
                 fail      = {};
-                RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail, allowEnumFlagsUnderlying));
+                RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -908,7 +887,7 @@ namespace
 
     // For each argument, perform the required cast to the destination parameter type.
     // The cast value is then stored back in the argument node.
-    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, bool allowEnumFlagsUnderlying)
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
         const auto&     params         = selectedFn.parameters();
@@ -922,8 +901,6 @@ namespace
                 continue;
 
             SemaNodeView argView(sema, argRef);
-            if (allowEnumFlagsUnderlying && isEnumFlagsUnderlyingMatch(sema, argView.typeRef, params[i]->typeRef()))
-                continue;
             CastFlags    flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
@@ -1005,12 +982,12 @@ namespace
     }
 }
 
-Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, bool allowEnumFlagsUnderlying)
+Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs)
 {
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
-    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg, allowEnumFlagsUnderlying));
+    RESULT_VERIFY(collectAttempts(sema, attempts, functions, symbols, args, ufcsArg));
 
     // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;
@@ -1030,7 +1007,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
-    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg, allowEnumFlagsUnderlying));
+    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
     if (outResolvedArgs)
         buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, *outResolvedArgs);

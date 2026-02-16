@@ -29,7 +29,6 @@ enum class SymbolKind : uint8_t
     Variable,
     Enum,
     EnumValue,
-    Attribute,
     Struct,
     Interface,
     Alias,
@@ -115,7 +114,7 @@ public:
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }
     bool isStruct() const noexcept { return kind_ == SymbolKind::Struct; }
     bool isInterface() const noexcept { return kind_ == SymbolKind::Interface; }
-    bool isAttribute() const noexcept { return kind_ == SymbolKind::Attribute; }
+    bool isAttribute() const noexcept;
     bool isModule() const noexcept { return kind_ == SymbolKind::Module; }
     bool isAlias() const noexcept { return kind_ == SymbolKind::Alias; }
     bool isFunction() const noexcept { return kind_ == SymbolKind::Function; }
@@ -125,7 +124,7 @@ public:
     bool isType() const;
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool inSwagNamespace(const TaskContext& ctx) const noexcept;
-    bool acceptOverloads() const noexcept { return isFunction() || isAttribute(); }
+    bool acceptOverloads() const noexcept { return isFunction(); }
     bool deepCompare(const Symbol* other) const noexcept;
 
     Symbol* nextHomonym() const noexcept { return nextHomonym_; }

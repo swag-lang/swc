@@ -115,8 +115,6 @@ namespace
                 return "Enum";
             case SymbolKind::EnumValue:
                 return "EnumValue";
-            case SymbolKind::Attribute:
-                return "Attribute";
             case SymbolKind::Struct:
                 return "Struct";
             case SymbolKind::Interface:

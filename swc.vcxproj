@@ -343,7 +343,6 @@
         <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Attribute.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Impl.cpp"/>
@@ -487,7 +486,6 @@
         <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Attribute.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Enum.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h"/>

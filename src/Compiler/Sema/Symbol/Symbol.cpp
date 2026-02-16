@@ -25,9 +25,15 @@ Utf8 Symbol::toFamily() const
         case SymbolKind::Constant: return "constant";
         case SymbolKind::Enum: return "enum";
         case SymbolKind::EnumValue: return "enum value";
-        case SymbolKind::Attribute: return "attribute";
         default: return "symbol";
     }
+}
+
+bool Symbol::isAttribute() const noexcept
+{
+    if (!isFunction())
+        return false;
+    return cast<SymbolFunction>().isAttribute();
 }
 
 void Symbol::setTyped(TaskContext& ctx)
@@ -121,8 +127,6 @@ bool Symbol::deepCompare(const Symbol* other) const noexcept
         return false;
     if (isFunction())
         return cast<SymbolFunction>().deepCompare(other->cast<SymbolFunction>());
-    if (isAttribute())
-        return cast<SymbolAttribute>().deepCompare(other->cast<SymbolAttribute>());
     return true;
 }
 

@@ -63,86 +63,6 @@ namespace
         return RtAttributeFlagsE::Zero;
     }
 
-    Result collectAttributeArguments(const Sema& sema, const AstAttribute& nodeAttr, SmallVector<AstNodeRef>& outArgs)
-    {
-        outArgs.clear();
-
-        if (!nodeAttr.nodeArgsRef.isValid())
-            return Result::Continue;
-
-        const auto* argsList = sema.node(nodeAttr.nodeArgsRef).safeCast<AstNamedArgumentList>();
-        SWC_ASSERT(argsList != nullptr);
-
-        SmallVector<AstNodeRef> args;
-        sema.ast().appendNodes(args, argsList->spanChildrenRef);
-
-        for (const AstNodeRef argRef : args)
-            outArgs.push_back(Match::resolveCallArgumentRef(sema, argRef));
-
-        return Result::Continue;
-    }
-
-    Result matchAttributeArguments(const SymbolAttribute*& outAttrSym, Sema& sema, const SemaNodeView& identView, std::span<const AstNodeRef> args)
-    {
-        outAttrSym = nullptr;
-
-        SmallVector<Symbol*> symbols;
-        identView.getSymbols(symbols);
-        if (symbols.empty() && identView.sym)
-            symbols.push_back(const_cast<Symbol*>(identView.sym));
-
-        SmallVector<const SymbolAttribute*> attrCandidates;
-        for (const Symbol* sym : symbols)
-        {
-            if (!sym || !sym->isAttribute())
-                continue;
-            attrCandidates.push_back(&sym->cast<SymbolAttribute>());
-        }
-
-        if (attrCandidates.empty())
-            return Result::Error;
-
-        for (const SymbolAttribute* attrSym : attrCandidates)
-            RESULT_VERIFY(sema.waitSemaCompleted(attrSym, identView.node->codeRef()));
-
-        SmallVector<SymbolFunction*> fnAdapters;
-        SmallVector<Symbol*>         fnSymbols;
-        fnAdapters.reserve(attrCandidates.size());
-        fnSymbols.reserve(attrCandidates.size());
-
-        for (const SymbolAttribute* attrSym : attrCandidates)
-        {
-            auto* fnAdapter = Symbol::make<SymbolFunction>(sema.ctx(), attrSym->decl(), attrSym->tokRef(), attrSym->idRef(), SymbolFlagsE::Zero);
-            fnAdapter->setReturnTypeRef(sema.typeMgr().typeVoid());
-            for (SymbolVariable* param : attrSym->parameters())
-                fnAdapter->addParameter(param);
-            const TypeRef fnTypeRef = sema.typeMgr().addType(TypeInfo::makeFunction(fnAdapter, TypeInfoFlagsE::Zero));
-            fnAdapter->setTypeRef(fnTypeRef);
-
-            fnSymbols.push_back(fnAdapter);
-            fnAdapters.push_back(fnAdapter);
-        }
-
-        SmallVector<AstNodeRef> callArgs;
-        callArgs.reserve(args.size());
-        for (const AstNodeRef argRef : args)
-            callArgs.push_back(argRef);
-        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, identView, fnSymbols.span(), callArgs.span()));
-
-        const Symbol* selectedFnSym = &sema.symbolOf(sema.curNodeRef());
-        for (uint32_t i = 0; i < fnAdapters.size(); ++i)
-        {
-            if (fnAdapters[i] == selectedFnSym)
-            {
-                outAttrSym = attrCandidates[i];
-                sema.setSymbol(sema.curNodeRef(), outAttrSym);
-                return Result::Continue;
-            }
-        }
-
-        return Result::Error;
-    }
-
     Result collectPrintMicroOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
     {
         if (args.empty())
@@ -178,7 +98,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, const SymbolAttribute& attrSym, AttributeList& outAttributes)
+    Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, const SymbolFunction& attrSym, AttributeList& outAttributes)
     {
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
@@ -233,7 +153,8 @@ Result AstAccessModifier::semaPostNode(Sema& sema)
 
 Result AstAttrDecl::semaPreDecl(Sema& sema) const
 {
-    SymbolAttribute& sym = SemaHelpers::registerSymbol<SymbolAttribute>(sema, *this, tokNameRef);
+    SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    sym.addExtraFlag(SymbolFunctionFlagsE::Attribute);
 
     // Predefined attributes
     if (sym.inSwagNamespace(sema.ctx()))
@@ -258,7 +179,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeParamsRef)
         return Result::Continue;
 
-    SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
+    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
@@ -266,7 +187,10 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
-    SymbolAttribute& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAttribute>();
+    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+    const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
+    sym.setTypeRef(typeRef);
     RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
     RESULT_VERIFY(Match::ghosting(sema, sym));
@@ -291,18 +215,24 @@ Result AstAttributeList::semaPreNode(Sema& sema)
 
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView identView = sema.nodeView(nodeIdentRef);
-    SWC_ASSERT(identView.sym);
-    if (!identView.sym->isAttribute())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
+    const auto* callNode = sema.node(nodeCallRef).safeCast<AstCallExpr>();
+    SWC_ASSERT(callNode != nullptr);
 
-    SmallVector<AstNodeRef> args;
-    RESULT_VERIFY(collectAttributeArguments(sema, *this, args));
+    const SemaNodeView callView = sema.nodeView(nodeCallRef);
+    SWC_ASSERT(callView.sym);
 
-    const SymbolAttribute* attrSym = nullptr;
-    RESULT_VERIFY(matchAttributeArguments(attrSym, sema, identView, args.span()));
+    AstNodeRef errorRef = nodeCallRef;
+    if (callNode->nodeExprRef.isValid())
+        errorRef = callNode->nodeExprRef;
+
+    if (!callView.sym->isAttribute())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, errorRef);
+
+    const auto* attrSym = callView.sym->safeCast<SymbolFunction>();
     SWC_ASSERT(attrSym != nullptr);
 
+    SmallVector<AstNodeRef> args;
+    callNode->collectArguments(args, sema.ast());
     SmallVector<AstNodeRef> argValues;
     Match::resolveCallArgumentValues(sema, argValues, args.span());
     RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), *attrSym, sema.frame().currentAttributes()));

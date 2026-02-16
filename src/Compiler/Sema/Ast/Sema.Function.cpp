@@ -86,6 +86,23 @@ namespace
         SmallVector<Symbol*> symbols;
         nodeCallee.getSymbols(symbols);
 
+        const AstNode* parentNode = sema.visit().parentNode();
+        if (parentNode && parentNode->is(AstNodeId::Attribute) && !symbols.empty())
+        {
+            bool hasAttributeCandidate = false;
+            for (const Symbol* sym : symbols)
+            {
+                if (sym && sym->isAttribute())
+                {
+                    hasAttributeCandidate = true;
+                    break;
+                }
+            }
+
+            if (!hasAttributeCandidate)
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, node.nodeExprRef);
+        }
+
         AstNodeRef ufcsArg = AstNodeRef::invalid();
         if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
         {

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class SymbolAttribute;
+class SymbolFunction;
 
 // Some runtime attributes have their own flag
 enum class RtAttributeFlagsE : uint64_t
@@ -42,7 +42,7 @@ using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 // One attribute
 struct AttributeInstance
 {
-    const SymbolAttribute* symbol = nullptr;
+    const SymbolFunction* symbol = nullptr;
 };
 
 // A list of attributes

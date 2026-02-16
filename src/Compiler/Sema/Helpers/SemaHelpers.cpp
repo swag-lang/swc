@@ -3,7 +3,6 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Symbol/Symbol.Attribute.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -22,8 +21,6 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
         if (sema.curScope().isParameters())
         {
             symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
-            if (const auto symAttr = symbolMap->safeCast<SymbolAttribute>())
-                symAttr->addParameter(symVar);
             if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
                 symFunc->addParameter(symVar);
         }

@@ -7,14 +7,33 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>(ref());
-    nodePtr->nodeIdentRef   = parseQualifiedIdentifier();
+    AstNodeRef              nodeIdentRef = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
     {
-        PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-        nodePtr->nodeArgsRef = parseCompound<AstNodeId::NamedArgumentList>(TokenId::SymLeftParen);
+        nodePtr->nodeCallRef = parseFunctionArguments(nodeIdentRef);
+        return nodeRef;
     }
-    else
-        nodePtr->nodeArgsRef.setInvalid();
+
+    AstNode& calleeNode = ast_->node(nodeIdentRef);
+    switch (calleeNode.id())
+    {
+        case AstNodeId::Identifier:
+            calleeNode.cast<AstIdentifier>()->addFlag(AstIdentifierFlagsE::CallCallee);
+            break;
+        case AstNodeId::MemberAccessExpr:
+            calleeNode.cast<AstMemberAccessExpr>()->addFlag(AstMemberAccessExprFlagsE::CallCallee);
+            break;
+        case AstNodeId::AutoMemberAccessExpr:
+            calleeNode.cast<AstAutoMemberAccessExpr>()->addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+            break;
+        default:
+            break;
+    }
+
+    auto [callRef, callPtr]    = ast_->makeNode<AstNodeId::CallExpr>(ref());
+    callPtr->nodeExprRef       = nodeIdentRef;
+    callPtr->spanChildrenRef   = SpanRef::invalid();
+    nodePtr->nodeCallRef       = callRef;
     return nodeRef;
 }
 

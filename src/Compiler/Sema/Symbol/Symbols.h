@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
-#include "Compiler/Sema/Symbol/Symbol.Attribute.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"

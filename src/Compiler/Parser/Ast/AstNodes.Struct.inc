@@ -967,10 +967,9 @@ struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>
 // -----------------------------------------------------------------------------
 struct AstAttribute : AstNodeT<AstNodeId::Attribute>
 {
-    AstNodeRef nodeIdentRef;
-    AstNodeRef nodeArgsRef;
+    AstNodeRef nodeCallRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef, nodeArgsRef}); }
+    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
     Result semaPostNode(Sema& sema) const;
 };
 

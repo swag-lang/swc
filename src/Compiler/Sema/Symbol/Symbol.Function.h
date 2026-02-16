@@ -19,6 +19,7 @@ enum class SymbolFunctionFlagsE : uint8_t
     Throwable = 1 << 2,
     Const     = 1 << 3,
     Empty     = 1 << 4,
+    Attribute = 1 << 5,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 
@@ -34,6 +35,8 @@ public:
 
     TypeRef                             returnTypeRef() const { return returnType_; }
     void                                setReturnTypeRef(TypeRef typeRef) { returnType_ = typeRef; }
+    RtAttributeFlags                    rtAttributeFlags() const { return rtAttributeFlags_; }
+    void                                setRtAttributeFlags(RtAttributeFlags attr) { rtAttributeFlags_ = attr; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
@@ -48,6 +51,7 @@ public:
     bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
 
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
@@ -76,6 +80,7 @@ private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 
     std::vector<SymbolVariable*> parameters_;
+    RtAttributeFlags             rtAttributeFlags_   = RtAttributeFlagsE::Zero;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;

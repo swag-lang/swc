@@ -453,9 +453,6 @@
     <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Attribute.cpp">
-      <Filter>src\Compiler\Sema\Symbol</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>
@@ -822,9 +819,6 @@
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h">
-      <Filter>src\Compiler\Sema\Symbol</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Attribute.h">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h">

@@ -78,7 +78,7 @@ struct S
     #assert(#typeof(Cfg) == s32) // swc-expected-error {{sema_err_compiler_assert}}
 }
 
-#[Swag.PrintMicro(123)] // swc-expected-error {{sema_err_invalid_type}}
+#[Swag.PrintMicro(123)] // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()

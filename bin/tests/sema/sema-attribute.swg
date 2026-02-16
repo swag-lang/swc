@@ -66,3 +66,51 @@ attr Over(a: s16)
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}
 attr Over1(a: s8)
 attr Over1(a: s8)
+
+attr MatchCallFixed(a: s32, b: string = "")
+attr MatchCallVariadic(a: s32...)
+
+#[MatchCallFixed(1)]
+var MatchCallOk1: s32 = 0
+
+#[MatchCallFixed(a: 1, b: "x")]
+var MatchCallOk2: s32 = 0
+
+#[MatchCallVariadic(1, 2, 3)]
+var MatchCallOk3: s32 = 0
+
+#test
+{
+    #[MatchCallFixed] // swc-expected-error {{sema_err_too_few_arguments}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[MatchCallFixed(1, "x", 2)] // swc-expected-error {{sema_err_too_many_arguments}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[MatchCallFixed("x")] // swc-expected-error {{sema_err_cannot_cast}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[MatchCallFixed(c: 1)] // swc-expected-error {{sema_err_named_argument_unknown}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[MatchCallFixed(a: 1, a: 2)] // swc-expected-error {{sema_err_named_argument_duplicate}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[MatchCallFixed(a: 1, 2)] // swc-expected-error {{sema_err_unnamed_parameter}}
+    var V: s32 = 0
+}

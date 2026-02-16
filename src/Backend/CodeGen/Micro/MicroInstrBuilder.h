@@ -62,9 +62,9 @@ struct MicroInstrDebugInfo
     }
 };
 
-struct MicroInstrCodeRelocation
+struct MicroInstrRelocation
 {
-    static constexpr uint64_t KSelfAddress = std::numeric_limits<uint64_t>::max();
+    static constexpr uint64_t K_SELF_ADDRESS = std::numeric_limits<uint64_t>::max();
 
     enum class Kind : uint8_t
     {
@@ -119,8 +119,8 @@ public:
     const Utf8&                                  printFilePath() const { return printFilePath_; }
     uint32_t                                     printSourceLine() const { return printSourceLine_; }
     void                                         clearCodeRelocations() { codeRelocations_.clear(); }
-    void                                         addCodeRelocation(MicroInstrCodeRelocation relocation);
-    const std::vector<MicroInstrCodeRelocation>& codeRelocations() const { return codeRelocations_; }
+    void                                         addCodeRelocation(MicroInstrRelocation relocation);
+    const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -185,7 +185,7 @@ private:
     uint32_t                                        printSourceLine_ = 0;
     std::vector<Utf8>                               printPassOptions_;
     std::vector<Ref>                                labels_;
-    std::vector<MicroInstrCodeRelocation>           codeRelocations_;
+    std::vector<MicroInstrRelocation>           codeRelocations_;
 };
 
 SWC_END_NAMESPACE();

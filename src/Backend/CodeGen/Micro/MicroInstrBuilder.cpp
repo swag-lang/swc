@@ -57,7 +57,7 @@ const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) cons
     return &info.value();
 }
 
-void MicroInstrBuilder::addCodeRelocation(MicroInstrCodeRelocation relocation)
+void MicroInstrBuilder::addCodeRelocation(MicroInstrRelocation relocation)
 {
     codeRelocations_.push_back(relocation);
 }

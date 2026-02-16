@@ -50,7 +50,7 @@ namespace
         }
     }
 
-    void resolveJitRelocationTargets(std::span<MicroInstrCodeRelocation> relocations, const SymbolFunction& owner)
+    void resolveJitRelocationTargets(std::span<MicroInstrRelocation> relocations, const SymbolFunction& owner)
     {
         for (auto& reloc : relocations)
         {
@@ -62,7 +62,7 @@ namespace
             auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
             if (&targetFunction == &owner)
             {
-                reloc.targetAddress = MicroInstrCodeRelocation::KSelfAddress;
+                reloc.targetAddress = MicroInstrRelocation::K_SELF_ADDRESS;
                 continue;
             }
 
@@ -170,7 +170,7 @@ void SymbolFunction::jit(TaskContext& ctx)
 
     SmallVector<SymbolFunction*>          dependencies;
     std::vector<std::byte>                linearCode;
-    std::vector<MicroInstrCodeRelocation> relocations;
+    std::vector<MicroInstrRelocation> relocations;
 
     {
         std::scoped_lock lock(emitMutex_);

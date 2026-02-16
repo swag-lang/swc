@@ -94,7 +94,7 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, const JITExecMemory& executableMemory)
+    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, const JITExecMemory& executableMemory)
     {
         if (relocations.empty())
             return;
@@ -114,10 +114,10 @@ namespace
             auto target = reloc.targetAddress;
             if (target == 0)
                 continue;
-            if (target == MicroInstrCodeRelocation::KSelfAddress)
+            if (target == MicroInstrRelocation::K_SELF_ADDRESS)
                 target = reinterpret_cast<uint64_t>(basePtr);
 
-            SWC_FORCE_ASSERT(reloc.kind == MicroInstrCodeRelocation::Kind::Rel32);
+            SWC_FORCE_ASSERT(reloc.kind == MicroInstrRelocation::Kind::Rel32);
 
             const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
             SWC_FORCE_ASSERT(patchEndOffset <= executableMemory.size());
@@ -134,7 +134,7 @@ namespace
     }
 }
 
-void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory)
+void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, JITExecMemory& outExecutableMemory)
 {
     SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(linearCode, outExecutableMemory));
     patchCodeRelocations(ctx.compiler().jitMemMgr(), linearCode, relocations, outExecutableMemory);

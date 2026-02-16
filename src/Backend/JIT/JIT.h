@@ -23,7 +23,7 @@ struct JITReturn
 class JIT final
 {
 public:
-    static void   emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory);
+    static void   emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, JITExecMemory& outExecutableMemory);
     static void   emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr);
 };

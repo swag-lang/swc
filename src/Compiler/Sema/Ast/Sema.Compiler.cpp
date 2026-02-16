@@ -679,7 +679,8 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    RESULT_VERIFY(SemaJIT::runExpr(sema, sema.curNodeRef(), nodeExprRef));
+    auto& runExprSymFn = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    RESULT_VERIFY(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 
     return Result::Continue;

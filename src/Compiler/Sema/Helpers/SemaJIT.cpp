@@ -25,22 +25,19 @@ namespace
     }
 }
 
-Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeRunExprRef, AstNodeRef nodeExprRef)
+Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
 
-    auto& ctx = sema.ctx();
-    SWC_ASSERT(sema.hasSymbol(nodeRunExprRef));
-    auto& symFn = sema.symbolOf(nodeRunExprRef).cast<SymbolFunction>();
-
     scheduleCodeGen(sema, symFn);
-    RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, sema.node(nodeRunExprRef).codeRef()));
+    RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
+    auto&           ctx              = sema.ctx();
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
     const TypeRef   resultStorageRef = nodeType.unwrap(ctx, nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);

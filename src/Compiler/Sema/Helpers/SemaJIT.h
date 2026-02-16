@@ -3,12 +3,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct AstCompilerRunExpr;
 class Sema;
+class SymbolFunction;
 
 namespace SemaJIT
 {
-    Result runExpr(Sema& sema, AstNodeRef nodeRunExprRef, AstNodeRef nodeExprRef);
+    Result runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
 }
 
 SWC_END_NAMESPACE();

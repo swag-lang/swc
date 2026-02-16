@@ -1,8 +1,6 @@
-#include <ranges>
-
 #include "pch.h"
-#include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -165,14 +163,10 @@ void SymbolFunction::jit(TaskContext& ctx)
     SmallVector<SymbolFunction*> jitOrder;
     appendJitOrder(jitOrder, *this);
     for (auto* function : jitOrder)
-    {
-        if (!function)
-            continue;
-        function->jitEmitOnly(ctx);
-    }
+        function->jitEmit(ctx);
 }
 
-void SymbolFunction::jitEmitOnly(TaskContext& ctx)
+void SymbolFunction::jitEmit(TaskContext& ctx)
 {
     SmallVector<SymbolFunction*>      dependencies;
     std::vector<std::byte>            linearCode;

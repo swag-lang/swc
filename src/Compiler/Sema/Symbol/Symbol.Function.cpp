@@ -1,6 +1,8 @@
+#include <ranges>
+
 #include "pch.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -9,47 +11,63 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct JITRecursionGuard
+    enum class JitVisitState : uint8_t
     {
-        explicit JITRecursionGuard(SymbolFunction* function) :
-            function_(function)
-        {
-            SWC_ASSERT(function_ != nullptr);
-            const auto it = std::ranges::find(stack_, function_);
-            if (it != stack_.end())
-                isReentry_ = true;
-            else
-                stack_.push_back(function_);
-        }
-
-        ~JITRecursionGuard()
-        {
-            if (isReentry_)
-                return;
-            SWC_ASSERT(!stack_.empty() && stack_.back() == function_);
-            stack_.pop_back();
-        }
-
-        bool isReentry() const { return isReentry_; }
-
-    private:
-        static thread_local std::vector<SymbolFunction*> stack_;
-        SymbolFunction*                                  function_  = nullptr;
-        bool                                             isReentry_ = false;
+        Visiting,
+        Done,
     };
 
-    thread_local std::vector<SymbolFunction*> JITRecursionGuard::stack_;
-
-    void jitDependencies(TaskContext& ctx, const SymbolFunction& owner, std::span<SymbolFunction* const> dependencies)
+    struct JitStackEntry
     {
-        for (auto* dependency : dependencies)
+        SymbolFunction* function = nullptr;
+        bool            expanded = false;
+    };
+
+    void appendJitOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
+    {
+        std::unordered_map<SymbolFunction*, JitVisitState> visitStates;
+        SmallVector<JitStackEntry>                         stack;
+        stack.push_back({.function = &root, .expanded = false});
+
+        while (!stack.empty())
         {
-            if (!dependency || dependency == &owner)
+            const auto current = stack.back();
+            stack.pop_back();
+            auto* const function = current.function;
+            if (!function)
                 continue;
-            dependency->jit(ctx);
+
+            const auto foundState = visitStates.find(function);
+            if (current.expanded)
+            {
+                if (foundState != visitStates.end() && foundState->second == JitVisitState::Done)
+                    continue;
+
+                visitStates[function] = JitVisitState::Done;
+                outJitOrder.push_back(function);
+                continue;
+            }
+
+            if (foundState != visitStates.end())
+            {
+                if (foundState->second == JitVisitState::Done)
+                    continue;
+                continue;
+            }
+
+            visitStates[function] = JitVisitState::Visiting;
+            stack.push_back({.function = function, .expanded = true});
+
+            SmallVector<SymbolFunction*> dependencies;
+            function->appendCallDependencies(dependencies);
+            for (const auto dependency : std::ranges::reverse_view(dependencies))
+            {
+                if (!dependency || dependency == function)
+                    continue;
+                stack.push_back({.function = dependency, .expanded = false});
+            }
         }
     }
-
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
@@ -144,11 +162,20 @@ bool SymbolFunction::hasLoweredCode() const noexcept
 
 void SymbolFunction::jit(TaskContext& ctx)
 {
-    const JITRecursionGuard recursionGuard(this);
-    SWC_ASSERT(!recursionGuard.isReentry());
+    SmallVector<SymbolFunction*> jitOrder;
+    appendJitOrder(jitOrder, *this);
+    for (auto* function : jitOrder)
+    {
+        if (!function)
+            continue;
+        function->jitEmitOnly(ctx);
+    }
+}
 
-    SmallVector<SymbolFunction*> dependencies;
-    std::vector<std::byte>       linearCode;
+void SymbolFunction::jitEmitOnly(TaskContext& ctx)
+{
+    SmallVector<SymbolFunction*>      dependencies;
+    std::vector<std::byte>            linearCode;
     std::vector<MicroInstrRelocation> relocations;
 
     {
@@ -161,8 +188,6 @@ void SymbolFunction::jit(TaskContext& ctx)
         relocations = loweredMicroCode_.codeRelocations;
         appendCallDependencies(dependencies);
     }
-
-    jitDependencies(ctx, *this, dependencies);
 
     std::scoped_lock lock(emitMutex_);
     if (hasJitEntryAddress())

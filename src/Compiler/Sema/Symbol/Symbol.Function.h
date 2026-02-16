@@ -71,6 +71,7 @@ public:
 private:
     bool hasLoweredCode() const noexcept;
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
+    void jitEmitOnly(TaskContext& ctx);
 
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 

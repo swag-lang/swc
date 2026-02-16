@@ -27,7 +27,7 @@ namespace
         JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
         using TestFn  = uint64_t (*)();
-        const auto fn = executableMemory.entryPoint<TestFn>();
+        const auto fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
         if (!fn)
             return Result::Error;
         if (fn() != expectedResult)
@@ -64,7 +64,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     JITExecMemory calleeExecMemory;
     JIT::emit(ctx, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, calleeExecMemory);
     using CalleeFnType  = uint64_t (*)();
-    const auto calleeFn = calleeExecMemory.entryPoint<CalleeFnType>();
+    const auto calleeFn = reinterpret_cast<CalleeFnType>(calleeExecMemory.entryPoint());
     SWC_ASSERT(calleeFn != nullptr);
     SWC_ASSERT(calleeFn() == 1);
 
@@ -82,7 +82,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     JITExecMemory callerExecMemory;
     JIT::emit(ctx, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, callerExecMemory);
     using CallerFnType  = uint64_t (*)();
-    const auto callerFn = callerExecMemory.entryPoint<CallerFnType>();
+    const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);
 }
@@ -101,8 +101,8 @@ SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
     SWC_ASSERT(manager.allocateAndCopy(bytes, memB));
 
     using Fn       = void (*)();
-    const auto fnA = memA.entryPoint<Fn>();
-    const auto fnB = memB.entryPoint<Fn>();
+    const auto fnA = reinterpret_cast<Fn>(memA.entryPoint());
+    const auto fnB = reinterpret_cast<Fn>(memB.entryPoint());
     SWC_ASSERT(fnA != nullptr);
     SWC_ASSERT(fnB != nullptr);
     fnA();

@@ -16,13 +16,7 @@ public:
     void     reset();
     uint32_t size() const { return size_; }
     bool     empty() const { return ptr_ == nullptr; }
-
-    template<typename T>
-    T entryPoint() const
-    {
-        static_assert(std::is_pointer_v<T>);
-        return std::bit_cast<T>(ptr_);
-    }
+    void*    entryPoint() const { return ptr_; }
 
 private:
     friend class JITExecMemoryManager;

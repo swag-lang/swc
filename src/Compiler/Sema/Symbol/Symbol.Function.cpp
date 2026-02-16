@@ -16,7 +16,7 @@ namespace
             return;
 
         SWC_FORCE_ASSERT(!linearCode.empty());
-        auto* const basePtr = executableMemory.entryPoint<uint8_t*>();
+        auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
         SWC_FORCE_ASSERT(basePtr != nullptr);
         SWC_FORCE_ASSERT(!executableMemory.empty());
         SWC_FORCE_ASSERT(executableMemory.size() >= linearCode.size_bytes());
@@ -147,7 +147,7 @@ void SymbolFunction::jit(TaskContext& ctx)
     SWC_ASSERT(hasLoweredCode());
 
     JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
-    auto* const entry = jitExecMemory_.entryPoint<void*>();
+    auto* const entry = jitExecMemory_.entryPoint();
     SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);
 

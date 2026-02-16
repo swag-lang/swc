@@ -17,7 +17,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct JITExceptionInfo
+    struct ExceptionInfo
     {
         void* invoker = nullptr;
     };
@@ -82,16 +82,15 @@ namespace
 
     void appendExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& info = *static_cast<const JITExceptionInfo*>(userData);
+        const auto& info = *static_cast<const ExceptionInfo*>(userData);
         outMsg += "  call site: jit invoker\n";
         if (ctx.cmdLine().verboseHardwareException)
             outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));
     }
 
-    int exceptionHandler(const TaskContext& ctx, const JITExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const TaskContext& ctx, const ExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args, appendExtraInfo, &info);
-        Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
@@ -101,7 +100,7 @@ namespace
             return;
 
         SWC_FORCE_ASSERT(!linearCode.empty());
-        auto* const basePtr = executableMemory.entryPoint<uint8_t*>();
+        auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
         SWC_FORCE_ASSERT(basePtr != nullptr);
         SWC_FORCE_ASSERT(!executableMemory.empty());
         SWC_FORCE_ASSERT(executableMemory.size() >= linearCode.size_bytes());
@@ -137,7 +136,7 @@ void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::spa
     patchCodeRelocations(linearCode, relocations, outExecutableMemory);
 }
 
-void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
+void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
 {
     SWC_ASSERT(targetFn != nullptr);
 
@@ -151,6 +150,7 @@ void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> ar
     uint32_t                                      indirectArgStorageSize = 0;
     const bool                                    hasIndirectRetArg      = retType.isIndirect;
     const uint32_t                                packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+
     packedArgs.resize(args.size() + packedArgBaseOffset);
     normalizedArgTypes.resize(args.size());
 
@@ -229,35 +229,38 @@ void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> ar
     JITExecMemory executableMemory;
     emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
-    const auto invoker = executableMemory.entryPoint<JITInvokerFn>();
+    const auto invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);
-
-    callVoid(ctx, invoker);
+    (void) call(ctx, invoker);
 }
 
-void JIT::callVoid(TaskContext& ctx, JITInvokerFn invoker)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
 {
-    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(invoker)};
+    SWC_ASSERT(invoker != nullptr);
+    const ExceptionInfo info{.invoker = invoker};
+    bool                hasException = false;
+
     SWC_TRY
     {
-        invoker();
+        if (arg0)
+        {
+            using InvokerVoidU64    = void (*)(uint64_t);
+            const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
+            typedInvoker(*arg0);
+        }
+        else
+        {
+            using InvokerFn         = void (*)();
+            const auto typedInvoker = reinterpret_cast<InvokerFn>(invoker);
+            typedInvoker();
+        }
     }
     SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
     {
+        hasException = true;
     }
-}
 
-void JIT::callVoidU64(TaskContext& ctx, JITInvokerVoidU64 invoker, uint64_t arg0)
-{
-    SWC_ASSERT(invoker != nullptr);
-    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(invoker)};
-    SWC_TRY
-    {
-        invoker(arg0);
-    }
-    SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
-    {
-    }
+    return hasException ? Result::Error : Result::Continue;
 }
 
 SWC_END_NAMESPACE();

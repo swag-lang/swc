@@ -166,7 +166,6 @@ struct LocalStruct
     #assert(V.y == true)
 }
 
-/*
 #test
 {
     func retArray()->[3] s32 { return [1, 2, 3] }
@@ -175,4 +174,3 @@ struct LocalStruct
     #assert(V[1] == 2)
     #assert(V[2] == 3)
 }
-*/

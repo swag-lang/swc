@@ -3,6 +3,7 @@
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
+#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -67,10 +68,48 @@ namespace
         }
 
         SWC_ASSERT(exprRef.isValid());
-        SWC_ASSERT(!normalizedRet.isIndirect);
 
         const auto* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
-        const bool  isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
+        if (normalizedRet.isIndirect)
+        {
+            SWC_ASSERT(!callConv.intArgRegs.empty());
+            MicroReg outputStorageReg = callConv.intArgRegs[0];
+            if (const auto* fnPayload = codeGen.payload(symbolFunc.declNodeRef()))
+            {
+                if (fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+                    outputStorageReg = fnPayload->reg;
+            }
+
+            auto&          builder   = codeGen.builder();
+            const MicroReg retPtrReg = MicroReg::virtualIntReg(codeGen.nextVirtualRegister());
+            builder.encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
+
+            if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+            {
+                CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+            }
+            else
+            {
+                const auto spillSize = normalizedRet.indirectSize;
+                auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
+                std::memset(spillData, 0, spillSize);
+
+                MicroReg         spillAddrReg = MicroReg::invalid();
+                MicroReg         spillTmpReg  = MicroReg::invalid();
+                const std::array forbidden    = {outputStorageReg, exprPayload->reg};
+                SWC_ASSERT(callConv.tryPickIntScratchRegs(spillAddrReg, spillTmpReg, forbidden));
+
+                builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
+                builder.encodeLoadMemReg(spillAddrReg, 0, exprPayload->reg, MicroOpBits::B64);
+                CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
+            }
+
+            builder.encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
+            builder.encodeRet();
+            return Result::Continue;
+        }
+
+        const bool isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
         ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
 
         codeGen.builder().encodeRet();
@@ -78,10 +117,39 @@ namespace
     }
 }
 
-Result AstFunctionDecl::codeGenPreNodeChild(CodeGen&, const AstNodeRef& childRef) const
+Result AstFunctionDecl::codeGenPreNode(CodeGen& codeGen) const
+{
+    const auto& symbolFunc    = codeGen.function();
+    const auto  callConvKind  = symbolFunc.callConvKind();
+    const auto& callConv      = CallConv::get(callConvKind);
+    const auto  normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    if (!normalizedRet.isIndirect)
+        return Result::Continue;
+
+    SWC_ASSERT(!callConv.intArgRegs.empty());
+    auto& payload = codeGen.setPayload(codeGen.curNodeRef());
+    codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
+    payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+    return Result::Continue;
+}
+
+Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
+
+    const auto& symbolFunc    = codeGen.function();
+    const auto  callConvKind  = symbolFunc.callConvKind();
+    const auto& callConv      = CallConv::get(callConvKind);
+    const auto  normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    if (normalizedRet.isIndirect)
+    {
+        SWC_ASSERT(!callConv.intArgRegs.empty());
+        auto& payload = codeGen.setPayload(codeGen.curNodeRef());
+        codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
+        payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+    }
+
     return Result::Continue;
 }
 
@@ -133,9 +201,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicCompiler:
         {
-            const auto  compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
-            const auto  nodeView          = codeGen.curNodeView();
-            auto&       payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+            const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
+            const auto nodeView          = codeGen.curNodeView();
+            auto&      payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
             codeGen.builder().encodeLoadRegImm(payload.reg, compilerIfAddress, MicroOpBits::B64);
             payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return Result::Continue;

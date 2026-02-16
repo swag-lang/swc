@@ -44,10 +44,10 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
         return makeNormalizedType(false, true, static_cast<uint8_t>(ty.payloadFloatBits()));
 
-    if (ty.isPointerLike() || ty.isNull())
+    if (ty.isPointerLike() || ty.isReference() || ty.isMoveReference() || ty.isNull())
         return makeNormalizedType(false, false, 64);
 
-    if (ty.isStruct())
+    if (ty.isStruct() || ty.isArray() || ty.isAggregate())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());

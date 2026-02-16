@@ -45,7 +45,25 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+        if (payload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        {
+            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+        }
+        else
+        {
+            const auto spillSize = normalizedRet.indirectSize;
+            auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
+            std::memset(spillData, 0, spillSize);
+
+            MicroReg spillAddrReg = MicroReg::invalid();
+            MicroReg spillTmpReg  = MicroReg::invalid();
+            const std::array<MicroReg, 2> forbidden = {outputStorageReg, payloadReg};
+            SWC_ASSERT(callConv.tryPickIntScratchRegs(spillAddrReg, spillTmpReg, forbidden));
+
+            builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
+            builder.encodeLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
+            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
+        }
     }
     else
     {

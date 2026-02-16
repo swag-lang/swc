@@ -7,7 +7,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
-#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
@@ -16,62 +15,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void collectRunExprCallDependencies(Sema& sema, SymbolFunction& owner, AstNodeRef nodeRef)
+    void scheduleCodeGen(Sema& sema, SymbolFunction& symFn)
     {
-        const AstNodeRef resolvedRef = sema.getSubstituteRef(nodeRef);
-        if (!resolvedRef.isValid())
-            return;
-
-        const AstNode& node = sema.node(resolvedRef);
-        if (node.is(AstNodeId::CallExpr))
+        if (symFn.tryMarkCodeGenJobScheduled())
         {
-            if (sema.hasSymbol(resolvedRef))
-            {
-                Symbol& sym = sema.symbolOf(resolvedRef);
-                if (sym.isFunction())
-                {
-                    auto& calledFn = sym.cast<SymbolFunction>();
-                    if (owner.decl() && calledFn.decl() && owner.srcViewRef() == calledFn.srcViewRef())
-                        owner.addCallDependency(&calledFn);
-                }
-            }
+            const auto job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
+            sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildren(children, sema.ast());
-        for (const AstNodeRef childRef : children)
-            collectRunExprCallDependencies(sema, owner, childRef);
-    }
-
-    Result getOrCreateRunExprSymbol(Sema& sema, SymbolFunction*& outSymFn, AstNodeRef nodeExprRef)
-    {
-        auto&            ctx     = sema.ctx();
-        const AstNodeRef nodeRef = sema.curNodeRef();
-
-        if (sema.hasSymbol(nodeRef))
-        {
-            outSymFn = &sema.symbolOf(nodeRef).cast<SymbolFunction>();
-            return Result::Continue;
-        }
-
-        const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-        const AstNode&      node  = sema.node(nodeRef);
-
-        outSymFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
-        outSymFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
-        outSymFn->setDeclNodeRef(nodeRef);
-        outSymFn->setReturnTypeRef(sema.typeMgr().typeVoid());
-        outSymFn->setAttributes(sema.frame().currentAttributes());
-        outSymFn->setDeclared(ctx);
-        outSymFn->setTyped(ctx);
-        outSymFn->setSemaCompleted(ctx);
-        SWC_ASSERT(outSymFn->tryMarkCodeGenJobScheduled());
-
-        sema.setSymbol(nodeRef, outSymFn);
-
-        const auto job = heapNew<CodeGenJob>(ctx, sema, *outSymFn, nodeRef);
-        sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
-        return Result::Continue;
     }
 }
 
@@ -81,12 +31,12 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
 
-    auto&           ctx   = sema.ctx();
-    SymbolFunction* symFn = nullptr;
-    RESULT_VERIFY(getOrCreateRunExprSymbol(sema, symFn, nodeExprRef));
-    SWC_ASSERT(symFn != nullptr);
-    collectRunExprCallDependencies(sema, *symFn, nodeExprRef);
-    RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.curNode().codeRef()));
+    auto& ctx = sema.ctx();
+    SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
+    auto& symFn = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+
+    scheduleCodeGen(sema, symFn);
+    RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, sema.curNode().codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
@@ -103,9 +53,9 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
-    symFn->emit(ctx);
-    symFn->jit(ctx);
-    RESULT_VERIFY(JIT::call(ctx, symFn->jitEntryAddress(), &resultStorageAddress));
+    symFn.emit(ctx);
+    symFn.jit(ctx);
+    RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
     // Create a constant based on the result
     ConstantValue resultConstant;

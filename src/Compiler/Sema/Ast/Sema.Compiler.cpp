@@ -637,6 +637,32 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstCompilerRunExpr::semaPreNode(Sema& sema) const
+{
+    const AstNodeRef nodeRef = sema.curNodeRef();
+    if (!sema.hasSymbol(nodeRef))
+    {
+        auto&         ctx   = sema.ctx();
+        IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+        const AstNode& node = sema.node(nodeRef);
+
+        auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
+        symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
+        symFn->setDeclNodeRef(nodeRef);
+        symFn->setReturnTypeRef(sema.typeMgr().typeVoid());
+        symFn->setAttributes(sema.frame().currentAttributes());
+        symFn->setDeclared(ctx);
+        symFn->setTyped(ctx);
+        symFn->setSemaCompleted(ctx);
+        sema.setSymbol(nodeRef, symFn);
+    }
+
+    SemaFrame frame = sema.frame();
+    frame.setCurrentFunction(&sema.symbolOf(nodeRef).cast<SymbolFunction>());
+    sema.pushFramePopOnPostNode(frame);
+    return Result::Continue;
+}
+
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
     const SemaNodeView nodeView = sema.nodeView(nodeExprRef);

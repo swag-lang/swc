@@ -14,7 +14,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     fs::path resolved = fs::absolute(file, ec);
     if (ec)
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -30,7 +30,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     // Check existence and type; don't conflate errors with "not found"
     if (!fs::exists(resolved, ec))
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -42,7 +42,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     // Be sure it's a regular file
     if (!fs::is_regular_file(resolved, ec))
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
         diag.addArgument(Diagnostic::ARG_PATH, file.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -62,7 +62,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     fs::path resolved = fs::absolute(folder, ec);
     if (ec)
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -78,7 +78,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     // Check existence and type; don't conflate errors with "not found"
     if (!fs::exists(resolved, ec))
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -92,7 +92,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     // Be sure it's a folder
     if (!fs::is_directory(resolved, ec))
     {
-        auto diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
         diag.addArgument(Diagnostic::ARG_PATH, folder.string());
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
@@ -106,7 +106,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)
 {
-    auto result = msg;
+    Utf8 result = msg;
     result.clean();
     result.trim();
     result.make_lower();
@@ -126,7 +126,7 @@ void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& fol
     {
         if (!entry.is_regular_file())
             continue;
-        auto ext = entry.path().extension().string();
+        std::string ext = entry.path().extension().string();
         if (ext != ".swg" && ext != ".swgs")
             continue;
 

@@ -53,7 +53,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 
-    const auto numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
+    const uint32_t numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
     jitMemMgr_ = std::make_unique<JITExecMemoryManager>();
     setupRuntimeCompiler();
@@ -86,7 +86,7 @@ void CompilerInstance::incPendingImplRegistrations()
 
 void CompilerInstance::decPendingImplRegistrations()
 {
-    const auto prev = pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
+    const uint32_t prev = pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
     SWC_ASSERT(prev > 0);
     notifyAlive();
 }
@@ -115,7 +115,7 @@ void CompilerInstance::logAfter()
 {
     const TaskContext ctx(*this);
 
-    const auto         timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
+    const Utf8         timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
     Logger::ScopedLock loggerLock(ctx.global().logger());
     if (Stats::get().numErrors.load() == 1)
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, "1 error");
@@ -175,7 +175,7 @@ ExitCode CompilerInstance::run()
 SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock lock(mutex_);
-    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceViewRef     srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -189,7 +189,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     SWC_RACE_CONDITION_READ(rcFiles_);
 
     std::unique_lock lock(mutex_);
-    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceViewRef     srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -223,7 +223,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     path         = fs::absolute(path);
-    auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
+    FileRef fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
@@ -243,7 +243,7 @@ std::vector<SourceFile*> CompilerInstance::files() const
 
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
-    const auto&           cmdLine = ctx.cmdLine();
+    const CommandLine&    cmdLine = ctx.cmdLine();
     std::vector<fs::path> paths;
 
     // Collect direct folders from the command line
@@ -296,7 +296,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
     if (files_.empty())
     {
-        const auto diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
         diag.report(ctx);
         return Result::Error;
     }

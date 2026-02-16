@@ -70,15 +70,8 @@ namespace
         SWC_ASSERT(!normalizedRet.isIndirect);
 
         const auto* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
-        bool        isLValue    = codeGen.sema().isLValue(exprRef);
-        if (!isLValue)
-        {
-            const auto exprView = codeGen.nodeView(exprRef);
-            if (exprView.type && (exprView.type->isStruct() || exprView.type->isArray()))
-                isLValue = true;
-        }
-
-        ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isLValue, normalizedRet);
+        const bool  isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
+        ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
 
         codeGen.builder().encodeRet();
         return Result::Continue;
@@ -119,7 +112,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
     const uint32_t numAbiArgs    = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
-    const auto&    nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    auto&          nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
     const MicroReg resultReg     = nodePayload.reg;
 
@@ -129,6 +122,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), numAbiArgs, &calledFunction);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+    nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;
     return Result::Continue;
 }
 
@@ -141,8 +135,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         {
             const auto  compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
             const auto  nodeView          = codeGen.curNodeView();
-            const auto& payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+            auto&       payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
             codeGen.builder().encodeLoadRegImm(payload.reg, compilerIfAddress, MicroOpBits::B64);
+            payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return Result::Continue;
         }
 

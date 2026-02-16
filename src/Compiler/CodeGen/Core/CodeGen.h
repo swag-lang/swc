@@ -13,8 +13,15 @@ struct Token;
 
 struct CodeGenNodePayload
 {
+    enum class StorageKind : uint8_t
+    {
+        Value,
+        Address,
+    };
+
     MicroReg reg     = MicroReg::invalid();
     TypeRef  typeRef = TypeRef::invalid();
+    StorageKind storageKind = StorageKind::Value;
 };
 
 class CodeGen

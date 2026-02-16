@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void emitLoweredConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
+    void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         auto&           ctx         = codeGen.ctx();
         const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
@@ -19,6 +19,7 @@ namespace
         if (!storageSize)
         {
             codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+            payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return;
         }
 
@@ -32,15 +33,17 @@ namespace
             uint64_t value = 0;
             std::memcpy(&value, tmpSpan.data(), storageSize);
             codeGen.builder().encodeLoadRegImm(payload.reg, value, MicroOpBits::B64);
+            payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return;
         }
 
         auto* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
         std::memcpy(storage, tmpSpan.data(), tmpSpan.size());
         codeGen.builder().encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(storage), MicroOpBits::B64);
+        payload.storageKind = CodeGenNodePayload::StorageKind::Address;
     }
 
-    void emitConstantToPayload(CodeGen& codeGen, const CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
+    void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         auto& builder = codeGen.builder();
 
@@ -49,18 +52,21 @@ namespace
             case ConstantKind::Bool:
             {
                 builder.encodeLoadRegImm(payload.reg, cst.getBool() ? 1 : 0, MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::Char:
             {
                 builder.encodeLoadRegImm(payload.reg, cst.getChar(), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::Rune:
             {
                 builder.encodeLoadRegImm(payload.reg, cst.getRune(), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
@@ -69,6 +75,7 @@ namespace
                 const auto& val = cst.getInt();
                 SWC_ASSERT(val.fits64());
                 builder.encodeLoadRegImm(payload.reg, static_cast<uint64_t>(val.asI64()), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
@@ -79,6 +86,7 @@ namespace
                 {
                     const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());
                     builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B32);
+                    payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                     return;
                 }
 
@@ -86,6 +94,7 @@ namespace
                 {
                     const uint64_t bits = std::bit_cast<uint64_t>(value.asDouble());
                     builder.encodeLoadRegImm(payload.reg, bits, MicroOpBits::B64);
+                    payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                     return;
                 }
 
@@ -108,24 +117,28 @@ namespace
                 runtimeString->length = value.size();
 
                 builder.encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::ValuePointer:
             {
                 builder.encodeLoadRegImm(payload.reg, cst.getValuePointer(), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
                 builder.encodeLoadRegImm(payload.reg, cst.getBlockPointer(), MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::Null:
             {
                 builder.encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
@@ -156,7 +169,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (!nodeView.cst)
         return Result::Continue;
 
-    const auto& payload = setPayload(nodeRef, nodeView.typeRef);
+    auto& payload = setPayload(nodeRef, nodeView.typeRef);
     emitConstantToPayload(*this, payload, nodeView.cstRef, *nodeView.cst, nodeView.typeRef);
     return Result::Continue;
 }

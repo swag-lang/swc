@@ -20,11 +20,12 @@ namespace
         const auto&   methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
-        const auto&    payload = codeGen.setPayload(codeGen.curNodeRef());
+        auto&          payload = codeGen.setPayload(codeGen.curNodeRef());
         const MicroReg leftReg = leftPayload->reg;
         const MicroReg dstReg  = payload.reg;
         builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
         builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
+        payload.storageKind = CodeGenNodePayload::StorageKind::Value;
         return Result::Continue;
     }
 }

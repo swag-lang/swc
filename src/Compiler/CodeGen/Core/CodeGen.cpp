@@ -94,6 +94,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
     auto& dstPayload = setPayload(dstNodeRef, typeRef);
     dstPayload.reg   = srcPayload->reg;
+    dstPayload.storageKind = srcPayload->storageKind;
     return dstPayload;
 }
 
@@ -108,6 +109,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 
     nodePayload->reg     = MicroReg::virtualReg(nextVirtualRegister());
     nodePayload->typeRef = typeRef;
+    nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 

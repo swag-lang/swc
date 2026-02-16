@@ -17,8 +17,9 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     const MicroReg outputStorageReg = callConv.intArgRegs[0];
-    const auto&    nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
+    auto&          nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
     codeGen.builder().encodeLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
+    nodePayload.storageKind = CodeGenNodePayload::StorageKind::Address;
     return Result::Continue;
 }
 
@@ -34,7 +35,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
     const MicroReg payloadReg       = payload->reg;
-    const bool     payloadLValue    = codeGen.sema().isLValue(nodeExprRef);
+    const bool     payloadLValue    = payload->storageKind == CodeGenNodePayload::StorageKind::Address;
     const auto*    runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
     SWC_ASSERT(outputStorageReg.isValid());

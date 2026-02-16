@@ -155,8 +155,6 @@ namespace
         {
             RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.nodeView(argValueRef);
-            if (!argView.cst->isString())
-                return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeString());
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst->getString()});
         }
 
@@ -170,14 +168,8 @@ namespace
 
         const SemaNodeView   argView = sema.nodeView(argValueRef);
         const ConstantValue* value   = argView.cst;
-        if (value->isEnumValue())
-            value = &sema.ctx().cstMgr().get(value->getEnumValue());
-        if (!value->isInt())
-            return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeS32());
-
-        const int64_t levelI64 = value->getInt().asI64();
-        if (levelI64 < 0 || levelI64 > static_cast<int64_t>(Runtime::BuildCfgBackendOptim::Oz))
-            return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeS32());
+        value                        = &sema.ctx().cstMgr().get(value->getEnumValue());
+        const int64_t levelI64       = value->getInt().asI64();
         outAttributes.setBackendOptimize(static_cast<Runtime::BuildCfgBackendOptim>(levelI64));
 
         return Result::Continue;

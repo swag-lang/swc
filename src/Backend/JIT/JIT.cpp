@@ -95,27 +95,22 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, const JITExecMemory& executableMemory)
+    void patchCodeRelocations(std::span<std::byte> writableCode, std::span<const MicroInstrRelocation> relocations)
     {
+        SWC_FORCE_ASSERT(!writableCode.empty());
+
         if (relocations.empty())
             return;
 
-        std::unique_lock memoryLock(memoryManager.memoryMutex());
-
-        SWC_FORCE_ASSERT(!linearCode.empty());
-        auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
+        auto* const basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_FORCE_ASSERT(basePtr != nullptr);
-        SWC_FORCE_ASSERT(!executableMemory.empty());
-        SWC_FORCE_ASSERT(executableMemory.size() >= linearCode.size_bytes());
-
-        SWC_FORCE_ASSERT(Os::makeWritableExecutableMemory(basePtr, executableMemory.size()));
 
         for (const auto& reloc : relocations)
         {
             auto target = reloc.targetAddress;
             if (target == 0 && reloc.targetSymbol && reloc.targetSymbol->isFunction())
             {
-                auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
+                auto&      targetFunction     = reloc.targetSymbol->cast<SymbolFunction>();
                 const auto targetEntryAddress = targetFunction.jitEntryAddress();
                 if (targetEntryAddress)
                     target = reinterpret_cast<uint64_t>(targetEntryAddress);
@@ -131,7 +126,7 @@ namespace
             SWC_FORCE_ASSERT(reloc.kind == MicroInstrRelocation::Kind::Rel32);
 
             const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
-            SWC_FORCE_ASSERT(patchEndOffset <= executableMemory.size());
+            SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
 
             const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
             const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
@@ -140,15 +135,23 @@ namespace
             const int32_t disp32 = static_cast<int32_t>(delta);
             std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
         }
-
-        SWC_FORCE_ASSERT(Os::makeExecutableMemory(basePtr, executableMemory.size()));
     }
 }
 
 void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrRelocation> relocations, JITExecMemory& outExecutableMemory)
 {
-    SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(linearCode, outExecutableMemory));
-    patchCodeRelocations(ctx.compiler().jitMemMgr(), linearCode, relocations, outExecutableMemory);
+    SWC_FORCE_ASSERT(!linearCode.empty());
+    SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
+
+    auto&                memoryManager = ctx.compiler().jitMemMgr();
+    const auto           codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
+    std::span<std::byte> writableCode;
+
+    SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
+    writableCode = std::span{static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size()};
+    std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
+    patchCodeRelocations(writableCode, relocations);
+    SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
 }
 
 void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)

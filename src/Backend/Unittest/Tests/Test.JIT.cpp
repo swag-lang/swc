@@ -97,8 +97,8 @@ SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
     constexpr std::array code = {std::byte{0xC3}};
     const ByteSpan       bytes(code.data(), code.size());
 
-    SWC_ASSERT(manager.allocateAndCopy(bytes, memA));
-    SWC_ASSERT(manager.allocateAndCopy(bytes, memB));
+    SWC_ASSERT(manager.allocateAndCopy(memA, bytes));
+    SWC_ASSERT(manager.allocateAndCopy(memB, bytes));
 
     using Fn       = void (*)();
     const auto fnA = reinterpret_cast<Fn>(memA.entryPoint());

@@ -109,6 +109,13 @@ namespace Os
         return IsDebuggerPresent() ? true : false;
     }
 
+    uint32_t memoryPageSize()
+    {
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+        return info.dwPageSize;
+    }
+
     void* allocExecutableMemory(uint32_t size)
     {
         return VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);

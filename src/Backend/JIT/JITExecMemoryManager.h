@@ -13,9 +13,9 @@ public:
     JITExecMemoryManager(const JITExecMemoryManager&)            = delete;
     JITExecMemoryManager& operator=(const JITExecMemoryManager&) = delete;
 
-    std::mutex& memoryMutex() noexcept { return mutex_; }
-
-    bool allocateAndCopy(ByteSpan bytes, JITExecMemory& outExecutableMemory);
+    bool allocate(JITExecMemory& outExecutableMemory, uint32_t size);
+    bool makeExecutable(const JITExecMemory& executableMemory);
+    bool allocateAndCopy(JITExecMemory& outExecutableMemory, ByteSpan bytes);
 
 private:
     struct Block

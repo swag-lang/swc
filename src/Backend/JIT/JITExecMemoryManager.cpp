@@ -11,6 +11,14 @@ namespace
         SWC_ASSERT(alignment != 0);
         return (value + alignment - 1) & ~(alignment - 1);
     }
+
+    uint32_t executablePageSize()
+    {
+        static const uint32_t pageSize = Os::memoryPageSize();
+        SWC_ASSERT(pageSize != 0);
+        SWC_ASSERT((pageSize & (pageSize - 1)) == 0);
+        return pageSize;
+    }
 }
 
 JITExecMemoryManager::~JITExecMemoryManager()
@@ -24,22 +32,23 @@ JITExecMemoryManager::~JITExecMemoryManager()
     blocks_.clear();
 }
 
-bool JITExecMemoryManager::allocateAndCopy(ByteSpan bytes, JITExecMemory& outExecutableMemory)
+bool JITExecMemoryManager::allocate(JITExecMemory& outExecutableMemory, uint32_t size)
 {
     outExecutableMemory.reset();
-    SWC_ASSERT(bytes.data() || bytes.empty());
-    if (bytes.empty())
+    if (!size)
         return false;
 
-    SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
-    const auto requestSize = static_cast<uint32_t>(bytes.size());
+    const uint32_t pageSize = executablePageSize();
+    SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max() - (pageSize - 1));
+    const uint32_t requestSize      = size;
+    const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
     std::unique_lock lock(mutex_);
 
     Block* targetBlock = nullptr;
     for (auto& block : blocks_)
     {
-        if (block.size - block.allocated >= requestSize)
+        if (block.size - block.allocated >= requestSizeAlign)
         {
             targetBlock = &block;
             break;
@@ -48,7 +57,7 @@ bool JITExecMemoryManager::allocateAndCopy(ByteSpan bytes, JITExecMemory& outExe
 
     if (!targetBlock)
     {
-        const auto blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSize, 4096));
+        const auto blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSizeAlign, pageSize));
         auto*      ptr       = Os::allocExecutableMemory(blockSize);
         if (!ptr)
             return false;
@@ -58,19 +67,43 @@ bool JITExecMemoryManager::allocateAndCopy(ByteSpan bytes, JITExecMemory& outExe
     }
 
     SWC_ASSERT(targetBlock);
-    if (!Os::makeWritableExecutableMemory(targetBlock->ptr, targetBlock->size))
+    auto* const dst           = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
+    targetBlock->allocated += requestSizeAlign;
+
+    outExecutableMemory.ptr_            = dst;
+    outExecutableMemory.size_           = requestSize;
+    outExecutableMemory.allocationSize_ = requestSizeAlign;
+    return true;
+}
+
+bool JITExecMemoryManager::makeExecutable(const JITExecMemory& executableMemory)
+{
+    if (executableMemory.empty())
         return false;
 
-    auto* dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
-    std::memcpy(dst, bytes.data(), bytes.size());
+    SWC_ASSERT(executableMemory.allocationSize_ >= executableMemory.size_);
+    return Os::makeExecutableMemory(executableMemory.ptr_, executableMemory.allocationSize_);
+}
 
-    const auto newAllocated = targetBlock->allocated + requestSize;
-    if (!Os::makeExecutableMemory(targetBlock->ptr, newAllocated))
+bool JITExecMemoryManager::allocateAndCopy(JITExecMemory& outExecutableMemory, ByteSpan bytes)
+{
+    outExecutableMemory.reset();
+    SWC_ASSERT(bytes.data() || bytes.empty());
+    if (bytes.empty())
         return false;
 
-    targetBlock->allocated    = newAllocated;
-    outExecutableMemory.ptr_  = dst;
-    outExecutableMemory.size_ = requestSize;
+    SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
+    const auto requestSize = static_cast<uint32_t>(bytes.size());
+    if (!allocate(outExecutableMemory, requestSize))
+        return false;
+
+    std::memcpy(outExecutableMemory.ptr_, bytes.data(), bytes.size());
+    if (!makeExecutable(outExecutableMemory))
+    {
+        outExecutableMemory.reset();
+        return false;
+    }
+
     return true;
 }
 

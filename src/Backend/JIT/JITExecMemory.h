@@ -21,8 +21,9 @@ public:
 private:
     friend class JITExecMemoryManager;
 
-    void*    ptr_  = nullptr;
-    uint32_t size_ = 0;
+    void*    ptr_            = nullptr;
+    uint32_t size_           = 0;
+    uint32_t allocationSize_ = 0;
 };
 
 SWC_END_NAMESPACE();

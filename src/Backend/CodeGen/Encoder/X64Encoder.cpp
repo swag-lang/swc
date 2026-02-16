@@ -2572,7 +2572,13 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
             case MicroCond::Zero:
                 emitCpuOp(store_, 0x74);
                 break;
+            case MicroCond::Equal:
+                emitCpuOp(store_, 0x74);
+                break;
             case MicroCond::NotZero:
+                emitCpuOp(store_, 0x75);
+                break;
+            case MicroCond::NotEqual:
                 emitCpuOp(store_, 0x75);
                 break;
             case MicroCond::BelowOrEqual:
@@ -2636,7 +2642,15 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x84);
             break;
+        case MicroCond::Equal:
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x84);
+            break;
         case MicroCond::NotZero:
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, 0x85);
+            break;
+        case MicroCond::NotEqual:
             emitCpuOp(store_, 0x0F);
             emitCpuOp(store_, 0x85);
             break;

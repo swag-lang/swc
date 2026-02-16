@@ -81,9 +81,17 @@ namespace
                     const auto l = b.createLabel();
                     b.encodeJumpToLabel(MicroCond::Zero, MicroOpBits::B8, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
+        ENCODE_CASE("jump_not_equal_b8_patch_here", "75 00",
+                    const auto l = b.createLabel();
+                    b.encodeJumpToLabel(MicroCond::NotEqual, MicroOpBits::B8, l, K_EMIT);
+                    b.placeLabel(l, K_EMIT););
         ENCODE_CASE("jump_above_b32_patch_here", "0F 87 00 00 00 00",
                     const auto l = b.createLabel();
                     b.encodeJumpToLabel(MicroCond::Above, MicroOpBits::B32, l, K_EMIT);
+                    b.placeLabel(l, K_EMIT););
+        ENCODE_CASE("jump_equal_b32_patch_here", "0F 84 00 00 00 00",
+                    const auto l = b.createLabel();
+                    b.encodeJumpToLabel(MicroCond::Equal, MicroOpBits::B32, l, K_EMIT);
                     b.placeLabel(l, K_EMIT););
         ENCODE_CASE("jump_less_b32_patch_here", "0F 8C 00 00 00 00",
                     const auto l = b.createLabel();

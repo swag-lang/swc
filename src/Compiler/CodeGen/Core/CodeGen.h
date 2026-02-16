@@ -51,6 +51,7 @@ public:
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     MicroReg                 nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
     MicroReg                 nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
+    MicroReg                 nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
     MicroInstrBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }
     const MicroInstrBuilder& builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
 

@@ -1,9 +1,11 @@
 #pragma once
 #include "Support/Core/RefTypes.h"
+#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+class JITExecMemory;
 
 struct FFIArgument
 {
@@ -20,6 +22,7 @@ struct FFIReturn
 class FFI final
 {
 public:
+    static void emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory);
     static void call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> args, const FFIReturn& ret);
 };
 

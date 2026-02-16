@@ -193,10 +193,9 @@
         <ClCompile Include="src\Backend\Unittest\Tests\Test.FFI.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp"/>
-        <ClCompile Include="src\Backend\FFI\FFI.cpp"/>
+        <ClCompile Include="src\Backend\JIT\FFI.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITExecMemoryManager.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITExecMemory.cpp"/>
-        <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\ABI\CallConv.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\ABI\ABICall.cpp"/>
@@ -383,10 +382,9 @@
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPrologEpilogPass.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroRegisterAllocationPass.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPass.h"/>
-        <ClInclude Include="src\Backend\FFI\FFI.h"/>
+        <ClInclude Include="src\Backend\JIT\FFI.h"/>
         <ClInclude Include="src\Backend\JIT\JITExecMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITExecMemoryManager.h"/>
-        <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\CodeGen\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\CodeGen\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroReg.h"/>

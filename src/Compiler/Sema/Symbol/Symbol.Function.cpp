@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/FFI.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -146,7 +146,7 @@ void SymbolFunction::jit(TaskContext& ctx)
         return;
     SWC_ASSERT(hasLoweredCode());
 
-    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
+    FFI::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
     const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
     SWC_FORCE_ASSERT(entry != 0);
     jitEntryAddress_.store(entry, std::memory_order_release);

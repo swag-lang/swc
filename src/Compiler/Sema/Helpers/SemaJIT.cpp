@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Backend/FFI/FFI.h"
-#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/FFI.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"

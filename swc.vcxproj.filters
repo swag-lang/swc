@@ -7,9 +7,6 @@
     <Filter Include="src\Backend">
       <UniqueIdentifier>{ADE7606A-DE46-5533-9777-E445672AF74F}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Backend\FFI">
-      <UniqueIdentifier>{FDEFC08D-EC5F-CB3B-A37B-E4CC1DE9781C}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\Backend\JIT">
       <UniqueIdentifier>{89C8AF00-175F-FF3C-A7C3-CB670F61F359}</UniqueIdentifier>
     </Filter>
@@ -123,10 +120,7 @@
     <ClCompile Include="src\Backend\Backend.cpp">
       <Filter>src\Backend</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\FFI\FFI.cpp">
-      <Filter>src\Backend\FFI</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\JIT\JIT.cpp">
+    <ClCompile Include="src\Backend\JIT\FFI.cpp">
       <Filter>src\Backend\JIT</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\JIT\JitExecMemory.cpp">
@@ -620,10 +614,7 @@
     <ClInclude Include="src\Backend\Backend.h">
       <Filter>src\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\FFI\FFI.h">
-      <Filter>src\Backend\FFI</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\JIT\JIT.h">
+    <ClInclude Include="src\Backend\JIT\FFI.h">
       <Filter>src\Backend\JIT</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\JIT\JITExecMemory.h">

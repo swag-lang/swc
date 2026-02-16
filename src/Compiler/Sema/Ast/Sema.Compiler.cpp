@@ -670,15 +670,6 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     if (nodeView.type->isVoid())
         return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
 
-    // TODO
-    if (sema.file()->isRuntime())
-    {
-        SWC_ASSERT(nodeView.type->isStruct());
-        const ConstantValue cv = ConstantValue::makeStruct(sema.ctx(), nodeView.typeRef, ByteSpan{static_cast<std::byte*>(nullptr), 2048});
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), cv));
-        return Result::Continue;
-    }
-
     auto& runExprSymFn = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     RESULT_VERIFY(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);

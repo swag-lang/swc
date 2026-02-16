@@ -335,6 +335,7 @@ struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
     AstNodeRef nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     codeGenPreNode(CodeGen& codeGen) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNode(Sema& sema) const;
     Result     semaPostNode(Sema& sema) const;

@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Backend/CodeGen/ABI/ABITypeNormalize.h"
+#include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -46,6 +49,20 @@ namespace
             result.setTypeRef(nodeView.typeRef);
         return result;
     }
+
+    ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
+    {
+        const auto& ctx           = sema.ctx();
+        const auto  strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
+        if (!strPtrAddress)
+            return ConstantValue::makeString(ctx, std::string_view{});
+
+        const auto* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        if (!str->ptr || !str->length)
+            return ConstantValue::makeString(ctx, std::string_view{});
+
+        return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
@@ -62,10 +79,19 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     auto&           ctx            = sema.ctx();
     const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
     const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+    const auto      normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression
-    const uint64_t resultSize = storageType.sizeOf(ctx);
+    uint64_t resultSize = storageType.sizeOf(ctx);
+    if (!normalizedRet.isIndirect)
+    {
+        if (normalizedRet.numBits)
+            resultSize = normalizedRet.numBits / 8;
+        else
+            resultSize = 8;
+    }
+
     SWC_ASSERT(resultSize > 0);
     SmallVector<std::byte> resultStorage(resultSize);
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
@@ -75,7 +101,11 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     symFn.jit(ctx);
     RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
-    const ConstantValue resultConstant = makeRunExprConstant(sema, nodeView, storageTypeRef, resultStorage.data());
+    ConstantValue resultConstant;
+    if (!normalizedRet.isIndirect && nodeView.type->isString())
+        resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
+    else
+        resultConstant = makeRunExprConstant(sema, nodeView, storageTypeRef, resultStorage.data());
     sema.setConstant(nodeExprRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;
 }

@@ -24,6 +24,7 @@ class JIT final
 public:
     static void emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory);
     static void call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
+    static void callVoidU64(TaskContext& ctx, void* targetFn, uint64_t arg0);
 };
 
 SWC_END_NAMESPACE();

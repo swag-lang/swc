@@ -97,30 +97,18 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     symFn->emit(ctx);
     symFn->jit(ctx);
 
-    const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
-    SWC_ASSERT(targetFn != nullptr);
-
     const TypeInfo& nodeType         = *SWC_CHECK_NOT_NULL(nodeView.type);
     const TypeRef   resultStorageRef = nodeType.unwrap(ctx, nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     const TypeInfo& resultStorageTy  = sema.typeMgr().get(resultStorageRef);
-    if (resultStorageTy.isVoid())
-        return Result::Continue;
+    SWC_ASSERT(!resultStorageTy.isVoid());
 
     const uint64_t         resultSize = resultStorageTy.sizeOf(ctx);
     std::vector<std::byte> resultStorage(resultSize == 0 ? 1 : resultSize);
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
-    const JITArgument resultStorageArg = {
-        .typeRef  = sema.typeMgr().typeU64(),
-        .valuePtr = &resultStorageAddress,
-    };
-
-    const JITReturn returnValue = {
-        .typeRef  = sema.typeMgr().typeVoid(),
-        .valuePtr = nullptr,
-    };
-
-    JIT::call(ctx, targetFn, std::span{&resultStorageArg, 1}, returnValue);
+    const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
+    SWC_ASSERT(targetFn != nullptr);
+    JIT::callVoidU64(ctx, targetFn, resultStorageAddress);
 
     ConstantValue resultConstant;
     if (nodeType.isEnum())

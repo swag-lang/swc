@@ -17,7 +17,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using JITInvokerFn = void (*)();
+    using JITInvokerFn       = void (*)();
+    using JITInvokerVoid1U64 = void (*)(uint64_t);
 
     struct JITExceptionInfo
     {
@@ -241,12 +242,27 @@ void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> ar
     loweredCode.emit(ctx, builder);
 
     JITExecMemory executableMemory;
-    JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
+    emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
 
     const auto invoker = executableMemory.entryPoint<JITInvokerFn>();
     SWC_ASSERT(invoker != nullptr);
 
     invokeCall(ctx, invoker);
+}
+
+void JIT::callVoidU64(TaskContext& ctx, void* targetFn, uint64_t arg0)
+{
+    SWC_ASSERT(targetFn != nullptr);
+    const auto typedFn = reinterpret_cast<JITInvokerVoid1U64>(targetFn);
+
+    const JITExceptionInfo info{.invoker = reinterpret_cast<JITInvokerFn>(typedFn)};
+    SWC_TRY
+    {
+        typedFn(arg0);
+    }
+    SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
+    {
+    }
 }
 
 SWC_END_NAMESPACE();

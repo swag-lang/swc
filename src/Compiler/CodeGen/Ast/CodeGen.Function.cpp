@@ -73,19 +73,17 @@ namespace
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
-            MicroReg outputStorageReg = callConv.intArgRegs[0];
-            if (const auto* fnPayload = codeGen.payload(symbolFunc.declNodeRef()))
-            {
-                if (fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
-                    outputStorageReg = fnPayload->reg;
-            }
 
-            auto&          builder   = codeGen.builder();
-            const MicroReg retPtrReg = codeGen.nextVirtualIntRegister();
-            builder.encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
+            const auto* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
+            SWC_ASSERT(fnPayload);
+            SWC_ASSERT(fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
+
+            const MicroReg outputStorageReg = fnPayload->reg;
+            const MicroReg retPtrReg        = codeGen.nextVirtualIntRegister();
+            codeGen.builder().encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
             SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-            builder.encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
+            codeGen.builder().encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
         }
         else
         {

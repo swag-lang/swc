@@ -166,6 +166,7 @@ struct LocalStruct
     #assert(V.y == true)
 }
 
+#[Swag.PrintMicro]
 #test
 {
     func retArray()->[3] s32 { return [1, 2, 3] }

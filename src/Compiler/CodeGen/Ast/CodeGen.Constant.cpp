@@ -169,6 +169,17 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (!nodeView.cst)
         return Result::Continue;
 
+    if (nodeRef == curNodeRef())
+    {
+        const AstNodeRef parentRef = visit().parentNodeRef();
+        if (parentRef.isValid())
+        {
+            const auto parentView = this->nodeView(parentRef);
+            if (parentView.cst)
+                return Result::Continue;
+        }
+    }
+
     auto& payload = setPayload(nodeRef, nodeView.typeRef);
     emitConstantToPayload(*this, payload, nodeView.cstRef, *nodeView.cst, nodeView.typeRef);
     return Result::Continue;

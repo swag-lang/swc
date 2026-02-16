@@ -12,6 +12,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 
     auto& builder = codeGen.builder();
 
+    const auto dstRegTmp = codeGen.nextVirtualIntRegister();
     const auto srcReg   = codeGen.nextVirtualIntRegister();
     const auto tmpReg   = codeGen.nextVirtualIntRegister();
     const auto countReg = codeGen.nextVirtualIntRegister();
@@ -19,6 +20,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     const auto loopLabel = builder.createLabel();
     const auto doneLabel = builder.createLabel();
 
+    builder.encodeLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     builder.encodeLoadRegReg(srcReg, srcAddressReg, MicroOpBits::B64);
     builder.encodeLoadRegImm(countReg, sizeInBytes, MicroOpBits::B64);
 
@@ -27,9 +29,9 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     builder.encodeJumpToLabel(MicroCond::Zero, MicroOpBits::B32, doneLabel);
 
     builder.encodeLoadRegMem(tmpReg, srcReg, 0, MicroOpBits::B8);
-    builder.encodeLoadMemReg(dstReg, 0, tmpReg, MicroOpBits::B8);
+    builder.encodeLoadMemReg(dstRegTmp, 0, tmpReg, MicroOpBits::B8);
     builder.encodeOpBinaryRegImm(srcReg, 1, MicroOp::Add, MicroOpBits::B64);
-    builder.encodeOpBinaryRegImm(dstReg, 1, MicroOp::Add, MicroOpBits::B64);
+    builder.encodeOpBinaryRegImm(dstRegTmp, 1, MicroOp::Add, MicroOpBits::B64);
     builder.encodeOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64);
     builder.encodeJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
     builder.placeLabel(doneLabel);

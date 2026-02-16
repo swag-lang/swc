@@ -125,15 +125,23 @@ Result CodeGen::preNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.codeGenPreNode(*this, node);
+    RESULT_VERIFY(info.codeGenPreNode(*this, node));
+
+    if (curNodeView().cst)
+        return Result::SkipChildren;
+
+    return Result::Continue;
 }
 
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
+    if (curNodeView().cst)
+        return emitConstant(curNodeRef());
+
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     RESULT_VERIFY(info.codeGenPostNode(*this, node));
-    return emitConstant(curNodeRef());
+    return Result::Continue;
 }
 
 Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)

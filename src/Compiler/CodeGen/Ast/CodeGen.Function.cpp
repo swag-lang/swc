@@ -79,11 +79,9 @@ namespace
             SWC_ASSERT(fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
 
             const MicroReg outputStorageReg = fnPayload->reg;
-            const MicroReg retPtrReg        = codeGen.nextVirtualIntRegister();
-            codeGen.builder().encodeLoadRegReg(retPtrReg, outputStorageReg, MicroOpBits::B64);
             SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-            codeGen.builder().encodeLoadRegReg(callConv.intReturn, retPtrReg, MicroOpBits::B64);
+            codeGen.builder().encodeLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
@@ -94,22 +92,6 @@ namespace
         codeGen.builder().encodeRet();
         return Result::Continue;
     }
-}
-
-Result AstFunctionDecl::codeGenPreNode(CodeGen& codeGen) const
-{
-    const auto& symbolFunc    = codeGen.function();
-    const auto  callConvKind  = symbolFunc.callConvKind();
-    const auto& callConv      = CallConv::get(callConvKind);
-    const auto  normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-    if (!normalizedRet.isIndirect)
-        return Result::Continue;
-
-    SWC_ASSERT(!callConv.intArgRegs.empty());
-    auto& payload = codeGen.setPayload(codeGen.curNodeRef());
-    codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
-    payload.storageKind = CodeGenNodePayload::StorageKind::Address;
-    return Result::Continue;
 }
 
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const

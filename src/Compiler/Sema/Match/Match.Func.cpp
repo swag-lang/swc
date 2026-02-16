@@ -1013,7 +1013,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, *outResolvedArgs);
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
-    sema.setIsValue(sema.node(sema.curNodeRef()));
+    sema.setIsValue(sema.curNode());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
 }

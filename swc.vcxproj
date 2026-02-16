@@ -205,7 +205,7 @@
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrStorage.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstr.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\LoweredMicroCode.cpp"/>
+        <ClCompile Include="src\Backend\CodeGen\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroEmitPass.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPrologEpilogPass.cpp"/>
@@ -377,7 +377,7 @@
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrPrinter.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\LoweredMicroCode.h"/>
+        <ClInclude Include="src\Backend\CodeGen\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroEmitPass.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPrologEpilogPass.h"/>

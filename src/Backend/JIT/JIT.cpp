@@ -48,12 +48,8 @@ namespace
 
 void JIT::emit(TaskContext& ctx, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& outExecutableMemory)
 {
-#ifdef _M_X64
     SWC_FORCE_ASSERT(ctx.compiler().jitMemMgr().allocateAndCopy(linearCode, outExecutableMemory));
     patchCodeRelocations(linearCode, relocations, outExecutableMemory);
-#else
-    SWC_UNREACHABLE();
-#endif
 }
 
 SWC_END_NAMESPACE();

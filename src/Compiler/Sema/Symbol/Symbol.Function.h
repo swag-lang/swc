@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
+#include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -82,7 +82,7 @@ private:
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
     MicroInstrBuilder            microInstrBuilder_;
-    LoweredMicroCode             loweredMicroCode_;
+    MachineCode                  loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   emitMutex_;

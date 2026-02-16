@@ -130,7 +130,7 @@ void SymbolFunction::emit(TaskContext& ctx)
     std::scoped_lock lock(emitMutex_);
     if (hasLoweredCode())
         return;
-    lowerMicroInstructions(ctx, microInstrBuilder(ctx), loweredMicroCode_);
+    loweredMicroCode_.emit(ctx, microInstrBuilder(ctx));
     ctx.compiler().notifyAlive();
 }
 

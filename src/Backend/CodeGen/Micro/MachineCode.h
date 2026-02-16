@@ -6,12 +6,12 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 
-struct LoweredMicroCode
+struct MachineCode
 {
     std::vector<std::byte>                bytes;
     std::vector<MicroInstrCodeRelocation> codeRelocations;
-};
 
-void lowerMicroInstructions(TaskContext& ctx, MicroInstrBuilder& builder, LoweredMicroCode& outCode);
+    void emit(TaskContext& ctx, MicroInstrBuilder& builder);
+};
 
 SWC_END_NAMESPACE();

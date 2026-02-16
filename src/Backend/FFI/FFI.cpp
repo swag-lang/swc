@@ -3,7 +3,7 @@
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
+#include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
@@ -194,8 +194,8 @@ void FFI::call(TaskContext& ctx, void* targetFn, std::span<const FFIArgument> ar
     ABICall::callByAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.encodeRet();
 
-    LoweredMicroCode loweredCode;
-    lowerMicroInstructions(ctx, builder, loweredCode);
+    MachineCode loweredCode;
+    loweredCode.emit(ctx, builder);
 
     JITExecMemory executableMemory;
     JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);

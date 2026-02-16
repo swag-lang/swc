@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/LoweredMicroCode.h"
+#include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
@@ -20,8 +20,8 @@ namespace
         MicroInstrBuilder builder(ctx);
         buildFn(builder, callConv);
 
-        LoweredMicroCode loweredCode;
-        lowerMicroInstructions(ctx, builder, loweredCode);
+        MachineCode loweredCode;
+        loweredCode.emit(ctx, builder);
 
         JITExecMemory executableMemory;
         JIT::emit(ctx, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, executableMemory);
@@ -58,8 +58,8 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     calleeBuilder.encodeLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
     calleeBuilder.encodeRet();
 
-    LoweredMicroCode loweredCalleeCode;
-    lowerMicroInstructions(ctx, calleeBuilder, loweredCalleeCode);
+    MachineCode loweredCalleeCode;
+    loweredCalleeCode.emit(ctx, calleeBuilder);
 
     JITExecMemory calleeExecMemory;
     JIT::emit(ctx, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations, calleeExecMemory);
@@ -76,8 +76,8 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
     callerBuilder.encodeRet();
 
-    LoweredMicroCode loweredCallerCode;
-    lowerMicroInstructions(ctx, callerBuilder, loweredCallerCode);
+    MachineCode loweredCallerCode;
+    loweredCallerCode.emit(ctx, callerBuilder);
 
     JITExecMemory callerExecMemory;
     JIT::emit(ctx, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations, callerExecMemory);

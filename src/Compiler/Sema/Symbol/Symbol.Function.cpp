@@ -1,56 +1,11 @@
 #include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    void patchCodeRelocations(JITExecMemoryManager& memoryManager, std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& executableMemory)
-    {
-        if (relocations.empty())
-            return;
-
-        std::unique_lock memoryLock(memoryManager.memoryMutex());
-
-        SWC_FORCE_ASSERT(!linearCode.empty());
-        auto* const basePtr = static_cast<uint8_t*>(executableMemory.entryPoint());
-        SWC_FORCE_ASSERT(basePtr != nullptr);
-        SWC_FORCE_ASSERT(!executableMemory.empty());
-        SWC_FORCE_ASSERT(executableMemory.size() >= linearCode.size_bytes());
-
-        SWC_FORCE_ASSERT(Os::makeWritableExecutableMemory(basePtr, executableMemory.size()));
-
-        for (const auto& reloc : relocations)
-        {
-            auto target = reloc.targetAddress;
-            if (target == 0 && reloc.targetSymbol && reloc.targetSymbol->isFunction())
-                target = reinterpret_cast<uint64_t>(reloc.targetSymbol->cast<SymbolFunction>().jitEntryAddress());
-
-            if (target == 0)
-                continue;
-
-            SWC_FORCE_ASSERT(reloc.kind == MicroInstrCodeRelocation::Kind::Rel32);
-
-            const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
-            SWC_FORCE_ASSERT(patchEndOffset <= executableMemory.size());
-
-            const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
-            const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
-            SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
-
-            const int32_t disp32 = static_cast<int32_t>(delta);
-            std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
-        }
-
-        SWC_FORCE_ASSERT(Os::makeExecutableMemory(basePtr, executableMemory.size()));
-    }
-}
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 {
@@ -149,22 +104,37 @@ void SymbolFunction::jit(TaskContext& ctx)
         return;
     SWC_ASSERT(hasLoweredCode());
 
-    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
-    auto* const entry = jitExecMemory_.entryPoint();
-    SWC_FORCE_ASSERT(entry != nullptr);
-    jitEntryAddress_.store(entry, std::memory_order_release);
-
-    for (const auto& reloc : loweredMicroCode_.codeRelocations)
+    SmallVector<SymbolFunction*> dependencies;
+    appendCallDependencies(dependencies);
+    for (auto* dependency : dependencies)
     {
+        if (!dependency || dependency == this)
+            continue;
+        dependency->jit(ctx);
+    }
+
+    auto relocations = loweredMicroCode_.codeRelocations;
+    for (auto& reloc : relocations)
+    {
+        if (reloc.targetAddress != 0)
+            continue;
         if (!reloc.targetSymbol || !reloc.targetSymbol->isFunction())
             continue;
 
         auto& targetFunc = reloc.targetSymbol->cast<SymbolFunction>();
-        if (&targetFunc != this)
-            targetFunc.jit(ctx);
+        if (&targetFunc == this)
+            continue;
+
+        const auto targetAddress = targetFunc.jitEntryAddress();
+        SWC_FORCE_ASSERT(targetAddress != nullptr);
+        reloc.targetAddress = reinterpret_cast<uint64_t>(targetAddress);
     }
 
-    patchCodeRelocations(ctx.compiler().jitMemMgr(), asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
+    JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), relocations, jitExecMemory_);
+    auto* const entry = jitExecMemory_.entryPoint();
+    SWC_FORCE_ASSERT(entry != nullptr);
+    jitEntryAddress_.store(entry, std::memory_order_release);
+
     ctx.compiler().notifyAlive();
 }
 

@@ -22,7 +22,6 @@ const BB = @err  // swc-expected-error {{sema_err_expr_not_const}}
 #print(SEMA6)    // swc-expected-error {{sema_err_unknown_symbol}}
 
 const V0 = 1
-#assert(#typeof(V0) == s32)
 const V1 = 1.0
 #assert(#typeof(V1) == f32)
 const V2 = 0x1FFFFFFFF

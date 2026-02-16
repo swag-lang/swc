@@ -102,14 +102,6 @@ alias LocalStrict = s32
     #assert(cast(s32) V == 77)
 }
 
-/*
-enum LocalEnum: u16 { A = 513 }
-struct LocalStruct
-{
-    x: s32
-    y: bool
-}
-
 #test
 {
     func retS8()->s8 { return 12's8 }
@@ -142,12 +134,20 @@ struct LocalStruct
     #assert(V == 1234'u16)
 }
 
+/*
 #test
 {
     func retString()->string { return "run-expr" }
     const V = #run retString()
     #assert(#typeof(V) == string)
     #assert(V == "run-expr")
+}
+
+enum LocalEnum: u16 { A = 513 }
+struct LocalStruct
+{
+    x: s32
+    y: bool
 }
 
 #test

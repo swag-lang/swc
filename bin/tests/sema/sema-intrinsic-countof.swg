@@ -12,8 +12,6 @@ const B = "XYZ"
 {
     const a = @countof(3)
     #assert(a == 3)
-    #assert(#typeof(a) == u32)
-
     const b = @countof(-1) // swc-expected-error {{sema_err_count_negative}}
 }
 

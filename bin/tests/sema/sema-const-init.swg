@@ -81,3 +81,15 @@ const U: f64 = 1.0'f64
 const U1: f64 = cast(f64) 1.0'f64
 #assert(U == 1.0'f64)
 #assert(U1 == 1.0'f64)
+
+const V = 1's8
+#assert(#typeof(V) == s8)
+
+const W = -128's8
+#assert(#typeof(W) == s8)
+#assert(W == -128's8)
+
+const X = 1'u8
+#assert(#typeof(X) == u8)
+
+const Y = -129's8              // swc-expected-error {{sema_err_literal_overflow}}

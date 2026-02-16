@@ -231,6 +231,28 @@ namespace
         }
     }
 
+    bool hasExplicitLiteralSuffix(const Sema& sema, AstNodeRef initNodeRef)
+    {
+        if (initNodeRef.isInvalid())
+            return false;
+
+        const AstNode* exprNode = &sema.node(initNodeRef);
+        if (const auto* initExpr = exprNode->safeCast<AstInitializerExpr>())
+            exprNode = &sema.node(initExpr->nodeExprRef);
+
+        if (exprNode->is(AstNodeId::SuffixLiteral))
+            return true;
+
+        if (const auto* unaryExpr = exprNode->safeCast<AstUnaryExpr>())
+        {
+            const AstNode& child = sema.node(unaryExpr->nodeExprRef);
+            if (child.is(AstNodeId::SuffixLiteral))
+                return true;
+        }
+
+        return false;
+    }
+
     Result semaPostVarDeclCommon(Sema&                       sema,
                                  const AstNode&              owner,
                                  TokenRef                    tokDiag,
@@ -293,7 +315,7 @@ namespace
 
             if (nodeInitView.type->isInt())
             {
-                const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef, nodeInitView.typeRef, true);
+                const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef, nodeInitView.typeRef, false);
                 RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
             }
         }

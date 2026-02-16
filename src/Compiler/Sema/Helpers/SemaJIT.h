@@ -8,7 +8,7 @@ class Sema;
 
 namespace SemaJIT
 {
-    Result runExpr(Sema& sema, AstNodeRef nodeExprRef);
+    Result runExpr(Sema& sema, AstNodeRef nodeRunExprRef, AstNodeRef nodeExprRef);
 }
 
 SWC_END_NAMESPACE();

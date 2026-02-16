@@ -679,7 +679,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    RESULT_VERIFY(SemaJIT::runExpr(sema, nodeExprRef));
+    RESULT_VERIFY(SemaJIT::runExpr(sema, sema.curNodeRef(), nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 
     return Result::Continue;

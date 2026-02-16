@@ -50,27 +50,6 @@ namespace
         }
     }
 
-    void resolveJitRelocationTargets(std::span<MicroInstrRelocation> relocations, const SymbolFunction& owner)
-    {
-        for (auto& reloc : relocations)
-        {
-            if (reloc.targetAddress != 0)
-                continue;
-            if (!reloc.targetSymbol || !reloc.targetSymbol->isFunction())
-                continue;
-
-            auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
-            if (&targetFunction == &owner)
-            {
-                reloc.targetAddress = MicroInstrRelocation::K_SELF_ADDRESS;
-                continue;
-            }
-
-            const auto targetAddress = targetFunction.jitEntryAddress();
-            SWC_FORCE_ASSERT(targetAddress != nullptr);
-            reloc.targetAddress = reinterpret_cast<uint64_t>(targetAddress);
-        }
-    }
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
@@ -168,8 +147,8 @@ void SymbolFunction::jit(TaskContext& ctx)
     const JITRecursionGuard recursionGuard(this);
     SWC_ASSERT(!recursionGuard.isReentry());
 
-    SmallVector<SymbolFunction*>          dependencies;
-    std::vector<std::byte>                linearCode;
+    SmallVector<SymbolFunction*> dependencies;
+    std::vector<std::byte>       linearCode;
     std::vector<MicroInstrRelocation> relocations;
 
     {
@@ -184,7 +163,6 @@ void SymbolFunction::jit(TaskContext& ctx)
     }
 
     jitDependencies(ctx, *this, dependencies);
-    resolveJitRelocationTargets(relocations, *this);
 
     std::scoped_lock lock(emitMutex_);
     if (hasJitEntryAddress())

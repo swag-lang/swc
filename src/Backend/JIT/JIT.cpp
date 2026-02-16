@@ -7,6 +7,7 @@
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -112,6 +113,16 @@ namespace
         for (const auto& reloc : relocations)
         {
             auto target = reloc.targetAddress;
+            if (target == 0 && reloc.targetSymbol && reloc.targetSymbol->isFunction())
+            {
+                auto& targetFunction = reloc.targetSymbol->cast<SymbolFunction>();
+                const auto targetEntryAddress = targetFunction.jitEntryAddress();
+                if (targetEntryAddress)
+                    target = reinterpret_cast<uint64_t>(targetEntryAddress);
+                else
+                    target = reinterpret_cast<uint64_t>(basePtr);
+            }
+
             if (target == 0)
                 continue;
             if (target == MicroInstrRelocation::K_SELF_ADDRESS)

@@ -77,19 +77,16 @@ namespace
 
 Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
 {
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
 
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-
-    auto&            ctx     = sema.ctx();
-    const AstNodeRef nodeRef = sema.curNodeRef();
-
+    auto&           ctx   = sema.ctx();
     SymbolFunction* symFn = nullptr;
     RESULT_VERIFY(getOrCreateRunExprSymbol(sema, symFn, nodeExprRef));
     SWC_ASSERT(symFn != nullptr);
     collectRunExprCallDependencies(sema, *symFn, nodeExprRef);
-    RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.node(nodeRef).codeRef()));
+    RESULT_VERIFY(sema.waitCodeGenCompleted(symFn, sema.node(sema.curNodeRef()).codeRef()));
 
     const SemaNodeView nodeView(sema, nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));

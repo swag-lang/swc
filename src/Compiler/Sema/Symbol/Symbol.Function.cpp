@@ -27,7 +27,7 @@ namespace
         {
             auto target = reloc.targetAddress;
             if (target == 0 && reloc.targetSymbol && reloc.targetSymbol->isFunction())
-                target = reloc.targetSymbol->cast<SymbolFunction>().jitEntryAddress();
+                target = reinterpret_cast<uint64_t>(reloc.targetSymbol->cast<SymbolFunction>().jitEntryAddress());
 
             if (target == 0)
                 continue;
@@ -147,8 +147,8 @@ void SymbolFunction::jit(TaskContext& ctx)
     SWC_ASSERT(hasLoweredCode());
 
     JIT::emit(ctx, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations, jitExecMemory_);
-    const auto entry = reinterpret_cast<uint64_t>(jitExecMemory_.entryPoint<void*>());
-    SWC_FORCE_ASSERT(entry != 0);
+    auto* const entry = jitExecMemory_.entryPoint<void*>();
+    SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);
 
     for (const auto& reloc : loweredMicroCode_.codeRelocations)

@@ -17,12 +17,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using JITInvokerFn       = void (*)();
-    using JITInvokerVoid1U64 = void (*)(uint64_t);
+    using JITInvokerFn      = void (*)();
+    using JITInvokerVoidU64 = void (*)(uint64_t);
 
     struct JITExceptionInfo
     {
-        JITInvokerFn invoker = nullptr;
+        void* invoker = nullptr;
     };
 
     uint32_t alignValue(uint32_t value, uint32_t alignment)
@@ -100,7 +100,7 @@ namespace
 
     void invokeCall(TaskContext& ctx, JITInvokerFn invoker)
     {
-        const JITExceptionInfo info{.invoker = invoker};
+        const JITExceptionInfo info{.invoker = static_cast<void*>(invoker)};
         SWC_TRY
         {
             invoker();
@@ -110,7 +110,7 @@ namespace
         }
     }
 
-    void patchCodeRelocations(std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, JITExecMemory& executableMemory)
+    void patchCodeRelocations(std::span<const std::byte> linearCode, std::span<const MicroInstrCodeRelocation> relocations, const JITExecMemory& executableMemory)
     {
         if (relocations.empty())
             return;
@@ -253,9 +253,9 @@ void JIT::call(TaskContext& ctx, void* targetFn, std::span<const JITArgument> ar
 void JIT::callVoidU64(TaskContext& ctx, void* targetFn, uint64_t arg0)
 {
     SWC_ASSERT(targetFn != nullptr);
-    const auto typedFn = reinterpret_cast<JITInvokerVoid1U64>(targetFn);
+    const auto typedFn = reinterpret_cast<JITInvokerVoidU64>(targetFn);
 
-    const JITExceptionInfo info{.invoker = reinterpret_cast<JITInvokerFn>(typedFn)};
+    const JITExceptionInfo info{.invoker = reinterpret_cast<void*>(typedFn)};
     SWC_TRY
     {
         typedFn(arg0);

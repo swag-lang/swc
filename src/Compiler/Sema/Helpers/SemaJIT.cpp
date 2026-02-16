@@ -105,9 +105,7 @@ Result SemaJIT::runExpr(Sema& sema, AstNodeRef nodeExprRef)
     // Call !
     symFn->emit(ctx);
     symFn->jit(ctx);
-    const auto targetFn = reinterpret_cast<void*>(symFn->jitEntryAddress());
-    SWC_ASSERT(targetFn != nullptr);
-    JIT::callVoidU64(ctx, targetFn, resultStorageAddress);
+    JIT::callVoidU64(ctx, symFn->jitEntryAddress(), resultStorageAddress);
 
     // Create a constant based on the result
     ConstantValue resultConstant;

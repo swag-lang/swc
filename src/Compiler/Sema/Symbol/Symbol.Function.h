@@ -61,6 +61,8 @@ public:
     const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
     AstNodeRef               declNodeRef() const noexcept { return declNodeRef_; }
     void                     setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    SymbolFunction*          parentFunction() const noexcept { return parentFunction_; }
+    void                     setParentFunction(SymbolFunction* function) noexcept { parentFunction_ = function; }
     bool                     tryMarkCodeGenJobScheduled() noexcept;
     void                     addCallDependency(SymbolFunction* sym);
     void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
@@ -80,6 +82,7 @@ private:
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
+    SymbolFunction*              parentFunction_      = nullptr;
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
     MicroInstrBuilder            microInstrBuilder_;

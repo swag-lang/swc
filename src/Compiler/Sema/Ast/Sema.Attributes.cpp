@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -48,6 +49,64 @@ namespace
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst->getString()});
         }
 
+        return Result::Continue;
+    }
+
+    Result collectOptimizeLevel(Sema& sema, const AstAttribute& nodeAttr, AttributeList& outAttributes)
+    {
+        if (nodeAttr.nodeArgsRef.isInvalid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeAttr);
+            diag.addArgument(Diagnostic::ARG_COUNT, 1);
+            diag.addArgument(Diagnostic::ARG_VALUE, 0);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        const auto* argsList = sema.node(nodeAttr.nodeArgsRef).safeCast<AstNamedArgumentList>();
+        if (!argsList)
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> args;
+        sema.ast().appendNodes(args, argsList->spanChildrenRef);
+        if (args.empty())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_few_arguments, nodeAttr);
+            diag.addArgument(Diagnostic::ARG_COUNT, 1);
+            diag.addArgument(Diagnostic::ARG_VALUE, 0);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (args.size() > 1)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_arguments, nodeAttr);
+            diag.addArgument(Diagnostic::ARG_COUNT, 1);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(args.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        AstNodeRef argValueRef = args[0];
+        if (const auto* namedArg = sema.node(argValueRef).safeCast<AstNamedArgument>())
+            argValueRef = namedArg->nodeArgRef;
+
+        const SemaNodeView argView = sema.nodeView(argValueRef);
+        if (!argView.cst)
+            return SemaError::raiseExprNotConst(sema, argValueRef);
+
+        const ConstantValue* value = argView.cst;
+        if (value->isEnumValue())
+            value = &sema.ctx().cstMgr().get(value->getEnumValue());
+
+        if (!value->isInt())
+            return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeS32());
+
+        const int64_t levelI64 = value->getInt().asI64();
+        if (levelI64 < 0 || levelI64 > static_cast<int64_t>(Runtime::BuildCfgBackendOptim::Oz))
+            return SemaError::raiseInvalidType(sema, argValueRef, argView.typeRef, sema.typeMgr().typeS32());
+
+        outAttributes.setBackendOptimize(static_cast<Runtime::BuildCfgBackendOptim>(levelI64));
         return Result::Continue;
     }
 }
@@ -198,7 +257,10 @@ Result AstAttribute::semaPostNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeIdentRef);
 
     // Predefined attributes
-    const SymbolAttribute& attrSym   = identView.sym->cast<SymbolAttribute>();
+    const SymbolAttribute& attrSym = identView.sym->cast<SymbolAttribute>();
+    if (attrSym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Optimize))
+        RESULT_VERIFY(collectOptimizeLevel(sema, *this, sema.frame().currentAttributes()));
+
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {

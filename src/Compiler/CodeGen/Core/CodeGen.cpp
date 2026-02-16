@@ -10,6 +10,21 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Runtime::BuildCfgBackendOptim resolveFunctionBackendOptimize(const TaskContext& ctx, const SymbolFunction& symbolFunc)
+    {
+        for (auto* function = &symbolFunc; function != nullptr; function = function->parentFunction())
+        {
+            const auto& attributes = function->attributes();
+            if (attributes.hasBackendOptimize)
+                return attributes.backendOptimize;
+        }
+
+        return ctx.compiler().buildCfg().backendOptimize;
+    }
+}
+
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -23,6 +38,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     builder_                            = &symbolFunc.microInstrBuilder(ctx());
     MicroInstrBuilderFlags builderFlags = MicroInstrBuilderFlagsE::Zero;
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
+    builder_->setBackendOptimizeLevel(resolveFunctionBackendOptimize(ctx(), symbolFunc));
     if (ctx().compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);

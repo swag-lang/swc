@@ -3,6 +3,7 @@
 #include "Backend/CodeGen/Encoder/EncoderTypes.h"
 #include "Backend/CodeGen/Micro/MicroReg.h"
 #include "Backend/CodeGen/Micro/MicroTypes.h"
+#include "Backend/Runtime.h"
 #include "Support/Core/PagedStore.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -53,6 +54,8 @@ public:
     const uint8_t*      data() const;
     uint8_t             byteAt(uint32_t index) const;
     void                copyTo(ByteSpanRW dst) const;
+    void                setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
+    Runtime::BuildCfgBackendOptim backendOptimizeLevel() const { return backendOptimizeLevel_; }
     virtual std::string formatRegisterName(MicroReg reg) const;
     virtual MicroReg    stackPointerReg() const = 0;
 
@@ -119,6 +122,7 @@ protected:
     uint32_t                   textSectionOffset_ = 0;
     uint32_t                   symCsIndex_        = 0;
     EncoderFunction*           cpuFct_            = nullptr;
+    Runtime::BuildCfgBackendOptim backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
     std::vector<EncoderSymbol> symbols_;
 };
 

@@ -36,6 +36,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    sym.setParentFunction(sema.frame().currentFunction());
     if (sym.isMethod() && !sema.frame().currentImpl() && !sema.frame().currentInterface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());

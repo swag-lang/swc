@@ -186,18 +186,19 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Safety(context: SafetyContext, what: SafetyWhat, value: bool)
 
-    #[Swag.EnumFlags]
-    enum OptimizeWhat: u32
+    enum Optimization: u8
     {
-        ByteCode = 0x00000001
-        Backend  = 0x00000002
-        None     = 0x00000000
-        All      = 0xFFFFFFFF
+        O0     // No optimization
+        O1     // Optimizations level 1
+        O2     // Optimizations level 2
+        O3     // Optimizations level 3
+        Os     // Optim for size level 1
+        Oz     // Optim for size level 2
     }
 
-    // Enable/Disable a given function optimization.
+    // Set the optimization level for code generation.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]
-    attr Optimize(what: OptimizeWhat, value: bool)
+    attr Optimize(level: Optimization)
 
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
     attr CanOverflow(value: bool)

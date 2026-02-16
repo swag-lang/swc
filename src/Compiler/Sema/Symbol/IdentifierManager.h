@@ -25,6 +25,7 @@ public:
         Compiler,
         Inline,
         NoInline,
+        Optimize,
         PlaceHolder,
         NoPrint,
         Macro,

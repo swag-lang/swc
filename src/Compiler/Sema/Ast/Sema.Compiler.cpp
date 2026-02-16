@@ -627,7 +627,9 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+    sym.setParentFunction(sema.frame().currentFunction());
     auto frame = sema.frame();
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
@@ -636,19 +638,21 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstCompilerRunExpr::semaPreNode(Sema& sema) const
+Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 {
-    const AstNodeRef nodeRef = sema.curNodeRef();
+    const AstNodeRef nodeRef        = sema.curNodeRef();
+    SymbolFunction*  parentFunction = sema.frame().currentFunction();
     if (!sema.hasSymbol(nodeRef))
     {
-        auto&          ctx   = sema.ctx();
-        IdentifierRef  idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
-        const AstNode& node  = sema.node(nodeRef);
+        auto&               ctx   = sema.ctx();
+        const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+        const AstNode&      node  = sema.node(nodeRef);
 
         auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
         symFn->setDeclNodeRef(nodeRef);
         symFn->setReturnTypeRef(sema.typeMgr().typeVoid());
+        symFn->setParentFunction(parentFunction);
         symFn->setAttributes(sema.frame().currentAttributes());
         symFn->setDeclared(ctx);
         symFn->setTyped(ctx);

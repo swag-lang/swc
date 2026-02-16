@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Runtime.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
@@ -114,6 +115,8 @@ public:
     void                                     clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
     const MicroInstrDebugInfo*               debugInfo(Ref instructionRef) const;
     void                                     setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    void                                     setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
+    Runtime::BuildCfgBackendOptim            backendOptimizeLevel() const { return backendOptimizeLevel_; }
     void                                     setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
     const Utf8&                              printSymbolName() const { return printSymbolName_; }
     const Utf8&                              printFilePath() const { return printFilePath_; }
@@ -184,6 +187,7 @@ private:
     Utf8                                            printFilePath_;
     uint32_t                                        printSourceLine_ = 0;
     std::vector<Utf8>                               printPassOptions_;
+    Runtime::BuildCfgBackendOptim                   backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
     std::vector<Ref>                                labels_;
     std::vector<MicroInstrRelocation>               codeRelocations_;
 };

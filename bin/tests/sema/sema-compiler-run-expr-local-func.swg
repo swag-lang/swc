@@ -167,6 +167,7 @@ struct LocalStruct
 }
 
 #[Swag.PrintMicro]
+#[Swag.Optimize(Swag.Optimization.O2)]
 #test
 {
     func retArray()->[3] s32 { return [1, 2, 3] }

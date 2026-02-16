@@ -99,11 +99,12 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     if (!sizeInBytes)
         return;
 
-    const auto& buildCfg       = codeGen.ctx().compiler().buildCfg();
-    const bool  optimize       = buildCfg.backendOptimize >= Runtime::BuildCfgBackendOptim::O1;
-    const bool  optimizeForSize = buildCfg.backendOptimize == Runtime::BuildCfgBackendOptim::Os || buildCfg.backendOptimize == Runtime::BuildCfgBackendOptim::Oz;
-    const bool  allow128       = optimize && !optimizeForSize && sizeInBytes >= 16;
-    const uint32_t unrollLimit = getUnrollMemLimit(buildCfg);
+    const auto&    buildCfg        = codeGen.ctx().compiler().buildCfg();
+    const auto     backendOptimize = codeGen.builder().backendOptimizeLevel();
+    const bool     optimize        = backendOptimize >= Runtime::BuildCfgBackendOptim::O1;
+    const bool     optimizeForSize = backendOptimize == Runtime::BuildCfgBackendOptim::Os || backendOptimize == Runtime::BuildCfgBackendOptim::Oz;
+    const bool     allow128        = optimize && !optimizeForSize && sizeInBytes >= 16;
+    const uint32_t unrollLimit     = getUnrollMemLimit(buildCfg);
 
     auto& builder = codeGen.builder();
 
@@ -128,7 +129,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
         return;
     }
 
-    const auto countReg = codeGen.nextVirtualIntRegister();
+    const auto     countReg  = codeGen.nextVirtualIntRegister();
     const uint32_t chunkSize = allow128 ? 16 : 8;
     emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg);
 }

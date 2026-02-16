@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Backend/Runtime.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -50,9 +51,16 @@ struct AttributeList
     SmallVector4<AttributeInstance> attributes;
     RtAttributeFlags                rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<Utf8>              printMicroPassOptions;
+    bool                            hasBackendOptimize = false;
+    Runtime::BuildCfgBackendOptim   backendOptimize    = Runtime::BuildCfgBackendOptim::O0;
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
+    void setBackendOptimize(Runtime::BuildCfgBackendOptim value)
+    {
+        hasBackendOptimize = true;
+        backendOptimize    = value;
+    }
 };
 
 SWC_END_NAMESPACE();

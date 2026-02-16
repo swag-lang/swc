@@ -11,13 +11,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen) const
+Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
     const auto& callConv = CallConv::host();
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     const MicroReg outputStorageReg = callConv.intArgRegs[0];
-    auto&          nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
+    const auto&    nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
     codeGen.builder().encodeLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
     return Result::Continue;
 }
@@ -39,7 +39,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
     SWC_ASSERT(outputStorageReg.isValid());
 
-    const auto     normalizedRet    = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
+    const auto normalizedRet = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {

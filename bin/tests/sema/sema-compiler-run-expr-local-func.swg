@@ -142,7 +142,6 @@ alias LocalStrict = s32
     #assert(V == "run-expr")
 }
 
-/*
 enum LocalEnum: u16 { A = 513 }
 struct LocalStruct
 {
@@ -158,6 +157,7 @@ struct LocalStruct
     #assert(cast(u16) V == 513'u16)
 }
 
+/*
 #test
 {
     func retStruct()->LocalStruct { return {x: 27, y: true} }

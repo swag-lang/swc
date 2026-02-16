@@ -33,8 +33,18 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto leftView = codeGen.nodeView(nodeLeftRef);
     SWC_ASSERT(leftView.type);
+
     if (leftView.type->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
+
+    if (codeGen.payload(nodeRightRef))
+    {
+        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curNodeView().typeRef);
+        return Result::Continue;
+    }
+
+    if (codeGen.curNodeView().cst)
+        return Result::Continue;
 
     // TODO
     SWC_UNREACHABLE();

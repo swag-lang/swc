@@ -55,3 +55,29 @@
     p[0] = 7
     @assert(arr[0] == 7)
 }
+
+#test
+{
+    const s: string = "abc"
+    const p = @dataof(s)
+    #assert(p != null)
+    #assert(dref p == 'a''u8)
+}
+
+#test
+{
+    const s: const [..] u8 = cast(const [..] u8) "abc"
+    const p = @dataof(s)
+    #assert(p != null)
+    #assert(dref p == 'a''u8)
+}
+
+#test
+{
+    const arr: [2] s32 = [7, 9]
+    const p = @dataof(arr)
+    #assert(p != null)
+    #assert(dref p == 7)
+}
+
+#test { const bad = @dataof(1) } // swc-expected-error {{sema_err_invalid_type}}

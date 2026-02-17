@@ -169,10 +169,14 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (calleePayload)
         ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall, &calledFunction);
-    else if (calledFunction.isForeign())
-        ABICall::callExtern(builder, callConvKind, &calledFunction, preparedCall);
     else
-        ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
+    {
+        const MicroReg callTargetReg = codeGen.nextVirtualIntRegister();
+        if (calledFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+    }
 
     const bool deferMaterializationToRunExpr = shouldDeferCallResultMaterializationToCompilerRun(codeGen, normalizedRet);
     if (deferMaterializationToRunExpr)

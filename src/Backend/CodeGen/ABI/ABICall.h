@@ -53,10 +53,14 @@ namespace ABICall
     void         storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
     void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
     void         callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall);
     void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret, Symbol* callDebugSymbol = nullptr);
     void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, Symbol* callDebugSymbol = nullptr);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
     void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);
     void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall);
 }

@@ -14,7 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr auto K_JUMP_LABEL_COLOR     = SyntaxColor::Function;
     constexpr auto K_NATURAL_COLUMN_WIDTH = 56U;
 
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
@@ -653,7 +652,7 @@ namespace
             }
             else if (isJumpLabelToken(token))
             {
-                appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, token);
+                appendColored(out, ctx, colorize, SyntaxColor::Function, token);
             }
             else if (token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>")
             {
@@ -670,7 +669,7 @@ namespace
         {
             if (std::isspace(static_cast<unsigned char>(value[pos])))
             {
-                size_t start = pos;
+                const size_t start = pos;
                 while (pos < value.size() && std::isspace(static_cast<unsigned char>(value[pos])))
                     ++pos;
                 appendColored(out, ctx, colorize, SyntaxColor::Code, std::string_view(value).substr(start, pos - start));
@@ -707,7 +706,7 @@ namespace
                 continue;
             }
 
-            size_t start = pos;
+            const size_t start = pos;
             while (pos < value.size())
             {
                 const char cc = value[pos];
@@ -938,7 +937,6 @@ namespace
         {
             out += first ? "" : "|";
             out += "b64";
-            first = false;
         }
     }
 
@@ -961,7 +959,7 @@ namespace
 
     Utf8 unknownInstructionIndex(uint32_t width)
     {
-        return Utf8(width, '?');
+        return {width, '?'};
     }
 
     void trimTrailingSpaces(std::string& out)
@@ -979,7 +977,7 @@ namespace
         if (!dbgInfo)
             return;
 
-        Symbol* symbol = dbgInfo->payloadSymbol();
+        const Symbol* symbol = dbgInfo->payloadSymbol();
         if (!symbol)
             return;
 
@@ -1091,13 +1089,12 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
             if (inst.numOperands >= 1)
             {
                 const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
-                appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}:", labelRef));
+                appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("L{}:", labelRef));
             }
 
             appendInstFlags(out, ctx, colorize, inst.emitFlags);
             padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
             appendColumnSeparator(out, ctx, colorize);
-            appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
             appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
             out += '\n';
             ++idx;
@@ -1181,7 +1178,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
                 {
                     const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
                     out += " ";
-                    appendColored(out, ctx, colorize, K_JUMP_LABEL_COLOR, std::format("L{}", labelRef));
+                    appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("L{}", labelRef));
                     auto labelIt = labelIndexByRef.find(labelRef);
                     if (labelIt != labelIndexByRef.end())
                     {

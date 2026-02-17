@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
+#include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -139,32 +141,17 @@ void MicroBuilder::encodeRet(EncodeFlags emitFlags)
 
 void MicroBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    const auto   symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    auto [instRef, inst]    = addInstructionWithRef(MicroInstrOpcode::CallLocal, emitFlags, 4);
-    auto* ops               = inst.ops(operands_);
-    ops[0].name             = symbolName;
-    ops[1].callConv         = callConv;
-    ops[2].valueU64         = 0;
-    ops[3].valueU64         = reinterpret_cast<uint64_t>(targetSymbol);
-
-    addRelocation({
-        .kind           = MicroRelocation::Kind::Rel32,
-        .instructionRef = instRef,
-        .targetAddress  = 0,
-        .targetSymbol   = targetSymbol,
-    });
+    const CallConv& conv = CallConv::get(callConv);
+    encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol, emitFlags);
+    encodeCallReg(conv.intReturn, callConv, emitFlags);
     return;
 }
 
 void MicroBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto&         inst       = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 4);
-    auto*               ops        = inst.ops(operands_);
-    ops[0].name                    = symbolName;
-    ops[1].callConv                = callConv;
-    ops[2].valueU64                = reinterpret_cast<uint64_t>(targetSymbol);
-    ops[3].valueU64                = 0;
+    const CallConv& conv = CallConv::get(callConv);
+    encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol, emitFlags);
+    encodeCallReg(conv.intReturn, callConv, emitFlags);
     return;
 }
 
@@ -230,6 +217,13 @@ void MicroBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits op
 
 void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol, EncodeFlags emitFlags)
 {
+    MicroRelocation::Kind relocationKind = MicroRelocation::Kind::ConstantAddress;
+    if (targetSymbol && targetSymbol->isFunction())
+    {
+        const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
+        relocationKind                       = targetFunction.isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
+    }
+
     auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::LoadRegImm, emitFlags, 3);
     auto* ops            = inst.ops(operands_);
     ops[0].reg           = reg;
@@ -237,7 +231,7 @@ void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef
     ops[2].valueU64      = value;
 
     addRelocation({
-        .kind           = MicroRelocation::Kind::Abs64,
+        .kind           = relocationKind,
         .instructionRef = instRef,
         .targetAddress  = value,
         .targetSymbol   = targetSymbol,

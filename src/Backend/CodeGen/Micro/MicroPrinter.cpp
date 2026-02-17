@@ -579,9 +579,6 @@ namespace
             case MicroInstrOpcode::LoadCondRegReg:
                 return std::format("{} = {} if {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), condName(ops[2].cpuCond));
 
-            case MicroInstrOpcode::CallLocal:
-            case MicroInstrOpcode::CallExtern:
-                return std::format("call {}", ops[0].name.isValid() ? Utf8(ctx.idMgr().get(ops[0].name).name) : Utf8("<invalid-symbol>"));
             case MicroInstrOpcode::CallIndirect:
                 return std::format("call {}", regName(ops[0].reg, regPrintMode, encoder));
 
@@ -1038,7 +1035,22 @@ namespace
         appendColored(out, ctx, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
-    Utf8 relocationDebugValue(const TaskContext& ctx, const MicroRelocation& relocation)
+    std::string_view relocationKindName(const MicroRelocation& relocation)
+    {
+        switch (relocation.kind)
+        {
+            case MicroRelocation::Kind::ForeignFunctionAddress:
+                return "foreign";
+            case MicroRelocation::Kind::ConstantAddress:
+                return "constant";
+            case MicroRelocation::Kind::LocalFunctionAddress:
+                return "local";
+            default:
+                return "unknown";
+        }
+    }
+
+    Utf8 relocationTargetDebugValue(const TaskContext& ctx, const MicroRelocation& relocation)
     {
         if (relocation.constantRef.isValid())
             return ctx.cstMgr().get(relocation.constantRef).toString(ctx);
@@ -1062,7 +1074,7 @@ namespace
 
         trimTrailingSpaces(out);
         out += "  ";
-        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc={}", relocationDebugValue(ctx, *relocation)));
+        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc={}={}", relocationKindName(*relocation), relocationTargetDebugValue(ctx, *relocation)));
     }
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
@@ -1104,17 +1116,11 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     {
         for (const auto& reloc : builder->codeRelocations())
         {
-            if (reloc.kind != MicroRelocation::Kind::Abs64)
-                continue;
-
             if (reloc.instructionRef == INVALID_REF)
                 continue;
 
             const MicroInstr* const inst = instructions.ptr(reloc.instructionRef);
-            if (!inst || inst->numOperands == 0)
-                continue;
-
-            if (inst->op != MicroInstrOpcode::LoadRegImm)
+            if (!inst)
                 continue;
 
             relocationByInstructionRef[reloc.instructionRef] = &reloc;
@@ -1143,8 +1149,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto relocIt = relocationByInstructionRef.find(instRef);
-        const MicroRelocation* immediateRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
-        const bool hasImmediateRelocation = immediateRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
+        const MicroRelocation* instructionRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
+        const bool hasImmediateRelocation = instructionRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
         auto natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
@@ -1236,13 +1242,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendColored(out, ctx, SyntaxColor::Number, std::format("sym#{}", ops[2].valueU32));
                 appendSep(out);
                 appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[3].valueU32));
-                break;
-
-            case MicroInstrOpcode::CallLocal:
-            case MicroInstrOpcode::CallExtern:
-                appendColored(out, ctx, SyntaxColor::Function, ops[0].name.isValid() ? ctx.idMgr().get(ops[0].name).name : "<invalid-symbol>");
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Type, callConvName(ops[1].callConv));
                 break;
 
             case MicroInstrOpcode::CallIndirect:
@@ -1499,8 +1498,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
         appendColumnSeparator(out, ctx);
         appendNaturalColumn(out, ctx, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
-        if (hasImmediateRelocation)
-            appendInstructionRelocationOrigin(out, ctx, immediateRelocation);
+        appendInstructionRelocationOrigin(out, ctx, instructionRelocation);
         appendInstructionDebugPayload(out, ctx, builder, instRef);
         out += '\n';
         ++idx;

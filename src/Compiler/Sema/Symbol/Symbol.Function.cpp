@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Main/ExternalModuleManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,60 +20,6 @@ namespace
         SymbolFunction* function = nullptr;
         bool            expanded = false;
     };
-
-    bool resolveExternAddress(TaskContext& ctx, uint64_t& outFunctionAddress, const SymbolFunction& targetFunction)
-    {
-        outFunctionAddress = 0;
-        if (!targetFunction.isForeign())
-            return false;
-
-        const auto moduleName = targetFunction.foreignModuleName();
-        if (moduleName.empty())
-            return false;
-
-        const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
-        if (functionName.empty())
-            return false;
-
-        void* functionAddress = nullptr;
-        if (!ctx.compiler().externalModuleMgr().getFunctionAddress(functionAddress, moduleName, functionName))
-            return false;
-
-        outFunctionAddress = reinterpret_cast<uint64_t>(functionAddress);
-        return outFunctionAddress != 0;
-    }
-
-    void patchCallExternTargets(TaskContext& ctx, MicroBuilder& builder)
-    {
-        auto& instructions = builder.instructions();
-        auto& operands     = builder.operands();
-        auto& relocations  = builder.codeRelocations();
-        for (auto& reloc : relocations)
-        {
-            if (reloc.kind != MicroRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
-                continue;
-
-            auto* const sym = reloc.targetSymbol;
-            if (!sym || !sym->isFunction())
-                continue;
-
-            const auto& targetFunction  = sym->cast<SymbolFunction>();
-            uint64_t    functionAddress = 0;
-            if (!resolveExternAddress(ctx, functionAddress, targetFunction))
-                continue;
-
-            reloc.targetAddress = functionAddress;
-
-            // Keep the micro immediate in sync as a fallback path.
-            auto* const inst = instructions.ptr(reloc.instructionRef);
-            if (!inst || inst->op != MicroInstrOpcode::LoadRegImm || inst->numOperands < 3)
-                continue;
-
-            auto* const ops = inst->ops(operands);
-            if (ops[1].opBits == MicroOpBits::B64)
-                ops[2].valueU64 = functionAddress;
-        }
-    }
 
     void appendJitOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
@@ -216,7 +161,6 @@ void SymbolFunction::emit(TaskContext& ctx)
     if (hasLoweredCode())
         return;
     auto& builder = microInstrBuilder(ctx);
-    patchCallExternTargets(ctx, builder);
     loweredMicroCode_.emit(ctx, builder);
     ctx.compiler().notifyAlive();
 }

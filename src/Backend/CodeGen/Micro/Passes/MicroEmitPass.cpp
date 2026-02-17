@@ -2,7 +2,6 @@
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -31,6 +30,17 @@ std::optional<uint32_t> MicroEmitPass::findRelocationIndex(Ref instructionRef) c
         return std::nullopt;
 
     return found->second;
+}
+
+void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
+{
+    const auto relocIndex = findRelocationIndex(instructionRef);
+    if (!relocIndex.has_value())
+        return;
+
+    SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
+    MicroRelocation& reloc = context.builder->codeRelocations()[*relocIndex];
+    reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
 }
 
 void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst)
@@ -81,27 +91,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::Ret:
             encoder.encodeRet(inst.emitFlags);
             break;
-        case MicroInstrOpcode::CallLocal:
-        {
-            const uint32_t callOffset = encoder.size();
-            Symbol* const  targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
-            encoder.encodeCallLocal(targetSymbol, ops[1].callConv, inst.emitFlags);
-
-            const auto relocIndex = findRelocationIndex(instructionRef);
-            SWC_ASSERT(relocIndex.has_value());
-            auto& reloc         = context.builder->codeRelocations()[*relocIndex];
-            SWC_ASSERT(reloc.kind == MicroRelocation::Kind::Rel32);
-            reloc.codeOffset    = callOffset + 1;
-            reloc.instructionRef = INVALID_REF;
-            break;
-        }
-        case MicroInstrOpcode::CallExtern:
-        {
-            Symbol* const  targetSymbol  = inst.numOperands >= 3 ? reinterpret_cast<Symbol*>(ops[2].valueU64) : nullptr;
-            const uint64_t targetAddress = inst.numOperands >= 4 ? ops[3].valueU64 : 0;
-            encoder.encodeCallExtern(targetSymbol, targetAddress, ops[1].callConv, inst.emitFlags);
-            break;
-        }
         case MicroInstrOpcode::CallIndirect:
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv, inst.emitFlags);
             break;
@@ -138,21 +127,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         {
             const uint32_t codeStartOffset = encoder.size();
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits, inst.emitFlags);
-
-            const auto relocIndex = findRelocationIndex(instructionRef);
-            if (relocIndex.has_value())
-            {
-                auto& reloc = context.builder->codeRelocations()[*relocIndex];
-                if (reloc.kind != MicroRelocation::Kind::Abs64)
-                    break;
-
-                SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
-                const uint32_t codeEndOffset = encoder.size();
-                SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
-
-                reloc.codeOffset    = codeEndOffset - sizeof(uint64_t);
-                reloc.instructionRef = INVALID_REF;
-            }
+            SWC_ASSERT(ops[1].opBits == MicroOpBits::B64 || !findRelocationIndex(instructionRef).has_value());
+            bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
             break;
         }
         case MicroInstrOpcode::LoadRegMem:

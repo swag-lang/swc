@@ -18,8 +18,6 @@ SWC_MICRO_INSTR_DEF(LoadCallAddrParam, MicroInstrInfo{{MicroInstrRegMode::None, 
 SWC_MICRO_INSTR_DEF(LoadCallZeroExtParam, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(StoreCallParam, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
-SWC_MICRO_INSTR_DEF(CallLocal, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, true, 1})
-SWC_MICRO_INSTR_DEF(CallExtern, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, true, 1})
 SWC_MICRO_INSTR_DEF(CallIndirect, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, true, 1})
 
 SWC_MICRO_INSTR_DEF(JumpTable, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})

@@ -69,16 +69,17 @@ struct MicroRelocation
 
     enum class Kind : uint8_t
     {
-        Rel32,
-        Abs64,
+        ForeignFunctionAddress,
+        ConstantAddress,
+        LocalFunctionAddress,
     };
 
-    Kind          kind           = Kind::Rel32;
-    uint32_t      codeOffset     = 0;
-    Ref           instructionRef = INVALID_REF;
-    uint64_t      targetAddress  = 0;
-    Symbol*       targetSymbol   = nullptr;
-    ConstantRef   constantRef    = ConstantRef::invalid();
+    Kind        kind           = Kind::ConstantAddress;
+    uint32_t    codeOffset     = 0;
+    Ref         instructionRef = INVALID_REF;
+    uint64_t    targetAddress  = 0;
+    Symbol*     targetSymbol   = nullptr;
+    ConstantRef constantRef    = ConstantRef::invalid();
 };
 
 class MicroBuilder

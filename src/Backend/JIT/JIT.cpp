@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/ExternalModuleManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -87,56 +88,118 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
+    bool resolveLocalFunctionTargetAddress(uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr)
+    {
+        outTargetAddress = reloc.targetAddress;
+        if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
+        {
+            outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
+            return true;
+        }
+
+        if (outTargetAddress != 0)
+            return true;
+
+        Symbol* const targetSymbol = reloc.targetSymbol;
+        if (!targetSymbol || !targetSymbol->isFunction())
+            return false;
+
+        const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
+        void* const           entryAddress   = targetFunction.jitEntryAddress();
+        if (!entryAddress)
+            return false;
+
+        outTargetAddress = reinterpret_cast<uint64_t>(entryAddress);
+        return outTargetAddress != 0;
+    }
+
+    bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr)
+    {
+        outTargetAddress = reloc.targetAddress;
+        if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
+        {
+            outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
+            return true;
+        }
+
+        if (outTargetAddress != 0)
+            return true;
+
+        Symbol* const targetSymbol = reloc.targetSymbol;
+        if (!targetSymbol || !targetSymbol->isFunction())
+            return false;
+
+        const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
+        if (!targetFunction.isForeign())
+            return false;
+
+        const std::string_view moduleName = targetFunction.foreignModuleName();
+        if (moduleName.empty())
+            return false;
+
+        const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
+        if (functionName.empty())
+            return false;
+
+        void* functionAddress = nullptr;
+        if (!ctx.compiler().externalModuleMgr().getFunctionAddress(functionAddress, moduleName, functionName))
+            return false;
+
+        outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
+        return outTargetAddress != 0;
+    }
+
+    bool resolveRelocationTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr)
+    {
+        switch (reloc.kind)
+        {
+            case MicroRelocation::Kind::ConstantAddress:
+                outTargetAddress = reloc.targetAddress;
+                if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
+                    outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
+                return true;
+
+            case MicroRelocation::Kind::LocalFunctionAddress:
+                return resolveLocalFunctionTargetAddress(outTargetAddress, reloc, basePtr);
+
+            case MicroRelocation::Kind::ForeignFunctionAddress:
+                return resolveForeignFunctionTargetAddress(ctx, outTargetAddress, reloc, basePtr);
+
+            default:
+                SWC_FORCE_ASSERT(false);
+                return false;
+        }
+    }
+
+    void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
+    {
+        uint8_t* const basePtr         = reinterpret_cast<uint8_t*>(writableCode.data());
+        const uint64_t patchEndOffset  = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
+        SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
+        std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
+    }
+
+    void patchCodeRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_FORCE_ASSERT(!writableCode.empty());
 
         if (relocations.empty())
             return;
 
-        auto* const basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
+        uint8_t* const basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_FORCE_ASSERT(basePtr != nullptr);
 
         for (const auto& reloc : relocations)
         {
-            auto target = reloc.targetAddress;
-            if (target == 0 && reloc.targetSymbol && reloc.targetSymbol->isFunction())
+            uint64_t targetAddress = 0;
+            const bool hasTargetAddress = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr);
+            if (!hasTargetAddress)
             {
-                auto&      targetFunction     = reloc.targetSymbol->cast<SymbolFunction>();
-                const auto targetEntryAddress = targetFunction.jitEntryAddress();
-                if (targetEntryAddress)
-                    target = reinterpret_cast<uint64_t>(targetEntryAddress);
-                else
-                    target = reinterpret_cast<uint64_t>(basePtr);
-            }
-
-            if (target == 0)
-                continue;
-            if (target == MicroRelocation::K_SELF_ADDRESS)
-                target = reinterpret_cast<uint64_t>(basePtr);
-
-            if (reloc.kind == MicroRelocation::Kind::Rel32)
-            {
-                const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
-                SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
-
-                const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
-                const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
-                SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
-
-                const int32_t disp32 = static_cast<int32_t>(delta);
-                std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
-            }
-            else if (reloc.kind == MicroRelocation::Kind::Abs64)
-            {
-                const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
-                SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
-                std::memcpy(basePtr + reloc.codeOffset, &target, sizeof(target));
-            }
-            else
-            {
+                if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
+                    continue;
                 SWC_FORCE_ASSERT(false);
             }
+            patchAbsolute64(writableCode, reloc, targetAddress);
         }
     }
 }
@@ -153,7 +216,7 @@ void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan li
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
     writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
-    patchCodeRelocations(writableCode, relocations);
+    patchCodeRelocations(ctx, writableCode, relocations);
     SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
 }
 

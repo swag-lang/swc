@@ -20,6 +20,7 @@ private:
     };
 
     void encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst);
+    void bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
 
     std::optional<uint32_t> findRelocationIndex(Ref instructionRef) const;
 

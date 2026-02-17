@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
-#include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
+#include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -139,13 +139,13 @@ void MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
 
 void MicroInstrBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    const auto symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 4);
-    auto*       ops  = inst.ops(operands_);
-    ops[0].name      = symbolName;
-    ops[1].callConv  = callConv;
-    ops[2].valueU64  = 0;
-    ops[3].valueU64  = reinterpret_cast<uint64_t>(targetSymbol);
+    const auto  symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
+    const auto& inst       = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 4);
+    auto*       ops        = inst.ops(operands_);
+    ops[0].name            = symbolName;
+    ops[1].callConv        = callConv;
+    ops[2].valueU64        = 0;
+    ops[3].valueU64        = reinterpret_cast<uint64_t>(targetSymbol);
     return;
 }
 
@@ -154,10 +154,10 @@ void MicroInstrBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind call
     const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
     const auto&         inst       = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 4);
     auto*               ops        = inst.ops(operands_);
-    ops[0].name                   = symbolName;
-    ops[1].callConv               = callConv;
-    ops[2].valueU64               = reinterpret_cast<uint64_t>(targetSymbol);
-    ops[3].valueU64               = 0;
+    ops[0].name                    = symbolName;
+    ops[1].callConv                = callConv;
+    ops[2].valueU64                = reinterpret_cast<uint64_t>(targetSymbol);
+    ops[3].valueU64                = 0;
     return;
 }
 
@@ -558,14 +558,14 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
     passes.run(context);
 }
 
-Utf8 MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder) const
+Utf8 MicroInstrBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const
 {
-    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, this);
+    return MicroPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, this);
 }
 
-void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder) const
+void MicroInstrBuilder::printInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const
 {
-    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, this);
+    MicroPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, this);
 }
 
 void MicroInstrBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine)

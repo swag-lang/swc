@@ -48,11 +48,11 @@ namespace
         }
     }
 
-    MicroInstrRegPrintMode passPrintMode(MicroPassKind passKind, bool before)
+    MicroRegPrintMode passPrintMode(MicroPassKind passKind, bool before)
     {
         if (passKind == MicroPassKind::RegisterAllocation && before)
-            return MicroInstrRegPrintMode::Virtual;
-        return MicroInstrRegPrintMode::Concrete;
+            return MicroRegPrintMode::Virtual;
+        return MicroRegPrintMode::Concrete;
     }
 
     bool shouldPrintPass(const MicroPassContext& context, MicroPassKind passKind, bool before)
@@ -131,7 +131,7 @@ namespace
         printPassHeader(ctx, builder, stageName);
 
         const auto  printMode = passPrintMode(passKind, before);
-        const auto* encoder   = printMode == MicroInstrRegPrintMode::Concrete ? context.encoder : nullptr;
+        const auto* encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
     }
 }

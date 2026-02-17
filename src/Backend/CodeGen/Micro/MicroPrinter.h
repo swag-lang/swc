@@ -8,27 +8,27 @@ class TaskContext;
 class Encoder;
 class MicroInstrBuilder;
 
-enum class MicroInstrRegPrintMode : uint8_t
+enum class MicroRegPrintMode : uint8_t
 {
     Default,
     Virtual,
     Concrete,
 };
 
-class MicroInstrPrinter
+class MicroPrinter
 {
 public:
     static Utf8 format(const TaskContext&         ctx,
                        const MicroInstrStorage&   instructions,
                        const MicroOperandStorage& operands,
-                       MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
+                       MicroRegPrintMode          regPrintMode = MicroRegPrintMode::Default,
                        const Encoder*             encoder      = nullptr,
                        const MicroInstrBuilder*   builder      = nullptr);
 
     static void print(const TaskContext&         ctx,
                       const MicroInstrStorage&   instructions,
                       const MicroOperandStorage& operands,
-                      MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
+                      MicroRegPrintMode          regPrintMode = MicroRegPrintMode::Default,
                       const Encoder*             encoder      = nullptr,
                       const MicroInstrBuilder*   builder      = nullptr);
 };

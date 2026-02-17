@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
+#include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -229,17 +229,17 @@ namespace
         return CallConv::get(callConv).name;
     }
 
-    Utf8 regName(MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 regName(MicroReg reg, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         if (!reg.isValid())
             return "inv";
 
         if (reg.isInstructionPointer())
-            return regPrintMode == MicroInstrRegPrintMode::Virtual ? "ip" : "rip";
+            return regPrintMode == MicroRegPrintMode::Virtual ? "ip" : "rip";
         if (reg.isNoBase())
             return "nobase";
 
-        if (regPrintMode == MicroInstrRegPrintMode::Concrete && encoder)
+        if (regPrintMode == MicroRegPrintMode::Concrete && encoder)
         {
             if (reg.isInt() || reg.isFloat())
                 return encoder->formatRegisterName(reg);
@@ -326,7 +326,7 @@ namespace
         return std::format("0x{:X}", value);
     }
 
-    Utf8 memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         Utf8 out = "[";
         out += regName(baseReg, regPrintMode, encoder);
@@ -336,7 +336,7 @@ namespace
         return out;
     }
 
-    Utf8 memAmcString(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 memAmcString(MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         Utf8 out = "[";
         if (!baseReg.isNoBase())
@@ -453,7 +453,7 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
-    Utf8 naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         switch (inst.op)
         {
@@ -758,13 +758,13 @@ namespace
         out.append(width - used, ' ');
     }
 
-    void appendRegister(Utf8& out, const TaskContext& ctx, MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegister(Utf8& out, const TaskContext& ctx, MicroReg reg, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         const auto color = reg.isVirtual() ? SyntaxColor::RegisterVirtual : SyntaxColor::Register;
         appendColored(out, ctx, color, regName(reg, regPrintMode, encoder));
     }
 
-    void appendMemBaseOffset(Utf8& out, const TaskContext& ctx, MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemBaseOffset(Utf8& out, const TaskContext& ctx, MicroReg baseReg, uint64_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         out += "[";
         appendRegister(out, ctx, baseReg, regPrintMode, encoder);
@@ -776,7 +776,7 @@ namespace
         out += "]";
     }
 
-    void appendMemAmc(Utf8& out, const TaskContext& ctx, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemAmc(Utf8& out, const TaskContext& ctx, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         out += "[";
         if (!baseReg.isNoBase())
@@ -822,7 +822,7 @@ namespace
         appendColored(out, ctx, SyntaxColor::Type, std::format("b{}<-b{}", opBitsName(dstBits), opBitsName(srcBits)));
     }
 
-    void appendRegRegBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegRegBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t bits, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[regA].reg, regPrintMode, encoder);
         appendSep(out);
@@ -831,7 +831,7 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendRegImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
@@ -840,7 +840,7 @@ namespace
         appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[imm].valueU64));
     }
 
-    void appendRegNumberBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegNumberBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
@@ -849,7 +849,7 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendRegMemBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegMemBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t bits, uint32_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
@@ -858,7 +858,7 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendMemRegBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t reg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemRegBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t reg, uint32_t bits, uint32_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendMemBaseOffset(out, ctx, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
@@ -867,7 +867,7 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendMemImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendMemBaseOffset(out, ctx, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
@@ -876,7 +876,7 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendRegRegCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t dstBits, uint32_t srcBits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegRegCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t dstBits, uint32_t srcBits, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[regA].reg, regPrintMode, encoder);
         appendSep(out);
@@ -885,7 +885,7 @@ namespace
         appendTypeBitsCast(out, ctx, ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendRegMemCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t dstBits, uint32_t srcBits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegMemCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t dstBits, uint32_t srcBits, uint32_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
@@ -894,7 +894,7 @@ namespace
         appendTypeBitsCast(out, ctx, ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendAmcRegMemCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, bool withDestReg, uint32_t dstReg, uint32_t baseReg, uint32_t mulReg, uint32_t dstBits, uint32_t srcBits, uint32_t mulValue, uint32_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendAmcRegMemCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, bool withDestReg, uint32_t dstReg, uint32_t baseReg, uint32_t mulReg, uint32_t dstBits, uint32_t srcBits, uint32_t mulValue, uint32_t addValue, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         if (withDestReg)
         {
@@ -1008,7 +1008,7 @@ namespace
     }
 }
 
-Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
+Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
 {
     Utf8                              out;
     auto&                             storeOps = operands;
@@ -1399,7 +1399,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
     return out;
 }
 
-void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
+void MicroPrinter::print(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
 {
     Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, builder));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));

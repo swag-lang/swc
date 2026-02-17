@@ -1,9 +1,9 @@
 #pragma once
-#include "Backend/Runtime.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
 #include "Backend/CodeGen/Micro/MicroInstrStorage.h"
+#include "Backend/CodeGen/Micro/MicroPrinter.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -73,13 +73,13 @@ struct MicroInstrRelocation
         Abs64,
     };
 
-    Kind          kind          = Kind::Rel32;
-    uint32_t      codeOffset    = 0;
+    Kind          kind           = Kind::Rel32;
+    uint32_t      codeOffset     = 0;
     Ref           instructionRef = INVALID_REF;
-    IdentifierRef symbolName    = IdentifierRef::invalid();
-    uint64_t      targetAddress = 0;
-    Symbol*       targetSymbol  = nullptr;
-    ConstantRef   constantRef   = ConstantRef::invalid();
+    IdentifierRef symbolName     = IdentifierRef::invalid();
+    uint64_t      targetAddress  = 0;
+    Symbol*       targetSymbol   = nullptr;
+    ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
 class MicroInstrBuilder
@@ -106,8 +106,8 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                     formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                     printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    Utf8                                     formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                     printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
     void                                     setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
     MicroInstrBuilderFlags                   flags() const { return flags_; }
     bool                                     hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }

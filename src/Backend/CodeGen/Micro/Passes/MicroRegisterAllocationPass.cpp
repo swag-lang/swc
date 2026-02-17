@@ -278,13 +278,7 @@ namespace
         out.ops[3].valueU64 = regState.spillOffset;
     }
 
-    bool isCandidateBetter(const PassState& state,
-                           uint32_t         candidateKey,
-                           MicroReg         candidateReg,
-                           uint32_t         currentBestKey,
-                           MicroReg         currentBestReg,
-                           uint32_t         instructionIndex,
-                           uint32_t         stamp)
+    bool isCandidateBetter(const PassState& state, uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
     {
         if (!currentBestReg.isValid())
             return true;
@@ -317,14 +311,7 @@ namespace
         return candidateKey > currentBestKey;
     }
 
-    bool selectEvictionCandidate(const PassState&          state,
-                                 uint32_t                  instructionIndex,
-                                 bool                      isFloatReg,
-                                 bool                      fromPersistentPool,
-                                 std::span<const uint32_t> protectedKeys,
-                                 uint32_t                  stamp,
-                                 uint32_t&                 outVirtKey,
-                                 MicroReg&                 outPhys)
+    bool selectEvictionCandidate(const PassState& state, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, std::span<const uint32_t> protectedKeys, uint32_t stamp, uint32_t& outVirtKey, MicroReg& outPhys)
     {
         outVirtKey = 0;
         outPhys    = MicroReg::invalid();

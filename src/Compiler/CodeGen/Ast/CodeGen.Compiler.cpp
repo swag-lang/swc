@@ -11,6 +11,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool canUseDirectCallReturnWriteBack(const AstNode& exprNode, const CodeGenNodePayload& payload, const ABITypeNormalize::NormalizedType& normalizedRet)
+    {
+        if (normalizedRet.isVoid || normalizedRet.isIndirect)
+            return false;
+
+        if (exprNode.isNot(AstNodeId::CallExpr))
+            return false;
+
+        return payload.storageKind == CodeGenNodePayload::StorageKind::Value;
+    }
+}
+
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
     const auto& callConv = CallConv::host();
@@ -39,6 +53,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto*    runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
     SWC_ASSERT(outputStorageReg.isValid());
+    const AstNode& exprNode          = codeGen.node(nodeExprRef);
 
     const auto normalizedRet = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
@@ -64,7 +79,10 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+        if (canUseDirectCallReturnWriteBack(exprNode, *payload, normalizedRet))
+            ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
+        else
+            ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
     }
     builder.encodeRet();
     return Result::Continue;

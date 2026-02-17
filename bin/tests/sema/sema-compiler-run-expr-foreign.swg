@@ -76,7 +76,7 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test
 {
     const CP_UTF8 = 65001'u32
-    #[Swag.PrintMicro]
+    #[Swag.PrintMicro("before-register-allocation")]
     const S1 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
     const S5 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
     #assert(S1 == 1)

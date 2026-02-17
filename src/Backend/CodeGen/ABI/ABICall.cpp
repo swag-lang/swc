@@ -309,6 +309,16 @@ void ABICall::storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callC
         return;
 
     materializeValueToReturnRegs(builder, callConvKind, valueReg, valueIsLValue, ret);
+    storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, ret);
+}
+
+void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, const ABITypeNormalize::NormalizedType& ret)
+{
+    if (ret.isVoid)
+        return;
+
+    SWC_ASSERT(!ret.isIndirect);
+
     const auto& conv    = CallConv::get(callConvKind);
     const auto  retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
 

@@ -14,6 +14,26 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool shouldDeferCallResultMaterializationToCompilerRun(CodeGen& codeGen, const ABITypeNormalize::NormalizedType& normalizedRet)
+    {
+        if (normalizedRet.isVoid || normalizedRet.isIndirect)
+            return false;
+
+        const AstNodeRef parentNodeRef = codeGen.visit().parentNodeRef(0);
+        if (parentNodeRef.isInvalid())
+            return false;
+
+        const auto* parentNode = codeGen.visit().parentNode(0);
+        if (!parentNode || parentNode->isNot(AstNodeId::CompilerRunExpr))
+            return false;
+
+        const auto* runExpr = parentNode->safeCast<AstCompilerRunExpr>();
+        if (!runExpr)
+            return false;
+
+        return runExpr->nodeExprRef == codeGen.curNodeRef();
+    }
+
     void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
     {
         outArgs.clear();
@@ -154,7 +174,19 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     else
         ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
 
-    ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+    const bool deferMaterializationToRunExpr = shouldDeferCallResultMaterializationToCompilerRun(codeGen, normalizedRet);
+    if (deferMaterializationToRunExpr)
+    {
+        if (normalizedRet.isFloat)
+            nodePayload.reg = callConv.floatReturn;
+        else
+            nodePayload.reg = callConv.intReturn;
+    }
+    else
+    {
+        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+    }
+
     nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;
     return Result::Continue;
 }

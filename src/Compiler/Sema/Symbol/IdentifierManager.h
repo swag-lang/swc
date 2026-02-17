@@ -100,7 +100,7 @@ public:
         Count,
     };
 
-    void              setup(TaskContext& ctx);
+    void              setup(const TaskContext& ctx);
     IdentifierRef     addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef);
     IdentifierRef     addIdentifier(std::string_view name);
     IdentifierRef     addIdentifier(std::string_view name, uint32_t hash);

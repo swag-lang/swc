@@ -1140,6 +1140,7 @@ namespace
 {
     void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)
     {
+        SWC_UNUSED(opBitsBaseMul);
         SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
 
         const bool baseIsNoBase = regBase.isNoBase();

@@ -32,7 +32,7 @@ namespace
     }
 }
 
-Result Cast::castIdentity(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     SWC_UNUSED(sema);
     SWC_UNUSED(srcTypeRef);
@@ -380,7 +380,7 @@ Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromUndefined(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromUndefined(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     SWC_UNUSED(sema);
     SWC_UNUSED(castRequest);
@@ -645,7 +645,7 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castToFromTypeInfo(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     SWC_UNUSED(sema);
     SWC_UNUSED(castRequest);

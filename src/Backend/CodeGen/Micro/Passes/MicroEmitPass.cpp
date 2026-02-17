@@ -16,8 +16,8 @@ namespace
 
     uint64_t resolveJumpDestination(const std::unordered_map<Ref, uint64_t>& labelOffsets, uint64_t labelRefRaw)
     {
-        const Ref labelRef = resolveRef(labelRefRaw);
-        auto      it       = labelOffsets.find(labelRef);
+        const Ref  labelRef = resolveRef(labelRefRaw);
+        const auto it       = labelOffsets.find(labelRef);
         SWC_ASSERT(it != labelOffsets.end());
         return it->second;
     }

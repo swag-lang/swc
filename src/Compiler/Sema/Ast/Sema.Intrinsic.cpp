@@ -89,7 +89,7 @@ namespace
         return Result::Continue;
     }
 
-    Result semaIntrinsicCountOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    Result semaIntrinsicCountOf(Sema& sema, const AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SWC_UNUSED(node);
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);

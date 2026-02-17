@@ -173,25 +173,25 @@ namespace
 
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
-        uint8_t* const basePtr         = reinterpret_cast<uint8_t*>(writableCode.data());
-        const uint64_t patchEndOffset  = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
+        const auto     basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
+        const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
         SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
-    void patchCodeRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
+    void patchRelocations(TaskContext& ctx, ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_FORCE_ASSERT(!writableCode.empty());
 
         if (relocations.empty())
             return;
 
-        uint8_t* const basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
+        const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_FORCE_ASSERT(basePtr != nullptr);
 
         for (const auto& reloc : relocations)
         {
-            uint64_t targetAddress = 0;
+            uint64_t   targetAddress    = 0;
             const bool hasTargetAddress = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr);
             if (!hasTargetAddress)
             {
@@ -216,7 +216,7 @@ void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan li
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
     writableCode = asByteSpan(static_cast<std::byte*>(outExecutableMemory.entryPoint()), linearCode.size());
     std::memcpy(writableCode.data(), linearCode.data(), linearCode.size_bytes());
-    patchCodeRelocations(ctx, writableCode, relocations);
+    patchRelocations(ctx, writableCode, relocations);
     SWC_FORCE_ASSERT(memoryManager.makeExecutable(outExecutableMemory));
 }
 

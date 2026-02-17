@@ -56,7 +56,7 @@ struct AstNode
         payloadBits_ = 0;
     }
 
-    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast)
+    static void collectChildren(const SmallVector<AstNodeRef>& out, const Ast& ast)
     {
         SWC_UNUSED(out);
         SWC_UNUSED(ast);
@@ -65,92 +65,92 @@ struct AstNode
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;
 
-    static Result semaPreDecl(Sema& sema)
+    static Result semaPreDecl(const Sema& sema)
     {
         SWC_UNUSED(sema);
         return Result::Continue;
     }
 
-    static Result semaPreDeclChild(Sema& sema, AstNodeRef& childRef)
-    {
-        SWC_UNUSED(sema);
-        SWC_UNUSED(childRef);
-        return Result::Continue;
-    }
-
-    static Result semaPostDeclChild(Sema& sema, AstNodeRef& childRef)
+    static Result semaPreDeclChild(const Sema& sema, const AstNodeRef& childRef)
     {
         SWC_UNUSED(sema);
         SWC_UNUSED(childRef);
         return Result::Continue;
     }
 
-    static Result semaPostDecl(Sema& sema)
-    {
-        SWC_UNUSED(sema);
-        return Result::Continue;
-    }
-
-    static Result semaPreNode(Sema& sema)
-    {
-        SWC_UNUSED(sema);
-        return Result::Continue;
-    }
-
-    static Result semaPreNodeChild(Sema& sema, AstNodeRef& childRef)
+    static Result semaPostDeclChild(const Sema& sema, const AstNodeRef& childRef)
     {
         SWC_UNUSED(sema);
         SWC_UNUSED(childRef);
         return Result::Continue;
     }
 
-    static Result semaPostNodeChild(Sema& sema, AstNodeRef& childRef)
+    static Result semaPostDecl(const Sema& sema)
+    {
+        SWC_UNUSED(sema);
+        return Result::Continue;
+    }
+
+    static Result semaPreNode(const Sema& sema)
+    {
+        SWC_UNUSED(sema);
+        return Result::Continue;
+    }
+
+    static Result semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef)
     {
         SWC_UNUSED(sema);
         SWC_UNUSED(childRef);
         return Result::Continue;
     }
 
-    static Result semaPostNode(Sema& sema)
+    static Result semaPostNodeChild(const Sema& sema, const AstNodeRef& childRef)
+    {
+        SWC_UNUSED(sema);
+        SWC_UNUSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result semaPostNode(const Sema& sema)
     {
         SWC_UNUSED(sema);
         return Result::Continue;
     }
 
-    static void semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
+    static void semaErrorCleanup(const Sema& sema, AstNodeRef nodeRef)
     {
         SWC_UNUSED(sema);
         SWC_UNUSED(nodeRef);
     }
 
-    static AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext)
+    static AstNodeRef semaClone(const Sema& sema, const CloneContext& cloneContext)
     {
         SWC_UNUSED(sema);
         SWC_UNUSED(cloneContext);
         return AstNodeRef::invalid();
     }
 
-    static Result codeGenPreNode(CodeGen& codeGen)
+    static Result codeGenPreNode(const CodeGen& codeGen)
     {
         SWC_UNUSED(codeGen);
         return Result::Continue;
     }
 
-    static Result codeGenPreNodeChild(CodeGen& codeGen, AstNodeRef& childRef)
-    {
-        SWC_UNUSED(codeGen);
-        SWC_UNUSED(childRef);
-        return Result::Continue;
-    }
-
-    static Result codeGenPostNodeChild(CodeGen& codeGen, AstNodeRef& childRef)
+    static Result codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef)
     {
         SWC_UNUSED(codeGen);
         SWC_UNUSED(childRef);
         return Result::Continue;
     }
 
-    static Result codeGenPostNode(CodeGen& codeGen)
+    static Result codeGenPostNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef)
+    {
+        SWC_UNUSED(codeGen);
+        SWC_UNUSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result codeGenPostNode(const CodeGen& codeGen)
     {
         SWC_UNUSED(codeGen);
         return Result::Continue;

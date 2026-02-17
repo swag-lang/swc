@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void IdentifierManager::setup(TaskContext& ctx)
+void IdentifierManager::setup(const TaskContext& ctx)
 {
     SWC_UNUSED(ctx);
     predefined_.fill(IdentifierRef::invalid());

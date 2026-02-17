@@ -14,10 +14,10 @@ namespace
 
     uint32_t executablePageSize()
     {
-        static const uint32_t pageSize = Os::memoryPageSize();
-        SWC_ASSERT(pageSize != 0);
-        SWC_ASSERT((pageSize & (pageSize - 1)) == 0);
-        return pageSize;
+        static const uint32_t PAGE_SIZE = Os::memoryPageSize();
+        SWC_ASSERT(PAGE_SIZE != 0);
+        SWC_ASSERT((PAGE_SIZE & (PAGE_SIZE - 1)) == 0);
+        return PAGE_SIZE;
     }
 }
 

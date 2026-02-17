@@ -83,7 +83,7 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         SWC_UNUSED(ctx);
         ConstantValue stored = value;

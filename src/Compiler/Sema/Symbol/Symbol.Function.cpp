@@ -9,22 +9,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class JitVisitState : uint8_t
+    enum class DepVisitState : uint8_t
     {
         Visiting,
         Done,
     };
 
-    struct JitStackEntry
+    struct DepStackEntry
     {
         SymbolFunction* function = nullptr;
         bool            expanded = false;
     };
 
-    void appendJitOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
+    void appendDepOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
-        std::unordered_map<SymbolFunction*, JitVisitState> visitStates;
-        SmallVector<JitStackEntry>                         stack;
+        std::unordered_map<SymbolFunction*, DepVisitState> visitStates;
+        SmallVector<DepStackEntry>                         stack;
         stack.push_back({.function = &root, .expanded = false});
 
         while (!stack.empty())
@@ -38,22 +38,22 @@ namespace
             const auto foundState = visitStates.find(function);
             if (current.expanded)
             {
-                if (foundState != visitStates.end() && foundState->second == JitVisitState::Done)
+                if (foundState != visitStates.end() && foundState->second == DepVisitState::Done)
                     continue;
 
-                visitStates[function] = JitVisitState::Done;
+                visitStates[function] = DepVisitState::Done;
                 outJitOrder.push_back(function);
                 continue;
             }
 
             if (foundState != visitStates.end())
             {
-                if (foundState->second == JitVisitState::Done)
+                if (foundState->second == DepVisitState::Done)
                     continue;
                 continue;
             }
 
-            visitStates[function] = JitVisitState::Visiting;
+            visitStates[function] = DepVisitState::Visiting;
             stack.push_back({.function = function, .expanded = true});
 
             SmallVector<SymbolFunction*> dependencies;
@@ -176,7 +176,7 @@ void SymbolFunction::jit(TaskContext& ctx)
         return;
 
     SmallVector<SymbolFunction*> jitOrder;
-    appendJitOrder(jitOrder, *this);
+    appendDepOrder(jitOrder, *this);
     for (auto* function : jitOrder)
         function->jitEmit(ctx);
 }

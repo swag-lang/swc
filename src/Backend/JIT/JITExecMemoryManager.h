@@ -13,9 +13,9 @@ public:
     JITExecMemoryManager(const JITExecMemoryManager&)            = delete;
     JITExecMemoryManager& operator=(const JITExecMemoryManager&) = delete;
 
-    bool allocate(JITExecMemory& outExecutableMemory, uint32_t size);
-    bool makeExecutable(const JITExecMemory& executableMemory);
-    bool allocateAndCopy(JITExecMemory& outExecutableMemory, ByteSpan bytes);
+    bool        allocate(JITExecMemory& outExecutableMemory, uint32_t size);
+    static bool makeExecutable(const JITExecMemory& executableMemory);
+    bool        allocateAndCopy(JITExecMemory& outExecutableMemory, ByteSpan bytes);
 
 private:
     struct Block

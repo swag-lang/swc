@@ -104,6 +104,9 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
     if (hasStackArgs)
     {
         const uint32_t numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
+
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
             const auto& arg      = args[i];
@@ -121,31 +124,19 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
                 case PreparedArgKind::Direct:
                     if (arg.isFloat)
                     {
-                        if (stackAdjust)
-                            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
                         builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
-                        if (stackAdjust)
-                            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
                     }
                     else
                     {
                         builder.encodeLoadRegReg(regTmp, arg.srcReg, argBits);
-                        if (stackAdjust)
-                            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
                         builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
-                        if (stackAdjust)
-                            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
                     }
                     break;
 
                 case PreparedArgKind::InterfaceObject:
                     SWC_ASSERT(!arg.isFloat);
                     builder.encodeLoadRegMem(regTmp, arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-                    if (stackAdjust)
-                        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
                     builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, MicroOpBits::B64);
-                    if (stackAdjust)
-                        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
                     break;
 
                 default:
@@ -158,8 +149,6 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
             const auto&    arg        = args[i];
             const auto     argBits    = preparedArgBits(arg);
             const uint64_t homeOffset = static_cast<uint64_t>(i) * stackSlotSize;
-            if (stackAdjust)
-                builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
             if (arg.isFloat)
             {
                 SWC_ASSERT(i < conv.floatArgRegs.size());
@@ -170,9 +159,10 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
                 SWC_ASSERT(i < conv.intArgRegs.size());
                 builder.encodeLoadRegMem(conv.intArgRegs[i], conv.stackPointer, homeOffset, argBits);
             }
-            if (stackAdjust)
-                builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
         }
+
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
 
         return numPreparedArgs;
     }

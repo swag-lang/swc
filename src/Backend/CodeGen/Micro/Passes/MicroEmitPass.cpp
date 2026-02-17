@@ -143,7 +143,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
                 SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
 
                 const auto& reloc = foundReloc->second;
-                context.builder->addCodeRelocation({
+                context.builder->addRelocation({
                     .kind           = MicroRelocation::Kind::Abs64,
                     .codeOffset     = codeEndOffset - sizeof(uint64_t),
                     .instructionRef = INVALID_REF,

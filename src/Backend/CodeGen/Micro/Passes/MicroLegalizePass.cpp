@@ -23,24 +23,21 @@ namespace
 
     void applyClampImmediate(const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
-        if (!hasOperand(inst, ops, issue.operandIndex))
-            SWC_INTERNAL_ERROR();
-
+        SWC_ASSERT(hasOperand(inst, ops, issue.operandIndex));
         ops[issue.operandIndex].valueU64 = std::min(ops[issue.operandIndex].valueU64, issue.valueLimitU64);
     }
 
     void applyNormalizeOpBits(const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
-        if (!hasOperand(inst, ops, issue.operandIndex))
-            SWC_INTERNAL_ERROR();
-
+        SWC_ASSERT(hasOperand(inst, ops, issue.operandIndex));
         ops[issue.operandIndex].opBits = issue.normalizedOpBits;
     }
 
     void applySplitLoadMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        if (!ops || inst.op != MicroInstrOpcode::LoadMemImm || inst.numOperands < 4)
-            SWC_INTERNAL_ERROR();
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadMemImm);
+        SWC_ASSERT(inst.numOperands >= 4);
 
         const auto memReg    = ops[0].reg;
         const auto memOffset = ops[2].valueU64;
@@ -67,8 +64,9 @@ namespace
 
     void applySplitLoadAmcMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        if (!ops || inst.op != MicroInstrOpcode::LoadAmcMemImm || inst.numOperands < 8)
-            SWC_INTERNAL_ERROR();
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadAmcMemImm);
+        SWC_ASSERT(inst.numOperands >= 8);
 
         const auto regBase       = ops[0].reg;
         const auto regMul        = ops[1].reg;
@@ -104,8 +102,9 @@ namespace
 
     void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        if (!ops || inst.op != MicroInstrOpcode::LoadRegImm || inst.numOperands < 3)
-            SWC_INTERNAL_ERROR();
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm);
+        SWC_ASSERT(inst.numOperands >= 3);
 
         const auto dstReg   = ops[0].reg;
         auto       opBits   = ops[1].opBits;
@@ -165,7 +164,7 @@ namespace
                 applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops);
                 return;
             default:
-                SWC_INTERNAL_ERROR();
+                SWC_ASSERT(false);
         }
     }
 }
@@ -189,7 +188,6 @@ void MicroLegalizePass::run(MicroPassContext& context)
         for (;;)
         {
             applyLegalizeIssue(context, encoder, it.current, inst, ops, issue);
-
             if (inst.op == MicroInstrOpcode::Ignore)
                 break;
 

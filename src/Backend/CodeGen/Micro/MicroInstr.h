@@ -106,10 +106,10 @@ struct MicroInstrRegOperandRef
 
 struct MicroInstr
 {
-    Ref              opsRef      = INVALID_REF;
-    MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
-    
-    uint8_t          numOperands = 0;
+    Ref              opsRef = INVALID_REF;
+    MicroInstrOpcode op     = MicroInstrOpcode::OpBinaryRegImm;
+
+    uint8_t numOperands = 0;
 
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
@@ -120,4 +120,3 @@ struct MicroInstr
 };
 
 SWC_END_NAMESPACE();
-

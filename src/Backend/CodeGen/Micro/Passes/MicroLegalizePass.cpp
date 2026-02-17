@@ -198,5 +198,3 @@ void MicroLegalizePass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-
-

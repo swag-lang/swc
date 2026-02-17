@@ -475,12 +475,12 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
-    Utf8 naturalInstruction(const TaskContext& ctx,
-                            const MicroInstr& inst,
+    Utf8 naturalInstruction(const TaskContext&       ctx,
+                            const MicroInstr&        inst,
                             const MicroInstrOperand* ops,
-                            MicroRegPrintMode regPrintMode,
-                            const Encoder* encoder,
-                            bool hasImmediateRelocation)
+                            MicroRegPrintMode        regPrintMode,
+                            const Encoder*           encoder,
+                            bool                     hasImmediateRelocation)
     {
         switch (inst.op)
         {
@@ -1056,12 +1056,12 @@ namespace
 
 Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroBuilder* builder)
 {
-    Utf8                              out;
-    auto&                             storeOps = operands;
-    auto                              view     = instructions.view();
-    std::unordered_set<uint64_t>      seenDebugLines;
-    std::unordered_map<Ref, uint32_t> instIndexByRef;
-    std::unordered_map<Ref, uint32_t> labelIndexByRef;
+    Utf8                                            out;
+    auto&                                           storeOps = operands;
+    auto                                            view     = instructions.view();
+    std::unordered_set<uint64_t>                    seenDebugLines;
+    std::unordered_map<Ref, uint32_t>               instIndexByRef;
+    std::unordered_map<Ref, uint32_t>               labelIndexByRef;
     std::unordered_map<Ref, const MicroRelocation*> relocationByInstructionRef;
 
     if (builder)
@@ -1100,10 +1100,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
-        const auto relocIt = relocationByInstructionRef.find(instRef);
-        const MicroRelocation* instructionRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
-        const bool hasImmediateRelocation = instructionRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
-        auto natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
+        const auto               relocIt                = relocationByInstructionRef.find(instRef);
+        const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
+        const bool               hasImmediateRelocation = instructionRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
+        auto                     natural                = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;
@@ -1444,4 +1444,3 @@ void MicroPrinter::print(const TaskContext& ctx, const MicroStorage& instruction
 }
 
 SWC_END_NAMESPACE();
-

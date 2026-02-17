@@ -21,7 +21,7 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
     if (!savedRegsFrameSize_)
         return;
 
-    Ref                                      firstRef = INVALID_REF;
+    Ref              firstRef = INVALID_REF;
     std::vector<Ref> retRefs;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
@@ -159,6 +159,3 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
 }
 
 SWC_END_NAMESPACE();
-
-
-

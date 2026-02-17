@@ -84,8 +84,8 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t num
 ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
     PreparedCall preparedCall;
-    const auto& conv            = CallConv::get(callConvKind);
-    const auto  numPreparedArgs = static_cast<uint32_t>(args.size());
+    const auto&  conv            = CallConv::get(callConvKind);
+    const auto   numPreparedArgs = static_cast<uint32_t>(args.size());
     preparedCall.numPreparedArgs = numPreparedArgs;
     if (args.empty())
         return preparedCall;
@@ -94,7 +94,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t stackAdjust   = computeCallStackAdjust(callConvKind, numPreparedArgs);
     preparedCall.stackAdjust     = stackAdjust;
-    const bool     hasStackArgs  = numPreparedArgs > numRegArgs;
+    const bool hasStackArgs      = numPreparedArgs > numRegArgs;
 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();
@@ -102,7 +102,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     if (hasStackArgs)
     {
-        const uint32_t numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
+        const uint32_t       numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
         SmallVector<uint8_t> regArgsUseHomeSlot;
         regArgsUseHomeSlot.resize(numRegArgsUsed, 0);
 
@@ -449,4 +449,3 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 }
 
 SWC_END_NAMESPACE();
-

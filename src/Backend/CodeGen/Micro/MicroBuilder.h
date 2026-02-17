@@ -149,22 +149,20 @@ private:
     MicroInstr&                 addInstruction(MicroInstrOpcode op, uint8_t numOperands);
     void                        storeInstructionDebugInfo(Ref instructionRef);
 
-    TaskContext*                               ctx_ = nullptr;
-    MicroStorage                               instructions_;
-    MicroOperandStorage                        operands_;
-    MicroBuilderFlags                          flags_ = MicroBuilderFlagsE::Zero;
-    std::vector<std::optional<MicroDebugInfo>> debugInfos_;
-    MicroDebugInfo                             currentDebugInfo_;
-    Utf8                                       printSymbolName_;
-    Utf8                                       printFilePath_;
-    uint32_t                                   printSourceLine_ = 0;
-    std::vector<Utf8>                          printPassOptions_;
-    Runtime::BuildCfgBackendOptim              backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
-    std::vector<Ref>                           labels_;
-    std::vector<MicroRelocation>               codeRelocations_;
+    TaskContext*                                        ctx_ = nullptr;
+    MicroStorage                                        instructions_;
+    MicroOperandStorage                                 operands_;
+    MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
+    std::vector<std::optional<MicroDebugInfo>>          debugInfos_;
+    MicroDebugInfo                                      currentDebugInfo_;
+    Utf8                                                printSymbolName_;
+    Utf8                                                printFilePath_;
+    uint32_t                                            printSourceLine_ = 0;
+    std::vector<Utf8>                                   printPassOptions_;
+    Runtime::BuildCfgBackendOptim                       backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
+    std::vector<Ref>                                    labels_;
+    std::vector<MicroRelocation>                        codeRelocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
 };
 
 SWC_END_NAMESPACE();
-
-

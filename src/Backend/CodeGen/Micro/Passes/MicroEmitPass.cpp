@@ -244,5 +244,3 @@ void MicroEmitPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -23,18 +23,20 @@ namespace
 
     struct PendingInsert
     {
-        MicroInstrOpcode  op        = MicroInstrOpcode::Nop;        uint8_t           numOps    = 0;
-        MicroInstrOperand ops[4]    = {};
+        MicroInstrOpcode  op     = MicroInstrOpcode::Nop;
+        uint8_t           numOps = 0;
+        MicroInstrOperand ops[4] = {};
     };
 
     struct AllocRequest
     {
-        MicroReg    virtReg          = MicroReg::invalid();
-        uint32_t    virtKey          = 0;
-        bool        needsPersistent  = false;
-        bool        isUse            = false;
-        bool        isDef            = false;
-        uint32_t    instructionIndex = 0;    };
+        MicroReg virtReg          = MicroReg::invalid();
+        uint32_t virtKey          = 0;
+        bool     needsPersistent  = false;
+        bool     isUse            = false;
+        bool     isDef            = false;
+        uint32_t instructionIndex = 0;
+    };
 
     struct PassState
     {
@@ -284,7 +286,7 @@ namespace
     void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadMemReg;
-                out.numOps          = 4;
+        out.numOps          = 4;
         out.ops[0].reg      = conv.stackPointer;
         out.ops[1].reg      = physReg;
         out.ops[2].opBits   = regState.spillBits;
@@ -294,7 +296,7 @@ namespace
     void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadRegMem;
-                out.numOps          = 4;
+        out.numOps          = 4;
         out.ops[0].reg      = physReg;
         out.ops[1].reg      = conv.stackPointer;
         out.ops[2].opBits   = regState.spillBits;
@@ -334,15 +336,15 @@ namespace
         return candidateKey > currentBestKey;
     }
 
-    bool selectEvictionCandidate(const PassState&      state,
-                                 uint32_t              requestVirtKey,
-                                 uint32_t              instructionIndex,
-                                 bool                  isFloatReg,
-                                 bool                  fromPersistentPool,
+    bool selectEvictionCandidate(const PassState&          state,
+                                 uint32_t                  requestVirtKey,
+                                 uint32_t                  instructionIndex,
+                                 bool                      isFloatReg,
+                                 bool                      fromPersistentPool,
                                  std::span<const uint32_t> protectedKeys,
-                                 uint32_t              stamp,
-                                 uint32_t&             outVirtKey,
-                                 MicroReg&             outPhys)
+                                 uint32_t                  stamp,
+                                 uint32_t&                 outVirtKey,
+                                 MicroReg&                 outPhys)
     {
         outVirtKey = 0;
         outPhys    = MicroReg::invalid();
@@ -586,8 +588,8 @@ namespace
             for (const auto key : state.liveOut[idx])
                 state.liveStamp[key] = stamp;
 
-            const Ref         instructionRef = it.current;
-            
+            const Ref instructionRef = it.current;
+
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
 
@@ -624,7 +626,7 @@ namespace
                 request.isUse            = regRef.use;
                 request.isDef            = regRef.def;
                 request.instructionIndex = idx;
-                
+
                 const bool liveAcrossCall = state.vregsLiveAcrossCall.contains(request.virtKey);
                 if (reg.isVirtualInt())
                     request.needsPersistent = liveAcrossCall && !state.conv->intPersistentRegs.empty();
@@ -715,7 +717,3 @@ void MicroRegisterAllocationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-
-
-
-

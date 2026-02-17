@@ -1241,12 +1241,12 @@ namespace
 
 void X64Encoder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)
 {
-    return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsSrc, MicroOp::Move,  false);
+    return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsSrc, MicroOp::Move, false);
 }
 
 void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)
 {
-    return encodeAmcReg(store_, regSrc, opBitsSrc, regBase, regMul, mulValue, addValue, opBitsBaseMul, MicroOp::Move,  true);
+    return encodeAmcReg(store_, regSrc, opBitsSrc, regBase, regMul, mulValue, addValue, opBitsBaseMul, MicroOp::Move, true);
 }
 
 void X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
@@ -1256,7 +1256,7 @@ void X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t
 
 void X64Encoder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue)
 {
-    return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsValue, MicroOp::LoadEffectiveAddress,  false);
+    return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsValue, MicroOp::LoadEffectiveAddress, false);
 }
 
 // ============================================================================
@@ -2477,7 +2477,7 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
 {
     auto& compiler                                 = ctx().compiler();
     const auto [offsetTableConstant, addrConstant] = compiler.constantSegment().reserveSpan<uint32_t>(numEntries);
-    auto emitRelocAddressLoad                       = [&](MicroReg reg, uint32_t symbolIndex, uint32_t offset) {
+    auto emitRelocAddressLoad                      = [&](MicroReg reg, uint32_t symbolIndex, uint32_t offset) {
         emitRex(store_, MicroOpBits::B64, reg);
         emitCpuOp(store_, 0x8D);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
@@ -2487,7 +2487,7 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
     emitRelocAddressLoad(tableReg, symCsIndex_, offsetTableConstant);
 
     // 'movsxd' table, dword ptr [table + offset*4]
-    encodeAmcReg(store_, tableReg, MicroOpBits::B64, tableReg, offsetReg, 4, 0, MicroOpBits::B64, MicroOp::MoveSignExtend,  false);
+    encodeAmcReg(store_, tableReg, MicroOpBits::B64, tableReg, offsetReg, 4, 0, MicroOpBits::B64, MicroOp::MoveSignExtend, false);
 
     const auto startIdx = store_.size();
     emitRelocAddressLoad(offsetReg, cpuFct_->symbolIndex, store_.size() - cpuFct_->startAddress);
@@ -2672,7 +2672,7 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
 
 void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination)
 {
-        const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
+    const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
     if (jump.opBits == MicroOpBits::B8)
     {
         SWC_ASSERT(offset >= -128 && offset <= 127);
@@ -2693,7 +2693,7 @@ void X64Encoder::encodePatchJump(const MicroJump& jump)
 
 void X64Encoder::encodeJumpReg(MicroReg reg)
 {
-        emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
+    emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Register, MODRM_REG_4, encodeReg(reg));
     return;
@@ -2714,7 +2714,7 @@ void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
     SWC_UNUSED(targetSymbol);
     SWC_UNUSED(callConv);
-    
+
     emitCpuOp(store_, 0xE8);
     store_.pushU32(0);
     return;
@@ -2723,7 +2723,7 @@ void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
 {
     SWC_UNUSED(callConv);
-        emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
+    emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, MODRM_REG_2, reg);
     return;
@@ -2731,11 +2731,8 @@ void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
 
 void X64Encoder::encodeNop()
 {
-        emitCpuOp(store_, 0x90);
+    emitCpuOp(store_, 0x90);
     return;
 }
 
 SWC_END_NAMESPACE();
-
-
-

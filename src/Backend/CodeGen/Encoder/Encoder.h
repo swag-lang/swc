@@ -70,8 +70,8 @@ protected:
 
     virtual void encodePush(MicroReg reg)                                                                                                                                             = 0;
     virtual void encodePop(MicroReg reg)                                                                                                                                              = 0;
-    virtual void encodeNop()                                                                                                                                                            = 0;
-    virtual void encodeRet()                                                                                                                                                            = 0;
+    virtual void encodeNop()                                                                                                                                                          = 0;
+    virtual void encodeRet()                                                                                                                                                          = 0;
     virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)                                                                                                         = 0;
     virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)                                                                                = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv)                                                                                                                   = 0;
@@ -136,4 +136,3 @@ protected:
 };
 
 SWC_END_NAMESPACE();
-

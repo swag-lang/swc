@@ -29,7 +29,6 @@ namespace
     using BuilderCaseFn = std::function<void(MicroBuilder&)>;
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
-
     constexpr auto RAX  = MicroReg::intReg(0);
     constexpr auto RCX  = MicroReg::intReg(2);
     constexpr auto RDX  = MicroReg::intReg(3);
@@ -393,5 +392,3 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
-
-

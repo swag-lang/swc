@@ -596,13 +596,13 @@ namespace
             out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
     }
 
-    void appendNaturalColumn(std::string&                           out,
-                             const TaskContext&                     ctx,
-                             bool                                   colorize,
-                             std::string                            value,
-                             const std::unordered_set<std::string>& concreteRegs,
-                             const std::unordered_set<std::string>& virtualRegs,
-                             const std::optional<std::string>&      jumpTargetInstIndex)
+    void appendNaturalColumn(std::string&                    out,
+                             const TaskContext&              ctx,
+                             bool                            colorize,
+                             Utf8                            value,
+                             const std::unordered_set<Utf8>& concreteRegs,
+                             const std::unordered_set<Utf8>& virtualRegs,
+                             const std::optional<Utf8>&      jumpTargetInstIndex)
     {
         size_t jumpTargetIndexStart = std::string::npos;
         if (jumpTargetInstIndex)
@@ -633,7 +633,7 @@ namespace
                 return true;
             };
 
-            const std::string tokenStr(token);
+            const Utf8 tokenStr(token);
             if (virtualRegs.contains(tokenStr))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
@@ -1049,10 +1049,10 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
-        auto                            natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
-        std::optional<std::string>      naturalJumpTargetIndex;
-        std::unordered_set<std::string> concreteRegs;
-        std::unordered_set<std::string> virtualRegs;
+        auto                     natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        std::optional<Utf8>      naturalJumpTargetIndex;
+        std::unordered_set<Utf8> concreteRegs;
+        std::unordered_set<Utf8> virtualRegs;
         if (inst.numOperands)
         {
             SmallVector<MicroInstrRegOperandRef> regRefs;

@@ -99,3 +99,12 @@ template<>
 struct std::formatter<swc::Utf8> : std::formatter<std::string>
 {
 };
+
+template<>
+struct std::hash<swc::Utf8>
+{
+    std::size_t operator()(const swc::Utf8& v) const noexcept
+    {
+        return std::hash<std::string_view>{}(v);
+    }
+};

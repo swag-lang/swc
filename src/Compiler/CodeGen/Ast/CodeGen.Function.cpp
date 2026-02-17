@@ -142,17 +142,17 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
-    const uint32_t numAbiArgs    = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
-    auto&          nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const auto*    calleePayload = codeGen.payload(calleeView.nodeRef);
-    const MicroReg resultReg     = nodePayload.reg;
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
+    auto&                       nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    const auto*                 calleePayload = codeGen.payload(calleeView.nodeRef);
+    const MicroReg              resultReg     = nodePayload.reg;
 
     if (calleePayload)
-        ABICall::callReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
+        ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall, &calledFunction);
     else if (calledFunction.isForeign())
-        ABICall::callExtern(builder, callConvKind, &calledFunction, numAbiArgs);
+        ABICall::callExtern(builder, callConvKind, &calledFunction, preparedCall);
     else
-        ABICall::callLocal(builder, callConvKind, &calledFunction, numAbiArgs);
+        ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;

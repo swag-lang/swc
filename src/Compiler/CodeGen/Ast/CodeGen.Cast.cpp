@@ -5,15 +5,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
+Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
     return Result::Continue;
 }
 
-Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
+Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.curNodeView().typeRef);
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
     return Result::Continue;
 }
 

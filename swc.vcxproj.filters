@@ -192,6 +192,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
@@ -199,6 +202,9 @@
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp">

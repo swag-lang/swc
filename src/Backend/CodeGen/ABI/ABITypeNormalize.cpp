@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

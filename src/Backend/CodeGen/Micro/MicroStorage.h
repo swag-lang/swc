@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -91,7 +91,7 @@ public:
     const MicroInstr*           ptr(Ref ref) const noexcept;
     std::pair<Ref, MicroInstr*> emplaceUninit();
     Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
-    Ref                         insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData);
+    Ref                         insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     View                        view() noexcept;
     ConstView                   view() const noexcept;
 
@@ -115,3 +115,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

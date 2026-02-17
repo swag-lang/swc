@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Encoder/EncoderTypes.h"
 #include "Backend/CodeGen/Micro/MicroReg.h"
@@ -68,49 +68,47 @@ protected:
     virtual ~Encoder()                     = default;
     virtual uint64_t currentOffset() const = 0;
 
-    virtual void encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)                                                                                    = 0;
-    virtual void encodeLoadSymRelocValue(MicroReg reg, uint32_t symbolIndex, uint32_t offset, MicroOpBits opBits, EncodeFlags emitFlags)                                                                     = 0;
-    virtual void encodePush(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                             = 0;
-    virtual void encodePop(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                              = 0;
-    virtual void encodeNop(EncodeFlags emitFlags)                                                                                                                                                            = 0;
-    virtual void encodeRet(EncodeFlags emitFlags)                                                                                                                                                            = 0;
-    virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                         = 0;
-    virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)                                                                                = 0;
-    virtual void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                   = 0;
-    virtual void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
-    virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                   = 0;
-    virtual void encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)                                                                                                   = 0;
-    virtual void encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)                                                                                                                               = 0;
-    virtual void encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)                                                                                                                                          = 0;
-    virtual void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)                                                                              = 0;
-    virtual void encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                   = 0;
-    virtual void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                               = 0;
-    virtual void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)                                      = 0;
-    virtual void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)                                                       = 0;
-    virtual void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)                                        = 0;
-    virtual void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags)                                                         = 0;
-    virtual void encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags)                                                                       = 0;
-    virtual void encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc, EncodeFlags emitFlags)          = 0;
-    virtual void encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc, EncodeFlags emitFlags)      = 0;
-    virtual void encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue, EncodeFlags emitFlags)     = 0;
-    virtual void encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue, EncodeFlags emitFlags) = 0;
-    virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)                                                                              = 0;
-    virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)                                                                            = 0;
-    virtual void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                    = 0;
-    virtual void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)                                                                               = 0;
-    virtual void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)                                                                             = 0;
-    virtual void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                    = 0;
-    virtual void encodeSetCondReg(MicroReg reg, MicroCond cpuCond, EncodeFlags emitFlags)                                                                                                                    = 0;
-    virtual void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits, EncodeFlags emitFlags)                                                                        = 0;
-    virtual void encodeClearReg(MicroReg reg, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                                     = 0;
-    virtual void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                = 0;
-    virtual void encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                       = 0;
-    virtual void encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                               = 0;
-    virtual void encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                           = 0;
-    virtual void encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                              = 0;
-    virtual void encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                   = 0;
-    virtual void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                            = 0;
-    virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
+    virtual void encodePush(MicroReg reg)                                                                                                                                             = 0;
+    virtual void encodePop(MicroReg reg)                                                                                                                                              = 0;
+    virtual void encodeNop()                                                                                                                                                            = 0;
+    virtual void encodeRet()                                                                                                                                                            = 0;
+    virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)                                                                                                         = 0;
+    virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)                                                                                = 0;
+    virtual void encodeCallReg(MicroReg reg, CallConvKind callConv)                                                                                                                   = 0;
+    virtual void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries)                                                 = 0;
+    virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)                                                                                                   = 0;
+    virtual void encodePatchJump(const MicroJump& jump, uint64_t offsetDestination)                                                                                                   = 0;
+    virtual void encodePatchJump(const MicroJump& jump)                                                                                                                               = 0;
+    virtual void encodeJumpReg(MicroReg reg)                                                                                                                                          = 0;
+    virtual void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                              = 0;
+    virtual void encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)                                                                                                   = 0;
+    virtual void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits)                                                                                               = 0;
+    virtual void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                      = 0;
+    virtual void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                       = 0;
+    virtual void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                        = 0;
+    virtual void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)                                                         = 0;
+    virtual void encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)                                                                       = 0;
+    virtual void encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)          = 0;
+    virtual void encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)      = 0;
+    virtual void encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)     = 0;
+    virtual void encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue) = 0;
+    virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                              = 0;
+    virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                            = 0;
+    virtual void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                    = 0;
+    virtual void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                               = 0;
+    virtual void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                             = 0;
+    virtual void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)                                                                                                    = 0;
+    virtual void encodeSetCondReg(MicroReg reg, MicroCond cpuCond)                                                                                                                    = 0;
+    virtual void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)                                                                        = 0;
+    virtual void encodeClearReg(MicroReg reg, MicroOpBits opBits)                                                                                                                     = 0;
+    virtual void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                                = 0;
+    virtual void encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)                                                                                                       = 0;
+    virtual void encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)                                                                               = 0;
+    virtual void encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                           = 0;
+    virtual void encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)                                                              = 0;
+    virtual void encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits)                                                                                   = 0;
+    virtual void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits)                                                            = 0;
+    virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)                                                                = 0;
 
     virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
     {
@@ -138,3 +136,4 @@ protected:
 };
 
 SWC_END_NAMESPACE();
+

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,7 +19,7 @@ private:
 
     void buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv);
     void insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
-    void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef, EncodeFlags emitFlags) const;
+    void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
     bool containsSavedSlot(MicroReg reg) const;
 
     uint64_t                  savedRegsFrameSize_ = 0;
@@ -27,3 +27,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

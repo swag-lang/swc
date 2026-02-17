@@ -10,9 +10,6 @@ SWC_MICRO_INSTR_DEF(Pop, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMo
 SWC_MICRO_INSTR_DEF(Nop, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(Ret, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
-SWC_MICRO_INSTR_DEF(SymbolRelocAddr, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
-SWC_MICRO_INSTR_DEF(SymbolRelocValue, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
-
 SWC_MICRO_INSTR_DEF(LoadCallParam, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadCallAddrParam, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadCallZeroExtParam, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 
@@ -52,14 +52,14 @@ namespace
         lowOps[1].opBits   = MicroOpBits::B32;
         lowOps[2].valueU64 = memOffset;
         lowOps[3].valueU64 = lowU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, lowOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, lowOps);
 
         std::array<MicroInstrOperand, 4> highOps;
         highOps[0].reg      = memReg;
         highOps[1].opBits   = MicroOpBits::B32;
         highOps[2].valueU64 = memOffset + 4;
         highOps[3].valueU64 = highU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, highOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, highOps);
     }
 
     void applySplitLoadAmcMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
@@ -87,7 +87,7 @@ namespace
         lowOps[5].valueU64 = mulValue;
         lowOps[6].valueU64 = addValue;
         lowOps[7].valueU64 = lowU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, lowOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, lowOps);
 
         std::array<MicroInstrOperand, 8> highOps;
         highOps[0].reg      = regBase;
@@ -97,7 +97,7 @@ namespace
         highOps[5].valueU64 = mulValue;
         highOps[6].valueU64 = addValue + 4;
         highOps[7].valueU64 = highU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, highOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, highOps);
     }
 
     void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
@@ -120,28 +120,28 @@ namespace
         subOps[1].opBits   = MicroOpBits::B64;
         subOps[2].microOp  = MicroOp::Subtract;
         subOps[3].valueU64 = FLOAT_STACK_SCRATCH;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, subOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
 
         std::array<MicroInstrOperand, 4> storeOps;
         storeOps[0].reg      = rspReg;
         storeOps[1].opBits   = opBits;
         storeOps[2].valueU64 = 0;
         storeOps[3].valueU64 = immValue;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, storeOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, storeOps);
 
         std::array<MicroInstrOperand, 4> loadOps;
         loadOps[0].reg      = dstReg;
         loadOps[1].reg      = rspReg;
         loadOps[2].opBits   = opBits;
         loadOps[3].valueU64 = 0;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, inst.emitFlags, loadOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, loadOps);
 
         std::array<MicroInstrOperand, 4> addOps;
         addOps[0].reg      = rspReg;
         addOps[1].opBits   = MicroOpBits::B64;
         addOps[2].microOp  = MicroOp::Add;
         addOps[3].valueU64 = FLOAT_STACK_SCRATCH;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, addOps);
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
     }
 
     void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
@@ -198,3 +198,5 @@ void MicroLegalizePass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
+
+

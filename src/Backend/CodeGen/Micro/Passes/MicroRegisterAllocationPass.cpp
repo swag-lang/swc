@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
@@ -22,9 +22,7 @@ namespace
 
     struct PendingInsert
     {
-        MicroInstrOpcode  op        = MicroInstrOpcode::Nop;
-        EncodeFlags       emitFlags = EncodeFlagsE::Zero;
-        uint8_t           numOps    = 0;
+        MicroInstrOpcode  op        = MicroInstrOpcode::Nop;        uint8_t           numOps    = 0;
         MicroInstrOperand ops[4]    = {};
     };
 
@@ -35,9 +33,7 @@ namespace
         bool        needsPersistent  = false;
         bool        isUse            = false;
         bool        isDef            = false;
-        uint32_t    instructionIndex = 0;
-        EncodeFlags emitFlags        = EncodeFlagsE::Zero;
-    };
+        uint32_t    instructionIndex = 0;    };
 
     struct PassState
     {
@@ -256,22 +252,20 @@ namespace
         state.spillFrameUsed += slotSize;
     }
 
-    void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, EncodeFlags emitFlags, const CallConv& conv)
+    void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadMemReg;
-        out.emitFlags       = emitFlags;
-        out.numOps          = 4;
+                out.numOps          = 4;
         out.ops[0].reg      = conv.stackPointer;
         out.ops[1].reg      = physReg;
         out.ops[2].opBits   = regState.spillBits;
         out.ops[3].valueU64 = regState.spillOffset;
     }
 
-    void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, EncodeFlags emitFlags, const CallConv& conv)
+    void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadRegMem;
-        out.emitFlags       = emitFlags;
-        out.numOps          = 4;
+                out.numOps          = 4;
         out.ops[0].reg      = physReg;
         out.ops[1].reg      = conv.stackPointer;
         out.ops[2].opBits   = regState.spillBits;
@@ -472,7 +466,7 @@ namespace
             if (victimState.dirty || !hadSpillSlot)
             {
                 PendingInsert spillPending;
-                queueSpillStore(spillPending, victimReg, victimState, request.emitFlags, *state.conv);
+                queueSpillStore(spillPending, victimReg, victimState, *state.conv);
                 pending.push_back(spillPending);
                 victimState.dirty = false;
             }
@@ -500,7 +494,7 @@ namespace
         {
             SWC_ASSERT(mappedState.hasSpill);
             PendingInsert loadPending;
-            queueSpillLoad(loadPending, physReg, mappedState, request.emitFlags, *state.conv);
+            queueSpillLoad(loadPending, physReg, mappedState, *state.conv);
             pending.push_back(loadPending);
             mappedState.dirty = false;
         }
@@ -508,7 +502,7 @@ namespace
         return physReg;
     }
 
-    void spillCallLiveOut(PassState& state, uint32_t stamp, EncodeFlags emitFlags, std::vector<PendingInsert>& pending)
+    void spillCallLiveOut(PassState& state, uint32_t stamp, std::vector<PendingInsert>& pending)
     {
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
         {
@@ -526,7 +520,7 @@ namespace
             {
                 ensureSpillSlot(state, regState, physReg.isFloat());
                 PendingInsert spillPending;
-                queueSpillStore(spillPending, physReg, regState, emitFlags, *state.conv);
+                queueSpillStore(spillPending, physReg, regState, *state.conv);
                 pending.push_back(spillPending);
                 regState.dirty = false;
             }
@@ -583,8 +577,7 @@ namespace
                 state.liveStamp[key] = stamp;
 
             const Ref         instructionRef = it.current;
-            const EncodeFlags emitFlags      = it->emitFlags;
-
+            
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
 
@@ -621,8 +614,7 @@ namespace
                 request.isUse            = regRef.use;
                 request.isDef            = regRef.def;
                 request.instructionIndex = idx;
-                request.emitFlags        = emitFlags;
-
+                
                 const bool liveAcrossCall = state.vregsLiveAcrossCall.contains(request.virtKey);
                 if (reg.isVirtualInt())
                     request.needsPersistent = liveAcrossCall && !state.conv->intPersistentRegs.empty();
@@ -641,11 +633,11 @@ namespace
 
             const auto useDef = it->collectUseDef(*state.operands, state.context->encoder);
             if (useDef.isCall)
-                spillCallLiveOut(state, stamp, emitFlags, pending);
+                spillCallLiveOut(state, stamp, pending);
 
             for (const auto& pendingInst : pending)
             {
-                state.instructions->insertBefore(*state.operands, instructionRef, pendingInst.op, pendingInst.emitFlags, std::span(pendingInst.ops, pendingInst.numOps));
+                state.instructions->insertBefore(*state.operands, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
             }
 
             expireDeadMappings(state, stamp);
@@ -674,23 +666,23 @@ namespace
         subOps[1].opBits   = MicroOpBits::B64;
         subOps[2].microOp  = MicroOp::Subtract;
         subOps[3].valueU64 = spillFrameSize;
-        state.instructions->insertBefore(*state.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
+        state.instructions->insertBefore(*state.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
 
-        std::vector<std::pair<Ref, EncodeFlags>> retRefs;
+        std::vector<Ref> retRefs;
         for (auto it = state.instructions->view().begin(); it != state.instructions->view().end(); ++it)
         {
             if (it->op == MicroInstrOpcode::Ret)
-                retRefs.emplace_back(it.current, it->emitFlags);
+                retRefs.push_back(it.current);
         }
 
-        for (const auto [retRef, emitFlags] : retRefs)
+        for (const auto retRef : retRefs)
         {
             MicroInstrOperand addOps[4];
             addOps[0].reg      = state.conv->stackPointer;
             addOps[1].opBits   = MicroOpBits::B64;
             addOps[2].microOp  = MicroOp::Add;
             addOps[3].valueU64 = spillFrameSize;
-            state.instructions->insertBefore(*state.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
+            state.instructions->insertBefore(*state.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
         }
     }
 }
@@ -713,3 +705,7 @@ void MicroRegisterAllocationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
+
+
+
+

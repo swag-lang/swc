@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroTypes.h"
@@ -108,7 +108,7 @@ struct MicroInstr
 {
     Ref              opsRef      = INVALID_REF;
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
-    EncodeFlags      emitFlags   = EncodeFlagsE::Zero;
+    
     uint8_t          numOperands = 0;
 
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
@@ -120,3 +120,4 @@ struct MicroInstr
 };
 
 SWC_END_NAMESPACE();
+

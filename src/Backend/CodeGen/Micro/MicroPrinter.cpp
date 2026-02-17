@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
@@ -959,36 +959,6 @@ namespace
         appendTypeBitsCast(out, ctx, ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendInstFlags(Utf8& out, const TaskContext& ctx, EncodeFlags flags)
-    {
-        if (flags.none())
-            return;
-
-        out += "  ; ";
-        appendColored(out, ctx, SyntaxColor::Compiler, "flags=");
-
-        bool first = true;
-        if (flags.has(EncodeFlagsE::Overflow))
-        {
-            out += first ? "" : "|";
-            out += "overflow";
-            first = false;
-        }
-
-        if (flags.has(EncodeFlagsE::Lock))
-        {
-            out += first ? "" : "|";
-            out += "lock";
-            first = false;
-        }
-
-        if (flags.has(EncodeFlagsE::B64))
-        {
-            out += first ? "" : "|";
-            out += "b64";
-        }
-    }
-
     uint32_t computeInstructionIndexWidth(uint32_t numInstructions)
     {
         uint32_t width = 1;
@@ -1199,7 +1169,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendColored(out, ctx, SyntaxColor::Function, std::format("L{}:", labelRef));
             }
 
-            appendInstFlags(out, ctx, inst.emitFlags);
             padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
             appendInstructionDebugPayload(out, ctx, builder, instRef);
             out += '\n';
@@ -1224,24 +1193,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::JumpReg:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
-                break;
-
-            case MicroInstrOpcode::SymbolRelocAddr:
-                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, std::format("sym#{}", ops[1].valueU32));
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[2].valueU32));
-                break;
-
-            case MicroInstrOpcode::SymbolRelocValue:
-                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
-                appendSep(out);
-                appendTypeBits(out, ctx, ops[1].opBits);
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, std::format("sym#{}", ops[2].valueU32));
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[3].valueU32));
                 break;
 
             case MicroInstrOpcode::CallIndirect:
@@ -1494,7 +1445,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
         }
 
-        appendInstFlags(out, ctx, inst.emitFlags);
         padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
         appendColumnSeparator(out, ctx);
         appendNaturalColumn(out, ctx, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
@@ -1514,3 +1464,4 @@ void MicroPrinter::print(const TaskContext& ctx, const MicroStorage& instruction
 }
 
 SWC_END_NAMESPACE();
+

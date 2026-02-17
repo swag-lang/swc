@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -236,11 +236,10 @@ Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
     return ref;
 }
 
-Ref MicroStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
+Ref MicroStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
 {
     MicroInstr inst;
     inst.op          = op;
-    inst.emitFlags   = emitFlags;
     inst.numOperands = static_cast<uint8_t>(opsData.size());
 
     if (!opsData.empty())
@@ -304,3 +303,6 @@ void MicroStorage::linkAtEnd(Ref ref)
 }
 
 SWC_END_NAMESPACE();
+
+
+

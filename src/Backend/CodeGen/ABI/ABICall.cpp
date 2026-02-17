@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -347,7 +347,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
     builder.setCurrentDebugSymbol(targetSymbol);
-    builder.encodeCallLocal(targetSymbol, callConvKind, EncodeFlagsE::Zero);
+    builder.encodeCallLocal(targetSymbol, callConvKind);
     builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
@@ -372,8 +372,8 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
     builder.setCurrentDebugSymbol(targetSymbol);
-    builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol, EncodeFlagsE::Zero);
-    builder.encodeCallReg(conv.intReturn, callConvKind, EncodeFlagsE::Zero);
+    builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
+    builder.encodeCallReg(conv.intReturn, callConvKind);
     builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
@@ -429,3 +429,4 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 }
 
 SWC_END_NAMESPACE();
+

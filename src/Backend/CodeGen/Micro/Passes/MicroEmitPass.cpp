@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
@@ -73,37 +73,31 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             SWC_ASSERT(false);
             break;
 
-        case MicroInstrOpcode::SymbolRelocAddr:
-            encoder.encodeLoadSymbolRelocAddress(ops[0].reg, ops[1].valueU32, ops[2].valueU32, inst.emitFlags);
-            break;
-        case MicroInstrOpcode::SymbolRelocValue:
-            encoder.encodeLoadSymRelocValue(ops[0].reg, ops[2].valueU32, ops[3].valueU32, ops[1].opBits, inst.emitFlags);
-            break;
         case MicroInstrOpcode::Push:
-            encoder.encodePush(ops[0].reg, inst.emitFlags);
+            encoder.encodePush(ops[0].reg);
             break;
         case MicroInstrOpcode::Pop:
-            encoder.encodePop(ops[0].reg, inst.emitFlags);
+            encoder.encodePop(ops[0].reg);
             break;
         case MicroInstrOpcode::Nop:
-            encoder.encodeNop(inst.emitFlags);
+            encoder.encodeNop();
             break;
         case MicroInstrOpcode::Ret:
-            encoder.encodeRet(inst.emitFlags);
+            encoder.encodeRet();
             break;
         case MicroInstrOpcode::CallIndirect:
-            encoder.encodeCallReg(ops[0].reg, ops[1].callConv, inst.emitFlags);
+            encoder.encodeCallReg(ops[0].reg, ops[1].callConv);
             break;
         case MicroInstrOpcode::JumpTable:
-            encoder.encodeJumpTable(ops[0].reg, ops[1].reg, ops[2].valueI32, ops[3].valueU32, ops[4].valueU32, inst.emitFlags);
+            encoder.encodeJumpTable(ops[0].reg, ops[1].reg, ops[2].valueI32, ops[3].valueU32, ops[4].valueU32);
             break;
         case MicroInstrOpcode::JumpCond:
         {
             MicroJump jump;
-            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits, inst.emitFlags);
+            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
             jump.valid = true;
             SWC_ASSERT(inst.numOperands >= 3);
-            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64, .emitFlags = inst.emitFlags});
+            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64});
             break;
         }
         case MicroInstrOpcode::PatchJump:
@@ -113,104 +107,104 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         {
             MicroJump  jump;
             const auto opBits = ops[1].opBits == MicroOpBits::Zero ? MicroOpBits::B32 : ops[1].opBits;
-            encoder.encodeJump(jump, ops[0].cpuCond, opBits, inst.emitFlags);
-            encoder.encodePatchJump(jump, ops[2].valueU64, inst.emitFlags);
+            encoder.encodeJump(jump, ops[0].cpuCond, opBits);
+            encoder.encodePatchJump(jump, ops[2].valueU64);
             break;
         }
         case MicroInstrOpcode::JumpReg:
-            encoder.encodeJumpReg(ops[0].reg, inst.emitFlags);
+            encoder.encodeJumpReg(ops[0].reg);
             break;
         case MicroInstrOpcode::LoadRegReg:
-            encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadRegImm:
         {
             const uint32_t codeStartOffset = encoder.size();
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits, inst.emitFlags);
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
             SWC_ASSERT(ops[1].opBits == MicroOpBits::B64 || !findRelocationIndex(instructionRef).has_value());
             bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
             break;
         }
         case MicroInstrOpcode::LoadRegMem:
-            encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadSignedExtRegMem:
-            encoder.encodeLoadSignedExtendRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[2].opBits, ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadSignedExtendRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[2].opBits, ops[3].opBits);
             break;
         case MicroInstrOpcode::LoadSignedExtRegReg:
-            encoder.encodeLoadSignedExtendRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadSignedExtendRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].opBits);
             break;
         case MicroInstrOpcode::LoadZeroExtRegMem:
-            encoder.encodeLoadZeroExtendRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[2].opBits, ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadZeroExtendRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[2].opBits, ops[3].opBits);
             break;
         case MicroInstrOpcode::LoadZeroExtRegReg:
-            encoder.encodeLoadZeroExtendRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadZeroExtendRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].opBits);
             break;
         case MicroInstrOpcode::LoadAddrRegMem:
-            encoder.encodeLoadAddressRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadAddressRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadAmcMemReg:
-            encoder.encodeLoadAmcMemReg(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[2].reg, ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcMemReg(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[2].reg, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadAmcMemImm:
-            encoder.encodeLoadAmcMemImm(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[7].valueU64, ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcMemImm(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[7].valueU64, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadAmcRegMem:
-            encoder.encodeLoadAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadAddrAmcRegMem:
-            encoder.encodeLoadAddressAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits, inst.emitFlags);
+            encoder.encodeLoadAddressAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadMemReg:
-            encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits, inst.emitFlags);
+            encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadMemImm:
-            encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits, inst.emitFlags);
+            encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits);
             break;
         case MicroInstrOpcode::CmpRegReg:
-            encoder.encodeCmpRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, inst.emitFlags);
+            encoder.encodeCmpRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::CmpRegImm:
-            encoder.encodeCmpRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits, inst.emitFlags);
+            encoder.encodeCmpRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
             break;
         case MicroInstrOpcode::CmpMemReg:
-            encoder.encodeCmpMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits, inst.emitFlags);
+            encoder.encodeCmpMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::CmpMemImm:
-            encoder.encodeCmpMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits, inst.emitFlags);
+            encoder.encodeCmpMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits);
             break;
         case MicroInstrOpcode::SetCondReg:
-            encoder.encodeSetCondReg(ops[0].reg, ops[1].cpuCond, inst.emitFlags);
+            encoder.encodeSetCondReg(ops[0].reg, ops[1].cpuCond);
             break;
         case MicroInstrOpcode::LoadCondRegReg:
-            encoder.encodeLoadCondRegReg(ops[0].reg, ops[1].reg, ops[2].cpuCond, ops[3].opBits, inst.emitFlags);
+            encoder.encodeLoadCondRegReg(ops[0].reg, ops[1].reg, ops[2].cpuCond, ops[3].opBits);
             break;
         case MicroInstrOpcode::ClearReg:
-            encoder.encodeClearReg(ops[0].reg, ops[1].opBits, inst.emitFlags);
+            encoder.encodeClearReg(ops[0].reg, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpUnaryMem:
-            encoder.encodeOpUnaryMem(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpUnaryMem(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpUnaryReg:
-            encoder.encodeOpUnaryReg(ops[0].reg, ops[2].microOp, ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpUnaryReg(ops[0].reg, ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryRegReg:
-            encoder.encodeOpBinaryRegReg(ops[0].reg, ops[1].reg, ops[3].microOp, ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegReg(ops[0].reg, ops[1].reg, ops[3].microOp, ops[2].opBits);
             break;
         case MicroInstrOpcode::OpBinaryMemReg:
-            encoder.encodeOpBinaryMemReg(ops[0].reg, ops[4].valueU64, ops[1].reg, ops[3].microOp, ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryMemReg(ops[0].reg, ops[4].valueU64, ops[1].reg, ops[3].microOp, ops[2].opBits);
             break;
         case MicroInstrOpcode::OpBinaryRegImm:
-            encoder.encodeOpBinaryRegImm(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegImm(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryMemImm:
-            encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].valueU64, ops[2].microOp, ops[1].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].valueU64, ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryRegMem:
-            encoder.encodeOpBinaryRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[3].microOp, ops[2].opBits, inst.emitFlags);
+            encoder.encodeOpBinaryRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[3].microOp, ops[2].opBits);
             break;
         case MicroInstrOpcode::OpTernaryRegRegReg:
-            encoder.encodeOpTernaryRegRegReg(ops[0].reg, ops[1].reg, ops[2].reg, ops[4].microOp, ops[3].opBits, inst.emitFlags);
+            encoder.encodeOpTernaryRegRegReg(ops[0].reg, ops[1].reg, ops[2].reg, ops[4].microOp, ops[3].opBits);
             break;
         default:
             SWC_ASSERT(false);
@@ -245,8 +239,10 @@ void MicroEmitPass::run(MicroPassContext& context)
     for (const auto& pending : pendingLabelJumps_)
     {
         const auto destination = resolveJumpDestination(labelOffsets_, pending.labelRef);
-        encoder.encodePatchJump(pending.jump, destination, pending.emitFlags);
+        encoder.encodePatchJump(pending.jump, destination);
     }
 }
 
 SWC_END_NAMESPACE();
+
+

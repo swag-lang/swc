@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Support/Math/Helpers.h"
@@ -22,21 +22,21 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
         return;
 
     Ref                                      firstRef = INVALID_REF;
-    std::vector<std::pair<Ref, EncodeFlags>> retRefs;
+    std::vector<Ref> retRefs;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         if (firstRef == INVALID_REF)
             firstRef = it.current;
 
         if (it->op == MicroInstrOpcode::Ret)
-            retRefs.emplace_back(it.current, it->emitFlags);
+            retRefs.push_back(it.current);
     }
 
     if (firstRef != INVALID_REF)
         insertSavedRegsPrologue(context, conv, firstRef);
 
-    for (const auto [retRef, emitFlags] : retRefs)
-        insertSavedRegsEpilogue(context, conv, retRef, emitFlags);
+    for (const auto retRef : retRefs)
+        insertSavedRegsEpilogue(context, conv, retRef);
 }
 
 bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const
@@ -119,7 +119,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     subOps[1].opBits   = MicroOpBits::B64;
     subOps[2].microOp  = MicroOp::Subtract;
     subOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
+    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
 
     for (const auto& slot : savedRegSlots_)
     {
@@ -128,11 +128,11 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
         storeOps[3].valueU64 = slot.offset;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, EncodeFlagsE::Zero, storeOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, storeOps);
     }
 }
 
-void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef, EncodeFlags emitFlags) const
+void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
 {
     if (!savedRegsFrameSize_)
         return;
@@ -147,7 +147,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
         loadOps[3].valueU64 = slot.offset;
-        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, emitFlags, loadOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
     }
 
     MicroInstrOperand addOps[4];
@@ -155,7 +155,10 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     addOps[1].opBits   = MicroOpBits::B64;
     addOps[2].microOp  = MicroOp::Add;
     addOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
+    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
 }
 
 SWC_END_NAMESPACE();
+
+
+

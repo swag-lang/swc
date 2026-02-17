@@ -196,6 +196,20 @@ Utf8 Utf8Helper::toLowerSnake(std::string_view s)
     return out;
 }
 
+bool Utf8Helper::isHexToken(std::string_view token)
+{
+    if (token.size() < 3 || token[0] != '0' || (token[1] != 'x' && token[1] != 'X'))
+        return false;
+
+    for (size_t i = 2; i < token.size(); ++i)
+    {
+        if (!std::isxdigit(static_cast<unsigned char>(token[i])))
+            return false;
+    }
+
+    return true;
+}
+
 // whitespace helpers
 std::string_view Utf8Helper::trimLeft(std::string_view s)
 {

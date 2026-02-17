@@ -316,6 +316,11 @@ namespace
         return token == "jump";
     }
 
+    bool isNaturalLogicToken(std::string_view token)
+    {
+        return token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>";
+    }
+
     Utf8 hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
@@ -622,18 +627,6 @@ namespace
                 return;
             }
 
-            auto isHex = [](std::string_view t) {
-                if (t.size() < 3 || t[0] != '0' || (t[1] != 'x' && t[1] != 'X'))
-                    return false;
-                for (size_t i = 2; i < t.size(); ++i)
-                {
-                    const unsigned char c = static_cast<unsigned char>(t[i]);
-                    if (!std::isxdigit(c))
-                        return false;
-                }
-                return true;
-            };
-
             const Utf8 tokenStr(token);
             if (expectCallTarget)
             {
@@ -658,7 +651,7 @@ namespace
                 appendColored(out, ctx, colorize, isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
                 expectCallTarget = token == "call";
             }
-            else if (isHex(token))
+            else if (Utf8Helper::isHexToken(token))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Number, token);
             }
@@ -666,7 +659,7 @@ namespace
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Function, token);
             }
-            else if (token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>")
+            else if (isNaturalLogicToken(token))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::Logic, token);
             }
@@ -684,7 +677,7 @@ namespace
                 const size_t start = pos;
                 while (pos < value.size() && std::isspace(static_cast<unsigned char>(value[pos])))
                     ++pos;
-                appendColored(out, ctx, colorize, SyntaxColor::Code, std::string_view(value).substr(start, pos - start));
+                appendColored(out, ctx, colorize, SyntaxColor::Code, value.subView(start, pos - start));
                 continue;
             }
 
@@ -693,7 +686,7 @@ namespace
             {
                 if (pos + 2 < value.size())
                 {
-                    const auto three = std::string_view(value).substr(pos, 3);
+                    const auto three = value.subView(pos, 3);
                     if (three == "<<=" || three == ">>=")
                     {
                         appendNaturalToken(three, pos);
@@ -704,7 +697,7 @@ namespace
 
                 if (pos + 1 < value.size())
                 {
-                    const auto two = std::string_view(value).substr(pos, 2);
+                    const auto two = value.subView(pos, 2);
                     if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>")
                     {
                         appendNaturalToken(two, pos);
@@ -713,7 +706,7 @@ namespace
                     }
                 }
 
-                appendNaturalToken(std::string_view(value).substr(pos, 1), pos);
+                appendNaturalToken(value.subView(pos, 1), pos);
                 ++pos;
                 continue;
             }
@@ -729,7 +722,7 @@ namespace
                 ++pos;
             }
 
-            appendNaturalToken(std::string_view(value).substr(start, pos - start), start);
+            appendNaturalToken(value.subView(start, pos - start), start);
         }
     }
 

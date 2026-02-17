@@ -82,6 +82,8 @@ public:
     void operator+=(char32_t c) { push_back_uni(c); }
     void operator+=(char8_t c) { push_back_uni(c); }
     void operator+=(char c) { this->push_back(c); }
+    std::string_view view() const { return {this->data(), this->size()}; }
+    std::string_view subView(size_t start, size_t count) const { return view().substr(start, count); }
     void push_back_uni(char32_t cp);
 
     void trim_start();

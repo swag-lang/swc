@@ -89,10 +89,18 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
+    const uint32_t stackAdjust   = computeCallStackAdjust(callConvKind, numPreparedArgs);
+    const bool     hasStackArgs  = numPreparedArgs > numRegArgs;
 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();
     SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+    if (hasStackArgs)
+    {
+        builder.encodeLoadRegReg(regBase, conv.stackPointer, MicroOpBits::B64);
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(regBase, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
+    }
 
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
@@ -120,7 +128,7 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
                 else
                 {
                     const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
-                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
+                    builder.encodeLoadMemReg(regBase, stackOffset, arg.srcReg, argBits);
                 }
                 break;
             }
@@ -137,7 +145,7 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
                 {
                     const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
                     builder.encodeLoadRegMem(regTmp, arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, MicroOpBits::B64);
+                    builder.encodeLoadMemReg(regBase, stackOffset, regTmp, MicroOpBits::B64);
                 }
                 break;
             }

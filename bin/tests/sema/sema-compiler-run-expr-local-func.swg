@@ -218,7 +218,6 @@ struct BigCopy
     #assert(V.a8 == 0x8182_8384_8586_8788'u64)
 }
 
-#[Swag.PrintMicro]
 #[Swag.Optimize(Swag.Optimization.O2)]
 #test
 {

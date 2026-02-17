@@ -7,19 +7,19 @@
     #assert(V == 41)
 }
 
-//#test
-//{
-//    func callManyInts(
-//        a0: s32, a1: s32, a2: s32, a3: s32,
-//        a4: s32, a5: s32, a6: s32, a7: s32,
-//        a8: s32, a9: s32, a10: s32, a11: s32)->s32
-//    {
-//        return 42
-//    }
-//
-//    const V = #run callManyInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-//    #assert(V == 42)
-//}
+#test
+{
+    func callManyInts(
+        a0: s32, a1: s32, a2: s32, a3: s32,
+        a4: s32, a5: s32, a6: s32, a7: s32,
+        a8: s32, a9: s32, a10: s32, a11: s32)->s32
+    {
+        return 42
+    }
+
+    const V = #run callManyInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+    #assert(V == 42)
+}
 
 #test
 {

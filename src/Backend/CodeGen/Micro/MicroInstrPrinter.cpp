@@ -588,22 +588,19 @@ namespace
         }
     }
 
-    void appendColored(std::string& out, const TaskContext& ctx, bool colorize, SyntaxColor color, std::string_view value)
+    void appendColored(std::string& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
     {
         SyntaxColor effectiveColor = color;
         if (color == SyntaxColor::Register && hasVirtualRegisterToken(value))
             effectiveColor = SyntaxColor::RegisterVirtual;
 
-        if (colorize)
-            out += SyntaxColorHelper::toAnsi(ctx, effectiveColor);
+        out += SyntaxColorHelper::toAnsi(ctx, effectiveColor);
         out += value;
-        if (colorize)
-            out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
+        out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
     }
 
     void appendNaturalColumn(std::string&                    out,
                              const TaskContext&              ctx,
-                             bool                            colorize,
                              Utf8                            value,
                              const std::unordered_set<Utf8>& concreteRegs,
                              const std::unordered_set<Utf8>& virtualRegs,
@@ -623,7 +620,7 @@ namespace
         auto appendNaturalToken = [&](std::string_view token, size_t tokenStart) {
             if (tokenStart == jumpTargetIndexStart && jumpTargetInstIndex && token == *jumpTargetInstIndex)
             {
-                appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, token);
+                appendColored(out, ctx,  SyntaxColor::InstructionIndex, token);
                 return;
             }
 
@@ -631,41 +628,41 @@ namespace
             if (expectCallTarget)
             {
                 if (virtualRegs.contains(tokenStr))
-                    appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
+                    appendColored(out, ctx,  SyntaxColor::RegisterVirtual, token);
                 else if (concreteRegs.contains(tokenStr))
-                    appendColored(out, ctx, colorize, SyntaxColor::Register, token);
+                    appendColored(out, ctx,  SyntaxColor::Register, token);
                 else
-                    appendColored(out, ctx, colorize, SyntaxColor::Function, token);
+                    appendColored(out, ctx,  SyntaxColor::Function, token);
                 expectCallTarget = false;
             }
             else if (virtualRegs.contains(tokenStr))
             {
-                appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
+                appendColored(out, ctx,  SyntaxColor::RegisterVirtual, token);
             }
             else if (concreteRegs.contains(tokenStr))
             {
-                appendColored(out, ctx, colorize, SyntaxColor::Register, token);
+                appendColored(out, ctx,  SyntaxColor::Register, token);
             }
             else if (isInstructionToken(token))
             {
-                appendColored(out, ctx, colorize, isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
+                appendColored(out, ctx,  isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
                 expectCallTarget = token == "call";
             }
             else if (Utf8Helper::isHexToken(token))
             {
-                appendColored(out, ctx, colorize, SyntaxColor::Number, token);
+                appendColored(out, ctx,  SyntaxColor::Number, token);
             }
             else if (isJumpLabelToken(token))
             {
-                appendColored(out, ctx, colorize, SyntaxColor::Function, token);
+                appendColored(out, ctx,  SyntaxColor::Function, token);
             }
             else if (isNaturalLogicToken(token))
             {
-                appendColored(out, ctx, colorize, SyntaxColor::Logic, token);
+                appendColored(out, ctx,  SyntaxColor::Logic, token);
             }
             else
             {
-                appendColored(out, ctx, colorize, SyntaxColor::Code, token);
+                appendColored(out, ctx,  SyntaxColor::Code, token);
             }
         };
 
@@ -677,7 +674,7 @@ namespace
                 const size_t start = pos;
                 while (pos < value.size() && std::isspace(static_cast<unsigned char>(value[pos])))
                     ++pos;
-                appendColored(out, ctx, colorize, SyntaxColor::Code, value.subView(start, pos - start));
+                appendColored(out, ctx,  SyntaxColor::Code, value.subView(start, pos - start));
                 continue;
             }
 
@@ -726,9 +723,9 @@ namespace
         }
     }
 
-    void appendColumnSeparator(std::string& out, const TaskContext& ctx, bool colorize)
+    void appendColumnSeparator(std::string& out, const TaskContext& ctx)
     {
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, " | ");
+        appendColored(out, ctx,  SyntaxColor::Compiler, " | ");
     }
 
     size_t visibleTextLengthNoAnsi(std::string_view value)
@@ -753,52 +750,52 @@ namespace
         return len;
     }
 
-    void padLeftColumnToWidth(std::string& out, bool colorize, size_t lineColumnStart, uint32_t width)
+    void padLeftColumnToWidth(std::string& out, size_t lineColumnStart, uint32_t width)
     {
         if (lineColumnStart > out.size())
             return;
 
         const std::string_view lineColumn = std::string_view(out).substr(lineColumnStart);
-        const size_t           used       = colorize ? visibleTextLengthNoAnsi(lineColumn) : lineColumn.size();
+        const size_t           used       = visibleTextLengthNoAnsi(lineColumn);
         if (used >= width)
             return;
 
         out.append(width - used, ' ');
     }
 
-    void appendRegister(std::string& out, const TaskContext& ctx, bool colorize, MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegister(std::string& out, const TaskContext& ctx,  MicroReg reg, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         const auto color = reg.isVirtual() ? SyntaxColor::RegisterVirtual : SyntaxColor::Register;
-        appendColored(out, ctx, colorize, color, regName(reg, regPrintMode, encoder));
+        appendColored(out, ctx,  color, regName(reg, regPrintMode, encoder));
     }
 
-    void appendMemBaseOffset(std::string& out, const TaskContext& ctx, bool colorize, MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemBaseOffset(std::string& out, const TaskContext& ctx,  MicroReg baseReg, uint64_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         out += "[";
-        appendRegister(out, ctx, colorize, baseReg, regPrintMode, encoder);
+        appendRegister(out, ctx,  baseReg, regPrintMode, encoder);
         if (offset != 0)
         {
             out += " + ";
-            appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(offset));
+            appendColored(out, ctx,  SyntaxColor::Number, hexU64(offset));
         }
         out += "]";
     }
 
-    void appendMemAmc(std::string& out, const TaskContext& ctx, bool colorize, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemAmc(std::string& out, const TaskContext& ctx,  MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         out += "[";
         if (!baseReg.isNoBase())
-            appendRegister(out, ctx, colorize, baseReg, regPrintMode, encoder);
+            appendRegister(out, ctx,  baseReg, regPrintMode, encoder);
 
         if (!mulReg.isNoBase())
         {
             if (!baseReg.isNoBase())
                 out += " + ";
-            appendRegister(out, ctx, colorize, mulReg, regPrintMode, encoder);
+            appendRegister(out, ctx,  mulReg, regPrintMode, encoder);
             if (mulValue != 1)
             {
                 out += " * ";
-                appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(mulValue));
+                appendColored(out, ctx,  SyntaxColor::Number, hexU64(mulValue));
             }
         }
 
@@ -806,11 +803,11 @@ namespace
         {
             if (!baseReg.isNoBase() || !mulReg.isNoBase())
                 out += " + ";
-            appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(addValue));
+            appendColored(out, ctx,  SyntaxColor::Number, hexU64(addValue));
         }
 
         if (baseReg.isNoBase() && mulReg.isNoBase() && addValue == 0)
-            appendColored(out, ctx, colorize, SyntaxColor::Number, "0");
+            appendColored(out, ctx,  SyntaxColor::Number, "0");
 
         out += "]";
     }
@@ -820,108 +817,108 @@ namespace
         out += ", ";
     }
 
-    void appendTypeBits(std::string& out, const TaskContext& ctx, bool colorize, MicroOpBits bits)
+    void appendTypeBits(std::string& out, const TaskContext& ctx,  MicroOpBits bits)
     {
-        appendColored(out, ctx, colorize, SyntaxColor::Type, std::format("b{}", opBitsName(bits)));
+        appendColored(out, ctx,  SyntaxColor::Type, std::format("b{}", opBitsName(bits)));
     }
 
-    void appendTypeBitsCast(std::string& out, const TaskContext& ctx, bool colorize, MicroOpBits dstBits, MicroOpBits srcBits)
+    void appendTypeBitsCast(std::string& out, const TaskContext& ctx,  MicroOpBits dstBits, MicroOpBits srcBits)
     {
-        appendColored(out, ctx, colorize, SyntaxColor::Type, std::format("b{}<-b{}", opBitsName(dstBits), opBitsName(srcBits)));
+        appendColored(out, ctx,  SyntaxColor::Type, std::format("b{}<-b{}", opBitsName(dstBits), opBitsName(srcBits)));
     }
 
-    void appendRegRegBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegRegBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[regA].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[regA].reg, regPrintMode, encoder);
         appendSep(out);
-        appendRegister(out, ctx, colorize, ops[regB].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[regB].reg, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
     }
 
-    void appendRegImmBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegImmBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[reg].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
         appendSep(out);
-        appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[imm].valueU64));
+        appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[imm].valueU64));
     }
 
-    void appendRegNumberBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegNumberBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[reg].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[number].valueU64));
+        appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[number].valueU64));
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
     }
 
-    void appendRegMemBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegMemBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[reg].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendMemBaseOffset(out, ctx, colorize, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
+        appendMemBaseOffset(out, ctx,  ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
     }
 
-    void appendMemRegBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t reg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemRegBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t baseReg, uint32_t reg, uint32_t bits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendMemBaseOffset(out, ctx, colorize, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
+        appendMemBaseOffset(out, ctx,  ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendRegister(out, ctx, colorize, ops[reg].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
     }
 
-    void appendMemImmBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemImmBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendMemBaseOffset(out, ctx, colorize, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
+        appendMemBaseOffset(out, ctx,  ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[imm].valueU64));
+        appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[imm].valueU64));
         appendSep(out);
-        appendTypeBits(out, ctx, colorize, ops[bits].opBits);
+        appendTypeBits(out, ctx,  ops[bits].opBits);
     }
 
-    void appendRegRegCastBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t dstBits, uint32_t srcBits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegRegCastBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t dstBits, uint32_t srcBits, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[regA].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[regA].reg, regPrintMode, encoder);
         appendSep(out);
-        appendRegister(out, ctx, colorize, ops[regB].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[regB].reg, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBitsCast(out, ctx, colorize, ops[dstBits].opBits, ops[srcBits].opBits);
+        appendTypeBitsCast(out, ctx,  ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendRegMemCastBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t dstBits, uint32_t srcBits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegMemCastBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, uint32_t reg, uint32_t baseReg, uint32_t dstBits, uint32_t srcBits, uint32_t offset, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
-        appendRegister(out, ctx, colorize, ops[reg].reg, regPrintMode, encoder);
+        appendRegister(out, ctx,  ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendMemBaseOffset(out, ctx, colorize, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
+        appendMemBaseOffset(out, ctx,  ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBitsCast(out, ctx, colorize, ops[dstBits].opBits, ops[srcBits].opBits);
+        appendTypeBitsCast(out, ctx,  ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendAmcRegMemCastBits(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrOperand* ops, bool withDestReg, uint32_t dstReg, uint32_t baseReg, uint32_t mulReg, uint32_t dstBits, uint32_t srcBits, uint32_t mulValue, uint32_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendAmcRegMemCastBits(std::string& out, const TaskContext& ctx,  const MicroInstrOperand* ops, bool withDestReg, uint32_t dstReg, uint32_t baseReg, uint32_t mulReg, uint32_t dstBits, uint32_t srcBits, uint32_t mulValue, uint32_t addValue, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder)
     {
         if (withDestReg)
         {
-            appendRegister(out, ctx, colorize, ops[dstReg].reg, regPrintMode, encoder);
+            appendRegister(out, ctx,  ops[dstReg].reg, regPrintMode, encoder);
             appendSep(out);
         }
 
-        appendMemAmc(out, ctx, colorize, ops[baseReg].reg, ops[mulReg].reg, ops[mulValue].valueU64, ops[addValue].valueU64, regPrintMode, encoder);
+        appendMemAmc(out, ctx,  ops[baseReg].reg, ops[mulReg].reg, ops[mulValue].valueU64, ops[addValue].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendTypeBitsCast(out, ctx, colorize, ops[dstBits].opBits, ops[srcBits].opBits);
+        appendTypeBitsCast(out, ctx,  ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendInstFlags(std::string& out, const TaskContext& ctx, bool colorize, EncodeFlags flags)
+    void appendInstFlags(std::string& out, const TaskContext& ctx,  EncodeFlags flags)
     {
         if (flags.none())
             return;
 
         out += "  ; ";
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, "flags=");
+        appendColored(out, ctx,  SyntaxColor::Compiler, "flags=");
 
         bool first = true;
         if (flags.has(EncodeFlagsE::Overflow))
@@ -973,7 +970,7 @@ namespace
             out.pop_back();
     }
 
-    void appendInstructionDebugPayload(std::string& out, const TaskContext& ctx, bool colorize, const MicroInstrBuilder* builder, Ref instRef)
+    void appendInstructionDebugPayload(std::string& out, const TaskContext& ctx,  const MicroInstrBuilder* builder, Ref instRef)
     {
         if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
             return;
@@ -988,12 +985,11 @@ namespace
 
         trimTrailingSpaces(out);
         out += "  ";
-        appendColored(out, ctx, colorize, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
+        appendColored(out, ctx,  SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
     bool appendInstructionDebugInfo(std::string&                  out,
                                     const TaskContext&            ctx,
-                                    bool                          colorize,
                                     const MicroInstrBuilder*      builder,
                                     Ref                           instRef,
                                     uint32_t                      instructionIndexWidth,
@@ -1012,11 +1008,11 @@ namespace
 
         if (!out.empty())
             out += '\n';
-        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
+        appendColored(out, ctx,  SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
         out += "  ";
         Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
         codeLine.trim();
-        out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, colorize);
+        out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, true);
         out += '\n';
         return true;
     }
@@ -1024,7 +1020,6 @@ namespace
 
 Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
 {
-    const bool                        colorize = true;
     Utf8                              out;
     auto&                             storeOps      = operands;
     auto                              view          = instructions.view();
@@ -1052,7 +1047,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
         const Ref         instRef = it.current;
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
-        appendInstructionDebugInfo(out, ctx, colorize, builder, instRef, indexWidth, seenDebugLines);
+        appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         auto                     natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
@@ -1089,7 +1084,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
                 naturalJumpTargetIndex = unknownInstructionIndex(indexWidth);
         }
 
-        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, formatInstructionIndex(idx, indexWidth));
+        appendColored(out, ctx,  SyntaxColor::InstructionIndex, formatInstructionIndex(idx, indexWidth));
         out += "  ";
         const size_t leftColumnStart = out.size();
 
@@ -1098,18 +1093,18 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
             if (inst.numOperands >= 1)
             {
                 const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
-                appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("L{}:", labelRef));
+                appendColored(out, ctx,  SyntaxColor::Function, std::format("L{}:", labelRef));
             }
 
-            appendInstFlags(out, ctx, colorize, inst.emitFlags);
-            padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
-            appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
+            appendInstFlags(out, ctx,  inst.emitFlags);
+            padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
+            appendInstructionDebugPayload(out, ctx,  builder, instRef);
             out += '\n';
             ++idx;
             continue;
         }
 
-        appendColored(out, ctx, colorize, SyntaxColor::MicroInstruction, std::format("{:>26}", opcodeName(inst.op)));
+        appendColored(out, ctx,  SyntaxColor::MicroInstruction, std::format("{:>26}", opcodeName(inst.op)));
         out += " ";
 
         switch (inst.op)
@@ -1125,288 +1120,288 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:
             case MicroInstrOpcode::JumpReg:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::SymbolRelocAddr:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("sym#{}", ops[1].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("sym#{}", ops[1].valueU32));
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[2].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[2].valueU32));
                 break;
 
             case MicroInstrOpcode::SymbolRelocValue:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                appendTypeBits(out, ctx,  ops[1].opBits);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("sym#{}", ops[2].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("sym#{}", ops[2].valueU32));
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[3].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[3].valueU32));
                 break;
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                appendColored(out, ctx, colorize, SyntaxColor::Function, ops[0].name.isValid() ? ctx.idMgr().get(ops[0].name).name : "<invalid-symbol>");
+                appendColored(out, ctx,  SyntaxColor::Function, ops[0].name.isValid() ? ctx.idMgr().get(ops[0].name).name : "<invalid-symbol>");
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Type, callConvName(ops[1].callConv));
+                appendColored(out, ctx,  SyntaxColor::Type, callConvName(ops[1].callConv));
                 break;
 
             case MicroInstrOpcode::CallIndirect:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Type, callConvName(ops[1].callConv));
+                appendColored(out, ctx,  SyntaxColor::Type, callConvName(ops[1].callConv));
                 break;
 
             case MicroInstrOpcode::JumpTable:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[1].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[1].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("ip={}", ops[2].valueI32));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("ip={}", ops[2].valueI32));
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("table={}", ops[3].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("table={}", ops[3].valueU32));
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("count={}", ops[4].valueU32));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("count={}", ops[4].valueU32));
                 break;
 
             case MicroInstrOpcode::JumpCond:
                 if (!isUnconditionalJump(ops[0].cpuCond))
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Type, condName(ops[0].cpuCond));
+                    appendColored(out, ctx,  SyntaxColor::Type, condName(ops[0].cpuCond));
                     appendSep(out);
-                    appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                    appendTypeBits(out, ctx,  ops[1].opBits);
                 }
                 else
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Code, "jump");
+                    appendColored(out, ctx,  SyntaxColor::Code, "jump");
                 }
                 if (inst.numOperands >= 3)
                 {
                     const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
                     out += " ";
-                    appendColored(out, ctx, colorize, SyntaxColor::Function, std::format("L{}", labelRef));
+                    appendColored(out, ctx,  SyntaxColor::Function, std::format("L{}", labelRef));
                     auto labelIt = labelIndexByRef.find(labelRef);
                     if (labelIt != labelIndexByRef.end())
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, formatInstructionIndex(labelIt->second, indexWidth));
+                        appendColored(out, ctx,  SyntaxColor::InstructionIndex, formatInstructionIndex(labelIt->second, indexWidth));
                     }
                     else
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::InstructionIndex, unknownInstructionIndex(indexWidth));
+                        appendColored(out, ctx,  SyntaxColor::InstructionIndex, unknownInstructionIndex(indexWidth));
                     }
                 }
                 break;
 
             case MicroInstrOpcode::PatchJump:
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("from={}", ops[0].valueU64));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("from={}", ops[0].valueU64));
                 appendSep(out);
                 if (ops[2].valueU64 == 2)
                 {
                     const Ref targetRef = static_cast<Ref>(ops[1].valueU64);
-                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to_ref={}", targetRef));
+                    appendColored(out, ctx,  SyntaxColor::Number, std::format("to_ref={}", targetRef));
                     auto itDst = instIndexByRef.find(targetRef);
                     if (itDst != instIndexByRef.end())
                     {
                         out += " ";
-                        appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("(idx={})", itDst->second));
+                        appendColored(out, ctx,  SyntaxColor::Compiler, std::format("(idx={})", itDst->second));
                     }
                 }
                 else
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to={}", ops[1].valueU64));
+                    appendColored(out, ctx,  SyntaxColor::Number, std::format("to={}", ops[1].valueU64));
                 }
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("imm={}", ops[2].valueU64));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("imm={}", ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
                 if (!isUnconditionalJump(ops[0].cpuCond))
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Type, condName(ops[0].cpuCond));
+                    appendColored(out, ctx,  SyntaxColor::Type, condName(ops[0].cpuCond));
                     appendSep(out);
-                    appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                    appendTypeBits(out, ctx,  ops[1].opBits);
                     appendSep(out);
                 }
                 else
                 {
-                    appendColored(out, ctx, colorize, SyntaxColor::Code, "jump");
+                    appendColored(out, ctx,  SyntaxColor::Code, "jump");
                     appendSep(out);
                 }
-                appendColored(out, ctx, colorize, SyntaxColor::Number, std::format("to={}", ops[2].valueU64));
+                appendColored(out, ctx,  SyntaxColor::Number, std::format("to={}", ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::LoadRegReg:
-                appendRegRegBits(out, ctx, colorize, ops, 0, 1, 2, regPrintMode, encoder);
+                appendRegRegBits(out, ctx,  ops, 0, 1, 2, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadRegImm:
-                appendRegImmBits(out, ctx, colorize, ops, 0, 1, 2, regPrintMode, encoder);
+                appendRegImmBits(out, ctx,  ops, 0, 1, 2, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadAddrRegMem:
-                appendRegMemBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendRegMemBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:
             case MicroInstrOpcode::LoadZeroExtRegMem:
-                appendRegMemCastBits(out, ctx, colorize, ops, 0, 1, 2, 3, 4, regPrintMode, encoder);
+                appendRegMemCastBits(out, ctx,  ops, 0, 1, 2, 3, 4, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
-                appendRegRegCastBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendRegRegCastBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadAmcRegMem:
-                appendAmcRegMemCastBits(out, ctx, colorize, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
+                appendAmcRegMemCastBits(out, ctx, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadAmcMemReg:
-                appendMemAmc(out, ctx, colorize, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
+                appendMemAmc(out, ctx,  ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[2].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBitsCast(out, ctx, colorize, ops[3].opBits, ops[4].opBits);
+                appendTypeBitsCast(out, ctx,  ops[3].opBits, ops[4].opBits);
                 break;
 
             case MicroInstrOpcode::LoadAmcMemImm:
-                appendMemAmc(out, ctx, colorize, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
+                appendMemAmc(out, ctx,  ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Number, hexU64(ops[7].valueU64));
+                appendColored(out, ctx,  SyntaxColor::Number, hexU64(ops[7].valueU64));
                 appendSep(out);
-                appendTypeBitsCast(out, ctx, colorize, ops[3].opBits, ops[4].opBits);
+                appendTypeBitsCast(out, ctx,  ops[3].opBits, ops[4].opBits);
                 break;
 
             case MicroInstrOpcode::LoadAddrAmcRegMem:
-                appendAmcRegMemCastBits(out, ctx, colorize, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
+                appendAmcRegMemCastBits(out, ctx, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadMemReg:
-                appendMemRegBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemRegBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::LoadMemImm:
-                appendMemImmBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemImmBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::CmpRegReg:
-                appendRegRegBits(out, ctx, colorize, ops, 0, 1, 2, regPrintMode, encoder);
+                appendRegRegBits(out, ctx,  ops, 0, 1, 2, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::CmpRegImm:
-                appendRegNumberBits(out, ctx, colorize, ops, 0, 2, 1, regPrintMode, encoder);
+                appendRegNumberBits(out, ctx,  ops, 0, 2, 1, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::CmpMemReg:
-                appendMemRegBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemRegBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::CmpMemImm:
-                appendMemImmBits(out, ctx, colorize, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemImmBits(out, ctx,  ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::SetCondReg:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Type, condName(ops[1].cpuCond));
+                appendColored(out, ctx,  SyntaxColor::Type, condName(ops[1].cpuCond));
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[1].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[1].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, colorize, SyntaxColor::Type, condName(ops[2].cpuCond));
+                appendColored(out, ctx,  SyntaxColor::Type, condName(ops[2].cpuCond));
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[3].opBits);
+                appendTypeBits(out, ctx,  ops[3].opBits);
                 break;
 
             case MicroInstrOpcode::ClearReg:
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                appendTypeBits(out, ctx,  ops[1].opBits);
                 break;
 
             case MicroInstrOpcode::OpUnaryMem:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[2].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendMemBaseOffset(out, ctx, colorize, ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
+                appendMemBaseOffset(out, ctx,  ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                appendTypeBits(out, ctx,  ops[1].opBits);
                 break;
 
             case MicroInstrOpcode::OpUnaryReg:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[2].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[1].opBits);
+                appendTypeBits(out, ctx,  ops[1].opBits);
                 break;
 
             case MicroInstrOpcode::OpBinaryRegReg:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[3].microOp));
                 appendSep(out);
-                appendRegRegBits(out, ctx, colorize, ops, 0, 1, 2, regPrintMode, encoder);
+                appendRegRegBits(out, ctx,  ops, 0, 1, 2, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::OpBinaryRegMem:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[3].microOp));
                 appendSep(out);
-                appendRegMemBits(out, ctx, colorize, ops, 0, 1, 2, 4, regPrintMode, encoder);
+                appendRegMemBits(out, ctx,  ops, 0, 1, 2, 4, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::OpBinaryMemReg:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[3].microOp));
                 appendSep(out);
-                appendMemRegBits(out, ctx, colorize, ops, 0, 1, 2, 4, regPrintMode, encoder);
+                appendMemRegBits(out, ctx,  ops, 0, 1, 2, 4, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::OpBinaryRegImm:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[2].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendRegNumberBits(out, ctx, colorize, ops, 0, 3, 1, regPrintMode, encoder);
+                appendRegNumberBits(out, ctx,  ops, 0, 3, 1, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::OpBinaryMemImm:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[2].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendMemImmBits(out, ctx, colorize, ops, 0, 1, 3, 4, regPrintMode, encoder);
+                appendMemImmBits(out, ctx,  ops, 0, 1, 3, 4, regPrintMode, encoder);
                 break;
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, microOpName(ops[4].microOp));
+                appendColored(out, ctx,  SyntaxColor::Code, microOpName(ops[4].microOp));
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[0].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[1].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[1].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, colorize, ops[2].reg, regPrintMode, encoder);
+                appendRegister(out, ctx,  ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendTypeBits(out, ctx, colorize, ops[3].opBits);
+                appendTypeBits(out, ctx,  ops[3].opBits);
                 break;
 
             case MicroInstrOpcode::LoadCallParam:
             case MicroInstrOpcode::LoadCallAddrParam:
             case MicroInstrOpcode::LoadCallZeroExtParam:
             case MicroInstrOpcode::StoreCallParam:
-                appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{} operand(s)", inst.numOperands));
+                appendColored(out, ctx,  SyntaxColor::Compiler, std::format("{} operand(s)", inst.numOperands));
                 break;
 
             default:
-                appendColored(out, ctx, colorize, SyntaxColor::Compiler, std::format("{} operand(s)", inst.numOperands));
+                appendColored(out, ctx,  SyntaxColor::Compiler, std::format("{} operand(s)", inst.numOperands));
                 break;
         }
 
-        appendInstFlags(out, ctx, colorize, inst.emitFlags);
-        padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
-        appendColumnSeparator(out, ctx, colorize);
-        appendNaturalColumn(out, ctx, colorize, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
-        appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
+        appendInstFlags(out, ctx,  inst.emitFlags);
+        padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
+        appendColumnSeparator(out, ctx);
+        appendNaturalColumn(out, ctx, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
+        appendInstructionDebugPayload(out, ctx,  builder, instRef);
         out += '\n';
         ++idx;
     }
@@ -1421,3 +1416,4 @@ void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& i
 }
 
 SWC_END_NAMESPACE();
+

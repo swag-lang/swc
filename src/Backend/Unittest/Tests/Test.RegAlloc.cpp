@@ -172,6 +172,44 @@ namespace
         b.encodeRet();
     }
 
+    void buildIntSpillPressureAcrossCall(MicroInstrBuilder& b, CallConvKind callConvKind)
+    {
+        for (uint32_t i = 0; i < 24; ++i)
+        {
+            const auto v = MicroReg::virtualIntReg(4000 + i);
+            b.encodeLoadRegImm(v, i + 1, MicroOpBits::B64);
+        }
+
+        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+
+        for (uint32_t i = 0; i < 24; ++i)
+        {
+            const auto v = MicroReg::virtualIntReg(4000 + i);
+            b.encodeOpBinaryRegImm(v, 3, MicroOp::Add, MicroOpBits::B64);
+        }
+
+        b.encodeRet();
+    }
+
+    void buildFloatSpillAcrossCallNoPersistentRegs(MicroInstrBuilder& b, CallConvKind callConvKind)
+    {
+        for (uint32_t i = 0; i < 16; ++i)
+        {
+            const auto v = MicroReg::virtualFloatReg(5000 + i);
+            b.encodeClearReg(v, MicroOpBits::B64);
+        }
+
+        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+
+        for (uint32_t i = 0; i < 16; ++i)
+        {
+            const auto v = MicroReg::virtualFloatReg(5000 + i);
+            b.encodeOpBinaryRegReg(v, v, MicroOp::FloatXor, MicroOpBits::B64);
+        }
+
+        b.encodeRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -205,6 +243,41 @@ namespace
             *outHasSub = hasSub;
         if (outHasAdd)
             *outHasAdd = hasAdd;
+        return hasSub && hasAdd && hasStore && hasLoad;
+    }
+
+    bool hasSpillFrameOps(MicroInstrBuilder& builder, const CallConv& conv)
+    {
+        auto& storeOps = builder.operands();
+        bool  hasSub   = false;
+        bool  hasAdd   = false;
+        bool  hasStore = false;
+        bool  hasLoad  = false;
+
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Subtract))
+            {
+                hasSub = true;
+                continue;
+            }
+
+            if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Add))
+            {
+                hasAdd = true;
+                continue;
+            }
+
+            if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem)
+                continue;
+
+            const auto* ops = inst.ops(storeOps);
+            if (inst.op == MicroInstrOpcode::LoadMemReg && ops[0].reg == conv.stackPointer)
+                hasStore = true;
+            else if (inst.op == MicroInstrOpcode::LoadRegMem && ops[1].reg == conv.stackPointer)
+                hasLoad = true;
+        }
+
         return hasSub && hasAdd && hasStore && hasLoad;
     }
 }
@@ -305,6 +378,52 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
 
         const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
         if (hasFrameOps)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroInstrBuilder builder(ctx);
+        buildIntSpillPressureAcrossCall(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.add(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroInstrBuilder builder(ctx);
+        buildFloatSpillAcrossCallNoPersistentRegs(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.add(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
 }

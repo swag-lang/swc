@@ -137,7 +137,7 @@ public:
     void encodeLabel(Ref& outLabelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeRet(EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void encodeCallExtern(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef, EncodeFlags emitFlags = EncodeFlagsE::Zero);

@@ -75,11 +75,11 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
         case MicroInstrOpcode::CallLocal:
         {
             const uint32_t callOffset = encoder.size();
-            encoder.encodeCallLocal(ops[0].name, ops[1].callConv, inst.emitFlags);
+            Symbol* const targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
+            encoder.encodeCallLocal(targetSymbol, ops[1].callConv, inst.emitFlags);
             if (inst.numOperands >= 3)
             {
-                const auto targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
-                const auto symbolName   = targetSymbol ? targetSymbol->idRef() : ops[0].name;
+                const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
                 context.builder->addCodeRelocation({
                     .kind          = MicroInstrRelocation::Kind::Rel32,
                     .codeOffset    = callOffset + 1,
@@ -91,8 +91,11 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
             break;
         }
         case MicroInstrOpcode::CallExtern:
-            encoder.encodeCallExtern(ops[0].name, ops[1].callConv, inst.emitFlags);
+        {
+            Symbol* const targetSymbol = inst.numOperands >= 3 ? reinterpret_cast<Symbol*>(ops[2].valueU64) : nullptr;
+            encoder.encodeCallExtern(targetSymbol, ops[1].callConv, inst.emitFlags);
             break;
+        }
         case MicroInstrOpcode::CallIndirect:
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv, inst.emitFlags);
             break;

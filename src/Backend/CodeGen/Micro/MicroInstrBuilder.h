@@ -137,6 +137,7 @@ public:
     const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
     void                                     clearPointerImmediateRelocations() { pointerImmediateRelocations_.clear(); }
     void addPointerImmediateRelocation(Ref instructionRef, uint64_t targetAddress, Symbol* targetSymbol = nullptr, ConstantRef constantRef = ConstantRef::invalid(), IdentifierRef symbolName = IdentifierRef::invalid());
+    std::vector<MicroInstrPointerImmediateRelocation>&       pointerImmediateRelocations() { return pointerImmediateRelocations_; }
     const std::vector<MicroInstrPointerImmediateRelocation>& pointerImmediateRelocations() const { return pointerImmediateRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);

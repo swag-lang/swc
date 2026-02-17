@@ -185,6 +185,28 @@ void MicroInstrStorage::clear() noexcept
     count_ = 0;
 }
 
+MicroInstr* MicroInstrStorage::ptr(Ref ref) noexcept
+{
+    if (ref == INVALID_REF || ref >= nodes_.size())
+        return nullptr;
+
+    Node& node = nodes_[ref];
+    if (!node.alive)
+        return nullptr;
+    return &node.instr;
+}
+
+const MicroInstr* MicroInstrStorage::ptr(Ref ref) const noexcept
+{
+    if (ref == INVALID_REF || ref >= nodes_.size())
+        return nullptr;
+
+    const Node& node = nodes_[ref];
+    if (!node.alive)
+        return nullptr;
+    return &node.instr;
+}
+
 std::pair<Ref, MicroInstr*> MicroInstrStorage::emplaceUninit()
 {
     const Ref ref = allocNode();

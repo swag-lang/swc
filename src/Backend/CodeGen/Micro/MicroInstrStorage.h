@@ -87,6 +87,8 @@ public:
 
     uint32_t                    count() const noexcept;
     void                        clear() noexcept;
+    MicroInstr*                 ptr(Ref ref) noexcept;
+    const MicroInstr*           ptr(Ref ref) const noexcept;
     std::pair<Ref, MicroInstr*> emplaceUninit();
     Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
     Ref                         insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData);

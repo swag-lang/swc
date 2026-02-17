@@ -254,10 +254,9 @@ void MicroEmitPass::run(MicroPassContext& context)
     for (const auto& reloc : context.builder->pointerImmediateRelocations())
         pointerImmediateRelocs_[reloc.instructionRef] = reloc;
 
-    Ref instructionRef = 0;
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it, ++instructionRef)
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
-        encodeInstruction(context, instructionRef, *it);
+        encodeInstruction(context, it.current, *it);
     }
 
     for (const auto& pending : pendingLabelJumps_)

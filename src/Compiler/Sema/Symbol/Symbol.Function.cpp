@@ -48,14 +48,10 @@ namespace
     {
         auto& instructions = builder.instructions();
         auto& operands     = builder.operands();
-        for (auto it = instructions.view().begin(); it != instructions.view().end(); ++it)
+        auto& relocations = builder.pointerImmediateRelocations();
+        for (auto& reloc : relocations)
         {
-            auto& inst = *it;
-            if (inst.op != MicroInstrOpcode::CallExtern || inst.numOperands < 4)
-                continue;
-
-            auto* const ops = inst.ops(operands);
-            auto* const sym = reinterpret_cast<Symbol*>(ops[2].valueU64);
+            auto* const sym = reloc.targetSymbol;
             if (!sym || !sym->isFunction())
                 continue;
 
@@ -64,7 +60,16 @@ namespace
             if (!resolveExternAddress(ctx, functionAddress, targetFunction))
                 continue;
 
-            ops[3].valueU64 = functionAddress;
+            reloc.targetAddress = functionAddress;
+
+            // Keep the micro immediate in sync as a fallback path.
+            auto* const inst = instructions.ptr(reloc.instructionRef);
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegImm || inst->numOperands < 3)
+                continue;
+
+            auto* const ops = inst->ops(operands);
+            if (ops[1].opBits == MicroOpBits::B64)
+                ops[2].valueU64 = functionAddress;
         }
     }
 

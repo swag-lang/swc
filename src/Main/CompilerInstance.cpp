@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -56,7 +56,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
     const uint32_t numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
-    jitMemMgr_         = std::make_unique<JITExecMemoryManager>();
+    jitMemMgr_         = std::make_unique<JITMemoryManager>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
     setupRuntimeCompiler();
 }

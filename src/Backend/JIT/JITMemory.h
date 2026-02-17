@@ -2,16 +2,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class JITExecMemory
+class JITMemory
 {
 public:
-    JITExecMemory()  = default;
-    ~JITExecMemory() = default;
+    JITMemory()  = default;
+    ~JITMemory() = default;
 
-    JITExecMemory(const JITExecMemory&)            = default;
-    JITExecMemory& operator=(const JITExecMemory&) = default;
-    JITExecMemory(JITExecMemory&& other) noexcept;
-    JITExecMemory& operator=(JITExecMemory&& other) noexcept;
+    JITMemory(const JITMemory&)            = default;
+    JITMemory& operator=(const JITMemory&) = default;
+    JITMemory(JITMemory&& other) noexcept;
+    JITMemory& operator=(JITMemory&& other) noexcept;
 
     void     reset();
     uint32_t size() const { return size_; }
@@ -19,7 +19,7 @@ public:
     void*    entryPoint() const { return ptr_; }
 
 private:
-    friend class JITExecMemoryManager;
+    friend class JITMemoryManager;
 
     void*    ptr_            = nullptr;
     uint32_t size_           = 0;

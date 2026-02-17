@@ -18,7 +18,7 @@ class TypeGen;
 class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
-class JITExecMemoryManager;
+class JITMemoryManager;
 class ExternalModuleManager;
 class Global;
 class SourceFile;
@@ -51,8 +51,8 @@ public:
     const Runtime::BuildCfg&     buildCfg() const { return buildCfg_; }
     Runtime::ICompiler&          runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&    runtimeCompiler() const { return runtimeCompiler_; }
-    JITExecMemoryManager&        jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
-    const JITExecMemoryManager&  jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    JITMemoryManager&        jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    const JITMemoryManager&  jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
     ExternalModuleManager&       externalModuleMgr() { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
     const ExternalModuleManager& externalModuleMgr() const { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
 
@@ -118,7 +118,7 @@ private:
     std::unique_ptr<TypeGen>                 typeGen_;
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
-    std::unique_ptr<JITExecMemoryManager>    jitMemMgr_;
+    std::unique_ptr<JITMemoryManager>    jitMemMgr_;
     std::unique_ptr<ExternalModuleManager>   externalModuleMgr_;
     SymbolModule*                            symModule_   = nullptr;
     JobClientId                              jobClientId_ = 0;

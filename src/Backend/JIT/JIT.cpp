@@ -5,8 +5,8 @@
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
-#include "Backend/JIT/JITExecMemory.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
+#include "Backend/JIT/JITMemory.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -204,7 +204,7 @@ namespace
     }
 }
 
-void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations)
+void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations)
 {
     SWC_FORCE_ASSERT(!linearCode.empty());
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
@@ -310,7 +310,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     MachineCode loweredCode;
     loweredCode.emit(ctx, builder);
 
-    JITExecMemory executableMemory;
+    JITMemory executableMemory;
     emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
     const auto invoker = executableMemory.entryPoint();

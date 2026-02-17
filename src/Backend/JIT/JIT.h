@@ -7,7 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
-class JITExecMemory;
+class JITMemory;
 
 struct JITArgument
 {
@@ -24,7 +24,7 @@ struct JITReturn
 class JIT final
 {
 public:
-    static void   emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations);
+    static void   emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations);
     static void   emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr);
 };

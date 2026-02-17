@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
-#include "Backend/JIT/JITExecMemory.h"
+#include "Backend/JIT/JITMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -97,7 +97,7 @@ private:
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   emitMutex_;
-    JITExecMemory                jitExecMemory_;
+    JITMemory                jitExecMemory_;
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };

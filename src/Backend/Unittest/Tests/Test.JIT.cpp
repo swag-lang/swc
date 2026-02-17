@@ -2,8 +2,8 @@
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MachineCode.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITExecMemory.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
+#include "Backend/JIT/JITMemory.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -23,7 +23,7 @@ namespace
         MachineCode loweredCode;
         loweredCode.emit(ctx, builder);
 
-        JITExecMemory executableMemory;
+        JITMemory executableMemory;
         JIT::emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
         using TestFn  = uint64_t (*)();
@@ -61,7 +61,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     MachineCode loweredCalleeCode;
     loweredCalleeCode.emit(ctx, calleeBuilder);
 
-    JITExecMemory calleeExecMemory;
+    JITMemory calleeExecMemory;
     JIT::emit(ctx, calleeExecMemory, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations);
     using CalleeFnType  = uint64_t (*)();
     const auto calleeFn = reinterpret_cast<CalleeFnType>(calleeExecMemory.entryPoint());
@@ -79,7 +79,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     MachineCode loweredCallerCode;
     loweredCallerCode.emit(ctx, callerBuilder);
 
-    JITExecMemory callerExecMemory;
+    JITMemory callerExecMemory;
     JIT::emit(ctx, callerExecMemory, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations);
     using CallerFnType  = uint64_t (*)();
     const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
@@ -90,9 +90,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
 {
-    JITExecMemoryManager manager;
-    JITExecMemory        memA;
-    JITExecMemory        memB;
+    JITMemoryManager manager;
+    JITMemory        memA;
+    JITMemory        memB;
 
     constexpr std::array code = {std::byte{0xC3}};
     const ByteSpan       bytes(code.data(), code.size());

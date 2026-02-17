@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Backend/JIT/JITExecMemory.h"
+#include "Backend/JIT/JITMemory.h"
 
 SWC_BEGIN_NAMESPACE();
 
-JITExecMemory::JITExecMemory(JITExecMemory&& other) noexcept :
+JITMemory::JITMemory(JITMemory&& other) noexcept :
     ptr_(other.ptr_),
     size_(other.size_),
     allocationSize_(other.allocationSize_)
@@ -13,7 +13,7 @@ JITExecMemory::JITExecMemory(JITExecMemory&& other) noexcept :
     other.allocationSize_ = 0;
 }
 
-JITExecMemory& JITExecMemory::operator=(JITExecMemory&& other) noexcept
+JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
 {
     if (this != &other)
     {
@@ -28,7 +28,7 @@ JITExecMemory& JITExecMemory::operator=(JITExecMemory&& other) noexcept
     return *this;
 }
 
-void JITExecMemory::reset()
+void JITMemory::reset()
 {
     ptr_            = nullptr;
     size_           = 0;

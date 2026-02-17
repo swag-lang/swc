@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/JIT/JITExecMemoryManager.h"
+#include "Backend/JIT/JITMemoryManager.h"
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -21,7 +21,7 @@ namespace
     }
 }
 
-JITExecMemoryManager::~JITExecMemoryManager()
+JITMemoryManager::~JITMemoryManager()
 {
     std::unique_lock lock(mutex_);
     for (const auto& block : blocks_)
@@ -32,7 +32,7 @@ JITExecMemoryManager::~JITExecMemoryManager()
     blocks_.clear();
 }
 
-bool JITExecMemoryManager::allocate(JITExecMemory& outExecutableMemory, uint32_t size)
+bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
 {
     outExecutableMemory.reset();
     if (!size)
@@ -76,7 +76,7 @@ bool JITExecMemoryManager::allocate(JITExecMemory& outExecutableMemory, uint32_t
     return true;
 }
 
-bool JITExecMemoryManager::makeExecutable(const JITExecMemory& executableMemory)
+bool JITMemoryManager::makeExecutable(const JITMemory& executableMemory)
 {
     if (executableMemory.empty())
         return false;
@@ -85,7 +85,7 @@ bool JITExecMemoryManager::makeExecutable(const JITExecMemory& executableMemory)
     return Os::makeExecutableMemory(executableMemory.ptr_, executableMemory.allocationSize_);
 }
 
-bool JITExecMemoryManager::allocateAndCopy(JITExecMemory& outExecutableMemory, ByteSpan bytes)
+bool JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan bytes)
 {
     outExecutableMemory.reset();
     SWC_ASSERT(bytes.data() || bytes.empty());

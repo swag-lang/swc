@@ -11,14 +11,15 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
 
     if (!context.preservePersistentRegs)
     {
+        pushedRegs_.clear();
         savedRegSlots_.clear();
-        savedRegsFrameSize_ = 0;
+        savedRegsStackSubSize_ = 0;
         return;
     }
 
     const auto& conv = CallConv::get(context.callConvKind);
     buildSavedRegsPlan(context, conv);
-    if (!savedRegsFrameSize_)
+    if (pushedRegs_.empty() && !savedRegsStackSubSize_)
         return;
 
     Ref              firstRef = INVALID_REF;
@@ -50,12 +51,24 @@ bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const
     return false;
 }
 
+bool MicroPrologEpilogPass::containsPushedReg(MicroReg reg) const
+{
+    for (const auto pushedReg : pushedRegs_)
+    {
+        if (pushedReg == reg)
+            return true;
+    }
+
+    return false;
+}
+
 void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv)
 {
     SWC_ASSERT(context.instructions);
 
+    pushedRegs_.clear();
     savedRegSlots_.clear();
-    savedRegsFrameSize_ = 0;
+    savedRegsStackSubSize_ = 0;
 
     auto& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
     for (const auto& inst : context.instructions->view())
@@ -76,8 +89,8 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
                 if (!conv.isIntPersistentReg(reg))
                     continue;
 
-                if (!containsSavedSlot(reg))
-                    savedRegSlots_.push_back({.reg = reg, .offset = 0, .slotBits = MicroOpBits::B64});
+                if (!containsPushedReg(reg))
+                    pushedRegs_.push_back(reg);
             }
             else if (reg.isFloat())
             {
@@ -90,7 +103,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
         }
     }
 
-    if (savedRegSlots_.empty())
+    if (pushedRegs_.empty() && savedRegSlots_.empty())
         return;
 
     uint64_t frameOffset = 0;
@@ -102,24 +115,36 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
         frameOffset += slotSize;
     }
 
+    const uint64_t pushedRegsSize = static_cast<uint64_t>(pushedRegs_.size()) * sizeof(uint64_t);
     const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
-    savedRegsFrameSize_           = Math::alignUpU64(frameOffset, stackAlignment);
+    const uint64_t totalFrameSize = Math::alignUpU64(pushedRegsSize + frameOffset, stackAlignment);
+    savedRegsStackSubSize_        = totalFrameSize > pushedRegsSize ? totalFrameSize - pushedRegsSize : 0;
 }
 
 void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
 {
-    if (!savedRegsFrameSize_)
+    if (pushedRegs_.empty() && !savedRegsStackSubSize_)
         return;
 
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
     auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
-    MicroInstrOperand subOps[4];
-    subOps[0].reg      = conv.stackPointer;
-    subOps[1].opBits   = MicroOpBits::B64;
-    subOps[2].microOp  = MicroOp::Subtract;
-    subOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+    for (const auto pushedReg : pushedRegs_)
+    {
+        MicroInstrOperand pushOps[1];
+        pushOps[0].reg = pushedReg;
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps);
+    }
+
+    if (savedRegsStackSubSize_)
+    {
+        MicroInstrOperand subOps[4];
+        subOps[0].reg      = conv.stackPointer;
+        subOps[1].opBits   = MicroOpBits::B64;
+        subOps[2].microOp  = MicroOp::Subtract;
+        subOps[3].valueU64 = savedRegsStackSubSize_;
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+    }
 
     for (const auto& slot : savedRegSlots_)
     {
@@ -134,7 +159,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
 
 void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
 {
-    if (!savedRegsFrameSize_)
+    if (pushedRegs_.empty() && !savedRegsStackSubSize_)
         return;
 
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
@@ -150,12 +175,22 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
     }
 
-    MicroInstrOperand addOps[4];
-    addOps[0].reg      = conv.stackPointer;
-    addOps[1].opBits   = MicroOpBits::B64;
-    addOps[2].microOp  = MicroOp::Add;
-    addOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+    if (savedRegsStackSubSize_)
+    {
+        MicroInstrOperand addOps[4];
+        addOps[0].reg      = conv.stackPointer;
+        addOps[1].opBits   = MicroOpBits::B64;
+        addOps[2].microOp  = MicroOp::Add;
+        addOps[3].valueU64 = savedRegsStackSubSize_;
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+    }
+
+    for (auto it = pushedRegs_.rbegin(); it != pushedRegs_.rend(); ++it)
+    {
+        MicroInstrOperand popOps[1];
+        popOps[0].reg = *it;
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popOps);
+    }
 }
 
 SWC_END_NAMESPACE();

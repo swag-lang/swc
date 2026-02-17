@@ -17,12 +17,14 @@ private:
         MicroOpBits slotBits = MicroOpBits::Zero;
     };
 
+    bool containsPushedReg(MicroReg reg) const;
     void buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv);
     void insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
     void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
     bool containsSavedSlot(MicroReg reg) const;
 
-    uint64_t                  savedRegsFrameSize_ = 0;
+    uint64_t                  savedRegsStackSubSize_ = 0;
+    SmallVector<MicroReg>     pushedRegs_;
     std::vector<SavedRegSlot> savedRegSlots_;
 };
 

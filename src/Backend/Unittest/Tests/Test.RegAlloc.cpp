@@ -234,13 +234,15 @@ namespace
         return ops[0].reg == stackPtr && ops[1].opBits == MicroOpBits::B64 && ops[2].microOp == op;
     }
 
-    bool hasPersistentFrameOps(MicroBuilder& builder, const CallConv& conv, bool* outHasSub = nullptr, bool* outHasAdd = nullptr)
+    bool hasPersistentFrameOps(MicroBuilder& builder, const CallConv& conv)
     {
         auto& storeOps = builder.operands();
         bool  hasSub   = false;
         bool  hasAdd   = false;
         bool  hasStore = false;
         bool  hasLoad  = false;
+        bool  hasPush  = false;
+        bool  hasPop   = false;
 
         for (const auto& inst : builder.instructions().view())
         {
@@ -248,17 +250,27 @@ namespace
                 hasSub = true;
             else if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Add))
                 hasAdd = true;
+            else if (inst.op == MicroInstrOpcode::Push)
+                hasPush = true;
+            else if (inst.op == MicroInstrOpcode::Pop)
+                hasPop = true;
             else if (inst.op == MicroInstrOpcode::LoadMemReg)
-                hasStore = true;
+            {
+                const auto* ops = inst.ops(storeOps);
+                if (ops[0].reg == conv.stackPointer)
+                    hasStore = true;
+            }
             else if (inst.op == MicroInstrOpcode::LoadRegMem)
-                hasLoad = true;
+            {
+                const auto* ops = inst.ops(storeOps);
+                if (ops[1].reg == conv.stackPointer)
+                    hasLoad = true;
+            }
         }
 
-        if (outHasSub)
-            *outHasSub = hasSub;
-        if (outHasAdd)
-            *outHasAdd = hasAdd;
-        return hasSub && hasAdd && hasStore && hasLoad;
+        const bool hasPushPopFrame = hasPush && hasPop;
+        const bool hasStackFrame   = hasSub && hasAdd && hasStore && hasLoad;
+        return hasPushPopFrame || hasStackFrame;
     }
 
     bool hasSpillFrameOps(MicroBuilder& builder, const CallConv& conv)
@@ -363,10 +375,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         passCtx.preservePersistentRegs = true;
         builder.runPasses(passes, nullptr, passCtx);
 
-        bool       hasSub      = false;
-        bool       hasAdd      = false;
-        const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind), &hasSub, &hasAdd);
-        if (!hasFrameOps || !hasSub || !hasAdd)
+        const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
+        if (!hasFrameOps)
             return Result::Error;
     }
 }

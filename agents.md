@@ -11,6 +11,7 @@
 - When designing code, avoid excessive use of lambdas. Prioritize clarity and readability.
 - When designing a function which returns something by argument, place that output parameter first, right after global
   parameters (e.g. managers).
+- Do not overuse "auto". When it's clearer, use the real type.
 
 ## Refactoring Compliance Rules
 

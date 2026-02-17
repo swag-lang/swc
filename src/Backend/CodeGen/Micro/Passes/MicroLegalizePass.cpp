@@ -39,11 +39,11 @@ namespace
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadMemImm);
         SWC_ASSERT(inst.numOperands >= 4);
 
-        const auto memReg    = ops[0].reg;
-        const auto memOffset = ops[2].valueU64;
-        const auto value     = ops[3].valueU64;
-        const auto lowU32    = static_cast<uint32_t>(value & U32_MASK);
-        const auto highU32   = static_cast<uint32_t>((value >> 32) & U32_MASK);
+        const MicroReg memReg    = ops[0].reg;
+        const uint64_t memOffset = ops[2].valueU64;
+        const uint64_t value     = ops[3].valueU64;
+        const uint32_t lowU32    = static_cast<uint32_t>(value & U32_MASK);
+        const uint32_t highU32   = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
         invalidateInstruction(inst);
 
@@ -68,14 +68,14 @@ namespace
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadAmcMemImm);
         SWC_ASSERT(inst.numOperands >= 8);
 
-        const auto regBase       = ops[0].reg;
-        const auto regMul        = ops[1].reg;
-        const auto opBitsBaseMul = ops[3].opBits;
-        const auto mulValue      = ops[5].valueU64;
-        const auto addValue      = ops[6].valueU64;
-        const auto value         = ops[7].valueU64;
-        const auto lowU32        = static_cast<uint32_t>(value & U32_MASK);
-        const auto highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
+        const MicroReg    regBase       = ops[0].reg;
+        const MicroReg    regMul        = ops[1].reg;
+        const MicroOpBits opBitsBaseMul = ops[3].opBits;
+        const uint64_t    mulValue      = ops[5].valueU64;
+        const uint64_t    addValue      = ops[6].valueU64;
+        const uint64_t    value         = ops[7].valueU64;
+        const uint32_t    lowU32        = static_cast<uint32_t>(value & U32_MASK);
+        const uint32_t    highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
         invalidateInstruction(inst);
 
@@ -106,10 +106,10 @@ namespace
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm);
         SWC_ASSERT(inst.numOperands >= 3);
 
-        const auto dstReg   = ops[0].reg;
-        auto       opBits   = ops[1].opBits;
-        const auto immValue = ops[2].valueU64;
-        const auto rspReg   = encoder.stackPointerReg();
+        const MicroReg dstReg   = ops[0].reg;
+        MicroOpBits    opBits   = ops[1].opBits;
+        const uint64_t immValue = ops[2].valueU64;
+        const MicroReg rspReg   = encoder.stackPointerReg();
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 

@@ -1027,9 +1027,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
     const bool                        colorize = true;
     Utf8                              out;
     auto&                             storeOps      = operands;
-    auto&                             storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
-    auto&                             instructionsV = const_cast<MicroInstrStorage&>(instructions);
-    auto                              view          = instructionsV.view();
+    auto                              view          = instructions.view();
     std::unordered_set<uint64_t>      seenDebugLines;
     std::unordered_map<Ref, uint32_t> instIndexByRef;
     std::unordered_map<Ref, uint32_t> labelIndexByRef;
@@ -1061,18 +1059,23 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
         std::unordered_set<Utf8> virtualRegs;
         if (inst.numOperands)
         {
-            SmallVector<MicroInstrRegOperandRef> regRefs;
-            inst.collectRegOperands(storeOpsMut, regRefs, encoder);
-            for (const auto& regRef : regRefs)
-            {
-                if (!regRef.reg || !regRef.reg->isValid())
-                    continue;
+            const auto useDef = inst.collectUseDef(storeOps, encoder);
+            auto       addReg = [&](MicroReg reg) {
+                if (!reg.isValid() || reg.isNoBase())
+                    return;
 
-                const auto regToken = regName(*regRef.reg, regPrintMode, encoder);
-                if (regRef.reg->isVirtual())
+                const auto regToken = regName(reg, regPrintMode, encoder);
+                if (reg.isVirtual())
                     virtualRegs.insert(regToken);
                 else
                     concreteRegs.insert(regToken);
+            };
+
+            for (const auto reg : useDef.uses)
+                addReg(reg);
+            for (const auto reg : useDef.defs)
+            {
+                addReg(reg);
             }
         }
 

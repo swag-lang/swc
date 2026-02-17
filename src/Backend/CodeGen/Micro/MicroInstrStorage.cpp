@@ -88,6 +88,59 @@ bool MicroInstrStorage::Iterator::operator==(const Iterator& other) const
     return storage == other.storage && current == other.current;
 }
 
+MicroInstrStorage::ConstIterator::reference MicroInstrStorage::ConstIterator::operator*() const
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current != INVALID_REF);
+    return storage->nodes_[current].instr;
+}
+
+MicroInstrStorage::ConstIterator::pointer MicroInstrStorage::ConstIterator::operator->() const
+{
+    return &(**this);
+}
+
+MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator++()
+{
+    SWC_ASSERT(storage);
+    SWC_ASSERT(current != INVALID_REF);
+    current = storage->nodes_[current].next;
+    return *this;
+}
+
+MicroInstrStorage::ConstIterator MicroInstrStorage::ConstIterator::operator++(int)
+{
+    const ConstIterator copy = *this;
+    ++(*this);
+    return copy;
+}
+
+MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator--()
+{
+    SWC_ASSERT(storage);
+
+    if (current == INVALID_REF)
+    {
+        current = storage->tail_;
+        return *this;
+    }
+
+    current = storage->nodes_[current].prev;
+    return *this;
+}
+
+MicroInstrStorage::ConstIterator MicroInstrStorage::ConstIterator::operator--(int)
+{
+    const ConstIterator copy = *this;
+    --(*this);
+    return copy;
+}
+
+bool MicroInstrStorage::ConstIterator::operator==(const ConstIterator& other) const
+{
+    return storage == other.storage && current == other.current;
+}
+
 MicroInstrStorage::View::View(MicroInstrStorage* storage) :
     storage_(storage)
 {
@@ -99,6 +152,21 @@ MicroInstrStorage::Iterator MicroInstrStorage::View::begin() const
 }
 
 MicroInstrStorage::Iterator MicroInstrStorage::View::end() const
+{
+    return {storage_, INVALID_REF};
+}
+
+MicroInstrStorage::ConstView::ConstView(const MicroInstrStorage* storage) :
+    storage_(storage)
+{
+}
+
+MicroInstrStorage::ConstIterator MicroInstrStorage::ConstView::begin() const
+{
+    return {storage_, storage_->head_};
+}
+
+MicroInstrStorage::ConstIterator MicroInstrStorage::ConstView::end() const
 {
     return {storage_, INVALID_REF};
 }
@@ -171,6 +239,11 @@ Ref MicroInstrStorage::insertInstructionBefore(MicroOperandStorage& operands, Re
 MicroInstrStorage::View MicroInstrStorage::view() noexcept
 {
     return View(this);
+}
+
+MicroInstrStorage::ConstView MicroInstrStorage::view() const noexcept
+{
+    return ConstView(this);
 }
 
 Ref MicroInstrStorage::allocNode()

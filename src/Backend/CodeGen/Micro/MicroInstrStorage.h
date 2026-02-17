@@ -40,6 +40,27 @@ public:
         bool      operator==(const Iterator& other) const;
     };
 
+    struct ConstIterator
+    {
+        using iterator_concept  = std::bidirectional_iterator_tag;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using value_type        = const MicroInstr;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = const MicroInstr*;
+        using reference         = const MicroInstr&;
+
+        const MicroInstrStorage* storage = nullptr;
+        Ref                      current = INVALID_REF;
+
+        reference      operator*() const;
+        pointer        operator->() const;
+        ConstIterator& operator++();
+        ConstIterator  operator++(int);
+        ConstIterator& operator--();
+        ConstIterator  operator--(int);
+        bool           operator==(const ConstIterator& other) const;
+    };
+
     class View
         : public std::ranges::view_base
     {
@@ -52,12 +73,25 @@ public:
         MicroInstrStorage* storage_ = nullptr;
     };
 
+    class ConstView
+        : public std::ranges::view_base
+    {
+    public:
+        explicit ConstView(const MicroInstrStorage* storage);
+        ConstIterator begin() const;
+        ConstIterator end() const;
+
+    private:
+        const MicroInstrStorage* storage_ = nullptr;
+    };
+
     uint32_t                    count() const noexcept;
     void                        clear() noexcept;
     std::pair<Ref, MicroInstr*> emplaceUninit();
     Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
     Ref                         insertInstructionBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData);
     View                        view() noexcept;
+    ConstView                   view() const noexcept;
 
 private:
     struct Node

@@ -166,11 +166,23 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     const SemaNodeView nodeView = this->nodeView(nodeRef);
-    if (nodeView.cstRef.isInvalid())
-        return Result::Continue;
+    ConstantRef        cstRef   = nodeView.cstRef;
+    TypeRef            typeRef  = nodeView.typeRef;
 
-    auto& payload = setPayload(nodeRef, nodeView.typeRef);
-    emitConstantToPayload(*this, payload, nodeView.cstRef, *nodeView.cst, nodeView.typeRef);
+    if (cstRef.isInvalid())
+    {
+        cstRef = sema().constantRefOf(nodeRef);
+        if (cstRef.isInvalid())
+            return Result::Continue;
+    }
+
+    if (typeRef.isInvalid())
+        typeRef = sema().typeRefOf(nodeRef);
+
+    const auto& cst = sema().cstMgr().get(cstRef);
+
+    auto& payload = setPayload(nodeRef, typeRef);
+    emitConstantToPayload(*this, payload, cstRef, cst, typeRef);
     return Result::SkipChildren;
 }
 

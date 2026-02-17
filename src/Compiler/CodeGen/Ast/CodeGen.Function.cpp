@@ -21,8 +21,10 @@ namespace
 
         for (const auto& arg : args)
         {
-            const AstNodeRef argRef     = arg.argRef;
-            const auto*      argPayload = codeGen.payload(argRef);
+            const AstNodeRef argRef = arg.argRef;
+            if (argRef.isInvalid())
+                continue;
+            const auto* argPayload = codeGen.materializePayload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
             ABICall::PreparedArg preparedArg;

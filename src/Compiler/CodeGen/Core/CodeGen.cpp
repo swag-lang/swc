@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/CodeGen/Micro/MicroReg.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -85,6 +86,96 @@ const Token& CodeGen::token(const SourceCodeRef& codeRef) const
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+}
+
+CodeGenNodePayload* CodeGen::materializePayload(AstNodeRef nodeRef)
+{
+    CodeGenNodePayload* nodePayload = payload(nodeRef);
+    if (nodePayload)
+        return nodePayload;
+
+    const auto nodeView = this->nodeView(nodeRef);
+    if (nodeView.cstRef.isValid() || sema().constantRefOf(nodeRef).isValid())
+    {
+        const Result res = emitConstant(nodeRef);
+        if (res == Result::Error)
+            return nullptr;
+
+        nodePayload = payload(nodeRef);
+        if (nodePayload)
+            return nodePayload;
+    }
+
+    const auto& nodeRefd = node(nodeRef);
+    auto        inheritFromExpr = [&](AstNodeRef exprRef) -> CodeGenNodePayload*
+    {
+        if (exprRef.isInvalid())
+            return nullptr;
+        if (!materializePayload(exprRef))
+            return nullptr;
+        CodeGenNodePayload& inherited = inheritPayload(nodeRef, exprRef, nodeView.typeRef);
+        return &inherited;
+    };
+
+    if (const auto* castNode = nodeRefd.safeCast<AstCastExpr>())
+        return inheritFromExpr(castNode->nodeExprRef);
+
+    if (const auto* autoCastNode = nodeRefd.safeCast<AstAutoCastExpr>())
+        return inheritFromExpr(autoCastNode->nodeExprRef);
+
+    if (const auto* suffixNode = nodeRefd.safeCast<AstSuffixLiteral>())
+        return inheritFromExpr(suffixNode->nodeLiteralRef);
+
+    if (const auto* parenNode = nodeRefd.safeCast<AstParenExpr>())
+        return inheritFromExpr(parenNode->nodeExprRef);
+
+    if (const auto* namedArgNode = nodeRefd.safeCast<AstNamedArgument>())
+        return inheritFromExpr(namedArgNode->nodeArgRef);
+
+    if (const auto* intrinsicNode = nodeRefd.safeCast<AstIntrinsicCall>())
+    {
+        const Token& tok = token(intrinsicNode->codeRef());
+        if (tok.id == TokenId::IntrinsicDataOf)
+        {
+            SmallVector<AstNodeRef> children;
+            ast().appendNodes(children, intrinsicNode->spanChildrenRef);
+            if (children.empty())
+                return nullptr;
+
+            const AstNodeRef exprRef = children[0];
+            const auto*      exprPayload = materializePayload(exprRef);
+            if (!exprPayload)
+                return nullptr;
+
+            const auto exprView = this->nodeView(exprRef);
+            auto&      out      = setPayload(nodeRef, nodeView.typeRef);
+            auto&      builder  = this->builder();
+
+            if (exprView.type && (exprView.type->isString() || exprView.type->isSlice() || exprView.type->isAny()))
+            {
+                builder.encodeLoadRegMem(out.reg, exprPayload->reg, 0, MicroOpBits::B64);
+                out.storageKind = CodeGenNodePayload::StorageKind::Value;
+                return &out;
+            }
+
+            if (exprView.type && exprView.type->isArray())
+            {
+                SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
+                builder.encodeLoadRegReg(out.reg, exprPayload->reg, MicroOpBits::B64);
+                out.storageKind = CodeGenNodePayload::StorageKind::Value;
+                return &out;
+            }
+
+            if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+                builder.encodeLoadRegMem(out.reg, exprPayload->reg, 0, MicroOpBits::B64);
+            else
+                builder.encodeLoadRegReg(out.reg, exprPayload->reg, MicroOpBits::B64);
+            out.storageKind = CodeGenNodePayload::StorageKind::Value;
+            return &out;
+        }
+    }
+
+    return nullptr;
 }
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)

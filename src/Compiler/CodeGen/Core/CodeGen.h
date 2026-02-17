@@ -47,6 +47,7 @@ public:
     SymbolFunction&          function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction&    function() const { return *SWC_CHECK_NOT_NULL(function_); }
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
+    CodeGenNodePayload*      materializePayload(AstNodeRef nodeRef);
     CodeGenNodePayload&      inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     MicroReg                 nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }

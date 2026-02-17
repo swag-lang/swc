@@ -605,6 +605,7 @@ namespace
                              const std::optional<Utf8>&      jumpTargetInstIndex)
     {
         size_t jumpTargetIndexStart = std::string::npos;
+        bool   expectCallTarget     = false;
         if (jumpTargetInstIndex)
         {
             value += " ";
@@ -634,7 +635,17 @@ namespace
             };
 
             const Utf8 tokenStr(token);
-            if (virtualRegs.contains(tokenStr))
+            if (expectCallTarget)
+            {
+                if (virtualRegs.contains(tokenStr))
+                    appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
+                else if (concreteRegs.contains(tokenStr))
+                    appendColored(out, ctx, colorize, SyntaxColor::Register, token);
+                else
+                    appendColored(out, ctx, colorize, SyntaxColor::Function, token);
+                expectCallTarget = false;
+            }
+            else if (virtualRegs.contains(tokenStr))
             {
                 appendColored(out, ctx, colorize, SyntaxColor::RegisterVirtual, token);
             }
@@ -645,6 +656,7 @@ namespace
             else if (isInstructionToken(token))
             {
                 appendColored(out, ctx, colorize, isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
+                expectCallTarget = token == "call";
             }
             else if (isHex(token))
             {
@@ -1139,7 +1151,7 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                appendColored(out, ctx, colorize, SyntaxColor::Code, ops[0].name.isValid() ? ctx.idMgr().get(ops[0].name).name : "<invalid-symbol>");
+                appendColored(out, ctx, colorize, SyntaxColor::Function, ops[0].name.isValid() ? ctx.idMgr().get(ops[0].name).name : "<invalid-symbol>");
                 appendSep(out);
                 appendColored(out, ctx, colorize, SyntaxColor::Type, callConvName(ops[1].callConv));
                 break;

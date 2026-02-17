@@ -18,7 +18,7 @@ namespace
         const uint32_t numRegArgs    = conv.numArgRegisterSlots();
         const uint32_t stackSlotSize = conv.stackSlotSize();
         const uint32_t numArgs       = static_cast<uint32_t>(args.size());
-        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(args.data()), MicroOpBits::B64);
+        builder.encodeLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const auto& arg      = args[i];
@@ -60,7 +60,7 @@ namespace
 
         SWC_ASSERT(ret.valuePtr != nullptr);
         const auto retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-        builder.encodeLoadRegImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr), MicroOpBits::B64);
+        builder.encodeLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
         if (ret.isFloat)
             builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, retBits);
         else
@@ -173,7 +173,7 @@ uint32_t ABICall::prepareArgs(MicroInstrBuilder& builder, CallConvKind callConvK
     MicroReg hiddenRetArgSrcReg = MicroReg::invalid();
     MicroReg hiddenRetArgTmpReg = MicroReg::invalid();
     SWC_ASSERT(conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg));
-    builder.encodeLoadRegImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage), MicroOpBits::B64);
+    builder.encodeLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
 
     SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;
     preparedArgsWithHiddenRetArg.reserve(args.size() + 1);
@@ -267,7 +267,7 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
 
     emitCallArgs(builder, conv, args, regBase, regTmp);
-    builder.encodeLoadRegImm(regTmp, targetAddress, MicroOpBits::B64);
+    builder.encodeLoadRegPtrImm(regTmp, targetAddress);
     builder.encodeCallReg(regTmp, callConvKind);
     emitReturnWriteBack(builder, conv, ret, regBase);
 

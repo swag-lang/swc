@@ -70,7 +70,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
 
     MicroInstrBuilder callerBuilder(ctx);
     callerBuilder.encodeLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64);
-    callerBuilder.encodeLoadRegImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn), MicroOpBits::B64);
+    callerBuilder.encodeLoadRegPtrImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn));
     callerBuilder.encodeCallReg(MicroReg::intReg(10), CallConvKind::Host);
     callerBuilder.encodeOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64);
     callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);

@@ -70,6 +70,7 @@ struct MicroInstrRelocation
     enum class Kind : uint8_t
     {
         Rel32,
+        Abs64,
     };
 
     Kind          kind          = Kind::Rel32;
@@ -77,6 +78,16 @@ struct MicroInstrRelocation
     IdentifierRef symbolName    = IdentifierRef::invalid();
     uint64_t      targetAddress = 0;
     Symbol*       targetSymbol  = nullptr;
+    ConstantRef   constantRef   = ConstantRef::invalid();
+};
+
+struct MicroInstrPointerImmediateRelocation
+{
+    Ref           instructionRef = INVALID_REF;
+    IdentifierRef symbolName     = IdentifierRef::invalid();
+    uint64_t      targetAddress  = 0;
+    Symbol*       targetSymbol   = nullptr;
+    ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
 class MicroInstrBuilder
@@ -124,6 +135,9 @@ public:
     void                                     clearCodeRelocations() { codeRelocations_.clear(); }
     void                                     addCodeRelocation(MicroInstrRelocation relocation);
     const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
+    void                                     clearPointerImmediateRelocations() { pointerImmediateRelocations_.clear(); }
+    void addPointerImmediateRelocation(Ref instructionRef, uint64_t targetAddress, Symbol* targetSymbol = nullptr, ConstantRef constantRef = ConstantRef::invalid(), IdentifierRef symbolName = IdentifierRef::invalid());
+    const std::vector<MicroInstrPointerImmediateRelocation>& pointerImmediateRelocations() const { return pointerImmediateRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -144,6 +158,7 @@ public:
     void encodeJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr, IdentifierRef symbolName = IdentifierRef::invalid(), EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
@@ -190,6 +205,7 @@ private:
     Runtime::BuildCfgBackendOptim                   backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
     std::vector<Ref>                                labels_;
     std::vector<MicroInstrRelocation>               codeRelocations_;
+    std::vector<MicroInstrPointerImmediateRelocation> pointerImmediateRelocations_;
 };
 
 SWC_END_NAMESPACE();

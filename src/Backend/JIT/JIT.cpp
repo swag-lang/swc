@@ -115,17 +115,28 @@ namespace
             if (target == MicroInstrRelocation::K_SELF_ADDRESS)
                 target = reinterpret_cast<uint64_t>(basePtr);
 
-            SWC_FORCE_ASSERT(reloc.kind == MicroInstrRelocation::Kind::Rel32);
+            if (reloc.kind == MicroInstrRelocation::Kind::Rel32)
+            {
+                const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
+                SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
 
-            const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
-            SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
+                const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
+                const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
+                SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
 
-            const auto nextAddress = reinterpret_cast<uint64_t>(basePtr + patchEndOffset);
-            const auto delta       = static_cast<int64_t>(target) - static_cast<int64_t>(nextAddress);
-            SWC_FORCE_ASSERT(delta >= std::numeric_limits<int32_t>::min() && delta <= std::numeric_limits<int32_t>::max());
-
-            const int32_t disp32 = static_cast<int32_t>(delta);
-            std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
+                const int32_t disp32 = static_cast<int32_t>(delta);
+                std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
+            }
+            else if (reloc.kind == MicroInstrRelocation::Kind::Abs64)
+            {
+                const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
+                SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
+                std::memcpy(basePtr + reloc.codeOffset, &target, sizeof(target));
+            }
+            else
+            {
+                SWC_FORCE_ASSERT(false);
+            }
         }
     }
 }

@@ -24,7 +24,7 @@ namespace
     }
 }
 
-void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const MicroInstr& inst)
+void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
@@ -130,8 +130,29 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
             encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits, inst.emitFlags);
             break;
         case MicroInstrOpcode::LoadRegImm:
+        {
+            const uint32_t codeStartOffset = encoder.size();
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits, inst.emitFlags);
+
+            const auto foundReloc = pointerImmediateRelocs_.find(instructionRef);
+            if (foundReloc != pointerImmediateRelocs_.end())
+            {
+                SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
+                const uint32_t codeEndOffset = encoder.size();
+                SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
+
+                const auto& reloc = foundReloc->second;
+                context.builder->addCodeRelocation({
+                    .kind          = MicroInstrRelocation::Kind::Abs64,
+                    .codeOffset    = codeEndOffset - sizeof(uint64_t),
+                    .symbolName    = reloc.symbolName,
+                    .targetAddress = reloc.targetAddress,
+                    .targetSymbol  = reloc.targetSymbol,
+                    .constantRef   = reloc.constantRef,
+                });
+            }
             break;
+        }
         case MicroInstrOpcode::LoadRegMem:
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits, inst.emitFlags);
             break;
@@ -228,10 +249,15 @@ void MicroEmitPass::run(MicroPassContext& context)
 
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
+    pointerImmediateRelocs_.clear();
 
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    for (const auto& reloc : context.builder->pointerImmediateRelocations())
+        pointerImmediateRelocs_[reloc.instructionRef] = reloc;
+
+    Ref instructionRef = 0;
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it, ++instructionRef)
     {
-        encodeInstruction(context, *it);
+        encodeInstruction(context, instructionRef, *it);
     }
 
     for (const auto& pending : pendingLabelJumps_)

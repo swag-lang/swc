@@ -31,6 +31,7 @@ void MachineCode::emit(TaskContext& ctx, MicroInstrBuilder& builder)
     passManager.add(legalizePass);
     passManager.add(encodePass);
     builder.clearCodeRelocations();
+    builder.clearPointerImmediateRelocations();
     builder.runPasses(passManager, &encoder, passContext);
 
     const auto codeSize = encoder.size();

@@ -169,7 +169,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
             const auto nodeView          = codeGen.curNodeView();
             auto&      payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
-            codeGen.builder().encodeLoadRegImm(payload.reg, compilerIfAddress, MicroOpBits::B64);
+            codeGen.builder().encodeLoadRegPtrImm(payload.reg, compilerIfAddress);
             payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return Result::Continue;
         }

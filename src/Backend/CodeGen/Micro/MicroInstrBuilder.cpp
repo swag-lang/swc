@@ -63,6 +63,17 @@ void MicroInstrBuilder::addCodeRelocation(MicroInstrRelocation relocation)
     codeRelocations_.push_back(relocation);
 }
 
+void MicroInstrBuilder::addPointerImmediateRelocation(Ref instructionRef, uint64_t targetAddress, Symbol* targetSymbol, ConstantRef constantRef, IdentifierRef symbolName)
+{
+    pointerImmediateRelocations_.push_back({
+        .instructionRef = instructionRef,
+        .symbolName     = symbolName,
+        .targetAddress  = targetAddress,
+        .targetSymbol   = targetSymbol,
+        .constantRef    = constantRef,
+    });
+}
+
 void MicroInstrBuilder::encodeLoadSymbolRelocAddress(MicroReg reg, uint32_t symbolIndex, uint32_t offset, EncodeFlags emitFlags)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::SymbolRelocAddr, emitFlags, 3);
@@ -219,6 +230,17 @@ void MicroInstrBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBi
     ops[1].opBits    = opBits;
     ops[2].valueU64  = value;
     return;
+}
+
+void MicroInstrBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol, IdentifierRef symbolName, EncodeFlags emitFlags)
+{
+    auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::LoadRegImm, emitFlags, 3);
+    auto* ops            = inst.ops(operands_);
+    ops[0].reg           = reg;
+    ops[1].opBits        = MicroOpBits::B64;
+    ops[2].valueU64      = value;
+
+    addPointerImmediateRelocation(instRef, value, targetSymbol, constantRef, symbolName);
 }
 
 void MicroInstrBuilder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags)

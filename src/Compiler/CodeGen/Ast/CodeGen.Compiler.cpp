@@ -57,7 +57,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
 
-            builder.encodeLoadRegImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData), MicroOpBits::B64);
+            builder.encodeLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
             builder.encodeLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
         }

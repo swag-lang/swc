@@ -39,7 +39,7 @@ namespace
 
         auto* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
         std::memcpy(storage, tmpSpan.data(), tmpSpan.size());
-        codeGen.builder().encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(storage), MicroOpBits::B64);
+        codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(storage), cstRef);
         payload.storageKind = CodeGenNodePayload::StorageKind::Address;
     }
 
@@ -116,21 +116,21 @@ namespace
                 runtimeString->ptr    = data;
                 runtimeString->length = value.size();
 
-                builder.encodeLoadRegImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), MicroOpBits::B64);
+                builder.encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), cstRef);
                 payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::ValuePointer:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getValuePointer(), MicroOpBits::B64);
+                builder.encodeLoadRegPtrImm(payload.reg, cst.getValuePointer(), cstRef);
                 payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                builder.encodeLoadRegImm(payload.reg, cst.getBlockPointer(), MicroOpBits::B64);
+                builder.encodeLoadRegPtrImm(payload.reg, cst.getBlockPointer(), cstRef);
                 payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }

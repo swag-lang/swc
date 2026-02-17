@@ -146,11 +146,11 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg resultReg     = nodePayload.reg;
 
     if (calleePayload)
-        ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
+        ABICall::callReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
     else if (calledFunction.isForeign())
-        ABICall::callByExtern(builder, callConvKind, &calledFunction, numAbiArgs);
+        ABICall::callExtern(builder, callConvKind, &calledFunction, numAbiArgs);
     else
-        ABICall::callByLocal(builder, callConvKind, &calledFunction, numAbiArgs);
+        ABICall::callLocal(builder, callConvKind, &calledFunction, numAbiArgs);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;

@@ -65,6 +65,9 @@ namespace
             case SyntaxColor::RegisterVirtual:
                 rgb = {.r = 0x5A, .g = 0xB4, .b = 0xFF};
                 break;
+            case SyntaxColor::Relocation:
+                rgb = {.r = 0xE5, .g = 0xC0, .b = 0x7B};
+                break;
 
             case SyntaxColor::Invalid:
                 rgb = {.r = 0xFF, .g = 0x47, .b = 0x47};
@@ -143,6 +146,9 @@ namespace
                         break;
                     case SyntaxColor::RegisterVirtual:
                         colorName = SYN_REGISTER_V;
+                        break;
+                    case SyntaxColor::Relocation:
+                        colorName = SYN_RELOCATION;
                         break;
                     case SyntaxColor::String:
                         colorName = SYN_STRING;

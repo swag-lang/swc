@@ -80,7 +80,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             if (inst.numOperands >= 3)
             {
                 const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
-                context.builder->addCodeRelocation({
+                context.builder->addRelocation({
                     .kind           = MicroRelocation::Kind::Rel32,
                     .codeOffset     = callOffset + 1,
                     .instructionRef = INVALID_REF,
@@ -258,7 +258,7 @@ void MicroEmitPass::run(MicroPassContext& context)
             continue;
         pointerImmediateRelocs_[reloc.instructionRef] = reloc;
     }
-    context.builder->clearCodeRelocations();
+    context.builder->clearRelocations();
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {

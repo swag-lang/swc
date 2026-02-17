@@ -155,8 +155,8 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
 
         for (uint32_t i = 0; i < numRegArgsUsed; ++i)
         {
-            const auto&    arg     = args[i];
-            const auto     argBits = preparedArgBits(arg);
+            const auto&    arg        = args[i];
+            const auto     argBits    = preparedArgBits(arg);
             const uint64_t homeOffset = static_cast<uint64_t>(i) * stackSlotSize;
             if (stackAdjust)
                 builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
@@ -327,7 +327,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
         builder.encodeLoadRegReg(dstReg, conv.intReturn, retBits);
 }
 
-void ABICall::callByAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
+void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
     const auto  numArgs     = static_cast<uint32_t>(args.size());

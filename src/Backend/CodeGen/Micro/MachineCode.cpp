@@ -30,7 +30,6 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     passManager.add(persistentRegsPass);
     passManager.add(legalizePass);
     passManager.add(encodePass);
-    builder.clearCodeRelocations();
     builder.runPasses(passManager, &encoder, passContext);
 
     const auto codeSize = encoder.size();

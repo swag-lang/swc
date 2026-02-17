@@ -58,7 +58,7 @@ const MicroDebugInfo* MicroBuilder::debugInfo(Ref instructionRef) const
     return &info.value();
 }
 
-void MicroBuilder::addCodeRelocation(const MicroRelocation& relocation)
+void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
     codeRelocations_.push_back(relocation);
 }
@@ -229,7 +229,7 @@ void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef
     ops[1].opBits        = MicroOpBits::B64;
     ops[2].valueU64      = value;
 
-    addCodeRelocation({
+    addRelocation({
         .kind           = MicroRelocation::Kind::Abs64,
         .instructionRef = instRef,
         .symbolName     = symbolName,

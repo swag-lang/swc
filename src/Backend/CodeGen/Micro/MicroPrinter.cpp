@@ -321,9 +321,42 @@ namespace
         return token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>";
     }
 
+    bool isRelocationImmediateToken(std::string_view token)
+    {
+        if (token.size() < 3 || token.front() != '<' || token.back() != '>')
+            return false;
+
+        const auto inner = token.substr(1, token.size() - 2);
+        if (inner.empty())
+            return false;
+
+        if (Utf8Helper::isHexToken(inner))
+            return true;
+
+        for (const auto c : inner)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(c)))
+                return false;
+        }
+
+        return true;
+    }
+
     Utf8 hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
+    }
+
+    bool hasRelocationForImmediateValue(const std::unordered_set<uint64_t>& relocationImmediateValues, uint64_t immediateValue)
+    {
+        return relocationImmediateValues.contains(immediateValue);
+    }
+
+    Utf8 relocationImmediate(std::string_view value, bool hasImmediateRelocation)
+    {
+        if (!hasImmediateRelocation)
+            return value;
+        return std::format("<{}>", value);
     }
 
     Utf8 memBaseOffsetString(MicroReg baseReg, uint64_t offset, MicroRegPrintMode regPrintMode, const Encoder* encoder)
@@ -453,7 +486,12 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
-    Utf8 naturalInstruction(const TaskContext& ctx, const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder)
+    Utf8 naturalInstruction(const TaskContext& ctx,
+                            const MicroInstr& inst,
+                            const MicroInstrOperand* ops,
+                            MicroRegPrintMode regPrintMode,
+                            const Encoder* encoder,
+                            const std::unordered_set<uint64_t>& relocationImmediateValues)
     {
         switch (inst.op)
         {
@@ -465,7 +503,9 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+                return std::format("{} = {}",
+                                   regName(ops[0].reg, regPrintMode, encoder),
+                                   relocationImmediate(hexU64(ops[2].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64)));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAddrRegMem:
@@ -473,13 +513,17 @@ namespace
             case MicroInstrOpcode::LoadMemReg:
                 return std::format("{} = {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadMemImm:
-                return std::format("{} = {}", memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
+                return std::format("{} = {}",
+                                   memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder),
+                                   relocationImmediate(hexU64(ops[3].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64)));
             case MicroInstrOpcode::LoadAmcRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memAmcString(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAmcMemReg:
                 return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAmcMemImm:
-                return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), hexU64(ops[7].valueU64));
+                return std::format("{} = {}",
+                                   memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder),
+                                   relocationImmediate(hexU64(ops[7].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[7].valueU64)));
             case MicroInstrOpcode::ClearReg:
                 return std::format("{} = 0", regName(ops[0].reg, regPrintMode, encoder));
 
@@ -491,7 +535,7 @@ namespace
             case MicroInstrOpcode::OpBinaryRegImm:
             {
                 const auto lhs = regName(ops[0].reg, regPrintMode, encoder);
-                const auto rhs = hexU64(ops[3].valueU64);
+                const auto rhs = relocationImmediate(hexU64(ops[3].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64));
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
             }
 
@@ -519,7 +563,7 @@ namespace
             case MicroInstrOpcode::OpBinaryMemImm:
             {
                 const auto lhs = memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder);
-                const auto rhs = hexU64(ops[4].valueU64);
+                const auto rhs = relocationImmediate(hexU64(ops[4].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[4].valueU64));
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
             }
 
@@ -539,11 +583,15 @@ namespace
             case MicroInstrOpcode::CmpRegReg:
                 return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpRegImm:
-                return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+                return std::format("cmp({}, {})",
+                                   regName(ops[0].reg, regPrintMode, encoder),
+                                   relocationImmediate(hexU64(ops[2].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64)));
             case MicroInstrOpcode::CmpMemReg:
                 return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpMemImm:
-                return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
+                return std::format("cmp({}, {})",
+                                   memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder),
+                                   relocationImmediate(hexU64(ops[3].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64)));
 
             case MicroInstrOpcode::SetCondReg:
                 return std::format("{} = set{}", regName(ops[0].reg, regPrintMode, encoder), condName(ops[1].cpuCond));
@@ -570,8 +618,11 @@ namespace
                 return std::format("if {} jump", condName(ops[0].cpuCond));
             case MicroInstrOpcode::JumpCondImm:
                 if (isUnconditionalJump(ops[0].cpuCond))
-                    return std::format("jump {}", ops[2].valueU64);
-                return std::format("if {} jump {}", condName(ops[0].cpuCond), ops[2].valueU64);
+                    return std::format("jump {}",
+                                       relocationImmediate(std::format("{}", ops[2].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64)));
+                return std::format("if {} jump {}",
+                                   condName(ops[0].cpuCond),
+                                   relocationImmediate(std::format("{}", ops[2].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64)));
 
             case MicroInstrOpcode::Ret:
                 return "ret";
@@ -620,7 +671,11 @@ namespace
             }
 
             const Utf8 tokenStr(token);
-            if (expectCallTarget)
+            if (isRelocationImmediateToken(token))
+            {
+                appendColored(out, ctx, SyntaxColor::Relocation, token);
+            }
+            else if (expectCallTarget)
             {
                 if (virtualRegs.contains(tokenStr))
                     appendColored(out, ctx, SyntaxColor::RegisterVirtual, token);
@@ -671,6 +726,20 @@ namespace
                     ++pos;
                 appendColored(out, ctx, SyntaxColor::Code, value.subView(start, pos - start));
                 continue;
+            }
+
+            if (value[pos] == '<')
+            {
+                size_t end = pos + 1;
+                while (end < value.size() && !std::isspace(static_cast<unsigned char>(value[end])) && value[end] != '>')
+                    ++end;
+                if (end < value.size() && value[end] == '>')
+                {
+                    const auto token = value.subView(pos, end - pos + 1);
+                    appendNaturalToken(token, pos);
+                    pos = end + 1;
+                    continue;
+                }
             }
 
             const char c = value[pos];
@@ -822,6 +891,14 @@ namespace
         appendColored(out, ctx, SyntaxColor::Type, std::format("b{}<-b{}", opBitsName(dstBits), opBitsName(srcBits)));
     }
 
+    void appendImmediate(Utf8& out, const TaskContext& ctx, std::string_view value, bool hasImmediateRelocation)
+    {
+        if (hasImmediateRelocation)
+            appendColored(out, ctx, SyntaxColor::Relocation, std::format("<{}>", value));
+        else
+            appendColored(out, ctx, SyntaxColor::Number, value);
+    }
+
     void appendRegRegBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t regA, uint32_t regB, uint32_t bits, MicroRegPrintMode regPrintMode, const Encoder* encoder)
     {
         appendRegister(out, ctx, ops[regA].reg, regPrintMode, encoder);
@@ -831,20 +908,20 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendRegImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t bits, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation = false)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
         appendTypeBits(out, ctx, ops[bits].opBits);
         appendSep(out);
-        appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[imm].valueU64));
+        appendImmediate(out, ctx, hexU64(ops[imm].valueU64), hasImmediateRelocation);
     }
 
-    void appendRegNumberBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendRegNumberBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t reg, uint32_t number, uint32_t bits, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation = false)
     {
         appendRegister(out, ctx, ops[reg].reg, regPrintMode, encoder);
         appendSep(out);
-        appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[number].valueU64));
+        appendImmediate(out, ctx, hexU64(ops[number].valueU64), hasImmediateRelocation);
         appendSep(out);
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
@@ -867,11 +944,11 @@ namespace
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
 
-    void appendMemImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder)
+    void appendMemImmBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, uint32_t baseReg, uint32_t bits, uint32_t offset, uint32_t imm, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation = false)
     {
         appendMemBaseOffset(out, ctx, ops[baseReg].reg, ops[offset].valueU64, regPrintMode, encoder);
         appendSep(out);
-        appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[imm].valueU64));
+        appendImmediate(out, ctx, hexU64(ops[imm].valueU64), hasImmediateRelocation);
         appendSep(out);
         appendTypeBits(out, ctx, ops[bits].opBits);
     }
@@ -1016,6 +1093,57 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     std::unordered_set<uint64_t>      seenDebugLines;
     std::unordered_map<Ref, uint32_t> instIndexByRef;
     std::unordered_map<Ref, uint32_t> labelIndexByRef;
+    std::unordered_set<uint64_t>      relocationImmediateValues;
+
+    if (builder)
+    {
+        for (const auto& reloc : builder->codeRelocations())
+        {
+            if (reloc.kind != MicroRelocation::Kind::Abs64)
+                continue;
+
+            if (reloc.targetAddress != 0 && reloc.targetAddress != MicroRelocation::K_SELF_ADDRESS)
+                relocationImmediateValues.insert(reloc.targetAddress);
+
+            if (reloc.instructionRef == INVALID_REF)
+                continue;
+
+            const MicroInstr* const inst = instructions.ptr(reloc.instructionRef);
+            if (!inst || inst->numOperands == 0)
+                continue;
+
+            const auto* const ops = inst->ops(operands);
+            switch (inst->op)
+            {
+                case MicroInstrOpcode::LoadRegImm:
+                    relocationImmediateValues.insert(ops[2].valueU64);
+                    break;
+                case MicroInstrOpcode::LoadMemImm:
+                    relocationImmediateValues.insert(ops[3].valueU64);
+                    break;
+                case MicroInstrOpcode::LoadAmcMemImm:
+                    relocationImmediateValues.insert(ops[7].valueU64);
+                    break;
+                case MicroInstrOpcode::CmpRegImm:
+                    relocationImmediateValues.insert(ops[2].valueU64);
+                    break;
+                case MicroInstrOpcode::CmpMemImm:
+                    relocationImmediateValues.insert(ops[3].valueU64);
+                    break;
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    relocationImmediateValues.insert(ops[3].valueU64);
+                    break;
+                case MicroInstrOpcode::OpBinaryMemImm:
+                    relocationImmediateValues.insert(ops[4].valueU64);
+                    break;
+                case MicroInstrOpcode::JumpCondImm:
+                    relocationImmediateValues.insert(ops[2].valueU64);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 
     uint32_t scanIdx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
@@ -1038,7 +1166,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroInstr& inst    = *it;
         const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
-        auto                     natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        auto                     natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, relocationImmediateValues);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;
@@ -1221,7 +1349,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                     appendColored(out, ctx, SyntaxColor::Code, "jump");
                     appendSep(out);
                 }
-                appendColored(out, ctx, SyntaxColor::Number, std::format("to={}", ops[2].valueU64));
+                appendColored(out, ctx, SyntaxColor::Number, "to=");
+                appendImmediate(out, ctx, std::format("{}", ops[2].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::LoadRegReg:
@@ -1229,7 +1358,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadRegImm:
-                appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
+                appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::LoadRegMem:
@@ -1262,7 +1391,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::LoadAmcMemImm:
                 appendMemAmc(out, ctx, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
                 appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, hexU64(ops[7].valueU64));
+                appendImmediate(out, ctx, hexU64(ops[7].valueU64), hasRelocationForImmediateValue(relocationImmediateValues, ops[7].valueU64));
                 appendSep(out);
                 appendTypeBitsCast(out, ctx, ops[3].opBits, ops[4].opBits);
                 break;
@@ -1276,7 +1405,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadMemImm:
-                appendMemImmBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemImmBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64));
                 break;
 
             case MicroInstrOpcode::CmpRegReg:
@@ -1284,7 +1413,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::CmpRegImm:
-                appendRegNumberBits(out, ctx, ops, 0, 2, 1, regPrintMode, encoder);
+                appendRegNumberBits(out, ctx, ops, 0, 2, 1, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::CmpMemReg:
@@ -1292,7 +1421,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::CmpMemImm:
-                appendMemImmBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
+                appendMemImmBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64));
                 break;
 
             case MicroInstrOpcode::SetCondReg:
@@ -1354,13 +1483,13 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::OpBinaryRegImm:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendRegNumberBits(out, ctx, ops, 0, 3, 1, regPrintMode, encoder);
+                appendRegNumberBits(out, ctx, ops, 0, 3, 1, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[3].valueU64));
                 break;
 
             case MicroInstrOpcode::OpBinaryMemImm:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
-                appendMemImmBits(out, ctx, ops, 0, 1, 3, 4, regPrintMode, encoder);
+                appendMemImmBits(out, ctx, ops, 0, 1, 3, 4, regPrintMode, encoder, hasRelocationForImmediateValue(relocationImmediateValues, ops[4].valueU64));
                 break;
 
             case MicroInstrOpcode::OpTernaryRegRegReg:

@@ -23,6 +23,7 @@ enum class SyntaxColor
     Default,
     Register,
     RegisterVirtual,
+    Relocation,
     Invalid,
 };
 
@@ -44,6 +45,7 @@ static constexpr auto SYN_DEFAULT    = "SDft";
 static constexpr auto SYN_INVALID    = "SInv";
 static constexpr auto SYN_REGISTER   = "SBcR";
 static constexpr auto SYN_REGISTER_V = "SBvR";
+static constexpr auto SYN_RELOCATION = "SRel";
 
 enum class SyntaxColorMode
 {

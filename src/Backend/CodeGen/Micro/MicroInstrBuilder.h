@@ -103,8 +103,8 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                     formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = false) const;
-    void                                     printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr, bool colorize = true) const;
+    Utf8                                     formatInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                     printInstructions(MicroInstrRegPrintMode regPrintMode = MicroInstrRegPrintMode::Default, const Encoder* encoder = nullptr) const;
     void                                     setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
     MicroInstrBuilderFlags                   flags() const { return flags_; }
     bool                                     hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }

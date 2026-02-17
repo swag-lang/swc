@@ -1022,8 +1022,9 @@ namespace
     }
 }
 
-Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
+Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
 {
+    const bool                        colorize = true;
     Utf8                              out;
     auto&                             storeOps      = operands;
     auto&                             storeOpsMut   = const_cast<MicroOperandStorage&>(operands);
@@ -1410,9 +1411,9 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
     return out;
 }
 
-void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize, const MicroInstrBuilder* builder)
+void MicroInstrPrinter::print(const TaskContext& ctx, const MicroInstrStorage& instructions, const MicroOperandStorage& operands, MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
 {
-    Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, colorize, builder));
+    Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, builder));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
 }
 

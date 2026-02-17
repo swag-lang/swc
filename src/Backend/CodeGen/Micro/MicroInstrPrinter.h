@@ -23,7 +23,6 @@ public:
                        const MicroOperandStorage& operands,
                        MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
                        const Encoder*             encoder      = nullptr,
-                       bool                       colorize     = false,
                        const MicroInstrBuilder*   builder      = nullptr);
 
     static void print(const TaskContext&         ctx,
@@ -31,7 +30,6 @@ public:
                       const MicroOperandStorage& operands,
                       MicroInstrRegPrintMode     regPrintMode = MicroInstrRegPrintMode::Default,
                       const Encoder*             encoder      = nullptr,
-                      bool                       colorize     = true,
                       const MicroInstrBuilder*   builder      = nullptr);
 };
 

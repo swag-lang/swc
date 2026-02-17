@@ -535,14 +535,14 @@ void MicroInstrBuilder::runPasses(const MicroPassManager& passes, Encoder* encod
     passes.run(context);
 }
 
-Utf8 MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
+Utf8 MicroInstrBuilder::formatInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder) const
 {
-    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
+    return MicroInstrPrinter::format(ctx(), instructions_, operands_, regPrintMode, encoder, this);
 }
 
-void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder, bool colorize) const
+void MicroInstrBuilder::printInstructions(MicroInstrRegPrintMode regPrintMode, const Encoder* encoder) const
 {
-    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, colorize, this);
+    MicroInstrPrinter::print(ctx(), instructions_, operands_, regPrintMode, encoder, this);
 }
 
 void MicroInstrBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine)

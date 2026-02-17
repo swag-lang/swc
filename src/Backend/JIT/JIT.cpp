@@ -87,7 +87,7 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void patchCodeRelocations(ByteSpanRW writableCode, std::span<const MicroInstrRelocation> relocations)
+    void patchCodeRelocations(ByteSpanRW writableCode, std::span<const MicroRelocation> relocations)
     {
         SWC_FORCE_ASSERT(!writableCode.empty());
 
@@ -112,10 +112,10 @@ namespace
 
             if (target == 0)
                 continue;
-            if (target == MicroInstrRelocation::K_SELF_ADDRESS)
+            if (target == MicroRelocation::K_SELF_ADDRESS)
                 target = reinterpret_cast<uint64_t>(basePtr);
 
-            if (reloc.kind == MicroInstrRelocation::Kind::Rel32)
+            if (reloc.kind == MicroRelocation::Kind::Rel32)
             {
                 const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(int32_t);
                 SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
@@ -127,7 +127,7 @@ namespace
                 const int32_t disp32 = static_cast<int32_t>(delta);
                 std::memcpy(basePtr + reloc.codeOffset, &disp32, sizeof(disp32));
             }
-            else if (reloc.kind == MicroInstrRelocation::Kind::Abs64)
+            else if (reloc.kind == MicroRelocation::Kind::Abs64)
             {
                 const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
                 SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
@@ -141,7 +141,7 @@ namespace
     }
 }
 
-void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroInstrRelocation> relocations)
+void JIT::emit(TaskContext& ctx, JITExecMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations)
 {
     SWC_FORCE_ASSERT(!linearCode.empty());
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());

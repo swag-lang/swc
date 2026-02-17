@@ -12,49 +12,49 @@ class MicroPassManager;
 struct MicroPassContext;
 class Symbol;
 
-enum class MicroInstrBuilderFlagsE : uint8_t
+enum class MicroBuilderFlagsE : uint8_t
 {
     Zero      = 0,
     DebugInfo = 1 << 0,
 };
-using MicroInstrBuilderFlags = EnumFlags<MicroInstrBuilderFlagsE>;
+using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
 
-enum class MicroInstrDebugInfoPayloadKind : uint8_t
+enum class MicroDebugInfoPayloadKind : uint8_t
 {
     None,
     Symbol,
 };
 
-struct MicroInstrDebugInfo
+struct MicroDebugInfo
 {
-    SourceCodeRef                  sourceCodeRef = SourceCodeRef::invalid();
-    MicroInstrDebugInfoPayloadKind payloadKind   = MicroInstrDebugInfoPayloadKind::None;
+    SourceCodeRef             sourceCodeRef = SourceCodeRef::invalid();
+    MicroDebugInfoPayloadKind payloadKind   = MicroDebugInfoPayloadKind::None;
     union
     {
         Symbol*  symbol;
         uint64_t payloadU64;
     };
 
-    MicroInstrDebugInfo() :
+    MicroDebugInfo() :
         symbol(nullptr)
     {
     }
 
     void clearPayload()
     {
-        payloadKind = MicroInstrDebugInfoPayloadKind::None;
+        payloadKind = MicroDebugInfoPayloadKind::None;
         symbol      = nullptr;
     }
 
     void setPayloadSymbol(Symbol* payloadSymbol)
     {
-        payloadKind = MicroInstrDebugInfoPayloadKind::Symbol;
+        payloadKind = MicroDebugInfoPayloadKind::Symbol;
         symbol      = payloadSymbol;
     }
 
     Symbol* payloadSymbol() const
     {
-        return payloadKind == MicroInstrDebugInfoPayloadKind::Symbol ? symbol : nullptr;
+        return payloadKind == MicroDebugInfoPayloadKind::Symbol ? symbol : nullptr;
     }
 
     bool hasData() const
@@ -63,7 +63,7 @@ struct MicroInstrDebugInfo
     }
 };
 
-struct MicroInstrRelocation
+struct MicroRelocation
 {
     static constexpr uint64_t K_SELF_ADDRESS = std::numeric_limits<uint64_t>::max();
 
@@ -101,33 +101,33 @@ public:
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
     const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
 
-    MicroStorage&         instructions() { return instructions_; }
-    const MicroStorage&   instructions() const { return instructions_; }
+    MicroStorage&              instructions() { return instructions_; }
+    const MicroStorage&        instructions() const { return instructions_; }
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                     formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                     printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                     setFlags(MicroInstrBuilderFlags flags) { flags_ = flags; }
-    MicroInstrBuilderFlags                   flags() const { return flags_; }
-    bool                                     hasFlag(MicroInstrBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                                     setCurrentDebugInfo(const MicroInstrDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
-    const MicroInstrDebugInfo&               currentDebugInfo() const { return currentDebugInfo_; }
-    void                                     setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
-    void                                     setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
-    void                                     clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
-    const MicroInstrDebugInfo*               debugInfo(Ref instructionRef) const;
-    void                                     setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    void                                     setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
-    Runtime::BuildCfgBackendOptim            backendOptimizeLevel() const { return backendOptimizeLevel_; }
-    void                                     setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
-    const Utf8&                              printSymbolName() const { return printSymbolName_; }
-    const Utf8&                              printFilePath() const { return printFilePath_; }
-    uint32_t                                 printSourceLine() const { return printSourceLine_; }
-    void                                     clearCodeRelocations() { codeRelocations_.clear(); }
-    void                                     addCodeRelocation(MicroInstrRelocation relocation);
-    std::vector<MicroInstrRelocation>&       codeRelocations() { return codeRelocations_; }
-    const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
+    Utf8                                formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                                setFlags(MicroBuilderFlags flags) { flags_ = flags; }
+    MicroBuilderFlags                   flags() const { return flags_; }
+    bool                                hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                                setCurrentDebugInfo(const MicroDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
+    const MicroDebugInfo&               currentDebugInfo() const { return currentDebugInfo_; }
+    void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
+    void                                setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
+    void                                clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
+    const MicroDebugInfo*               debugInfo(Ref instructionRef) const;
+    void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    void                                setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
+    Runtime::BuildCfgBackendOptim       backendOptimizeLevel() const { return backendOptimizeLevel_; }
+    void                                setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
+    const Utf8&                         printSymbolName() const { return printSymbolName_; }
+    const Utf8&                         printFilePath() const { return printFilePath_; }
+    uint32_t                            printSourceLine() const { return printSourceLine_; }
+    void                                clearCodeRelocations() { codeRelocations_.clear(); }
+    void                                addCodeRelocation(MicroRelocation relocation);
+    std::vector<MicroRelocation>&       codeRelocations() { return codeRelocations_; }
+    const std::vector<MicroRelocation>& codeRelocations() const { return codeRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -182,19 +182,19 @@ private:
     MicroInstr&                 addInstruction(MicroInstrOpcode op, EncodeFlags emitFlags, uint8_t numOperands);
     void                        storeInstructionDebugInfo(Ref instructionRef);
 
-    TaskContext*                                    ctx_ = nullptr;
+    TaskContext*                               ctx_ = nullptr;
     MicroStorage                               instructions_;
-    MicroOperandStorage                             operands_;
-    MicroInstrBuilderFlags                          flags_ = MicroInstrBuilderFlagsE::Zero;
-    std::vector<std::optional<MicroInstrDebugInfo>> debugInfos_;
-    MicroInstrDebugInfo                             currentDebugInfo_;
-    Utf8                                            printSymbolName_;
-    Utf8                                            printFilePath_;
-    uint32_t                                        printSourceLine_ = 0;
-    std::vector<Utf8>                               printPassOptions_;
-    Runtime::BuildCfgBackendOptim                   backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
-    std::vector<Ref>                                labels_;
-    std::vector<MicroInstrRelocation>               codeRelocations_;
+    MicroOperandStorage                        operands_;
+    MicroBuilderFlags                          flags_ = MicroBuilderFlagsE::Zero;
+    std::vector<std::optional<MicroDebugInfo>> debugInfos_;
+    MicroDebugInfo                             currentDebugInfo_;
+    Utf8                                       printSymbolName_;
+    Utf8                                       printFilePath_;
+    uint32_t                                   printSourceLine_ = 0;
+    std::vector<Utf8>                          printPassOptions_;
+    Runtime::BuildCfgBackendOptim              backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
+    std::vector<Ref>                           labels_;
+    std::vector<MicroRelocation>               codeRelocations_;
 };
 
 SWC_END_NAMESPACE();

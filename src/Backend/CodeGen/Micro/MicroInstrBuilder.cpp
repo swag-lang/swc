@@ -35,7 +35,7 @@ MicroInstr& MicroInstrBuilder::addInstruction(MicroInstrOpcode op, EncodeFlags e
 
 void MicroInstrBuilder::storeInstructionDebugInfo(Ref instructionRef)
 {
-    if (!hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
         return;
 
     if (!currentDebugInfo_.hasData())
@@ -47,7 +47,7 @@ void MicroInstrBuilder::storeInstructionDebugInfo(Ref instructionRef)
     debugInfos_[instructionRef] = currentDebugInfo_;
 }
 
-const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) const
+const MicroDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) const
 {
     if (instructionRef >= debugInfos_.size())
         return nullptr;
@@ -58,7 +58,7 @@ const MicroInstrDebugInfo* MicroInstrBuilder::debugInfo(Ref instructionRef) cons
     return &info.value();
 }
 
-void MicroInstrBuilder::addCodeRelocation(MicroInstrRelocation relocation)
+void MicroInstrBuilder::addCodeRelocation(MicroRelocation relocation)
 {
     codeRelocations_.push_back(relocation);
 }
@@ -230,7 +230,7 @@ void MicroInstrBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, Consta
     ops[2].valueU64      = value;
 
     addCodeRelocation({
-        .kind           = MicroInstrRelocation::Kind::Abs64,
+        .kind           = MicroRelocation::Kind::Abs64,
         .instructionRef = instRef,
         .symbolName     = symbolName,
         .targetAddress  = value,

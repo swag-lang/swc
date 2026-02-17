@@ -19,10 +19,10 @@ namespace
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {
         outSourceLine = 0;
-        if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+        if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
-        const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
+        const MicroDebugInfo* dbgInfo = builder->debugInfo(instRef);
         if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
             return false;
 
@@ -967,10 +967,10 @@ namespace
 
     void appendInstructionDebugPayload(Utf8& out, const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef)
     {
-        if (!builder || !builder->hasFlag(MicroInstrBuilderFlagsE::DebugInfo))
+        if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return;
 
-        const MicroInstrDebugInfo* dbgInfo = builder->debugInfo(instRef);
+        const MicroDebugInfo* dbgInfo = builder->debugInfo(instRef);
         if (!dbgInfo)
             return;
 
@@ -989,9 +989,9 @@ namespace
         if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
             return false;
 
-        const MicroInstrDebugInfo* dbgInfo  = SWC_CHECK_NOT_NULL(builder->debugInfo(instRef));
-        const auto&                srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
-        const uint64_t             debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
+        const MicroDebugInfo* dbgInfo  = SWC_CHECK_NOT_NULL(builder->debugInfo(instRef));
+        const auto&           srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
+        const uint64_t        debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;
         seenDebugLines.insert(debugKey);

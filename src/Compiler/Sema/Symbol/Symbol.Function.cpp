@@ -51,14 +51,14 @@ namespace
         auto& relocations  = builder.codeRelocations();
         for (auto& reloc : relocations)
         {
-            if (reloc.kind != MicroInstrRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
+            if (reloc.kind != MicroRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
                 continue;
 
             auto* const sym = reloc.targetSymbol;
             if (!sym || !sym->isFunction())
                 continue;
 
-            const auto& targetFunction = sym->cast<SymbolFunction>();
+            const auto& targetFunction  = sym->cast<SymbolFunction>();
             uint64_t    functionAddress = 0;
             if (!resolveExternAddress(ctx, functionAddress, targetFunction))
                 continue;

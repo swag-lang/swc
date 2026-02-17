@@ -8,8 +8,8 @@ class TaskContext;
 
 struct MachineCode
 {
-    std::vector<std::byte>            bytes;
-    std::vector<MicroInstrRelocation> codeRelocations;
+    std::vector<std::byte>       bytes;
+    std::vector<MicroRelocation> codeRelocations;
 
     void emit(TaskContext& ctx, MicroInstrBuilder& builder);
 };

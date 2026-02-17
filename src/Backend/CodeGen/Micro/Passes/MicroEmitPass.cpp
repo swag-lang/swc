@@ -74,14 +74,14 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             break;
         case MicroInstrOpcode::CallLocal:
         {
-            const uint32_t callOffset = encoder.size();
-            Symbol* const targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
+            const uint32_t callOffset   = encoder.size();
+            Symbol* const  targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
             encoder.encodeCallLocal(targetSymbol, ops[1].callConv, inst.emitFlags);
             if (inst.numOperands >= 3)
             {
                 const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
                 context.builder->addCodeRelocation({
-                    .kind           = MicroInstrRelocation::Kind::Rel32,
+                    .kind           = MicroRelocation::Kind::Rel32,
                     .codeOffset     = callOffset + 1,
                     .instructionRef = INVALID_REF,
                     .symbolName     = symbolName,
@@ -93,7 +93,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         }
         case MicroInstrOpcode::CallExtern:
         {
-            Symbol* const targetSymbol = inst.numOperands >= 3 ? reinterpret_cast<Symbol*>(ops[2].valueU64) : nullptr;
+            Symbol* const  targetSymbol  = inst.numOperands >= 3 ? reinterpret_cast<Symbol*>(ops[2].valueU64) : nullptr;
             const uint64_t targetAddress = inst.numOperands >= 4 ? ops[3].valueU64 : 0;
             encoder.encodeCallExtern(targetSymbol, targetAddress, ops[1].callConv, inst.emitFlags);
             break;
@@ -144,7 +144,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 
                 const auto& reloc = foundReloc->second;
                 context.builder->addCodeRelocation({
-                    .kind           = MicroInstrRelocation::Kind::Abs64,
+                    .kind           = MicroRelocation::Kind::Abs64,
                     .codeOffset     = codeEndOffset - sizeof(uint64_t),
                     .instructionRef = INVALID_REF,
                     .symbolName     = reloc.symbolName,
@@ -254,7 +254,7 @@ void MicroEmitPass::run(MicroPassContext& context)
     pointerImmediateRelocs_.clear();
     for (const auto& reloc : context.builder->codeRelocations())
     {
-        if (reloc.kind != MicroInstrRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
+        if (reloc.kind != MicroRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
             continue;
         pointerImmediateRelocs_[reloc.instructionRef] = reloc;
     }

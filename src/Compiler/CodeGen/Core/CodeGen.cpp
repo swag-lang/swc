@@ -19,15 +19,15 @@ CodeGen::CodeGen(Sema& sema) :
 Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 {
     visit_.start(ast(), root);
-    function_                           = &symbolFunc;
-    builder_                            = &symbolFunc.microInstrBuilder(ctx());
-    MicroInstrBuilderFlags builderFlags = MicroInstrBuilderFlagsE::Zero;
-    const auto& attributes              = symbolFunc.attributes();
-    const auto backendOptimize          = attributes.hasBackendOptimize ? attributes.backendOptimize : ctx().compiler().buildCfg().backendOptimize;
+    function_                         = &symbolFunc;
+    builder_                          = &symbolFunc.microInstrBuilder(ctx());
+    MicroBuilderFlags builderFlags    = MicroBuilderFlagsE::Zero;
+    const auto&       attributes      = symbolFunc.attributes();
+    const auto        backendOptimize = attributes.hasBackendOptimize ? attributes.backendOptimize : ctx().compiler().buildCfg().backendOptimize;
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     builder_->setBackendOptimizeLevel(backendOptimize);
     if (ctx().compiler().buildCfg().backendDebugInformations)
-        builderFlags.add(MicroInstrBuilderFlagsE::DebugInfo);
+        builderFlags.add(MicroBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);
     builder_->setCurrentDebugInfo({});
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
@@ -95,8 +95,8 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     if (typeRef.isInvalid())
         typeRef = srcPayload->typeRef;
 
-    auto& dstPayload = setPayload(dstNodeRef, typeRef);
-    dstPayload.reg   = srcPayload->reg;
+    auto& dstPayload       = setPayload(dstNodeRef, typeRef);
+    dstPayload.reg         = srcPayload->reg;
     dstPayload.storageKind = srcPayload->storageKind;
     return dstPayload;
 }
@@ -110,8 +110,8 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
-    nodePayload->reg     = nextVirtualRegister();
-    nodePayload->typeRef = typeRef;
+    nodePayload->reg         = nextVirtualRegister();
+    nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }

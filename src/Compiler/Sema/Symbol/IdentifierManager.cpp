@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 void IdentifierManager::setup(TaskContext& ctx)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     predefined_.fill(IdentifierRef::invalid());
 
     struct PredefinedEntry

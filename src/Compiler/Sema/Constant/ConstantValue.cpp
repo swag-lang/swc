@@ -421,7 +421,7 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
 
 ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     ConstantValue cv;
     cv.typeRef_              = typeRef;
     cv.kind_                 = ConstantKind::EnumValue;
@@ -432,7 +432,7 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef v
 
 ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
@@ -444,7 +444,7 @@ ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef,
 
 ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
@@ -456,7 +456,7 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef 
 
 ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
@@ -468,7 +468,7 @@ ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, 
 
 ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
@@ -481,7 +481,7 @@ ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef t
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
-    SWC_UNSED(fieldRefs);
+    SWC_UNUSED(fieldRefs);
     ConstantValue        cv;
     SmallVector<TypeRef> memberTypes;
     memberTypes.reserve(values.size());
@@ -498,7 +498,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
 ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(!values.empty());
-    SWC_UNSED(fieldRefs);
+    SWC_UNUSED(fieldRefs);
 
     ConstantValue        cv;
     SmallVector<TypeRef> elemTypes;

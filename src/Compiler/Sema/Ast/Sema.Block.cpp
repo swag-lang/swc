@@ -27,7 +27,7 @@ Result AstFile::semaPreNode(Sema& sema)
 
 Result AstFile::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
-    SWC_UNSED(childRef);
+    SWC_UNUSED(childRef);
     if (!sema.frame().globalCompilerIfEnabled())
         return Result::SkipChildren;
     return Result::Continue;

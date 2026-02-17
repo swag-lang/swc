@@ -505,7 +505,7 @@ Utf8 TypeInfo::toName(const TaskContext& ctx) const
 
 Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     switch (kind_)
     {
         case TypeInfoKind::Bool:

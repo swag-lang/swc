@@ -2708,7 +2708,7 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
 
 void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination, EncodeFlags emitFlags)
 {
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(emitFlags);
     const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
     if (jump.opBits == MicroOpBits::B8)
     {
@@ -2730,7 +2730,7 @@ void X64Encoder::encodePatchJump(const MicroJump& jump, EncodeFlags emitFlags)
 
 void X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 {
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(emitFlags);
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Register, MODRM_REG_4, encodeReg(reg));
@@ -2741,9 +2741,9 @@ void X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 
 void X64Encoder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    SWC_UNSED(targetSymbol);
-    SWC_UNSED(callConv);
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(targetSymbol);
+    SWC_UNUSED(callConv);
+    SWC_UNUSED(emitFlags);
 
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
@@ -2753,9 +2753,9 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, E
 
 void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    SWC_UNSED(targetSymbol);
-    SWC_UNSED(callConv);
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(targetSymbol);
+    SWC_UNUSED(callConv);
+    SWC_UNUSED(emitFlags);
 
     emitCpuOp(store_, 0xE8);
     store_.pushU32(0);
@@ -2764,8 +2764,8 @@ void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, En
 
 void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    SWC_UNSED(callConv);
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(callConv);
+    SWC_UNUSED(emitFlags);
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, MODRM_REG_2, reg);
@@ -2774,7 +2774,7 @@ void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags 
 
 void X64Encoder::encodeNop(EncodeFlags emitFlags)
 {
-    SWC_UNSED(emitFlags);
+    SWC_UNUSED(emitFlags);
     emitCpuOp(store_, 0x90);
     return;
 }

@@ -39,7 +39,8 @@ namespace fs = std::filesystem;
     {
 #define SWC_END_NAMESPACE() \
     }
-#define SWC_UNSED(__x) ((void) (__x))
+
+#define SWC_UNUSED(__x) ((void) (__x))
 
 #ifdef SWC_DEV_MODE
 #define SWC_FORCE_STATS

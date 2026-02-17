@@ -31,7 +31,7 @@ ConstantRef ConstantManager::addInt(TaskContext& ctx, uint64_t value)
 
 std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
 {
-    SWC_UNSED(ctx);
+    SWC_UNUSED(ctx);
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];
@@ -55,7 +55,7 @@ namespace
 
     ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
-        SWC_UNSED(ctx);
+        SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -70,7 +70,7 @@ namespace
 
     ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
-        SWC_UNSED(ctx);
+        SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -85,7 +85,7 @@ namespace
 
     ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
     {
-        SWC_UNSED(ctx);
+        SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -121,7 +121,7 @@ namespace
 
     ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
-        SWC_UNSED(ctx);
+        SWC_UNUSED(ctx);
         {
             std::shared_lock lk(shard.mutex);
             if (const auto it = shard.map.find(value); it != shard.map.end())

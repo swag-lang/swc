@@ -120,7 +120,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
 
 Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind)
 {
-    SWC_UNSED(nodeRef);
+    SWC_UNUSED(nodeRef);
     switch (op)
     {
         case TokenId::SymPlus:

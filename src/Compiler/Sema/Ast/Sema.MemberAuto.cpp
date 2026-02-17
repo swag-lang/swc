@@ -165,7 +165,7 @@ namespace
 
 Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SWC_UNSED(childRef);
+    SWC_UNUSED(childRef);
     // Parser tags the callee expression when building a call: `.foo()`.
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 

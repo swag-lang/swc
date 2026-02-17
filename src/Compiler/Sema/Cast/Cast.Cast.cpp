@@ -34,9 +34,9 @@ namespace
 
 Result Cast::castIdentity(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNSED(sema);
-    SWC_UNSED(srcTypeRef);
-    SWC_UNSED(dstTypeRef);
+    SWC_UNUSED(sema);
+    SWC_UNUSED(srcTypeRef);
+    SWC_UNUSED(dstTypeRef);
     if (castRequest.isConstantFolding())
         foldConstantIdentity(castRequest);
     return Result::Continue;
@@ -382,10 +382,10 @@ Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 
 Result Cast::castFromUndefined(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNSED(sema);
-    SWC_UNSED(castRequest);
-    SWC_UNSED(srcTypeRef);
-    SWC_UNSED(dstTypeRef);
+    SWC_UNUSED(sema);
+    SWC_UNUSED(castRequest);
+    SWC_UNUSED(srcTypeRef);
+    SWC_UNUSED(dstTypeRef);
     return Result::Continue;
 }
 
@@ -647,10 +647,10 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
 
 Result Cast::castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNSED(sema);
-    SWC_UNSED(castRequest);
-    SWC_UNSED(srcTypeRef);
-    SWC_UNSED(dstTypeRef);
+    SWC_UNUSED(sema);
+    SWC_UNUSED(castRequest);
+    SWC_UNUSED(srcTypeRef);
+    SWC_UNUSED(dstTypeRef);
     return Result::Continue;
 }
 
@@ -731,10 +731,10 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
 Result Cast::castFromAny(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    SWC_UNSED(sema);
-    SWC_UNSED(castRequest);
-    SWC_UNSED(srcTypeRef);
-    SWC_UNSED(dstTypeRef);
+    SWC_UNUSED(sema);
+    SWC_UNUSED(castRequest);
+    SWC_UNUSED(srcTypeRef);
+    SWC_UNUSED(dstTypeRef);
     return Result::Continue;
 }
 

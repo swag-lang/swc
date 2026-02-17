@@ -674,7 +674,7 @@ AstNodeRef Parser::parseAssignStmt()
                 if (consumeIf(TokenId::SymQuestion).isValid())
                 {
                     const auto [ignoreRef, ignorePtr] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
-                    SWC_UNSED(ignorePtr);
+                    SWC_UNUSED(ignorePtr);
                     nodeAffects.push_back(ignoreRef);
                 }
                 else

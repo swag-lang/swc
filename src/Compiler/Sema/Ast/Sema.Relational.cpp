@@ -280,7 +280,7 @@ namespace
 
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        SWC_UNSED(node);
+        SWC_UNUSED(node);
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
             enumForEquality(sema, nodeLeftView, nodeRightView);

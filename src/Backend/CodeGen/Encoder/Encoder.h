@@ -114,16 +114,16 @@ protected:
 
     virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
     {
-        SWC_UNSED(inst);
-        SWC_UNSED(ops);
-        SWC_UNSED(info);
+        SWC_UNUSED(inst);
+        SWC_UNUSED(ops);
+        SWC_UNUSED(info);
     }
 
     virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const
     {
-        SWC_UNSED(outIssue);
-        SWC_UNSED(inst);
-        SWC_UNSED(ops);
+        SWC_UNUSED(outIssue);
+        SWC_UNUSED(inst);
+        SWC_UNUSED(ops);
         return false;
     }
 

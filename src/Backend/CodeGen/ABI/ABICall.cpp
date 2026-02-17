@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -274,16 +275,18 @@ void ABICall::callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKin
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
 }
 
-void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, uint32_t numPreparedArgs, const Return& ret)
 {
+    SWC_ASSERT(targetSymbol != nullptr);
+
     const auto& conv        = CallConv::get(callConvKind);
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
 
     if (stackAdjust)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
 
-    builder.setCurrentDebugSymbol(callDebugSymbol);
-    builder.encodeCallLocal(symbolName, callConvKind, EncodeFlagsE::Zero, 0, callDebugSymbol);
+    builder.setCurrentDebugSymbol(targetSymbol);
+    builder.encodeCallLocal(targetSymbol, callConvKind, EncodeFlagsE::Zero);
     builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
@@ -327,9 +330,9 @@ void ABICall::callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, M
     callByReg(builder, callConvKind, targetReg, numPreparedArgs, Return{}, callDebugSymbol);
 }
 
-void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, Symbol* callDebugSymbol)
+void ABICall::callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, uint32_t numPreparedArgs)
 {
-    callByLocal(builder, callConvKind, symbolName, numPreparedArgs, Return{}, callDebugSymbol);
+    callByLocal(builder, callConvKind, targetSymbol, numPreparedArgs, Return{});
 }
 
 SWC_END_NAMESPACE();

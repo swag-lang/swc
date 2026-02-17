@@ -66,7 +66,7 @@ namespace
         ENCODE_CASE("pop_r12", "41 5C", b.encodePop(R12, K_EMIT););
         ENCODE_CASE("call_local", "E8 00 00 00 00", b.encodeCallLocal({}, CallConvKind::C, K_EMIT););
         ENCODE_CASE("call_extern", "FF 15 00 00 00 00", b.encodeCallExtern({}, CallConvKind::C, K_EMIT););
-        ENCODE_CASE("call_local_with_target", "E8 00 00 00 00", b.encodeCallLocal({}, CallConvKind::C, K_EMIT, 0x1234););
+        ENCODE_CASE("call_local_repeat", "E8 00 00 00 00", b.encodeCallLocal({}, CallConvKind::C, K_EMIT););
         ENCODE_CASE("call_reg_rax", "FF D0", b.encodeCallReg(RAX, CallConvKind::C, K_EMIT););
         ENCODE_CASE("call_reg_r9", "41 FF D1", b.encodeCallReg(R9, CallConvKind::C, K_EMIT););
         ENCODE_CASE("jump_reg_r8", "41 FF E0", b.encodeJumpReg(R8, K_EMIT););

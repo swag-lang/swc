@@ -148,7 +148,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     if (calleePayload)
         ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
     else
-        ABICall::callByLocal(builder, callConvKind, calledFunction.idRef(), numAbiArgs, &calledFunction);
+        ABICall::callByLocal(builder, callConvKind, &calledFunction, numAbiArgs);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;

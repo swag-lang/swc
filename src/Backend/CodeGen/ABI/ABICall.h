@@ -47,8 +47,8 @@ namespace ABICall
     void     callByAddress(MicroInstrBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
     void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol = nullptr);
     void     callByReg(MicroInstrBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, uint32_t numPreparedArgs, Symbol* callDebugSymbol = nullptr);
-    void     callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, const Return& ret, Symbol* callDebugSymbol = nullptr);
-    void     callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, IdentifierRef symbolName, uint32_t numPreparedArgs, Symbol* callDebugSymbol = nullptr);
+    void     callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, uint32_t numPreparedArgs, const Return& ret);
+    void     callByLocal(MicroInstrBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, uint32_t numPreparedArgs);
 }
 
 SWC_END_NAMESPACE();

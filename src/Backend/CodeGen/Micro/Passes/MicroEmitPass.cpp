@@ -2,6 +2,7 @@
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -78,11 +79,12 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
             if (inst.numOperands >= 3)
             {
                 const auto targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
+                const auto symbolName   = targetSymbol ? targetSymbol->idRef() : ops[0].name;
                 context.builder->addCodeRelocation({
                     .kind          = MicroInstrRelocation::Kind::Rel32,
                     .codeOffset    = callOffset + 1,
-                    .symbolName    = ops[0].name,
-                    .targetAddress = ops[2].valueU64,
+                    .symbolName    = symbolName,
+                    .targetAddress = 0,
                     .targetSymbol  = targetSymbol,
                 });
             }

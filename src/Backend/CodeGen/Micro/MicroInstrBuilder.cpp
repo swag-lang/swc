@@ -2,6 +2,7 @@
 #include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstrPrinter.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -136,13 +137,14 @@ void MicroInstrBuilder::encodeRet(EncodeFlags emitFlags)
     return;
 }
 
-void MicroInstrBuilder::encodeCallLocal(IdentifierRef symbolName, CallConvKind callConv, EncodeFlags emitFlags, uint64_t targetAddress, Symbol* targetSymbol)
+void MicroInstrBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
+    const auto symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
     const auto& inst = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 4);
     auto*       ops  = inst.ops(operands_);
     ops[0].name      = symbolName;
     ops[1].callConv  = callConv;
-    ops[2].valueU64  = targetAddress;
+    ops[2].valueU64  = 0;
     ops[3].valueU64  = reinterpret_cast<uint64_t>(targetSymbol);
     return;
 }

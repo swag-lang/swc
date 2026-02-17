@@ -24,6 +24,15 @@ namespace
     }
 }
 
+std::optional<uint32_t> MicroEmitPass::findRelocationIndex(Ref instructionRef) const
+{
+    const auto found = relocationByInstructionRef_.find(instructionRef);
+    if (found == relocationByInstructionRef_.end())
+        return std::nullopt;
+
+    return found->second;
+}
+
 void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst)
 {
     SWC_ASSERT(context.encoder);
@@ -74,18 +83,16 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             break;
         case MicroInstrOpcode::CallLocal:
         {
-            const uint32_t callOffset   = encoder.size();
+            const uint32_t callOffset = encoder.size();
             Symbol* const  targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
             encoder.encodeCallLocal(targetSymbol, ops[1].callConv, inst.emitFlags);
-            const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
-            context.builder->addRelocation({
-                .kind           = MicroRelocation::Kind::Rel32,
-                .codeOffset     = callOffset + 1,
-                .instructionRef = INVALID_REF,
-                .symbolName     = symbolName,
-                .targetAddress  = 0,
-                .targetSymbol   = targetSymbol,
-            });
+
+            const auto relocIndex = findRelocationIndex(instructionRef);
+            SWC_ASSERT(relocIndex.has_value());
+            auto& reloc         = context.builder->codeRelocations()[*relocIndex];
+            SWC_ASSERT(reloc.kind == MicroRelocation::Kind::Rel32);
+            reloc.codeOffset    = callOffset + 1;
+            reloc.instructionRef = INVALID_REF;
             break;
         }
         case MicroInstrOpcode::CallExtern:
@@ -132,23 +139,19 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             const uint32_t codeStartOffset = encoder.size();
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits, inst.emitFlags);
 
-            const auto foundReloc = pointerImmediateRelocs_.find(instructionRef);
-            if (foundReloc != pointerImmediateRelocs_.end())
+            const auto relocIndex = findRelocationIndex(instructionRef);
+            if (relocIndex.has_value())
             {
+                auto& reloc = context.builder->codeRelocations()[*relocIndex];
+                if (reloc.kind != MicroRelocation::Kind::Abs64)
+                    break;
+
                 SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
                 const uint32_t codeEndOffset = encoder.size();
                 SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
 
-                const auto& reloc = foundReloc->second;
-                context.builder->addRelocation({
-                    .kind           = MicroRelocation::Kind::Abs64,
-                    .codeOffset     = codeEndOffset - sizeof(uint64_t),
-                    .instructionRef = INVALID_REF,
-                    .symbolName     = reloc.symbolName,
-                    .targetAddress  = reloc.targetAddress,
-                    .targetSymbol   = reloc.targetSymbol,
-                    .constantRef    = reloc.constantRef,
-                });
+                reloc.codeOffset    = codeEndOffset - sizeof(uint64_t);
+                reloc.instructionRef = INVALID_REF;
             }
             break;
         }
@@ -248,14 +251,15 @@ void MicroEmitPass::run(MicroPassContext& context)
 
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
-    pointerImmediateRelocs_.clear();
-    for (const auto& reloc : context.builder->codeRelocations())
+    relocationByInstructionRef_.clear();
+    auto& relocations = context.builder->codeRelocations();
+    for (uint32_t idx = 0; idx < relocations.size(); ++idx)
     {
-        if (reloc.kind != MicroRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
+        const auto& reloc = relocations[idx];
+        if (reloc.instructionRef == INVALID_REF)
             continue;
-        pointerImmediateRelocs_[reloc.instructionRef] = reloc;
+        relocationByInstructionRef_[reloc.instructionRef] = idx;
     }
-    context.builder->clearRelocations();
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {

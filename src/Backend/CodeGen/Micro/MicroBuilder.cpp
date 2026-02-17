@@ -139,13 +139,20 @@ void MicroBuilder::encodeRet(EncodeFlags emitFlags)
 
 void MicroBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
-    const auto  symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto& inst       = addInstruction(MicroInstrOpcode::CallLocal, emitFlags, 4);
-    auto*       ops        = inst.ops(operands_);
-    ops[0].name            = symbolName;
-    ops[1].callConv        = callConv;
-    ops[2].valueU64        = 0;
-    ops[3].valueU64        = reinterpret_cast<uint64_t>(targetSymbol);
+    const auto   symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
+    auto [instRef, inst]    = addInstructionWithRef(MicroInstrOpcode::CallLocal, emitFlags, 4);
+    auto* ops               = inst.ops(operands_);
+    ops[0].name             = symbolName;
+    ops[1].callConv         = callConv;
+    ops[2].valueU64         = 0;
+    ops[3].valueU64         = reinterpret_cast<uint64_t>(targetSymbol);
+
+    addRelocation({
+        .kind           = MicroRelocation::Kind::Rel32,
+        .instructionRef = instRef,
+        .targetAddress  = 0,
+        .targetSymbol   = targetSymbol,
+    });
     return;
 }
 
@@ -221,7 +228,7 @@ void MicroBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits op
     return;
 }
 
-void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol, IdentifierRef symbolName, EncodeFlags emitFlags)
+void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol, EncodeFlags emitFlags)
 {
     auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::LoadRegImm, emitFlags, 3);
     auto* ops            = inst.ops(operands_);
@@ -232,7 +239,6 @@ void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef
     addRelocation({
         .kind           = MicroRelocation::Kind::Abs64,
         .instructionRef = instRef,
-        .symbolName     = symbolName,
         .targetAddress  = value,
         .targetSymbol   = targetSymbol,
         .constantRef    = constantRef,

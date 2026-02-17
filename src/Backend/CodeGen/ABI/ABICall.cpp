@@ -371,9 +371,8 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     if (stackAdjustBefore)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
-    const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
     builder.setCurrentDebugSymbol(targetSymbol);
-    builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol, symbolName, EncodeFlagsE::Zero);
+    builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol, EncodeFlagsE::Zero);
     builder.encodeCallReg(conv.intReturn, callConvKind, EncodeFlagsE::Zero);
     builder.clearCurrentDebugPayload();
 

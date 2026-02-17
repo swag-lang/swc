@@ -76,7 +76,6 @@ struct MicroRelocation
     Kind          kind           = Kind::Rel32;
     uint32_t      codeOffset     = 0;
     Ref           instructionRef = INVALID_REF;
-    IdentifierRef symbolName     = IdentifierRef::invalid();
     uint64_t      targetAddress  = 0;
     Symbol*       targetSymbol   = nullptr;
     ConstantRef   constantRef    = ConstantRef::invalid();
@@ -148,7 +147,7 @@ public:
     void encodeJumpReg(MicroReg reg, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
-    void encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr, IdentifierRef symbolName = IdentifierRef::invalid(), EncodeFlags emitFlags = EncodeFlagsE::Zero);
+    void encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);
     void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc, EncodeFlags emitFlags = EncodeFlagsE::Zero);

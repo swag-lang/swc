@@ -1046,8 +1046,11 @@ namespace
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
 
-        if (relocation.symbolName.isValid())
-            return ctx.idMgr().get(relocation.symbolName).name;
+        if (relocation.targetAddress == MicroRelocation::K_SELF_ADDRESS)
+            return "<self>";
+
+        if (relocation.targetAddress)
+            return std::format("0x{:X}", relocation.targetAddress);
 
         return "<unknown>";
     }

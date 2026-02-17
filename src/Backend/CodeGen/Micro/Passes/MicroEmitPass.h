@@ -21,9 +21,11 @@ private:
 
     void encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst);
 
-    std::unordered_map<Ref, uint64_t>        labelOffsets_;
-    std::vector<PendingLabelJump>            pendingLabelJumps_;
-    std::unordered_map<Ref, MicroRelocation> pointerImmediateRelocs_;
+    std::optional<uint32_t> findRelocationIndex(Ref instructionRef) const;
+
+    std::unordered_map<Ref, uint64_t> labelOffsets_;
+    std::vector<PendingLabelJump>     pendingLabelJumps_;
+    std::unordered_map<Ref, uint32_t> relocationByInstructionRef_;
 };
 
 SWC_END_NAMESPACE();

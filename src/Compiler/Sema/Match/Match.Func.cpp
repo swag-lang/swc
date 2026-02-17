@@ -956,7 +956,9 @@ namespace
             if (entry.argRef.isInvalid())
                 continue;
 
-            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            AstNodeRef finalArgRef = entry.argRef;
+            if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
+                finalArgRef = namedArg->nodeArgRef;
             auto             passKind    = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
@@ -972,7 +974,9 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            AstNodeRef finalArgRef = entry.argRef;
+            if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
+                finalArgRef = namedArg->nodeArgRef;
             outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = CallArgumentPassKind::Direct});
         }
     }

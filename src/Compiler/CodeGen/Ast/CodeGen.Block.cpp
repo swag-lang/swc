@@ -11,4 +11,22 @@ Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
     return Result::Continue;
 }
 
+Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
+{
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.curNodeView().typeRef);
+    return Result::Continue;
+}
+
+Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
+    return Result::Continue;
+}
+
+Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

@@ -24,7 +24,7 @@ namespace
             const AstNodeRef argRef = arg.argRef;
             if (argRef.isInvalid())
                 continue;
-            const auto* argPayload = codeGen.materializePayload(argRef);
+            const auto* argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
             ABICall::PreparedArg preparedArg;

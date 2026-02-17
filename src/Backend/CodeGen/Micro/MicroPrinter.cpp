@@ -321,6 +321,27 @@ namespace
         return token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>";
     }
 
+    bool isRelocationImmediateToken(std::string_view token)
+    {
+        if (token.size() < 3 || token.front() != '<' || token.back() != '>')
+            return false;
+
+        const auto inner = token.substr(1, token.size() - 2);
+        if (inner.empty())
+            return false;
+
+        if (Utf8Helper::isHexToken(inner))
+            return true;
+
+        for (const auto c : inner)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(c)))
+                return false;
+        }
+
+        return true;
+    }
+
     Utf8 hexU64(uint64_t value)
     {
         return std::format("0x{:X}", value);
@@ -457,7 +478,8 @@ namespace
                             const MicroInstr& inst,
                             const MicroInstrOperand* ops,
                             MicroRegPrintMode regPrintMode,
-                            const Encoder* encoder)
+                            const Encoder* encoder,
+                            bool hasImmediateRelocation)
     {
         switch (inst.op)
         {
@@ -469,7 +491,9 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+                return std::format("{} = {}",
+                                   regName(ops[0].reg, regPrintMode, encoder),
+                                   hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAddrRegMem:
@@ -624,7 +648,11 @@ namespace
             }
 
             const Utf8 tokenStr(token);
-            if (expectCallTarget)
+            if (isRelocationImmediateToken(token))
+            {
+                appendColored(out, ctx, SyntaxColor::Function, token);
+            }
+            else if (expectCallTarget)
             {
                 if (virtualRegs.contains(tokenStr))
                     appendColored(out, ctx, SyntaxColor::RegisterVirtual, token);
@@ -1110,7 +1138,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const auto relocIt = relocationByInstructionRef.find(instRef);
         const MicroRelocation* immediateRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
         const bool hasImmediateRelocation = immediateRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
-        auto natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder);
+        auto natural = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;

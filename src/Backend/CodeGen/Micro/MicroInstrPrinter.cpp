@@ -1094,7 +1094,6 @@ Utf8 MicroInstrPrinter::format(const TaskContext& ctx, const MicroInstrStorage& 
 
             appendInstFlags(out, ctx, colorize, inst.emitFlags);
             padLeftColumnToWidth(out, colorize, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
-            appendColumnSeparator(out, ctx, colorize);
             appendInstructionDebugPayload(out, ctx, colorize, builder, instRef);
             out += '\n';
             ++idx;

@@ -9,6 +9,7 @@ struct SemaNodeView;
 
 namespace ConstantIntrinsic
 {
+    void   tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef, const SemaNodeView& nodeView);
     Result tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args);
 }
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -11,6 +12,42 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void setDataOfPointerConstant(Sema& sema, TypeRef resultTypeRef, uint64_t ptrValue)
+    {
+        auto&           ctx        = sema.ctx();
+        const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
+
+        ConstantValue resultCst;
+        if (resultType.isValuePointer())
+        {
+            resultCst = ConstantValue::makeValuePointer(ctx, resultType.payloadTypeRef(), ptrValue, resultType.flags());
+        }
+        else
+        {
+            SWC_ASSERT(resultType.isBlockPointer());
+            resultCst = ConstantValue::makeBlockPointer(ctx, resultType.payloadTypeRef(), ptrValue, resultType.flags());
+        }
+
+        resultCst.setTypeRef(resultTypeRef);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, resultCst));
+    }
+
+    uint64_t materializeConstantAndGetAddress(Sema& sema, const SemaNodeView& nodeView)
+    {
+        SWC_ASSERT(nodeView.type);
+        const uint64_t sizeOf = nodeView.type->sizeOf(sema.ctx());
+        if (!sizeOf)
+            return 0;
+
+        SmallVector<std::byte> storage(sizeOf);
+        ByteSpanRW             storageSpan{storage.data(), storage.size()};
+        std::memset(storageSpan.data(), 0, storageSpan.size());
+        ConstantLower::lowerToBytes(sema, storageSpan, nodeView.cstRef, nodeView.typeRef);
+
+        const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
+        return reinterpret_cast<uint64_t>(persistentStorage.data());
+    }
+
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
     {
         const SemaNodeView argView(sema, argRef);
@@ -51,6 +88,65 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
+}
+
+void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef, const SemaNodeView& nodeView)
+{
+    if (!nodeView.cstRef.isValid())
+        return;
+
+    const ConstantValue& cst  = sema.cstMgr().get(nodeView.cstRef);
+    const TypeInfo*      type = nodeView.type;
+    SWC_ASSERT(type);
+
+    uint64_t ptrValue = 0;
+
+    if (cst.isNull())
+    {
+        ptrValue = 0;
+    }
+    else if (type->isString())
+    {
+        if (!cst.isString())
+            return;
+
+        ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
+    }
+    else if (type->isSlice())
+    {
+        if (cst.isSlice())
+            ptrValue = reinterpret_cast<uint64_t>(cst.getSlice().data());
+        else if (cst.isString())
+            ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
+        else
+            return;
+    }
+    else if (type->isArray())
+    {
+        if (cst.isArray())
+            ptrValue = reinterpret_cast<uint64_t>(cst.getArray().data());
+        else if (cst.isAggregateArray())
+            ptrValue = materializeConstantAndGetAddress(sema, nodeView);
+        else
+            return;
+    }
+    else if (type->isAnyPointer() || type->isCString())
+    {
+        if (cst.isString())
+            ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
+        else if (cst.isValuePointer())
+            ptrValue = cst.getValuePointer();
+        else if (cst.isBlockPointer())
+            ptrValue = cst.getBlockPointer();
+        else
+            return;
+    }
+    else
+    {
+        return;
+    }
+
+    setDataOfPointerConstant(sema, resultTypeRef, ptrValue);
 }
 
 Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)

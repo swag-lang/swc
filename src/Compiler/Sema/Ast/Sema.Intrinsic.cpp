@@ -2,7 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantLower.h"
+#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -29,101 +29,6 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 
 namespace
 {
-    void setDataOfPointerConstant(Sema& sema, TypeRef resultTypeRef, uint64_t ptrValue)
-    {
-        auto&           ctx        = sema.ctx();
-        const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
-
-        ConstantValue resultCst;
-        if (resultType.isValuePointer())
-        {
-            resultCst = ConstantValue::makeValuePointer(ctx, resultType.payloadTypeRef(), ptrValue, resultType.flags());
-        }
-        else
-        {
-            SWC_ASSERT(resultType.isBlockPointer());
-            resultCst = ConstantValue::makeBlockPointer(ctx, resultType.payloadTypeRef(), ptrValue, resultType.flags());
-        }
-
-        resultCst.setTypeRef(resultTypeRef);
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, resultCst));
-    }
-
-    uint64_t materializeConstantAndGetAddress(Sema& sema, const SemaNodeView& nodeView)
-    {
-        SWC_ASSERT(nodeView.type);
-        const uint64_t sizeOf = nodeView.type->sizeOf(sema.ctx());
-        if (!sizeOf)
-            return 0;
-
-        SmallVector<std::byte> storage(sizeOf);
-        ByteSpanRW             storageSpan{storage.data(), storage.size()};
-        std::memset(storageSpan.data(), 0, storageSpan.size());
-        ConstantLower::lowerToBytes(sema, storageSpan, nodeView.cstRef, nodeView.typeRef);
-
-        const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
-        return reinterpret_cast<uint64_t>(persistentStorage.data());
-    }
-
-    void trySetDataOfConstant(Sema& sema, TypeRef resultTypeRef, const SemaNodeView& nodeView)
-    {
-        if (!nodeView.cstRef.isValid())
-            return;
-
-        const ConstantValue& cst  = sema.cstMgr().get(nodeView.cstRef);
-        const TypeInfo*      type = nodeView.type;
-        SWC_ASSERT(type);
-
-        uint64_t ptrValue = 0;
-
-        if (cst.isNull())
-        {
-            ptrValue = 0;
-        }
-        else if (type->isString())
-        {
-            if (!cst.isString())
-                return;
-
-            ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
-        }
-        else if (type->isSlice())
-        {
-            if (cst.isSlice())
-                ptrValue = reinterpret_cast<uint64_t>(cst.getSlice().data());
-            else if (cst.isString())
-                ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
-            else
-                return;
-        }
-        else if (type->isArray())
-        {
-            if (cst.isArray())
-                ptrValue = reinterpret_cast<uint64_t>(cst.getArray().data());
-            else if (cst.isAggregateArray())
-                ptrValue = materializeConstantAndGetAddress(sema, nodeView);
-            else
-                return;
-        }
-        else if (type->isAnyPointer() || type->isCString())
-        {
-            if (cst.isString())
-                ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());
-            else if (cst.isValuePointer())
-                ptrValue = cst.getValuePointer();
-            else if (cst.isBlockPointer())
-                ptrValue = cst.getBlockPointer();
-            else
-                return;
-        }
-        else
-        {
-            return;
-        }
-
-        setDataOfPointerConstant(sema, resultTypeRef, ptrValue);
-    }
-
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SemaNodeView nodeView = sema.nodeView(children[0]);
@@ -165,7 +70,7 @@ namespace
             return SemaError::raiseInvalidType(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
-        trySetDataOfConstant(sema, resultTypeRef, nodeView);
+        ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, nodeView);
         sema.setIsValue(node);
         return Result::Continue;
     }

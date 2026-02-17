@@ -15,6 +15,7 @@ func GetPidAlias()->u32;
     const B = #run GetCurrentProcessId()
     #assert(A != 0'u32)
     #assert(B != 0'u32)
+    #assert(A == B)
 }
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]

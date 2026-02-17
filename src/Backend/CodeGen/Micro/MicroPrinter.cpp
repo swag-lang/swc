@@ -3,6 +3,7 @@
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -1037,8 +1038,11 @@ namespace
         appendColored(out, ctx, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
-    Utf8 relocationOriginName(const TaskContext& ctx, const MicroRelocation& relocation)
+    Utf8 relocationDebugValue(const TaskContext& ctx, const MicroRelocation& relocation)
     {
+        if (relocation.constantRef.isValid())
+            return ctx.cstMgr().get(relocation.constantRef).toString(ctx);
+
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);
 
@@ -1055,7 +1059,7 @@ namespace
 
         trimTrailingSpaces(out);
         out += "  ";
-        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc={}", relocationOriginName(ctx, *relocation)));
+        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc={}", relocationDebugValue(ctx, *relocation)));
     }
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)

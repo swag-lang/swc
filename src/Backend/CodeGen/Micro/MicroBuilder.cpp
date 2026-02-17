@@ -64,6 +64,61 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
     codeRelocations_.push_back(relocation);
 }
 
+void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg)
+{
+    SWC_ASSERT(virtualReg.isVirtual());
+    SWC_ASSERT(forbiddenReg.isValid());
+    SWC_ASSERT(!forbiddenReg.isVirtual());
+
+    if (!virtualReg.isVirtual() || !forbiddenReg.isValid() || forbiddenReg.isVirtual())
+        return;
+
+    auto& forbiddenRegs = virtualRegForbiddenPhysRegs_[virtualReg.packed];
+    for (const auto reg : forbiddenRegs)
+    {
+        if (reg == forbiddenReg)
+            return;
+    }
+
+    forbiddenRegs.push_back(forbiddenReg);
+}
+
+void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, std::span<const MicroReg> forbiddenRegs)
+{
+    SWC_ASSERT(virtualReg.isVirtual());
+    if (!virtualReg.isVirtual())
+        return;
+
+    for (const auto forbiddenReg : forbiddenRegs)
+        addVirtualRegForbiddenPhysReg(virtualReg, forbiddenReg);
+}
+
+bool MicroBuilder::isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const
+{
+    if (!virtualReg.isVirtual())
+        return false;
+
+    return isVirtualRegPhysRegForbidden(virtualReg.packed, physReg);
+}
+
+bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const
+{
+    if (!physReg.isValid() || physReg.isVirtual())
+        return false;
+
+    const auto it = virtualRegForbiddenPhysRegs_.find(virtualRegKey);
+    if (it == virtualRegForbiddenPhysRegs_.end())
+        return false;
+
+    for (const auto forbiddenReg : it->second)
+    {
+        if (forbiddenReg == physReg)
+            return true;
+    }
+
+    return false;
+}
+
 void MicroBuilder::encodePush(MicroReg reg)
 {
     const auto& inst = addInstruction(MicroInstrOpcode::Push,  1);

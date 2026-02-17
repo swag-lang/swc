@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -101,6 +102,34 @@ namespace
             return state.floatPersistentSet.contains(reg.packed);
 
         SWC_ASSERT(false);
+        return false;
+    }
+
+    bool isPhysRegForbiddenForVirtual(const PassState& state, uint32_t virtKey, MicroReg physReg)
+    {
+        SWC_ASSERT(state.context != nullptr);
+        SWC_ASSERT(state.context->builder != nullptr);
+        return state.context->builder->isVirtualRegPhysRegForbidden(virtKey, physReg);
+    }
+
+    bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, const PassState& state, uint32_t virtKey, MicroReg& outPhys)
+    {
+        outPhys = MicroReg::invalid();
+
+        for (size_t index = pool.size(); index > 0; --index)
+        {
+            const size_t candidateIndex = index - 1;
+            const auto   candidateReg   = pool[candidateIndex];
+            if (isPhysRegForbiddenForVirtual(state, virtKey, candidateReg))
+                continue;
+
+            outPhys = candidateReg;
+            if (candidateIndex != pool.size() - 1)
+                pool[candidateIndex] = pool.back();
+            pool.pop_back();
+            return true;
+        }
+
         return false;
     }
 
@@ -305,7 +334,15 @@ namespace
         return candidateKey > currentBestKey;
     }
 
-    bool selectEvictionCandidate(const PassState& state, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, std::span<const uint32_t> protectedKeys, uint32_t stamp, uint32_t& outVirtKey, MicroReg& outPhys)
+    bool selectEvictionCandidate(const PassState&      state,
+                                 uint32_t              requestVirtKey,
+                                 uint32_t              instructionIndex,
+                                 bool                  isFloatReg,
+                                 bool                  fromPersistentPool,
+                                 std::span<const uint32_t> protectedKeys,
+                                 uint32_t              stamp,
+                                 uint32_t&             outVirtKey,
+                                 MicroReg&             outPhys)
     {
         outVirtKey = 0;
         outPhys    = MicroReg::invalid();
@@ -330,6 +367,9 @@ namespace
             if (isPersistent != fromPersistentPool)
                 continue;
 
+            if (isPhysRegForbiddenForVirtual(state, requestVirtKey, physReg))
+                continue;
+
             if (isCandidateBetter(state, virtKey, physReg, outVirtKey, outPhys, instructionIndex, stamp))
             {
                 outVirtKey = virtKey;
@@ -347,28 +387,13 @@ namespace
         if (request.virtReg.isVirtualInt())
         {
             if (request.needsPersistent)
-            {
-                if (state.freeIntPersistent.empty())
-                    return false;
+                return tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, outPhys);
 
-                outPhys = state.freeIntPersistent.back();
-                state.freeIntPersistent.pop_back();
+            if (tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, outPhys))
                 return true;
-            }
 
-            if (!state.freeIntTransient.empty())
-            {
-                outPhys = state.freeIntTransient.back();
-                state.freeIntTransient.pop_back();
+            if (tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, outPhys))
                 return true;
-            }
-
-            if (!state.freeIntPersistent.empty())
-            {
-                outPhys = state.freeIntPersistent.back();
-                state.freeIntPersistent.pop_back();
-                return true;
-            }
 
             return false;
         }
@@ -376,28 +401,13 @@ namespace
         SWC_ASSERT(request.virtReg.isVirtualFloat());
 
         if (request.needsPersistent)
-        {
-            if (state.freeFloatPersistent.empty())
-                return false;
+            return tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, outPhys);
 
-            outPhys = state.freeFloatPersistent.back();
-            state.freeFloatPersistent.pop_back();
+        if (tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, outPhys))
             return true;
-        }
 
-        if (!state.freeFloatTransient.empty())
-        {
-            outPhys = state.freeFloatTransient.back();
-            state.freeFloatTransient.pop_back();
+        if (tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, outPhys))
             return true;
-        }
-
-        if (!state.freeFloatPersistent.empty())
-        {
-            outPhys = state.freeFloatPersistent.back();
-            state.freeFloatPersistent.pop_back();
-            return true;
-        }
 
         return false;
     }
@@ -447,13 +457,13 @@ namespace
 
         if (request.needsPersistent)
         {
-            SWC_ASSERT(selectEvictionCandidate(state, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
+            SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
         }
         else
         {
-            if (!selectEvictionCandidate(state, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, victimKey, victimReg))
+            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, victimKey, victimReg))
             {
-                SWC_ASSERT(selectEvictionCandidate(state, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
+                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
             }
         }
 

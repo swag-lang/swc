@@ -210,6 +210,21 @@ namespace
         b.encodeRet();
     }
 
+    void buildForbiddenIntArgRegs(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const auto& conv = CallConv::get(callConvKind);
+
+        constexpr auto v0 = MicroReg::virtualIntReg(6000);
+        constexpr auto v1 = MicroReg::virtualIntReg(6001);
+        b.addVirtualRegForbiddenPhysRegs(v0, conv.intArgRegs);
+        b.addVirtualRegForbiddenPhysRegs(v1, conv.intArgRegs);
+
+        b.encodeLoadRegImm(v0, 11, MicroOpBits::B64);
+        b.encodeLoadRegImm(v1, 7, MicroOpBits::B64);
+        b.encodeOpBinaryRegReg(v0, v1, MicroOp::Add, MicroOpBits::B64);
+        b.encodeRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -279,6 +294,30 @@ namespace
         }
 
         return hasSub && hasAdd && hasStore && hasLoad;
+    }
+
+    bool containsIntArgRegs(MicroBuilder& builder, const CallConv& conv)
+    {
+        auto& storeOps = builder.operands();
+        for (const auto& inst : builder.instructions().view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(storeOps, refs, nullptr);
+            for (const auto& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *ref.reg;
+                if (!reg.isInt())
+                    continue;
+
+                if (std::ranges::find(conv.intArgRegs, reg) != conv.intArgRegs.end())
+                    return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -424,6 +463,28 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
 
         if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_VirtualRegForbiddenPhysRegs)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildForbiddenIntArgRegs(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.add(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
+        if (containsIntArgRegs(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
 }

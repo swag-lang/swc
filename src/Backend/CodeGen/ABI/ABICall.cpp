@@ -103,6 +103,9 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (hasStackArgs)
     {
         const uint32_t numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
+        SmallVector<uint8_t> regArgsUseHomeSlot;
+        regArgsUseHomeSlot.resize(numRegArgsUsed, 0);
+
         if (stackAdjust)
             builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
 
@@ -112,23 +115,25 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             const auto  argBits  = preparedArgBits(arg);
             const bool  isRegArg = i < numRegArgs;
 
-            uint64_t stackOffset = 0;
             if (isRegArg)
-                stackOffset = static_cast<uint64_t>(i) * stackSlotSize;
-            else
-                stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
+            {
+                const bool useHomeSlot = arg.isFloat || !arg.srcReg.isVirtualInt();
+                regArgsUseHomeSlot[i]  = useHomeSlot ? 1 : 0;
+
+                if (!useHomeSlot)
+                {
+                    SWC_ASSERT(i < conv.intArgRegs.size());
+                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
+                    continue;
+                }
+            }
+
+            const uint64_t stackOffset = isRegArg ? static_cast<uint64_t>(i) * stackSlotSize : conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
 
             switch (arg.kind)
             {
                 case PreparedArgKind::Direct:
-                    if (arg.isFloat)
-                    {
-                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
-                    }
-                    else
-                    {
-                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
-                    }
+                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
                     break;
 
                 case PreparedArgKind::InterfaceObject:
@@ -144,18 +149,39 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
         for (uint32_t i = 0; i < numRegArgsUsed; ++i)
         {
-            const auto&    arg        = args[i];
-            const auto     argBits    = preparedArgBits(arg);
-            const uint64_t homeOffset = static_cast<uint64_t>(i) * stackSlotSize;
-            if (arg.isFloat)
+            const auto& arg = args[i];
+
+            if (regArgsUseHomeSlot[i])
             {
-                SWC_ASSERT(i < conv.floatArgRegs.size());
-                builder.encodeLoadRegMem(conv.floatArgRegs[i], conv.stackPointer, homeOffset, argBits);
+                const auto     argBits    = preparedArgBits(arg);
+                const uint64_t homeOffset = static_cast<uint64_t>(i) * stackSlotSize;
+                if (arg.isFloat)
+                {
+                    SWC_ASSERT(i < conv.floatArgRegs.size());
+                    builder.encodeLoadRegMem(conv.floatArgRegs[i], conv.stackPointer, homeOffset, argBits);
+                }
+                else
+                {
+                    SWC_ASSERT(i < conv.intArgRegs.size());
+                    builder.encodeLoadRegMem(conv.intArgRegs[i], conv.stackPointer, homeOffset, argBits);
+                }
+                continue;
             }
-            else
+
+            SWC_ASSERT(!arg.isFloat);
+            SWC_ASSERT(i < conv.intArgRegs.size());
+            switch (arg.kind)
             {
-                SWC_ASSERT(i < conv.intArgRegs.size());
-                builder.encodeLoadRegMem(conv.intArgRegs[i], conv.stackPointer, homeOffset, argBits);
+                case PreparedArgKind::Direct:
+                    builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, MicroOpBits::B64);
+                    break;
+
+                case PreparedArgKind::InterfaceObject:
+                    builder.encodeLoadRegMem(conv.intArgRegs[i], arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+                    break;
+
+                default:
+                    SWC_UNREACHABLE();
             }
         }
 

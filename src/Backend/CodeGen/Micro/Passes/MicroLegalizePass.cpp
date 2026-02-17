@@ -50,14 +50,14 @@ namespace
             lowOps[1].opBits   = MicroOpBits::B32;
             lowOps[2].valueU64 = memOffset;
             lowOps[3].valueU64 = lowU32;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, lowOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, lowOps);
 
             std::array<MicroInstrOperand, 4> highOps;
             highOps[0].reg      = memReg;
             highOps[1].opBits   = MicroOpBits::B32;
             highOps[2].valueU64 = memOffset + 4;
             highOps[3].valueU64 = highU32;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, highOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, highOps);
             return true;
         }
 
@@ -88,7 +88,7 @@ namespace
             lowOps[5].valueU64 = mulValue;
             lowOps[6].valueU64 = addValue;
             lowOps[7].valueU64 = lowU32;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, lowOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, lowOps);
 
             std::array<MicroInstrOperand, 8> highOps;
             highOps[0].reg      = regBase;
@@ -98,7 +98,7 @@ namespace
             highOps[5].valueU64 = mulValue;
             highOps[6].valueU64 = addValue + 4;
             highOps[7].valueU64 = highU32;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, highOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, inst.emitFlags, highOps);
             return true;
         }
 
@@ -124,28 +124,28 @@ namespace
             subOps[1].opBits   = MicroOpBits::B64;
             subOps[2].microOp  = MicroOp::Subtract;
             subOps[3].valueU64 = 8;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, subOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, subOps);
 
             std::array<MicroInstrOperand, 4> storeOps;
             storeOps[0].reg      = rspReg;
             storeOps[1].opBits   = opBits;
             storeOps[2].valueU64 = 0;
             storeOps[3].valueU64 = immValue;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, storeOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, inst.emitFlags, storeOps);
 
             std::array<MicroInstrOperand, 4> loadOps;
             loadOps[0].reg      = dstReg;
             loadOps[1].reg      = rspReg;
             loadOps[2].opBits   = opBits;
             loadOps[3].valueU64 = 0;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, inst.emitFlags, loadOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, inst.emitFlags, loadOps);
 
             std::array<MicroInstrOperand, 4> addOps;
             addOps[0].reg      = rspReg;
             addOps[1].opBits   = MicroOpBits::B64;
             addOps[2].microOp  = MicroOp::Add;
             addOps[3].valueU64 = 8;
-            context.instructions->insertInstructionBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, addOps);
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, inst.emitFlags, addOps);
             return true;
         }
 

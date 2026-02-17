@@ -214,7 +214,7 @@ Ref MicroInstrStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
     return ref;
 }
 
-Ref MicroInstrStorage::insertInstructionBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
+Ref MicroInstrStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
 {
     MicroInstr inst;
     inst.op          = op;

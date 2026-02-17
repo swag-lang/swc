@@ -39,721 +39,690 @@ namespace
         EncodeFlags emitFlags        = EncodeFlagsE::Zero;
     };
 
-    class RegAllocEngine
+    struct PassState
     {
-    public:
-        explicit RegAllocEngine(MicroPassContext& context) :
-            context_(context),
-            conv_(CallConv::get(context.callConvKind)),
-            instructions_(*SWC_CHECK_NOT_NULL(context.instructions)),
-            operands_(*SWC_CHECK_NOT_NULL(context.operands))
-        {
-        }
+        MicroPassContext*    context      = nullptr;
+        const CallConv*      conv         = nullptr;
+        MicroInstrStorage*   instructions = nullptr;
+        MicroOperandStorage* operands     = nullptr;
 
-        void run()
-        {
-            if (!instructions_.count())
-                return;
+        uint32_t instructionCount = 0;
+        uint64_t spillFrameUsed   = 0;
 
-            analyzeLiveness();
-            buildUsePositions();
-            setupPools();
-            rewriteInstructions();
-            insertSpillFrame();
-        }
+        std::vector<std::vector<uint32_t>>                  liveOut;
+        std::unordered_set<uint32_t>                        vregsLiveAcrossCall;
+        std::unordered_map<uint32_t, std::vector<uint32_t>> usePositions;
 
-    private:
-        void analyzeLiveness()
-        {
-            const uint32_t instructionCount = instructions_.count();
-            liveOut_.clear();
-            liveOut_.resize(instructionCount);
+        std::unordered_set<uint32_t> intPersistentSet;
+        std::unordered_set<uint32_t> floatPersistentSet;
 
-            std::unordered_set<uint32_t> live;
-            live.reserve(instructionCount * 2ull);
+        SmallVector<MicroReg> freeIntTransient;
+        SmallVector<MicroReg> freeIntPersistent;
+        SmallVector<MicroReg> freeFloatTransient;
+        SmallVector<MicroReg> freeFloatPersistent;
 
-            uint32_t idx = instructionCount;
-            for (const auto& inst : std::ranges::reverse_view(instructions_.view()))
-            {
-                --idx;
+        std::unordered_map<uint32_t, VRegState> states;
+        std::unordered_map<uint32_t, MicroReg>  mapping;
+        std::unordered_map<uint32_t, uint32_t>  physToVirt;
+        std::unordered_map<uint32_t, uint32_t>  liveStamp;
+        std::unordered_set<uint32_t>            callSpillVregs;
+    };
 
-                auto& out = liveOut_[idx];
-                out.clear();
-                out.reserve(live.size());
-                for (uint32_t regKey : live)
-                    out.push_back(regKey);
+    void initState(PassState& state, MicroPassContext& context)
+    {
+        state.context          = &context;
+        state.conv             = &CallConv::get(context.callConvKind);
+        state.instructions     = SWC_CHECK_NOT_NULL(context.instructions);
+        state.operands         = SWC_CHECK_NOT_NULL(context.operands);
+        state.instructionCount = state.instructions->count();
+    }
 
-                const MicroInstrUseDef useDef = inst.collectUseDef(operands_, context_.encoder);
-                if (useDef.isCall)
-                {
-                    for (uint32_t regKey : live)
-                        vregsLiveAcrossCall_.insert(regKey);
-                }
-
-                for (const auto& reg : useDef.defs)
-                {
-                    if (reg.isVirtual())
-                        live.erase(reg.packed);
-                }
-
-                for (const auto& reg : useDef.uses)
-                {
-                    if (reg.isVirtual())
-                        live.insert(reg.packed);
-                }
-            }
-        }
-
-        void buildUsePositions()
-        {
-            usePositions_.clear();
-            uint32_t idx = 0;
-            for (const auto& inst : instructions_.view())
-            {
-                const auto info = inst.collectUseDef(operands_, context_.encoder);
-                for (const auto& reg : info.uses)
-                {
-                    if (!reg.isVirtual())
-                        continue;
-                    usePositions_[reg.packed].push_back(idx);
-                }
-                ++idx;
-            }
-        }
-
-        void setupPools()
-        {
-            intPersistentSet_.clear();
-            floatPersistentSet_.clear();
-
-            intPersistentSet_.reserve(conv_.intPersistentRegs.size() * 2 + 8);
-            floatPersistentSet_.reserve(conv_.floatPersistentRegs.size() * 2 + 8);
-
-            for (const auto reg : conv_.intPersistentRegs)
-                intPersistentSet_.insert(reg.packed);
-
-            for (const auto reg : conv_.floatPersistentRegs)
-                floatPersistentSet_.insert(reg.packed);
-
-            freeIntTransient_.clear();
-            freeIntPersistent_.clear();
-            freeFloatTransient_.clear();
-            freeFloatPersistent_.clear();
-
-            for (const auto reg : conv_.intRegs)
-            {
-                if (intPersistentSet_.contains(reg.packed))
-                    freeIntPersistent_.push_back(reg);
-                else
-                    freeIntTransient_.push_back(reg);
-            }
-
-            for (const auto reg : conv_.floatRegs)
-            {
-                if (floatPersistentSet_.contains(reg.packed))
-                    freeFloatPersistent_.push_back(reg);
-                else
-                    freeFloatTransient_.push_back(reg);
-            }
-        }
-
-        bool isPersistentPhysReg(MicroReg reg) const
-        {
-            if (reg.isInt())
-                return intPersistentSet_.contains(reg.packed);
-            if (reg.isFloat())
-                return floatPersistentSet_.contains(reg.packed);
-            SWC_ASSERT(false);
+    bool isLiveOut(const PassState& state, uint32_t key, uint32_t stamp)
+    {
+        const auto it = state.liveStamp.find(key);
+        if (it == state.liveStamp.end())
             return false;
-        }
+        return it->second == stamp;
+    }
 
-        void returnToFreePool(MicroReg reg)
+    bool containsKey(std::span<const uint32_t> keys, uint32_t key)
+    {
+        for (const auto value : keys)
         {
-            if (reg.isInt())
-            {
-                if (intPersistentSet_.contains(reg.packed))
-                    freeIntPersistent_.push_back(reg);
-                else
-                    freeIntTransient_.push_back(reg);
-                return;
-            }
-
-            if (reg.isFloat())
-            {
-                if (floatPersistentSet_.contains(reg.packed))
-                    freeFloatPersistent_.push_back(reg);
-                else
-                    freeFloatTransient_.push_back(reg);
-                return;
-            }
-
-            SWC_ASSERT(false);
-        }
-
-        bool isInstructionLiveOut(uint32_t key, uint32_t stamp) const
-        {
-            const auto it = liveStamp_.find(key);
-            if (it == liveStamp_.end())
-                return false;
-            return it->second == stamp;
-        }
-
-        bool isProtectedKey(std::span<const uint32_t> protectedKeys, uint32_t key) const
-        {
-            for (const auto value : protectedKeys)
-            {
-                if (value == key)
-                    return true;
-            }
-
-            return false;
-        }
-
-        uint32_t distanceToNextUse(uint32_t key, uint32_t instructionIndex) const
-        {
-            const auto useIt = usePositions_.find(key);
-            if (useIt == usePositions_.end())
-                return std::numeric_limits<uint32_t>::max();
-
-            const auto& positions = useIt->second;
-            const auto  it        = std::upper_bound(positions.begin(), positions.end(), instructionIndex);
-            if (it == positions.end())
-                return std::numeric_limits<uint32_t>::max();
-
-            return *it - instructionIndex;
-        }
-
-        bool isEvictionCandidateBetter(uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp) const
-        {
-            if (!currentBestReg.isValid())
+            if (value == key)
                 return true;
-
-            const bool candidateDead = !isInstructionLiveOut(candidateKey, stamp);
-            const bool bestDead      = !isInstructionLiveOut(currentBestKey, stamp);
-            if (candidateDead != bestDead)
-                return candidateDead;
-
-            const auto candidateIt = states_.find(candidateKey);
-            const auto bestIt      = states_.find(currentBestKey);
-            SWC_ASSERT(candidateIt != states_.end());
-            SWC_ASSERT(bestIt != states_.end());
-
-            const bool candidateCleanSpill = candidateIt->second.hasSpill && !candidateIt->second.dirty;
-            const bool bestCleanSpill      = bestIt->second.hasSpill && !bestIt->second.dirty;
-            if (candidateCleanSpill != bestCleanSpill)
-                return candidateCleanSpill;
-
-            const uint32_t candidateDistance = distanceToNextUse(candidateKey, instructionIndex);
-            const uint32_t bestDistance      = distanceToNextUse(currentBestKey, instructionIndex);
-            if (candidateDistance != bestDistance)
-                return candidateDistance > bestDistance;
-
-            const bool candidatePersistent = isPersistentPhysReg(candidateReg);
-            const bool bestPersistent      = isPersistentPhysReg(currentBestReg);
-            if (candidatePersistent != bestPersistent)
-                return !candidatePersistent;
-
-            return candidateKey > currentBestKey;
         }
 
-        bool selectEvictionCandidate(uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, std::span<const uint32_t> protectedKeys, uint32_t stamp, uint32_t& outVirtKey, MicroReg& outPhys) const
+        return false;
+    }
+
+    bool isPersistentPhysReg(const PassState& state, MicroReg reg)
+    {
+        if (reg.isInt())
+            return state.intPersistentSet.contains(reg.packed);
+
+        if (reg.isFloat())
+            return state.floatPersistentSet.contains(reg.packed);
+
+        SWC_ASSERT(false);
+        return false;
+    }
+
+    void returnToFreePool(PassState& state, MicroReg reg)
+    {
+        if (reg.isInt())
         {
-            outVirtKey = 0;
-            outPhys    = MicroReg::invalid();
+            if (state.intPersistentSet.contains(reg.packed))
+                state.freeIntPersistent.push_back(reg);
+            else
+                state.freeIntTransient.push_back(reg);
+            return;
+        }
 
-            for (const auto& [virtKey, physReg] : mapping_)
+        if (reg.isFloat())
+        {
+            if (state.floatPersistentSet.contains(reg.packed))
+                state.freeFloatPersistent.push_back(reg);
+            else
+                state.freeFloatTransient.push_back(reg);
+            return;
+        }
+
+        SWC_ASSERT(false);
+    }
+
+    uint32_t distanceToNextUse(const PassState& state, uint32_t key, uint32_t instructionIndex)
+    {
+        const auto useIt = state.usePositions.find(key);
+        if (useIt == state.usePositions.end())
+            return std::numeric_limits<uint32_t>::max();
+
+        const auto& positions = useIt->second;
+        const auto  it        = std::ranges::upper_bound(positions, instructionIndex);
+        if (it == positions.end())
+            return std::numeric_limits<uint32_t>::max();
+
+        return *it - instructionIndex;
+    }
+
+    void analyzeLiveness(PassState& state)
+    {
+        state.liveOut.clear();
+        state.liveOut.resize(state.instructionCount);
+        state.vregsLiveAcrossCall.clear();
+
+        std::unordered_set<uint32_t> live;
+        live.reserve(state.instructionCount * 2ull);
+
+        uint32_t idx = state.instructionCount;
+        for (const auto& inst : std::ranges::reverse_view(state.instructions->view()))
+        {
+            --idx;
+
+            auto& out = state.liveOut[idx];
+            out.clear();
+            out.reserve(live.size());
+            for (uint32_t regKey : live)
+                out.push_back(regKey);
+
+            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
+            if (useDef.isCall)
             {
-                if (isProtectedKey(protectedKeys, virtKey))
-                    continue;
-
-                if (isFloatReg)
-                {
-                    if (!physReg.isFloat())
-                        continue;
-                }
-                else
-                {
-                    if (!physReg.isInt())
-                        continue;
-                }
-
-                const bool isPersistent = isPersistentPhysReg(physReg);
-                if (isPersistent != fromPersistentPool)
-                    continue;
-
-                if (isEvictionCandidateBetter(virtKey, physReg, outVirtKey, outPhys, instructionIndex, stamp))
-                {
-                    outVirtKey = virtKey;
-                    outPhys    = physReg;
-                }
+                for (const auto regKey : live)
+                    state.vregsLiveAcrossCall.insert(regKey);
             }
 
-            return outPhys.isValid();
+            for (const auto& reg : useDef.defs)
+            {
+                if (reg.isVirtual())
+                    live.erase(reg.packed);
+            }
+
+            for (const auto& reg : useDef.uses)
+            {
+                if (reg.isVirtual())
+                    live.insert(reg.packed);
+            }
+        }
+    }
+
+    void buildUsePositions(PassState& state)
+    {
+        state.usePositions.clear();
+
+        uint32_t idx = 0;
+        for (const auto& inst : state.instructions->view())
+        {
+            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
+            for (const auto& reg : useDef.uses)
+            {
+                if (!reg.isVirtual())
+                    continue;
+
+                state.usePositions[reg.packed].push_back(idx);
+            }
+
+            ++idx;
+        }
+    }
+
+    void setupPools(PassState& state)
+    {
+        state.intPersistentSet.clear();
+        state.floatPersistentSet.clear();
+        state.intPersistentSet.reserve(state.conv->intPersistentRegs.size() * 2 + 8);
+        state.floatPersistentSet.reserve(state.conv->floatPersistentRegs.size() * 2 + 8);
+
+        for (const auto reg : state.conv->intPersistentRegs)
+            state.intPersistentSet.insert(reg.packed);
+
+        for (const auto reg : state.conv->floatPersistentRegs)
+            state.floatPersistentSet.insert(reg.packed);
+
+        state.freeIntTransient.clear();
+        state.freeIntPersistent.clear();
+        state.freeFloatTransient.clear();
+        state.freeFloatPersistent.clear();
+
+        for (const auto reg : state.conv->intRegs)
+        {
+            if (state.intPersistentSet.contains(reg.packed))
+                state.freeIntPersistent.push_back(reg);
+            else
+                state.freeIntTransient.push_back(reg);
         }
 
-        void ensureSpillSlot(VRegState& state, bool isFloat)
+        for (const auto reg : state.conv->floatRegs)
         {
-            if (state.hasSpill)
-                return;
+            if (state.floatPersistentSet.contains(reg.packed))
+                state.freeFloatPersistent.push_back(reg);
+            else
+                state.freeFloatTransient.push_back(reg);
+        }
+    }
 
-            const MicroOpBits bits     = isFloat ? MicroOpBits::B128 : MicroOpBits::B64;
-            const uint64_t    slotSize = bits == MicroOpBits::B128 ? 16u : 8u;
-            spillFrameUsed_            = Math::alignUpU64(spillFrameUsed_, slotSize);
+    void ensureSpillSlot(PassState& state, VRegState& regState, bool isFloat)
+    {
+        if (regState.hasSpill)
+            return;
 
-            state.spillOffset = spillFrameUsed_;
-            state.spillBits   = bits;
-            state.hasSpill    = true;
-            spillFrameUsed_ += slotSize;
+        const MicroOpBits bits     = isFloat ? MicroOpBits::B128 : MicroOpBits::B64;
+        const uint64_t    slotSize = bits == MicroOpBits::B128 ? 16u : 8u;
+        state.spillFrameUsed       = Math::alignUpU64(state.spillFrameUsed, slotSize);
+
+        regState.spillOffset = state.spillFrameUsed;
+        regState.spillBits   = bits;
+        regState.hasSpill    = true;
+        state.spillFrameUsed += slotSize;
+    }
+
+    void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, EncodeFlags emitFlags, const CallConv& conv)
+    {
+        out.op              = MicroInstrOpcode::LoadMemReg;
+        out.emitFlags       = emitFlags;
+        out.numOps          = 4;
+        out.ops[0].reg      = conv.stackPointer;
+        out.ops[1].reg      = physReg;
+        out.ops[2].opBits   = regState.spillBits;
+        out.ops[3].valueU64 = regState.spillOffset;
+    }
+
+    void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, EncodeFlags emitFlags, const CallConv& conv)
+    {
+        out.op              = MicroInstrOpcode::LoadRegMem;
+        out.emitFlags       = emitFlags;
+        out.numOps          = 4;
+        out.ops[0].reg      = physReg;
+        out.ops[1].reg      = conv.stackPointer;
+        out.ops[2].opBits   = regState.spillBits;
+        out.ops[3].valueU64 = regState.spillOffset;
+    }
+
+    bool isCandidateBetter(const PassState& state,
+                           uint32_t         candidateKey,
+                           MicroReg         candidateReg,
+                           uint32_t         currentBestKey,
+                           MicroReg         currentBestReg,
+                           uint32_t         instructionIndex,
+                           uint32_t         stamp)
+    {
+        if (!currentBestReg.isValid())
+            return true;
+
+        const bool candidateDead = !isLiveOut(state, candidateKey, stamp);
+        const bool bestDead      = !isLiveOut(state, currentBestKey, stamp);
+        if (candidateDead != bestDead)
+            return candidateDead;
+
+        const auto candidateIt = state.states.find(candidateKey);
+        const auto bestIt      = state.states.find(currentBestKey);
+        SWC_ASSERT(candidateIt != state.states.end());
+        SWC_ASSERT(bestIt != state.states.end());
+
+        const bool candidateCleanSpill = candidateIt->second.hasSpill && !candidateIt->second.dirty;
+        const bool bestCleanSpill      = bestIt->second.hasSpill && !bestIt->second.dirty;
+        if (candidateCleanSpill != bestCleanSpill)
+            return candidateCleanSpill;
+
+        const uint32_t candidateDistance = distanceToNextUse(state, candidateKey, instructionIndex);
+        const uint32_t bestDistance      = distanceToNextUse(state, currentBestKey, instructionIndex);
+        if (candidateDistance != bestDistance)
+            return candidateDistance > bestDistance;
+
+        const bool candidatePersistent = isPersistentPhysReg(state, candidateReg);
+        const bool bestPersistent      = isPersistentPhysReg(state, currentBestReg);
+        if (candidatePersistent != bestPersistent)
+            return !candidatePersistent;
+
+        return candidateKey > currentBestKey;
+    }
+
+    bool selectEvictionCandidate(const PassState&          state,
+                                 uint32_t                  instructionIndex,
+                                 bool                      isFloatReg,
+                                 bool                      fromPersistentPool,
+                                 std::span<const uint32_t> protectedKeys,
+                                 uint32_t                  stamp,
+                                 uint32_t&                 outVirtKey,
+                                 MicroReg&                 outPhys)
+    {
+        outVirtKey = 0;
+        outPhys    = MicroReg::invalid();
+
+        for (const auto& [virtKey, physReg] : state.mapping)
+        {
+            if (containsKey(protectedKeys, virtKey))
+                continue;
+
+            if (isFloatReg)
+            {
+                if (!physReg.isFloat())
+                    continue;
+            }
+            else
+            {
+                if (!physReg.isInt())
+                    continue;
+            }
+
+            const bool isPersistent = isPersistentPhysReg(state, physReg);
+            if (isPersistent != fromPersistentPool)
+                continue;
+
+            if (isCandidateBetter(state, virtKey, physReg, outVirtKey, outPhys, instructionIndex, stamp))
+            {
+                outVirtKey = virtKey;
+                outPhys    = physReg;
+            }
         }
 
-        void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& state, EncodeFlags emitFlags) const
+        return outPhys.isValid();
+    }
+
+    bool tryTakeFreePhysical(PassState& state, const AllocRequest& request, MicroReg& outPhys)
+    {
+        outPhys = MicroReg::invalid();
+
+        if (request.virtReg.isVirtualInt())
         {
-            out.op              = MicroInstrOpcode::LoadMemReg;
-            out.emitFlags       = emitFlags;
-            out.numOps          = 4;
-            out.ops[0].reg      = conv_.stackPointer;
-            out.ops[1].reg      = physReg;
-            out.ops[2].opBits   = state.spillBits;
-            out.ops[3].valueU64 = state.spillOffset;
+            if (request.needsPersistent)
+            {
+                if (state.freeIntPersistent.empty())
+                    return false;
+
+                outPhys = state.freeIntPersistent.back();
+                state.freeIntPersistent.pop_back();
+                return true;
+            }
+
+            if (!state.freeIntTransient.empty())
+            {
+                outPhys = state.freeIntTransient.back();
+                state.freeIntTransient.pop_back();
+                return true;
+            }
+
+            if (!state.freeIntPersistent.empty())
+            {
+                outPhys = state.freeIntPersistent.back();
+                state.freeIntPersistent.pop_back();
+                return true;
+            }
+
+            return false;
         }
 
-        void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& state, EncodeFlags emitFlags) const
+        SWC_ASSERT(request.virtReg.isVirtualFloat());
+
+        if (request.needsPersistent)
         {
-            out.op              = MicroInstrOpcode::LoadRegMem;
-            out.emitFlags       = emitFlags;
-            out.numOps          = 4;
-            out.ops[0].reg      = physReg;
-            out.ops[1].reg      = conv_.stackPointer;
-            out.ops[2].opBits   = state.spillBits;
-            out.ops[3].valueU64 = state.spillOffset;
+            if (state.freeFloatPersistent.empty())
+                return false;
+
+            outPhys = state.freeFloatPersistent.back();
+            state.freeFloatPersistent.pop_back();
+            return true;
         }
 
-        void unmapVReg(uint32_t key)
+        if (!state.freeFloatTransient.empty())
         {
-            const auto it = mapping_.find(key);
-            if (it == mapping_.end())
-                return;
+            outPhys = state.freeFloatTransient.back();
+            state.freeFloatTransient.pop_back();
+            return true;
+        }
 
-            const auto physIt = physToVirt_.find(it->second.packed);
-            if (physIt != physToVirt_.end())
-                physToVirt_.erase(physIt);
+        if (!state.freeFloatPersistent.empty())
+        {
+            outPhys = state.freeFloatPersistent.back();
+            state.freeFloatPersistent.pop_back();
+            return true;
+        }
 
-            mapping_.erase(it);
+        return false;
+    }
 
-            auto stateIt = states_.find(key);
-            if (stateIt != states_.end())
+    void unmapVirtReg(PassState& state, uint32_t virtKey)
+    {
+        const auto mapIt = state.mapping.find(virtKey);
+        if (mapIt == state.mapping.end())
+            return;
+
+        const auto physReg = mapIt->second;
+        state.mapping.erase(mapIt);
+        state.physToVirt.erase(physReg.packed);
+
+        const auto stateIt = state.states.find(virtKey);
+        if (stateIt != state.states.end())
+        {
+            stateIt->second.mapped = false;
+            stateIt->second.phys   = MicroReg::invalid();
+        }
+    }
+
+    void mapVirtReg(PassState& state, uint32_t virtKey, MicroReg physReg)
+    {
+        state.mapping[virtKey]           = physReg;
+        state.physToVirt[physReg.packed] = virtKey;
+
+        auto& regState  = state.states[virtKey];
+        regState.mapped = true;
+        regState.phys   = physReg;
+    }
+
+    MicroReg allocatePhysical(PassState&                  state,
+                              const AllocRequest&         request,
+                              std::span<const uint32_t>   protectedKeys,
+                              uint32_t                    stamp,
+                              std::vector<PendingInsert>& pending)
+    {
+        MicroReg physReg;
+        if (tryTakeFreePhysical(state, request, physReg))
+            return physReg;
+
+        uint32_t victimKey = 0;
+        MicroReg victimReg = MicroReg::invalid();
+
+        const bool isFloatReg = request.virtReg.isVirtualFloat();
+
+        if (request.needsPersistent)
+        {
+            SWC_ASSERT(selectEvictionCandidate(state, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
+        }
+        else
+        {
+            if (!selectEvictionCandidate(state, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, victimKey, victimReg))
+            {
+                SWC_ASSERT(selectEvictionCandidate(state, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
+            }
+        }
+
+        auto& victimState = state.states[victimKey];
+        if (isLiveOut(state, victimKey, stamp))
+        {
+            const bool hadSpillSlot = victimState.hasSpill;
+            ensureSpillSlot(state, victimState, victimReg.isFloat());
+
+            if (victimState.dirty || !hadSpillSlot)
+            {
+                PendingInsert spillPending;
+                queueSpillStore(spillPending, victimReg, victimState, request.emitFlags, *state.conv);
+                pending.push_back(spillPending);
+                victimState.dirty = false;
+            }
+        }
+
+        unmapVirtReg(state, victimKey);
+        return victimReg;
+    }
+
+    MicroReg assignVirtReg(PassState&                  state,
+                           const AllocRequest&         request,
+                           std::span<const uint32_t>   protectedKeys,
+                           uint32_t                    stamp,
+                           std::vector<PendingInsert>& pending)
+    {
+        const auto& regState = state.states[request.virtKey];
+        if (regState.mapped)
+            return regState.phys;
+
+        const auto physReg = allocatePhysical(state, request, protectedKeys, stamp, pending);
+        mapVirtReg(state, request.virtKey, physReg);
+
+        auto& mappedState = state.states[request.virtKey];
+        if (request.isUse)
+        {
+            SWC_ASSERT(mappedState.hasSpill);
+            PendingInsert loadPending;
+            queueSpillLoad(loadPending, physReg, mappedState, request.emitFlags, *state.conv);
+            pending.push_back(loadPending);
+            mappedState.dirty = false;
+        }
+
+        return physReg;
+    }
+
+    void spillCallLiveOut(PassState& state, uint32_t stamp, EncodeFlags emitFlags, std::vector<PendingInsert>& pending)
+    {
+        for (auto it = state.mapping.begin(); it != state.mapping.end();)
+        {
+            const uint32_t virtKey = it->first;
+            const MicroReg physReg = it->second;
+
+            if (!state.callSpillVregs.contains(virtKey) || !isLiveOut(state, virtKey, stamp))
+            {
+                ++it;
+                continue;
+            }
+
+            auto& regState = state.states[virtKey];
+            if (regState.dirty || !regState.hasSpill)
+            {
+                ensureSpillSlot(state, regState, physReg.isFloat());
+                PendingInsert spillPending;
+                queueSpillStore(spillPending, physReg, regState, emitFlags, *state.conv);
+                pending.push_back(spillPending);
+                regState.dirty = false;
+            }
+
+            regState.mapped = false;
+            regState.phys   = MicroReg::invalid();
+            state.physToVirt.erase(physReg.packed);
+            it = state.mapping.erase(it);
+            returnToFreePool(state, physReg);
+        }
+    }
+
+    void expireDeadMappings(PassState& state, uint32_t stamp)
+    {
+        for (auto it = state.mapping.begin(); it != state.mapping.end();)
+        {
+            if (isLiveOut(state, it->first, stamp))
+            {
+                ++it;
+                continue;
+            }
+
+            const auto deadReg = it->second;
+            auto       stateIt = state.states.find(it->first);
+            if (stateIt != state.states.end())
             {
                 stateIt->second.mapped = false;
                 stateIt->second.phys   = MicroReg::invalid();
             }
+
+            state.physToVirt.erase(deadReg.packed);
+            it = state.mapping.erase(it);
+            returnToFreePool(state, deadReg);
         }
+    }
 
-        void mapVReg(uint32_t key, MicroReg physReg)
+    void rewriteInstructions(PassState& state)
+    {
+        state.liveStamp.clear();
+        state.liveStamp.reserve(state.instructionCount * 2ull);
+
+        uint32_t stamp = 1;
+        uint32_t idx   = 0;
+        for (auto it = state.instructions->view().begin(); it != state.instructions->view().end() && idx < state.instructionCount; ++it)
         {
-            mapping_[key]               = physReg;
-            physToVirt_[physReg.packed] = key;
-
-            auto& state  = states_[key];
-            state.mapped = true;
-            state.phys   = physReg;
-        }
-
-        bool tryTakeFreePhysical(MicroReg virtReg, bool needsPersistent, MicroReg& outPhys)
-        {
-            outPhys = MicroReg::invalid();
-
-            if (virtReg.isVirtualInt())
+            if (stamp == std::numeric_limits<uint32_t>::max())
             {
-                if (needsPersistent)
-                {
-                    if (freeIntPersistent_.empty())
-                        return false;
-
-                    outPhys = freeIntPersistent_.back();
-                    freeIntPersistent_.pop_back();
-                    return true;
-                }
-
-                if (!freeIntTransient_.empty())
-                {
-                    outPhys = freeIntTransient_.back();
-                    freeIntTransient_.pop_back();
-                    return true;
-                }
-
-                if (!freeIntPersistent_.empty())
-                {
-                    outPhys = freeIntPersistent_.back();
-                    freeIntPersistent_.pop_back();
-                    return true;
-                }
-
-                return false;
+                state.liveStamp.clear();
+                stamp = 1;
             }
+            ++stamp;
 
-            SWC_ASSERT(virtReg.isVirtualFloat());
+            for (const auto key : state.liveOut[idx])
+                state.liveStamp[key] = stamp;
 
-            if (needsPersistent)
+            const Ref         instructionRef = it.current;
+            const EncodeFlags emitFlags      = it->emitFlags;
+
+            SmallVector<MicroInstrRegOperandRef> regRefs;
+            it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
+
+            SmallVector<uint32_t> protectedKeys;
+            protectedKeys.reserve(regRefs.size());
+            for (const auto& regRef : regRefs)
             {
-                if (freeFloatPersistent_.empty())
-                    return false;
-
-                outPhys = freeFloatPersistent_.back();
-                freeFloatPersistent_.pop_back();
-                return true;
-            }
-
-            if (!freeFloatTransient_.empty())
-            {
-                outPhys = freeFloatTransient_.back();
-                freeFloatTransient_.pop_back();
-                return true;
-            }
-
-            if (!freeFloatPersistent_.empty())
-            {
-                outPhys = freeFloatPersistent_.back();
-                freeFloatPersistent_.pop_back();
-                return true;
-            }
-
-            return false;
-        }
-
-        bool tryEvictOne(const AllocRequest& request, std::span<const uint32_t> protectedKeys, uint32_t stamp, PendingInsert* outPending, MicroReg& outPhys)
-        {
-            outPhys = MicroReg::invalid();
-
-            const bool isFloatReg = request.virtReg.isVirtualFloat();
-
-            uint32_t victimKey = 0;
-            MicroReg victimReg = MicroReg::invalid();
-
-            if (request.needsPersistent)
-            {
-                if (!selectEvictionCandidate(request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg))
-                    return false;
-            }
-            else
-            {
-                if (!selectEvictionCandidate(request.instructionIndex, isFloatReg, false, protectedKeys, stamp, victimKey, victimReg))
-                {
-                    if (!selectEvictionCandidate(request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg))
-                        return false;
-                }
-            }
-
-            auto stateIt = states_.find(victimKey);
-            SWC_ASSERT(stateIt != states_.end());
-            auto& victimState = stateIt->second;
-
-            const bool victimLiveOut = isInstructionLiveOut(victimKey, stamp);
-            if (victimLiveOut)
-            {
-                const bool hadSpillSlot = victimState.hasSpill;
-                ensureSpillSlot(victimState, victimReg.isFloat());
-
-                if (victimState.dirty || !hadSpillSlot)
-                {
-                    SWC_ASSERT(outPending);
-                    queueSpillStore(*outPending, victimReg, victimState, request.emitFlags);
-                    victimState.dirty = false;
-                }
-            }
-
-            unmapVReg(victimKey);
-            outPhys = victimReg;
-            return true;
-        }
-
-        MicroReg allocatePhysical(const AllocRequest& request, std::span<const uint32_t> protectedKeys, uint32_t stamp, std::vector<PendingInsert>& pending)
-        {
-            MicroReg physReg;
-            if (tryTakeFreePhysical(request.virtReg, request.needsPersistent, physReg))
-                return physReg;
-
-            PendingInsert spillPending;
-            if (tryEvictOne(request, protectedKeys, stamp, &spillPending, physReg))
-            {
-                if (spillPending.numOps)
-                    pending.push_back(spillPending);
-                return physReg;
-            }
-
-            SWC_ASSERT(false);
-            return MicroReg::invalid();
-        }
-
-        void processVirtualOperand(const AllocRequest& request, std::span<const uint32_t> protectedKeys, uint32_t stamp, std::vector<PendingInsert>& pending, MicroReg* regOperand)
-        {
-            auto& state = states_[request.virtKey];
-            if (!state.mapped)
-            {
-                const MicroReg physReg = allocatePhysical(request, protectedKeys, stamp, pending);
-                mapVReg(request.virtKey, physReg);
-
-                if (request.isUse)
-                {
-                    if (!state.hasSpill)
-                    {
-                        SWC_ASSERT(false);
-                    }
-                    else
-                    {
-                        PendingInsert loadPending;
-                        queueSpillLoad(loadPending, physReg, state, request.emitFlags);
-                        pending.push_back(loadPending);
-                        state.dirty = false;
-                    }
-                }
-            }
-
-            *SWC_CHECK_NOT_NULL(regOperand) = states_[request.virtKey].phys;
-
-            if (request.isDef)
-                states_[request.virtKey].dirty = true;
-        }
-
-        bool hasPersistentRegsFor(MicroReg virtReg) const
-        {
-            if (virtReg.isVirtualInt())
-                return !conv_.intPersistentRegs.empty();
-            SWC_ASSERT(virtReg.isVirtualFloat());
-            return !conv_.floatPersistentRegs.empty();
-        }
-
-        void spillCallClobberedLiveOut(uint32_t stamp, EncodeFlags emitFlags, std::vector<PendingInsert>& pending)
-        {
-            for (auto it = mapping_.begin(); it != mapping_.end();)
-            {
-                const uint32_t virtKey = it->first;
-                const MicroReg physReg = it->second;
-
-                if (!callSpillVregs_.contains(virtKey) || !isInstructionLiveOut(virtKey, stamp))
-                {
-                    ++it;
+                if (!regRef.reg)
                     continue;
-                }
 
-                auto stateIt = states_.find(virtKey);
-                SWC_ASSERT(stateIt != states_.end());
-                auto& state = stateIt->second;
-
-                if (state.dirty || !state.hasSpill)
-                {
-                    const bool hadSpillSlot = state.hasSpill;
-                    ensureSpillSlot(state, physReg.isFloat());
-
-                    PendingInsert spillPending;
-                    queueSpillStore(spillPending, physReg, state, emitFlags);
-                    pending.push_back(spillPending);
-                    state.dirty = false;
-                    SWC_ASSERT(state.hasSpill || hadSpillSlot);
-                }
-
-                state.mapped = false;
-                state.phys   = MicroReg::invalid();
-                physToVirt_.erase(physReg.packed);
-                it = mapping_.erase(it);
-                returnToFreePool(physReg);
-            }
-        }
-
-        void expireDeadMappings(uint32_t stamp)
-        {
-            for (auto it = mapping_.begin(); it != mapping_.end();)
-            {
-                if (isInstructionLiveOut(it->first, stamp))
-                {
-                    ++it;
+                const auto reg = *regRef.reg;
+                if (!reg.isVirtual())
                     continue;
-                }
 
-                const MicroReg deadReg = it->second;
-                auto           stateIt = states_.find(it->first);
-                if (stateIt != states_.end())
-                {
-                    stateIt->second.mapped = false;
-                    stateIt->second.phys   = MicroReg::invalid();
-                }
-
-                physToVirt_.erase(deadReg.packed);
-                it = mapping_.erase(it);
-                returnToFreePool(deadReg);
+                if (!containsKey(protectedKeys, reg.packed))
+                    protectedKeys.push_back(reg.packed);
             }
-        }
 
-        void rewriteInstructions()
+            std::vector<PendingInsert> pending;
+            pending.reserve(4);
+
+            for (const auto& regRef : regRefs)
+            {
+                if (!regRef.reg)
+                    continue;
+
+                const auto reg = *regRef.reg;
+                if (!reg.isVirtual())
+                    continue;
+
+                AllocRequest request;
+                request.virtReg          = reg;
+                request.virtKey          = reg.packed;
+                request.isUse            = regRef.use;
+                request.isDef            = regRef.def;
+                request.instructionIndex = idx;
+                request.emitFlags        = emitFlags;
+
+                const bool liveAcrossCall = state.vregsLiveAcrossCall.contains(request.virtKey);
+                if (reg.isVirtualInt())
+                    request.needsPersistent = liveAcrossCall && !state.conv->intPersistentRegs.empty();
+                else
+                    request.needsPersistent = liveAcrossCall && !state.conv->floatPersistentRegs.empty();
+
+                if (liveAcrossCall && !request.needsPersistent)
+                    state.callSpillVregs.insert(request.virtKey);
+
+                const auto physReg              = assignVirtReg(state, request, protectedKeys, stamp, pending);
+                *SWC_CHECK_NOT_NULL(regRef.reg) = physReg;
+
+                if (request.isDef)
+                    state.states[request.virtKey].dirty = true;
+            }
+
+            const auto useDef = it->collectUseDef(*state.operands, state.context->encoder);
+            if (useDef.isCall)
+                spillCallLiveOut(state, stamp, emitFlags, pending);
+
+            for (const auto& pendingInst : pending)
+            {
+                state.instructions->insertBefore(*state.operands, instructionRef, pendingInst.op, pendingInst.emitFlags, std::span(pendingInst.ops, pendingInst.numOps));
+            }
+
+            expireDeadMappings(state, stamp);
+            ++idx;
+        }
+    }
+
+    void insertSpillFrame(const PassState& state)
+    {
+        if (!state.spillFrameUsed)
+            return;
+
+        const uint64_t stackAlignment = state.conv->stackAlignment ? state.conv->stackAlignment : 16;
+        const uint64_t spillFrameSize = Math::alignUpU64(state.spillFrameUsed, stackAlignment);
+        if (!spillFrameSize)
+            return;
+
+        const auto beginIt = state.instructions->view().begin();
+        if (beginIt == state.instructions->view().end())
+            return;
+
+        const Ref firstRef = beginIt.current;
+
+        MicroInstrOperand subOps[4];
+        subOps[0].reg      = state.conv->stackPointer;
+        subOps[1].opBits   = MicroOpBits::B64;
+        subOps[2].microOp  = MicroOp::Subtract;
+        subOps[3].valueU64 = spillFrameSize;
+        state.instructions->insertBefore(*state.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
+
+        std::vector<std::pair<Ref, EncodeFlags>> retRefs;
+        for (auto it = state.instructions->view().begin(); it != state.instructions->view().end(); ++it)
         {
-            const uint32_t instructionCount = instructions_.count();
-            liveStamp_.clear();
-            liveStamp_.reserve(instructionCount * 2ull);
-
-            uint32_t stamp = 1;
-            uint32_t idx   = 0;
-
-            for (auto it = instructions_.view().begin(); it != instructions_.view().end() && idx < instructionCount; ++it)
-            {
-                if (stamp == std::numeric_limits<uint32_t>::max())
-                {
-                    liveStamp_.clear();
-                    stamp = 1;
-                }
-                ++stamp;
-
-                for (uint32_t key : liveOut_[idx])
-                    liveStamp_[key] = stamp;
-
-                const Ref         instructionRef = it.current;
-                const EncodeFlags emitFlags      = it->emitFlags;
-
-                SmallVector<MicroInstrRegOperandRef> regRefs;
-                it->collectRegOperands(operands_, regRefs, context_.encoder);
-
-                SmallVector<uint32_t> protectedKeys;
-                protectedKeys.reserve(regRefs.size());
-                for (const auto& regRef : regRefs)
-                {
-                    if (!regRef.reg)
-                        continue;
-
-                    const MicroReg reg = *regRef.reg;
-                    if (!reg.isVirtual())
-                        continue;
-
-                    bool exists = false;
-                    for (const auto key : protectedKeys)
-                    {
-                        if (key == reg.packed)
-                        {
-                            exists = true;
-                            break;
-                        }
-                    }
-
-                    if (!exists)
-                        protectedKeys.push_back(reg.packed);
-                }
-
-                std::vector<PendingInsert> pending;
-                pending.reserve(4);
-
-                for (const auto& regRef : regRefs)
-                {
-                    if (!regRef.reg)
-                        continue;
-
-                    const auto reg = *regRef.reg;
-                    if (!reg.isVirtual())
-                        continue;
-
-                    const uint32_t key = reg.packed;
-
-                    AllocRequest request;
-                    request.virtReg           = reg;
-                    request.virtKey           = key;
-                    const bool liveAcrossCall = vregsLiveAcrossCall_.contains(key);
-                    request.needsPersistent   = liveAcrossCall && hasPersistentRegsFor(reg);
-                    request.isUse             = regRef.use;
-                    request.isDef             = regRef.def;
-                    request.instructionIndex  = idx;
-                    request.emitFlags         = emitFlags;
-
-                    if (liveAcrossCall && !request.needsPersistent)
-                        callSpillVregs_.insert(key);
-
-                    processVirtualOperand(request, protectedKeys, stamp, pending, regRef.reg);
-                }
-
-                const auto useDef = it->collectUseDef(operands_, context_.encoder);
-                if (useDef.isCall)
-                    spillCallClobberedLiveOut(stamp, emitFlags, pending);
-
-                for (const auto& insert : pending)
-                {
-                    instructions_.insertInstructionBefore(operands_, instructionRef, insert.op, insert.emitFlags, std::span(insert.ops, insert.numOps));
-                }
-
-                expireDeadMappings(stamp);
-                ++idx;
-            }
+            if (it->op == MicroInstrOpcode::Ret)
+                retRefs.emplace_back(it.current, it->emitFlags);
         }
 
-        void insertSpillFrame()
+        for (const auto [retRef, emitFlags] : retRefs)
         {
-            if (!spillFrameUsed_)
-                return;
-
-            const uint64_t stackAlignment = conv_.stackAlignment ? conv_.stackAlignment : 16;
-            const uint64_t spillFrameSize = Math::alignUpU64(spillFrameUsed_, stackAlignment);
-            if (!spillFrameSize)
-                return;
-
-            auto beginIt = instructions_.view().begin();
-            if (beginIt == instructions_.view().end())
-                return;
-
-            const Ref firstRef = beginIt.current;
-
-            MicroInstrOperand subOps[4];
-            subOps[0].reg      = conv_.stackPointer;
-            subOps[1].opBits   = MicroOpBits::B64;
-            subOps[2].microOp  = MicroOp::Subtract;
-            subOps[3].valueU64 = spillFrameSize;
-            instructions_.insertInstructionBefore(operands_, firstRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
-
-            std::vector<std::pair<Ref, EncodeFlags>> retRefs;
-            for (auto it = instructions_.view().begin(); it != instructions_.view().end(); ++it)
-            {
-                if (it->op == MicroInstrOpcode::Ret)
-                    retRefs.emplace_back(it.current, it->emitFlags);
-            }
-
-            for (const auto [retRef, emitFlags] : retRefs)
-            {
-                MicroInstrOperand addOps[4];
-                addOps[0].reg      = conv_.stackPointer;
-                addOps[1].opBits   = MicroOpBits::B64;
-                addOps[2].microOp  = MicroOp::Add;
-                addOps[3].valueU64 = spillFrameSize;
-                instructions_.insertInstructionBefore(operands_, retRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
-            }
+            MicroInstrOperand addOps[4];
+            addOps[0].reg      = state.conv->stackPointer;
+            addOps[1].opBits   = MicroOpBits::B64;
+            addOps[2].microOp  = MicroOp::Add;
+            addOps[3].valueU64 = spillFrameSize;
+            state.instructions->insertBefore(*state.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
         }
-
-        MicroPassContext&    context_;
-        const CallConv&      conv_;
-        MicroInstrStorage&   instructions_;
-        MicroOperandStorage& operands_;
-
-        std::vector<std::vector<uint32_t>>                  liveOut_;
-        std::unordered_set<uint32_t>                        vregsLiveAcrossCall_;
-        std::unordered_map<uint32_t, std::vector<uint32_t>> usePositions_;
-
-        std::unordered_set<uint32_t> intPersistentSet_;
-        std::unordered_set<uint32_t> floatPersistentSet_;
-
-        SmallVector<MicroReg> freeIntTransient_;
-        SmallVector<MicroReg> freeIntPersistent_;
-        SmallVector<MicroReg> freeFloatTransient_;
-        SmallVector<MicroReg> freeFloatPersistent_;
-
-        std::unordered_map<uint32_t, VRegState> states_;
-        std::unordered_map<uint32_t, MicroReg>  mapping_;
-        std::unordered_map<uint32_t, uint32_t>  physToVirt_;
-
-        std::unordered_map<uint32_t, uint32_t> liveStamp_;
-        std::unordered_set<uint32_t>           callSpillVregs_;
-
-        uint64_t spillFrameUsed_ = 0;
-    };
+    }
 }
 
 void MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
-    RegAllocEngine engine(context);
-    engine.run();
+    PassState state;
+    initState(state, context);
+
+    if (!state.instructionCount)
+        return;
+
+    analyzeLiveness(state);
+    buildUsePositions(state);
+    setupPools(state);
+    rewriteInstructions(state);
+    insertSpillFrame(state);
 }
 
 SWC_END_NAMESPACE();

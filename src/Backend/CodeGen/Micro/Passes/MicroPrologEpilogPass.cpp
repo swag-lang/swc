@@ -119,7 +119,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     subOps[1].opBits   = MicroOpBits::B64;
     subOps[2].microOp  = MicroOp::Subtract;
     subOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
+    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, EncodeFlagsE::Zero, subOps);
 
     for (const auto& slot : savedRegSlots_)
     {
@@ -128,7 +128,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         storeOps[1].reg      = slot.reg;
         storeOps[2].opBits   = slot.slotBits;
         storeOps[3].valueU64 = slot.offset;
-        instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, EncodeFlagsE::Zero, storeOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadMemReg, EncodeFlagsE::Zero, storeOps);
     }
 }
 
@@ -147,7 +147,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         loadOps[1].reg      = conv.stackPointer;
         loadOps[2].opBits   = slot.slotBits;
         loadOps[3].valueU64 = slot.offset;
-        instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, emitFlags, loadOps);
+        instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, emitFlags, loadOps);
     }
 
     MicroInstrOperand addOps[4];
@@ -155,7 +155,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     addOps[1].opBits   = MicroOpBits::B64;
     addOps[2].microOp  = MicroOp::Add;
     addOps[3].valueU64 = savedRegsFrameSize_;
-    instructions.insertInstructionBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
+    instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, emitFlags, addOps);
 }
 
 SWC_END_NAMESPACE();

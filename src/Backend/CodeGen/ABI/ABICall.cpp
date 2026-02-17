@@ -346,9 +346,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
     if (stackAdjustBefore)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
-    builder.setCurrentDebugSymbol(targetSymbol);
     builder.encodeCallLocal(targetSymbol, callConvKind);
-    builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
     {
@@ -371,10 +369,8 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     if (stackAdjustBefore)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
-    builder.setCurrentDebugSymbol(targetSymbol);
     builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     builder.encodeCallReg(conv.intReturn, callConvKind);
-    builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
     {
@@ -402,9 +398,7 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     if (stackAdjustBefore)
         builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
 
-    builder.setCurrentDebugSymbol(callDebugSymbol);
     builder.encodeCallReg(targetReg, callConvKind);
-    builder.clearCurrentDebugPayload();
 
     if (!ret.isVoid && !ret.isIndirect)
     {

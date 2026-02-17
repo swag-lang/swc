@@ -987,24 +987,6 @@ namespace
             out.pop_back();
     }
 
-    void appendInstructionDebugPayload(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef)
-    {
-        if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
-            return;
-
-        const MicroDebugInfo* dbgInfo = builder->debugInfo(instRef);
-        if (!dbgInfo)
-            return;
-
-        const Symbol* symbol = dbgInfo->payloadSymbol();
-        if (!symbol)
-            return;
-
-        trimTrailingSpaces(out);
-        out += "  ";
-        appendColored(out, ctx, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
-    }
-
     std::string_view relocationKindName(const MicroRelocation& relocation)
     {
         switch (relocation.kind)
@@ -1170,7 +1152,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             }
 
             padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
-            appendInstructionDebugPayload(out, ctx, builder, instRef);
             out += '\n';
             ++idx;
             continue;
@@ -1449,7 +1430,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         appendColumnSeparator(out, ctx);
         appendNaturalColumn(out, ctx, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
         appendInstructionRelocationOrigin(out, ctx, instructionRelocation);
-        appendInstructionDebugPayload(out, ctx, builder, instRef);
         out += '\n';
         ++idx;
     }

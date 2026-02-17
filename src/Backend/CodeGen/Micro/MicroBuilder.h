@@ -19,47 +19,13 @@ enum class MicroBuilderFlagsE : uint8_t
 };
 using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
 
-enum class MicroDebugInfoPayloadKind : uint8_t
-{
-    None,
-    Symbol,
-};
-
 struct MicroDebugInfo
 {
-    SourceCodeRef             sourceCodeRef = SourceCodeRef::invalid();
-    MicroDebugInfoPayloadKind payloadKind   = MicroDebugInfoPayloadKind::None;
-    union
-    {
-        Symbol*  symbol;
-        uint64_t payloadU64;
-    };
-
-    MicroDebugInfo() :
-        symbol(nullptr)
-    {
-    }
-
-    void clearPayload()
-    {
-        payloadKind = MicroDebugInfoPayloadKind::None;
-        symbol      = nullptr;
-    }
-
-    void setPayloadSymbol(Symbol* payloadSymbol)
-    {
-        payloadKind = MicroDebugInfoPayloadKind::Symbol;
-        symbol      = payloadSymbol;
-    }
-
-    Symbol* payloadSymbol() const
-    {
-        return payloadKind == MicroDebugInfoPayloadKind::Symbol ? symbol : nullptr;
-    }
+    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
 
     bool hasData() const
     {
-        return sourceCodeRef.isValid() || payloadSymbol() != nullptr;
+        return sourceCodeRef.isValid();
     }
 };
 
@@ -114,8 +80,6 @@ public:
     void                                setCurrentDebugInfo(const MicroDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
     const MicroDebugInfo&               currentDebugInfo() const { return currentDebugInfo_; }
     void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
-    void                                setCurrentDebugSymbol(Symbol* symbol) { currentDebugInfo_.setPayloadSymbol(symbol); }
-    void                                clearCurrentDebugPayload() { currentDebugInfo_.clearPayload(); }
     const MicroDebugInfo*               debugInfo(Ref instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }

@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolVariable;
 class SymbolStruct;
+class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint8_t
 {
@@ -52,6 +53,10 @@ public:
     bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
+    bool isForeign() const noexcept { return attributes().hasForeign; }
+    std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
+    std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
+    Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }

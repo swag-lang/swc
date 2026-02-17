@@ -147,6 +147,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (calleePayload)
         ABICall::callByReg(builder, callConvKind, calleePayload->reg, numAbiArgs, &calledFunction);
+    else if (calledFunction.isForeign())
+        ABICall::callByExtern(builder, callConvKind, &calledFunction, numAbiArgs);
     else
         ABICall::callByLocal(builder, callConvKind, &calledFunction, numAbiArgs);
 

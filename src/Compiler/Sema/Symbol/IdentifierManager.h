@@ -37,6 +37,7 @@ public:
         Complete,
         Overload,
         CalleeReturn,
+        Foreign,
         Discardable,
         NotGeneric,
         Tls,

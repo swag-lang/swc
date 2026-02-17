@@ -2739,15 +2739,12 @@ void X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 
 // ============================================================================
 
-void X64Encoder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
+void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)
 {
     SWC_UNUSED(targetSymbol);
-    SWC_UNUSED(callConv);
-    SWC_UNUSED(emitFlags);
-
-    emitCpuOp(store_, 0xFF);
-    emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
-    store_.pushU32(0);
+    const auto& conv = CallConv::get(callConv);
+    encodeLoadRegImm(conv.intReturn, targetAddress, MicroOpBits::B64, emitFlags);
+    encodeCallReg(conv.intReturn, callConv, emitFlags);
     return;
 }
 

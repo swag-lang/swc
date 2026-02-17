@@ -93,7 +93,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, const Mic
         case MicroInstrOpcode::CallExtern:
         {
             Symbol* const targetSymbol = inst.numOperands >= 3 ? reinterpret_cast<Symbol*>(ops[2].valueU64) : nullptr;
-            encoder.encodeCallExtern(targetSymbol, ops[1].callConv, inst.emitFlags);
+            const uint64_t targetAddress = inst.numOperands >= 4 ? ops[3].valueU64 : 0;
+            encoder.encodeCallExtern(targetSymbol, targetAddress, ops[1].callConv, inst.emitFlags);
             break;
         }
         case MicroInstrOpcode::CallIndirect:

@@ -29,6 +29,8 @@ namespace Os
     bool     makeWritableExecutableMemory(void* ptr, uint32_t size);
     bool     makeExecutableMemory(void* ptr, uint32_t size);
     void     freeExecutableMemory(void* ptr);
+    bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
+    bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
 }
 
 #ifdef _WIN32

@@ -507,6 +507,9 @@
     <ClCompile Include="src\Main\CompilerInstance.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\ExternalModuleManager.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\FileSystem.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
@@ -873,6 +876,9 @@
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\CompilerInstance.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\ExternalModuleManager.h">
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\ExitCodes.h">

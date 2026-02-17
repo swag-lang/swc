@@ -35,7 +35,7 @@ private:
     void encodeNop(EncodeFlags emitFlags) override;
     void encodeRet(EncodeFlags emitFlags) override;
     void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags) override;
-    void encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags) override;
+    void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags) override;
     void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags) override;
     void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags) override;
     void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags) override;

@@ -152,11 +152,12 @@ void MicroInstrBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callC
 void MicroInstrBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
     const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto&         inst       = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 3);
+    const auto&         inst       = addInstruction(MicroInstrOpcode::CallExtern, emitFlags, 4);
     auto*               ops        = inst.ops(operands_);
     ops[0].name                   = symbolName;
     ops[1].callConv               = callConv;
     ops[2].valueU64               = reinterpret_cast<uint64_t>(targetSymbol);
+    ops[3].valueU64               = 0;
     return;
 }
 

@@ -242,6 +242,7 @@
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
+        <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
         <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
@@ -420,6 +421,7 @@
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\CompilerInstance.h"/>
+        <ClInclude Include="src\Main\ExternalModuleManager.h"/>
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
         <ClInclude Include="src\Support\Math\ApInt.h"/>

@@ -19,6 +19,7 @@ class ConstantManager;
 class IdentifierManager;
 class SymbolModule;
 class JITExecMemoryManager;
+class ExternalModuleManager;
 class Global;
 class SourceFile;
 struct CommandLine;
@@ -52,6 +53,8 @@ public:
     const Runtime::ICompiler&   runtimeCompiler() const { return runtimeCompiler_; }
     JITExecMemoryManager&       jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
     const JITExecMemoryManager& jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    ExternalModuleManager&      externalModuleMgr() { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
+    const ExternalModuleManager& externalModuleMgr() const { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -116,6 +119,7 @@ private:
     std::unique_ptr<ConstantManager>         cstMgr_;
     std::unique_ptr<IdentifierManager>       idMgr_;
     std::unique_ptr<JITExecMemoryManager>    jitMemMgr_;
+    std::unique_ptr<ExternalModuleManager>   externalModuleMgr_;
     SymbolModule*                            symModule_   = nullptr;
     JobClientId                              jobClientId_ = 0;
     fs::path                                 modulePathSrc_;

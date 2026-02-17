@@ -143,6 +143,41 @@ namespace Os
         (void) VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
+    bool loadExternalModule(void*& outModuleHandle, std::string_view moduleName)
+    {
+        outModuleHandle = nullptr;
+        if (moduleName.empty())
+            return false;
+
+        const Utf8 moduleNameUtf8{moduleName};
+        fs::path   modulePath{moduleNameUtf8.c_str()};
+        if (!modulePath.has_extension())
+            modulePath += ".dll";
+
+        const Utf8 moduleFileName = modulePath.string();
+        auto*      moduleHandle   = LoadLibraryA(moduleFileName.c_str());
+        if (!moduleHandle)
+            return false;
+
+        outModuleHandle = moduleHandle;
+        return true;
+    }
+
+    bool getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName)
+    {
+        outFunctionAddress = nullptr;
+        if (!moduleHandle || functionName.empty())
+            return false;
+
+        const Utf8 functionNameUtf8{functionName};
+        auto*      func = GetProcAddress(reinterpret_cast<HMODULE>(moduleHandle), functionNameUtf8.c_str());
+        if (!func)
+            return false;
+
+        outFunctionAddress = reinterpret_cast<void*>(func);
+        return true;
+    }
+
     void exit(ExitCode code)
     {
         ExitProcess(static_cast<int>(code));

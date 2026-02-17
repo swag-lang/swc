@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/Command.h"
 #include "Main/CommandLine.h"
+#include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -55,7 +56,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
 
     const uint32_t numWorkers = global.jobMgr().isSingleThreaded() ? 1 : global.jobMgr().numWorkers();
     perThreadData_.resize(numWorkers);
-    jitMemMgr_ = std::make_unique<JITExecMemoryManager>();
+    jitMemMgr_         = std::make_unique<JITExecMemoryManager>();
+    externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
     setupRuntimeCompiler();
 }
 

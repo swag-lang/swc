@@ -42,6 +42,7 @@ void IdentifierManager::setup(TaskContext& ctx)
         {.name = PredefinedName::Complete, .str = "Complete"},
         {.name = PredefinedName::Overload, .str = "Overload"},
         {.name = PredefinedName::CalleeReturn, .str = "CalleeReturn"},
+        {.name = PredefinedName::Foreign, .str = "Foreign"},
         {.name = PredefinedName::Discardable, .str = "Discardable"},
         {.name = PredefinedName::NotGeneric, .str = "NotGeneric"},
         {.name = PredefinedName::Tls, .str = "Tls"},

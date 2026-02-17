@@ -104,7 +104,7 @@ namespace
         if (auto* currentFn = sema.frame().currentFunction())
         {
             auto* calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
-            if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef())
+            if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef() && !calledFn->isForeign())
                 currentFn->addCallDependency(calledFn);
         }
 
@@ -201,6 +201,9 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    if (sym.isForeign() && !sym.isEmpty())
+        return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
+
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }

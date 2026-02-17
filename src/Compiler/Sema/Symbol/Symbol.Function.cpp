@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/ExternalModuleManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -20,6 +21,52 @@ namespace
         SymbolFunction* function = nullptr;
         bool            expanded = false;
     };
+
+    bool resolveExternAddress(TaskContext& ctx, uint64_t& outFunctionAddress, const SymbolFunction& targetFunction)
+    {
+        outFunctionAddress = 0;
+        if (!targetFunction.isForeign())
+            return false;
+
+        const auto moduleName = targetFunction.foreignModuleName();
+        if (moduleName.empty())
+            return false;
+
+        const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
+        if (functionName.empty())
+            return false;
+
+        void* functionAddress = nullptr;
+        if (!ctx.compiler().externalModuleMgr().getFunctionAddress(functionAddress, moduleName, functionName))
+            return false;
+
+        outFunctionAddress = reinterpret_cast<uint64_t>(functionAddress);
+        return outFunctionAddress != 0;
+    }
+
+    void patchCallExternTargets(TaskContext& ctx, MicroInstrBuilder& builder)
+    {
+        auto& instructions = builder.instructions();
+        auto& operands     = builder.operands();
+        for (auto it = instructions.view().begin(); it != instructions.view().end(); ++it)
+        {
+            auto& inst = *it;
+            if (inst.op != MicroInstrOpcode::CallExtern || inst.numOperands < 4)
+                continue;
+
+            auto* const ops = inst.ops(operands);
+            auto* const sym = reinterpret_cast<Symbol*>(ops[2].valueU64);
+            if (!sym || !sym->isFunction())
+                continue;
+
+            const auto& targetFunction = sym->cast<SymbolFunction>();
+            uint64_t    functionAddress = 0;
+            if (!resolveExternAddress(ctx, functionAddress, targetFunction))
+                continue;
+
+            ops[3].valueU64 = functionAddress;
+        }
+    }
 
     void appendJitOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
@@ -101,6 +148,17 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
+Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
+{
+    if (!isForeign())
+        return {};
+
+    if (!foreignFunctionName().empty())
+        return Utf8{foreignFunctionName()};
+
+    return Utf8{name(ctx)};
+}
+
 void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
 {
     if (parserFlags.has(AstFunctionFlagsE::Method))
@@ -149,7 +207,9 @@ void SymbolFunction::emit(TaskContext& ctx)
     std::scoped_lock lock(emitMutex_);
     if (hasLoweredCode())
         return;
-    loweredMicroCode_.emit(ctx, microInstrBuilder(ctx));
+    auto& builder = microInstrBuilder(ctx);
+    patchCallExternTargets(ctx, builder);
+    loweredMicroCode_.emit(ctx, builder);
     ctx.compiler().notifyAlive();
 }
 

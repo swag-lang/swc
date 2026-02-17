@@ -77,18 +77,15 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             const uint32_t callOffset   = encoder.size();
             Symbol* const  targetSymbol = inst.numOperands >= 4 ? reinterpret_cast<Symbol*>(ops[3].valueU64) : nullptr;
             encoder.encodeCallLocal(targetSymbol, ops[1].callConv, inst.emitFlags);
-            if (inst.numOperands >= 3)
-            {
-                const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
-                context.builder->addRelocation({
-                    .kind           = MicroRelocation::Kind::Rel32,
-                    .codeOffset     = callOffset + 1,
-                    .instructionRef = INVALID_REF,
-                    .symbolName     = symbolName,
-                    .targetAddress  = 0,
-                    .targetSymbol   = targetSymbol,
-                });
-            }
+            const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
+            context.builder->addRelocation({
+                .kind           = MicroRelocation::Kind::Rel32,
+                .codeOffset     = callOffset + 1,
+                .instructionRef = INVALID_REF,
+                .symbolName     = symbolName,
+                .targetAddress  = 0,
+                .targetSymbol   = targetSymbol,
+            });
             break;
         }
         case MicroInstrOpcode::CallExtern:

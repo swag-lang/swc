@@ -10,14 +10,28 @@ namespace
 {
     constexpr uint32_t K_CALL_PUSH_SIZE = sizeof(void*);
 
+    struct PreparedCallStackAdjust
+    {
+        uint32_t before  = 0;
+        uint32_t restore = 0;
+    };
+
+    uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex, uint32_t numRegArgs)
+    {
+        const uint32_t stackSlotSize = conv.stackSlotSize();
+        if (argIndex < numRegArgs)
+            return static_cast<uint64_t>(argIndex) * stackSlotSize;
+
+        return conv.stackShadowSpace + static_cast<uint64_t>(argIndex - numRegArgs) * stackSlotSize;
+    }
+
     void emitCallArgs(MicroBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
     {
         if (args.empty())
             return;
 
-        const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-        const uint32_t stackSlotSize = conv.stackSlotSize();
-        const uint32_t numArgs       = static_cast<uint32_t>(args.size());
+        const uint32_t numRegArgs = conv.numArgRegisterSlots();
+        const uint32_t numArgs    = static_cast<uint32_t>(args.size());
         builder.encodeLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
         for (uint32_t i = 0; i < numArgs; ++i)
         {
@@ -35,7 +49,7 @@ namespace
                 continue;
             }
 
-            const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
+            const uint64_t stackOffset = callArgStackOffset(conv, i, numRegArgs);
             builder.encodeLoadRegMem(regTmp, regBase, argAddr, argBits);
             builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
         }
@@ -66,6 +80,37 @@ namespace
         else
             builder.encodeLoadMemReg(regBase, 0, conv.intReturn, retBits);
     }
+
+    PreparedCallStackAdjust computePreparedCallStackAdjust(CallConvKind callConvKind, const ABICall::PreparedCall& preparedCall)
+    {
+        PreparedCallStackAdjust result;
+        if (preparedCall.stackAlreadyAdjusted)
+        {
+            result.restore = preparedCall.stackAdjust;
+            return result;
+        }
+
+        result.before  = ABICall::computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
+        result.restore = result.before;
+        return result;
+    }
+
+    void emitCallStackAdjust(MicroBuilder& builder, const CallConv& conv, uint32_t stackAdjust, MicroOp op)
+    {
+        if (stackAdjust)
+            builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, op, MicroOpBits::B64);
+    }
+
+    void emitReturnWriteBackIfNeeded(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret)
+    {
+        if (ret.isVoid || ret.isIndirect)
+            return;
+
+        MicroReg regBase = MicroReg::invalid();
+        MicroReg regTmp  = MicroReg::invalid();
+        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+        emitReturnWriteBack(builder, conv, ret, regBase);
+    }
 }
 
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
@@ -90,18 +135,17 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (args.empty())
         return preparedCall;
 
-    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-    const uint32_t stackSlotSize = conv.stackSlotSize();
-    const uint32_t stackAdjust   = computeCallStackAdjust(callConvKind, numPreparedArgs);
-    preparedCall.stackAdjust     = stackAdjust;
-    const bool hasStackArgs      = numPreparedArgs > numRegArgs;
-
-    MicroReg regBase = MicroReg::invalid();
-    MicroReg regTmp  = MicroReg::invalid();
-    SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+    const uint32_t numRegArgs  = conv.numArgRegisterSlots();
+    const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, numPreparedArgs);
+    preparedCall.stackAdjust   = stackAdjust;
+    const bool hasStackArgs    = numPreparedArgs > numRegArgs;
 
     if (hasStackArgs)
     {
+        MicroReg regBase = MicroReg::invalid();
+        MicroReg regTmp  = MicroReg::invalid();
+        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+
         const uint32_t       numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
         SmallVector<uint8_t> regArgsUseHomeSlot;
         regArgsUseHomeSlot.resize(numRegArgsUsed, 0);
@@ -128,7 +172,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 }
             }
 
-            const uint64_t stackOffset = isRegArg ? static_cast<uint64_t>(i) * stackSlotSize : conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
+            const uint64_t stackOffset = callArgStackOffset(conv, i, numRegArgs);
 
             switch (arg.kind)
             {
@@ -154,7 +198,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (regArgsUseHomeSlot[i])
             {
                 const auto     argBits    = preparedArgBits(arg);
-                const uint64_t homeOffset = static_cast<uint64_t>(i) * stackSlotSize;
+                const uint64_t homeOffset = callArgStackOffset(conv, i, numRegArgs);
                 if (arg.isFloat)
                 {
                     SWC_ASSERT(i < conv.floatArgRegs.size());
@@ -191,31 +235,22 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
-        const auto& arg      = args[i];
-        const bool  isRegArg = i < numRegArgs;
+        const auto& arg = args[i];
 
         switch (arg.kind)
         {
             case PreparedArgKind::Direct:
             {
                 const MicroOpBits argBits = preparedArgBits(arg);
-                if (isRegArg)
+                if (arg.isFloat)
                 {
-                    if (arg.isFloat)
-                    {
-                        SWC_ASSERT(i < conv.floatArgRegs.size());
-                        builder.encodeLoadRegReg(conv.floatArgRegs[i], arg.srcReg, argBits);
-                    }
-                    else
-                    {
-                        SWC_ASSERT(i < conv.intArgRegs.size());
-                        builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits);
-                    }
+                    SWC_ASSERT(i < conv.floatArgRegs.size());
+                    builder.encodeLoadRegReg(conv.floatArgRegs[i], arg.srcReg, argBits);
                 }
                 else
                 {
-                    const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
-                    builder.encodeLoadMemReg(regBase, stackOffset, arg.srcReg, argBits);
+                    SWC_ASSERT(i < conv.intArgRegs.size());
+                    builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits);
                 }
                 break;
             }
@@ -223,17 +258,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             case PreparedArgKind::InterfaceObject:
             {
                 SWC_ASSERT(!arg.isFloat);
-                if (isRegArg)
-                {
-                    SWC_ASSERT(i < conv.intArgRegs.size());
-                    builder.encodeLoadRegMem(conv.intArgRegs[i], arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-                }
-                else
-                {
-                    const uint64_t stackOffset = conv.stackShadowSpace + static_cast<uint64_t>(i - numRegArgs) * stackSlotSize;
-                    builder.encodeLoadRegMem(regTmp, arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-                    builder.encodeLoadMemReg(regBase, stackOffset, regTmp, MicroOpBits::B64);
-                }
+                SWC_ASSERT(i < conv.intArgRegs.size());
+                builder.encodeLoadRegMem(conv.intArgRegs[i], arg.srcReg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
                 break;
             }
 
@@ -349,65 +375,37 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     MicroReg regTmp  = MicroReg::invalid();
     SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
 
-    if (stackAdjust)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
-
+    emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.encodeLoadRegPtrImm(regTmp, targetAddress);
     builder.encodeCallReg(regTmp, callConvKind);
     emitReturnWriteBack(builder, conv, ret, regBase);
-
-    if (stackAdjust)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Add, MicroOpBits::B64);
+    emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
 }
 
 void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
 {
     SWC_ASSERT(targetSymbol != nullptr);
 
-    const auto& conv               = CallConv::get(callConvKind);
-    const auto  stackAdjustBefore  = preparedCall.stackAlreadyAdjusted ? 0 : computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
-    const auto  stackAdjustRestore = preparedCall.stackAlreadyAdjusted ? preparedCall.stackAdjust : stackAdjustBefore;
+    const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    if (stackAdjustBefore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
-
+    const auto& conv = CallConv::get(callConvKind);
+    emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
     builder.encodeCallLocal(targetSymbol, callConvKind);
-
-    if (!ret.isVoid && !ret.isIndirect)
-    {
-        MicroReg regBase = MicroReg::invalid();
-        MicroReg regTmp  = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
-        emitReturnWriteBack(builder, conv, ret, regBase);
-    }
-
-    if (stackAdjustRestore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustRestore, MicroOp::Add, MicroOpBits::B64);
+    emitReturnWriteBackIfNeeded(builder, conv, ret);
+    emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
 void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
 {
-    const auto& conv               = CallConv::get(callConvKind);
-    const auto  stackAdjustBefore  = preparedCall.stackAlreadyAdjusted ? 0 : computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
-    const auto  stackAdjustRestore = preparedCall.stackAlreadyAdjusted ? preparedCall.stackAdjust : stackAdjustBefore;
+    const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    if (stackAdjustBefore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
-
+    const auto& conv = CallConv::get(callConvKind);
+    emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
     builder.encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     builder.encodeCallReg(conv.intReturn, callConvKind);
-
-    if (!ret.isVoid && !ret.isIndirect)
-    {
-        MicroReg regBase = MicroReg::invalid();
-        MicroReg regTmp  = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
-        emitReturnWriteBack(builder, conv, ret, regBase);
-    }
-
-    if (stackAdjustRestore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustRestore, MicroOp::Add, MicroOpBits::B64);
+    emitReturnWriteBackIfNeeded(builder, conv, ret);
+    emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
 void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall)
@@ -417,25 +415,13 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
 
 void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret, Symbol* callDebugSymbol)
 {
-    const auto& conv               = CallConv::get(callConvKind);
-    const auto  stackAdjustBefore  = preparedCall.stackAlreadyAdjusted ? 0 : computeCallStackAdjust(callConvKind, preparedCall.numPreparedArgs);
-    const auto  stackAdjustRestore = preparedCall.stackAlreadyAdjusted ? preparedCall.stackAdjust : stackAdjustBefore;
+    const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    if (stackAdjustBefore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustBefore, MicroOp::Subtract, MicroOpBits::B64);
-
+    const auto& conv = CallConv::get(callConvKind);
+    emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
     builder.encodeCallReg(targetReg, callConvKind);
-
-    if (!ret.isVoid && !ret.isIndirect)
-    {
-        MicroReg regBase = MicroReg::invalid();
-        MicroReg regTmp  = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
-        emitReturnWriteBack(builder, conv, ret, regBase);
-    }
-
-    if (stackAdjustRestore)
-        builder.encodeOpBinaryRegImm(conv.stackPointer, stackAdjustRestore, MicroOp::Add, MicroOpBits::B64);
+    emitReturnWriteBackIfNeeded(builder, conv, ret);
+    emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
 void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, Symbol* callDebugSymbol)

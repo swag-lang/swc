@@ -10,6 +10,27 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    std::string_view backendOptimizeLevelName(Runtime::BuildCfgBackendOptim level)
+    {
+        switch (level)
+        {
+            case Runtime::BuildCfgBackendOptim::O0:
+                return "O0";
+            case Runtime::BuildCfgBackendOptim::O1:
+                return "O1";
+            case Runtime::BuildCfgBackendOptim::O2:
+                return "O2";
+            case Runtime::BuildCfgBackendOptim::O3:
+                return "O3";
+            case Runtime::BuildCfgBackendOptim::Os:
+                return "Os";
+            case Runtime::BuildCfgBackendOptim::Oz:
+                return "Oz";
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
     std::string_view passStageName(MicroPassKind passKind, bool before)
     {
         switch (passKind)
@@ -49,6 +70,52 @@ namespace
         return false;
     }
 
+    void printPassHeader(const TaskContext& ctx, const MicroInstrBuilder& builder, std::string_view stageName)
+    {
+        const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
+        const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
+        const uint32_t         sourceLine = builder.printSourceLine();
+        const std::string_view optimize   = backendOptimizeLevelName(builder.backendOptimizeLevel());
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
+        Logger::print(ctx, "[micro]");
+        Logger::print(ctx, "\n");
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  stage");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, "    : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Attribute));
+        Logger::print(ctx, stageName);
+        Logger::print(ctx, "\n");
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  function");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, " : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Function));
+        Logger::print(ctx, symbolName);
+        Logger::print(ctx, "\n");
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  location");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, " : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::String));
+        Logger::print(ctx, std::format("{}:{}", filePath, sourceLine));
+        Logger::print(ctx, "\n");
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  opt");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, "      : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Number));
+        Logger::print(ctx, optimize);
+        Logger::print(ctx, "\n");
+
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
+    }
+
     void printPassInstructions(const MicroPassContext& context, MicroPassKind passKind, bool before)
     {
         if (!context.taskContext || !context.builder)
@@ -58,16 +125,10 @@ namespace
         const auto&        builder = *context.builder;
         Logger::ScopedLock loggerLock(ctx.global().logger());
 
-        const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
-        const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
-        const uint32_t         sourceLine = builder.printSourceLine();
-        const auto             stageName  = passStageName(passKind, before);
+        const auto stageName = passStageName(passKind, before);
 
         Logger::print(ctx, "\n");
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
-        Logger::print(ctx, std::format("[micro:{}] {} @ {}:{}", stageName, symbolName, filePath, sourceLine));
-        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
-        Logger::print(ctx, "\n");
+        printPassHeader(ctx, builder, stageName);
 
         const auto  printMode = passPrintMode(passKind, before);
         const auto* encoder   = printMode == MicroInstrRegPrintMode::Concrete ? context.encoder : nullptr;

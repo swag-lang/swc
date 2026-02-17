@@ -166,8 +166,6 @@ struct LocalStruct
     #assert(V.y == true)
 }
 
-#[Swag.PrintMicro]
-#[Swag.Optimize(Swag.Optimization.O0)]
 #test
 {
     func retArray()->[3] s32 { return [1, 2, 3] }
@@ -190,6 +188,8 @@ struct BigCopy
     a8: u64
 }
 
+#[Swag.PrintMicro]
+#[Swag.Optimize(Swag.Optimization.O0)]
 #test
 {
     func makeBigCopy()->BigCopy

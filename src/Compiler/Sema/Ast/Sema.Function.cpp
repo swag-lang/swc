@@ -43,7 +43,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
     }
 
-    SemaFrame frame = sema.frame();
+    SemaFrame frame           = sema.frame();
     frame.currentAttributes() = sym.attributes();
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
@@ -95,7 +95,7 @@ namespace
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const auto resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        const auto                        resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));

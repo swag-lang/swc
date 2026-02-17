@@ -14,9 +14,14 @@ std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
     std::unique_lock lock(mutex_);
     if (const auto it = stringMap_.find(value); it != stringMap_.end())
         return it->second;
-    const auto [span, ref]      = store_.pushCopySpan(asByteSpan(std::string_view(value)));
-    const std::string_view view = asStringView(span);
-    stringMap_[value]           = {view, ref};
+
+    Utf8 zeroTerminated = value;
+    zeroTerminated.push_back('\0');
+
+    const auto [span, ref] = store_.pushCopySpan(asByteSpan(std::string_view(zeroTerminated)));
+    const std::string_view view{reinterpret_cast<const char*>(span.data()), value.size()};
+    stringMap_[value] = {view, ref};
+
     return {view, ref};
 }
 

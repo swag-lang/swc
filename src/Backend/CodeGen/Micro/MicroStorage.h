@@ -29,7 +29,7 @@ public:
         using reference         = MicroInstr&;
 
         MicroStorage* storage = nullptr;
-        Ref                current = INVALID_REF;
+        Ref           current = INVALID_REF;
 
         reference operator*() const;
         pointer   operator->() const;
@@ -50,7 +50,7 @@ public:
         using reference         = const MicroInstr&;
 
         const MicroStorage* storage = nullptr;
-        Ref                      current = INVALID_REF;
+        Ref                 current = INVALID_REF;
 
         reference      operator*() const;
         pointer        operator->() const;

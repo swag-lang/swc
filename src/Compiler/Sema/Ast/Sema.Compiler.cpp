@@ -629,7 +629,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
-    auto frame = sema.frame();
+    auto frame                = sema.frame();
     frame.currentAttributes() = sym.attributes();
     frame.setCurrentFunction(&sym);
     sema.pushFramePopOnPostNode(frame);
@@ -658,8 +658,8 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
         sema.setSymbol(nodeRef, symFn);
     }
 
-    SemaFrame frame = sema.frame();
-    auto&     symFn = sema.symbolOf(nodeRef).cast<SymbolFunction>();
+    SemaFrame frame           = sema.frame();
+    auto&     symFn           = sema.symbolOf(nodeRef).cast<SymbolFunction>();
     frame.currentAttributes() = symFn.attributes();
     frame.setCurrentFunction(&symFn);
     sema.pushFramePopOnPostNode(frame);

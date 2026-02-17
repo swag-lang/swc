@@ -67,8 +67,8 @@ struct AttributeList
 
     void setForeign(std::string_view moduleName, std::string_view functionName)
     {
-        hasForeign         = true;
-        foreignModuleName  = moduleName;
+        hasForeign          = true;
+        foreignModuleName   = moduleName;
         foreignFunctionName = functionName;
     }
 };

@@ -177,7 +177,7 @@ ExitCode CompilerInstance::run()
 SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock lock(mutex_);
-    SourceViewRef     srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -191,7 +191,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     SWC_RACE_CONDITION_READ(rcFiles_);
 
     std::unique_lock lock(mutex_);
-    SourceViewRef     srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -225,7 +225,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     path         = fs::absolute(path);
-    FileRef fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
+    auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();

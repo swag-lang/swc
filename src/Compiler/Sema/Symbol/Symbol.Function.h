@@ -46,14 +46,14 @@ public:
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
 
-    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
-    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
-    bool isForeign() const noexcept { return attributes().hasForeign; }
+    void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+    bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool             isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool             isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
+    bool             isForeign() const noexcept { return attributes().hasForeign; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
@@ -62,20 +62,20 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind               specOpKind() const noexcept { return specOpKind_; }
-    void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind             callConvKind() const noexcept { return callConvKind_; }
-    void                     setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    SpecOpKind          specOpKind() const noexcept { return specOpKind_; }
+    void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+    CallConvKind        callConvKind() const noexcept { return callConvKind_; }
+    void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
     MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
     const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
-    AstNodeRef               declNodeRef() const noexcept { return declNodeRef_; }
-    void                     setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    bool                     tryMarkCodeGenJobScheduled() noexcept;
-    void                     addCallDependency(SymbolFunction* sym);
-    void                     appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void*                    jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void                     emit(TaskContext& ctx);
-    void                     jit(TaskContext& ctx);
+    AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
+    void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    bool                tryMarkCodeGenJobScheduled() noexcept;
+    void                addCallDependency(SymbolFunction* sym);
+    void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void                emit(TaskContext& ctx);
+    void                jit(TaskContext& ctx);
 
 private:
     bool hasLoweredCode() const noexcept;
@@ -85,14 +85,14 @@ private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 
     std::vector<SymbolVariable*> parameters_;
-    RtAttributeFlags             rtAttributeFlags_   = RtAttributeFlagsE::Zero;
+    RtAttributeFlags             rtAttributeFlags_    = RtAttributeFlagsE::Zero;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
-    MicroBuilder            microInstrBuilder_;
+    MicroBuilder                 microInstrBuilder_;
     MachineCode                  loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;

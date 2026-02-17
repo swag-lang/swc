@@ -14,7 +14,7 @@ public:
 private:
     struct ModuleEntry
     {
-        Utf8 moduleName;
+        Utf8  moduleName;
         void* moduleHandle = nullptr;
     };
 

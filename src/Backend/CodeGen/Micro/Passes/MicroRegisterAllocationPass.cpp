@@ -43,7 +43,7 @@ namespace
     {
         MicroPassContext*    context      = nullptr;
         const CallConv*      conv         = nullptr;
-        MicroStorage*   instructions = nullptr;
+        MicroStorage*        instructions = nullptr;
         MicroOperandStorage* operands     = nullptr;
 
         uint32_t instructionCount = 0;

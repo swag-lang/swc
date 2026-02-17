@@ -131,7 +131,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    MicroBuilder& builder        = codeGen.builder();
+    MicroBuilder&      builder        = codeGen.builder();
     const auto         calleeView     = codeGen.nodeView(nodeExprRef);
     SymbolFunction&    calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
     const CallConvKind callConvKind   = calledFunction.callConvKind();

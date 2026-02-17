@@ -32,28 +32,28 @@ public:
 
     ExitCode run();
 
-    const Global&               global() const { return *SWC_CHECK_NOT_NULL(global_); }
-    const CommandLine&          cmdLine() const { return *SWC_CHECK_NOT_NULL(cmdLine_); }
-    JobClientId                 jobClientId() const { return jobClientId_; }
-    TypeManager&                typeMgr() { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
-    const TypeManager&          typeMgr() const { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
-    TypeGen&                    typeGen() { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
-    const TypeGen&              typeGen() const { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
-    ConstantManager&            cstMgr() { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
-    const ConstantManager&      cstMgr() const { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
-    IdentifierManager&          idMgr() { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
-    const IdentifierManager&    idMgr() const { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
-    DataSegment&                constantSegment() { return constantSegment_; }
-    const DataSegment&          constantSegment() const { return constantSegment_; }
-    DataSegment&                compilerSegment() { return compilerSegment_; }
-    const DataSegment&          compilerSegment() const { return compilerSegment_; }
-    Runtime::BuildCfg&          buildCfg() { return buildCfg_; }
-    const Runtime::BuildCfg&    buildCfg() const { return buildCfg_; }
-    Runtime::ICompiler&         runtimeCompiler() { return runtimeCompiler_; }
-    const Runtime::ICompiler&   runtimeCompiler() const { return runtimeCompiler_; }
-    JITExecMemoryManager&       jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
-    const JITExecMemoryManager& jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
-    ExternalModuleManager&      externalModuleMgr() { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
+    const Global&                global() const { return *SWC_CHECK_NOT_NULL(global_); }
+    const CommandLine&           cmdLine() const { return *SWC_CHECK_NOT_NULL(cmdLine_); }
+    JobClientId                  jobClientId() const { return jobClientId_; }
+    TypeManager&                 typeMgr() { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
+    const TypeManager&           typeMgr() const { return *SWC_CHECK_NOT_NULL(typeMgr_.get()); }
+    TypeGen&                     typeGen() { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
+    const TypeGen&               typeGen() const { return *SWC_CHECK_NOT_NULL(typeGen_.get()); }
+    ConstantManager&             cstMgr() { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
+    const ConstantManager&       cstMgr() const { return *SWC_CHECK_NOT_NULL(cstMgr_.get()); }
+    IdentifierManager&           idMgr() { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
+    const IdentifierManager&     idMgr() const { return *SWC_CHECK_NOT_NULL(idMgr_.get()); }
+    DataSegment&                 constantSegment() { return constantSegment_; }
+    const DataSegment&           constantSegment() const { return constantSegment_; }
+    DataSegment&                 compilerSegment() { return compilerSegment_; }
+    const DataSegment&           compilerSegment() const { return compilerSegment_; }
+    Runtime::BuildCfg&           buildCfg() { return buildCfg_; }
+    const Runtime::BuildCfg&     buildCfg() const { return buildCfg_; }
+    Runtime::ICompiler&          runtimeCompiler() { return runtimeCompiler_; }
+    const Runtime::ICompiler&    runtimeCompiler() const { return runtimeCompiler_; }
+    JITExecMemoryManager&        jitMemMgr() { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    const JITExecMemoryManager&  jitMemMgr() const { return *SWC_CHECK_NOT_NULL(jitMemMgr_.get()); }
+    ExternalModuleManager&       externalModuleMgr() { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
     const ExternalModuleManager& externalModuleMgr() const { return *SWC_CHECK_NOT_NULL(externalModuleMgr_.get()); }
 
     SymbolModule*       symModule() { return symModule_; }

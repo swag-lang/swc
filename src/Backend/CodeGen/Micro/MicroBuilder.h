@@ -125,7 +125,7 @@ public:
     const Utf8&                         printFilePath() const { return printFilePath_; }
     uint32_t                            printSourceLine() const { return printSourceLine_; }
     void                                clearCodeRelocations() { codeRelocations_.clear(); }
-    void                                addCodeRelocation(MicroRelocation relocation);
+    void                                addCodeRelocation(const MicroRelocation& relocation);
     std::vector<MicroRelocation>&       codeRelocations() { return codeRelocations_; }
     const std::vector<MicroRelocation>& codeRelocations() const { return codeRelocations_; }
 

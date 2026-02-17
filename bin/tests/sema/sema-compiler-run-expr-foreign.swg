@@ -37,11 +37,13 @@ func LStrLenA(text: const *u8)->s32;
 #[Swag.PrintMicro]
 #test
 {
-    const L1 = #run LStrLenA(@dataof("A\0"))
-    const L5 = #run LStrLenA(@dataof("ABCDE\0"))
+    const L1 = #run LStrLenA(@dataof("A"))
+    const L5 = #run LStrLenA(@dataof("ABCDE"))
     #assert(L1 == 1)
     #assert(L5 == 5)
 }
+
+#test { const L = #run LStrLenA("ABCDE") } // swc-expected-error {{sema_err_cannot_cast}}
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
 func GetPidWithBody()->u32 // swc-expected-error {{sema_err_foreign_cannot_have_body}}

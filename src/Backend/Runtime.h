@@ -342,12 +342,12 @@ namespace Runtime
 
     struct BuildCfgBackend
     {
-        bool fpMathFma;
-        bool fpMathNoNaN;
-        bool fpMathNoInf;
-        bool fpMathNoSignedZero;
-        bool fpMathUnsafe;
-        bool fpMathApproxFunc;
+        bool     fpMathFma;
+        bool     fpMathNoNaN;
+        bool     fpMathNoInf;
+        bool     fpMathNoSignedZero;
+        bool     fpMathUnsafe;
+        bool     fpMathApproxFunc;
         uint32_t unrollMemLimit;
     };
 
@@ -457,8 +457,8 @@ namespace Runtime
         BuildCfgBackendOptim   backendOptimize          = BuildCfgBackendOptim::O0;
         uint32_t               backendNumCu             = 0;
 
-        String              linkerArgs;
-        BuildCfgBackend     backend;
+        String          linkerArgs;
+        BuildCfgBackend backend;
 
         String         repoPath;
         String         resAppIcoFileName;

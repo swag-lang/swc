@@ -24,8 +24,8 @@ struct MicroPassContext
 
     Encoder*              encoder                = nullptr;
     TaskContext*          taskContext            = nullptr;
-    MicroBuilder*    builder                = nullptr;
-    MicroStorage*    instructions           = nullptr;
+    MicroBuilder*         builder                = nullptr;
+    MicroStorage*         instructions           = nullptr;
     MicroOperandStorage*  operands               = nullptr;
     std::span<const Utf8> passPrintOptions       = {};
     CallConvKind          callConvKind           = CallConvKind::Host;

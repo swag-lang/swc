@@ -13,7 +13,7 @@ namespace
     Result codeGenInterfaceMethodMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         MicroBuilder& builder     = codeGen.builder();
-        const auto*        leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
+        const auto*   leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
         const auto    rightView  = codeGen.nodeView(node.nodeRightRef);
         const Symbol* methodSym  = SWC_CHECK_NOT_NULL(rightView.sym);

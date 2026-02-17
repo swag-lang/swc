@@ -51,14 +51,14 @@ class Encoder
     friend struct MicroInstr;
 
 public:
-    uint32_t            size() const { return store_.size(); }
-    const uint8_t*      data() const;
-    uint8_t             byteAt(uint32_t index) const;
-    void                copyTo(ByteSpanRW dst) const;
-    void                setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
+    uint32_t                      size() const { return store_.size(); }
+    const uint8_t*                data() const;
+    uint8_t                       byteAt(uint32_t index) const;
+    void                          copyTo(ByteSpanRW dst) const;
+    void                          setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
     Runtime::BuildCfgBackendOptim backendOptimizeLevel() const { return backendOptimizeLevel_; }
-    virtual std::string formatRegisterName(MicroReg reg) const;
-    virtual MicroReg    stackPointerReg() const = 0;
+    virtual std::string           formatRegisterName(MicroReg reg) const;
+    virtual MicroReg              stackPointerReg() const = 0;
 
 protected:
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
@@ -75,7 +75,7 @@ protected:
     virtual void encodeNop(EncodeFlags emitFlags)                                                                                                                                                            = 0;
     virtual void encodeRet(EncodeFlags emitFlags)                                                                                                                                                            = 0;
     virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                         = 0;
-    virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)                                                                               = 0;
+    virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv, EncodeFlags emitFlags)                                                                                = 0;
     virtual void encodeCallReg(MicroReg reg, CallConvKind callConv, EncodeFlags emitFlags)                                                                                                                   = 0;
     virtual void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries, EncodeFlags emitFlags)                                                 = 0;
     virtual void encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits, EncodeFlags emitFlags)                                                                                                   = 0;
@@ -129,11 +129,11 @@ protected:
 
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
-    TaskContext*               ctx_ = nullptr;
-    PagedStore                 store_;
-    uint32_t                   textSectionOffset_ = 0;
-    uint32_t                   symCsIndex_        = 0;
-    EncoderFunction*           cpuFct_            = nullptr;
+    TaskContext*                  ctx_ = nullptr;
+    PagedStore                    store_;
+    uint32_t                      textSectionOffset_    = 0;
+    uint32_t                      symCsIndex_           = 0;
+    EncoderFunction*              cpuFct_               = nullptr;
     Runtime::BuildCfgBackendOptim backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
 };
 

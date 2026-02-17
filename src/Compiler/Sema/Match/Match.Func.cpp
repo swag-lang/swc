@@ -959,7 +959,7 @@ namespace
             AstNodeRef finalArgRef = entry.argRef;
             if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
                 finalArgRef = namedArg->nodeArgRef;
-            auto             passKind    = CallArgumentPassKind::Direct;
+            auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
                 const auto argView = sema.nodeView(finalArgRef);

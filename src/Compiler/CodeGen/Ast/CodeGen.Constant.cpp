@@ -12,10 +12,10 @@ namespace
 {
     void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
-        auto&           ctx         = codeGen.ctx();
+        auto&           ctx          = codeGen.ctx();
         const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
         const TypeInfo& typeInfo     = ctx.typeMgr().get(finalTypeRef);
-        const uint64_t  storageSize = typeInfo.sizeOf(ctx);
+        const uint64_t  storageSize  = typeInfo.sizeOf(ctx);
         if (!storageSize)
         {
             codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);

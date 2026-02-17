@@ -15,7 +15,7 @@ namespace Utf8Helper
     Utf8 toNiceBigNumber(std::size_t number);
     Utf8 toNiceTime(double seconds);
     Utf8 toLowerSnake(std::string_view s);
-    bool             isHexToken(std::string_view token);
+    bool isHexToken(std::string_view token);
 
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);

@@ -29,8 +29,9 @@ ConstantRef ConstantManager::addInt(TaskContext& ctx, uint64_t value)
     return addConstant(ctx, cstVal);
 }
 
-std::string_view ConstantManager::addString(const TaskContext&, std::string_view str)
+std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
 {
+    SWC_UNSED(ctx);
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];
@@ -52,8 +53,9 @@ namespace
         return cstRef;
     }
 
-    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
+    ConstantRef addCstStruct(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
+        SWC_UNSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -66,8 +68,9 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
+    ConstantRef addCstArray(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
+        SWC_UNSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -80,8 +83,9 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext&, const ConstantValue& value)
+    ConstantRef addCstSlice(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, TaskContext& ctx, const ConstantValue& value)
     {
+        SWC_UNSED(ctx);
         ConstantValue stored = value;
 
         std::unique_lock lk(shard.mutex);
@@ -115,8 +119,9 @@ namespace
         return addCstFinalize(manager, result);
     }
 
-    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext&, const ConstantValue& value)
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
+        SWC_UNSED(ctx);
         {
             std::shared_lock lk(shard.mutex);
             if (const auto it = shard.map.find(value); it != shard.map.end())

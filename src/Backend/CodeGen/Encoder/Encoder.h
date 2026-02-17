@@ -112,8 +112,20 @@ protected:
     virtual void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                            = 0;
     virtual void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits, EncodeFlags emitFlags)                                                                = 0;
 
-    virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
-    virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr&, const MicroInstrOperand*) const { return false; }
+    virtual void updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
+    {
+        SWC_UNSED(inst);
+        SWC_UNSED(ops);
+        SWC_UNSED(info);
+    }
+
+    virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const
+    {
+        SWC_UNSED(outIssue);
+        SWC_UNSED(inst);
+        SWC_UNSED(ops);
+        return false;
+    }
 
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 

@@ -87,8 +87,8 @@ protected:
     void    setType(AstNodeRef nodeRef, TypeRef ref);
 
     bool          hasSymbol(AstNodeRef nodeRef) const;
-    const Symbol& getSymbol(const TaskContext&, AstNodeRef nodeRef) const;
-    Symbol&       getSymbol(const TaskContext&, AstNodeRef nodeRef);
+    const Symbol& getSymbol(const TaskContext& ctx, AstNodeRef nodeRef) const;
+    Symbol&       getSymbol(const TaskContext& ctx, AstNodeRef nodeRef);
     void          setSymbol(AstNodeRef nodeRef, const Symbol* symbol);
 
     bool                     hasSymbolList(AstNodeRef nodeRef) const;

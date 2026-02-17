@@ -10,8 +10,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void IdentifierManager::setup(TaskContext&)
+void IdentifierManager::setup(TaskContext& ctx)
 {
+    SWC_UNSED(ctx);
     predefined_.fill(IdentifierRef::invalid());
 
     struct PredefinedEntry

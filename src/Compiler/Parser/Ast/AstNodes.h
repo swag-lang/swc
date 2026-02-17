@@ -102,8 +102,9 @@ struct AstBinaryT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef});
     }
 };
@@ -157,8 +158,9 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 };
@@ -177,8 +179,9 @@ struct AstIfBaseT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeIfBlockRef, nodeElseBlockRef});
     }
 };
@@ -197,8 +200,9 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeWhatRef, nodeCountRef});
     }
 };
@@ -245,8 +249,9 @@ struct AstInternalCallUnaryT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeArgRef});
     }
 };
@@ -265,8 +270,9 @@ struct AstInternalCallBinaryT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeArg1Ref, nodeArg2Ref});
     }
 };
@@ -286,8 +292,9 @@ struct AstInternalCallTernaryT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeArg1Ref, nodeArg2Ref, nodeArg3Ref});
     }
 };
@@ -305,8 +312,9 @@ struct AstGenericParamT : AstNodeT<I, E>
     {
     }
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
     {
+        SWC_UNSED(ast);
         AstNode::collectChildren(out, {nodeAssignRef});
     }
 };

@@ -56,25 +56,105 @@ struct AstNode
         payloadBits_ = 0;
     }
 
-    static void collectChildren(SmallVector<AstNodeRef>&, const Ast&) {}
+    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast)
+    {
+        SWC_UNSED(out);
+        SWC_UNSED(ast);
+    }
     static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;
 
-    static Result     semaPreDecl(Sema&) { return Result::Continue; }
-    static Result     semaPreDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result     semaPostDeclChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result     semaPostDecl(Sema&) { return Result::Continue; }
-    static Result     semaPreNode(Sema&) { return Result::Continue; }
-    static Result     semaPreNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result     semaPostNodeChild(Sema&, AstNodeRef&) { return Result::Continue; }
-    static Result     semaPostNode(Sema&) { return Result::Continue; }
-    static void       semaErrorCleanup(Sema&, AstNodeRef) {}
-    static AstNodeRef semaClone(Sema&, const CloneContext&) { return AstNodeRef::invalid(); }
-    static Result     codeGenPreNode(CodeGen&) { return Result::Continue; }
-    static Result     codeGenPreNodeChild(CodeGen&, AstNodeRef&) { return Result::Continue; }
-    static Result     codeGenPostNodeChild(CodeGen&, AstNodeRef&) { return Result::Continue; }
-    static Result     codeGenPostNode(CodeGen&) { return Result::Continue; }
+    static Result semaPreDecl(Sema& sema)
+    {
+        SWC_UNSED(sema);
+        return Result::Continue;
+    }
+
+    static Result semaPreDeclChild(Sema& sema, AstNodeRef& childRef)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result semaPostDeclChild(Sema& sema, AstNodeRef& childRef)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result semaPostDecl(Sema& sema)
+    {
+        SWC_UNSED(sema);
+        return Result::Continue;
+    }
+
+    static Result semaPreNode(Sema& sema)
+    {
+        SWC_UNSED(sema);
+        return Result::Continue;
+    }
+
+    static Result semaPreNodeChild(Sema& sema, AstNodeRef& childRef)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result semaPostNodeChild(Sema& sema, AstNodeRef& childRef)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result semaPostNode(Sema& sema)
+    {
+        SWC_UNSED(sema);
+        return Result::Continue;
+    }
+
+    static void semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(nodeRef);
+    }
+
+    static AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext)
+    {
+        SWC_UNSED(sema);
+        SWC_UNSED(cloneContext);
+        return AstNodeRef::invalid();
+    }
+
+    static Result codeGenPreNode(CodeGen& codeGen)
+    {
+        SWC_UNSED(codeGen);
+        return Result::Continue;
+    }
+
+    static Result codeGenPreNodeChild(CodeGen& codeGen, AstNodeRef& childRef)
+    {
+        SWC_UNSED(codeGen);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result codeGenPostNodeChild(CodeGen& codeGen, AstNodeRef& childRef)
+    {
+        SWC_UNSED(codeGen);
+        SWC_UNSED(childRef);
+        return Result::Continue;
+    }
+
+    static Result codeGenPostNode(CodeGen& codeGen)
+    {
+        SWC_UNSED(codeGen);
+        return Result::Continue;
+    }
 
     uint16_t&       payloadBits() { return payloadBits_; }
     const uint16_t& payloadBits() const { return payloadBits_; }

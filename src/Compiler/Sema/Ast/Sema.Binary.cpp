@@ -194,8 +194,9 @@ namespace
         return Result::Error;
     }
 
-    Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr&, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
+        SWC_UNSED(node);
         auto& ctx = sema.ctx();
         Utf8  str = nodeLeftView.cst->toString(ctx);
         str += nodeRightView.cst->toString(ctx);
@@ -229,8 +230,10 @@ namespace
         return Result::Error;
     }
 
-    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView&, const SemaNodeView&)
+    Result checkPlusPlus(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
+        SWC_UNSED(nodeLeftView);
+        SWC_UNSED(nodeRightView);
         RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
         RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeLeftRef));
         RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeRightRef));

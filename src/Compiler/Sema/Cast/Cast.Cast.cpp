@@ -32,8 +32,11 @@ namespace
     }
 }
 
-Result Cast::castIdentity(Sema&, CastRequest& castRequest, TypeRef, TypeRef)
+Result Cast::castIdentity(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    SWC_UNSED(sema);
+    SWC_UNSED(srcTypeRef);
+    SWC_UNSED(dstTypeRef);
     if (castRequest.isConstantFolding())
         foldConstantIdentity(castRequest);
     return Result::Continue;
@@ -377,8 +380,12 @@ Result Cast::castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromUndefined(Sema&, CastRequest&, TypeRef, TypeRef)
+Result Cast::castFromUndefined(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    SWC_UNSED(sema);
+    SWC_UNSED(castRequest);
+    SWC_UNSED(srcTypeRef);
+    SWC_UNSED(dstTypeRef);
     return Result::Continue;
 }
 
@@ -638,8 +645,12 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castToFromTypeInfo(Sema&, CastRequest&, TypeRef, TypeRef)
+Result Cast::castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    SWC_UNSED(sema);
+    SWC_UNSED(castRequest);
+    SWC_UNSED(srcTypeRef);
+    SWC_UNSED(dstTypeRef);
     return Result::Continue;
 }
 
@@ -718,8 +729,12 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
 }
 
-Result Cast::castFromAny(const Sema&, const CastRequest&, TypeRef, TypeRef)
+Result Cast::castFromAny(const Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    SWC_UNSED(sema);
+    SWC_UNSED(castRequest);
+    SWC_UNSED(srcTypeRef);
+    SWC_UNSED(dstTypeRef);
     return Result::Continue;
 }
 

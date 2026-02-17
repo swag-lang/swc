@@ -198,8 +198,8 @@ namespace TypeGenInternal
 
     void initFunc(const Runtime::TypeInfoFunc& rtType, const TypeInfo& type)
     {
-        (void) rtType;
-        (void) type;
+        SWC_UNSED(rtType);
+        SWC_UNSED(type);
     }
 
     std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind, const TypeInfo& type)

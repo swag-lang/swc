@@ -102,8 +102,9 @@ namespace
         SWC_INTERNAL_ERROR();
     }
 
-    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
+        SWC_UNSED(expr);
         auto&  ctx   = sema.ctx();
         ApsInt value = nodeView.cst->getInt();
         value.invertAllBits();
@@ -207,8 +208,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaTakeAddress(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
+        SWC_UNSED(node);
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
         if (nodeView.type->isConst())
         {
@@ -240,8 +242,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaBang(Sema& sema, const AstUnaryExpr&, SemaNodeView& nodeView)
+    Result semaBang(Sema& sema, const AstUnaryExpr& node, SemaNodeView& nodeView)
     {
+        SWC_UNSED(node);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         return Result::Continue;
@@ -270,8 +273,9 @@ namespace
         return Result::Continue;
     }
 
-    Result checkMoveRef(Sema& sema, const AstUnaryExpr&, const SemaNodeView& nodeView)
+    Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
+        SWC_UNSED(node);
         if (nodeView.type->isAnyPointer() || nodeView.type->isReference())
             return Result::Continue;
         return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);

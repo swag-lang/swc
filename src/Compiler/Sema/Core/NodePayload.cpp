@@ -224,8 +224,9 @@ bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
     return payloadInfo(node).kind == NodePayloadKind::SymbolRef;
 }
 
-const Symbol& NodePayload::getSymbol(const TaskContext&, AstNodeRef nodeRef) const
+const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
+    SWC_UNSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode&       node     = ast().node(nodeRef);
     const auto           info     = payloadInfo(node);
@@ -236,8 +237,9 @@ const Symbol& NodePayload::getSymbol(const TaskContext&, AstNodeRef nodeRef) con
     return value;
 }
 
-Symbol& NodePayload::getSymbol(const TaskContext&, AstNodeRef nodeRef)
+Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
+    SWC_UNSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode& node     = ast().node(nodeRef);
     const auto     info     = payloadInfo(node);

@@ -419,8 +419,9 @@ ConstantValue ConstantValue::makeFromIntLike(const TaskContext& ctx, const ApsIn
     return makeInt(ctx, v, ty.payloadIntBits(), ty.payloadIntSign());
 }
 
-ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef valueCst, TypeRef typeRef)
+ConstantValue ConstantValue::makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef)
 {
+    SWC_UNSED(ctx);
     ConstantValue cv;
     cv.typeRef_              = typeRef;
     cv.kind_                 = ConstantKind::EnumValue;
@@ -429,8 +430,9 @@ ConstantValue ConstantValue::makeEnumValue(const TaskContext&, ConstantRef value
     return cv;
 }
 
-ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
+    SWC_UNSED(ctx);
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
@@ -440,8 +442,9 @@ ConstantValue ConstantValue::makeStruct(const TaskContext&, TypeRef typeRef, Byt
     return cv;
 }
 
-ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
+    SWC_UNSED(ctx);
     ConstantValue cv;
     cv.typeRef_           = typeRef;
     cv.kind_              = ConstantKind::Struct;
@@ -451,8 +454,9 @@ ConstantValue ConstantValue::makeStructBorrowed(const TaskContext&, TypeRef type
     return cv;
 }
 
-ConstantValue ConstantValue::makeArray(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
+    SWC_UNSED(ctx);
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
@@ -462,8 +466,9 @@ ConstantValue ConstantValue::makeArray(const TaskContext&, TypeRef typeRef, Byte
     return cv;
 }
 
-ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext&, TypeRef typeRef, ByteSpan bytes)
+ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, ByteSpan bytes)
 {
+    SWC_UNSED(ctx);
     ConstantValue cv;
     cv.typeRef_          = typeRef;
     cv.kind_             = ConstantKind::Array;
@@ -476,7 +481,7 @@ ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext&, TypeRef typeR
 ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::span<IdentifierRef>& names, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(values.size() == names.size());
-    (void) fieldRefs;
+    SWC_UNSED(fieldRefs);
     ConstantValue        cv;
     SmallVector<TypeRef> memberTypes;
     memberTypes.reserve(values.size());
@@ -493,7 +498,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
 ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::span<ConstantRef>& values, const std::span<SourceCodeRef>& fieldRefs)
 {
     SWC_ASSERT(!values.empty());
-    (void) fieldRefs;
+    SWC_UNSED(fieldRefs);
 
     ConstantValue        cv;
     SmallVector<TypeRef> elemTypes;

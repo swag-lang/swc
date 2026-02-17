@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 

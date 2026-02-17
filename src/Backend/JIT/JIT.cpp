@@ -4,7 +4,7 @@
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
 #include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MachineCode.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Backend/JIT/JITExecMemoryManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"

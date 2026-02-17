@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPass.h"
 #include "Compiler/Sema/Symbol/Symbol.h"

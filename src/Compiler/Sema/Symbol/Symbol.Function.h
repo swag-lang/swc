@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/CodeGen/Micro/MachineCode.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/JIT/JITExecMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"

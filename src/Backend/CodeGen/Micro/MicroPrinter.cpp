@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"

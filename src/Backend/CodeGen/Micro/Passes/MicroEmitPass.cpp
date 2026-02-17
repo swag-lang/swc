@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();

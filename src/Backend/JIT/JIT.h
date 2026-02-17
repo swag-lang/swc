@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/CodeGen/Micro/MicroInstrBuilder.h"
+#include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Support/Core/ByteSpan.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

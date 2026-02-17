@@ -202,7 +202,7 @@
         <ClCompile Include="src\Backend\CodeGen\ABI\ABITypeNormalize.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroPrinter.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrStorage.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.cpp"/>
+        <ClCompile Include="src\Backend\CodeGen\Micro\MicroBuilder.cpp" />
         <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.cpp"/>
@@ -377,7 +377,7 @@
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\MicroPrinter.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrBuilder.h"/>
+        <ClInclude Include="src\Backend\CodeGen\Micro\MicroBuilder.h" />
         <ClInclude Include="src\Backend\CodeGen\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.h"/>
         <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroEmitPass.h"/>

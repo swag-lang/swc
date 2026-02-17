@@ -8,7 +8,6 @@ func GetPidAlias()->u32;
     func GetCurrentProcessId()->u32;
 }
 
-#[Swag.PrintMicro]
 #test
 {
     const A = #run GetPidAlias()
@@ -36,7 +35,9 @@ func HeapAlloc(heap: *void, flags: u32, bytes: u64)->*void;
 #[Swag.Foreign("kernel32", "HeapFree")]
 func HeapFree(heap: *void, flags: u32, mem: *void)->bool;
 
-#[Swag.PrintMicro]
+#[Swag.Foreign("kernel32", "MultiByteToWideChar")]
+func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: *u16, dstCount: s32)->s32;
+
 #test
 {
     const A = #run GetPidAlias()
@@ -46,7 +47,6 @@ func HeapFree(heap: *void, flags: u32, mem: *void)->bool;
     #assert(A == B)
 }
 
-#[Swag.PrintMicro]
 #test
 {
     const L1 = #run LStrLenA(@dataof("A"))
@@ -73,14 +73,15 @@ func HeapFree(heap: *void, flags: u32, mem: *void)->bool;
     #assert(F)
 }
 
-//#test
-//{
-//    const CP_UTF8 = 65001'u32
-//    const S1 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
-//    const S5 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
-//    #assert(S1 == 1)
-//    #assert(S5 == 5)
-//}
+#test
+{
+    const CP_UTF8 = 65001'u32
+    #[Swag.PrintMicro]
+    const S1 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
+    const S5 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
+    #assert(S1 == 1)
+    #assert(S5 == 5)
+}
 
 #test { const L = #run LStrLenA("ABCDE") } // swc-expected-error {{sema_err_cannot_cast}}
 #test { const M = #run MulDiv(1, 2) } // swc-expected-error {{sema_err_too_few_arguments}}

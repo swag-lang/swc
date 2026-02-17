@@ -211,28 +211,51 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::
     outReg0 = MicroReg::invalid();
     outReg1 = MicroReg::invalid();
 
-    for (const auto reg : intTransientRegs)
-    {
-        if (isForbidden(reg))
-            continue;
+    auto pickFrom = [&](std::span<const MicroReg> regs) {
+        for (const auto reg : regs)
+        {
+            if (isForbidden(reg))
+                continue;
 
-        outReg0 = reg;
-        break;
-    }
+            outReg0 = reg;
+            break;
+        }
+    };
+
+    auto pickSecondFrom = [&](std::span<const MicroReg> regs) {
+        for (const auto reg : regs)
+        {
+            if (reg == outReg0 || isForbidden(reg))
+                continue;
+
+            outReg1 = reg;
+            break;
+        }
+    };
+
+    pickFrom(intPersistentRegs);
+    if (!outReg0.isValid())
+        pickFrom(intTransientRegs);
+    if (!outReg0.isValid())
+        pickFrom(intRegs);
 
     if (!outReg0.isValid())
         return false;
 
-    for (const auto reg : intTransientRegs)
-    {
-        if (reg == outReg0 || isForbidden(reg))
-            continue;
+    pickSecondFrom(intPersistentRegs);
+    if (!outReg1.isValid())
+        pickSecondFrom(intTransientRegs);
+    if (!outReg1.isValid())
+        pickSecondFrom(intRegs);
 
-        outReg1 = reg;
-        break;
+    if (!outReg1.isValid())
+    {
+        outReg0 = MicroReg::invalid();
+        outReg1 = MicroReg::invalid();
+        return false;
     }
 
-    return outReg1.isValid();
+    return true;
 }
 
 void CallConv::setup()

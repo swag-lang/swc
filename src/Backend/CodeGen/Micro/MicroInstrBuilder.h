@@ -1,8 +1,8 @@
 #pragma once
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/MicroInstrStorage.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
+#include "Backend/CodeGen/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 
@@ -101,8 +101,8 @@ public:
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
     const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
 
-    MicroInstrStorage&         instructions() { return instructions_; }
-    const MicroInstrStorage&   instructions() const { return instructions_; }
+    MicroStorage&         instructions() { return instructions_; }
+    const MicroStorage&   instructions() const { return instructions_; }
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
@@ -183,7 +183,7 @@ private:
     void                        storeInstructionDebugInfo(Ref instructionRef);
 
     TaskContext*                                    ctx_ = nullptr;
-    MicroInstrStorage                               instructions_;
+    MicroStorage                               instructions_;
     MicroOperandStorage                             operands_;
     MicroInstrBuilderFlags                          flags_ = MicroInstrBuilderFlagsE::Zero;
     std::vector<std::optional<MicroInstrDebugInfo>> debugInfos_;

@@ -2,7 +2,7 @@
 #include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/MicroInstrStorage.h"
+#include "Backend/CodeGen/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
 
@@ -43,7 +43,7 @@ namespace
     {
         MicroPassContext*    context      = nullptr;
         const CallConv*      conv         = nullptr;
-        MicroInstrStorage*   instructions = nullptr;
+        MicroStorage*   instructions = nullptr;
         MicroOperandStorage* operands     = nullptr;
 
         uint32_t instructionCount = 0;

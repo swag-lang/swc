@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Micro/MicroInstrStorage.h"
+#include "Backend/CodeGen/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -35,19 +35,19 @@ const MicroInstrOperand* MicroOperandStorage::ptr(Ref ref) const noexcept
     return operands_.data() + ref;
 }
 
-MicroInstrStorage::Iterator::reference MicroInstrStorage::Iterator::operator*() const
+MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current != INVALID_REF);
     return storage->nodes_[current].instr;
 }
 
-MicroInstrStorage::Iterator::pointer MicroInstrStorage::Iterator::operator->() const
+MicroStorage::Iterator::pointer MicroStorage::Iterator::operator->() const
 {
     return &(**this);
 }
 
-MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator++()
+MicroStorage::Iterator& MicroStorage::Iterator::operator++()
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current != INVALID_REF);
@@ -55,14 +55,14 @@ MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator++()
     return *this;
 }
 
-MicroInstrStorage::Iterator MicroInstrStorage::Iterator::operator++(int)
+MicroStorage::Iterator MicroStorage::Iterator::operator++(int)
 {
     const Iterator copy = *this;
     ++(*this);
     return copy;
 }
 
-MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator--()
+MicroStorage::Iterator& MicroStorage::Iterator::operator--()
 {
     SWC_ASSERT(storage);
 
@@ -76,31 +76,31 @@ MicroInstrStorage::Iterator& MicroInstrStorage::Iterator::operator--()
     return *this;
 }
 
-MicroInstrStorage::Iterator MicroInstrStorage::Iterator::operator--(int)
+MicroStorage::Iterator MicroStorage::Iterator::operator--(int)
 {
     const Iterator copy = *this;
     --(*this);
     return copy;
 }
 
-bool MicroInstrStorage::Iterator::operator==(const Iterator& other) const
+bool MicroStorage::Iterator::operator==(const Iterator& other) const
 {
     return storage == other.storage && current == other.current;
 }
 
-MicroInstrStorage::ConstIterator::reference MicroInstrStorage::ConstIterator::operator*() const
+MicroStorage::ConstIterator::reference MicroStorage::ConstIterator::operator*() const
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current != INVALID_REF);
     return storage->nodes_[current].instr;
 }
 
-MicroInstrStorage::ConstIterator::pointer MicroInstrStorage::ConstIterator::operator->() const
+MicroStorage::ConstIterator::pointer MicroStorage::ConstIterator::operator->() const
 {
     return &(**this);
 }
 
-MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator++()
+MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current != INVALID_REF);
@@ -108,14 +108,14 @@ MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator++()
     return *this;
 }
 
-MicroInstrStorage::ConstIterator MicroInstrStorage::ConstIterator::operator++(int)
+MicroStorage::ConstIterator MicroStorage::ConstIterator::operator++(int)
 {
     const ConstIterator copy = *this;
     ++(*this);
     return copy;
 }
 
-MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator--()
+MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator--()
 {
     SWC_ASSERT(storage);
 
@@ -129,54 +129,54 @@ MicroInstrStorage::ConstIterator& MicroInstrStorage::ConstIterator::operator--()
     return *this;
 }
 
-MicroInstrStorage::ConstIterator MicroInstrStorage::ConstIterator::operator--(int)
+MicroStorage::ConstIterator MicroStorage::ConstIterator::operator--(int)
 {
     const ConstIterator copy = *this;
     --(*this);
     return copy;
 }
 
-bool MicroInstrStorage::ConstIterator::operator==(const ConstIterator& other) const
+bool MicroStorage::ConstIterator::operator==(const ConstIterator& other) const
 {
     return storage == other.storage && current == other.current;
 }
 
-MicroInstrStorage::View::View(MicroInstrStorage* storage) :
+MicroStorage::View::View(MicroStorage* storage) :
     storage_(storage)
 {
 }
 
-MicroInstrStorage::Iterator MicroInstrStorage::View::begin() const
+MicroStorage::Iterator MicroStorage::View::begin() const
 {
     return {storage_, storage_->head_};
 }
 
-MicroInstrStorage::Iterator MicroInstrStorage::View::end() const
+MicroStorage::Iterator MicroStorage::View::end() const
 {
     return {storage_, INVALID_REF};
 }
 
-MicroInstrStorage::ConstView::ConstView(const MicroInstrStorage* storage) :
+MicroStorage::ConstView::ConstView(const MicroStorage* storage) :
     storage_(storage)
 {
 }
 
-MicroInstrStorage::ConstIterator MicroInstrStorage::ConstView::begin() const
+MicroStorage::ConstIterator MicroStorage::ConstView::begin() const
 {
     return {storage_, storage_->head_};
 }
 
-MicroInstrStorage::ConstIterator MicroInstrStorage::ConstView::end() const
+MicroStorage::ConstIterator MicroStorage::ConstView::end() const
 {
     return {storage_, INVALID_REF};
 }
 
-uint32_t MicroInstrStorage::count() const noexcept
+uint32_t MicroStorage::count() const noexcept
 {
     return count_;
 }
 
-void MicroInstrStorage::clear() noexcept
+void MicroStorage::clear() noexcept
 {
     nodes_.clear();
     freeList_.clear();
@@ -185,7 +185,7 @@ void MicroInstrStorage::clear() noexcept
     count_ = 0;
 }
 
-MicroInstr* MicroInstrStorage::ptr(Ref ref) noexcept
+MicroInstr* MicroStorage::ptr(Ref ref) noexcept
 {
     if (ref == INVALID_REF || ref >= nodes_.size())
         return nullptr;
@@ -196,7 +196,7 @@ MicroInstr* MicroInstrStorage::ptr(Ref ref) noexcept
     return &node.instr;
 }
 
-const MicroInstr* MicroInstrStorage::ptr(Ref ref) const noexcept
+const MicroInstr* MicroStorage::ptr(Ref ref) const noexcept
 {
     if (ref == INVALID_REF || ref >= nodes_.size())
         return nullptr;
@@ -207,14 +207,14 @@ const MicroInstr* MicroInstrStorage::ptr(Ref ref) const noexcept
     return &node.instr;
 }
 
-std::pair<Ref, MicroInstr*> MicroInstrStorage::emplaceUninit()
+std::pair<Ref, MicroInstr*> MicroStorage::emplaceUninit()
 {
     const Ref ref = allocNode();
     linkAtEnd(ref);
     return {ref, &nodes_[ref].instr};
 }
 
-Ref MicroInstrStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
+Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
 {
     SWC_ASSERT(beforeRef != INVALID_REF);
     SWC_ASSERT(beforeRef < nodes_.size());
@@ -236,7 +236,7 @@ Ref MicroInstrStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
     return ref;
 }
 
-Ref MicroInstrStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
+Ref MicroStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, EncodeFlags emitFlags, std::span<const MicroInstrOperand> opsData)
 {
     MicroInstr inst;
     inst.op          = op;
@@ -258,17 +258,17 @@ Ref MicroInstrStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef
     return insertBefore(beforeRef, inst);
 }
 
-MicroInstrStorage::View MicroInstrStorage::view() noexcept
+MicroStorage::View MicroStorage::view() noexcept
 {
     return View(this);
 }
 
-MicroInstrStorage::ConstView MicroInstrStorage::view() const noexcept
+MicroStorage::ConstView MicroStorage::view() const noexcept
 {
     return ConstView(this);
 }
 
-Ref MicroInstrStorage::allocNode()
+Ref MicroStorage::allocNode()
 {
     Ref ref = INVALID_REF;
     if (!freeList_.empty())
@@ -289,7 +289,7 @@ Ref MicroInstrStorage::allocNode()
     return ref;
 }
 
-void MicroInstrStorage::linkAtEnd(Ref ref)
+void MicroStorage::linkAtEnd(Ref ref)
 {
     Node& node = nodes_[ref];
     node.prev  = tail_;

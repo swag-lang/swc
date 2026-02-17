@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
-#include "Backend/CodeGen/Micro/MicroInstrStorage.h"
+#include "Backend/CodeGen/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
 

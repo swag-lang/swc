@@ -16,7 +16,7 @@ private:
     std::vector<MicroInstrOperand> operands_;
 };
 
-class MicroInstrStorage
+class MicroStorage
 {
 public:
     struct Iterator
@@ -28,7 +28,7 @@ public:
         using pointer           = MicroInstr*;
         using reference         = MicroInstr&;
 
-        MicroInstrStorage* storage = nullptr;
+        MicroStorage* storage = nullptr;
         Ref                current = INVALID_REF;
 
         reference operator*() const;
@@ -49,7 +49,7 @@ public:
         using pointer           = const MicroInstr*;
         using reference         = const MicroInstr&;
 
-        const MicroInstrStorage* storage = nullptr;
+        const MicroStorage* storage = nullptr;
         Ref                      current = INVALID_REF;
 
         reference      operator*() const;
@@ -65,24 +65,24 @@ public:
         : public std::ranges::view_base
     {
     public:
-        explicit View(MicroInstrStorage* storage);
+        explicit View(MicroStorage* storage);
         Iterator begin() const;
         Iterator end() const;
 
     private:
-        MicroInstrStorage* storage_ = nullptr;
+        MicroStorage* storage_ = nullptr;
     };
 
     class ConstView
         : public std::ranges::view_base
     {
     public:
-        explicit ConstView(const MicroInstrStorage* storage);
+        explicit ConstView(const MicroStorage* storage);
         ConstIterator begin() const;
         ConstIterator end() const;
 
     private:
-        const MicroInstrStorage* storage_ = nullptr;
+        const MicroStorage* storage_ = nullptr;
     };
 
     uint32_t                    count() const noexcept;

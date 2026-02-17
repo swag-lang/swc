@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/MicroInstrStorage.h"
+#include "Backend/CodeGen/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,7 +25,7 @@ struct MicroPassContext
     Encoder*              encoder                = nullptr;
     TaskContext*          taskContext            = nullptr;
     MicroInstrBuilder*    builder                = nullptr;
-    MicroInstrStorage*    instructions           = nullptr;
+    MicroStorage*    instructions           = nullptr;
     MicroOperandStorage*  operands               = nullptr;
     std::span<const Utf8> passPrintOptions       = {};
     CallConvKind          callConvKind           = CallConvKind::Host;

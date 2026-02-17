@@ -366,7 +366,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstrStorage.h"/>
+        <ClInclude Include="src\Backend\CodeGen\Micro\MicroStorage.h" />
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
         <ClInclude Include="src\Backend\CodeGen\ABI\CallConv.h"/>

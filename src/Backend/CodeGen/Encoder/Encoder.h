@@ -115,8 +115,7 @@ protected:
     virtual void updateRegUseDef(const MicroInstr&, const MicroInstrOperand*, MicroInstrUseDef&) const {}
     virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr&, const MicroInstrOperand*) const { return false; }
 
-    EncoderSymbol* getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind);
-    static void    addSymbolRelocation(uint32_t, uint32_t, uint16_t);
+    static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
     TaskContext*               ctx_ = nullptr;
     PagedStore                 store_;
@@ -124,7 +123,6 @@ protected:
     uint32_t                   symCsIndex_        = 0;
     EncoderFunction*           cpuFct_            = nullptr;
     Runtime::BuildCfgBackendOptim backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
-    std::vector<EncoderSymbol> symbols_;
 };
 
 SWC_END_NAMESPACE();

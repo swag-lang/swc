@@ -48,12 +48,6 @@ Encoder::Encoder(TaskContext& ctx) :
 {
 }
 
-EncoderSymbol* Encoder::getOrAddSymbol(IdentifierRef name, EncoderSymbolKind kind)
-{
-    symbols_.push_back(EncoderSymbol{name, kind, 0, static_cast<uint32_t>(symbols_.size())});
-    return &symbols_.back();
-}
-
 void Encoder::addSymbolRelocation(uint32_t, uint32_t, uint16_t)
 {
 }

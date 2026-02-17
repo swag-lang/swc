@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
@@ -2740,32 +2739,24 @@ void X64Encoder::encodeJumpReg(MicroReg reg, EncodeFlags emitFlags)
 
 void X64Encoder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
+    (void) targetSymbol;
+    (void) callConv;
+    (void) emitFlags;
+
     emitCpuOp(store_, 0xFF);
     emitModRm(store_, ModRmMode::Memory, MODRM_REG_2, MODRM_RM_RIP);
-
-    const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto callSym = getOrAddSymbol(symbolName, EncoderSymbolKind::Extern);
-    addSymbolRelocation(store_.size() - textSectionOffset_, callSym->index, IMAGE_REL_AMD64_REL32);
     store_.pushU32(0);
     return;
 }
 
 void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv, EncodeFlags emitFlags)
 {
+    (void) targetSymbol;
+    (void) callConv;
+    (void) emitFlags;
+
     emitCpuOp(store_, 0xE8);
-
-    const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : IdentifierRef::invalid();
-    const auto callSym = getOrAddSymbol(symbolName, EncoderSymbolKind::Extern);
-    if (callSym->kind == EncoderSymbolKind::Function)
-    {
-        store_.pushS32(static_cast<int32_t>(callSym->value + textSectionOffset_ - (store_.size() + 4)));
-    }
-    else
-    {
-        addSymbolRelocation(store_.size() - textSectionOffset_, callSym->index, IMAGE_REL_AMD64_REL32);
-        store_.pushU32(0);
-    }
-
+    store_.pushU32(0);
     return;
 }
 

@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class Encoder;
-class MicroInstrBuilder;
+class MicroBuilder;
 
 enum class MicroRegPrintMode : uint8_t
 {
@@ -23,14 +23,14 @@ public:
                        const MicroOperandStorage& operands,
                        MicroRegPrintMode          regPrintMode = MicroRegPrintMode::Default,
                        const Encoder*             encoder      = nullptr,
-                       const MicroInstrBuilder*   builder      = nullptr);
+                       const MicroBuilder*   builder      = nullptr);
 
     static void print(const TaskContext&         ctx,
                       const MicroStorage&   instructions,
                       const MicroOperandStorage& operands,
                       MicroRegPrintMode          regPrintMode = MicroRegPrintMode::Default,
                       const Encoder*             encoder      = nullptr,
-                      const MicroInstrBuilder*   builder      = nullptr);
+                      const MicroBuilder*   builder      = nullptr);
 };
 
 SWC_END_NAMESPACE();

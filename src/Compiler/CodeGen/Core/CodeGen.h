@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class SymbolFunction;
-class MicroInstrBuilder;
+class MicroBuilder;
 struct SemaNodeView;
 struct Token;
 
@@ -52,8 +52,8 @@ public:
     MicroReg                 nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
     MicroReg                 nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
     MicroReg                 nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
-    MicroInstrBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }
-    const MicroInstrBuilder& builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
+    MicroBuilder&       builder() { return *SWC_CHECK_NOT_NULL(builder_); }
+    const MicroBuilder& builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
 
 private:
     void   setVisitors();
@@ -66,7 +66,7 @@ private:
     Sema*              sema_ = nullptr;
     AstVisit           visit_;
     SymbolFunction*    function_            = nullptr;
-    MicroInstrBuilder* builder_             = nullptr;
+    MicroBuilder* builder_             = nullptr;
     uint32_t           nextVirtualRegister_ = 1;
 };
 

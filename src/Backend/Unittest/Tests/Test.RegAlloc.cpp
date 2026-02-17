@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using BuildCaseFn = std::function<void(MicroInstrBuilder&, CallConvKind)>;
+    using BuildCaseFn = std::function<void(MicroBuilder&, CallConvKind)>;
 
     std::span<const CallConvKind> testedCallConvs()
     {
@@ -24,7 +24,7 @@ namespace
         return CALL_CONVS;
     }
 
-    Result verifyCallConvConformity(MicroInstrBuilder& builder, const CallConv& conv)
+    Result verifyCallConvConformity(MicroBuilder& builder, const CallConv& conv)
     {
         auto& storeOps = builder.operands();
 
@@ -64,7 +64,7 @@ namespace
     {
         for (const auto callConvKind : testedCallConvs())
         {
-            MicroInstrBuilder builder(ctx);
+            MicroBuilder builder(ctx);
             buildFn(builder, callConvKind);
 
             MicroRegisterAllocationPass regAllocPass;
@@ -81,7 +81,7 @@ namespace
         return Result::Continue;
     }
 
-    void buildPersistentAcross(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildPersistentAcross(MicroBuilder& b, CallConvKind callConvKind)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(0);
         constexpr auto v1 = MicroReg::virtualIntReg(1);
@@ -98,7 +98,7 @@ namespace
         b.encodeOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64);
     }
 
-    void buildNoCalls(MicroInstrBuilder& b, CallConvKind)
+    void buildNoCalls(MicroBuilder& b, CallConvKind)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(10);
         constexpr auto v1 = MicroReg::virtualIntReg(11);
@@ -112,7 +112,7 @@ namespace
         b.encodeOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64);
     }
 
-    void buildMixedIntFloat(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildMixedIntFloat(MicroBuilder& b, CallConvKind callConvKind)
     {
         constexpr auto vi  = MicroReg::virtualIntReg(20);
         constexpr auto vf0 = MicroReg::virtualFloatReg(0);
@@ -131,7 +131,7 @@ namespace
         b.encodeOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64);
     }
 
-    void buildLotsOfVirtualRegs(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildLotsOfVirtualRegs(MicroBuilder& b, CallConvKind callConvKind)
     {
         for (uint32_t i = 0; i < 128; ++i)
         {
@@ -154,7 +154,7 @@ namespace
         }
     }
 
-    void buildPersistentWithReturn(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildPersistentWithReturn(MicroBuilder& b, CallConvKind callConvKind)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(3000);
 
@@ -164,7 +164,7 @@ namespace
         b.encodeRet();
     }
 
-    void buildNoPersistentWithReturn(MicroInstrBuilder& b, CallConvKind)
+    void buildNoPersistentWithReturn(MicroBuilder& b, CallConvKind)
     {
         constexpr auto v0 = MicroReg::virtualIntReg(3100);
 
@@ -172,7 +172,7 @@ namespace
         b.encodeRet();
     }
 
-    void buildIntSpillPressureAcrossCall(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildIntSpillPressureAcrossCall(MicroBuilder& b, CallConvKind callConvKind)
     {
         for (uint32_t i = 0; i < 24; ++i)
         {
@@ -191,7 +191,7 @@ namespace
         b.encodeRet();
     }
 
-    void buildFloatSpillAcrossCallNoPersistentRegs(MicroInstrBuilder& b, CallConvKind callConvKind)
+    void buildFloatSpillAcrossCallNoPersistentRegs(MicroBuilder& b, CallConvKind callConvKind)
     {
         for (uint32_t i = 0; i < 16; ++i)
         {
@@ -219,7 +219,7 @@ namespace
         return ops[0].reg == stackPtr && ops[1].opBits == MicroOpBits::B64 && ops[2].microOp == op;
     }
 
-    bool hasPersistentFrameOps(MicroInstrBuilder& builder, const CallConv& conv, bool* outHasSub = nullptr, bool* outHasAdd = nullptr)
+    bool hasPersistentFrameOps(MicroBuilder& builder, const CallConv& conv, bool* outHasSub = nullptr, bool* outHasAdd = nullptr)
     {
         auto& storeOps = builder.operands();
         bool  hasSub   = false;
@@ -246,7 +246,7 @@ namespace
         return hasSub && hasAdd && hasStore && hasLoad;
     }
 
-    bool hasSpillFrameOps(MicroInstrBuilder& builder, const CallConv& conv)
+    bool hasSpillFrameOps(MicroBuilder& builder, const CallConv& conv)
     {
         auto& storeOps = builder.operands();
         bool  hasSub   = false;
@@ -310,7 +310,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
 {
     for (const auto callConvKind : testedCallConvs())
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;
@@ -337,7 +337,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
 {
     for (const auto callConvKind : testedCallConvs())
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         buildPersistentWithReturn(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;
@@ -362,7 +362,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
 {
     for (const auto callConvKind : testedCallConvs())
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         buildNoPersistentWithReturn(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;
@@ -387,7 +387,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 {
     for (const auto callConvKind : testedCallConvs())
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         buildIntSpillPressureAcrossCall(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;
@@ -410,7 +410,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
 {
     for (const auto callConvKind : testedCallConvs())
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         buildFloatSpillAcrossCallNoPersistentRegs(builder, callConvKind);
 
         MicroRegisterAllocationPass regAllocPass;

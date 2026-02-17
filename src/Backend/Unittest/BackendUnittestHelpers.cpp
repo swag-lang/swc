@@ -68,9 +68,9 @@ namespace Backend::Unittest
         return Result::Continue;
     }
 
-    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroInstrBuilder&)>& fn)
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn)
     {
-        MicroInstrBuilder builder(ctx);
+        MicroBuilder builder(ctx);
         fn(builder);
 
         MicroLegalizePass legalizePass;
@@ -123,7 +123,7 @@ namespace Backend::Unittest
         return std::ranges::find(regs, reg) != regs.end();
     }
 
-    Result assertNoVirtualRegs(MicroInstrBuilder& builder)
+    Result assertNoVirtualRegs(MicroBuilder& builder)
     {
         auto& storeOps = builder.operands();
         for (const auto& inst : builder.instructions().view())

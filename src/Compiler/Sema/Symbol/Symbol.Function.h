@@ -66,8 +66,8 @@ public:
     void                     setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
     CallConvKind             callConvKind() const noexcept { return callConvKind_; }
     void                     setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
-    MicroInstrBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
-    const MicroInstrBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
+    MicroBuilder&       microInstrBuilder(TaskContext& ctx) noexcept;
+    const MicroBuilder& microInstrBuilder() const noexcept { return microInstrBuilder_; }
     AstNodeRef               declNodeRef() const noexcept { return declNodeRef_; }
     void                     setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
     bool                     tryMarkCodeGenJobScheduled() noexcept;
@@ -92,7 +92,7 @@ private:
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
-    MicroInstrBuilder            microInstrBuilder_;
+    MicroBuilder            microInstrBuilder_;
     MachineCode                  loweredMicroCode_;
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;

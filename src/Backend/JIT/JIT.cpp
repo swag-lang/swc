@@ -231,7 +231,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
         packedArgs[i + packedArgBaseOffset].numBits = 64;
     }
 
-    MicroInstrBuilder builder(ctx);
+    MicroBuilder builder(ctx);
 
     const auto retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
     const auto retMeta   = ABICall::Return{

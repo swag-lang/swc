@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void MachineCode::emit(TaskContext& ctx, MicroInstrBuilder& builder)
+void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
     MicroRegisterAllocationPass regAllocPass;
     MicroPrologEpilogPass       persistentRegsPass;

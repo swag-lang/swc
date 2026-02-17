@@ -18,7 +18,7 @@ namespace
         return K_DEFAULT_UNROLL_MEM_LIMIT;
     }
 
-    void emitMemCopyChunk(MicroInstrBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg)
+    void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg)
     {
         if (chunkSize == 16)
         {
@@ -32,7 +32,7 @@ namespace
         builder.encodeLoadMemReg(dstReg, offset, tmpIntReg, opBits);
     }
 
-    void emitMemCopyUnrolled(MicroInstrBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg)
+    void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg)
     {
         uint32_t offset = 0;
         uint32_t remain = sizeInBytes;
@@ -72,7 +72,7 @@ namespace
             emitMemCopyChunk(builder, dstReg, srcReg, offset, 1, tmpIntReg, tmpFloatReg);
     }
 
-    void emitMemCopyLoop(MicroInstrBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, MicroReg countReg)
+    void emitMemCopyLoop(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, MicroReg countReg)
     {
         const uint32_t chunkCount = sizeInBytes / chunkSize;
         const uint32_t tailSize   = sizeInBytes % chunkSize;

@@ -16,7 +16,7 @@ namespace
 {
     constexpr auto K_NATURAL_COLUMN_WIDTH = 56U;
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t& outSourceLine)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {
         outSourceLine = 0;
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
@@ -965,7 +965,7 @@ namespace
             out.pop_back();
     }
 
-    void appendInstructionDebugPayload(Utf8& out, const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef)
+    void appendInstructionDebugPayload(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef)
     {
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return;
@@ -983,7 +983,7 @@ namespace
         appendColored(out, ctx, SyntaxColor::Comment, std::format("// symbol={}", symbol->name(ctx)));
     }
 
-    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroInstrBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
+    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
         uint32_t sourceLine = 0;
         if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
@@ -1008,7 +1008,7 @@ namespace
     }
 }
 
-Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
+Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroBuilder* builder)
 {
     Utf8                              out;
     auto&                             storeOps = operands;
@@ -1399,7 +1399,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     return out;
 }
 
-void MicroPrinter::print(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroInstrBuilder* builder)
+void MicroPrinter::print(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroBuilder* builder)
 {
     Logger::print(ctx, format(ctx, instructions, operands, regPrintMode, encoder, builder));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));

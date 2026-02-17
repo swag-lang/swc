@@ -44,7 +44,7 @@ namespace
         return outFunctionAddress != 0;
     }
 
-    void patchCallExternTargets(TaskContext& ctx, MicroInstrBuilder& builder)
+    void patchCallExternTargets(TaskContext& ctx, MicroBuilder& builder)
     {
         auto& instructions = builder.instructions();
         auto& operands     = builder.operands();
@@ -179,7 +179,7 @@ void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addExtraFlag(SymbolFunctionFlagsE::Const);
 }
 
-MicroInstrBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
+MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
 {
     microInstrBuilder_.setContext(ctx);
     return microInstrBuilder_;

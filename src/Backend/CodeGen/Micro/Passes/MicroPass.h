@@ -5,7 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Encoder;
-class MicroInstrBuilder;
+class MicroBuilder;
 class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
@@ -24,7 +24,7 @@ struct MicroPassContext
 
     Encoder*              encoder                = nullptr;
     TaskContext*          taskContext            = nullptr;
-    MicroInstrBuilder*    builder                = nullptr;
+    MicroBuilder*    builder                = nullptr;
     MicroStorage*    instructions           = nullptr;
     MicroOperandStorage*  operands               = nullptr;
     std::span<const Utf8> passPrintOptions       = {};

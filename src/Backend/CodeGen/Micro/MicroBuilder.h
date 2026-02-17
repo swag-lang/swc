@@ -82,20 +82,20 @@ struct MicroRelocation
     ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
-class MicroInstrBuilder
+class MicroBuilder
 {
 public:
-    MicroInstrBuilder() = default;
+    MicroBuilder() = default;
 
-    explicit MicroInstrBuilder(TaskContext& ctx) :
+    explicit MicroBuilder(TaskContext& ctx) :
         ctx_(&ctx)
     {
     }
 
-    MicroInstrBuilder(const MicroInstrBuilder&)                = delete;
-    MicroInstrBuilder& operator=(const MicroInstrBuilder&)     = delete;
-    MicroInstrBuilder(MicroInstrBuilder&&) noexcept            = default;
-    MicroInstrBuilder& operator=(MicroInstrBuilder&&) noexcept = default;
+    MicroBuilder(const MicroBuilder&)                = delete;
+    MicroBuilder& operator=(const MicroBuilder&)     = delete;
+    MicroBuilder(MicroBuilder&&) noexcept            = default;
+    MicroBuilder& operator=(MicroBuilder&&) noexcept = default;
 
     void               setContext(TaskContext& ctx) { ctx_ = &ctx; }
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }

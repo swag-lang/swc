@@ -11,7 +11,7 @@ struct MachineCode
     std::vector<std::byte>       bytes;
     std::vector<MicroRelocation> codeRelocations;
 
-    void emit(TaskContext& ctx, MicroInstrBuilder& builder);
+    void emit(TaskContext& ctx, MicroBuilder& builder);
 };
 
 SWC_END_NAMESPACE();

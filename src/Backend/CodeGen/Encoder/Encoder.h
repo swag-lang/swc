@@ -45,7 +45,7 @@ struct MicroConformanceIssue
 
 class Encoder
 {
-    friend class MicroInstrBuilder;
+    friend class MicroBuilder;
     friend class MicroEmitPass;
     friend class MicroLegalizePass;
     friend struct MicroInstr;

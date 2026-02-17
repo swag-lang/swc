@@ -26,7 +26,7 @@ namespace
         }
     };
 
-    using BuilderCaseFn = std::function<void(MicroInstrBuilder&)>;
+    using BuilderCaseFn = std::function<void(MicroBuilder&)>;
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
     constexpr auto K_EMIT = EncodeFlagsE::Zero;
@@ -54,7 +54,7 @@ namespace
 #define ENCODE_CASE(__name, __hex, ...)                                             \
     do                                                                              \
     {                                                                               \
-        RESULT_VERIFY(runCase(__name, __hex, [&](MicroInstrBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
+        RESULT_VERIFY(runCase(__name, __hex, [&](MicroBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
     } while (false)
 
     Result buildFlow(const RunCaseFn& runCase)

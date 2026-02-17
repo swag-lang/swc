@@ -84,6 +84,7 @@ enum EE
 #assert(#typeof(EE.A) == EE)
 
 #assert(cast(f32) CC.A == 0)
+#assert(cast(bool) CC.A == false) // swc-expected-error {{sema_err_cannot_cast}}
 #assert(cast #bit (u16) A10.A == 1) // swc-expected-error {{sema_err_bit_cast_invalid_type}}
 
 enum InitMismatch1: u32 {

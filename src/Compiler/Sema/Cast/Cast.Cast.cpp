@@ -11,6 +11,27 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    void setEnumUnderlyingCastNote(CastRequest& castRequest, TypeRef enumTypeRef, TypeRef underlyingTypeRef)
+    {
+        castRequest.failure.srcTypeRef = enumTypeRef;
+        castRequest.failure.noteId     = DiagnosticId::sema_note_enum_underlying_cast;
+        castRequest.failure.optTypeRef = underlyingTypeRef;
+    }
+
+    bool shouldRouteEnumViaUnderlying(const CastRequest& castRequest, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (!srcType.isEnum() || dstType.isEnum())
+            return false;
+
+        if (dstType.isBool() && castRequest.kind == CastKind::Condition)
+            return false;
+
+        return true;
+    }
+}
+
 Result Cast::castIdentity(Sema&, CastRequest& castRequest, TypeRef, TypeRef)
 {
     if (castRequest.isConstantFolding())
@@ -47,10 +68,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
     {
         const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_invalid_type, orgSrcTypeRef, dstTypeRef);
         if (isEnum)
-        {
-            castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-            castRequest.failure.optTypeRef = srcTypeRef;
-        }
+            setEnumUnderlyingCastNote(castRequest, orgSrcTypeRef, srcTypeRef);
 
         return res;
     }
@@ -61,10 +79,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
     {
         const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
         if (isEnum)
-        {
-            castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-            castRequest.failure.optTypeRef = srcTypeRef;
-        }
+            setEnumUnderlyingCastNote(castRequest, orgSrcTypeRef, srcTypeRef);
 
         return res;
     }
@@ -329,8 +344,13 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     if (castRequest.kind != CastKind::Explicit)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    const TypeInfo&   type    = sema.typeMgr().get(srcTypeRef);
-    const SymbolEnum& enumSym = type.payloadSymEnum();
+    const TypeInfo&   srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&   dstType = sema.typeMgr().get(dstTypeRef);
+    const SymbolEnum& enumSym = srcType.payloadSymEnum();
+
+    // Only enum flags (or enums already backed by bool) can be cast to bool.
+    if (dstType.isBool() && !srcType.isEnumFlags() && enumSym.underlyingTypeRef() != dstTypeRef)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (castRequest.isConstantFolding())
     {
@@ -341,9 +361,7 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     const auto res = castAllowed(sema, castRequest, enumSym.underlyingTypeRef(), dstTypeRef);
     if (res != Result::Continue)
     {
-        castRequest.failure.srcTypeRef = srcTypeRef;
-        castRequest.failure.noteId     = DiagnosticId::sema_err_enum_underlying_cast;
-        castRequest.failure.optTypeRef = enumSym.underlyingTypeRef();
+        setEnumUnderlyingCastNote(castRequest, srcTypeRef, enumSym.underlyingTypeRef());
         return res;
     }
 
@@ -730,7 +748,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (srcType.isEnum() && !dstType.isEnum() && !(dstType.isBool() && castRequest.kind == CastKind::Condition))
+    else if (shouldRouteEnumViaUnderlying(castRequest, srcType, dstType))
         res = castFromEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isNull())
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);

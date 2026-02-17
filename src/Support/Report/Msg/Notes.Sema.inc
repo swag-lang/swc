@@ -1,6 +1,7 @@
 SWC_DIAG_DEF(sema_note_signed_unsigned)
 SWC_DIAG_DEF(sema_note_unsigned_signed)
 SWC_DIAG_DEF(sema_note_cast_explicit)
+SWC_DIAG_DEF(sema_note_enum_underlying_cast)
 SWC_DIAG_DEF(sema_note_other_definition)
 SWC_DIAG_DEF(sema_note_previous_case_value)
 SWC_DIAG_DEF(sema_note_previous_default_case)

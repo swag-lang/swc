@@ -48,9 +48,12 @@ namespace
     {
         auto& instructions = builder.instructions();
         auto& operands     = builder.operands();
-        auto& relocations = builder.pointerImmediateRelocations();
+        auto& relocations  = builder.codeRelocations();
         for (auto& reloc : relocations)
         {
+            if (reloc.kind != MicroInstrRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
+                continue;
+
             auto* const sym = reloc.targetSymbol;
             if (!sym || !sym->isFunction())
                 continue;

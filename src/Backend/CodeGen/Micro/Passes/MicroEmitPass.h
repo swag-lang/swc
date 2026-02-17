@@ -23,7 +23,7 @@ private:
 
     std::unordered_map<Ref, uint64_t> labelOffsets_;
     std::vector<PendingLabelJump>     pendingLabelJumps_;
-    std::unordered_map<Ref, MicroInstrPointerImmediateRelocation> pointerImmediateRelocs_;
+    std::unordered_map<Ref, MicroInstrRelocation> pointerImmediateRelocs_;
 };
 
 SWC_END_NAMESPACE();

@@ -81,11 +81,12 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             {
                 const IdentifierRef symbolName = targetSymbol ? targetSymbol->idRef() : ops[0].name;
                 context.builder->addCodeRelocation({
-                    .kind          = MicroInstrRelocation::Kind::Rel32,
-                    .codeOffset    = callOffset + 1,
-                    .symbolName    = symbolName,
-                    .targetAddress = 0,
-                    .targetSymbol  = targetSymbol,
+                    .kind           = MicroInstrRelocation::Kind::Rel32,
+                    .codeOffset     = callOffset + 1,
+                    .instructionRef = INVALID_REF,
+                    .symbolName     = symbolName,
+                    .targetAddress  = 0,
+                    .targetSymbol   = targetSymbol,
                 });
             }
             break;
@@ -143,12 +144,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 
                 const auto& reloc = foundReloc->second;
                 context.builder->addCodeRelocation({
-                    .kind          = MicroInstrRelocation::Kind::Abs64,
-                    .codeOffset    = codeEndOffset - sizeof(uint64_t),
-                    .symbolName    = reloc.symbolName,
-                    .targetAddress = reloc.targetAddress,
-                    .targetSymbol  = reloc.targetSymbol,
-                    .constantRef   = reloc.constantRef,
+                    .kind           = MicroInstrRelocation::Kind::Abs64,
+                    .codeOffset     = codeEndOffset - sizeof(uint64_t),
+                    .instructionRef = INVALID_REF,
+                    .symbolName     = reloc.symbolName,
+                    .targetAddress  = reloc.targetAddress,
+                    .targetSymbol   = reloc.targetSymbol,
+                    .constantRef    = reloc.constantRef,
                 });
             }
             break;
@@ -250,9 +252,13 @@ void MicroEmitPass::run(MicroPassContext& context)
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
     pointerImmediateRelocs_.clear();
-
-    for (const auto& reloc : context.builder->pointerImmediateRelocations())
+    for (const auto& reloc : context.builder->codeRelocations())
+    {
+        if (reloc.kind != MicroInstrRelocation::Kind::Abs64 || reloc.instructionRef == INVALID_REF)
+            continue;
         pointerImmediateRelocs_[reloc.instructionRef] = reloc;
+    }
+    context.builder->clearCodeRelocations();
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {

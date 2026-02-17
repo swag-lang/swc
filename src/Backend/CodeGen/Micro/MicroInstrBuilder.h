@@ -75,19 +75,11 @@ struct MicroInstrRelocation
 
     Kind          kind          = Kind::Rel32;
     uint32_t      codeOffset    = 0;
+    Ref           instructionRef = INVALID_REF;
     IdentifierRef symbolName    = IdentifierRef::invalid();
     uint64_t      targetAddress = 0;
     Symbol*       targetSymbol  = nullptr;
     ConstantRef   constantRef   = ConstantRef::invalid();
-};
-
-struct MicroInstrPointerImmediateRelocation
-{
-    Ref           instructionRef = INVALID_REF;
-    IdentifierRef symbolName     = IdentifierRef::invalid();
-    uint64_t      targetAddress  = 0;
-    Symbol*       targetSymbol   = nullptr;
-    ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
 class MicroInstrBuilder
@@ -134,11 +126,8 @@ public:
     uint32_t                                 printSourceLine() const { return printSourceLine_; }
     void                                     clearCodeRelocations() { codeRelocations_.clear(); }
     void                                     addCodeRelocation(MicroInstrRelocation relocation);
+    std::vector<MicroInstrRelocation>&       codeRelocations() { return codeRelocations_; }
     const std::vector<MicroInstrRelocation>& codeRelocations() const { return codeRelocations_; }
-    void                                     clearPointerImmediateRelocations() { pointerImmediateRelocations_.clear(); }
-    void addPointerImmediateRelocation(Ref instructionRef, uint64_t targetAddress, Symbol* targetSymbol = nullptr, ConstantRef constantRef = ConstantRef::invalid(), IdentifierRef symbolName = IdentifierRef::invalid());
-    std::vector<MicroInstrPointerImmediateRelocation>&       pointerImmediateRelocations() { return pointerImmediateRelocations_; }
-    const std::vector<MicroInstrPointerImmediateRelocation>& pointerImmediateRelocations() const { return pointerImmediateRelocations_; }
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
@@ -206,7 +195,6 @@ private:
     Runtime::BuildCfgBackendOptim                   backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
     std::vector<Ref>                                labels_;
     std::vector<MicroInstrRelocation>               codeRelocations_;
-    std::vector<MicroInstrPointerImmediateRelocation> pointerImmediateRelocations_;
 };
 
 SWC_END_NAMESPACE();

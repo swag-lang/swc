@@ -17,6 +17,7 @@
         return 42
     }
 
+    #[Swag.PrintMicro]
     const V = #run callManyInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
     #assert(V == 42)
 }
@@ -70,54 +71,54 @@
     #assert(V == 48)
 }
 
-//#test
-//{
-//    func callTenInts(
-//        a0: s32, a1: s32, a2: s32, a3: s32, a4: s32,
-//        a5: s32, a6: s32, a7: s32, a8: s32, a9: s32)->s32
-//    {
-//        return 49
-//    }
-//
-//    const V = #run callTenInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-//    #assert(V == 49)
-//}
+#test
+{
+    func callTenInts(
+        a0: s32, a1: s32, a2: s32, a3: s32, a4: s32,
+        a5: s32, a6: s32, a7: s32, a8: s32, a9: s32)->s32
+    {
+        return 49
+    }
 
-//#test
-//{
-//    func callMixedNumeric(
-//        a0: s32, a1: f32, a2: s32, a3: f32,
-//        a4: s64, a5: f64, a6: u32, a7: f32,
-//        a8: u64, a9: f64)->s32
-//    {
-//        return 43
-//    }
-//
-//    const V = #run callMixedNumeric(1, 2.0'f32, 3, 4.0'f32, 5's64, 6.0'f64, 7'u32, 8.0'f32, 9'u64, 10.0'f64)
-//    #assert(V == 43)
-//}
-//
-//#test
-//{
-//    func callSmallInts(a: s8, b: s16, c: s32, d: s64, e: u8, f: u16, g: u32, h: u64)->s32
-//    {
-//        return 44
-//    }
-//
-//    const V = #run callSmallInts(-1's8, -2's16, -3's32, -4's64, 5'u8, 6'u16, 7'u32, 8'u64)
-//    #assert(V == 44)
-//}
-//
-//#test
-//{
-//    func callBoolRune(a: bool, b: rune, c: bool, d: rune, e: bool, f: rune)->s32
-//    {
-//        return 45
-//    }
-//
-//    const V = #run callBoolRune(true, 'A', false, 'Z', true, '0')
-//    #assert(V == 45)
-//}
+    const V = #run callTenInts(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    #assert(V == 49)
+}
+
+#test
+{
+    func callMixedNumeric(
+        a0: s32, a1: f32, a2: s32, a3: f32,
+        a4: s64, a5: f64, a6: u32, a7: f32,
+        a8: u64, a9: f64)->s32
+    {
+        return 43
+    }
+
+    const V = #run callMixedNumeric(1, 2.0'f32, 3, 4.0'f32, 5's64, 6.0'f64, 7'u32, 8.0'f32, 9'u64, 10.0'f64)
+    #assert(V == 43)
+}
+
+#test
+{
+    func callSmallInts(a: s8, b: s16, c: s32, d: s64, e: u8, f: u16, g: u32, h: u64)->s32
+    {
+        return 44
+    }
+
+    const V = #run callSmallInts(-1's8, -2's16, -3's32, -4's64, 5'u8, 6'u16, 7'u32, 8'u64)
+    #assert(V == 44)
+}
+
+#test
+{
+    func callBoolRune(a: bool, b: rune, c: bool, d: rune, e: bool, f: rune)->s32
+    {
+        return 45
+    }
+
+    const V = #run callBoolRune(true, 'A', false, 'Z', true, '0')
+    #assert(V == 45)
+}
 
 #test
 {

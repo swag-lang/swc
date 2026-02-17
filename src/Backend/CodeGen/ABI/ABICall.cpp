@@ -96,10 +96,6 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();
     SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
-    if (hasStackArgs)
-    {
-        builder.encodeLoadRegReg(regBase, conv.stackPointer, MicroOpBits::B64);
-    }
 
     if (hasStackArgs)
     {
@@ -128,8 +124,7 @@ uint32_t ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, 
                     }
                     else
                     {
-                        builder.encodeLoadRegReg(regTmp, arg.srcReg, argBits);
-                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
+                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
                     }
                     break;
 

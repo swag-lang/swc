@@ -385,14 +385,6 @@ namespace Runtime
         Console,
     };
 
-    enum class BuildCfgByteCodeOptim
-    {
-        O0,
-        O1,
-        O2,
-        O3,
-    };
-
     enum class BuildCfgDocKind
     {
         None,
@@ -454,11 +446,6 @@ namespace Runtime
         String warnAsDisabled;
         bool   warnDefaultDisabled = false;
         bool   warnDefaultErrors   = false;
-
-        BuildCfgByteCodeOptim byteCodeOptimizeLevel = BuildCfgByteCodeOptim::O1;
-        bool                  byteCodeEmitAssume    = true;
-        bool                  byteCodeInline        = true;
-        bool                  byteCodeAutoInline    = true;
 
         BuildCfgBackendKind    backendKind              = BuildCfgBackendKind::Executable;
         BuildCfgBackendSubKind backendSubKind           = BuildCfgBackendSubKind::Console;

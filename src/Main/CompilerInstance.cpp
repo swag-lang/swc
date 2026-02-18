@@ -32,10 +32,6 @@ namespace
 
         if (cfgName == "fast-compile")
         {
-            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O0;
-            buildCfg.byteCodeInline           = false;
-            buildCfg.byteCodeAutoInline       = false;
-            buildCfg.byteCodeEmitAssume       = true;
             buildCfg.safetyGuards             = Runtime::SafetyWhat::None;
             buildCfg.sanity                   = false;
             buildCfg.errorStackTrace          = false;
@@ -46,10 +42,6 @@ namespace
         }
         else if (cfgName == "debug")
         {
-            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O1;
-            buildCfg.byteCodeInline           = false;
-            buildCfg.byteCodeAutoInline       = false;
-            buildCfg.byteCodeEmitAssume       = true;
             buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
@@ -60,10 +52,6 @@ namespace
         }
         else if (cfgName == "fast-debug")
         {
-            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O2;
-            buildCfg.byteCodeInline           = true;
-            buildCfg.byteCodeAutoInline       = true;
-            buildCfg.byteCodeEmitAssume       = true;
             buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
@@ -73,10 +61,6 @@ namespace
         }
         else if (cfgName == "release")
         {
-            buildCfg.byteCodeOptimizeLevel      = Runtime::BuildCfgByteCodeOptim::O3;
-            buildCfg.byteCodeInline             = true;
-            buildCfg.byteCodeAutoInline         = true;
-            buildCfg.byteCodeEmitAssume         = false;
             buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
             buildCfg.sanity                     = false;
             buildCfg.errorStackTrace            = false;
@@ -90,10 +74,6 @@ namespace
         }
         else
         {
-            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O2;
-            buildCfg.byteCodeInline           = true;
-            buildCfg.byteCodeAutoInline       = true;
-            buildCfg.byteCodeEmitAssume       = true;
             buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;

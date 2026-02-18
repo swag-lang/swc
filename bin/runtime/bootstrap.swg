@@ -770,15 +770,6 @@ namespace Swag
         Console
     }
 
-    // These are the optimization levels for the bytecode.
-    enum BuildCfgByteCodeOptim
-    {
-        O0     // No optimization
-        O1     // Optimizations level 1
-        O2     // Optimizations level 2
-        O3     // Optimizations level 3
-    }
-
     enum BuildCfgDocKind
     {
         None         // Do not generate documentation for that module
@@ -843,11 +834,6 @@ namespace Swag
         warnAsDisabled:                string                               // Disable some specific warnings
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
-
-        byteCodeOptimizeLevel          = BuildCfgByteCodeOptim.O1           // Optimization level of bytecode [0, 1 or 2]
-        byteCodeEmitAssume             = true                               // 'assume' will panic if an error is raised
-        byteCodeInline                 = true                               // Enable bytecode inlining with #[Swag.Inline]
-        byteCodeAutoInline             = true                               // Automatic inlining of some other functions
 
         backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, dynamic lib...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind

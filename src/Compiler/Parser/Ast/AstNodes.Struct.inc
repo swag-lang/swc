@@ -379,9 +379,9 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 {
-    Result     codeGenPostNode(CodeGen& codeGen) const;
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPostNode(Sema& sema) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

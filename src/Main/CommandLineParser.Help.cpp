@@ -103,19 +103,11 @@ namespace
         switch (arg.type)
         {
             case CommandLineType::String:
-                return !static_cast<const Utf8*>(arg.target)->empty();
-
             case CommandLineType::Path:
-                return !static_cast<const fs::path*>(arg.target)->empty();
-
             case CommandLineType::StringSet:
-                return !static_cast<const std::set<Utf8>*>(arg.target)->empty();
-
             case CommandLineType::PathSet:
-                return !static_cast<const std::set<fs::path>*>(arg.target)->empty();
-
             case CommandLineType::EnumString:
-                return !static_cast<const Utf8*>(arg.target)->empty();
+                return true;
 
             default:
                 return true;
@@ -136,19 +128,44 @@ namespace
                 return std::to_string(*static_cast<const uint32_t*>(arg.target));
 
             case CommandLineType::String:
-                return *static_cast<const Utf8*>(arg.target);
+            {
+                const Utf8& value = *static_cast<const Utf8*>(arg.target);
+                if (value.empty())
+                    return "(none)";
+                return value;
+            }
 
             case CommandLineType::Path:
-                return formatPathValue(*static_cast<const fs::path*>(arg.target));
+            {
+                const Utf8 value = formatPathValue(*static_cast<const fs::path*>(arg.target));
+                if (value.empty())
+                    return "(none)";
+                return value;
+            }
 
             case CommandLineType::StringSet:
-                return formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
+            {
+                const Utf8 value = formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
+                if (value.empty())
+                    return "(none)";
+                return value;
+            }
 
             case CommandLineType::PathSet:
-                return formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
+            {
+                const Utf8 value = formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
+                if (value.empty())
+                    return "(none)";
+                return value;
+            }
 
             case CommandLineType::EnumString:
-                return *static_cast<const Utf8*>(arg.target);
+            {
+                const Utf8& value = *static_cast<const Utf8*>(arg.target);
+                if (value.empty())
+                    return "(none)";
+                return value;
+            }
 
             case CommandLineType::EnumInt:
                 return enumValueFromIndex(arg.enumValues, *static_cast<const int*>(arg.target));

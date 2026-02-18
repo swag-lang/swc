@@ -82,7 +82,7 @@ namespace
     }
 }
 
-Result AstIdentifier::codeGenPostNode(CodeGen& codeGen) const
+Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView nodeView = codeGen.curNodeView();
     if (!nodeView.sym)
@@ -124,7 +124,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     if (!nodeView.sym)
         return Result::Continue;
 
-    SymbolVariable* symVar = nodeView.sym->safeCast<SymbolVariable>();
+    const SymbolVariable* symVar = nodeView.sym->safeCast<SymbolVariable>();
     if (!symVar)
         return Result::Continue;
 
@@ -161,7 +161,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
         for (Symbol* sym : nodeView.symList)
         {
-            SymbolVariable* symVar = sym ? sym->safeCast<SymbolVariable>() : nullptr;
+            const SymbolVariable* symVar = sym ? sym->safeCast<SymbolVariable>() : nullptr;
             if (!symVar)
                 continue;
 
@@ -180,7 +180,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
     if (nodeView.symList.size() == 1)
     {
-        SymbolVariable* symVar = nodeView.symList.front()->safeCast<SymbolVariable>();
+        const SymbolVariable* symVar = nodeView.symList.front()->safeCast<SymbolVariable>();
         if (symVar)
             bindSingleVariableFromInitializer(codeGen, *symVar, nodeInitRef);
     }

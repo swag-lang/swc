@@ -91,7 +91,7 @@ namespace
 
 Result AstBoolLiteral::semaPreNode(Sema& sema) const
 {
-    const auto& tok = sema.token(codeRef());
+    const Token& tok = sema.token(codeRef());
     if (tok.is(TokenId::KwdTrue))
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().cstTrue());
     else if (tok.is(TokenId::KwdFalse))
@@ -210,7 +210,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
 Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
-    const auto&        tok = sema.token(codeRef());
+    const Token&       tok = sema.token(codeRef());
     auto               str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);
@@ -244,7 +244,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
 Result AstHexaLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
-    const auto&        tok = sema.token(codeRef());
+    const Token&       tok = sema.token(codeRef());
     auto               str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(str.size() > 2);
@@ -283,7 +283,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
 Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
-    const auto&        tok = sema.token(codeRef());
+    const Token&       tok = sema.token(codeRef());
     const auto         str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());
@@ -331,7 +331,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 Result AstFloatLiteral::semaPreNode(Sema& sema) const
 {
     const TaskContext& ctx = sema.ctx();
-    const auto&        tok = sema.token(codeRef());
+    const Token&       tok = sema.token(codeRef());
     const auto         str = tok.string(sema.compiler().srcView(srcViewRef()));
 
     SWC_ASSERT(!str.empty());

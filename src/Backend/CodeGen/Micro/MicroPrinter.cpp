@@ -27,7 +27,7 @@ namespace
         if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
             return false;
 
-        const auto& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
+        const SourceView& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
         const auto  range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
         if (range.line == 0)
             return false;
@@ -1025,7 +1025,7 @@ namespace
             return false;
 
         const MicroDebugInfo* dbgInfo  = SWC_CHECK_NOT_NULL(builder->debugInfo(instRef));
-        const auto&           srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
+        const SourceView&     srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
         const uint64_t        debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;

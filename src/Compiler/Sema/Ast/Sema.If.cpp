@@ -13,7 +13,7 @@ namespace
     Result checkIfVarDeclCondition(Sema& sema, AstNodeRef varDeclRef)
     {
         AstNodeRef  declRef = varDeclRef;
-        const auto& varNode = sema.node(varDeclRef);
+        const AstNode& varNode = sema.node(varDeclRef);
         if (varNode.is(AstNodeId::VarDeclList))
         {
             const AstVarDeclList*   list = varNode.cast<AstVarDeclList>();

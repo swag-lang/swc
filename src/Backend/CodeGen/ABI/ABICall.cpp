@@ -27,9 +27,9 @@ namespace
         builder.encodeLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
         for (uint32_t i = 0; i < numArgs; ++i)
         {
-            const auto&    arg      = args[i];
+            const ABICall::Arg& arg      = args[i];
             const uint64_t argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
-            const auto     argBits  = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
+            const MicroOpBits argBits = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
             const bool     isRegArg = i < numRegArgs;
 
             if (isRegArg)
@@ -65,7 +65,7 @@ namespace
             return;
 
         SWC_ASSERT(ret.valuePtr != nullptr);
-        const auto retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
         builder.encodeLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
         if (ret.isFloat)
             builder.encodeLoadMemReg(regBase, 0, conv.floatReturn, retBits);
@@ -174,8 +174,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
-            const auto& arg      = args[i];
-            const auto  argBits  = preparedArgBits(arg);
+            const PreparedArg& arg      = args[i];
+            const MicroOpBits  argBits  = preparedArgBits(arg);
             const bool  isRegArg = i < numRegArgs;
 
             if (isRegArg)
@@ -221,11 +221,11 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
         for (uint32_t i = 0; i < numRegArgsUsed; ++i)
         {
-            const auto& arg = args[i];
+            const PreparedArg& arg = args[i];
 
             if (regArgsUseHomeSlot[i])
             {
-                const auto     argBits    = preparedArgBits(arg);
+                const MicroOpBits argBits    = preparedArgBits(arg);
                 const uint64_t homeOffset = callArgStackOffset(conv, i);
                 if (arg.isFloat)
                 {
@@ -263,7 +263,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
-        const auto& arg = args[i];
+        const PreparedArg& arg = args[i];
 
         if (arg.srcReg.isVirtual())
         {
@@ -346,7 +346,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     hiddenRetArg.numBits = 64;
     preparedArgsWithHiddenRetArg.push_back(hiddenRetArg);
 
-    for (const auto& arg : args)
+    for (const PreparedArg& arg : args)
         preparedArgsWithHiddenRetArg.push_back(arg);
 
     return prepareArgs(builder, callConvKind, preparedArgsWithHiddenRetArg);
@@ -369,7 +369,7 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
     SWC_ASSERT(!ret.isIndirect);
 
     const CallConv& conv = CallConv::get(callConvKind);
-    const auto  retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
 
     if (ret.isFloat)
         builder.encodeLoadMemReg(outputStorageReg, 0, conv.floatReturn, retBits);
@@ -430,7 +430,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     // Fully self-contained call helper for runtime/JIT address calls.
     const CallConv& conv = CallConv::get(callConvKind);
     const uint32_t numArgs     = static_cast<uint32_t>(args.size());
-    const auto     stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
+    const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();

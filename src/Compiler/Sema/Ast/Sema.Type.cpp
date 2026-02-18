@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
 {
-    const auto&      tok     = sema.token(codeRef());
+    const Token&     tok     = sema.token(codeRef());
     const TypeManager& typeMgr = sema.typeMgr();
     const AstNodeRef nodeRef = sema.curNodeRef();
 

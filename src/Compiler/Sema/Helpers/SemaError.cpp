@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
 {
     const TaskContext& ctx  = sema.ctx();
-    const auto&        node = sema.node(atNodeRef);
+    const AstNode&     node = sema.node(atNodeRef);
     switch (location)
     {
         case ReportLocation::Token:

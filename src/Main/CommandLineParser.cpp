@@ -6,6 +6,7 @@
 #include "Main/TaskContext.h"
 #include "Main/Version.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -28,6 +29,145 @@ struct HelpOptionEntry
 
 namespace
 {
+    Utf8 formatPathValue(const fs::path& value)
+    {
+        if (value.empty())
+            return {};
+
+        return value.string();
+    }
+
+    Utf8 formatStringSetValue(const std::set<Utf8>& values)
+    {
+        if (values.empty())
+            return {};
+
+        Utf8 result;
+        bool first = true;
+        for (const auto& value : values)
+        {
+            if (!first)
+                result += ", ";
+            result += value;
+            first = false;
+        }
+
+        return result;
+    }
+
+    Utf8 formatPathSetValue(const std::set<fs::path>& values)
+    {
+        if (values.empty())
+            return {};
+
+        Utf8 result;
+        bool first = true;
+        for (const auto& value : values)
+        {
+            if (!first)
+                result += ", ";
+            result += value.string();
+            first = false;
+        }
+
+        return result;
+    }
+
+    Utf8 enumValueFromIndex(const Utf8& enumValues, int index)
+    {
+        if (enumValues.empty())
+            return std::to_string(index);
+
+        std::istringstream iss(enumValues);
+        Utf8               value;
+        int                currentIndex = 0;
+        while (std::getline(iss, value, '|'))
+        {
+            if (currentIndex == index)
+                return value;
+
+            currentIndex++;
+        }
+
+        return std::to_string(index);
+    }
+
+    Utf8 formatEnumChoices(const Utf8& enumValues)
+    {
+        Utf8 result;
+        std::istringstream iss(enumValues);
+        Utf8               value;
+        bool               first = true;
+        while (std::getline(iss, value, '|'))
+        {
+            if (!first)
+                result += ", ";
+            result += value;
+            first = false;
+        }
+
+        return result;
+    }
+
+    bool hasDisplayableDefaultValue(const ArgInfo& arg)
+    {
+        switch (arg.type)
+        {
+            case CommandLineType::String:
+                return !static_cast<const Utf8*>(arg.target)->empty();
+
+            case CommandLineType::Path:
+                return !static_cast<const fs::path*>(arg.target)->empty();
+
+            case CommandLineType::StringSet:
+                return !static_cast<const std::set<Utf8>*>(arg.target)->empty();
+
+            case CommandLineType::PathSet:
+                return !static_cast<const std::set<fs::path>*>(arg.target)->empty();
+
+            case CommandLineType::EnumString:
+                return !static_cast<const Utf8*>(arg.target)->empty();
+
+            default:
+                return true;
+        }
+    }
+
+    Utf8 defaultValueToString(const ArgInfo& arg)
+    {
+        switch (arg.type)
+        {
+            case CommandLineType::Bool:
+                return *static_cast<const bool*>(arg.target) ? "true" : "false";
+
+            case CommandLineType::Int:
+                return std::to_string(*static_cast<const int*>(arg.target));
+
+            case CommandLineType::UnsignedInt:
+                return std::to_string(*static_cast<const uint32_t*>(arg.target));
+
+            case CommandLineType::String:
+                return *static_cast<const Utf8*>(arg.target);
+
+            case CommandLineType::Path:
+                return formatPathValue(*static_cast<const fs::path*>(arg.target));
+
+            case CommandLineType::StringSet:
+                return formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
+
+            case CommandLineType::PathSet:
+                return formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
+
+            case CommandLineType::EnumString:
+                return *static_cast<const Utf8*>(arg.target);
+
+            case CommandLineType::EnumInt:
+                return enumValueFromIndex(arg.enumValues, *static_cast<const int*>(arg.target));
+        }
+
+        return "<unknown>";
+    }
+
     Utf8 makeOptionDisplayName(const ArgInfo& arg)
     {
         Utf8 name = arg.longForm;
@@ -86,6 +226,15 @@ namespace
     bool commandInfoLess(const CommandInfo& lhs, const CommandInfo& rhs)
     {
         return Utf8(lhs.name) < Utf8(rhs.name);
+    }
+
+    Utf8 colorize(const TaskContext& ctx, LogColor color, std::string_view text)
+    {
+        Utf8 result;
+        result += LogColorHelper::toAnsi(ctx, color);
+        result += text;
+        result += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        return result;
     }
 }
 
@@ -426,16 +575,25 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
                 firstGroup   = false;
             }
 
-            Utf8 line = std::format("    {:<{}}    {}", entry.displayName, maxLen, entry.arg->description);
-            if (!entry.arg->enumValues.empty())
+            Utf8 line = "    ";
+            line += colorize(ctx, LogColor::BrightCyan, std::format("{:<{}}", entry.displayName, maxLen));
+            line += "    ";
+            line += entry.arg->description;
+            if ((entry.arg->type == CommandLineType::EnumString || entry.arg->type == CommandLineType::EnumInt) && !entry.arg->enumValues.empty())
             {
-                line += " (";
-                line += entry.arg->enumValues;
+                line += " (choices: ";
+                line += colorize(ctx, LogColor::Yellow, formatEnumChoices(entry.arg->enumValues));
                 line += ")";
             }
+            if (hasDisplayableDefaultValue(*entry.arg))
+            {
+                line += " [default: ";
+                line += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
+                line += "]";
+            }
 
-            Logger::printDim(ctx, line);
-            Logger::printDim(ctx, "\n");
+            Logger::print(ctx, line);
+            Logger::print(ctx, "\n");
         }
 
         command_ = oldCommand;

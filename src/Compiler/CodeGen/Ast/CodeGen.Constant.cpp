@@ -17,31 +17,6 @@ namespace
         return reinterpret_cast<uint64_t>(storedPayload.data());
     }
 
-    void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
-    {
-        const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
-        const TypeInfo& typeInfo     = codeGen.typeMgr().get(finalTypeRef);
-        const uint64_t  storageSize  = typeInfo.sizeOf(codeGen.ctx());
-
-        SmallVector<std::byte> tmpStorage(storageSize);
-        ByteSpanRW             tmpSpan{tmpStorage.data(), tmpStorage.size()};
-        std::memset(tmpSpan.data(), 0, tmpSpan.size());
-        ConstantLower::lowerToBytes(codeGen.sema(), tmpSpan, cstRef, finalTypeRef);
-
-        if (storageSize <= sizeof(uint64_t) && !typeInfo.isString() && !typeInfo.isSlice() && !typeInfo.isStruct() && !typeInfo.isArray())
-        {
-            uint64_t value = 0;
-            std::memcpy(&value, tmpSpan.data(), storageSize);
-            codeGen.builder().encodeLoadRegImm(payload.reg, value, MicroOpBits::B64);
-            payload.storageKind = CodeGenNodePayload::StorageKind::Value;
-            return;
-        }
-
-        const uint64_t storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, tmpSpan);
-        codeGen.builder().encodeLoadRegPtrImm(payload.reg, storageAddress, cstRef);
-        payload.storageKind = CodeGenNodePayload::StorageKind::Address;
-    }
-
     void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -155,11 +130,6 @@ namespace
                 payload.storageKind = CodeGenNodePayload::StorageKind::Address;
                 return;
             }
-
-            case ConstantKind::AggregateStruct:
-            case ConstantKind::AggregateArray:
-                emitLoweredConstantToPayload(codeGen, payload, cstRef, cst, targetTypeRef);
-                return;
 
             default:
                 SWC_UNREACHABLE();

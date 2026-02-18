@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -80,6 +81,18 @@ namespace
         return Result::Continue;
     }
 
+    ConstantRef makeArrayConstantFromValues(const CastArrayArgs& args, const std::vector<ConstantRef>& values)
+    {
+        TaskContext&           ctx       = args.sema->ctx();
+        const uint64_t         arraySize = args.dstType->sizeOf(ctx);
+        std::vector<std::byte> buffer(arraySize);
+        const ByteSpan         bytes = asByteSpan(buffer);
+        ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values);
+
+        const ConstantValue result = ConstantValue::makeArray(ctx, args.dstTypeRef, bytes);
+        return args.sema->cstMgr().addConstant(ctx, result);
+    }
+
     Result castArrayToArray(const CastArrayArgs& args)
     {
         const auto&   dstDims        = args.dstType->payloadArrayDims();
@@ -117,8 +130,8 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result    = ConstantValue::makeAggregateArray(args.sema->ctx(), newValues);
-        args.castRequest->outConstRef = args.sema->cstMgr().addConstant(args.sema->ctx(), result);
+        const std::vector valuesForArray(newValues.begin(), newValues.end());
+        args.castRequest->outConstRef = makeArrayConstantFromValues(args, valuesForArray);
         return Result::Continue;
     }
 
@@ -158,8 +171,8 @@ namespace
             newValues.push_back(castedRef);
         }
 
-        const ConstantValue result    = ConstantValue::makeAggregateArray(args.sema->ctx(), newValues);
-        args.castRequest->outConstRef = args.sema->cstMgr().addConstant(args.sema->ctx(), result);
+        const std::vector valuesForArray(newValues.begin(), newValues.end());
+        args.castRequest->outConstRef = makeArrayConstantFromValues(args, valuesForArray);
         return Result::Continue;
     }
 }

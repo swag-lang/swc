@@ -15,24 +15,23 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
-        const auto    rightView  = codeGen.nodeView(node.nodeRightRef);
-        const Symbol* methodSym  = SWC_CHECK_NOT_NULL(rightView.sym);
-        const auto&   methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
+        const SemaNodeView rightView  = codeGen.nodeView(node.nodeRightRef);
+        const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym);
+        const auto&        methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
-        auto&          payload = codeGen.setPayload(codeGen.curNodeRef());
-        const MicroReg leftReg = leftPayload->reg;
-        const MicroReg dstReg  = payload.reg;
+        const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());
+        const MicroReg            leftReg = leftPayload->reg;
+        const MicroReg            dstReg  = payload.reg;
         builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
         builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
-        payload.storageKind = CodeGenNodePayload::StorageKind::Value;
         return Result::Continue;
     }
 }
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const auto leftView = codeGen.nodeView(nodeLeftRef);
+    const SemaNodeView leftView = codeGen.nodeView(nodeLeftRef);
     SWC_ASSERT(leftView.type);
 
     if (leftView.type->isInterface())

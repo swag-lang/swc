@@ -30,10 +30,9 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CallConv& callConv = CallConv::host();
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
-    const MicroReg      outputStorageReg = callConv.intArgRegs[0];
-    CodeGenNodePayload& nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
+    const MicroReg            outputStorageReg = callConv.intArgRegs[0];
+    const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
     codeGen.builder().encodeLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
-    nodePayload.storageKind = CodeGenNodePayload::StorageKind::Address;
     return Result::Continue;
 }
 

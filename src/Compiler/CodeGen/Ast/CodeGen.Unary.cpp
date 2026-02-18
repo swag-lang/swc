@@ -15,10 +15,9 @@ namespace
         const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
 
-        const auto nodeView = codeGen.curNodeView();
-        auto&      payload  = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+        const SemaNodeView        nodeView = codeGen.curNodeView();
+        const CodeGenNodePayload& payload  = codeGen.setPayloadAddress(codeGen.curNodeRef(), nodeView.typeRef);
         builder.encodeLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
-        payload.storageKind = CodeGenNodePayload::StorageKind::Address;
         return Result::Continue;
     }
 }

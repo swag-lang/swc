@@ -135,9 +135,8 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     {
         // Cache hidden return pointer in the function payload for return statements.
         SWC_ASSERT(!callConv.intArgRegs.empty());
-        CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef());
+        const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
         codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
-        payload.storageKind = CodeGenNodePayload::StorageKind::Address;
     }
 
     return Result::Continue;
@@ -201,7 +200,10 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
         ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
     }
 
-    nodePayload.storageKind = normalizedRet.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;
+    if (normalizedRet.isIndirect)
+        codeGen.setPayloadAddress(nodePayload);
+    else
+        codeGen.setPayloadValue(nodePayload);
     return Result::Continue;
 }
 

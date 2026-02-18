@@ -72,6 +72,10 @@ public:
     const CodeGenNodePayload* variablePayload(const SymbolVariable* sym) const;
     CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    static void               setPayloadValue(CodeGenNodePayload& payload);
+    static void               setPayloadAddress(CodeGenNodePayload& payload);
     MicroReg                  nextVirtualRegisterForType(TypeRef typeRef);
     bool                      canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const;
     MicroReg                  nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }

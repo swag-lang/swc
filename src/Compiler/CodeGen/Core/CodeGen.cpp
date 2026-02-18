@@ -203,6 +203,30 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 
+CodeGenNodePayload& CodeGen::setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef)
+{
+    CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
+    setPayloadValue(nodePayload);
+    return nodePayload;
+}
+
+CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef)
+{
+    CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
+    setPayloadAddress(nodePayload);
+    return nodePayload;
+}
+
+void CodeGen::setPayloadValue(CodeGenNodePayload& payload)
+{
+    payload.storageKind = CodeGenNodePayload::StorageKind::Value;
+}
+
+void CodeGen::setPayloadAddress(CodeGenNodePayload& payload)
+{
+    payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+}
+
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isValid())

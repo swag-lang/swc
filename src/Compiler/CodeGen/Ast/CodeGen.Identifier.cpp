@@ -64,7 +64,10 @@ namespace
             builder.encodeLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
         }
 
-        outPayload.storageKind = normalizedParam.isIndirect ? CodeGenNodePayload::StorageKind::Address : CodeGenNodePayload::StorageKind::Value;
+        if (normalizedParam.isIndirect)
+            codeGen.setPayloadAddress(outPayload);
+        else
+            codeGen.setPayloadValue(outPayload);
     }
 
     void bindSingleVariableFromInitializer(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
@@ -100,9 +103,8 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
         const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
 
         CodeGenNodePayload paramPayload;
-        paramPayload.reg         = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-        paramPayload.typeRef     = symVar->typeRef();
-        paramPayload.storageKind = CodeGenNodePayload::StorageKind::Value;
+        paramPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+        paramPayload.typeRef = symVar->typeRef();
 
         lowerParameterPayload(codeGen, symbolFunc, *symVar, paramPayload);
         codeGen.setVariablePayload(symVar, paramPayload);
@@ -135,9 +137,8 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
         const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
 
         CodeGenNodePayload symbolPayload;
-        symbolPayload.reg         = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-        symbolPayload.typeRef     = symVar->typeRef();
-        symbolPayload.storageKind = CodeGenNodePayload::StorageKind::Value;
+        symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+        symbolPayload.typeRef = symVar->typeRef();
 
         lowerParameterPayload(codeGen, symbolFunc, *symVar, symbolPayload);
         codeGen.setVariablePayload(symVar, symbolPayload);
@@ -167,9 +168,8 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
             const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
             CodeGenNodePayload                     symbolPayload;
-            symbolPayload.reg         = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-            symbolPayload.typeRef     = symVar->typeRef();
-            symbolPayload.storageKind = CodeGenNodePayload::StorageKind::Value;
+            symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            symbolPayload.typeRef = symVar->typeRef();
 
             lowerParameterPayload(codeGen, symbolFunc, *symVar, symbolPayload);
             codeGen.setVariablePayload(symVar, symbolPayload);

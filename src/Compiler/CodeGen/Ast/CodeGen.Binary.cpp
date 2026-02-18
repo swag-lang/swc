@@ -66,8 +66,7 @@ namespace
         const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-        nodePayload.storageKind         = CodeGenNodePayload::StorageKind::Value;
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
@@ -92,8 +91,7 @@ namespace
         const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-        nodePayload.storageKind         = CodeGenNodePayload::StorageKind::Value;
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);

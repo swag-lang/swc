@@ -17,7 +17,7 @@ namespace
 
         const SemaNodeView        nodeView = codeGen.curNodeView();
         const CodeGenNodePayload& payload  = codeGen.setPayloadAddress(codeGen.curNodeRef(), nodeView.typeRef);
-        builder.encodeLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
+        builder.emitLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
         return Result::Continue;
     }
 }

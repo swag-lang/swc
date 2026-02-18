@@ -31,9 +31,9 @@ namespace
         MicroBuilder& builder = codeGen.builder();
         outReg                = codeGen.nextVirtualRegisterForType(operandTypeRef);
         if (operandPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
-            builder.encodeLoadRegMem(outReg, operandPayload.reg, 0, opBits);
+            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
-            builder.encodeLoadRegReg(outReg, operandPayload.reg, opBits);
+            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
     }
 
     Result emitPlusIntLikeIntLike(CodeGen& codeGen, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView)
@@ -56,7 +56,7 @@ namespace
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
 
-        codeGen.builder().encodeOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Add, opBits);
+        codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Add, opBits);
         return Result::Continue;
     }
 
@@ -80,7 +80,7 @@ namespace
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
 
-        codeGen.builder().encodeOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::FloatAdd, opBits);
+        codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::FloatAdd, opBits);
         return Result::Continue;
     }
 

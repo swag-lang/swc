@@ -38,8 +38,8 @@ namespace
 
     void buildReturn42(MicroBuilder& builder, const CallConv& callConv)
     {
-        builder.encodeLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64);
-        builder.encodeRet();
+        builder.emitLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64);
+        builder.emitRet();
     }
 }
 
@@ -54,9 +54,9 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const CallConv& callConv = CallConv::host();
 
     MicroBuilder calleeBuilder(ctx);
-    calleeBuilder.encodeLoadRegImm(MicroReg::intReg(15), 0x1234, MicroOpBits::B64);
-    calleeBuilder.encodeLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
-    calleeBuilder.encodeRet();
+    calleeBuilder.emitLoadRegImm(MicroReg::intReg(15), 0x1234, MicroOpBits::B64);
+    calleeBuilder.emitLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
+    calleeBuilder.emitRet();
 
     MachineCode loweredCalleeCode;
     loweredCalleeCode.emit(ctx, calleeBuilder);
@@ -69,12 +69,12 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     SWC_ASSERT(calleeFn() == 1);
 
     MicroBuilder callerBuilder(ctx);
-    callerBuilder.encodeLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64);
-    callerBuilder.encodeLoadRegPtrImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn));
-    callerBuilder.encodeCallReg(MicroReg::intReg(10), CallConvKind::Host);
-    callerBuilder.encodeOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64);
-    callerBuilder.encodeLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
-    callerBuilder.encodeRet();
+    callerBuilder.emitLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64);
+    callerBuilder.emitLoadRegPtrImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn));
+    callerBuilder.emitCallReg(MicroReg::intReg(10), CallConvKind::Host);
+    callerBuilder.emitOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64);
+    callerBuilder.emitLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
+    callerBuilder.emitRet();
 
     MachineCode loweredCallerCode;
     loweredCallerCode.emit(ctx, callerBuilder);

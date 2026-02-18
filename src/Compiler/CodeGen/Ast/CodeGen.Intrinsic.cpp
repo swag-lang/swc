@@ -22,13 +22,13 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
 
         if (exprView.type && (exprView.type->isString() || exprView.type->isSlice() || exprView.type->isAny()))
-            builder.encodeLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
+            builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
         else if (exprView.type && exprView.type->isArray())
-            builder.encodeLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
         else if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
-            builder.encodeLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
+            builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
         else
-            builder.encodeLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
         return Result::Continue;
     }
 }
@@ -56,7 +56,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             const uint64_t            compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
             const SemaNodeView        nodeView          = codeGen.curNodeView();
             const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), nodeView.typeRef);
-            codeGen.builder().encodeLoadRegPtrImm(payload.reg, compilerIfAddress);
+            codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress);
             return Result::Continue;
         }
 

@@ -305,7 +305,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
           .numBits    = retType.numBits,
     };
     ABICall::callAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
-    builder.encodeRet();
+    builder.emitRet();
 
     MachineCode loweredCode;
     loweredCode.emit(ctx, builder);

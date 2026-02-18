@@ -32,7 +32,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
-    codeGen.builder().encodeLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
+    codeGen.builder().emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
     return Result::Continue;
 }
 
@@ -70,8 +70,8 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
 
-            builder.encodeLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
-            builder.encodeLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
+            builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
+            builder.emitLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
         }
     }
@@ -82,7 +82,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         else
             ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
     }
-    builder.encodeRet();
+    builder.emitRet();
     return Result::Continue;
 }
 

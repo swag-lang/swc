@@ -23,8 +23,8 @@ namespace
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());
         const MicroReg            leftReg = leftPayload->reg;
         const MicroReg            dstReg  = payload.reg;
-        builder.encodeLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
-        builder.encodeLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
+        builder.emitLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+        builder.emitLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
         return Result::Continue;
     }
 }

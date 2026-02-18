@@ -50,18 +50,18 @@ namespace
             if (normalizedParam.isFloat)
             {
                 SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.encodeLoadRegReg(outPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
+                builder.emitLoadRegReg(outPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
             }
             else
             {
                 SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.encodeLoadRegReg(outPayload.reg, callConv.intArgRegs[slotIndex], opBits);
+                builder.emitLoadRegReg(outPayload.reg, callConv.intArgRegs[slotIndex], opBits);
             }
         }
         else
         {
             const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
-            builder.encodeLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
+            builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
         }
 
         if (normalizedParam.isIndirect)

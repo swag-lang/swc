@@ -119,7 +119,7 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg
     return false;
 }
 
-void MicroBuilder::encodePush(MicroReg reg)
+void MicroBuilder::emitPush(MicroReg reg)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::Push, 1);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -127,7 +127,7 @@ void MicroBuilder::encodePush(MicroReg reg)
     return;
 }
 
-void MicroBuilder::encodePop(MicroReg reg)
+void MicroBuilder::emitPop(MicroReg reg)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::Pop, 1);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -135,7 +135,7 @@ void MicroBuilder::encodePop(MicroReg reg)
     return;
 }
 
-void MicroBuilder::encodeNop()
+void MicroBuilder::emitNop()
 {
     addInstruction(MicroInstrOpcode::Nop, 0);
     return;
@@ -160,37 +160,37 @@ void MicroBuilder::placeLabel(Ref labelRef)
     return;
 }
 
-void MicroBuilder::encodeLabel(Ref& outLabelRef)
+void MicroBuilder::emitLabel(Ref& outLabelRef)
 {
     outLabelRef = createLabel();
     return placeLabel(outLabelRef);
 }
 
-void MicroBuilder::encodeRet()
+void MicroBuilder::emitRet()
 {
     addInstruction(MicroInstrOpcode::Ret, 0);
     return;
 }
 
-void MicroBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
+void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
     // Convenience wrapper: materialize target address then use the generic indirect call opcode.
     const CallConv& conv = CallConv::get(callConv);
-    encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
-    encodeCallReg(conv.intReturn, callConv);
+    emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
+    emitCallReg(conv.intReturn, callConv);
     return;
 }
 
-void MicroBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv)
+void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
 {
     // Extern/local share the same micro-level representation; relocation kind differs.
     const CallConv& conv = CallConv::get(callConv);
-    encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
-    encodeCallReg(conv.intReturn, callConv);
+    emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
+    emitCallReg(conv.intReturn, callConv);
     return;
 }
 
-void MicroBuilder::encodeCallReg(MicroReg reg, CallConvKind callConv)
+void MicroBuilder::emitCallReg(MicroReg reg, CallConvKind callConv)
 {
     // Micro IR models calls as indirect calls carrying the selected calling convention.
     const auto&        inst = addInstruction(MicroInstrOpcode::CallIndirect, 2);
@@ -200,7 +200,7 @@ void MicroBuilder::encodeCallReg(MicroReg reg, CallConvKind callConv)
     return;
 }
 
-void MicroBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries)
+void MicroBuilder::emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::JumpTable, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -212,7 +212,7 @@ void MicroBuilder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_
     return;
 }
 
-void MicroBuilder::encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef)
+void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::JumpCond, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -222,7 +222,7 @@ void MicroBuilder::encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref 
     return;
 }
 
-void MicroBuilder::encodeJumpReg(MicroReg reg)
+void MicroBuilder::emitJumpReg(MicroReg reg)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::JumpReg, 1);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -230,7 +230,7 @@ void MicroBuilder::encodeJumpReg(MicroReg reg)
     return;
 }
 
-void MicroBuilder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
+void MicroBuilder::emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegMem, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -241,7 +241,7 @@ void MicroBuilder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memO
     return;
 }
 
-void MicroBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegImm, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -251,7 +251,7 @@ void MicroBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits op
     return;
 }
 
-void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
+void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
 {
     // Record relocation metadata so the emitter/JIT can patch the final absolute target.
     auto relocationKind = MicroRelocation::Kind::ConstantAddress;
@@ -276,7 +276,7 @@ void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef
     });
 }
 
-void MicroBuilder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits)
+void MicroBuilder::emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegReg, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -286,7 +286,7 @@ void MicroBuilder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBit
     return;
 }
 
-void MicroBuilder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+void MicroBuilder::emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadSignedExtRegMem, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -298,7 +298,7 @@ void MicroBuilder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, u
     return;
 }
 
-void MicroBuilder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+void MicroBuilder::emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadSignedExtRegReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -309,7 +309,7 @@ void MicroBuilder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc
     return;
 }
 
-void MicroBuilder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+void MicroBuilder::emitLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadZeroExtRegMem, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -321,7 +321,7 @@ void MicroBuilder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uin
     return;
 }
 
-void MicroBuilder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+void MicroBuilder::emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadZeroExtRegReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -332,7 +332,7 @@ void MicroBuilder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, 
     return;
 }
 
-void MicroBuilder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
+void MicroBuilder::emitLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAddrRegMem, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -343,7 +343,7 @@ void MicroBuilder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64
     return;
 }
 
-void MicroBuilder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)
+void MicroBuilder::emitLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAmcRegMem, 8);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -357,7 +357,7 @@ void MicroBuilder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, M
     return;
 }
 
-void MicroBuilder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)
+void MicroBuilder::emitLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAmcMemReg, 8);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -371,7 +371,7 @@ void MicroBuilder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64
     return;
 }
 
-void MicroBuilder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
+void MicroBuilder::emitLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAmcMemImm, 8);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -385,7 +385,7 @@ void MicroBuilder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64
     return;
 }
 
-void MicroBuilder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue)
+void MicroBuilder::emitLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAddrAmcRegMem, 8);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -399,7 +399,7 @@ void MicroBuilder::encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBit
     return;
 }
 
-void MicroBuilder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
+void MicroBuilder::emitLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadMemReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -410,7 +410,7 @@ void MicroBuilder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroRe
     return;
 }
 
-void MicroBuilder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadMemImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -421,7 +421,7 @@ void MicroBuilder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_
     return;
 }
 
-void MicroBuilder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
+void MicroBuilder::emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpRegReg, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -431,7 +431,7 @@ void MicroBuilder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opB
     return;
 }
 
-void MicroBuilder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
+void MicroBuilder::emitCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpMemReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -442,7 +442,7 @@ void MicroBuilder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg
     return;
 }
 
-void MicroBuilder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpMemImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -453,7 +453,7 @@ void MicroBuilder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t
     return;
 }
 
-void MicroBuilder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpRegImm, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -463,7 +463,7 @@ void MicroBuilder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opB
     return;
 }
 
-void MicroBuilder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
+void MicroBuilder::emitSetCondReg(MicroReg reg, MicroCond cpuCond)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::SetCondReg, 2);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -472,7 +472,7 @@ void MicroBuilder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
     return;
 }
 
-void MicroBuilder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
+void MicroBuilder::emitLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadCondRegReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -483,7 +483,7 @@ void MicroBuilder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroC
     return;
 }
 
-void MicroBuilder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
+void MicroBuilder::emitClearReg(MicroReg reg, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::ClearReg, 2);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -492,7 +492,7 @@ void MicroBuilder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
     return;
 }
 
-void MicroBuilder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpUnaryMem, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -503,7 +503,7 @@ void MicroBuilder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp
     return;
 }
 
-void MicroBuilder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpUnaryReg, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -513,7 +513,7 @@ void MicroBuilder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits
     return;
 }
 
-void MicroBuilder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegReg, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -524,7 +524,7 @@ void MicroBuilder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroO
     return;
 }
 
-void MicroBuilder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegMem, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -536,7 +536,7 @@ void MicroBuilder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64
     return;
 }
 
-void MicroBuilder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryMemReg, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -548,7 +548,7 @@ void MicroBuilder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Mic
     return;
 }
 
-void MicroBuilder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -559,7 +559,7 @@ void MicroBuilder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op
     return;
 }
 
-void MicroBuilder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryMemImm, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -571,7 +571,7 @@ void MicroBuilder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uin
     return;
 }
 
-void MicroBuilder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpTernaryRegRegReg, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);

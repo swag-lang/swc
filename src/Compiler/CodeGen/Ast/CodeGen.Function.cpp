@@ -89,7 +89,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
-            codeGen.builder().encodeRet();
+            codeGen.builder().emitRet();
             return Result::Continue;
         }
 
@@ -108,7 +108,7 @@ namespace
             const MicroReg outputStorageReg = fnPayload->reg;
             SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
-            codeGen.builder().encodeLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+            codeGen.builder().emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
@@ -117,7 +117,7 @@ namespace
             ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
         }
 
-        codeGen.builder().encodeRet();
+        codeGen.builder().emitRet();
         return Result::Continue;
     }
 }
@@ -136,7 +136,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         // Cache hidden return pointer in the function payload for return statements.
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
-        codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
+        codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
     return Result::Continue;

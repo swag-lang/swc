@@ -22,7 +22,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
 #ifdef _M_X64
     X64Encoder encoder(ctx);
-    encoder.setBackendOptimizeLevel(builder.backendOptimizeLevel());
+    encoder.setBackendOptimizeLevel(builder.backendBuildCfg().backendOptimize);
 #endif
 
     MicroPassManager passManager;

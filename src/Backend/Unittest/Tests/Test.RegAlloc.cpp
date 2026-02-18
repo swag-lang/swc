@@ -87,15 +87,15 @@ namespace
         constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
         constexpr MicroReg v2 = MicroReg::virtualIntReg(2);
 
-        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
-        b.encodeLoadRegImm(v1, 2, MicroOpBits::B64);
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
-        b.encodeOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
-        b.encodeOpBinaryRegImm(v1, 3, MicroOp::Add, MicroOpBits::B64);
-        b.encodeLoadRegImm(v2, 4, MicroOpBits::B64);
-        b.encodeOpBinaryRegImm(v2, 5, MicroOp::Add, MicroOpBits::B64);
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
-        b.encodeOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
+        b.emitLoadRegImm(v1, 2, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v1, 3, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v2, 4, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v2, 5, MicroOp::Add, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64);
     }
 
     void buildNoCalls(MicroBuilder& b, CallConvKind)
@@ -104,12 +104,12 @@ namespace
         constexpr MicroReg v1 = MicroReg::virtualIntReg(11);
         constexpr MicroReg v2 = MicroReg::virtualIntReg(12);
 
-        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
-        b.encodeOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
-        b.encodeLoadRegImm(v1, 2, MicroOpBits::B64);
-        b.encodeOpBinaryRegImm(v1, 1, MicroOp::Add, MicroOpBits::B64);
-        b.encodeLoadRegImm(v2, 3, MicroOpBits::B64);
-        b.encodeOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v1, 2, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v1, 1, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v2, 3, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64);
     }
 
     void buildMixedIntFloat(MicroBuilder& b, CallConvKind callConvKind)
@@ -120,15 +120,15 @@ namespace
         constexpr MicroReg vf2 = MicroReg::virtualFloatReg(2);
         constexpr MicroReg vf3 = MicroReg::virtualFloatReg(3);
 
-        b.encodeLoadRegImm(vi, 9, MicroOpBits::B64);
-        b.encodeClearReg(vf0, MicroOpBits::B64);
-        b.encodeClearReg(vf1, MicroOpBits::B64);
-        b.encodeOpBinaryRegReg(vf0, vf1, MicroOp::FloatXor, MicroOpBits::B64);
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
-        b.encodeOpBinaryRegImm(vi, 2, MicroOp::Add, MicroOpBits::B64);
-        b.encodeClearReg(vf2, MicroOpBits::B64);
-        b.encodeClearReg(vf3, MicroOpBits::B64);
-        b.encodeOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64);
+        b.emitLoadRegImm(vi, 9, MicroOpBits::B64);
+        b.emitClearReg(vf0, MicroOpBits::B64);
+        b.emitClearReg(vf1, MicroOpBits::B64);
+        b.emitOpBinaryRegReg(vf0, vf1, MicroOp::FloatXor, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(vi, 2, MicroOp::Add, MicroOpBits::B64);
+        b.emitClearReg(vf2, MicroOpBits::B64);
+        b.emitClearReg(vf3, MicroOpBits::B64);
+        b.emitOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64);
     }
 
     void buildLotsOfVirtualRegs(MicroBuilder& b, CallConvKind callConvKind)
@@ -136,21 +136,21 @@ namespace
         for (uint32_t i = 0; i < 128; ++i)
         {
             const auto v = MicroReg::virtualIntReg(1000 + i);
-            b.encodeLoadRegImm(v, i + 1, MicroOpBits::B64);
-            b.encodeOpBinaryRegImm(v, (i & 7) + 1, MicroOp::Add, MicroOpBits::B64);
+            b.emitLoadRegImm(v, i + 1, MicroOpBits::B64);
+            b.emitOpBinaryRegImm(v, (i & 7) + 1, MicroOp::Add, MicroOpBits::B64);
             if ((i % 16) == 15)
-                b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+                b.emitCallReg(MicroReg::intReg(0), callConvKind);
         }
 
         for (uint32_t i = 0; i < 64; ++i)
         {
             const auto v0 = MicroReg::virtualFloatReg(2000 + i * 2);
             const auto v1 = MicroReg::virtualFloatReg(2000 + i * 2 + 1);
-            b.encodeClearReg(v0, MicroOpBits::B64);
-            b.encodeClearReg(v1, MicroOpBits::B64);
-            b.encodeOpBinaryRegReg(v0, v1, MicroOp::FloatXor, MicroOpBits::B64);
+            b.emitClearReg(v0, MicroOpBits::B64);
+            b.emitClearReg(v1, MicroOpBits::B64);
+            b.emitOpBinaryRegReg(v0, v1, MicroOp::FloatXor, MicroOpBits::B64);
             if ((i % 16) == 15)
-                b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+                b.emitCallReg(MicroReg::intReg(0), callConvKind);
         }
     }
 
@@ -158,18 +158,18 @@ namespace
     {
         constexpr MicroReg v0 = MicroReg::virtualIntReg(3000);
 
-        b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
-        b.encodeOpBinaryRegImm(v0, 2, MicroOp::Add, MicroOpBits::B64);
-        b.encodeRet();
+        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(v0, 2, MicroOp::Add, MicroOpBits::B64);
+        b.emitRet();
     }
 
     void buildNoPersistentWithReturn(MicroBuilder& b, CallConvKind)
     {
         constexpr MicroReg v0 = MicroReg::virtualIntReg(3100);
 
-        b.encodeLoadRegImm(v0, 3, MicroOpBits::B64);
-        b.encodeRet();
+        b.emitLoadRegImm(v0, 3, MicroOpBits::B64);
+        b.emitRet();
     }
 
     void buildIntSpillPressureAcrossCall(MicroBuilder& b, CallConvKind callConvKind)
@@ -177,18 +177,18 @@ namespace
         for (uint32_t i = 0; i < 24; ++i)
         {
             const auto v = MicroReg::virtualIntReg(4000 + i);
-            b.encodeLoadRegImm(v, i + 1, MicroOpBits::B64);
+            b.emitLoadRegImm(v, i + 1, MicroOpBits::B64);
         }
 
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
 
         for (uint32_t i = 0; i < 24; ++i)
         {
             const auto v = MicroReg::virtualIntReg(4000 + i);
-            b.encodeOpBinaryRegImm(v, 3, MicroOp::Add, MicroOpBits::B64);
+            b.emitOpBinaryRegImm(v, 3, MicroOp::Add, MicroOpBits::B64);
         }
 
-        b.encodeRet();
+        b.emitRet();
     }
 
     void buildFloatSpillAcrossCallNoPersistentRegs(MicroBuilder& b, CallConvKind callConvKind)
@@ -196,18 +196,18 @@ namespace
         for (uint32_t i = 0; i < 16; ++i)
         {
             const auto v = MicroReg::virtualFloatReg(5000 + i);
-            b.encodeClearReg(v, MicroOpBits::B64);
+            b.emitClearReg(v, MicroOpBits::B64);
         }
 
-        b.encodeCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
 
         for (uint32_t i = 0; i < 16; ++i)
         {
             const auto v = MicroReg::virtualFloatReg(5000 + i);
-            b.encodeOpBinaryRegReg(v, v, MicroOp::FloatXor, MicroOpBits::B64);
+            b.emitOpBinaryRegReg(v, v, MicroOp::FloatXor, MicroOpBits::B64);
         }
 
-        b.encodeRet();
+        b.emitRet();
     }
 
     void buildForbiddenIntArgRegs(MicroBuilder& b, CallConvKind callConvKind)
@@ -219,10 +219,10 @@ namespace
         b.addVirtualRegForbiddenPhysRegs(v0, conv.intArgRegs);
         b.addVirtualRegForbiddenPhysRegs(v1, conv.intArgRegs);
 
-        b.encodeLoadRegImm(v0, 11, MicroOpBits::B64);
-        b.encodeLoadRegImm(v1, 7, MicroOpBits::B64);
-        b.encodeOpBinaryRegReg(v0, v1, MicroOp::Add, MicroOpBits::B64);
-        b.encodeRet();
+        b.emitLoadRegImm(v0, 11, MicroOpBits::B64);
+        b.emitLoadRegImm(v1, 7, MicroOpBits::B64);
+        b.emitOpBinaryRegReg(v0, v1, MicroOp::Add, MicroOpBits::B64);
+        b.emitRet();
     }
 
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)

@@ -22,14 +22,14 @@ namespace
     {
         if (chunkSize == 16)
         {
-            builder.encodeLoadRegMem(tmpFloatReg, srcReg, offset, MicroOpBits::B128);
-            builder.encodeLoadMemReg(dstReg, offset, tmpFloatReg, MicroOpBits::B128);
+            builder.emitLoadRegMem(tmpFloatReg, srcReg, offset, MicroOpBits::B128);
+            builder.emitLoadMemReg(dstReg, offset, tmpFloatReg, MicroOpBits::B128);
             return;
         }
 
         const MicroOpBits opBits = microOpBitsFromChunkSize(chunkSize);
-        builder.encodeLoadRegMem(tmpIntReg, srcReg, offset, opBits);
-        builder.encodeLoadMemReg(dstReg, offset, tmpIntReg, opBits);
+        builder.emitLoadRegMem(tmpIntReg, srcReg, offset, opBits);
+        builder.emitLoadMemReg(dstReg, offset, tmpIntReg, opBits);
     }
 
     void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg)
@@ -80,14 +80,14 @@ namespace
 
         const auto loopLabel = builder.createLabel();
 
-        builder.encodeLoadRegImm(countReg, chunkCount, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, chunkCount, MicroOpBits::B64);
         builder.placeLabel(loopLabel);
         emitMemCopyChunk(builder, dstReg, srcReg, 0, chunkSize, tmpIntReg, tmpFloatReg);
-        builder.encodeOpBinaryRegImm(srcReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
-        builder.encodeOpBinaryRegImm(dstReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
-        builder.encodeOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64);
-        builder.encodeCmpRegImm(countReg, 0, MicroOpBits::B64);
-        builder.encodeJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+        builder.emitOpBinaryRegImm(srcReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(dstReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, 0, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)
             emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg);
@@ -99,8 +99,8 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     if (!sizeInBytes)
         return;
 
-    const auto&    buildCfg        = codeGen.compiler().buildCfg();
-    const auto     backendOptimize = codeGen.builder().backendOptimizeLevel();
+    const auto&    buildCfg        = codeGen.builder().backendBuildCfg();
+    const auto     backendOptimize = buildCfg.backendOptimize;
     const bool     optimize        = backendOptimize >= Runtime::BuildCfgBackendOptim::O1;
     const bool     optimizeForSize = backendOptimize == Runtime::BuildCfgBackendOptim::Os || backendOptimize == Runtime::BuildCfgBackendOptim::Oz;
     const bool     allow128        = optimize && !optimizeForSize && sizeInBytes >= 16;
@@ -113,8 +113,8 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     const auto tmpIntReg   = codeGen.nextVirtualIntRegister();
     const auto tmpFloatReg = allow128 ? codeGen.nextVirtualFloatRegister() : MicroReg::invalid();
 
-    builder.encodeLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
-    builder.encodeLoadRegReg(srcReg, srcAddressReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(srcReg, srcAddressReg, MicroOpBits::B64);
 
     if (!optimize)
     {

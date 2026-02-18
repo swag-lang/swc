@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
@@ -83,8 +83,8 @@ public:
     void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
     const MicroDebugInfo*               debugInfo(Ref instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    void                                setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
-    Runtime::BuildCfgBackendOptim       backendOptimizeLevel() const { return backendOptimizeLevel_; }
+    void                                setBackendBuildCfg(const Runtime::BuildCfg& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfg&            backendBuildCfg() const { return backendBuildCfg_; }
     void                                setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
     const Utf8&                         printSymbolName() const { return printSymbolName_; }
     const Utf8&                         printFilePath() const { return printFilePath_; }
@@ -103,47 +103,47 @@ public:
     Ref  createLabel();
     void placeLabel(Ref labelRef);
 
-    void encodePush(MicroReg reg);
-    void encodePop(MicroReg reg);
-    void encodeNop();
-    void encodeLabel(Ref& outLabelRef);
-    void encodeRet();
-    void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv);
-    void encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv);
-    void encodeCallReg(MicroReg reg, CallConvKind callConv);
-    void encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries);
-    void encodeJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef);
-    void encodeJumpReg(MicroReg reg);
-    void encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
-    void encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
-    void encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
-    void encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
-    void encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
-    void encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
-    void encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
-    void encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
-    void encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
-    void encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc);
-    void encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc);
-    void encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue);
-    void encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue);
-    void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
-    void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits);
-    void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits);
-    void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
-    void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits);
-    void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
-    void encodeSetCondReg(MicroReg reg, MicroCond cpuCond);
-    void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits);
-    void encodeClearReg(MicroReg reg, MicroOpBits opBits);
-    void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
-    void encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits);
-    void encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);
-    void encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
-    void encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits);
-    void encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits);
-    void encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits);
-    void encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);
+    void emitPush(MicroReg reg);
+    void emitPop(MicroReg reg);
+    void emitNop();
+    void emitLabel(Ref& outLabelRef);
+    void emitRet();
+    void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);
+    void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv);
+    void emitCallReg(MicroReg reg, CallConvKind callConv);
+    void emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries);
+    void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef);
+    void emitJumpReg(MicroReg reg);
+    void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
+    void emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
+    void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
+    void emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
+    void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
+    void emitLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
+    void emitLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
+    void emitLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
+    void emitLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsSrc);
+    void emitLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc);
+    void emitLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue);
+    void emitLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue);
+    void emitLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
+    void emitLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits);
+    void emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits);
+    void emitCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits);
+    void emitCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits);
+    void emitCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
+    void emitSetCondReg(MicroReg reg, MicroCond cpuCond);
+    void emitLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits);
+    void emitClearReg(MicroReg reg, MicroOpBits opBits);
+    void emitOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
+    void emitOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits);
+    void emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits);
+    void emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);
 
 private:
     std::pair<Ref, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
@@ -160,7 +160,7 @@ private:
     Utf8                                                printFilePath_;
     uint32_t                                            printSourceLine_ = 0;
     std::vector<Utf8>                                   printPassOptions_;
-    Runtime::BuildCfgBackendOptim                       backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
+    Runtime::BuildCfg                                   backendBuildCfg_{};
     std::vector<Ref>                                    labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;

@@ -12,6 +12,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint32_t firstParameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    {
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        if (normalizedRet.isIndirect)
+            return 1;
+        return 0;
+    }
+
     MicroOpBits parameterLoadBits(const ABITypeNormalize::NormalizedType& normalizedParam)
     {
         if (normalizedParam.isFloat)
@@ -21,25 +30,18 @@ namespace
 
     uint32_t parameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
     {
-        const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
+        const uint32_t                      firstSlot = firstParameterSlotIndex(codeGen, symbolFunc);
+        const std::vector<SymbolVariable*>& params    = symbolFunc.parameters();
         for (size_t i = 0; i < params.size(); i++)
         {
             if (params[i] != &symVar)
                 continue;
 
-            uint32_t slotIndex = static_cast<uint32_t>(i);
-            const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
-            const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-            if (normalizedRet.isIndirect)
-                slotIndex += 1;
-            return slotIndex;
+            return firstSlot + static_cast<uint32_t>(i);
         }
 
-        const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
-        const uint32_t  slotSize = callConv.stackSlotSize();
-        SWC_ASSERT(slotSize > 0);
-        SWC_ASSERT(symVar.offset() % slotSize == 0);
-        return symVar.offset() / slotSize;
+        SWC_ASSERT(false);
+        return firstSlot;
     }
 
     void lowerParameterPayload(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
@@ -66,9 +68,7 @@ namespace
         }
         else
         {
-            const uint64_t stackOffset = static_cast<uint64_t>(sizeof(void*)) +
-                                         callConv.stackShadowSpace +
-                                         static_cast<uint64_t>(slotIndex - numRegArgs) * callConv.stackSlotSize();
+            const uint64_t stackOffset = sizeof(void*) + callConv.stackShadowSpace + static_cast<uint64_t>(slotIndex - numRegArgs) * callConv.stackSlotSize();
             builder.encodeLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
         }
 

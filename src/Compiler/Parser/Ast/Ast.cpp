@@ -26,7 +26,6 @@ void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock           lk(shards_[s].mutex);
     const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
@@ -44,7 +43,6 @@ size_t Ast::spanSize(SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock           lk(shards_[s].mutex);
     const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     return view.size();
 }
@@ -58,7 +56,6 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock           lk(shards_[s].mutex);
     const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     if (index >= view.size())
         return AstNodeRef::invalid();
@@ -92,7 +89,6 @@ void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
     const uint32_t s = refShard(g);
     const uint32_t l = refLocal(g);
 
-    std::shared_lock           lk(shards_[s].mutex);
     const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
     for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
@@ -105,8 +101,7 @@ AstNodeRef Ast::findNodeRef(const AstNode* node) const
 {
     for (uint32_t i = 0; i < SHARD_COUNT; i++)
     {
-        std::shared_lock lk(shards_[i].mutex);
-        const Ref        local = shards_[i].store.findRef(node);
+        const Ref local = shards_[i].store.findRef(node);
         if (local != std::numeric_limits<Ref>::max())
             return AstNodeRef{packRef(i, local)};
     }
@@ -140,6 +135,20 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
         for (const AstNodeRef it : std::ranges::reverse_view(children))
             stack.push_back(it);
     }
+}
+
+AstNode* Ast::nodePtr(uint32_t globalRef)
+{
+    const uint32_t s = refShard(globalRef);
+    const uint32_t l = refLocal(globalRef);
+    return shards_[s].store.ptr<AstNode>(l);
+}
+
+const AstNode* Ast::nodePtr(uint32_t globalRef) const
+{
+    const uint32_t s = refShard(globalRef);
+    const uint32_t l = refLocal(globalRef);
+    return shards_[s].store.ptr<AstNode>(l);
 }
 
 SWC_END_NAMESPACE();

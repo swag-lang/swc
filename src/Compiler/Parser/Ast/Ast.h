@@ -124,21 +124,8 @@ public:
 private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
-    AstNode* nodePtr(uint32_t globalRef)
-    {
-        const uint32_t   s = refShard(globalRef);
-        const uint32_t   l = refLocal(globalRef);
-        std::shared_lock lk(shards_[s].mutex);
-        return shards_[s].store.ptr<AstNode>(l);
-    }
-
-    const AstNode* nodePtr(uint32_t globalRef) const
-    {
-        const uint32_t   s = refShard(globalRef);
-        const uint32_t   l = refLocal(globalRef);
-        std::shared_lock lk(shards_[s].mutex);
-        return shards_[s].store.ptr<AstNode>(l);
-    }
+    AstNode*       nodePtr(uint32_t globalRef);
+    const AstNode* nodePtr(uint32_t globalRef) const;
 
     struct Shard
     {

@@ -14,7 +14,7 @@ AstNodeRef Parser::parseGenericParam()
     else if (consumeIf(TokenId::KwdVar).isValid())
         isType = true;
 
-    const auto tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    const TokenRef tknName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
 
     AstNodeRef nodeType = AstNodeRef::invalid();
     if (consumeIf(TokenId::SymColon).isValid())
@@ -66,7 +66,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
         flags.add(AstVarDeclFlagsE::Let);
     }
 
-    const auto openRef = consumeAssert(TokenId::SymLeftParen);
+    const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
 
     // All names
     SmallVector<TokenRef> tokNames;
@@ -76,7 +76,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
             tokNames.push_back(TokenRef::invalid());
         else
         {
-            const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
                 skipTo({TokenId::SymRightParen, TokenId::SymComma});
             tokNames.push_back(tokName);

@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseImpl()
 {
-    const auto tokImpl = ref();
+    const TokenRef tokImpl = ref();
     consume();
 
     // Enum

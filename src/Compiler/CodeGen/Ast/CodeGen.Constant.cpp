@@ -113,8 +113,8 @@ namespace
                 }
 
                 Runtime::String* runtimeString = codeGen.ctx().compiler().allocate<Runtime::String>();
-                runtimeString->ptr    = data;
-                runtimeString->length = value.size();
+                runtimeString->ptr             = data;
+                runtimeString->length          = value.size();
 
                 builder.encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), cstRef);
                 payload.storageKind = CodeGenNodePayload::StorageKind::Value;
@@ -166,23 +166,12 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     const SemaNodeView nodeView = this->nodeView(nodeRef);
-    ConstantRef        cstRef   = nodeView.cstRef;
-    TypeRef            typeRef  = nodeView.typeRef;
+    if (nodeView.cstRef.isInvalid())
+        return Result::Continue;
 
-    if (cstRef.isInvalid())
-    {
-        cstRef = sema().constantRefOf(nodeRef);
-        if (cstRef.isInvalid())
-            return Result::Continue;
-    }
-
-    if (typeRef.isInvalid())
-        typeRef = sema().typeRefOf(nodeRef);
-
-    const ConstantValue& cst = sema().cstMgr().get(cstRef);
-
-    CodeGenNodePayload& payload = setPayload(nodeRef, typeRef);
-    emitConstantToPayload(*this, payload, cstRef, cst, typeRef);
+    const ConstantValue& cst     = sema().cstMgr().get(nodeView.cstRef);
+    CodeGenNodePayload&  payload = setPayload(nodeRef, nodeView.typeRef);
+    emitConstantToPayload(*this, payload, nodeView.cstRef, cst, nodeView.typeRef);
     return Result::SkipChildren;
 }
 

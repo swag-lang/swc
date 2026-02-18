@@ -379,12 +379,12 @@ AstNodeRef Parser::parseForeach()
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
         nodePtr->addFlag(AstForeachStmtFlagsE::ByAddress);
-        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
     else if (nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
-        const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
 

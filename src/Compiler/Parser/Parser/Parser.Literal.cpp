@@ -95,7 +95,7 @@ AstNodeRef Parser::parseLiteralExpression()
     if (literal.isInvalid())
         return AstNodeRef::invalid();
 
-    const auto quoteTknRef = ref();
+    const TokenRef quoteTknRef = ref();
     if (isNot(TokenId::SymSingleQuote))
         return literal;
 

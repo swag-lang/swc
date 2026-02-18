@@ -104,7 +104,7 @@ bool Parser::skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
     int        parenDepth   = 0;
     int        bracketDepth = 0;
     int        curlyDepth   = 0;
-    const auto refStart     = ref();
+    const TokenRef refStart     = ref();
 
     while (!atEnd())
     {

@@ -7,7 +7,7 @@ AstNodeRef Parser::parseClosureArg()
 {
     EnumFlags flags = AstClosureArgumentFlagsE::Zero;
 
-    const auto tokStart = ref();
+    const TokenRef tokStart = ref();
     if (consumeIf(TokenId::SymAmpersand).isValid())
         flags.add(AstClosureArgumentFlagsE::Address);
 
@@ -23,7 +23,7 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     AstNodeRef nodeType;
     TokenRef   tokName  = TokenRef::invalid();
     EnumFlags  flags    = AstLambdaParamFlagsE::Zero;
-    const auto tokStart = ref();
+    const TokenRef tokStart = ref();
 
     if (is(TokenId::CompilerType))
     {
@@ -80,7 +80,7 @@ AstNodeRef Parser::parseLambdaArgumentExpr()
 AstNodeRef Parser::parseLambdaExpression()
 {
     EnumFlags  flags    = AstFunctionFlagsE::Zero;
-    const auto tokStart = ref();
+    const TokenRef tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);
@@ -288,7 +288,7 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 
     if (nextIs(TokenId::SymPipe))
     {
-        const auto openRef            = ref();
+        const TokenRef openRef            = ref();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(consume());
         nodePtr->nodeExprRef          = nodeExpr;
         nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);

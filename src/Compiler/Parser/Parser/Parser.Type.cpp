@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseIdentifierType()
 {
     const TokenRef tokRef = ref();
-    const auto     idRef  = parseQualifiedIdentifier();
+    const AstNodeRef idRef = parseQualifiedIdentifier();
 
     if (!hasContextFlag(ParserContextFlagsE::InVarDeclType) && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(idRef);
@@ -158,7 +158,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Left reference
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
-        const auto child = parseType();
+        const AstNodeRef child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(ref());
@@ -169,7 +169,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Right reference
     if (consumeIf(TokenId::SymAmpersandAmpersand).isValid())
     {
-        const auto child = parseType();
+        const AstNodeRef child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(ref());
@@ -180,7 +180,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Value pointer
     if (consumeIf(TokenId::SymAsterisk).isValid())
     {
-        const auto child = parseType();
+        const AstNodeRef child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(ref());
@@ -192,14 +192,14 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     const TokenRef leftBracket = consumeIf(TokenId::SymLeftBracket);
     if (leftBracket.isValid())
     {
-        const auto startTok = ref();
+        const TokenRef startTok = ref();
 
         // [*] Block pointer
         if (consumeIf(TokenId::SymAsterisk).isValid())
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const auto child = parseType();
+            const AstNodeRef child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::BlockPointerType>(startTok);
@@ -212,7 +212,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const auto child = parseType();
+            const AstNodeRef child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::SliceType>(startTok);
@@ -225,7 +225,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const auto child = parseType();
+            const AstNodeRef child = parseType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(startTok);
@@ -263,7 +263,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             return AstNodeRef::invalid();
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])
-        const auto child = parseType();
+        const AstNodeRef child = parseType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
 
@@ -297,7 +297,7 @@ AstNodeRef Parser::parseType()
         return nodeRef;
     }
 
-    const auto nodeSubType = parseSubType();
+    const AstNodeRef nodeSubType = parseSubType();
 
     // 'type...'
     if (is(TokenId::SymDotDotDot))
@@ -318,7 +318,7 @@ AstNodeRef Parser::parseLambdaParam()
 AstNodeRef Parser::parseLambdaType()
 {
     EnumFlags  flags    = AstFunctionFlagsE::Zero;
-    const auto tokStart = ref();
+    const TokenRef tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
         flags.add(AstFunctionFlagsE::Method);

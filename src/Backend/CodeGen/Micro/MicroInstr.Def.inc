@@ -17,6 +17,7 @@ SWC_MICRO_INSTR_DEF(JumpCondImm, MicroInstrInfo{{MicroInstrRegMode::None, MicroI
 
 SWC_MICRO_INSTR_DEF(LoadRegReg, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadRegImm, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
+SWC_MICRO_INSTR_DEF(LoadRegPtrImm, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadRegMem, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadMemReg, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(LoadMemImm, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})

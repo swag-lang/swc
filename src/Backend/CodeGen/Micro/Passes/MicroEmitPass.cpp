@@ -23,23 +23,15 @@ namespace
     }
 }
 
-std::optional<uint32_t> MicroEmitPass::findRelocationIndex(Ref instructionRef) const
-{
-    const auto found = relocationByInstructionRef_.find(instructionRef);
-    if (found == relocationByInstructionRef_.end())
-        return std::nullopt;
-
-    return found->second;
-}
-
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
-    const auto relocIndex = findRelocationIndex(instructionRef);
-    if (!relocIndex.has_value())
+    const auto found = relocationByInstructionRef_.find(instructionRef);
+    SWC_ASSERT(found != relocationByInstructionRef_.end());
+    if (found == relocationByInstructionRef_.end())
         return;
 
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
-    MicroRelocation& reloc = context.builder->codeRelocations()[*relocIndex];
+    MicroRelocation& reloc = context.builder->codeRelocations()[found->second];
     reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
 }
 
@@ -102,10 +94,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadRegImm:
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            break;
+        case MicroInstrOpcode::LoadRegPtrImm:
         {
             const uint32_t codeStartOffset = encoder.size();
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
-            SWC_ASSERT(ops[1].opBits == MicroOpBits::B64 || !findRelocationIndex(instructionRef).has_value());
+            SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
             bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
             break;
         }
@@ -206,10 +201,11 @@ void MicroEmitPass::run(MicroPassContext& context)
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();
-    auto& relocations = context.builder->codeRelocations();
+
+    const auto& relocations = context.builder->codeRelocations();
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
     {
-        const auto& reloc = relocations[idx];
+        const MicroRelocation& reloc = relocations[idx];
         if (reloc.instructionRef == INVALID_REF)
             continue;
         relocationByInstructionRef_[reloc.instructionRef] = idx;

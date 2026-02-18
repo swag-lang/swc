@@ -489,6 +489,7 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadRegPtrImm:
                 return std::format("{} = {}",
                                    regName(ops[0].reg, regPrintMode, encoder),
                                    hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
@@ -1095,7 +1096,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto               relocIt                = relocationByInstructionRef.find(instRef);
         const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
-        const bool               hasImmediateRelocation = instructionRelocation != nullptr && inst.op == MicroInstrOpcode::LoadRegImm;
+        const bool               hasImmediateRelocation = instructionRelocation != nullptr && (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm);
         auto                     natural                = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
@@ -1237,6 +1238,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadRegPtrImm:
                 appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder, hasImmediateRelocation);
                 break;
 

@@ -257,7 +257,7 @@ void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef
         relocationKind                       = targetFunction.isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
     }
 
-    auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::LoadRegImm, 3);
+    auto [instRef, inst] = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrImm, 3);
     MicroInstrOperand* ops            = inst.ops(operands_);
     ops[0].reg           = reg;
     ops[1].opBits        = MicroOpBits::B64;

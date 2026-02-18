@@ -21,8 +21,6 @@ private:
     void encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst);
     void bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
 
-    std::optional<uint32_t> findRelocationIndex(Ref instructionRef) const;
-
     std::unordered_map<Ref, uint64_t> labelOffsets_;
     std::vector<PendingLabelJump>     pendingLabelJumps_;
     std::unordered_map<Ref, uint32_t> relocationByInstructionRef_;

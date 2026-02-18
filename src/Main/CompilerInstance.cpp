@@ -26,6 +26,73 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
+    {
+        const std::string_view cfgName = cmdLine.buildCfg;
+
+        if (cfgName == "fast-compile")
+        {
+            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O0;
+            buildCfg.byteCodeInline           = false;
+            buildCfg.byteCodeAutoInline       = false;
+            buildCfg.byteCodeEmitAssume       = true;
+            buildCfg.safetyGuards             = Runtime::SafetyWhat::None;
+            buildCfg.sanity                   = false;
+            buildCfg.errorStackTrace          = false;
+            buildCfg.debugAllocator           = true;
+            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backendDebugInformations = false;
+            buildCfg.backendDebugInline       = false;
+        }
+        else if (cfgName == "debug")
+        {
+            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O1;
+            buildCfg.byteCodeInline           = false;
+            buildCfg.byteCodeAutoInline       = false;
+            buildCfg.byteCodeEmitAssume       = true;
+            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
+            buildCfg.sanity                   = true;
+            buildCfg.errorStackTrace          = true;
+            buildCfg.debugAllocator           = true;
+            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backendDebugInformations = true;
+            buildCfg.backendDebugInline       = true;
+        }
+        else if (cfgName == "fast-debug")
+        {
+            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O2;
+            buildCfg.byteCodeInline           = true;
+            buildCfg.byteCodeAutoInline       = true;
+            buildCfg.byteCodeEmitAssume       = true;
+            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
+            buildCfg.sanity                   = true;
+            buildCfg.errorStackTrace          = true;
+            buildCfg.debugAllocator           = true;
+            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backendDebugInformations = true;
+        }
+        else if (cfgName == "release")
+        {
+            buildCfg.byteCodeOptimizeLevel      = Runtime::BuildCfgByteCodeOptim::O3;
+            buildCfg.byteCodeInline             = true;
+            buildCfg.byteCodeAutoInline         = true;
+            buildCfg.byteCodeEmitAssume         = false;
+            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
+            buildCfg.sanity                     = false;
+            buildCfg.errorStackTrace            = false;
+            buildCfg.debugAllocator             = false;
+            buildCfg.backendOptimize            = Runtime::BuildCfgBackendOptim::O3;
+            buildCfg.backendDebugInformations   = true;
+            buildCfg.backend.fpMathFma          = true;
+            buildCfg.backend.fpMathNoNaN        = true;
+            buildCfg.backend.fpMathNoInf        = true;
+            buildCfg.backend.fpMathNoSignedZero = true;
+        }
+
+        if (cmdLine.debugInfo)
+            buildCfg.backendDebugInformations = true;
+    }
+
     const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
     {
         SWC_ASSERT(owner != nullptr);
@@ -49,8 +116,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    if (cmdLine.debugInfo)
-        buildCfg_.backendDebugInformations = true;
+    applyPredefinedBuildCfg(buildCfg_, cmdLine);
+
     jobClientId_ = global.jobMgr().newClientId();
     exeFullName_ = Os::getExeFullName();
 

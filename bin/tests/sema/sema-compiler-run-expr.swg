@@ -71,6 +71,25 @@ struct S
     #assert(#typeof(Cfg1) == Swag.BuildCfg)
     #assert(#typeof(Cfg2) == Swag.BuildCfg)
 }
+/*
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+    #assert((#cfg == "fast-compile" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O0 and Cfg.byteCodeOptimizeLevel == Swag.BuildCfgByteCodeOptim.O0 and !Cfg.byteCodeInline) or
+            (#cfg == "debug" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O0 and Cfg.byteCodeOptimizeLevel == Swag.BuildCfgByteCodeOptim.O1 and !Cfg.byteCodeInline) or
+            (#cfg == "fast-debug" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O1 and Cfg.byteCodeOptimizeLevel == Swag.BuildCfgByteCodeOptim.O2 and Cfg.byteCodeInline) or
+            (#cfg == "release" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O3 and Cfg.byteCodeOptimizeLevel == Swag.BuildCfgByteCodeOptim.O3 and Cfg.byteCodeInline))
+}
+
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+    #assert((#cfg == "fast-compile" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O1) or
+            (#cfg == "debug" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O1) or
+            (#cfg == "fast-debug" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O0) or
+            (#cfg == "release" and Cfg.backendOptimize == Swag.BuildCfgBackendOptim.O1)) // swc-expected-error {{sema_err_compiler_assert}}
+}
+*/
 
 #test
 {

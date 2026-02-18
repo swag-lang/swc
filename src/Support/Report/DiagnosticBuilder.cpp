@@ -183,7 +183,7 @@ SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_v
         if (raw.empty())
             continue;
         const std::optional<DiagnosticSeverity> sev  = tagToSeverity(raw);
-        const std::string_view                 body = stripLeadingTagHeader(raw);
+        const std::string_view                  body = stripLeadingTagHeader(raw);
         out.push_back({.tag = sev, .text = Utf8(body)});
     }
 
@@ -365,7 +365,7 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     if (el.srcView()->fileRef().isValid())
     {
         const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        Utf8        fileName;
+        Utf8              fileName;
         if (ctx_->cmdLine().diagAbsolute)
             fileName = file.path().string();
         else
@@ -818,8 +818,8 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     for (size_t idx = elements.size(); idx-- > 0;)
     {
         DiagnosticElement* element = elements[idx].get();
-        const Utf8 msg     = buildMessage(Utf8(resolveMessageTemplate(element->id(), element)), element);
-        SmallVector<Part> parts = parseParts(std::string_view(msg));
+        const Utf8         msg     = buildMessage(Utf8(resolveMessageTemplate(element->id(), element)), element);
+        SmallVector<Part>  parts   = parseParts(std::string_view(msg));
 
         // Base element keeps the first part
         element->setMessage(Utf8(parts[0].text));
@@ -833,7 +833,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
         {
             DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
 
-            std::unique_ptr<DiagnosticElement> extra = std::make_unique<DiagnosticElement>(sev, element->id());
+            auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
             extra->setMessage(Utf8(p.text));
 
             elements.insert(elements.begin() + insertPos, std::move(extra));

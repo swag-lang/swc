@@ -317,8 +317,8 @@ AstNodeRef Parser::parseCompilerGlobal()
     }
     else if (is(TokenId::SymAttrStart))
     {
-        nodePtr->mode        = AstCompilerGlobal::Mode::AttributeList;
-        nodePtr->nodeModeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        nodePtr->mode             = AstCompilerGlobal::Mode::AttributeList;
+        nodePtr->nodeModeRef      = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
         AstAttributeList* attrPtr = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeModeRef);
         attrPtr->nodeBodyRef.setInvalid();
     }

@@ -21,8 +21,8 @@ public:
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
-        std::unique_lock          lock(mutex_);
-        std::pair<uint32_t, T*>   res = store_.emplaceUninit<T>();
+        std::unique_lock        lock(mutex_);
+        std::pair<uint32_t, T*> res = store_.emplaceUninit<T>();
         std::memset(res.second, 0, sizeof(T));
         return res;
     }
@@ -32,10 +32,10 @@ public:
     {
         if (!count)
             return {0, nullptr};
-        std::unique_lock                 lock(mutex_);
-        const uint32_t                   bytes = static_cast<uint32_t>(sizeof(T)) * count;
-        const std::pair<ByteSpan, Ref>   res   = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));
-        T*                               ptr   = store_.ptr<T>(res.second);
+        std::unique_lock               lock(mutex_);
+        const uint32_t                 bytes = static_cast<uint32_t>(sizeof(T)) * count;
+        const std::pair<ByteSpan, Ref> res   = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));
+        T*                             ptr   = store_.ptr<T>(res.second);
         std::memset(ptr, 0, bytes);
         return {res.second, ptr};
     }

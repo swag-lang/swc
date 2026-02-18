@@ -36,13 +36,13 @@ public:
     void              setSrcView(const SourceView* srcView) { srcView_ = srcView; }
     const SourceView* srcView() const { return srcView_; }
 
-    void        addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
-    void        addSpan(const SourceCodeRange& codeRange, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
-    void        addSpan(const SourceCodeRange& codeRange, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void                               addSpan(const SourceView* srcView, uint32_t offset, uint32_t len, DiagnosticSeverity severity = DiagnosticSeverity::Zero, const Utf8& message = Utf8());
+    void                               addSpan(const SourceCodeRange& codeRange, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Zero);
+    void                               addSpan(const SourceCodeRange& codeRange, DiagnosticId diagId, DiagnosticSeverity severity = DiagnosticSeverity::Zero);
     const std::vector<DiagnosticSpan>& spans() const { return spans_; }
     DiagnosticSpan&                    span(uint32_t index) { return spans_[index]; }
     const DiagnosticSpan&              span(uint32_t index) const { return spans_[index]; }
-    bool        hasSpans() const { return srcView_ != nullptr && !spans_.empty(); }
+    bool                               hasSpans() const { return srcView_ != nullptr && !spans_.empty(); }
 
     Utf8 message() const;
     void setMessage(Utf8 m);

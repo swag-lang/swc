@@ -110,9 +110,9 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const std::pair<std::string_view, Ref> res = shard.dataSegment.addString(value.getString());
-        const ConstantValue strValue   = ConstantValue::makeString(ctx, res.first);
-        const uint32_t      localIndex = shard.dataSegment.add(strValue);
+        const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
+        const ConstantValue                    strValue   = ConstantValue::makeString(ctx, res.first);
+        const uint32_t                         localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
@@ -240,7 +240,7 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
 
     if (cst.isValuePointer())
     {
-        const void* ptr = reinterpret_cast<const void*>(cst.getValuePointer());
+        auto          ptr = reinterpret_cast<const void*>(cst.getValuePointer());
         const TypeRef res = sema.typeGen().getBackTypeRef(ptr);
         if (res.isValid())
             return res;

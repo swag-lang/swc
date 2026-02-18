@@ -23,7 +23,7 @@ namespace
     {
         const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        const std::vector<SymbolVariable*>& params    = symbolFunc.parameters();
+        const std::vector<SymbolVariable*>&    params        = symbolFunc.parameters();
         for (size_t i = 0; i < params.size(); i++)
         {
             if (params[i] != &symVar)

@@ -30,11 +30,11 @@ namespace ABICall
     struct PreparedArg
     {
         // Source register holds either a lowered value or an address, depending on isAddressed.
-        MicroReg        srcReg  = MicroReg::invalid();
-        PreparedArgKind kind    = PreparedArgKind::Direct;
-        bool            isFloat = false;
+        MicroReg        srcReg      = MicroReg::invalid();
+        PreparedArgKind kind        = PreparedArgKind::Direct;
+        bool            isFloat     = false;
         bool            isAddressed = false;
-        uint8_t         numBits = 0;
+        uint8_t         numBits     = 0;
     };
 
     struct Return

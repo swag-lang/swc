@@ -13,8 +13,8 @@ void Stats::print(const TaskContext& ctx) const
 {
     Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    constexpr LogColor colorHeader = LogColor::Yellow;
-    constexpr LogColor colorMsg    = LogColor::White;
+    constexpr auto colorHeader = LogColor::Yellow;
+    constexpr auto colorMsg    = LogColor::White;
 
     Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
     Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));

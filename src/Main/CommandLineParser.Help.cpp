@@ -294,7 +294,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             maxLen = std::max(maxLen, entry.displayName.length());
         }
 
-        HelpOptionGroup currentGroup = HelpOptionGroup::Other;
+        auto currentGroup = HelpOptionGroup::Other;
         bool firstGroup   = true;
         for (const HelpOptionEntry& entry : entries)
         {

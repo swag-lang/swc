@@ -16,9 +16,9 @@ namespace Command
 {
     void syntax(CompilerInstance& compiler)
     {
-        TaskContext ctx(compiler);
-        const Global&  global   = ctx.global();
-        JobManager&    jobMgr   = global.jobMgr();
+        TaskContext       ctx(compiler);
+        const Global&     global   = ctx.global();
+        JobManager&       jobMgr   = global.jobMgr();
         const JobClientId clientId = compiler.jobClientId();
 
         if (compiler.collectFiles(ctx) == Result::Error)

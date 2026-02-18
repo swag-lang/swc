@@ -24,7 +24,7 @@ struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;
 
-    Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
+    Runtime::TargetOs   targetOs   = Runtime::TargetOs::Windows;
     Runtime::TargetArch targetArch = Runtime::TargetArch::X86_64;
 
 #if defined(_M_X64) || defined(__x86_64__)

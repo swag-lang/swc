@@ -43,7 +43,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
-            auto&       note    = diag.addElement(DiagnosticId::sema_note_other_implementation);
+            auto&             note    = diag.addElement(DiagnosticId::sema_note_other_implementation);
             const SourceView& srcView = sema.compiler().srcView(itf->srcViewRef());
             note.setSrcView(&srcView);
             note.addSpan(srcView.tokenCodeRange(sema.ctx(), itf->tokRef()), "");

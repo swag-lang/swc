@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolAlias : public SymbolT<SymbolKind::Alias>
 {
 public:
-    static constexpr SymbolKind K = SymbolKind::Alias;
+    static constexpr auto K = SymbolKind::Alias;
 
     explicit SymbolAlias(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolT(decl, tokRef, idRef, flags)

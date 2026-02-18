@@ -220,7 +220,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
     str = str.substr(2);
 
     const LangSpec& langSpec = sema.compiler().global().langSpec();
-    ApsInt      value;
+    ApsInt          value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))
@@ -254,7 +254,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
     str = str.substr(2);
 
     const LangSpec& langSpec = sema.compiler().global().langSpec();
-    ApsInt      value;
+    ApsInt          value;
     for (const char c : str)
     {
         if (langSpec.isNumberSep(c))

@@ -572,7 +572,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isStruct())
     {
-        const ByteSpan bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
@@ -580,7 +580,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isArray())
     {
-        const ByteSpan bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeArrayBorrowed(ctx, typeRef, bytes);
         return makeArray(ctx, typeRef, bytes);
@@ -605,7 +605,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isString())
     {
-        const Runtime::String* str = static_cast<const Runtime::String*>(valuePtr);
+        auto str = static_cast<const Runtime::String*>(valuePtr);
         return makeString(ctx, std::string_view(str->ptr, str->length));
     }
 
@@ -623,7 +623,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isSlice())
     {
-        const Runtime::Slice<uint8_t>* slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        auto           slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
         const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
         if (ownership == PayloadOwnership::Borrowed)
             return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span);

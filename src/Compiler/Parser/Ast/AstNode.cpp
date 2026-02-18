@@ -44,12 +44,12 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
         return codeRange;
 
     // Baseline comes from this node token
-    const Token&           baseTok  = view.token(codeRef_.tokRef);
-    const SourceCodeRange  baseLoc  = baseTok.codeRange(ctx, view);
-    const uint32_t         baseLine = baseLoc.line;
+    const Token&          baseTok  = view.token(codeRef_.tokRef);
+    const SourceCodeRange baseLoc  = baseTok.codeRange(ctx, view);
+    const uint32_t        baseLine = baseLoc.line;
 
     // Descend left-most while staying on the same line and same SourceView
-    const AstNode*    leftMost = this;
+    auto            leftMost = this;
     SourceCodeRange startLoc = baseLoc;
     while (true)
     {
@@ -70,7 +70,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     }
 
     // Descend right-most while staying on the same line and same SourceView
-    const AstNode*    rightMost = this;
+    auto            rightMost = this;
     SourceCodeRange endLoc    = baseTok.codeRange(ctx, view);
     while (true)
     {

@@ -131,7 +131,7 @@ namespace
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
     const TypeManager& typeMgr = ctx.typeMgr();
-    bool        result  = false;
+    bool               result  = false;
     RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const JITArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
         return Result::Error;

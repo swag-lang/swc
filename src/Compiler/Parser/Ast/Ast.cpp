@@ -128,8 +128,8 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
         if (!nodeRef.isValid())
             continue;
 
-        const AstNode&   node = ast.node(nodeRef);
-        const VisitResult res = f(nodeRef, node);
+        const AstNode&    node = ast.node(nodeRef);
+        const VisitResult res  = f(nodeRef, node);
         if (res == VisitResult::Stop)
             break;
         if (res == VisitResult::Skip)

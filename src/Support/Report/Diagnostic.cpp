@@ -118,8 +118,8 @@ Diagnostic::Diagnostic(FileRef file) :
 
 DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
 {
-    std::shared_ptr<DiagnosticElement> ptr = std::make_shared<DiagnosticElement>(id);
-    DiagnosticElement*                 raw = ptr.get();
+    auto               ptr = std::make_shared<DiagnosticElement>(id);
+    DiagnosticElement* raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
     return *raw;
 }
@@ -128,8 +128,8 @@ void Diagnostic::addNote(DiagnosticId id)
 {
     if (id == DiagnosticId::None)
         return;
-    std::shared_ptr<DiagnosticElement> ptr = std::make_shared<DiagnosticElement>(id);
-    DiagnosticElement*                 raw = ptr.get();
+    auto               ptr = std::make_shared<DiagnosticElement>(id);
+    DiagnosticElement* raw = ptr.get();
     raw->setSeverity(DiagnosticSeverity::Note);
     elements_.emplace_back(std::move(ptr));
 }
@@ -139,7 +139,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    const char8_t* ptr = reinterpret_cast<const char8_t*>(arg.data());
+    auto           ptr = reinterpret_cast<const char8_t*>(arg.data());
     const char8_t* end = ptr + arg.size();
     while (ptr < end)
     {
@@ -205,7 +205,7 @@ void Diagnostic::report(TaskContext& ctx) const
     if (fileOwner_.isValid())
     {
         const SourceFile& file = ctx.compiler().file(fileOwner_);
-        dismiss          = file.unitTest().verifyExpected(ctx, *this);
+        dismiss                = file.unitTest().verifyExpected(ctx, *this);
     }
 
     // Count only errors and warnings not dismissed during tests

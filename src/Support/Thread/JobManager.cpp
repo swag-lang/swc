@@ -74,7 +74,7 @@ JobManager::~JobManager()
 void JobManager::setup(const CommandLine& cmdLine)
 {
     uint32_t count = cmdLine.numCores;
-    cmdLine_   = &cmdLine;
+    cmdLine_       = &cmdLine;
 
 #if SWC_DEV_MODE
     if (cmdLine_->randomize)
@@ -344,7 +344,7 @@ void JobManager::waitAll(JobClientId client)
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [&] {
             const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
-            const std::size_t                                                   n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            const std::size_t                                                  n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
             return n == 0;
         });
         return;
@@ -360,7 +360,7 @@ void JobManager::waitAll(JobClientId client)
             std::unique_lock lk(mtx_);
 
             const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
-            const std::size_t                                                   n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            const std::size_t                                                  n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
             if (n == 0)
                 break;
 
@@ -598,7 +598,7 @@ void JobManager::workerLoop()
 void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {
     std::size_t& c = clientReadyRunning_[client];
-    c       = static_cast<std::size_t>(static_cast<long long>(c) + delta);
+    c              = static_cast<std::size_t>(static_cast<long long>(c) + delta);
     if (c == 0)
         idleCv_.notify_all();
 }

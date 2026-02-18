@@ -169,9 +169,9 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             auto bCstRef = bView.cstRef;
             RESULT_VERIFY(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
 
-            const ConstantValue& aCst = sema.cstMgr().get(aCstRef);
-            const ConstantValue& bCst = sema.cstMgr().get(bCstRef);
-            const bool  takeA = tok.id == TokenId::IntrinsicMin ? aCst.le(bCst) : aCst.ge(bCst);
+            const ConstantValue& aCst  = sema.cstMgr().get(aCstRef);
+            const ConstantValue& bCst  = sema.cstMgr().get(bCstRef);
+            const bool           takeA = tok.id == TokenId::IntrinsicMin ? aCst.le(bCst) : aCst.ge(bCst);
             sema.setConstant(sema.curNodeRef(), takeA ? aCstRef : bCstRef);
             return Result::Continue;
         }

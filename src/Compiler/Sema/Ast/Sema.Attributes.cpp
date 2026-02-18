@@ -131,7 +131,7 @@ namespace
             return Result::Continue;
 
         const IdentifierManager& idMgr = sema.idMgr();
-        const IdentifierRef idRef = attrSym.idRef();
+        const IdentifierRef      idRef = attrSym.idRef();
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))

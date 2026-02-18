@@ -116,7 +116,7 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     if (!srcType.isConvertibleToBool())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
@@ -155,10 +155,10 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
-    const uint32_t  srcBits = srcType.payloadIntLikeBits();
-    const uint32_t  dstBits = dstType.payloadIntLikeBits();
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+    const uint32_t     srcBits = srcType.payloadIntLikeBits();
+    const uint32_t     dstBits = dstType.payloadIntLikeBits();
 
     switch (castRequest.kind)
     {
@@ -206,15 +206,15 @@ Result Cast::castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef 
 
 Result Cast::castIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType     = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType     = typeMgr.get(dstTypeRef);
-    const uint32_t  dstBits     = dstType.payloadFloatBits();
-    const uint32_t  srcBits     = srcType.payloadIntLikeBits();
-    const bool      srcIsInt    = srcType.isInt();
-    const bool      coerceToF32 = srcIsInt && srcBits <= 32;
-    const bool      coerceToF64 = srcIsInt;
-    const bool      allowCoerce = (dstBits == 32) ? coerceToF32 : coerceToF64;
+    const TypeManager& typeMgr     = sema.typeMgr();
+    const TypeInfo&    srcType     = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType     = typeMgr.get(dstTypeRef);
+    const uint32_t     dstBits     = dstType.payloadFloatBits();
+    const uint32_t     srcBits     = srcType.payloadIntLikeBits();
+    const bool         srcIsInt    = srcType.isInt();
+    const bool         coerceToF32 = srcIsInt && srcBits <= 32;
+    const bool         coerceToF64 = srcIsInt;
+    const bool         allowCoerce = (dstBits == 32) ? coerceToF32 : coerceToF64;
 
     switch (castRequest.kind)
     {
@@ -264,7 +264,7 @@ Result Cast::castFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef sr
 Result Cast::castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
 
     if (srcType.isBool())
         return castBoolToIntLike(sema, castRequest, srcTypeRef, dstTypeRef);
@@ -290,8 +290,8 @@ Result Cast::castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcType
 Result Cast::castFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
     const uint32_t sb        = srcType.payloadFloatBits();
     const uint32_t db        = dstType.payloadFloatBits();
@@ -332,7 +332,7 @@ Result Cast::castFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcT
 Result Cast::castToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
 
     if (srcType.isFloat())
         return castFloatToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
@@ -394,8 +394,8 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 
-    const auto  dstPointeeTypeRef = dstType.payloadTypeRef();
-    const TypeInfo& dstPointeeType = sema.typeMgr().get(dstPointeeTypeRef);
+    const auto      dstPointeeTypeRef = dstType.payloadTypeRef();
+    const TypeInfo& dstPointeeType    = sema.typeMgr().get(dstPointeeTypeRef);
 
     // Ref to ref
     if (srcType.isReference())
@@ -403,8 +403,8 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        const auto  srcPointeeTypeRef = srcType.payloadTypeRef();
-        const TypeInfo& srcPointeeType = sema.typeMgr().get(srcPointeeTypeRef);
+        const auto      srcPointeeTypeRef = srcType.payloadTypeRef();
+        const TypeInfo& srcPointeeType    = sema.typeMgr().get(srcPointeeTypeRef);
 
         if (srcPointeeTypeRef == dstPointeeTypeRef)
             return Result::Continue;
@@ -657,7 +657,7 @@ Result Cast::castToFromTypeInfo(const Sema& sema, const CastRequest& castRequest
 Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const auto& srcType = typeMgr.get(srcTypeRef);
+    const auto&        srcType = typeMgr.get(srcTypeRef);
     if (srcType.isSlice())
     {
         if (castRequest.kind != CastKind::Explicit)
@@ -681,7 +681,7 @@ Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const auto& srcType = typeMgr.get(srcTypeRef);
+    const auto&        srcType = typeMgr.get(srcTypeRef);
 
     if (srcType.isBlockPointer())
     {
@@ -701,7 +701,7 @@ Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcType
 Result Cast::castToVariadic(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
-    const auto& dstType = typeMgr.get(dstTypeRef);
+    const auto&        dstType = typeMgr.get(dstTypeRef);
 
     if (dstType.isVariadic())
         return Result::Continue;
@@ -744,8 +744,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
 
     const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo& dstType = typeMgr.get(dstTypeRef);
+    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
     if (srcType.isAlias() || dstType.isAlias())
     {

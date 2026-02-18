@@ -84,9 +84,9 @@ namespace
 
     Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
     {
-        TaskContext& ctx     = sema.ctx();
+        TaskContext&       ctx     = sema.ctx();
         const TypeManager& typeMgr = sema.typeMgr();
-        const auto&  params  = sym.parameters();
+        const auto&        params  = sym.parameters();
 
         if (params.empty())
             return reportSpecOpError(sema, sym, kind);
@@ -275,7 +275,7 @@ namespace
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
 {
-    const IdentifierRef idRef = sym.idRef();
+    const IdentifierRef      idRef = sym.idRef();
     const IdentifierManager& idMgr = sema.idMgr();
 
     const SpecOpKind kind = sym.specOpKind();

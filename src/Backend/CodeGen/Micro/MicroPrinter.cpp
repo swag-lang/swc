@@ -28,7 +28,7 @@ namespace
             return false;
 
         const SourceView& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
-        const auto  range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
+        const auto        range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
         if (range.line == 0)
             return false;
 

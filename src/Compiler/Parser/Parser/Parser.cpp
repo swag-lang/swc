@@ -264,8 +264,8 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const Diagnostic      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    SourceCodeRange codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
+    const Diagnostic diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    SourceCodeRange  codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
     codeRange.column += codeRange.len;
     codeRange.offset += codeRange.len;
     codeRange.len = 1;

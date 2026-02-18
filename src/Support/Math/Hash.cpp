@@ -49,7 +49,7 @@ namespace
             0x2d358dccaa6c78a5ull, 0x8bb84b93962eacc9ull,
             0x4b33a62ed433d4a3ull, 0x4d5a2da51de1aa47ull};
 
-        const uint8_t* p = static_cast<const uint8_t*>(key);
+        auto p = static_cast<const uint8_t*>(key);
         seed ^= wymix(seed ^ SECRET[0], SECRET[1]);
 
         uint64_t a, b;

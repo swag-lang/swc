@@ -71,7 +71,7 @@ namespace
     bool ensureSymbolEngineInitialized()
     {
         SymbolEngineState& state = symbolEngineState();
-        std::scoped_lock lock(state.mutex);
+        std::scoped_lock   lock(state.mutex);
 
         if (!state.attempted)
         {
@@ -290,14 +290,14 @@ namespace
             return;
 
         SymbolEngineState& state = symbolEngineState();
-        std::scoped_lock lock(state.mutex);
+        std::scoped_lock   lock(state.mutex);
 
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen   = MAX_SYM_NAME;
+        auto                                                    symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol))
@@ -537,7 +537,7 @@ namespace
     void appendWindowsHandlerStack(Utf8& outMsg)
     {
         appendSectionHeader(outMsg, "Handler Stack Trace");
-        void*      frames[64]{};
+        void*        frames[64]{};
         const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
         outMsg += std::format("  frames: {}\n", numFrames);
 

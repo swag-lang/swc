@@ -28,9 +28,9 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg      = args[i];
-            const uint64_t argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
-            const MicroOpBits argBits = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
-            const bool     isRegArg = i < numRegArgs;
+            const uint64_t      argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
+            const MicroOpBits   argBits  = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
+            const bool          isRegArg = i < numRegArgs;
 
             if (isRegArg)
             {
@@ -133,24 +133,24 @@ uint64_t ABICall::incomingArgStackOffset(const CallConv& conv, uint32_t argIndex
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
-    const CallConv& conv = CallConv::get(callConvKind);
-    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
-    const uint32_t stackSlotSize = conv.stackSlotSize();
-    const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
-    const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
-    const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-    const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
-    const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
+    const CallConv& conv          = CallConv::get(callConvKind);
+    const uint32_t  numRegArgs    = conv.numArgRegisterSlots();
+    const uint32_t  stackSlotSize = conv.stackSlotSize();
+    const uint32_t  numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
+    const uint32_t  stackArgsSize = numStackArgs * stackSlotSize;
+    const uint32_t  frameBaseSize = conv.stackShadowSpace + stackArgsSize;
+    const uint32_t  stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
+    const uint32_t  alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
     return frameBaseSize + alignPad;
 }
 
 ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
     // Move lowered argument values into the concrete ABI argument registers/stack slots.
-    PreparedCall   preparedCall;
-    const CallConv& conv = CallConv::get(callConvKind);
-    const uint32_t numPreparedArgs = static_cast<uint32_t>(args.size());
-    preparedCall.numPreparedArgs   = numPreparedArgs;
+    PreparedCall    preparedCall;
+    const CallConv& conv            = CallConv::get(callConvKind);
+    const uint32_t  numPreparedArgs = static_cast<uint32_t>(args.size());
+    preparedCall.numPreparedArgs    = numPreparedArgs;
     if (args.empty())
         return preparedCall;
 
@@ -176,7 +176,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         {
             const PreparedArg& arg      = args[i];
             const MicroOpBits  argBits  = preparedArgBits(arg);
-            const bool  isRegArg = i < numRegArgs;
+            const bool         isRegArg = i < numRegArgs;
 
             if (isRegArg)
             {
@@ -226,7 +226,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (regArgsUseHomeSlot[i])
             {
                 const MicroOpBits argBits    = preparedArgBits(arg);
-                const uint64_t homeOffset = callArgStackOffset(conv, i);
+                const uint64_t    homeOffset = callArgStackOffset(conv, i);
                 if (arg.isFloat)
                 {
                     SWC_ASSERT(i < conv.floatArgRegs.size());
@@ -368,7 +368,7 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const CallConv& conv = CallConv::get(callConvKind);
+    const CallConv&   conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
 
     if (ret.isFloat)
@@ -384,7 +384,7 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const CallConv& conv = CallConv::get(callConvKind);
+    const CallConv&   conv    = CallConv::get(callConvKind);
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
     SWC_ASSERT(retBits != MicroOpBits::Zero);
 
@@ -428,9 +428,9 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     // Fully self-contained call helper for runtime/JIT address calls.
-    const CallConv& conv = CallConv::get(callConvKind);
-    const uint32_t numArgs     = static_cast<uint32_t>(args.size());
-    const uint32_t stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
+    const CallConv& conv        = CallConv::get(callConvKind);
+    const uint32_t  numArgs     = static_cast<uint32_t>(args.size());
+    const uint32_t  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();

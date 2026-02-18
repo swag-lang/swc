@@ -11,10 +11,10 @@ constexpr std::string_view LONG_PREFIX         = "--";
 constexpr std::string_view SHORT_PREFIX        = "-";
 constexpr std::string_view LONG_NO_PREFIX      = "--no-";
 constexpr std::string_view SHORT_NO_PREFIX     = "-no-";
-constexpr size_t LONG_PREFIX_LEN     = 2;
-constexpr size_t SHORT_PREFIX_LEN    = 1;
-constexpr size_t LONG_NO_PREFIX_LEN  = 5;
-constexpr size_t SHORT_NO_PREFIX_LEN = 4;
+constexpr size_t           LONG_PREFIX_LEN     = 2;
+constexpr size_t           SHORT_PREFIX_LEN    = 1;
+constexpr size_t           LONG_NO_PREFIX_LEN  = 5;
+constexpr size_t           SHORT_NO_PREFIX_LEN = 4;
 
 // Pipe-delimited list of allowed command names.
 // Adjust to match your tool's commands.

@@ -56,9 +56,9 @@ namespace
             if (argView.type)
             {
                 const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argView.typeRef, ABITypeNormalize::Usage::Argument);
-                preparedArg.isFloat     = normalizedArg.isFloat;
-                preparedArg.numBits     = normalizedArg.numBits;
-                preparedArg.isAddressed = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
+                preparedArg.isFloat                                  = normalizedArg.isFloat;
+                preparedArg.numBits                                  = normalizedArg.numBits;
+                preparedArg.isAddressed                              = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
             }
 
             switch (arg.passKind)

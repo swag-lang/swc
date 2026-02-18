@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class ParserJob : public Job
 {
 public:
-    static constexpr JobKind K = JobKind::Sema;
+    static constexpr auto K = JobKind::Sema;
     ParserJob(const TaskContext& ctx, SourceFile* file);
 
 private:

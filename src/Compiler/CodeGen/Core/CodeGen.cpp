@@ -215,6 +215,27 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
     return nextVirtualIntRegister();
 }
 
+bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef) const
+{
+    if (operandPayload.storageKind != CodeGenNodePayload::StorageKind::Value)
+        return false;
+
+    if (!operandPayload.reg.isValid())
+        return false;
+
+    if (!operandTypeRef.isValid())
+        return false;
+
+    const TypeInfo& operandType = typeMgr().get(operandTypeRef);
+    if (operandType.isFloat())
+        return operandPayload.reg.isFloat() || operandPayload.reg.isVirtualFloat();
+
+    if (operandType.isIntLike())
+        return !operandPayload.reg.isFloat() && !operandPayload.reg.isVirtualFloat();
+
+    return false;
+}
+
 void CodeGen::setVisitors()
 {
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });

@@ -44,27 +44,6 @@ namespace
         return MicroOpBits::Zero;
     }
 
-    bool canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, BinaryOperandKind operandKindValue)
-    {
-        if (operandPayload.storageKind != CodeGenNodePayload::StorageKind::Value)
-            return false;
-
-        if (!operandPayload.reg.isValid())
-            return false;
-
-        switch (operandKindValue)
-        {
-            case BinaryOperandKind::Float:
-                return operandPayload.reg.isFloat() || operandPayload.reg.isVirtualFloat();
-
-            case BinaryOperandKind::IntLike:
-                return !operandPayload.reg.isFloat() && !operandPayload.reg.isVirtualFloat();
-
-            default:
-                return false;
-        }
-    }
-
     void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -92,7 +71,7 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        if (canUseOperandRegDirect(*rightPayload, operandTypeKind))
+        if (codeGen.canUseOperandRegDirect(*rightPayload, rightView.typeRef))
             rightReg = rightPayload->reg;
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
@@ -118,7 +97,7 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        if (canUseOperandRegDirect(*rightPayload, operandTypeKind))
+        if (codeGen.canUseOperandRegDirect(*rightPayload, rightView.typeRef))
             rightReg = rightPayload->reg;
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);

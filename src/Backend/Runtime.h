@@ -1,5 +1,9 @@
 #pragma once
 
+// WARNING!
+// WARNING! This file must be in sync with "bootstrap.swg"
+// WARNING!
+
 SWC_BEGIN_NAMESPACE();
 
 namespace Runtime

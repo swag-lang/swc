@@ -27,7 +27,7 @@ struct Timer
     {
         if (started_)
         {
-            const auto duration = Clock::now() - timeBefore_;
+            const Clock::duration duration = Clock::now() - timeBefore_;
             *destValue_ += std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
         }
     }

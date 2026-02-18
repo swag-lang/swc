@@ -77,7 +77,7 @@ public:
     template<typename T>
     void addArgument(std::string_view name, T&& arg)
     {
-        for (auto& a : arguments_)
+        for (Argument& a : arguments_)
         {
             if (a.name == name)
             {

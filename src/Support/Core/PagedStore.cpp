@@ -40,7 +40,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
 
 void PagedStore::clear() noexcept
 {
-    for (const auto& up : pagesStorage_)
+    for (const std::unique_ptr<Page>& up : pagesStorage_)
         up->used = 0;
     totalBytes_ = 0;
 
@@ -68,7 +68,7 @@ void PagedStore::copyTo(ByteSpanRW dst) const
 
     std::byte* out       = dst.data();
     uint32_t   remaining = static_cast<uint32_t>(dst.size());
-    for (const auto& page : pagesStorage_)
+    for (const std::unique_ptr<Page>& page : pagesStorage_)
     {
         if (!remaining)
             break;
@@ -117,7 +117,7 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     page->used = newUsed;
     totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
 
-    const auto hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
+    SpanHdrRaw* hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
     hdr->total     = totalElems;
 
     std::memcpy(page->bytes() + dataOffsetF, src, static_cast<size_t>(fit) * elemSize);
@@ -142,7 +142,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
         if (page->used + need > pageSizeValue_)
             page = newPage();
         const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, page->used)};
-        const auto    hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
+        SpanHdrRaw*   hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
         hdr->total        = 0;
         page->used += need;
         totalBytes_ += need;
@@ -150,7 +150,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
     }
 
     SWC_ASSERT(data != nullptr);
-    auto           src        = static_cast<const uint8_t*>(data);
+    const uint8_t* src        = static_cast<const uint8_t*>(data);
     uint32_t       remaining  = count;
     const uint32_t totalElems = count;
     SpanRef        firstRef   = SpanRef::invalid();
@@ -315,10 +315,10 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto bPtr = static_cast<const uint8_t*>(ptr);
+    const uint8_t* bPtr = static_cast<const uint8_t*>(ptr);
     for (uint32_t j = 0; j < pagesStorage_.size(); j++)
     {
-        const auto& page = pagesStorage_[j];
+        const std::unique_ptr<Page>& page = pagesStorage_[j];
         if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
         {
             const uint32_t offset = static_cast<uint32_t>(bPtr - page->bytes());

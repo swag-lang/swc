@@ -24,12 +24,12 @@ namespace
         DiagnosticId                  id = DiagnosticId::None;
     };
 
-    auto makeDiagnosticInfos()
+    std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> makeDiagnosticInfos()
     {
         std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
 
         auto add = [&](DiagnosticId id, std::string_view name, DiagnosticSeverity severity, std::string_view msg) {
-            auto& info = arr[static_cast<size_t>(id)];
+            DiagnosticIdInfo& info = arr[static_cast<size_t>(id)];
             if (info.id == DiagnosticId::None)
             {
                 info.id       = id;
@@ -55,7 +55,7 @@ namespace
         return arr;
     }
 
-    const auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
+    const std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 }
 
 Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& codeRef)
@@ -67,7 +67,7 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
     constexpr static size_t MAX_TOKEN_STR_LEN = 40;
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
-        const auto pos = str.find_first_of("\n\r");
+        const size_t pos = str.find_first_of("\n\r");
         if (pos != Utf8::npos)
         {
             str = str.substr(0, std::min(pos, static_cast<size_t>(MAX_TOKEN_STR_LEN)));
@@ -88,7 +88,7 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
     SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    const auto& msgs = DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msgs;
+    const std::vector<std::string_view>& msgs = DIAGNOSTIC_INFOS[static_cast<size_t>(id)].msgs;
     SWC_ASSERT(!msgs.empty());
     return msgs.front();
 }
@@ -118,8 +118,8 @@ Diagnostic::Diagnostic(FileRef file) :
 
 DiagnosticElement& Diagnostic::addElement(DiagnosticId id)
 {
-    auto       ptr = std::make_shared<DiagnosticElement>(id);
-    const auto raw = ptr.get();
+    std::shared_ptr<DiagnosticElement> ptr = std::make_shared<DiagnosticElement>(id);
+    DiagnosticElement*                 raw = ptr.get();
     elements_.emplace_back(std::move(ptr));
     return *raw;
 }
@@ -128,8 +128,8 @@ void Diagnostic::addNote(DiagnosticId id)
 {
     if (id == DiagnosticId::None)
         return;
-    auto       ptr = std::make_shared<DiagnosticElement>(id);
-    const auto raw = ptr.get();
+    std::shared_ptr<DiagnosticElement> ptr = std::make_shared<DiagnosticElement>(id);
+    DiagnosticElement*                 raw = ptr.get();
     raw->setSeverity(DiagnosticSeverity::Note);
     elements_.emplace_back(std::move(ptr));
 }
@@ -139,7 +139,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto           ptr = reinterpret_cast<const char8_t*>(arg.data());
+    const char8_t* ptr = reinterpret_cast<const char8_t*>(arg.data());
     const char8_t* end = ptr + arg.size();
     while (ptr < end)
     {
@@ -171,7 +171,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     }
 
     // Replace it if the same argument already exists
-    for (auto& a : arguments_)
+    for (Argument& a : arguments_)
     {
         if (a.name == name)
         {
@@ -204,7 +204,7 @@ void Diagnostic::report(TaskContext& ctx) const
     // Check that diagnostic was not awaited
     if (fileOwner_.isValid())
     {
-        const auto& file = ctx.compiler().file(fileOwner_);
+        const SourceFile& file = ctx.compiler().file(fileOwner_);
         dismiss          = file.unitTest().verifyExpected(ctx, *this);
     }
 
@@ -217,7 +217,7 @@ void Diagnostic::report(TaskContext& ctx) const
             ctx.setHasError();
             if (fileOwner_.isValid())
             {
-                auto& file = ctx.compiler().file(fileOwner_);
+                SourceFile& file = ctx.compiler().file(fileOwner_);
                 file.setHasError();
             }
             break;
@@ -227,7 +227,7 @@ void Diagnostic::report(TaskContext& ctx) const
             ctx.setHasWarning();
             if (fileOwner_.isValid())
             {
-                auto& file = ctx.compiler().file(fileOwner_);
+                SourceFile& file = ctx.compiler().file(fileOwner_);
                 file.setHasWarning();
             }
             break;
@@ -239,14 +239,14 @@ void Diagnostic::report(TaskContext& ctx) const
     const bool orgDismissed = dismiss;
     if (dismiss && ctx.cmdLine().verboseVerify)
     {
-        const auto& filter = ctx.cmdLine().verboseVerifyFilter;
+        const Utf8& filter = ctx.cmdLine().verboseVerifyFilter;
         if (filter.empty())
             dismiss = false;
         else if (msg.find(filter) != Utf8::npos)
             dismiss = false;
         else
         {
-            for (const auto& e : elements_)
+            for (const std::shared_ptr<DiagnosticElement>& e : elements_)
             {
                 if (e.get()->idName().find(filter) != Utf8::npos)
                     dismiss = false;

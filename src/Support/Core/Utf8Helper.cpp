@@ -10,8 +10,8 @@ SWC_BEGIN_NAMESPACE();
 // On error: {nullptr, 0, 0}.
 std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const char8_t* cur, const char8_t* end)
 {
-    const auto u = cur;
-    const auto e = end;
+    const char8_t* u = cur;
+    const char8_t* e = end;
 
     if (u >= e)
         return {nullptr, 0, 0};
@@ -88,7 +88,7 @@ uint32_t Utf8Helper::countChars(std::string_view str)
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
     {
-        const auto addr             = reinterpret_cast<const char8_t*>(str.data());
+        const char8_t* addr         = reinterpret_cast<const char8_t*>(str.data());
         const auto [ptr, wc, bytes] = decodeOneChar(addr + i, addr + str.size());
         if (ptr)
             i += bytes - 1;

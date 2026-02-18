@@ -30,10 +30,10 @@ namespace
     // remove a header like [note] or [help]
     std::string_view stripLeadingTagHeader(std::string_view s)
     {
-        auto t = Utf8Helper::trim(s);
+        std::string_view t = Utf8Helper::trim(s);
         if (!t.empty() && t.front() == '[')
         {
-            const auto close = t.find(']');
+            const size_t close = t.find(']');
             if (close != std::string_view::npos)
                 t.remove_prefix(close + 1);
         }
@@ -79,7 +79,7 @@ Utf8 DiagnosticBuilder::build()
     // Make a copy of elements to modify them if necessary
     SmallVector<std::unique_ptr<DiagnosticElement>> elements;
     elements.reserve(diag_->elements().size());
-    for (auto& e : diag_->elements())
+    for (const std::shared_ptr<DiagnosticElement>& e : diag_->elements())
         elements.push_back(std::make_unique<DiagnosticElement>(*e));
 
     // Add elements by splitting messages parts
@@ -87,7 +87,7 @@ Utf8 DiagnosticBuilder::build()
 
     // Compute a unified gutter width based on the maximum line number among all located elements
     uint32_t maxLine = 0;
-    for (const auto& e : elements)
+    for (const std::unique_ptr<DiagnosticElement>& e : elements)
     {
         if (e->hasSpans())
         {
@@ -99,7 +99,7 @@ Utf8 DiagnosticBuilder::build()
     gutterW_ = maxLine ? digits(maxLine) : 0;
 
     // Primary element: the first one
-    const auto& primary = *SWC_CHECK_NOT_NULL(elements.front().get());
+    const DiagnosticElement& primary = *SWC_CHECK_NOT_NULL(elements.front().get());
 
     if (ctx_->cmdLine().diagOneLine)
     {
@@ -117,7 +117,7 @@ Utf8 DiagnosticBuilder::build()
     // Now render all secondary elements as part of the same diagnostic
     for (size_t i = 1; i < elements.size(); ++i)
     {
-        const auto& el = *SWC_CHECK_NOT_NULL(elements[i].get());
+        const DiagnosticElement& el = *SWC_CHECK_NOT_NULL(elements[i].get());
         out_.append(gutterW_, ' ');
         writeLabelMsg(el);
         if (el.hasSpans())
@@ -157,7 +157,7 @@ SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view m
                 inQuote = true;
             else if (c == ';')
             {
-                auto p = Utf8Helper::trim(msg.substr(start, i - start));
+                const std::string_view p = Utf8Helper::trim(msg.substr(start, i - start));
                 if (!p.empty())
                     parts.emplace_back(p);
                 start = i + 1;
@@ -167,7 +167,7 @@ SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view m
 
     if (start <= msg.size())
     {
-        auto p = Utf8Helper::trim(msg.substr(start));
+        const std::string_view p = Utf8Helper::trim(msg.substr(start));
         if (!p.empty())
             parts.emplace_back(p);
     }
@@ -178,12 +178,12 @@ SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view m
 SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_view msg)
 {
     SmallVector<Part> out;
-    for (auto raw : splitMessage(msg))
+    for (const std::string_view raw : splitMessage(msg))
     {
         if (raw.empty())
             continue;
-        const auto sev  = tagToSeverity(raw);
-        auto       body = stripLeadingTagHeader(raw);
+        const std::optional<DiagnosticSeverity> sev  = tagToSeverity(raw);
+        const std::string_view                 body = stripLeadingTagHeader(raw);
         out.push_back({.tag = sev, .text = Utf8(body)});
     }
 
@@ -270,7 +270,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
 Utf8 DiagnosticBuilder::toAnsiSeq(const AnsiSeq& s) const
 {
     Utf8 result;
-    for (const auto c : s.seq)
+    for (const LogColor c : s.seq)
         result += LogColorHelper::toAnsi(*ctx_, c);
     return result;
 }
@@ -364,7 +364,7 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     SWC_ASSERT(el.srcView());
     if (el.srcView()->fileRef().isValid())
     {
-        const auto& file = ctx_->compiler().file(el.srcView()->fileRef());
+        const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
         Utf8        fileName;
         if (ctx_->cmdLine().diagAbsolute)
             fileName = file.path().string();
@@ -482,7 +482,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
             out_.append(LogSymbolHelper::toString(*ctx_, LogSymbol::Underline));
 
         // Get message
-        auto msg = span.message;
+        Utf8 msg = span.message;
         if (msg.empty() && span.messageId != DiagnosticId::None)
             msg = Utf8(resolveMessageTemplate(span.messageId, &el));
 
@@ -629,10 +629,10 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
     out_ += "\n";
 
     // Sort underlines by column to process them in order
-    auto sortedSpans = el.spans();
-    std::ranges::sort(sortedSpans, [&](const auto& a, const auto& b) {
-        const auto loc1 = el.codeRange(a, *ctx_);
-        const auto loc2 = el.codeRange(b, *ctx_);
+    std::vector<DiagnosticSpan> sortedSpans = el.spans();
+    std::ranges::sort(sortedSpans, [&](const DiagnosticSpan& a, const DiagnosticSpan& b) {
+        const SourceCodeRange loc1 = el.codeRange(a, *ctx_);
+        const SourceCodeRange loc2 = el.codeRange(b, *ctx_);
         return loc1.column < loc2.column;
     });
 
@@ -689,7 +689,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
 Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* el) const
 {
-    auto result = msg;
+    Utf8 result = msg;
 
     auto replaceArgs = [&](const DiagnosticArguments& arguments) {
         for (const auto& arg : arguments)
@@ -728,7 +728,7 @@ uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const Diagno
     auto addArgs = [&](const DiagnosticArguments& args) {
         for (const auto& arg : args)
         {
-            const auto name = arg.name;
+            const std::string_view name = arg.name;
             if (std::ranges::find(argNames, name) == argNames.end())
                 argNames.push_back(name);
         }
@@ -739,7 +739,7 @@ uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const Diagno
     addArgs(diag_->arguments());
 
     uint32_t count = 0;
-    for (const auto name : argNames)
+    for (const std::string_view name : argNames)
     {
         if (msg.find(name) != std::string_view::npos)
             ++count;
@@ -750,7 +750,7 @@ uint32_t DiagnosticBuilder::countReplacedArgs(std::string_view msg, const Diagno
 
 std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, const DiagnosticElement* el) const
 {
-    const auto msgs = Diagnostic::diagIdMessages(id);
+    const std::span<const std::string_view> msgs = Diagnostic::diagIdMessages(id);
     SWC_ASSERT(!msgs.empty());
 
     uint32_t bestCount = countReplacedArgs(msgs[0], el);
@@ -817,9 +817,9 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
     // and to maintain proper ordering when inserting new elements
     for (size_t idx = elements.size(); idx-- > 0;)
     {
-        const auto element = elements[idx].get();
+        DiagnosticElement* element = elements[idx].get();
         const Utf8 msg     = buildMessage(Utf8(resolveMessageTemplate(element->id(), element)), element);
-        auto       parts   = parseParts(std::string_view(msg));
+        SmallVector<Part> parts = parseParts(std::string_view(msg));
 
         // Base element keeps the first part
         element->setMessage(Utf8(parts[0].text));
@@ -828,12 +828,12 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
             continue;
 
         // Insert additional parts right after the current element
-        auto insertPos = idx + 1;
+        size_t insertPos = idx + 1;
         for (const auto& p : parts)
         {
             DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
 
-            auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
+            std::unique_ptr<DiagnosticElement> extra = std::make_unique<DiagnosticElement>(sev, element->id());
             extra->setMessage(Utf8(p.text));
 
             elements.insert(elements.begin() + insertPos, std::move(extra));

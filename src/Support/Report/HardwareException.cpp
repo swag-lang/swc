@@ -70,7 +70,7 @@ namespace
 
     bool ensureSymbolEngineInitialized()
     {
-        auto&            state = symbolEngineState();
+        SymbolEngineState& state = symbolEngineState();
         std::scoped_lock lock(state.mutex);
 
         if (!state.attempted)
@@ -289,15 +289,15 @@ namespace
         if (!ensureSymbolEngineInitialized())
             return;
 
-        auto&            state = symbolEngineState();
+        SymbolEngineState& state = symbolEngineState();
         std::scoped_lock lock(state.mutex);
 
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        const auto                                              symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen                                             = MAX_SYM_NAME;
+        SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen   = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol))
@@ -315,15 +315,15 @@ namespace
         if (!codeRef.srcViewRef.isValid() || !codeRef.tokRef.isValid())
             return;
 
-        const auto& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
+        const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
         if (codeRef.tokRef.get() >= srcView.numTokens())
             return;
 
-        const auto        codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
-        const SourceFile* file      = srcView.file();
-        const auto        path      = file ? file->path().string() : "<no-file>";
-        const Token&      token     = srcView.token(codeRef.tokRef);
-        Utf8              line      = srcView.codeLine(ctx, codeRange.line);
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
+        const SourceFile*     file      = srcView.file();
+        const std::string     path      = file ? file->path().string() : "<no-file>";
+        const Token&          token     = srcView.token(codeRef.tokRef);
+        Utf8                  line      = srcView.codeLine(ctx, codeRange.line);
         line.trim_end();
         if (line.length() > 220)
             line = line.substr(0, 220) + " ...";
@@ -337,7 +337,7 @@ namespace
     void appendTaskReadableContext(Utf8& outMsg, const TaskContext& ctx)
     {
         appendSectionHeader(outMsg, "Relevant Context");
-        const auto& state = ctx.state();
+        const TaskState& state = ctx.state();
 
         outMsg += std::format("  task state: {}\n", taskStateKindName(state.kind));
 
@@ -462,7 +462,7 @@ namespace
 
                 bool found = false;
                 outMsg += "  registers matching fault address:";
-                for (const auto& reg : regs)
+                for (const RegEntry& reg : regs)
                 {
                     if (reg.value != accessAddr)
                         continue;
@@ -538,7 +538,7 @@ namespace
     {
         appendSectionHeader(outMsg, "Handler Stack Trace");
         void*      frames[64]{};
-        const auto numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
+        const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
         outMsg += std::format("  frames: {}\n", numFrames);
 
         for (uint32_t i = 0; i < numFrames; ++i)

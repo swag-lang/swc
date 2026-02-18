@@ -25,7 +25,7 @@ std::vector<JobRecord*>              JobManager::RecordPool::freeList;
 JobRecord* JobManager::allocRecord()
 {
     // Fast path: thread-local
-    auto& v = RecordPool::tls;
+    std::vector<JobRecord*>& v = RecordPool::tls;
     if (!v.empty())
     {
         JobRecord* r = v.back();
@@ -55,7 +55,7 @@ void JobManager::freeRecord(JobRecord* r)
     r->clientId = 0;
 
     // Try to return to TLS; spill to global if TLS is full.
-    auto& v = RecordPool::tls;
+    std::vector<JobRecord*>& v = RecordPool::tls;
     if (v.size() < RecordPool::K_TLS_MAX)
     {
         v.push_back(r);
@@ -73,7 +73,7 @@ JobManager::~JobManager()
 
 void JobManager::setup(const CommandLine& cmdLine)
 {
-    auto count = cmdLine.numCores;
+    uint32_t count = cmdLine.numCores;
     cmdLine_   = &cmdLine;
 
 #if SWC_DEV_MODE
@@ -165,7 +165,7 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
         return a->index < b->index;
     });
 
-    for (const auto& t : temp)
+    for (const JobRecord* t : temp)
         waiting.push_back(t->job);
 }
 
@@ -343,8 +343,8 @@ void JobManager::waitAll(JobClientId client)
         // Existing multithreaded behavior
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [&] {
-            const auto        it = clientReadyRunning_.find(client);
-            const std::size_t n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
+            const std::size_t                                                   n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
             return n == 0;
         });
         return;
@@ -359,8 +359,8 @@ void JobManager::waitAll(JobClientId client)
         {
             std::unique_lock lk(mtx_);
 
-            const auto it = clientReadyRunning_.find(client);
-            const auto n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
+            const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
+            const std::size_t                                                   n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
             if (n == 0)
                 break;
 
@@ -391,7 +391,7 @@ void JobManager::shutdown() noexcept
         cv_.notify_all();
     }
 
-    for (auto& t : workers_)
+    for (std::thread& t : workers_)
     {
         if (t.joinable())
             t.join();
@@ -445,7 +445,7 @@ namespace
 
     void appendJobExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& job = *static_cast<const Job*>(userData);
+        const Job& job = *static_cast<const Job*>(userData);
         outMsg += std::format("  thread index: {}\n", JobManager::threadIndex());
         outMsg += std::format("  kind: {}\n", jobKindName(job.kind()));
         outMsg += std::format("  client id: {}\n", job.clientId());
@@ -597,7 +597,7 @@ void JobManager::workerLoop()
 
 void JobManager::bumpClientCountLocked(JobClientId client, int delta)
 {
-    auto& c = clientReadyRunning_[client];
+    std::size_t& c = clientReadyRunning_[client];
     c       = static_cast<std::size_t>(static_cast<long long>(c) + delta);
     if (c == 0)
         idleCv_.notify_all();

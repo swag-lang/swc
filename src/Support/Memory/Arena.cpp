@@ -78,8 +78,8 @@ Arena::Block* Arena::addBlock(std::size_t minSize)
     constexpr std::size_t headerSize = sizeof(Block);
     const std::size_t     totalSize  = headerSize + blockSize;
 
-    const auto raw   = static_cast<uint8_t*>(operator new(totalSize));
-    const auto block = reinterpret_cast<Block*>(raw);
+    uint8_t* raw = static_cast<uint8_t*>(operator new(totalSize));
+    Block*   block = reinterpret_cast<Block*>(raw);
 
     block->size = blockSize;
     block->used = 0;

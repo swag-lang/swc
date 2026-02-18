@@ -77,8 +77,8 @@ SourceCodeRange DiagnosticElement::codeRange(const DiagnosticSpan& span, const T
     codeRange.fromOffset(ctx, *srcView_, span.offset, span.len);
 
     // Truncate at the first newline if necessary.
-    const auto str = srcView_->codeView(span.offset, span.len);
-    const auto pos = str.find_first_of("\n\r");
+    const std::string_view str = srcView_->codeView(span.offset, span.len);
+    const size_t           pos = str.find_first_of("\n\r");
     if (pos != std::string_view::npos)
         codeRange.len = static_cast<uint32_t>(pos);
 
@@ -100,7 +100,7 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto           ptr = reinterpret_cast<const char8_t*>(arg.data());
+    const char8_t* ptr = reinterpret_cast<const char8_t*>(arg.data());
     const char8_t* end = ptr + arg.size();
     while (ptr < end)
     {
@@ -131,7 +131,7 @@ void DiagnosticElement::addArgument(std::string_view name, std::string_view arg)
     }
 
     // Replace it if the same argument already exists
-    for (auto& a : arguments_)
+    for (DiagnosticArgument& a : arguments_)
     {
         if (a.name == name)
         {

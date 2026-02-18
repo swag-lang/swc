@@ -67,13 +67,13 @@ namespace Unittest
         uint32_t   numFailedTests  = 0;
         const bool verboseUnittest = ctx.cmdLine().verboseInternalUnittest;
 
-        for (const auto setupFn : setupRegistry())
+        for (const SetupFn setupFn : setupRegistry())
         {
             if (setupFn)
                 setupFn(testCtx);
         }
 
-        for (const auto& test : testRegistry())
+        for (const TestCase& test : testRegistry())
         {
             totalTests++;
             const Result result = test.fn(testCtx);

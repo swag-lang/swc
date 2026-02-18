@@ -212,7 +212,7 @@ namespace
 
     void buildForbiddenIntArgRegs(MicroBuilder& b, CallConvKind callConvKind)
     {
-        const auto& conv = CallConv::get(callConvKind);
+        const CallConv& conv = CallConv::get(callConvKind);
 
         constexpr MicroReg v0 = MicroReg::virtualIntReg(6000);
         constexpr MicroReg v1 = MicroReg::virtualIntReg(6001);

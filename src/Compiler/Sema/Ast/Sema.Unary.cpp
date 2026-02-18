@@ -67,7 +67,7 @@ namespace
 
     Result constantFoldBang(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
-        const auto& cstMgr = sema.cstMgr();
+        const ConstantManager& cstMgr = sema.cstMgr();
 
         if (nodeView.cst->isBool())
         {

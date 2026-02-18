@@ -130,7 +130,7 @@ namespace
 
 SWC_TEST_BEGIN(FFI_CallNativeNoArgBool)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
     bool        result  = false;
     RESULT_VERIFY(callCaseTyped(ctx, reinterpret_cast<void*>(&ffiNativeReturnTrue), std::span<const JITArgument>{}, typeMgr.typeBool(), &result));
     if (!result)
@@ -140,7 +140,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeU8)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr uint8_t a = 19;
     constexpr uint8_t b = 23;
@@ -159,7 +159,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeI32)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr int32_t a = -1200;
     constexpr int32_t b = -137;
@@ -178,7 +178,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF32)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr float a = 0.5f;
     constexpr float b = 1.25f;
@@ -197,7 +197,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr double a = 1.5;
     constexpr double b = 2.5;
@@ -216,7 +216,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeF64StackArg)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr double a = 1.0;
     constexpr double b = 2.0;
@@ -241,7 +241,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeMixedArgs)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr uint8_t  a = 1;
     constexpr uint16_t b = 2;
@@ -264,7 +264,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStackArgs)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     constexpr int64_t a = 1;
     constexpr int64_t b = 2;
@@ -291,7 +291,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 {
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const void* ptr = reinterpret_cast<void*>(0x10);
 
@@ -311,7 +311,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
     if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
         typeMgr.typeU32(),
@@ -336,7 +336,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
     if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
         typeMgr.typeU32(),
@@ -370,7 +370,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
     if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
         return Result::Continue;
 
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
         typeMgr.typeU64(),
@@ -398,7 +398,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
     if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
         typeMgr.typeU32(),
@@ -425,7 +425,7 @@ SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
     if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
         return Result::Continue;
 
-    const auto& typeMgr = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
 
     const std::array fieldTypes = {
         typeMgr.typeU64(),

@@ -17,7 +17,7 @@ namespace
 {
     RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)
     {
-        const auto& idMgr = sema.idMgr();
+        const IdentifierManager& idMgr = sema.idMgr();
 
         struct PredefinedRtFlag
         {
@@ -130,7 +130,7 @@ namespace
         if (!attrSym.inSwagNamespace(sema.ctx()))
             return Result::Continue;
 
-        const auto&         idMgr = sema.idMgr();
+        const IdentifierManager& idMgr = sema.idMgr();
         const IdentifierRef idRef = attrSym.idRef();
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);

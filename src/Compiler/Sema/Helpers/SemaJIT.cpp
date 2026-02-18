@@ -72,7 +72,7 @@ namespace
         if (!strPtrAddress)
             return ConstantValue::makeString(ctx, std::string_view{});
 
-        const auto str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        const Runtime::String* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
         if (!str->ptr || !str->length)
             return ConstantValue::makeString(ctx, std::string_view{});
 
@@ -94,7 +94,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     TaskContext&    ctx            = sema.ctx();
     const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
     const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
-    const auto      normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression

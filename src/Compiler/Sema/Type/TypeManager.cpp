@@ -59,7 +59,7 @@ void TypeManager::setup(TaskContext& ctx)
         const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
         if (kind == RuntimeTypeKind::Count)
             continue;
-        const auto name                    = static_cast<IdentifierManager::PredefinedName>(i);
+        const IdentifierManager::PredefinedName name = static_cast<IdentifierManager::PredefinedName>(i);
         mapRtKind_[idMgr.predefined(name)] = kind;
     }
 

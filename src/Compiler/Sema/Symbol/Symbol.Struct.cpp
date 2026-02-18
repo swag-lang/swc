@@ -44,7 +44,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
             auto&       note    = diag.addElement(DiagnosticId::sema_note_other_implementation);
-            const auto& srcView = sema.compiler().srcView(itf->srcViewRef());
+            const SourceView& srcView = sema.compiler().srcView(itf->srcViewRef());
             note.setSrcView(&srcView);
             note.addSpan(srcView.tokenCodeRange(sema.ctx(), itf->tokRef()), "");
             diag.report(sema.ctx());
@@ -126,7 +126,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
         return true;
 
     const TaskContext& ctx     = sema.ctx();
-    const auto&        typeMgr = sema.typeMgr();
+    const TypeManager& typeMgr = sema.typeMgr();
 
     for (const Symbol* field : fields_)
     {

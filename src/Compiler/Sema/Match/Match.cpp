@@ -56,7 +56,7 @@ namespace
     const SymbolStruct* usingTargetStruct(Sema& sema, const SymbolVariable& symVar)
     {
         const TaskContext& ctx     = sema.ctx();
-        const auto&        typeMgr = sema.typeMgr();
+        const TypeManager& typeMgr = sema.typeMgr();
 
         // Resolve aliases so that `using v: AliasToStruct` works.
         const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);

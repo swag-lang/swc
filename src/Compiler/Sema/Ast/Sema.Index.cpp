@@ -175,7 +175,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                     if (std::cmp_greater_equal(constIndex, curValues->size()))
                         return SemaError::raiseIndexOutOfRange(sema, nodeRef, constIndex, curValues->size());
 
-                    const auto& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
+                    const ConstantValue& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
                     if (i < numGot - 1)
                     {
                         if (nextCst.isAggregateArray())

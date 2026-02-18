@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Main/CompilerInstance.h"
@@ -2699,7 +2699,7 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, 
 {
     // External address calls are lowered as mov target -> temp, then indirect call.
     SWC_UNUSED(targetSymbol);
-    const auto& conv = CallConv::get(callConv);
+    const CallConv& conv = CallConv::get(callConv);
     encodeLoadRegImm(conv.intReturn, targetAddress, MicroOpBits::B64);
     encodeCallReg(conv.intReturn, callConv);
     return;

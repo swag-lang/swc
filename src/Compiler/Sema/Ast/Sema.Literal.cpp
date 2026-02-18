@@ -134,7 +134,7 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
     else
     {
         // Character literal contains a single escape sequence.
-        const auto& langSpec = sema.compiler().global().langSpec();
+        const LangSpec& langSpec = sema.compiler().global().langSpec();
 
         SWC_ASSERT(!str.empty());
         SWC_ASSERT(str[0] == '\\');
@@ -185,7 +185,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     Utf8 result;
     result.reserve(str.size());
 
-    const auto& langSpec = sema.compiler().global().langSpec();
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
 
     // Decode escape sequences
     for (size_t i = 0; i < str.size(); ++i)
@@ -219,7 +219,7 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
     // Remove '0b' or '0B' prefix
     str = str.substr(2);
 
-    const auto& langSpec = sema.compiler().global().langSpec();
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
     ApsInt      value;
     for (const char c : str)
     {
@@ -253,7 +253,7 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
     // Remove '0x' or '0X' prefix
     str = str.substr(2);
 
-    const auto& langSpec = sema.compiler().global().langSpec();
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
     ApsInt      value;
     for (const char c : str)
     {
@@ -288,7 +288,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 
     SWC_ASSERT(!str.empty());
 
-    const auto& langSpec = sema.compiler().global().langSpec();
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
 
     ApInt value;
     for (const char c : str)
@@ -336,7 +336,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
 
     SWC_ASSERT(!str.empty());
 
-    const auto& langSpec = sema.compiler().global().langSpec();
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
 
     ApInt intValue;
 

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -133,7 +133,7 @@ uint64_t ABICall::incomingArgStackOffset(const CallConv& conv, uint32_t argIndex
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
-    const auto&    conv          = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
@@ -148,7 +148,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 {
     // Move lowered argument values into the concrete ABI argument registers/stack slots.
     PreparedCall   preparedCall;
-    const auto&    conv            = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     const uint32_t numPreparedArgs = static_cast<uint32_t>(args.size());
     preparedCall.numPreparedArgs   = numPreparedArgs;
     if (args.empty())
@@ -325,7 +325,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         return prepareArgs(builder, callConvKind, args);
 
     // Indirect returns consume a hidden first argument pointing to return storage.
-    const auto& conv = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     SWC_ASSERT(!conv.intArgRegs.empty());
     SWC_ASSERT(ret.indirectSize != 0);
 
@@ -368,7 +368,7 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const auto& conv    = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     const auto  retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
 
     if (ret.isFloat)
@@ -384,7 +384,7 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
 
     SWC_ASSERT(!ret.isIndirect);
 
-    const auto&       conv    = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
     SWC_ASSERT(retBits != MicroOpBits::Zero);
 
@@ -408,7 +408,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
     if (ret.isVoid)
         return;
 
-    const auto& conv = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {
         // For indirect returns, the return register carries the storage pointer.
@@ -428,7 +428,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     // Fully self-contained call helper for runtime/JIT address calls.
-    const auto&    conv        = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     const uint32_t numArgs     = static_cast<uint32_t>(args.size());
     const auto     stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
@@ -450,7 +450,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    const auto& conv = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     if (!targetReg.isValid())
         targetReg = conv.intReturn;
 
@@ -477,7 +477,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    const auto& conv = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     if (!targetReg.isValid())
         targetReg = conv.intReturn;
 
@@ -512,7 +512,7 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
 {
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
-    const auto& conv = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
     builder.encodeCallReg(targetReg, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);

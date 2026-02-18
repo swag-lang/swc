@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 #include "Support/Math/Helpers.h"
@@ -18,7 +18,7 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
         return;
     }
 
-    const auto& conv = CallConv::get(context.callConvKind);
+    const CallConv& conv = CallConv::get(context.callConvKind);
     buildSavedRegsPlan(context, conv);
     if (pushedRegs_.empty() && !savedRegsStackSubSize_)
         return;

@@ -36,6 +36,19 @@ namespace
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
     }
 
+    bool shouldReuseLeftOperandAsDestination(CodeGen& codeGen, AstNodeRef leftNodeRef, const CodeGenNodePayload& leftPayload)
+    {
+        if (!codeGen.canUseOperandRegDirect(leftPayload))
+            return false;
+
+        // Identifier payloads alias variable storage. Keep copy semantics to avoid mutating that value.
+        const AstNode& leftNode = codeGen.node(leftNodeRef);
+        if (leftNode.is(AstNodeId::Identifier))
+            return false;
+
+        return leftPayload.reg.isVirtual();
+    }
+
     Result emitPlusIntLikeIntLike(CodeGen& codeGen, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         SWC_ASSERT(leftView.type && rightView.type);
@@ -50,7 +63,11 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+        if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
+            nodePayload.reg = leftPayload->reg;
+        else
+            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+
         if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else
@@ -74,7 +91,11 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+        if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
+            nodePayload.reg = leftPayload->reg;
+        else
+            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+
         if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else

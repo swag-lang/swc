@@ -212,6 +212,7 @@
         <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPass.cpp"/>
         <ClCompile Include="src\Backend\CodeGen\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp"/>

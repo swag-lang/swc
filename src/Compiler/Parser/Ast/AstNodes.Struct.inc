@@ -555,6 +555,7 @@ struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

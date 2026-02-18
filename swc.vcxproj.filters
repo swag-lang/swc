@@ -192,6 +192,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>

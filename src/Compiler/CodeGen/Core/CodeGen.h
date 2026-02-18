@@ -73,7 +73,7 @@ public:
     CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     MicroReg                  nextVirtualRegisterForType(TypeRef typeRef);
-    bool                      canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef) const;
+    bool                      canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const;
     MicroReg                  nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
     MicroReg                  nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
     MicroReg                  nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }

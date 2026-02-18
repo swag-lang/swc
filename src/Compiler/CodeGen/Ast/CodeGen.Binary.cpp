@@ -71,7 +71,7 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        if (codeGen.canUseOperandRegDirect(*rightPayload, rightView.typeRef))
+        if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
@@ -97,7 +97,7 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        if (codeGen.canUseOperandRegDirect(*rightPayload, rightView.typeRef))
+        if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else
             materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);

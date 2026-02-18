@@ -215,7 +215,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
     return nextVirtualIntRegister();
 }
 
-bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef) const
+bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const
 {
     if (operandPayload.storageKind != CodeGenNodePayload::StorageKind::Value)
         return false;
@@ -223,10 +223,10 @@ bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, T
     if (!operandPayload.reg.isValid())
         return false;
 
-    if (!operandTypeRef.isValid())
+    if (!operandPayload.typeRef.isValid())
         return false;
 
-    const TypeInfo& operandType = typeMgr().get(operandTypeRef);
+    const TypeInfo& operandType = typeMgr().get(operandPayload.typeRef);
     if (operandType.isFloat())
         return operandPayload.reg.isFloat() || operandPayload.reg.isVirtualFloat();
 

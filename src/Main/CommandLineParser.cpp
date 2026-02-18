@@ -450,8 +450,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
     addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
 
-    addArg(HelpOptionGroup::Testing, "all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
-    addArg(HelpOptionGroup::Testing, "all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
+    addArg(HelpOptionGroup::Testing, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
+    addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
 
     addArg(HelpOptionGroup::Development, "all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, "Open a message box in case of errors.");
     addArg(HelpOptionGroup::Development, "all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");

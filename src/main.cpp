@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
         swc::TaskContext ctx(global, cmdLine);
         if (swc::Unittest::runAll(ctx) != swc::Result::Continue)
         {
-            swc::Logger::print(ctx, "[internal-unittest] failure detected\n");
+            swc::Logger::print(ctx, "[unittest] failure detected\n");
             return static_cast<int>(swc::ExitCode::ErrorCommand);
         }
     }

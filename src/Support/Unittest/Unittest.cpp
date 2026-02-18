@@ -40,7 +40,7 @@ namespace Unittest
         {
             Logger::printHeaderDot(ctx,
                                    LogColor::BrightCyan,
-                                   "Internal-Unittest",
+                                   "Unittest",
                                    failures ? LogColor::BrightRed : LogColor::BrightGreen,
                                    std::format("{} passed / {} failed / {} total", total - failures, failures, total));
         }

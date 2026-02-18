@@ -78,7 +78,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
 
 void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
-    Diagnostic diag = reportError(id, tknRef);
+    const Diagnostic diag = reportError(id, tknRef);
     diag.report(*ctx_);
 }
 
@@ -264,7 +264,7 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    Diagnostic      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    const Diagnostic      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
     SourceCodeRange codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
     codeRange.column += codeRange.len;
     codeRange.offset += codeRange.len;

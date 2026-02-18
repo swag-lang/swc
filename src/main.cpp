@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 #if SWC_HAS_UNITTEST
     if (cmdLine.internalUnittest)
     {
-        swc::TaskContext ctx(global, cmdLine);
+        const swc::TaskContext ctx(global, cmdLine);
         if (swc::Unittest::runAll(ctx) != swc::Result::Continue)
         {
             swc::Logger::print(ctx, "[unittest] failure detected\n");

@@ -180,28 +180,20 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO
-    result.dbgPtr = &getNoLock(result);
+    result.dbgPtr = &get(result);
 #endif
 
     *it = result;
     return result;
 }
 
-const Identifier& IdentifierManager::getNoLock(IdentifierRef idRef) const
+const Identifier& IdentifierManager::get(IdentifierRef idRef) const
 {
     SWC_ASSERT(idRef.isValid());
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const auto localIndex = idRef.get() & LOCAL_MASK;
     return *SWC_CHECK_NOT_NULL(shards_[shardIndex].store.ptr<Identifier>(localIndex));
-}
-
-const Identifier& IdentifierManager::get(IdentifierRef idRef) const
-{
-    const auto shardIndex = idRef.get() >> LOCAL_BITS;
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
-    std::shared_lock lk(shards_[shardIndex].mutex);
-    return getNoLock(idRef);
 }
 
 SWC_END_NAMESPACE();

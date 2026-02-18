@@ -50,14 +50,12 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        std::shared_lock lock(mutex_);
         return store_.ptr<T>(ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        std::shared_lock lock(mutex_);
         return store_.ptr<T>(ref);
     }
 

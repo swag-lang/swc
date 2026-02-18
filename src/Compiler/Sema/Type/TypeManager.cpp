@@ -205,22 +205,13 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     return result;
 }
 
-const TypeInfo& TypeManager::getNoLock(TypeRef typeRef) const
+const TypeInfo& TypeManager::get(TypeRef typeRef) const
 {
     SWC_ASSERT(typeRef.isValid());
     const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const uint32_t localIndex = typeRef.get() & LOCAL_MASK;
     return *SWC_CHECK_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
-}
-
-const TypeInfo& TypeManager::get(TypeRef typeRef) const
-{
-    SWC_ASSERT(typeRef.isValid());
-    const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
-    std::shared_lock lk(shards_[shardIndex].mutex);
-    return getNoLock(typeRef);
 }
 
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const

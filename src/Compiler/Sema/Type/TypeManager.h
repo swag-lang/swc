@@ -90,7 +90,6 @@ public:
     TypeRef typeU64() const { return typeU64_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
-    const TypeInfo& getNoLock(TypeRef typeRef) const;
     const TypeInfo& get(TypeRef typeRef) const;
 
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;

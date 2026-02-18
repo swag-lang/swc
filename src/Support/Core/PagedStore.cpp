@@ -5,13 +5,15 @@
 SWC_BEGIN_NAMESPACE();
 
 PagedStore::PagedStore(uint32_t pageSize) :
-    pageSizeValue_(pageSize)
+    pageSizeValue_(pageSize),
+    publishedPages_(std::make_shared<const std::vector<Page*>>())
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
 }
 
 PagedStore::PagedStore(PagedStore&& other) noexcept :
     pagesStorage_(std::move(other.pagesStorage_)),
+    publishedPages_(other.publishedPages_.load(std::memory_order_acquire)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
     curPage_(other.curPage_),
@@ -22,6 +24,7 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     other.curPage_      = nullptr;
     other.curPageIndex_ = 0;
     other.lastPtr_      = nullptr;
+    other.publishedPages_.store(std::make_shared<const std::vector<Page*>>(), std::memory_order_release);
 }
 
 PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
@@ -29,6 +32,10 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
     if (this != &other)
     {
         std::swap(pagesStorage_, other.pagesStorage_);
+        auto leftSnapshot  = publishedPages_.load(std::memory_order_acquire);
+        auto rightSnapshot = other.publishedPages_.load(std::memory_order_acquire);
+        publishedPages_.store(rightSnapshot, std::memory_order_release);
+        other.publishedPages_.store(leftSnapshot, std::memory_order_release);
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
         std::swap(curPage_, other.curPage_);
@@ -41,7 +48,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
 void PagedStore::clear() noexcept
 {
     for (const std::unique_ptr<Page>& up : pagesStorage_)
-        up->used = 0;
+        up->used.store(0, std::memory_order_relaxed);
     totalBytes_ = 0;
 
     if (!pagesStorage_.empty())
@@ -73,7 +80,7 @@ void PagedStore::copyTo(ByteSpanRW dst) const
         if (!remaining)
             break;
 
-        const uint32_t chunkSize = std::min(remaining, page->used);
+        const uint32_t chunkSize = std::min(remaining, page->used.load(std::memory_order_relaxed));
         if (chunkSize)
         {
             std::memcpy(out, page->bytes(), chunkSize);
@@ -92,7 +99,7 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
 
     Page* page = curPage_ ? curPage_ : newPage();
 
-    uint32_t       off        = page->used;
+    uint32_t       off        = page->used.load(std::memory_order_relaxed);
     const uint32_t bytesAvail = pageSizeValue_ - off;
 
     constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
@@ -114,7 +121,7 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     const SpanRef  hdrRef{makeRef(pageSizeValue_, curPageIndex_, off)};
     const uint32_t newUsed = dataOffsetF + fit * elemSize;
     SWC_ASSERT(newUsed <= pageSizeValue_);
-    page->used = newUsed;
+    page->used.store(newUsed, std::memory_order_relaxed);
     totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
 
     const auto hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
@@ -139,12 +146,16 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
     {
         Page*              page = curPage_ ? curPage_ : newPage();
         constexpr uint32_t need = sizeof(SpanHdrRaw);
-        if (page->used + need > pageSizeValue_)
+        uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
+        if (pageUsed + need > pageSizeValue_)
+        {
             page = newPage();
-        const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, page->used)};
-        const auto    hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + page->used);
+            pageUsed = 0;
+        }
+        const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};
+        const auto    hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
         hdr->total        = 0;
-        page->used += need;
+        page->used.store(pageUsed + need, std::memory_order_relaxed);
         totalBytes_ += need;
         return hdrRef;
     }
@@ -185,7 +196,7 @@ const void* PagedStore::SpanView::dataPtr(const PagedStore* st, Ref hdrRef, uint
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
-    return st->pagesStorage_[pageIndex]->bytes() + dataOffset;
+    return st->publishedPageBytes(pageIndex) + dataOffset;
 }
 
 uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)
@@ -310,15 +321,17 @@ PagedStore::Page* PagedStore::newPage()
     pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_));
     curPage_      = pagesStorage_.back().get();
     curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
+    publishPages();
     return curPage_;
 }
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
     const auto bPtr = static_cast<const uint8_t*>(ptr);
-    for (uint32_t j = 0; j < pagesStorage_.size(); j++)
+    const auto pages = snapshotPages();
+    for (uint32_t j = 0; j < pages->size(); j++)
     {
-        const std::unique_ptr<Page>& page = pagesStorage_[j];
+        const Page* page = (*pages)[j];
         if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
         {
             const uint32_t offset = static_cast<uint32_t>(bPtr - page->bytes());
@@ -347,18 +360,58 @@ std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
     SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));
 
     Page*    page   = curPage_ ? curPage_ : newPage();
-    uint32_t offset = (page->used + (align - 1)) & ~(align - 1);
+    uint32_t offset = (page->used.load(std::memory_order_relaxed) + (align - 1)) & ~(align - 1);
     if (offset + size > pageSizeValue_)
     {
         page   = newPage();
         offset = 0;
     }
 
-    page->used = offset + size;
+    page->used.store(offset + size, std::memory_order_relaxed);
     totalBytes_ += size;
 
     const Ref r = makeRef(pageSizeValue_, curPageIndex_, offset);
     return {r, static_cast<void*>(page->bytes() + offset)};
+}
+
+std::shared_ptr<const std::vector<PagedStore::Page*>> PagedStore::snapshotPages() const noexcept
+{
+    return publishedPages_.load(std::memory_order_acquire);
+}
+
+void PagedStore::publishPages()
+{
+    std::vector<Page*> pages;
+    pages.reserve(pagesStorage_.size());
+    for (const std::unique_ptr<Page>& page : pagesStorage_)
+        pages.push_back(page.get());
+    publishedPages_.store(std::make_shared<const std::vector<Page*>>(std::move(pages)), std::memory_order_release);
+}
+
+uint32_t PagedStore::publishedPageCount() const noexcept
+{
+    return static_cast<uint32_t>(snapshotPages()->size());
+}
+
+uint32_t PagedStore::publishedPageUsed(uint32_t index) const noexcept
+{
+    const auto pages = snapshotPages();
+    SWC_ASSERT(index < pages->size());
+    return (*pages)[index]->used.load(std::memory_order_relaxed);
+}
+
+const uint8_t* PagedStore::publishedPageBytes(uint32_t index) const noexcept
+{
+    const auto pages = snapshotPages();
+    SWC_ASSERT(index < pages->size());
+    return (*pages)[index]->bytes();
+}
+
+uint8_t* PagedStore::publishedPageBytesMutable(uint32_t index) const noexcept
+{
+    const auto pages = snapshotPages();
+    SWC_ASSERT(index < pages->size());
+    return (*pages)[index]->bytes();
 }
 
 SWC_END_NAMESPACE();

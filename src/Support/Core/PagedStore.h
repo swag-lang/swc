@@ -84,14 +84,14 @@ public:
     T* ptr(Ref ref) noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
+        return ptrImpl<T>(snapshotPages(), pageSizeValue_, ref);
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return ptrImpl<T>(pagesStorage_, pageSizeValue_, ref);
+        return ptrImpl<T>(snapshotPages(), pageSizeValue_, ref);
     }
 
     template<class T>
@@ -125,7 +125,7 @@ private:
     struct Page
     {
         std::byte* storage = nullptr;
-        uint32_t   used    = 0;
+        std::atomic<uint32_t> used = 0;
 
         static std::byte* allocateAligned(uint32_t size);
         static void       deallocateAligned(std::byte* p) noexcept;
@@ -149,23 +149,33 @@ private:
     std::pair<SpanRef, uint32_t> writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems);
 
     template<class T>
-    static T* ptrImpl(const std::vector<std::unique_ptr<Page>>& pages, uint32_t pageSize, Ref ref)
+    static T* ptrImpl(const std::shared_ptr<const std::vector<Page*>>& pages, uint32_t pageSize, Ref ref)
     {
         uint32_t pageIndex = 0, offset = 0;
         decodeRef(pageSize, ref, pageIndex, offset);
 
-        SWC_ASSERT(pageIndex < pages.size());
+        SWC_ASSERT(pages);
+        SWC_ASSERT(pageIndex < pages->size());
         SWC_ASSERT(offset + sizeof(T) <= pageSize);
 
-        return reinterpret_cast<T*>(pages[pageIndex]->bytes() + offset);
+        return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
     }
 
-    std::vector<std::unique_ptr<Page>> pagesStorage_;
-    uint64_t                           totalBytes_    = 0;
-    uint32_t                           pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
-    Page*                              curPage_       = nullptr;
-    uint32_t                           curPageIndex_  = 0;
-    uint8_t*                           lastPtr_       = nullptr;
+    std::shared_ptr<const std::vector<Page*>> snapshotPages() const noexcept;
+    void                                       publishPages();
+
+    uint32_t       publishedPageCount() const noexcept;
+    uint32_t       publishedPageUsed(uint32_t index) const noexcept;
+    const uint8_t* publishedPageBytes(uint32_t index) const noexcept;
+    uint8_t*       publishedPageBytesMutable(uint32_t index) const noexcept;
+
+    std::vector<std::unique_ptr<Page>>                     pagesStorage_;
+    std::atomic<std::shared_ptr<const std::vector<Page*>>> publishedPages_;
+    uint64_t                                               totalBytes_    = 0;
+    uint32_t                                               pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+    Page*                                                  curPage_       = nullptr;
+    uint32_t                                               curPageIndex_  = 0;
+    uint8_t*                                               lastPtr_       = nullptr;
 };
 
 class PagedStore::SpanView

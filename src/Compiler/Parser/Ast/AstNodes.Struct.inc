@@ -155,7 +155,8 @@ struct AstCompilerCall : AstCompoundT<AstNodeId::CompilerCall>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 {
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

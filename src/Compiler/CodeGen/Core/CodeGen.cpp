@@ -23,15 +23,15 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     builder_                          = &symbolFunc.microInstrBuilder(ctx());
     MicroBuilderFlags builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&       attributes      = symbolFunc.attributes();
-    const auto        backendOptimize = attributes.hasBackendOptimize ? attributes.backendOptimize : ctx().compiler().buildCfg().backendOptimize;
+    const auto        backendOptimize = attributes.hasBackendOptimize ? attributes.backendOptimize : compiler().buildCfg().backendOptimize;
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     builder_->setBackendOptimizeLevel(backendOptimize);
-    if (ctx().compiler().buildCfg().backendDebugInformations)
+    if (compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);
     builder_->setCurrentDebugInfo({});
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
-    const SourceView&     srcView   = sema().srcView(symbolFunc.srcViewRef());
+    const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();
     builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), file ? Utf8(file->path().string()) : Utf8{}, codeRange.line);
 
@@ -57,6 +57,56 @@ const TaskContext& CodeGen::ctx() const
     return sema().ctx();
 }
 
+CompilerInstance& CodeGen::compiler()
+{
+    return sema().compiler();
+}
+
+const CompilerInstance& CodeGen::compiler() const
+{
+    return sema().compiler();
+}
+
+ConstantManager& CodeGen::cstMgr()
+{
+    return sema().cstMgr();
+}
+
+const ConstantManager& CodeGen::cstMgr() const
+{
+    return sema().cstMgr();
+}
+
+TypeManager& CodeGen::typeMgr()
+{
+    return sema().typeMgr();
+}
+
+const TypeManager& CodeGen::typeMgr() const
+{
+    return sema().typeMgr();
+}
+
+TypeGen& CodeGen::typeGen()
+{
+    return sema().typeGen();
+}
+
+const TypeGen& CodeGen::typeGen() const
+{
+    return sema().typeGen();
+}
+
+IdentifierManager& CodeGen::idMgr()
+{
+    return sema().idMgr();
+}
+
+const IdentifierManager& CodeGen::idMgr() const
+{
+    return sema().idMgr();
+}
+
 Ast& CodeGen::ast()
 {
     return sema().ast();
@@ -65,6 +115,16 @@ Ast& CodeGen::ast()
 const Ast& CodeGen::ast() const
 {
     return sema().ast();
+}
+
+SourceView& CodeGen::srcView(SourceViewRef srcViewRef)
+{
+    return sema().srcView(srcViewRef);
+}
+
+const SourceView& CodeGen::srcView(SourceViewRef srcViewRef) const
+{
+    return sema().srcView(srcViewRef);
 }
 
 SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef)
@@ -80,6 +140,11 @@ SemaNodeView CodeGen::curNodeView()
 const Token& CodeGen::token(const SourceCodeRef& codeRef) const
 {
     return sema().token(codeRef);
+}
+
+void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const
+{
+    sema().appendResolvedCallArguments(nodeRef, out);
 }
 
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
@@ -106,7 +171,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     CodeGenNodePayload* nodePayload = payload(nodeRef);
     if (!nodePayload)
     {
-        nodePayload = sema().compiler().allocate<CodeGenNodePayload>();
+        nodePayload = compiler().allocate<CodeGenNodePayload>();
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 

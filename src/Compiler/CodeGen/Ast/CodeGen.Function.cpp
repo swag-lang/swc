@@ -160,7 +160,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
-    codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
+    codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);

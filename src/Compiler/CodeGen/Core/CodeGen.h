@@ -8,7 +8,14 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class SymbolFunction;
 class MicroBuilder;
+class CompilerInstance;
+class ConstantManager;
+class TypeManager;
+class TypeGen;
+class IdentifierManager;
+class SourceView;
 struct SemaNodeView;
+struct ResolvedCallArgument;
 struct Token;
 
 struct CodeGenNodePayload
@@ -34,8 +41,20 @@ public:
     const Sema&           sema() const { return *SWC_CHECK_NOT_NULL(sema_); }
     TaskContext&          ctx();
     const TaskContext&    ctx() const;
+    CompilerInstance&     compiler();
+    const CompilerInstance& compiler() const;
+    ConstantManager&      cstMgr();
+    const ConstantManager& cstMgr() const;
+    TypeManager&          typeMgr();
+    const TypeManager&    typeMgr() const;
+    TypeGen&              typeGen();
+    const TypeGen&        typeGen() const;
+    IdentifierManager&    idMgr();
+    const IdentifierManager& idMgr() const;
     Ast&                  ast();
     const Ast&            ast() const;
+    SourceView&           srcView(SourceViewRef srcViewRef);
+    const SourceView&     srcView(SourceViewRef srcViewRef) const;
     AstNode&              node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
     const AstNode&        node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
     AstVisit&             visit() { return visit_; }
@@ -44,6 +63,7 @@ public:
     SemaNodeView          nodeView(AstNodeRef nodeRef);
     SemaNodeView          curNodeView();
     const Token&          token(const SourceCodeRef& codeRef) const;
+    void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     SymbolFunction&       function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
     CodeGenNodePayload*   payload(AstNodeRef nodeRef) const;

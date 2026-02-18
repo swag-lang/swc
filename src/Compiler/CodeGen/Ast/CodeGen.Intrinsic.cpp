@@ -54,7 +54,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicCompiler:
         {
-            const uint64_t compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
+            const uint64_t compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
             const SemaNodeView nodeView      = codeGen.curNodeView();
             CodeGenNodePayload& payload      = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
             codeGen.builder().encodeLoadRegPtrImm(payload.reg, compilerIfAddress);

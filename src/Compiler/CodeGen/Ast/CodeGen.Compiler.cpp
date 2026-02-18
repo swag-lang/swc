@@ -39,7 +39,6 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    TaskContext& ctx = codeGen.ctx();
     const auto&    callConv     = CallConv::host();
     constexpr CallConvKind callConvKind = CallConvKind::Host;
     MicroBuilder&  builder      = codeGen.builder();
@@ -55,7 +54,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(outputStorageReg.isValid());
     const AstNode& exprNode          = codeGen.node(nodeExprRef);
 
-    const auto normalizedRet = ABITypeNormalize::normalize(ctx, callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
+    const auto normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {
@@ -67,7 +66,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         else
         {
             const auto spillSize = normalizedRet.indirectSize;
-            std::byte* spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
+            std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();

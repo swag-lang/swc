@@ -13,16 +13,15 @@ namespace
     uint64_t addPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
     {
         const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
-        const std::string_view storedPayload = codeGen.ctx().cstMgr().addPayloadBuffer(payloadView);
+        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
         return reinterpret_cast<uint64_t>(storedPayload.data());
     }
 
     void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
-        TaskContext&    ctx          = codeGen.ctx();
         const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
-        const TypeInfo& typeInfo     = ctx.typeMgr().get(finalTypeRef);
-        const uint64_t  storageSize  = typeInfo.sizeOf(ctx);
+        const TypeInfo& typeInfo     = codeGen.typeMgr().get(finalTypeRef);
+        const uint64_t  storageSize  = typeInfo.sizeOf(codeGen.ctx());
         if (!storageSize)
         {
             codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
@@ -158,7 +157,7 @@ namespace
             }
 
             case ConstantKind::EnumValue:
-                emitConstantToPayload(codeGen, payload, cst.getEnumValue(), codeGen.ctx().cstMgr().get(cst.getEnumValue()), targetTypeRef);
+                emitConstantToPayload(codeGen, payload, cst.getEnumValue(), codeGen.cstMgr().get(cst.getEnumValue()), targetTypeRef);
                 return;
 
             case ConstantKind::Struct:
@@ -184,7 +183,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (nodeView.cstRef.isInvalid())
         return Result::Continue;
 
-    const ConstantValue& cst     = sema().cstMgr().get(nodeView.cstRef);
+    const ConstantValue& cst     = cstMgr().get(nodeView.cstRef);
     CodeGenNodePayload&  payload = setPayload(nodeRef, nodeView.typeRef);
     emitConstantToPayload(*this, payload, nodeView.cstRef, cst, nodeView.typeRef);
     return Result::SkipChildren;

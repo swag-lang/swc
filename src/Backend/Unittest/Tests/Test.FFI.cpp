@@ -296,7 +296,7 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
     const void* ptr = reinterpret_cast<void*>(0x10);
 
     const SmallVector<JITArgument> args = {
-        {.typeRef = typeMgr.typeConstValuePtrVoid(), .valuePtr = &ptr},
+        {.typeRef = typeMgr.typeConstValuePtrVoid(), .valuePtr = static_cast<const void*>(&ptr)},
     };
 
     bool result = false;

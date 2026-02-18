@@ -248,7 +248,7 @@ void Diagnostic::report(TaskContext& ctx) const
         {
             for (const std::shared_ptr<DiagnosticElement>& e : elements_)
             {
-                if (e.get()->idName().find(filter) != Utf8::npos)
+                if (e->idName().find(filter) != Utf8::npos)
                     dismiss = false;
             }
         }

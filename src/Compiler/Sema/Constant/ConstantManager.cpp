@@ -17,12 +17,12 @@ void ConstantManager::setup(TaskContext& ctx)
     cstUndefined_  = addConstant(ctx, ConstantValue::makeUndefined(ctx));
 }
 
-ConstantRef ConstantManager::addS32(TaskContext& ctx, int32_t value)
+ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
 {
     return addConstant(ctx, ConstantValue::makeInt(ctx, ApsInt(value, 32, false), 32, TypeInfo::Sign::Signed));
 }
 
-ConstantRef ConstantManager::addInt(TaskContext& ctx, uint64_t value)
+ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
 {
     const ApsInt        val{value, ApsInt::maxBitWidth()};
     const ConstantValue cstVal = ConstantValue::makeIntUnsized(ctx, val, TypeInfo::Sign::Unknown);

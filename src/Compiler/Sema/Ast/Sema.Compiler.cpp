@@ -23,6 +23,49 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    constexpr Runtime::TargetOs nativeTargetOs()
+    {
+#ifdef _WIN32
+        return Runtime::TargetOs::Windows;
+#else
+        return Runtime::TargetOs::Linux;
+#endif
+    }
+
+    constexpr Runtime::TargetArch targetArch()
+    {
+#if defined(_M_X64) || defined(__x86_64__)
+        return Runtime::TargetArch::X86_64;
+#else
+        return Runtime::TargetArch::X86_64;
+#endif
+    }
+
+    constexpr std::string_view targetCpu()
+    {
+#if defined(_M_X64) || defined(__x86_64__)
+        return "x86_64";
+#elif defined(_M_IX86) || defined(__i386__)
+        return "x86";
+#else
+        return "unknown-cpu";
+#endif
+    }
+
+    constexpr std::string_view buildCfgName()
+    {
+#if defined(_DEBUG)
+        return "debug";
+#elif defined(SWC_DEV_MODE)
+        return "fast-debug";
+#else
+        return "release";
+#endif
+    }
+}
+
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
     RESULT_VERIFY(SemaCheck::isConstant(sema, nodeExprRef));
@@ -246,11 +289,40 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         }
 
         case TokenId::CompilerArch:
+        {
+            TypeRef typeRef = TypeRef::invalid();
+            RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetArch, typeRef, codeRef()));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(targetArch()));
+            const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
+            const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+            sema.setConstant(sema.curNodeRef(), enumValueRef);
+            break;
+        }
+
         case TokenId::CompilerCpu:
+        {
+            const ConstantValue value = ConstantValue::makeString(ctx, targetCpu());
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            break;
+        }
+
         case TokenId::CompilerBuildCfg:
+        {
+            const ConstantValue value = ConstantValue::makeString(ctx, buildCfgName());
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            break;
+        }
+
         case TokenId::CompilerSwagOs:
-            // TODO
-            SWC_INTERNAL_ERROR();
+        {
+            TypeRef typeRef = TypeRef::invalid();
+            RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(nativeTargetOs()));
+            const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
+            const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+            sema.setConstant(sema.curNodeRef(), enumValueRef);
+            break;
+        }
 
         case TokenId::CompilerModule:
         case TokenId::CompilerScopeName:

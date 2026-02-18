@@ -49,6 +49,7 @@ public:
         Global,
         Me,
         TargetOs,
+        TargetArch,
         OpBinary,
         OpUnary,
         OpAssign,

@@ -14,6 +14,7 @@ namespace
         std::array<RuntimeTypeKind, static_cast<size_t>(Pn::Count)> map = {};
         map.fill(RuntimeTypeKind::Count);
         map[static_cast<size_t>(Pn::TargetOs)]           = RuntimeTypeKind::TargetOs;
+        map[static_cast<size_t>(Pn::TargetArch)]         = RuntimeTypeKind::TargetArch;
         map[static_cast<size_t>(Pn::TypeInfoKind)]       = RuntimeTypeKind::TypeInfoKind;
         map[static_cast<size_t>(Pn::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;
         map[static_cast<size_t>(Pn::TypeInfoFlags)]      = RuntimeTypeKind::TypeInfoFlags;

@@ -13,6 +13,7 @@ class CompilerInstance;
 enum class RuntimeTypeKind : uint32_t
 {
     TargetOs,
+    TargetArch,
     TypeInfoKind,
     TypeInfoNativeKind,
     TypeInfoFlags,
@@ -128,6 +129,7 @@ public:
 
     TypeRef enumContextFlags() const { return runtimeType(RuntimeTypeKind::ContextFlags); }
     TypeRef enumTargetOs() const { return runtimeType(RuntimeTypeKind::TargetOs); }
+    TypeRef enumTargetArch() const { return runtimeType(RuntimeTypeKind::TargetArch); }
     TypeRef enumTypeInfoKind() const { return runtimeType(RuntimeTypeKind::TypeInfoKind); }
     TypeRef enumTypeInfoNativeKind() const { return runtimeType(RuntimeTypeKind::TypeInfoNativeKind); }
     TypeRef enumTypeInfoFlags() const { return runtimeType(RuntimeTypeKind::TypeInfoFlags); }

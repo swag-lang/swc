@@ -4,6 +4,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Runtime
 {
+    enum class TargetArch
+    {
+        X86_64,
+    };
+
     enum class TargetOs
     {
         Windows,

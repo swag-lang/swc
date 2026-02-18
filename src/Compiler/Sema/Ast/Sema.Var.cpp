@@ -222,7 +222,7 @@ namespace
 
         for (auto* s : symbols)
         {
-            auto* symVar = s->safeCast<SymbolVariable>();
+            SymbolVariable* symVar = s->safeCast<SymbolVariable>();
             if (!symVar)
                 continue;
             if (!symVar->ownerSymMap() || !symVar->ownerSymMap()->safeCast<SymbolStruct>())

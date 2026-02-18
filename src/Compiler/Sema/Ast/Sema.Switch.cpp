@@ -41,7 +41,7 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
-    const auto* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
+    const SwitchPayload* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
     if (!payload || !payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 
@@ -57,7 +57,7 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     {
         if (!sym || !sym->isEnumValue())
             continue;
-        const auto* value = sym->safeCast<SymbolEnumValue>();
+        const SymbolEnumValue* value = sym->safeCast<SymbolEnumValue>();
         if (!value)
             continue;
         const ConstantRef cstRef = value->cstRef();
@@ -129,7 +129,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const auto*   payload       = sema.payload<SwitchPayload>(switchRef);
+    const SwitchPayload* payload = sema.payload<SwitchPayload>(switchRef);
     const TypeRef switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
         return Result::Continue;
@@ -137,7 +137,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {
-        auto* switchPayload = sema.payload<SwitchPayload>(switchRef);
+        SwitchPayload* switchPayload = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(switchPayload);
 
         const AstNodeRef caseRef = sema.frame().currentSwitchCase();
@@ -212,7 +212,7 @@ namespace
 
     Result handleRangeCaseExpr(Sema& sema, const AstNodeRef& rangeRef, TypeRef switchTypeRef)
     {
-        const auto* range = sema.node(rangeRef).cast<AstRangeExpr>();
+        const AstRangeExpr* range = sema.node(rangeRef).cast<AstRangeExpr>();
         if (range->nodeExprDownRef.isValid())
             RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprDownRef, switchTypeRef));
         if (range->nodeExprUpRef.isValid())
@@ -237,7 +237,7 @@ namespace
                 return Result::Continue;
         }
 
-        auto* seenSet = sema.payload<SwitchPayload>(switchRef);
+        SwitchPayload* seenSet = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
         const SemaNodeView exprView = sema.nodeView(caseExprRef);
@@ -312,8 +312,8 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> stmts;
-    const auto*             caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-    const auto*             caseBody = sema.node(caseStmt->nodeBodyRef).cast<AstSwitchCaseBody>();
+    const AstSwitchCaseStmt* caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+    const AstSwitchCaseBody* caseBody = sema.node(caseStmt->nodeBodyRef).cast<AstSwitchCaseBody>();
 
     sema.ast().appendNodes(stmts, caseBody->spanChildrenRef);
     const auto itStmt = std::ranges::find(stmts, sema.curNodeRef());
@@ -323,7 +323,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, sema.curNodeRef());
 
     const AstNodeRef switchRef  = sema.frame().currentSwitch();
-    const auto*      switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
+    const AstSwitchStmt* switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
     if (!switchStmt->spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 

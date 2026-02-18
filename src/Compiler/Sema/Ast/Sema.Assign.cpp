@@ -242,7 +242,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node->is(AstNodeId::AssignList))
     {
-        const auto* assignList = nodeLeftView.node->cast<AstAssignList>();
+        const AstAssignList* assignList = nodeLeftView.node->cast<AstAssignList>();
         if (assignList->hasFlag(AstAssignListFlagsE::Destructuring))
             return assignDecomposition(sema, tok, *assignList, modifierFlags, nodeRightView);
         return assignMulti(sema, tok, *assignList, modifierFlags, nodeRightView);

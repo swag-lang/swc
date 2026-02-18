@@ -23,17 +23,17 @@ namespace
         lookUpCxt.symMaps.push_back(symMap);
         lookUpCxt.symMapPriorities.push_back(priority);
 
-        if (const auto* structSym = symMap->safeCast<SymbolStruct>())
+        if (const SymbolStruct* structSym = symMap->safeCast<SymbolStruct>())
         {
             for (const auto* impl : structSym->impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
-        else if (const auto* enumSym = symMap->safeCast<SymbolEnum>())
+        else if (const SymbolEnum* enumSym = symMap->safeCast<SymbolEnum>())
         {
             for (const auto* impl : enumSym->impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
-        else if (const auto* implSym = symMap->safeCast<SymbolImpl>())
+        else if (const SymbolImpl* implSym = symMap->safeCast<SymbolImpl>())
         {
             if (implSym->isForStruct())
                 addSymMap(lookUpCxt, implSym->symStruct(), priority);
@@ -46,9 +46,9 @@ namespace
     {
         if (!decl)
             return false;
-        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
+        if (const AstSingleVarDecl* var = decl->safeCast<AstSingleVarDecl>())
             return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
+        if (const AstMultiVarDecl* varList = decl->safeCast<AstMultiVarDecl>())
             return varList->hasFlag(AstVarDeclFlagsE::Using);
         return false;
     }
@@ -124,7 +124,7 @@ namespace
             // block for that same struct, member lookup must also consider the current impl scope.
             // This keeps the rule centralized (all lookups benefit), instead of having ad-hoc fixes
             // in member-access/auto-member-access.
-            if (const auto* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            if (const SymbolStruct* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
             {
                 if (const SymbolImpl* symImpl = sema.frame().currentImpl())
                 {
@@ -136,7 +136,7 @@ namespace
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
-            if (const auto* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            if (const SymbolStruct* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
             {
                 SmallVector<const SymbolStruct*> visited;
                 addUsingMemberSymMaps(sema, lookUpCxt, *structSym, searchOrder, visited);

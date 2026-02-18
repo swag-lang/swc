@@ -295,7 +295,7 @@ namespace
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        auto*                                                   symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        SYMBOL_INFO*                                            symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
         symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
@@ -543,7 +543,7 @@ namespace
 
         for (uint32_t i = 0; i < numFrames; ++i)
         {
-            const auto address = reinterpret_cast<uintptr_t>(frames[i]);
+            const uintptr_t address = reinterpret_cast<uintptr_t>(frames[i]);
             outMsg += std::format("  [{}] 0x{:016X}", i, address);
 
             MEMORY_BASIC_INFORMATION mbi{};

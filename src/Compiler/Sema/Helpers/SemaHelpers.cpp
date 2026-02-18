@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
 {
-    if (auto* symVar = sym->safeCast<SymbolVariable>())
+    if (SymbolVariable* symVar = sym->safeCast<SymbolVariable>())
     {
         if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
             symStruct->addField(symVar);
@@ -26,7 +26,7 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
         }
     }
 
-    if (auto* symFunc = sym->safeCast<SymbolFunction>())
+    if (SymbolFunction* symFunc = sym->safeCast<SymbolFunction>())
     {
         if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())
             symInterface->addFunction(symFunc);

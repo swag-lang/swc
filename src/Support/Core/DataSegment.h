@@ -35,7 +35,7 @@ public:
         std::unique_lock lock(mutex_);
         const uint32_t   bytes = static_cast<uint32_t>(sizeof(T)) * count;
         const auto       res   = store_.pushCopySpan(ByteSpan{static_cast<const std::byte*>(nullptr), bytes}, static_cast<uint32_t>(alignof(T)));
-        auto*            ptr   = store_.ptr<T>(res.second);
+        T*               ptr   = store_.ptr<T>(res.second);
         std::memset(ptr, 0, bytes);
         return {res.second, ptr};
     }

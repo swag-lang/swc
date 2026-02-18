@@ -82,7 +82,7 @@ namespace
     {
         const auto& values = cst.getAggregateStruct();
         const auto* owner  = symVar.ownerSymMap();
-        const auto* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
+        const SymbolStruct* sym = owner ? owner->safeCast<SymbolStruct>() : nullptr;
         if (!sym)
         {
             failStructMemberType(sema, symVar, nodeMemberRef);

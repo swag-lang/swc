@@ -31,7 +31,7 @@ namespace Command
         // Parser
         for (SourceFile* f : compiler.files())
         {
-            const auto job = heapNew<ParserJob>(ctx, f);
+            ParserJob* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -59,7 +59,7 @@ namespace Command
         for (SourceFile* f : files)
         {
             f->setModuleNamespace(*moduleNamespace);
-            const auto job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
+            SemaJob* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -67,7 +67,7 @@ namespace Command
 
         for (SourceFile* f : files)
         {
-            const auto job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
+            SemaJob* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

@@ -228,7 +228,7 @@ namespace
             blockPointer = true;
 
         // TODO @legacy &arr[0] should be a value pointer, not a block pointer
-        if (const auto* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
+        if (const AstIndexExpr* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
         {
             const SemaNodeView baseView = sema.nodeView(idxExpr->nodeExprRef);
             if (baseView.type && baseView.type->isArray())

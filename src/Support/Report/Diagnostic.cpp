@@ -139,8 +139,8 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto       ptr = reinterpret_cast<const char8_t*>(arg.data());
-    const auto end = ptr + arg.size();
+    const char8_t* ptr = reinterpret_cast<const char8_t*>(arg.data());
+    const char8_t* end = ptr + arg.size();
     while (ptr < end)
     {
         auto [buf, wc, eat] = Utf8Helper::decodeOneChar(ptr, end);

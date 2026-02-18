@@ -27,7 +27,7 @@ namespace
         JIT::emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
         using TestFn  = uint64_t (*)();
-        const auto fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
+        const TestFn fn = reinterpret_cast<TestFn>(executableMemory.entryPoint());
         if (!fn)
             return Result::Error;
         if (fn() != expectedResult)
@@ -64,7 +64,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     JITMemory calleeExecMemory;
     JIT::emit(ctx, calleeExecMemory, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations);
     using CalleeFnType  = uint64_t (*)();
-    const auto calleeFn = reinterpret_cast<CalleeFnType>(calleeExecMemory.entryPoint());
+    const CalleeFnType calleeFn = reinterpret_cast<CalleeFnType>(calleeExecMemory.entryPoint());
     SWC_ASSERT(calleeFn != nullptr);
     SWC_ASSERT(calleeFn() == 1);
 
@@ -82,7 +82,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     JITMemory callerExecMemory;
     JIT::emit(ctx, callerExecMemory, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations);
     using CallerFnType  = uint64_t (*)();
-    const auto callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
+    const CallerFnType callerFn = reinterpret_cast<CallerFnType>(callerExecMemory.entryPoint());
     SWC_ASSERT(callerFn != nullptr);
     SWC_ASSERT(callerFn() == 8);
 }
@@ -101,15 +101,15 @@ SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
     SWC_ASSERT(manager.allocateAndCopy(memB, bytes));
 
     using Fn       = void (*)();
-    const auto fnA = reinterpret_cast<Fn>(memA.entryPoint());
-    const auto fnB = reinterpret_cast<Fn>(memB.entryPoint());
+    const Fn fnA = reinterpret_cast<Fn>(memA.entryPoint());
+    const Fn fnB = reinterpret_cast<Fn>(memB.entryPoint());
     SWC_ASSERT(fnA != nullptr);
     SWC_ASSERT(fnB != nullptr);
     fnA();
     fnB();
 
-    const auto ptrA = std::bit_cast<uintptr_t>(fnA);
-    const auto ptrB = std::bit_cast<uintptr_t>(fnB);
+    const uintptr_t ptrA = std::bit_cast<uintptr_t>(fnA);
+    const uintptr_t ptrB = std::bit_cast<uintptr_t>(fnB);
     SWC_ASSERT(ptrB > ptrA);
     SWC_ASSERT(ptrB - ptrA < 64 * 1024ull);
 }

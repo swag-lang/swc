@@ -67,7 +67,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         else
         {
             const auto spillSize = normalizedRet.indirectSize;
-            auto*      spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
+            std::byte* spillData = codeGen.ctx().compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();

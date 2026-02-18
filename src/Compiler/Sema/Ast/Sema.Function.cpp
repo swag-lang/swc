@@ -103,7 +103,7 @@ namespace
         SWC_ASSERT(sym.isFunction());
         if (auto* currentFn = sema.frame().currentFunction())
         {
-            auto* calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
+            SymbolFunction* calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
             if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef() && !calledFn->isForeign())
                 currentFn->addCallDependency(calledFn);
         }

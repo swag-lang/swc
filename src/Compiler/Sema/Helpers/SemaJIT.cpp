@@ -22,7 +22,7 @@ namespace
     {
         if (symFn.tryMarkCodeGenJobScheduled())
         {
-            const auto job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
+            CodeGenJob* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
     }
@@ -53,11 +53,11 @@ namespace
     ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
     {
         const TaskContext& ctx = sema.ctx();
-        const auto  strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
+        const uint64_t strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
         if (!strPtrAddress)
             return ConstantValue::makeString(ctx, std::string_view{});
 
-        const auto* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        const Runtime::String* str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
         if (!str->ptr || !str->length)
             return ConstantValue::makeString(ctx, std::string_view{});
 

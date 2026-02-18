@@ -13,7 +13,7 @@ namespace
         for (const IdentifierRef idRef : nsPath)
         {
             TaskContext& ctx = sema.ctx();
-            auto*   ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+            SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
             Symbol* res = m->addSingleSymbol(ctx, ns);
             SWC_ASSERT(res->isNamespace());
             m = res->asSymMap();

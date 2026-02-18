@@ -231,7 +231,7 @@ SymbolStruct* SymbolFunction::ownerStruct()
     SymbolStruct* ownerStruct = nullptr;
     if (auto* symMap = ownerSymMap())
     {
-        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+        if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
             ownerStruct = symImpl->symStruct();
         else
             ownerStruct = symMap->safeCast<SymbolStruct>();
@@ -245,7 +245,7 @@ const SymbolStruct* SymbolFunction::ownerStruct() const
     const SymbolStruct* ownerStruct = nullptr;
     if (const auto* symMap = ownerSymMap())
     {
-        if (const auto* symImpl = symMap->safeCast<SymbolImpl>())
+        if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
             ownerStruct = symImpl->symStruct();
         else
             ownerStruct = symMap->safeCast<SymbolStruct>();

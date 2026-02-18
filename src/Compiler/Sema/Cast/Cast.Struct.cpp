@@ -49,7 +49,7 @@ namespace
         if (node.isNot(AstNodeId::StructLiteral))
             return AstNodeRef::invalid();
 
-        const auto* literal = node.cast<AstStructLiteral>();
+        const AstStructLiteral* literal = node.cast<AstStructLiteral>();
         if (literal->spanChildrenRef.isInvalid())
             return AstNodeRef::invalid();
 

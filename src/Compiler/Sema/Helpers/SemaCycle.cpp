@@ -14,9 +14,9 @@ namespace
 {
     Sema* jobSema(Job* job)
     {
-        if (auto* semaJob = job->safeCast<SemaJob>())
+        if (SemaJob* semaJob = job->safeCast<SemaJob>())
             return &semaJob->sema();
-        if (auto* codeGenJob = job->safeCast<CodeGenJob>())
+        if (CodeGenJob* codeGenJob = job->safeCast<CodeGenJob>())
             return &codeGenJob->sema();
         return nullptr;
     }

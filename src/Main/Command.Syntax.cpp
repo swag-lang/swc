@@ -26,7 +26,7 @@ namespace Command
 
         for (const auto& f : compiler.files())
         {
-            const auto job = heapNew<ParserJob>(ctx, f);
+            ParserJob* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

@@ -170,7 +170,7 @@ namespace Os
             return false;
 
         const Utf8 functionNameUtf8{functionName};
-        auto*      func = GetProcAddress(static_cast<HMODULE>(moduleHandle), functionNameUtf8.c_str());
+        FARPROC    func = GetProcAddress(static_cast<HMODULE>(moduleHandle), functionNameUtf8.c_str());
         if (!func)
             return false;
 

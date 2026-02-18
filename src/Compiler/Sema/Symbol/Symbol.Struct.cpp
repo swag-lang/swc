@@ -100,9 +100,9 @@ namespace
     {
         if (!decl)
             return false;
-        if (const auto* var = decl->safeCast<AstSingleVarDecl>())
+        if (const AstSingleVarDecl* var = decl->safeCast<AstSingleVarDecl>())
             return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const auto* varList = decl->safeCast<AstMultiVarDecl>())
+        if (const AstMultiVarDecl* varList = decl->safeCast<AstMultiVarDecl>())
             return varList->hasFlag(AstVarDeclFlagsE::Using);
         return false;
     }
@@ -168,9 +168,9 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         SWC_ASSERT(symVar.decl()->is(AstNodeId::SingleVarDecl) || symVar.decl()->is(AstNodeId::MultiVarDecl));
         auto&      type        = symVar.typeInfo(sema.ctx());
         AstNodeRef typeNodeRef = AstNodeRef::invalid();
-        if (const auto* varSingle = symVar.decl()->safeCast<AstSingleVarDecl>())
+        if (const AstSingleVarDecl* varSingle = symVar.decl()->safeCast<AstSingleVarDecl>())
             typeNodeRef = varSingle->typeOrInitRef();
-        else if (const auto* varMulti = symVar.decl()->safeCast<AstMultiVarDecl>())
+        else if (const AstMultiVarDecl* varMulti = symVar.decl()->safeCast<AstMultiVarDecl>())
             typeNodeRef = varMulti->typeOrInitRef();
         else
             SWC_UNREACHABLE();

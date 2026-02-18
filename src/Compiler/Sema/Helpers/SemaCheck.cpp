@@ -163,7 +163,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     // Disallow assignment to immutable lvalues:
     if (leftView.sym)
     {
-        if (const auto* symVar = leftView.sym->safeCast<SymbolVariable>())
+        if (const SymbolVariable* symVar = leftView.sym->safeCast<SymbolVariable>())
         {
             if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {

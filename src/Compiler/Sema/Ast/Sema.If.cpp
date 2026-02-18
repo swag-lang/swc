@@ -16,7 +16,7 @@ namespace
         const auto& varNode = sema.node(varDeclRef);
         if (varNode.is(AstNodeId::VarDeclList))
         {
-            const auto*             list = varNode.cast<AstVarDeclList>();
+            const AstVarDeclList* list = varNode.cast<AstVarDeclList>();
             SmallVector<AstNodeRef> decls;
             sema.ast().appendNodes(decls, list->spanChildrenRef);
             if (decls.size() != 1)

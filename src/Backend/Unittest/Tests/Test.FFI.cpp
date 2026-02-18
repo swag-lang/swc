@@ -16,14 +16,14 @@ namespace
 {
     SymbolVariable* makeStructField(TaskContext& ctx, TypeRef typeRef)
     {
-        auto* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         field->setTypeRef(typeRef);
         return field;
     }
 
     TypeRef makeStructType(TaskContext& ctx, std::span<const TypeRef> fieldTypes)
     {
-        auto* symStruct = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolStruct* symStruct = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         for (const auto fieldType : fieldTypes)
             symStruct->addField(makeStructField(ctx, fieldType));
         SWC_ASSERT(symStruct->computeLayout(ctx) == Result::Continue);

@@ -88,7 +88,7 @@ uint32_t Utf8Helper::countChars(std::string_view str)
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
     {
-        const auto addr             = reinterpret_cast<const char8_t*>(str.data());
+        const char8_t* addr         = reinterpret_cast<const char8_t*>(str.data());
         const auto [ptr, wc, bytes] = decodeOneChar(addr + i, addr + str.size());
         if (ptr)
             i += bytes - 1;

@@ -429,7 +429,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         const AstNodeIdInfo& childInfo = Ast::nodeIdInfos(child.id());
         if (childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            const auto job = heapNew<SemaJob>(ctx(), *this, childRef);
+            SemaJob* job = heapNew<SemaJob>(ctx(), *this, childRef);
             compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
             return Result::SkipChildren;
         }

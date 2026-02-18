@@ -34,7 +34,7 @@ namespace
 
     AstNodeRef inlineExprRef(const Sema& sema, const SymbolFunction& fn)
     {
-        const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const AstFunctionDecl* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!decl)
             return AstNodeRef::invalid();
         if (decl->srcViewRef() != sema.ast().srcView().ref())
@@ -47,7 +47,7 @@ namespace
             return AstNodeRef::invalid();
 
         const AstNode& bodyNode = sema.node(decl->nodeBodyRef);
-        const auto*    block    = bodyNode.safeCast<AstEmbeddedBlock>();
+        const AstEmbeddedBlock* block = bodyNode.safeCast<AstEmbeddedBlock>();
         if (!block)
             return AstNodeRef::invalid();
 
@@ -56,7 +56,7 @@ namespace
         if (statements.size() != 1)
             return AstNodeRef::invalid();
 
-        const auto* retStmt = sema.node(statements[0]).safeCast<AstReturnStmt>();
+        const AstReturnStmt* retStmt = sema.node(statements[0]).safeCast<AstReturnStmt>();
         if (!retStmt || retStmt->nodeExprRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -86,7 +86,7 @@ namespace
             if (!isNamedArgument(argNode))
                 continue;
 
-            const auto*         namedArg = argNode.cast<AstNamedArgument>();
+            const AstNamedArgument* namedArg = argNode.cast<AstNamedArgument>();
             const IdentifierRef idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg->codeRef());
 
             size_t paramIndex = params.size();

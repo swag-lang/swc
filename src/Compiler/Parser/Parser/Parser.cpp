@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
-    const auto& token = ast_->srcView().token(tokRef);
+    const Token& token = ast_->srcView().token(tokRef);
 
     if (token.is(TokenId::EndOfFile))
     {
@@ -25,7 +25,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     // Get the last non-trivia token
     if (tokRef.get() != 0)
     {
-        const auto& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
+        const Token& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
         diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef.offset(-1)}));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id));
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenPrev.id)));
@@ -33,7 +33,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 
     if (tokRef.get() < ast_->srcView().tokens().size() - 1)
     {
-        const auto& tokenNext = ast_->srcView().token(tokRef.offset(1));
+        const Token& tokenNext = ast_->srcView().token(tokRef.offset(1));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, SourceCodeRef{ast_->srcView().ref(), tokRef.offset(1)}));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id));
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenNext.id)));

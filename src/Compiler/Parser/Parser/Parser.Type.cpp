@@ -245,7 +245,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
 
         // Array with a dimension
         SmallVector4<AstNodeRef> dimensions;
-        const auto               firstDim = parseExpression();
+        const AstNodeRef         firstDim = parseExpression();
         if (firstDim.isInvalid())
             return AstNodeRef::invalid();
         dimensions.push_back(firstDim);
@@ -253,7 +253,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         // Parse additional dimensions separated by commas
         while (consumeIf(TokenId::SymComma).isValid())
         {
-            const auto dim = parseExpression();
+            const AstNodeRef dim = parseExpression();
             if (dim.isInvalid())
                 return AstNodeRef::invalid();
             dimensions.push_back(dim);

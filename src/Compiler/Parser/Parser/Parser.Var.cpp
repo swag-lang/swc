@@ -7,7 +7,7 @@ AstNodeRef Parser::parseGenericParam()
 {
     bool        isConstant  = false;
     bool        isType      = false;
-    const auto& tknConstVar = tok();
+    const Token& tknConstVar = tok();
 
     if (consumeIf(TokenId::KwdConst).isValid())
         isConstant = true;

@@ -175,7 +175,7 @@ template AstNodeRef Parser::parseAttributeList<AstNodeId::EmbeddedBlock>();
 template<AstNodeId ID>
 AstNodeRef Parser::parseAttributeList()
 {
-    const auto nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+    const AstNodeRef nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 

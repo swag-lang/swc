@@ -140,12 +140,12 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
 
 SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId)
 {
-    const auto tokenEndId = Token::toRelated(tokenStartId);
+    const TokenId tokenEndId = Token::toRelated(tokenStartId);
 
     SmallVector<AstNodeRef> childrenRefs;
     while (!atEnd() && isNot(tokenEndId))
     {
-        const auto loopStartToken = curToken_;
+        const Token* loopStartToken = curToken_;
 
         // One block element
         AstNodeRef childRef = parseCompoundValue(blockNodeId);

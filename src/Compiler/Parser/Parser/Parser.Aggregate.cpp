@@ -142,8 +142,8 @@ AstNodeRef Parser::parseAggregateDecl()
     SmallVector<AstNodeRef> whereRefs;
     while (is(TokenId::KwdWhere))
     {
-        const auto loopStartToken = curToken_;
-        auto       whereRef       = parseConstraint();
+        const Token* loopStartToken = curToken_;
+        AstNodeRef whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
 

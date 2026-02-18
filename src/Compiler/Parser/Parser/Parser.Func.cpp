@@ -191,8 +191,8 @@ AstNodeRef Parser::parseFunctionDecl()
     SmallVector<AstNodeRef> whereRefs;
     while (is(TokenId::KwdWhere) || is(TokenId::KwdVerify))
     {
-        const auto loopStartToken = curToken_;
-        auto       whereRef       = parseConstraint();
+        const Token* loopStartToken = curToken_;
+        AstNodeRef whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
         if (loopStartToken == curToken_)
@@ -229,7 +229,7 @@ AstNodeRef Parser::parseFunctionParam()
 {
     if (is(TokenId::SymAttrStart))
     {
-        const auto nodeRef   = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        const AstNodeRef nodeRef  = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
         const auto nodePtr   = ast_->node<AstNodeId::AttributeList>(nodeRef);
         nodePtr->nodeBodyRef = parseFunctionParam();
         return nodeRef;

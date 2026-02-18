@@ -71,15 +71,15 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     if (numParams == 1)
         return parseCompilerCallOne();
 
-    const auto token        = tok();
+    const TokenId tokenId   = tok().id;
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
     const TokenRef              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    auto parseFlags = ParserContextFlagsE::Zero;
-    if (token.id == TokenId::CompilerDefined)
+    ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
+    if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
     PushContextFlags context(this, parseFlags);
 
@@ -118,15 +118,15 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 
 AstNodeRef Parser::parseCompilerCallOne()
 {
-    const auto token        = tok();
+    const TokenId tokenId   = tok().id;
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(consume());
 
     const TokenRef              openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
-    auto parseFlags = ParserContextFlagsE::Zero;
-    if (token.id == TokenId::CompilerDefined)
+    ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
+    if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
     PushContextFlags context(this, parseFlags);
 
@@ -165,7 +165,7 @@ AstNodeRef Parser::parseCompilerCallOne()
 
 AstNodeRef Parser::parseCompilerFunc()
 {
-    const auto what = id();
+    const TokenId what = id();
 
     if (nextIs(TokenId::SymLeftCurly))
     {
@@ -292,7 +292,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 AstNodeRef Parser::parseCompilerGlobal()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
-    const auto tokStr       = tok().string(ast_->srcView());
+    const std::string_view tokStr = tok().string(ast_->srcView());
 
     nodePtr->spanNameRef.setInvalid();
     nodePtr->nodeModeRef.setInvalid();
@@ -378,7 +378,7 @@ AstNodeRef Parser::parseCompilerImport()
 
     if (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokStr = tok().string(ast_->srcView());
+        std::string_view tokStr = tok().string(ast_->srcView());
         if (tokStr == Token::toName(TokenId::KwdLocation))
         {
             consume();

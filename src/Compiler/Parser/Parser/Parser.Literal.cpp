@@ -91,7 +91,7 @@ AstNodeRef Parser::parseLiteral()
 
 AstNodeRef Parser::parseLiteralExpression()
 {
-    const auto literal = parseLiteral();
+    const AstNodeRef literal = parseLiteral();
     if (literal.isInvalid())
         return AstNodeRef::invalid();
 

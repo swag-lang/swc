@@ -51,14 +51,14 @@ class Encoder
     friend struct MicroInstr;
 
 public:
-    uint32_t                      size() const { return store_.size(); }
-    const uint8_t*                data() const;
-    uint8_t                       byteAt(uint32_t index) const;
-    void                          copyTo(ByteSpanRW dst) const;
-    void                          setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    uint32_t                        size() const { return store_.size(); }
+    const uint8_t*                  data() const;
+    uint8_t                         byteAt(uint32_t index) const;
+    void                            copyTo(ByteSpanRW dst) const;
+    void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
-    virtual std::string           formatRegisterName(MicroReg reg) const;
-    virtual MicroReg              stackPointerReg() const = 0;
+    virtual std::string             formatRegisterName(MicroReg reg) const;
+    virtual MicroReg                stackPointerReg() const = 0;
 
 protected:
     TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }

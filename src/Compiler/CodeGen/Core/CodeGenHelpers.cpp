@@ -100,7 +100,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
         return;
 
     const auto&    buildCfg        = codeGen.builder().backendBuildCfg();
-    const auto     optimizeLevel = buildCfg.optimizeLevel;
+    const auto     optimizeLevel   = buildCfg.optimizeLevel;
     const bool     optimize        = optimizeLevel >= Runtime::BuildCfgBackendOptim::O1;
     const bool     optimizeForSize = optimizeLevel == Runtime::BuildCfgBackendOptim::Os || optimizeLevel == Runtime::BuildCfgBackendOptim::Oz;
     const bool     allow128        = optimize && !optimizeForSize && sizeInBytes >= 16;

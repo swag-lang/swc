@@ -124,8 +124,8 @@ private:
 
     struct Page
     {
-        std::byte* storage = nullptr;
-        std::atomic<uint32_t> used = 0;
+        std::byte*            storage = nullptr;
+        std::atomic<uint32_t> used    = 0;
 
         static std::byte* allocateAligned(uint32_t size);
         static void       deallocateAligned(std::byte* p) noexcept;
@@ -162,7 +162,7 @@ private:
     }
 
     std::shared_ptr<const std::vector<Page*>> snapshotPages() const noexcept;
-    void                                       publishPages();
+    void                                      publishPages();
 
     uint32_t       publishedPageCount() const noexcept;
     uint32_t       publishedPageUsed(uint32_t index) const noexcept;

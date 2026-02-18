@@ -5,8 +5,8 @@
 SWC_BEGIN_NAMESPACE();
 
 PagedStore::PagedStore(uint32_t pageSize) :
-    pageSizeValue_(pageSize),
-    publishedPages_(std::make_shared<const std::vector<Page*>>())
+    publishedPages_(std::make_shared<const std::vector<Page*>>()),
+    pageSizeValue_(pageSize)
 {
     SWC_ASSERT(pageSizeValue_ > 0 && (pageSizeValue_ & (pageSizeValue_ - 1)) == 0);
 }
@@ -144,12 +144,12 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
 {
     if (count == 0)
     {
-        Page*              page = curPage_ ? curPage_ : newPage();
-        constexpr uint32_t need = sizeof(SpanHdrRaw);
-        uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
+        Page*              page     = curPage_ ? curPage_ : newPage();
+        constexpr uint32_t need     = sizeof(SpanHdrRaw);
+        uint32_t           pageUsed = page->used.load(std::memory_order_relaxed);
         if (pageUsed + need > pageSizeValue_)
         {
-            page = newPage();
+            page     = newPage();
             pageUsed = 0;
         }
         const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};
@@ -327,7 +327,7 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto bPtr = static_cast<const uint8_t*>(ptr);
+    const auto bPtr  = static_cast<const uint8_t*>(ptr);
     const auto pages = snapshotPages();
     for (uint32_t j = 0; j < pages->size(); j++)
     {

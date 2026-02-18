@@ -4,8 +4,8 @@
 #include "Backend/CodeGen/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Wmf/SourceFile.h"
 
@@ -24,8 +24,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     builder_  = &symbolFunc.microInstrBuilder(ctx());
     variablePayloads_.clear();
 
-    MicroBuilderFlags builderFlags    = MicroBuilderFlagsE::Zero;
-    const auto&       attributes      = symbolFunc.attributes();
+    MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
+    const auto&              attributes      = symbolFunc.attributes();
     Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
     if (attributes.hasBackendOptimize)
         backendBuildCfg.optimizeLevel = attributes.backendOptimize;

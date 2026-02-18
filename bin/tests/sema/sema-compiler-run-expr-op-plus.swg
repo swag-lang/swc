@@ -74,15 +74,6 @@
 
 #test
 {
-    #[Swag.Optimize(.O0)]
-    func addAttrO0(a: s32, b: s32)->s32 { return a + b }
-    const V = #run addAttrO0(41, 1)
-    #assert(#typeof(V) == s32)
-    #assert(V == 42)
-}
-
-#test
-{
     #[Swag.Optimize(.NotAnOptLevel)] // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }

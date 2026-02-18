@@ -43,6 +43,23 @@ inline MicroOpBits microOpBitsFromBitWidth(uint32_t bitWidth)
     }
 }
 
+inline uint64_t getOpBitsMask(MicroOpBits opBits)
+{
+    switch (opBits)
+    {
+        case MicroOpBits::B8:
+            return 0xFF;
+        case MicroOpBits::B16:
+            return 0xFFFF;
+        case MicroOpBits::B32:
+            return 0xFFFFFFFF;
+        case MicroOpBits::B64:
+            return 0xFFFFFFFFFFFFFFFF;
+        default:
+            return 0;
+    }
+}
+
 inline uint32_t getNumBits(MicroOpBits opBits)
 {
     return static_cast<uint32_t>(opBits);

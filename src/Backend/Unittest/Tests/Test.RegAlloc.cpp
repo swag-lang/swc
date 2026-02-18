@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.h"
 #include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
@@ -331,6 +332,46 @@ namespace
 
         return false;
     }
+
+    void setPeepholeOptimizeLevel(MicroBuilder& builder)
+    {
+        Runtime::BuildCfgBackend backendCfg{};
+        backendCfg.optimizeLevel = Runtime::BuildCfgBackendOptim::O1;
+        builder.setBackendBuildCfg(backendCfg);
+    }
+
+    void runPeepholePass(MicroBuilder& builder)
+    {
+        MicroPeepholePass peepholePass;
+        MicroPassManager  passes;
+        passes.add(peepholePass);
+
+        MicroPassContext passCtx;
+        builder.runPasses(passes, nullptr, passCtx);
+    }
+
+    uint32_t instructionCount(const MicroBuilder& builder)
+    {
+        uint32_t count = 0;
+        for (const auto& inst : builder.instructions().view())
+        {
+            SWC_UNUSED(inst);
+            count++;
+        }
+
+        return count;
+    }
+
+    bool hasInstruction(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                return true;
+        }
+
+        return false;
+    }
 }
 
 SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
@@ -497,6 +538,75 @@ SWC_TEST_BEGIN(RegAlloc_VirtualRegForbiddenPhysRegs)
         if (containsIntArgRegs(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg R8  = MicroReg::intReg(8);
+    constexpr MicroReg R9  = MicroReg::intReg(9);
+    constexpr MicroReg R10 = MicroReg::intReg(10);
+    constexpr MicroReg R11 = MicroReg::intReg(11);
+    constexpr MicroReg R12 = MicroReg::intReg(12);
+
+    builder.emitNop();
+    builder.emitLoadRegReg(R8, R8, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(R9, R9, 0, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(R10, R10, MicroCond::Greater, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(R11, R11, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Or, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Xor, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0xFFFFFFFFFFFFFFFF, MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
+    builder.emitRet();
+
+    runPeepholePass(builder);
+
+    if (instructionCount(builder) != 1)
+        return Result::Error;
+
+    if (!hasInstruction(builder, MicroInstrOpcode::Ret))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg R8  = MicroReg::intReg(8);
+    constexpr MicroReg R9  = MicroReg::intReg(9);
+    constexpr MicroReg R10 = MicroReg::intReg(10);
+    constexpr MicroReg R11 = MicroReg::intReg(11);
+    constexpr MicroReg R12 = MicroReg::intReg(12);
+    constexpr MicroReg R13 = MicroReg::intReg(13);
+    constexpr MicroReg R14 = MicroReg::intReg(14);
+
+    builder.emitNop();
+    builder.emitLoadRegReg(R8, R9, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(R9, R9, 1, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(R10, R11, MicroCond::Greater, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(R12, R13, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R14, 1, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R14, 1, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(R14, 0x7F, MicroOp::And, MicroOpBits::B64);
+    builder.emitRet();
+
+    runPeepholePass(builder);
+
+    if (instructionCount(builder) != 8)
+        return Result::Error;
+
+    if (hasInstruction(builder, MicroInstrOpcode::Nop))
+        return Result::Error;
 }
 SWC_TEST_END()
 

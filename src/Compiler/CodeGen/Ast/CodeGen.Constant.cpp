@@ -10,6 +10,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t addPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
+    {
+        const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
+        const std::string_view storedPayload = codeGen.ctx().cstMgr().addPayloadBuffer(payloadView);
+        return reinterpret_cast<uint64_t>(storedPayload.data());
+    }
+
     void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
         TaskContext&    ctx          = codeGen.ctx();
@@ -20,6 +27,24 @@ namespace
         {
             codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
             payload.storageKind = CodeGenNodePayload::StorageKind::Value;
+            return;
+        }
+
+        if (typeInfo.isStruct() && cst.isStruct())
+        {
+            const ByteSpan structBytes = cst.getStruct();
+            SWC_ASSERT(structBytes.size() == storageSize);
+            codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+            payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+            return;
+        }
+
+        if (typeInfo.isArray() && cst.isArray())
+        {
+            const ByteSpan arrayBytes = cst.getArray();
+            SWC_ASSERT(arrayBytes.size() == storageSize);
+            codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
+            payload.storageKind = CodeGenNodePayload::StorageKind::Address;
             return;
         }
 
@@ -37,9 +62,8 @@ namespace
             return;
         }
 
-        std::byte* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
-        std::memcpy(storage, tmpSpan.data(), tmpSpan.size());
-        codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(storage), cstRef);
+        const uint64_t storageAddress = addPayloadToConstantManagerAndGetAddress(codeGen, tmpSpan);
+        codeGen.builder().encodeLoadRegPtrImm(payload.reg, storageAddress, cstRef);
         payload.storageKind = CodeGenNodePayload::StorageKind::Address;
     }
 
@@ -98,25 +122,16 @@ namespace
                     return;
                 }
 
-                SWC_ASSERT(false);
-                return;
+                SWC_UNREACHABLE();
             }
 
             case ConstantKind::String:
             {
-                const std::string_view value = cst.getString();
-                char*                  data  = nullptr;
-                if (!value.empty())
-                {
-                    data = codeGen.ctx().compiler().allocateArray<char>(value.size());
-                    std::memcpy(data, value.data(), value.size());
-                }
-
-                Runtime::String* runtimeString = codeGen.ctx().compiler().allocate<Runtime::String>();
-                runtimeString->ptr             = data;
-                runtimeString->length          = value.size();
-
-                builder.encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(runtimeString), cstRef);
+                const std::string_view value              = cst.getString();
+                const Runtime::String  runtimeString      = {.ptr = value.data(), .length = value.size()};
+                const ByteSpan         runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
+                const uint64_t         storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
+                builder.encodeLoadRegPtrImm(payload.reg, storageAddress, cstRef);
                 payload.storageKind = CodeGenNodePayload::StorageKind::Value;
                 return;
             }

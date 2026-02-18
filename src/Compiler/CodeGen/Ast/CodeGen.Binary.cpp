@@ -9,33 +9,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class BinaryOperandKind : uint8_t
+    MicroOpBits arithmeticOpBits(const TypeInfo& type)
     {
-        IntLike,
-        Float,
-        Other,
-    };
-
-    BinaryOperandKind operandKind(const TypeInfo& type)
-    {
-        if (type.isIntLike())
-            return BinaryOperandKind::IntLike;
-
         if (type.isFloat())
-            return BinaryOperandKind::Float;
-
-        return BinaryOperandKind::Other;
-    }
-
-    MicroOpBits arithmeticOpBits(const TypeInfo& type, BinaryOperandKind kind)
-    {
-        if (kind == BinaryOperandKind::Float)
         {
             const uint32_t floatBits = type.payloadFloatBits() ? type.payloadFloatBits() : 64;
             return microOpBitsFromBitWidth(floatBits);
         }
 
-        if (kind == BinaryOperandKind::IntLike)
+        if (type.isIntLike())
         {
             const uint32_t intBits = type.payloadIntLikeBits() ? type.payloadIntLikeBits() : 64;
             return microOpBitsFromBitWidth(intBits);
@@ -62,8 +44,7 @@ namespace
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        constexpr auto    operandTypeKind = BinaryOperandKind::IntLike;
-        const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
+        const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
@@ -87,8 +68,7 @@ namespace
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        constexpr auto    operandTypeKind = BinaryOperandKind::Float;
-        const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
+        const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
@@ -110,12 +90,9 @@ namespace
         const SemaNodeView rightView = codeGen.nodeView(node.nodeRightRef);
         SWC_ASSERT(leftView.type && rightView.type);
 
-        const BinaryOperandKind leftKind  = operandKind(*leftView.type);
-        const BinaryOperandKind rightKind = operandKind(*rightView.type);
-
-        if (leftKind == BinaryOperandKind::IntLike && rightKind == BinaryOperandKind::IntLike)
+        if (leftView.type->isIntLike() && rightView.type->isIntLike())
             return emitPlusIntLikeIntLike(codeGen, node, leftView, rightView);
-        if (leftKind == BinaryOperandKind::Float && rightKind == BinaryOperandKind::Float)
+        if (leftView.type->isFloat() && rightView.type->isFloat())
             return emitPlusFloatFloat(codeGen, node, leftView, rightView);
 
         return Result::Continue;

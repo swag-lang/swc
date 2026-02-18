@@ -379,6 +379,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1117,6 +1118,7 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
 struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1129,6 +1131,7 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
     SpanRef spanNamesRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;

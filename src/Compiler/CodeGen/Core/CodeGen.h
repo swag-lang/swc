@@ -14,6 +14,7 @@ class TypeManager;
 class TypeGen;
 class IdentifierManager;
 class SourceView;
+class SymbolVariable;
 struct SemaNodeView;
 struct ResolvedCallArgument;
 struct Token;
@@ -67,6 +68,8 @@ public:
     SymbolFunction&          function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction&    function() const { return *SWC_CHECK_NOT_NULL(function_); }
     CodeGenNodePayload*      payload(AstNodeRef nodeRef) const;
+    void                     setVariablePayload(const SymbolVariable* sym, const CodeGenNodePayload& payload);
+    const CodeGenNodePayload* variablePayload(const SymbolVariable* sym) const;
     CodeGenNodePayload&      inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&      setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     MicroReg                 nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
@@ -88,6 +91,7 @@ private:
     SymbolFunction* function_            = nullptr;
     MicroBuilder*   builder_             = nullptr;
     uint32_t        nextVirtualRegister_ = 1;
+    std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
 };
 
 SWC_END_NAMESPACE();

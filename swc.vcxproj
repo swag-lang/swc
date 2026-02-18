@@ -216,6 +216,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>

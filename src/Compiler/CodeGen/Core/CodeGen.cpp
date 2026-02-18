@@ -19,17 +19,21 @@ CodeGen::CodeGen(Sema& sema) :
 Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 {
     visit_.start(ast(), root);
-    function_                         = &symbolFunc;
-    builder_                          = &symbolFunc.microInstrBuilder(ctx());
+    function_ = &symbolFunc;
+    builder_  = &symbolFunc.microInstrBuilder(ctx());
+    variablePayloads_.clear();
+
     MicroBuilderFlags builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&       attributes      = symbolFunc.attributes();
     const auto        backendOptimize = attributes.hasBackendOptimize ? attributes.backendOptimize : compiler().buildCfg().backendOptimize;
+
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     builder_->setBackendOptimizeLevel(backendOptimize);
     if (compiler().buildCfg().backendDebugInformations)
         builderFlags.add(MicroBuilderFlagsE::DebugInfo);
     builder_->setFlags(builderFlags);
     builder_->setCurrentDebugInfo({});
+
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
     const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();
@@ -150,6 +154,23 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+}
+
+void CodeGen::setVariablePayload(const SymbolVariable* sym, const CodeGenNodePayload& payload)
+{
+    SWC_ASSERT(sym);
+    variablePayloads_[sym] = payload;
+}
+
+const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable* sym) const
+{
+    if (!sym)
+        return nullptr;
+
+    const auto it = variablePayloads_.find(sym);
+    if (it == variablePayloads_.end())
+        return nullptr;
+    return &it->second;
 }
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)

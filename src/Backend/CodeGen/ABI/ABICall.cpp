@@ -243,6 +243,20 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     {
         const auto& arg = args[i];
 
+        if (arg.srcReg.isVirtual())
+        {
+            if (arg.isFloat)
+            {
+                if (arg.srcReg.isVirtualFloat())
+                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.floatArgRegs);
+            }
+            else
+            {
+                if (arg.srcReg.isVirtualInt())
+                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
+            }
+        }
+
         switch (arg.kind)
         {
             case PreparedArgKind::Direct:

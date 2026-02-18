@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/CodeGen/ABI/ABITypeNormalize.h"
+#include "Backend/CodeGen/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
@@ -52,6 +54,25 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
 namespace
 {
+    void assignParameterStackOffsets(Sema& sema, SymbolFunction& sym)
+    {
+        const CallConv&                        callConv      = CallConv::get(sym.callConvKind());
+        const uint32_t                         slotSize      = callConv.stackSlotSize();
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(sema.ctx(), callConv, sym.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        uint32_t                               stackOffset   = 0;
+
+        if (normalizedRet.isIndirect)
+            stackOffset += slotSize;
+
+        for (SymbolVariable* symParam : sym.parameters())
+        {
+            if (!symParam)
+                continue;
+            symParam->setOffset(stackOffset);
+            stackOffset += slotSize;
+        }
+    }
+
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
         if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
@@ -188,6 +209,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
         sym.setTyped(sema.ctx());
+        assignParameterStackOffsets(sema, sym);
 
         RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
         RESULT_VERIFY(SemaSpecOp::validateSymbol(sema, sym));

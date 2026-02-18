@@ -1885,8 +1885,6 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
         op == MicroOp::ShiftRight ||
         op == MicroOp::ShiftLeft)
     {
-        if (false)
-            store_.pushU8(0xF0);
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, 0xD3, opBits);
         if (op == MicroOp::ShiftLeft)
@@ -1901,8 +1899,6 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
 
     else
     {
-        if (false)
-            store_.pushU8(0xF0);
         emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, op, opBits);
         emitModRm(store_, memOffset, reg, memReg);
@@ -2455,8 +2451,6 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     {
         SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
 
-        if (false)
-            emitCpuOp(store_, 0xF0);
         emitRex(store_, opBits, reg2, reg1);
         emitCpuOp(store_, 0x0F);
         emitSpecCpuOp(store_, 0xB1, opBits);

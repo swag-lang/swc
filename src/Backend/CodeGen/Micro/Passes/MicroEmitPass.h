@@ -15,7 +15,7 @@ private:
     struct PendingLabelJump
     {
         MicroJump jump;
-        uint64_t  labelRef = INVALID_REF;
+        Ref       labelRef = INVALID_REF;
     };
 
     void encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst);

@@ -5,24 +5,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Ref resolveRef(uint64_t value)
-    {
-        if (value > std::numeric_limits<Ref>::max())
-            return INVALID_REF;
-        return static_cast<Ref>(value);
-    }
-
-    uint64_t resolveJumpDestination(const std::unordered_map<Ref, uint64_t>& labelOffsets, uint64_t labelRefRaw)
-    {
-        const Ref  labelRef = resolveRef(labelRefRaw);
-        const auto it       = labelOffsets.find(labelRef);
-        SWC_ASSERT(it != labelOffsets.end());
-        return it->second;
-    }
-}
-
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
     const auto found = relocationByInstructionRef_.find(instructionRef);
@@ -50,8 +32,34 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             break;
 
         case MicroInstrOpcode::Label:
-            labelOffsets_[resolveRef(ops[0].valueU64)] = encoder.currentOffset();
+            SWC_ASSERT(ops[0].valueU64 <= std::numeric_limits<Ref>::max());
+            labelOffsets_[static_cast<Ref>(ops[0].valueU64)] = encoder.currentOffset();
             break;
+        case MicroInstrOpcode::JumpCond:
+        {
+            MicroJump jump;
+            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
+            jump.valid = true;
+            SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<Ref>::max());
+            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = static_cast<Ref>(ops[2].valueU64)});
+            break;
+        }
+        case MicroInstrOpcode::JumpCondImm:
+        {
+            MicroJump  jump;
+            const auto opBits = ops[1].opBits == MicroOpBits::Zero ? MicroOpBits::B32 : ops[1].opBits;
+            encoder.encodeJump(jump, ops[0].cpuCond, opBits);
+            encoder.encodePatchJump(jump, ops[2].valueU64);
+            break;
+        }
+        case MicroInstrOpcode::LoadRegPtrImm:
+        {
+            const uint32_t codeStartOffset = encoder.size();
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
+            bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
+            break;
+        }
 
         case MicroInstrOpcode::Push:
             encoder.encodePush(ops[0].reg);
@@ -71,22 +79,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::JumpTable:
             encoder.encodeJumpTable(ops[0].reg, ops[1].reg, ops[2].valueI32, ops[3].valueU32, ops[4].valueU32);
             break;
-        case MicroInstrOpcode::JumpCond:
-        {
-            MicroJump jump;
-            encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
-            jump.valid = true;
-            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64});
-            break;
-        }
-        case MicroInstrOpcode::JumpCondImm:
-        {
-            MicroJump  jump;
-            const auto opBits = ops[1].opBits == MicroOpBits::Zero ? MicroOpBits::B32 : ops[1].opBits;
-            encoder.encodeJump(jump, ops[0].cpuCond, opBits);
-            encoder.encodePatchJump(jump, ops[2].valueU64);
-            break;
-        }
         case MicroInstrOpcode::JumpReg:
             encoder.encodeJumpReg(ops[0].reg);
             break;
@@ -96,14 +88,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::LoadRegImm:
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
             break;
-        case MicroInstrOpcode::LoadRegPtrImm:
-        {
-            const uint32_t codeStartOffset = encoder.size();
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
-            SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
-            bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
-            break;
-        }
         case MicroInstrOpcode::LoadRegMem:
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
@@ -218,8 +202,12 @@ void MicroEmitPass::run(MicroPassContext& context)
 
     for (const auto& pending : pendingLabelJumps_)
     {
-        const auto destination = resolveJumpDestination(labelOffsets_, pending.labelRef);
-        encoder.encodePatchJump(pending.jump, destination);
+        const auto it = labelOffsets_.find(pending.labelRef);
+        SWC_ASSERT(it != labelOffsets_.end());
+        if (it == labelOffsets_.end())
+            continue;
+
+        encoder.encodePatchJump(pending.jump, it->second);
     }
 }
 

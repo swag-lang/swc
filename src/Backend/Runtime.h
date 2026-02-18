@@ -345,18 +345,26 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
-    enum class BuildCfgBackendOptim;
+    enum class BuildCfgBackendOptim
+    {
+        O0,
+        O1,
+        O2,
+        O3,
+        Os,
+        Oz,
+    };
 
     struct BuildCfgBackend
     {
-        BuildCfgBackendOptim backendOptimize;
-        bool     fpMathFma;
-        bool     fpMathNoNaN;
-        bool     fpMathNoInf;
-        bool     fpMathNoSignedZero;
-        bool     fpMathUnsafe;
-        bool     fpMathApproxFunc;
-        uint32_t unrollMemLimit;
+        BuildCfgBackendOptim optimizeLevel;
+        bool                 fpMathFma;
+        bool                 fpMathNoNaN;
+        bool                 fpMathNoInf;
+        bool                 fpMathNoSignedZero;
+        bool                 fpMathUnsafe;
+        bool                 fpMathApproxFunc;
+        uint32_t             unrollMemLimit;
     };
 
     enum class BuildCfgBackendKind
@@ -379,16 +387,6 @@ namespace Runtime
         O1,
         O2,
         O3,
-    };
-
-    enum class BuildCfgBackendOptim
-    {
-        O0,
-        O1,
-        O2,
-        O3,
-        Os,
-        Oz,
     };
 
     enum class BuildCfgDocKind

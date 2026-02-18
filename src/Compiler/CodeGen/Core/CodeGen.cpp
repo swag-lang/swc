@@ -28,7 +28,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     const auto&       attributes      = symbolFunc.attributes();
     Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
     if (attributes.hasBackendOptimize)
-        backendBuildCfg.backendOptimize = attributes.backendOptimize;
+        backendBuildCfg.optimizeLevel = attributes.backendOptimize;
 
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     builder_->setBackendBuildCfg(backendBuildCfg);

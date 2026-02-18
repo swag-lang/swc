@@ -727,10 +727,22 @@ namespace Swag
         MaxOSX      // MacOS (**unsupported**)
     }
 
+    // These are the optimization levels for the backend.
+    enum BuildCfgBackendOptim
+    {
+        O0     // No optimization
+        O1     // Optimizations level 1
+        O2     // Optimizations level 2
+        O3     // Optimizations level 3
+        Os     // Optim for size level 1
+        Oz     // Optim for size level 2
+    }
+
     // Backend options
     struct BuildCfgBackend
     {
-        backendOptimize            = BuildCfgBackendOptim.O0       // Backend optimization level
+        optimizeLevel           = BuildCfgBackendOptim.O0
+
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'
         fpMathNoInf:            bool     // true in 'release'
@@ -765,17 +777,6 @@ namespace Swag
         O1     // Optimizations level 1
         O2     // Optimizations level 2
         O3     // Optimizations level 3
-    }
-
-    // These are the optimization levels for the backend.
-    enum BuildCfgBackendOptim
-    {
-        O0     // No optimization
-        O1     // Optimizations level 1
-        O2     // Optimizations level 2
-        O3     // Optimizations level 3
-        Os     // Optim for size level 1
-        Oz     // Optim for size level 2
     }
 
     enum BuildCfgDocKind

@@ -77,7 +77,7 @@ namespace
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
         const uint32_t         sourceLine = builder.printSourceLine();
-        const std::string_view optimize   = backendOptimizeLevelName(builder.backendBuildCfg().backendOptimize);
+        const std::string_view optimize   = backendOptimizeLevelName(builder.backendBuildCfg().optimizeLevel);
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[micro]");

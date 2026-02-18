@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/MachineCode.h"
+#include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MachineCode.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"
@@ -119,3 +119,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

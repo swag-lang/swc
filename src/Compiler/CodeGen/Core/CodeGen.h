@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/CodeGen/Micro/MicroReg.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 
@@ -101,3 +101,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

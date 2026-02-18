@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/CodeGen/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Support/Core/ByteSpan.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
@@ -30,3 +30,4 @@ public:
 };
 
 SWC_END_NAMESPACE();
+

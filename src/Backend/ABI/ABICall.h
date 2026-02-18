@@ -1,0 +1,78 @@
+#pragma once
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroBuilder.h"
+
+SWC_BEGIN_NAMESPACE();
+
+namespace ABICall
+{
+    uint32_t argumentIndexForFunctionParameter(const ABITypeNormalize::NormalizedType& normalizedRet, uint32_t parameterIndex);
+    uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);
+    uint64_t incomingArgStackOffset(const CallConv& conv, uint32_t argIndex);
+
+    // Compute total stack reservation needed before issuing a call instruction.
+    uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
+
+    struct Arg
+    {
+        uint64_t value   = 0;
+        bool     isFloat = false;
+        uint8_t  numBits = 0;
+    };
+
+    enum class PreparedArgKind : uint8_t
+    {
+        Direct          = 0,
+        InterfaceObject = 1,
+    };
+
+    struct PreparedArg
+    {
+        // Source register holds either a lowered value or an address, depending on isAddressed.
+        MicroReg        srcReg      = MicroReg::invalid();
+        PreparedArgKind kind        = PreparedArgKind::Direct;
+        bool            isFloat     = false;
+        bool            isAddressed = false;
+        uint8_t         numBits     = 0;
+    };
+
+    struct Return
+    {
+        // Optional out buffer used by call helpers to materialize direct returns.
+        void*   valuePtr   = nullptr;
+        bool    isVoid     = true;
+        bool    isFloat    = false;
+        bool    isIndirect = false;
+        uint8_t numBits    = 0;
+    };
+
+    struct PreparedCall
+    {
+        // prepareArgs may pre-adjust the stack when stack arguments are present.
+        uint32_t numPreparedArgs      = 0;
+        uint32_t stackAdjust          = 0;
+        bool     stackAlreadyAdjusted = false;
+    };
+
+    PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args);
+    PreparedCall prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args, const ABITypeNormalize::NormalizedType& ret);
+    void         materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind callConvKind, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
+    void         storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, const ABITypeNormalize::NormalizedType& ret);
+    void         storeValueToReturnBuffer(MicroBuilder& builder, CallConvKind callConvKind, MicroReg outputStorageReg, MicroReg valueReg, bool valueIsLValue, const ABITypeNormalize::NormalizedType& ret);
+    void         materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, CallConvKind callConvKind, const ABITypeNormalize::NormalizedType& ret);
+    void         callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);
+    void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall);
+    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);
+    void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall);
+}
+
+SWC_END_NAMESPACE();
+

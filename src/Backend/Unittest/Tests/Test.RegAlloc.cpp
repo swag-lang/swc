@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/CodeGen/ABI/CallConv.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPrologEpilogPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroRegisterAllocationPass.h"
+#include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
+#include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
 
@@ -503,3 +503,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

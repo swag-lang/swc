@@ -196,21 +196,21 @@
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp" />
         <ClCompile Include="src\Backend\JIT\JITMemory.cpp" />
-        <ClCompile Include="src\Backend\CodeGen\ABI\CallConv.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Encoder\Encoder.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\ABI\ABICall.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\ABI\ABITypeNormalize.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\MicroPrinter.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstrStorage.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\MicroBuilder.cpp" />
-        <ClCompile Include="src\Backend\CodeGen\Micro\MicroInstr.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\MachineCode.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroEmitPass.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPrologEpilogPass.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroRegisterAllocationPass.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Micro\Passes\MicroPass.cpp"/>
-        <ClCompile Include="src\Backend\CodeGen\Encoder\X64Encoder.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\ABICall.cpp"/>
+        <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroInstrStorage.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroLegalizePass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroEmitPass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPass.cpp"/>
+        <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp"/>
@@ -369,30 +369,30 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroStorage.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroStorage.h" />
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
-        <ClInclude Include="src\Backend\CodeGen\ABI\CallConv.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Encoder\EncoderTypes.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstr.Def.inc"/>
-        <ClInclude Include="src\Backend\CodeGen\ABI\ABICall.h"/>
-        <ClInclude Include="src\Backend\CodeGen\ABI\ABITypeNormalize.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroTypes.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroInstr.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroPrinter.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroBuilder.h" />
-        <ClInclude Include="src\Backend\CodeGen\Micro\MachineCode.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroLegalizePass.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroEmitPass.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPrologEpilogPass.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroRegisterAllocationPass.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\Passes\MicroPass.h"/>
+        <ClInclude Include="src\Backend\\ABI\CallConv.h"/>
+        <ClInclude Include="src\Backend\\Encoder\EncoderTypes.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroInstr.Def.inc"/>
+        <ClInclude Include="src\Backend\\ABI\ABICall.h"/>
+        <ClInclude Include="src\Backend\\ABI\ABITypeNormalize.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroTypes.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroInstr.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroPrinter.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroBuilder.h" />
+        <ClInclude Include="src\Backend\\Micro\MachineCode.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroLegalizePass.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroEmitPass.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroPass.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h" />
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h" />
-        <ClInclude Include="src\Backend\CodeGen\Encoder\Encoder.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Encoder\X64Encoder.h"/>
-        <ClInclude Include="src\Backend\CodeGen\Micro\MicroReg.h"/>
+        <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
+        <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroReg.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
@@ -532,6 +532,7 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
+
 
 
 

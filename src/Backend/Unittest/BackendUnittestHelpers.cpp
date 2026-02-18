@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
-#include "Backend/CodeGen/Micro/MicroInstr.h"
-#include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
-#include "Backend/CodeGen/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/Passes/MicroEmitPass.h"
+#include "Backend/Micro/Passes/MicroLegalizePass.h"
+#include "Backend/Micro/Passes/MicroPass.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -144,3 +144,4 @@ namespace Backend::Unittest
 #endif
 
 SWC_END_NAMESPACE();
+

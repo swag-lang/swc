@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/CodeGen/Micro/MicroReg.h"
+#include "Backend/Micro/MicroReg.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -11,3 +11,4 @@ namespace CodeGenHelpers
 }
 
 SWC_END_NAMESPACE();
+

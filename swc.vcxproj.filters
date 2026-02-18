@@ -159,7 +159,7 @@
     <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\CodeGen\Micro\MicroLowerer.cpp">
+    <ClCompile Include="src\Backend\\Micro\MicroLowerer.cpp">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp">
@@ -674,7 +674,7 @@
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\CodeGen\Micro\MicroLowerer.h">
+    <ClInclude Include="src\Backend\\Micro\MicroLowerer.h">
       <Filter>src\Backend\MachineCode\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h">
@@ -1083,6 +1083,7 @@
     </Content>
   </ItemGroup>
 </Project>
+
 
 
 

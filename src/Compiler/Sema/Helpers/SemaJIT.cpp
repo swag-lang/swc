@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Backend/CodeGen/ABI/ABITypeNormalize.h"
-#include "Backend/CodeGen/ABI/CallConv.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
@@ -126,3 +126,4 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 }
 
 SWC_END_NAMESPACE();
+

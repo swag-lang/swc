@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/CodeGen/Micro/MicroBuilder.h"
-#include "Backend/CodeGen/Micro/MicroReg.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -310,3 +310,4 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 }
 
 SWC_END_NAMESPACE();
+

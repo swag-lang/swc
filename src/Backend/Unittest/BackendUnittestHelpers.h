@@ -1,6 +1,6 @@
 #pragma once
-#include "Backend/CodeGen/Encoder/Encoder.h"
-#include "Backend/CodeGen/Micro/MicroBuilder.h"
+#include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,3 +24,4 @@ namespace Backend::Unittest
 #endif
 
 SWC_END_NAMESPACE();
+

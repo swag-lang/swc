@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/CodeGen/Encoder/X64Encoder.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Unittest/Unittest.h"
@@ -392,3 +392,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

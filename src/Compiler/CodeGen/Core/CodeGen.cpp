@@ -4,6 +4,7 @@
 #include "Backend/CodeGen/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
 #include "Wmf/SourceFile.h"
@@ -200,6 +201,18 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
     return *SWC_CHECK_NOT_NULL(nodePayload);
+}
+
+MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
+{
+    if (typeRef.isValid())
+    {
+        const TypeInfo& typeInfo = typeMgr().get(typeRef);
+        if (typeInfo.isFloat())
+            return nextVirtualFloatRegister();
+    }
+
+    return nextVirtualIntRegister();
 }
 
 void CodeGen::setVisitors()

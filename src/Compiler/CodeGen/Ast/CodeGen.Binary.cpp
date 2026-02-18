@@ -23,18 +23,10 @@ namespace
         return MicroOpBits::Zero;
     }
 
-    MicroReg allocateBinaryReg(CodeGen& codeGen, const TypeInfo& resultType)
-    {
-        if (resultType.isFloat())
-            return codeGen.nextVirtualFloatRegister();
-
-        return codeGen.nextVirtualIntRegister();
-    }
-
-    void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, const TypeInfo& resultType, MicroOpBits opBits)
+    void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef resultTypeRef, MicroOpBits opBits)
     {
         MicroBuilder& builder = codeGen.builder();
-        outReg                = allocateBinaryReg(codeGen, resultType);
+        outReg                = codeGen.nextVirtualRegisterForType(resultTypeRef);
 
         if (operandPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
         {
@@ -63,12 +55,12 @@ namespace
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
-        nodePayload.reg                 = allocateBinaryReg(codeGen, resultType);
+        nodePayload.reg                 = codeGen.nextVirtualRegisterForType(nodeView.typeRef);
         nodePayload.storageKind         = CodeGenNodePayload::StorageKind::Value;
 
         MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, resultType, opBits);
-        materializeBinaryOperand(rightReg, codeGen, *rightPayload, resultType, opBits);
+        materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, nodeView.typeRef, opBits);
+        materializeBinaryOperand(rightReg, codeGen, *rightPayload, nodeView.typeRef, opBits);
 
         MicroBuilder& builder = codeGen.builder();
         if (resultType.isFloat())

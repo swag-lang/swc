@@ -33,37 +33,6 @@ namespace
         return Runtime::TargetOs::Linux;
 #endif
     }
-
-    constexpr Runtime::TargetArch targetArch()
-    {
-#if defined(_M_X64) || defined(__x86_64__)
-        return Runtime::TargetArch::X86_64;
-#else
-        return Runtime::TargetArch::X86_64;
-#endif
-    }
-
-    constexpr std::string_view targetCpu()
-    {
-#if defined(_M_X64) || defined(__x86_64__)
-        return "x86_64";
-#elif defined(_M_IX86) || defined(__i386__)
-        return "x86";
-#else
-        return "unknown-cpu";
-#endif
-    }
-
-    constexpr std::string_view buildCfgName()
-    {
-#if defined(_DEBUG)
-        return "debug";
-#elif defined(SWC_DEV_MODE)
-        return "fast-debug";
-#else
-        return "release";
-#endif
-    }
 }
 
 Result AstCompilerExpression::semaPostNode(Sema& sema)
@@ -292,7 +261,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TargetArch, typeRef, codeRef()));
-            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(targetArch()));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetArch));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
             sema.setConstant(sema.curNodeRef(), enumValueRef);
@@ -301,14 +270,14 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
 
         case TokenId::CompilerCpu:
         {
-            const ConstantValue value = ConstantValue::makeString(ctx, targetCpu());
+            const ConstantValue value = ConstantValue::makeString(ctx, sema.ctx().cmdLine().targetCpu);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             break;
         }
 
         case TokenId::CompilerBuildCfg:
         {
-            const ConstantValue value = ConstantValue::makeString(ctx, buildCfgName());
+            const ConstantValue value = ConstantValue::makeString(ctx, sema.ctx().cmdLine().buildCfg);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             break;
         }

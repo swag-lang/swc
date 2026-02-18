@@ -25,6 +25,18 @@ struct CommandLine
     CommandKind command = CommandKind::Syntax;
 
     Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
+    Runtime::TargetArch targetArch = Runtime::TargetArch::X86_64;
+
+#if defined(_M_X64) || defined(__x86_64__)
+    Utf8 targetCpu = "x86_64";
+#elif defined(_M_IX86) || defined(__i386__)
+    Utf8 targetCpu = "x86";
+#else
+    Utf8 targetCpu = "unknown-cpu";
+#endif
+
+    Utf8 buildCfg       = "fast-debug";
+    Utf8 targetArchName = "x86_64";
 
     bool logColor                 = true;
     bool logAscii                 = false;

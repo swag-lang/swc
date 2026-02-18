@@ -443,6 +443,11 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (!cmdLine_->verboseVerifyFilter.empty())
         cmdLine_->verboseVerify = true;
 
+    if (cmdLine_->targetArchName == "x86_64")
+        cmdLine_->targetArch = Runtime::TargetArch::X86_64;
+    else
+        SWC_UNREACHABLE();
+
 #if SWC_DEV_MODE
     if (cmdLine_->randSeed)
         cmdLine_->randomize = true;
@@ -486,6 +491,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
+    addArg("all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
+    addArg("all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch.");
+    addArg("all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
     addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
     addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
     addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");

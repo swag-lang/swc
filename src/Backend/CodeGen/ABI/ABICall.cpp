@@ -85,7 +85,7 @@ namespace
 
     PreparedCallStackAdjust computePreparedCallStackAdjust(CallConvKind callConvKind, const ABICall::PreparedCall& preparedCall)
     {
-        // Avoid double-adjusting the stack when prepareArgs already reserved call space.
+        // This will avoid to double-adjust the stack when prepareArgs already reserved call space.
         PreparedCallStackAdjust result;
         if (preparedCall.stackAlreadyAdjusted)
         {

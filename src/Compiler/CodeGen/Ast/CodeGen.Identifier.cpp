@@ -41,33 +41,16 @@ namespace
         const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
         const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex       = parameterSlotIndex(codeGen, symbolFunc, symVar);
-        const uint32_t                         numRegArgs      = callConv.numArgRegisterSlots();
         const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
         MicroBuilder&                          builder         = codeGen.builder();
 
-        if (slotIndex < numRegArgs)
-        {
-            if (normalizedParam.isFloat)
-            {
-                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.emitLoadRegReg(outPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
-            }
-            else
-            {
-                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.emitLoadRegReg(outPayload.reg, callConv.intArgRegs[slotIndex], opBits);
-            }
-        }
-        else
-        {
-            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
-            builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
-        }
+        const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
+        builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
 
         if (normalizedParam.isIndirect)
-            codeGen.setPayloadAddress(outPayload);
+            CodeGen::setPayloadAddress(outPayload);
         else
-            codeGen.setPayloadValue(outPayload);
+            CodeGen::setPayloadValue(outPayload);
     }
 
     void bindSingleVariableFromInitializer(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
@@ -189,4 +172,3 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
-

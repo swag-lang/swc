@@ -8,11 +8,53 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    MicroOpBits parameterLoadBits(const ABITypeNormalize::NormalizedType& normalizedParam)
+    {
+        if (normalizedParam.isFloat)
+            return microOpBitsFromBitWidth(normalizedParam.numBits);
+        return MicroOpBits::B64;
+    }
+
+    void spillRegisterParametersToIncomingSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc, const ABITypeNormalize::NormalizedType& normalizedRet)
+    {
+        const CallConv&                     callConv   = CallConv::get(symbolFunc.callConvKind());
+        const uint32_t                      numRegArgs = callConv.numArgRegisterSlots();
+        const std::vector<SymbolVariable*>& params     = symbolFunc.parameters();
+        MicroBuilder&                       builder    = codeGen.builder();
+
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            const SymbolVariable* const symVar = params[i];
+            if (!symVar)
+                continue;
+
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
+            const uint32_t                         slotIndex       = ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(i));
+            const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
+            if (slotIndex >= numRegArgs)
+                continue;
+
+            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
+
+            if (normalizedParam.isFloat)
+            {
+                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
+                builder.emitLoadMemReg(callConv.stackPointer, stackOffset, callConv.floatArgRegs[slotIndex], opBits);
+            }
+            else
+            {
+                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
+                builder.emitLoadMemReg(callConv.stackPointer, stackOffset, callConv.intArgRegs[slotIndex], opBits);
+            }
+        }
+    }
+
     bool shouldDeferCallResultMaterializationToCompilerRun(CodeGen& codeGen, const ABITypeNormalize::NormalizedType& normalizedRet)
     {
         // Compiler-run wrappers consume return registers directly, so avoid extra moves.
@@ -131,6 +173,8 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    spillRegisterParametersToIncomingSlots(codeGen, symbolFunc, normalizedRet);
+
     if (normalizedRet.isIndirect)
     {
         // Cache hidden return pointer in the function payload for return statements.
@@ -201,11 +245,10 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     }
 
     if (normalizedRet.isIndirect)
-        codeGen.setPayloadAddress(nodePayload);
+        CodeGen::setPayloadAddress(nodePayload);
     else
-        codeGen.setPayloadValue(nodePayload);
+        CodeGen::setPayloadValue(nodePayload);
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
-

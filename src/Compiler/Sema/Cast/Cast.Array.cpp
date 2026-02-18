@@ -44,11 +44,9 @@ namespace
         return res;
     }
 
-    Result failArrayConst(const CastArrayArgs& args, std::string_view reason)
+    Result failArrayConst(const CastArrayArgs& args, DiagnosticId diagnosticId)
     {
-        const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_const, args.srcTypeRef, args.dstTypeRef);
-        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, reason);
-        return res;
+        return args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
     }
 
     Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType)
@@ -113,11 +111,11 @@ namespace
             return Result::Continue;
 
         if (!args.castRequest->isConstantFolding())
-            return failArrayConst(args, "array element cast requires constant folding");
+            return failArrayConst(args, DiagnosticId::sema_err_array_cast_requires_const_folding);
 
         const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
         if (!cst.isAggregateArray())
-            return failArrayConst(args, "expected an array constant");
+            return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
 
         const auto&              values = cst.getAggregateArray();
         SmallVector<ConstantRef> newValues;
@@ -158,7 +156,7 @@ namespace
 
         const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
         if (!cst.isAggregateArray())
-            return failArrayConst(args, "expected an array constant");
+            return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
 
         const auto&              values = cst.getAggregateArray();
         SmallVector<ConstantRef> newValues;

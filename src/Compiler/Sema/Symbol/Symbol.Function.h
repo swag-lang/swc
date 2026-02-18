@@ -27,7 +27,7 @@ using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 class SymbolFunction : public SymbolMapT<SymbolKind::Function, SymbolFunctionFlagsE>
 {
 public:
-    static constexpr SymbolKind K = SymbolKind::Function;
+    static constexpr auto K = SymbolKind::Function;
 
     explicit SymbolFunction(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)
@@ -97,7 +97,7 @@ private:
     mutable std::mutex           callDepsMutex_;
     std::vector<SymbolFunction*> callDependencies_;
     std::mutex                   emitMutex_;
-    JITMemory                jitExecMemory_;
+    JITMemory                    jitExecMemory_;
     std::atomic<void*>           jitEntryAddress_     = nullptr;
     std::atomic<bool>            codeGenJobScheduled_ = false;
 };

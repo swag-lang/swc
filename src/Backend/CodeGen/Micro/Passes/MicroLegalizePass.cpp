@@ -178,7 +178,7 @@ void MicroLegalizePass::run(MicroPassContext& context)
 
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
-        auto&       inst = *it;
+        auto&                    inst = *it;
         MicroInstrOperand* const ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;

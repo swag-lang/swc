@@ -48,7 +48,7 @@ namespace SemaHelpers
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&        ctx         = sema.ctx();
         const Utf8          privateName = Utf8("__") + Utf8(name);
         const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
         const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();

@@ -105,8 +105,8 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
         SWC_UNUSED(expr);
-        TaskContext& ctx = sema.ctx();
-        ApsInt value = nodeView.cst->getInt();
+        TaskContext& ctx   = sema.ctx();
+        ApsInt       value = nodeView.cst->getInt();
         value.invertAllBits();
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
         return Result::Continue;

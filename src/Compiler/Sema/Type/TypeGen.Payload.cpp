@@ -183,10 +183,10 @@ namespace TypeGenInternal
             Runtime::TypeValue& tv = fieldsPtr[i];
 
             // Name
-            const auto& id = ctx.idMgr().get(symField->idRef());
-            const Utf8  fName{id.name};
+            const auto&    id = ctx.idMgr().get(symField->idRef());
+            const Utf8     fName{id.name};
             const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-            tv.name.length         = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+            tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
 
             // Offset in bytes within the struct
             tv.offset = symField->offset();
@@ -255,7 +255,7 @@ namespace TypeGenInternal
 
     void wireRelocations(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache::Entry& entry, LayoutKind kind)
     {
-        const TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx     = sema.ctx();
         const TypeManager& typeMgr = sema.typeMgr();
 
         const auto requireDone = [&cache](TypeRef depKey) -> const TypeGen::TypeGenCache::Entry& {
@@ -320,8 +320,8 @@ namespace TypeGenInternal
                 SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
                 for (uint32_t i = 0; i < entry.structFieldsCount; ++i)
                 {
-                    const TypeRef depKey     = entry.structFieldTypes[i];
-                    const auto&   dep        = requireDone(depKey);
+                    const TypeRef  depKey     = entry.structFieldTypes[i];
+                    const auto&    dep        = requireDone(depKey);
                     const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }

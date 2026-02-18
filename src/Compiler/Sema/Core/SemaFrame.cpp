@@ -12,9 +12,9 @@ namespace
         SymbolMap* m = root;
         for (const IdentifierRef idRef : nsPath)
         {
-            TaskContext& ctx = sema.ctx();
+            TaskContext&     ctx = sema.ctx();
             SymbolNamespace* ns  = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
-            Symbol* res = m->addSingleSymbol(ctx, ns);
+            Symbol*          res = m->addSingleSymbol(ctx, ns);
             SWC_ASSERT(res->isNamespace());
             m = res->asSymMap();
         }

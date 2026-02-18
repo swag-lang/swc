@@ -10,8 +10,8 @@ RaceCondition::RaceCondition(Instance* inst, Mode mode) :
     inst_(inst),
     mode_(mode)
 {
-    std::scoped_lock lk(inst_->mu);
-    const std::thread::id       tid = std::this_thread::get_id();
+    std::scoped_lock      lk(inst_->mu);
+    const std::thread::id tid = std::this_thread::get_id();
 
     if (mode_ == Mode::Write)
     {
@@ -43,8 +43,8 @@ RaceCondition::~RaceCondition()
     if (!inst_)
         return;
 
-    std::scoped_lock lk(inst_->mu);
-    const std::thread::id       tid = std::this_thread::get_id();
+    std::scoped_lock      lk(inst_->mu);
+    const std::thread::id tid = std::this_thread::get_id();
 
     if (mode_ == Mode::Write)
     {

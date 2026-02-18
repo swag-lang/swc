@@ -58,7 +58,7 @@ void TypeManager::setup(TaskContext& ctx)
         const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
         if (kind == RuntimeTypeKind::Count)
             continue;
-        const IdentifierManager::PredefinedName name = static_cast<IdentifierManager::PredefinedName>(i);
+        const auto name                    = static_cast<IdentifierManager::PredefinedName>(i);
         mapRtKind_[idMgr.predefined(name)] = kind;
     }
 
@@ -266,7 +266,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
         return false;
 
     const RuntimeTypeKind kind  = it->second;
-    const uint32_t uKind = static_cast<uint32_t>(kind);
+    const uint32_t        uKind = static_cast<uint32_t>(kind);
     return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
            uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
 }
@@ -274,7 +274,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
     std::unique_lock lk(mutexRt_);
-    const auto it = mapRtKind_.find(idRef);
+    const auto       it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
     runtimeTypes_[static_cast<uint32_t>(it->second)] = typeRef;

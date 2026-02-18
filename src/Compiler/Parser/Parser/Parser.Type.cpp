@@ -6,8 +6,8 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseIdentifierType()
 {
-    const TokenRef tokRef = ref();
-    const AstNodeRef idRef = parseQualifiedIdentifier();
+    const TokenRef   tokRef = ref();
+    const AstNodeRef idRef  = parseQualifiedIdentifier();
 
     if (!hasContextFlag(ParserContextFlagsE::InVarDeclType) && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         return parseInitializerList(idRef);
@@ -317,7 +317,7 @@ AstNodeRef Parser::parseLambdaParam()
 
 AstNodeRef Parser::parseLambdaType()
 {
-    EnumFlags  flags    = AstFunctionFlagsE::Zero;
+    EnumFlags      flags    = AstFunctionFlagsE::Zero;
     const TokenRef tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())

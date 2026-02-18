@@ -44,7 +44,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 {
     const TokenRef tokRef = consume();
 
-    const TokenRef              openRef = ref();
+    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
@@ -96,7 +96,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
 
 AstNodeRef Parser::parseIntrinsicCallConstantExpr()
 {
-    const TokenRef tokRef       = consume();
+    const TokenRef tokRef   = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
@@ -107,13 +107,13 @@ AstNodeRef Parser::parseIntrinsicCallConstantExpr()
 
 AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
 {
-    const TokenRef tokRef       = consume();
+    const TokenRef tokRef   = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
     nodePtr->nodeExprRef    = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
 
-    const TokenRef              openRef = ref();
+    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 

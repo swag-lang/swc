@@ -26,7 +26,7 @@ AstNodeRef Parser::parseCompilerTypeOf()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(consume());
 
-    const TokenRef              openRef = ref();
+    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
@@ -74,7 +74,7 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     const TokenId tokenId   = tok().id;
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCall>(consume());
 
-    const TokenRef              openRef = ref();
+    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
@@ -121,7 +121,7 @@ AstNodeRef Parser::parseCompilerCallOne()
     const TokenId tokenId   = tok().id;
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerCallOne>(consume());
 
-    const TokenRef              openRef = ref();
+    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
@@ -185,7 +185,7 @@ AstNodeRef Parser::parseCompilerFunc()
 AstNodeRef Parser::parseCompilerMessageFunc()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerMessageFunc>(consume());
-    const TokenRef openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeParamRef = parseExpression();
@@ -291,7 +291,7 @@ AstNodeRef Parser::parseCompilerDependencies()
 
 AstNodeRef Parser::parseCompilerGlobal()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
+    auto [nodeRef, nodePtr]       = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
     const std::string_view tokStr = tok().string(ast_->srcView());
 
     nodePtr->spanNameRef.setInvalid();
@@ -369,7 +369,7 @@ AstNodeRef Parser::parseCompilerGlobal()
 AstNodeRef Parser::parseCompilerImport()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerImport>(consume());
-    const TokenRef openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokModuleNameRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
@@ -427,7 +427,7 @@ AstNodeRef Parser::parseCompilerMacro()
 AstNodeRef Parser::parseCompilerInject()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerInject>(consume());
-    const TokenRef openRef      = ref();
+    const TokenRef openRef  = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodeExprRef = parseExpression();
@@ -479,7 +479,7 @@ AstNodeRef Parser::parseCompilerInject()
 AstNodeRef Parser::parseCompilerUp()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AncestorIdentifier>(consume());
-    const TokenRef openRef      = ref();
+    const TokenRef openRef  = ref();
     if (consumeIf(TokenId::SymLeftParen).isValid())
     {
         nodePtr->nodeValueRef = parseExpression();

@@ -130,8 +130,8 @@ namespace
         Logger::print(ctx, "\n");
         printPassHeader(ctx, builder, stageName);
 
-        const auto  printMode = passPrintMode(passKind, before);
-        const Encoder* encoder = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
+        const auto     printMode = passPrintMode(passKind, before);
+        const Encoder* encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
     }
 }

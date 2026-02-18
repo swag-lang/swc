@@ -124,7 +124,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext& ctx          = sema.ctx();
     SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
 
     SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();

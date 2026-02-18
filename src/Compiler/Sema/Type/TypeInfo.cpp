@@ -186,7 +186,7 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
 uint32_t TypeInfo::hash() const
 {
     uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
-    h      = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
+    h          = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
 
     switch (kind_)
     {

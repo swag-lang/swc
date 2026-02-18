@@ -20,9 +20,9 @@ AstNodeRef Parser::parseClosureArg()
 
 AstNodeRef Parser::parseLambdaParam(bool isType)
 {
-    AstNodeRef nodeType;
-    TokenRef   tokName  = TokenRef::invalid();
-    EnumFlags  flags    = AstLambdaParamFlagsE::Zero;
+    AstNodeRef     nodeType;
+    TokenRef       tokName  = TokenRef::invalid();
+    EnumFlags      flags    = AstLambdaParamFlagsE::Zero;
     const TokenRef tokStart = ref();
 
     if (is(TokenId::CompilerType))
@@ -79,7 +79,7 @@ AstNodeRef Parser::parseLambdaArgumentExpr()
 
 AstNodeRef Parser::parseLambdaExpression()
 {
-    EnumFlags  flags    = AstFunctionFlagsE::Zero;
+    EnumFlags      flags    = AstFunctionFlagsE::Zero;
     const TokenRef tokStart = ref();
 
     if (consumeIf(TokenId::KwdMtd).isValid())
@@ -192,7 +192,7 @@ AstNodeRef Parser::parseFunctionDecl()
     while (is(TokenId::KwdWhere) || is(TokenId::KwdVerify))
     {
         const Token* loopStartToken = curToken_;
-        AstNodeRef whereRef       = parseConstraint();
+        AstNodeRef   whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
         if (loopStartToken == curToken_)
@@ -229,9 +229,9 @@ AstNodeRef Parser::parseFunctionParam()
 {
     if (is(TokenId::SymAttrStart))
     {
-        const AstNodeRef nodeRef  = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
-        const auto nodePtr   = ast_->node<AstNodeId::AttributeList>(nodeRef);
-        nodePtr->nodeBodyRef = parseFunctionParam();
+        const AstNodeRef nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
+        const auto       nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
+        nodePtr->nodeBodyRef     = parseFunctionParam();
         return nodeRef;
     }
 
@@ -288,7 +288,7 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
 
     if (nextIs(TokenId::SymPipe))
     {
-        const TokenRef openRef            = ref();
+        const TokenRef openRef        = ref();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AliasCallExpr>(consume());
         nodePtr->nodeExprRef          = nodeExpr;
         nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);

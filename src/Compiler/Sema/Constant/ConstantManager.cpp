@@ -110,9 +110,9 @@ namespace
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
-        const auto     res        = shard.dataSegment.addString(value.getString());
-        const ConstantValue strValue = ConstantValue::makeString(ctx, res.first);
-        const uint32_t localIndex = shard.dataSegment.add(strValue);
+        const auto          res        = shard.dataSegment.addString(value.getString());
+        const ConstantValue strValue   = ConstantValue::makeString(ctx, res.first);
+        const uint32_t      localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
@@ -205,7 +205,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext&   ctx        = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
@@ -220,9 +220,9 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     // 'typeinfo(T)' produces a value of the built-in 'TypeInfo' type.
     // That type is a pointer to the runtime typeinfo payload stored in the 'DataSegment'.
     SWC_ASSERT(infoResult.span.data());
-    const uint64_t ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
-    const ConstantValue value  = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
-    ConstantValue       stored = value;
+    const uint64_t      ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
+    const ConstantValue value    = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
+    ConstantValue       stored   = value;
     stored.setTypeRef(sema.typeMgr().typeTypeInfo());
     outRef = addConstant(sema.ctx(), stored);
     return Result::Continue;
@@ -240,8 +240,8 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
 
     if (cst.isValuePointer())
     {
-        const void* const ptr = reinterpret_cast<const void*>(cst.getValuePointer());
-        const TypeRef res     = sema.typeGen().getBackTypeRef(ptr);
+        const auto    ptr = reinterpret_cast<const void*>(cst.getValuePointer());
+        const TypeRef res = sema.typeGen().getBackTypeRef(ptr);
         if (res.isValid())
             return res;
     }

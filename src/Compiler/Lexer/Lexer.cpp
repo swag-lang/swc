@@ -686,7 +686,7 @@ void Lexer::lexIdentifier()
     while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
-    const std::string_view name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
+    const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
     if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
         token_.id = TokenId::SharpIdentifier;
     else if (isRawMode())
@@ -719,7 +719,7 @@ void Lexer::lexIdentifier()
             while (langSpec_->isIdentifierPart(tmp[0]))
                 tmp++;
 
-            const std::string_view tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
+            const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
             if (tokStr == Token::toName(TokenId::KwdSkip))
                 srcView_->setMustSkip();
         }
@@ -1132,7 +1132,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
         return;
     }
 
-    const char8_t* data = reinterpret_cast<const char8_t*>(content.data());
+    auto data = reinterpret_cast<const char8_t*>(content.data());
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
@@ -1213,10 +1213,10 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(startOffset);
 
-    const char8_t* base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
-    buffer_         = base + startOffset;
-    startBuffer_    = base;
-    endBuffer_      = startBuffer_ + srcView.stringView().size();
+    auto base    = reinterpret_cast<const char8_t*>(srcView.stringView().data());
+    buffer_      = base + startOffset;
+    startBuffer_ = base;
+    endBuffer_   = startBuffer_ + srcView.stringView().size();
 
     // Reserve space based on source size
     srcView_->tokens().reserve(srcView.stringView().size() / 10);

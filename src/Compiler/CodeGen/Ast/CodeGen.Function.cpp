@@ -78,9 +78,9 @@ namespace
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
-        const CallConvKind callConvKind  = symbolFunc.callConvKind();
-        const CallConv&    callConv      = CallConv::get(callConvKind);
-        const TypeRef      returnTypeRef = symbolFunc.returnTypeRef();
+        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
 
         if (normalizedRet.isVoid)
@@ -121,9 +121,9 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
 
-    const SymbolFunction& symbolFunc    = codeGen.function();
-    const CallConvKind    callConvKind  = symbolFunc.callConvKind();
-    const CallConv&       callConv      = CallConv::get(callConvKind);
+    const SymbolFunction&                  symbolFunc    = codeGen.function();
+    const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+    const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
     {
@@ -151,12 +151,12 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    MicroBuilder&      builder        = codeGen.builder();
-    const SemaNodeView calleeView     = codeGen.nodeView(nodeExprRef);
-    SymbolFunction&    calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
-    const CallConvKind callConvKind   = calledFunction.callConvKind();
-    const CallConv&    callConv       = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
+    MicroBuilder&                          builder        = codeGen.builder();
+    const SemaNodeView                     calleeView     = codeGen.nodeView(nodeExprRef);
+    SymbolFunction&                        calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
+    const CallConvKind                     callConvKind   = calledFunction.callConvKind();
+    const CallConv&                        callConv       = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;

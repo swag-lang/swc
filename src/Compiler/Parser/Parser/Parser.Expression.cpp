@@ -251,8 +251,8 @@ AstNodeRef Parser::parseBinaryExpr()
 
 AstNodeRef Parser::parseCast()
 {
-    const TokenRef tknOp         = consume();
-    const TokenRef openRef       = ref();
+    const TokenRef         tknOp         = consume();
+    const TokenRef         openRef       = ref();
     const AstModifierFlags modifierFlags = parseModifiers();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
@@ -282,7 +282,7 @@ AstNodeRef Parser::parseExpression()
 
     if (is(TokenId::KwdOrElse))
     {
-        const TokenRef tokOp          = consume();
+        const TokenRef   tokOp        = consume();
         const AstNodeRef nodeExpr2    = parseExpression();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullCoalescingExpr>(tokOp);
         nodePtr->nodeLeftRef          = nodeExpr1;
@@ -292,7 +292,7 @@ AstNodeRef Parser::parseExpression()
 
     if (is(TokenId::SymQuestion))
     {
-        const TokenRef tokOp     = consume();
+        const TokenRef   tokOp     = consume();
         const AstNodeRef nodeExpr2 = parseExpression();
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
         const AstNodeRef nodeExpr3 = parseExpression();
@@ -449,8 +449,8 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
         if (precedence < minPrecedence)
             break;
 
-        const TokenRef tokOp         = consume();
-        const int  nextMinPrecedence = precedence + 1;
+        const TokenRef tokOp             = consume();
+        const int      nextMinPrecedence = precedence + 1;
 
         AstNodeRef right = parseLogicalExpr(nextMinPrecedence);
         if (right.isInvalid())

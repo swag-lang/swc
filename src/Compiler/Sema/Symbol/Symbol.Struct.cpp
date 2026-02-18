@@ -125,8 +125,8 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
     if (implementsInterface(itf))
         return true;
 
-    const TaskContext& ctx = sema.ctx();
-    const auto& typeMgr = sema.typeMgr();
+    const TaskContext& ctx     = sema.ctx();
+    const auto&        typeMgr = sema.typeMgr();
 
     for (const Symbol* field : fields_)
     {

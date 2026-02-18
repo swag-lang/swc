@@ -457,7 +457,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&                        shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const CodeGenPayloadStorage* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -470,7 +470,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&                          shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const ResolvedCallArgsStorage* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             if (storage->argsSpan.isInvalid())
@@ -568,7 +568,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&                        shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const CodeGenPayloadStorage* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -581,7 +581,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto&       shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            auto&                          shard   = const_cast<Shard&>(shards_[info.shardIdx]);
             const ResolvedCallArgsStorage* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {

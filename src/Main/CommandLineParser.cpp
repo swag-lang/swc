@@ -10,10 +10,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-constexpr const char* LONG_PREFIX         = "--";
-constexpr const char* SHORT_PREFIX        = "-";
-constexpr const char* LONG_NO_PREFIX      = "--no-";
-constexpr const char* SHORT_NO_PREFIX     = "-no-";
+constexpr auto   LONG_PREFIX         = "--";
+constexpr auto   SHORT_PREFIX        = "-";
+constexpr auto   LONG_NO_PREFIX      = "--no-";
+constexpr auto   SHORT_NO_PREFIX     = "-no-";
 constexpr size_t LONG_PREFIX_LEN     = 2;
 constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;

@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange)
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext&  ctx     = sema.ctx();
     const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;
@@ -28,7 +28,7 @@ ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCode
     rtLoc.lineEnd   = codeRange.line;
     rtLoc.colEnd    = codeRange.column + codeRange.len;
 
-    const ByteSpan bytes  = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
+    const auto          bytes  = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
     const ConstantValue cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
     return sema.cstMgr().addConstant(ctx, cstVal);
 }

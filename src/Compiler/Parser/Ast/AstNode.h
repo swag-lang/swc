@@ -225,8 +225,8 @@ template<AstNodeId I, typename E = void>
 struct AstNodeT : AstNode
 {
     static constexpr AstNodeId ID = I;
-    using FlagsE             = E;
-    using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+    using FlagsE                  = E;
+    using FlagsType               = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
     AstNodeT() :
         AstNode(I, SourceCodeRef::invalid())

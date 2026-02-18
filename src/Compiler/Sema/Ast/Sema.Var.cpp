@@ -486,7 +486,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const auto symbols = sema.getSymbolList(sema.curNodeRef());
+    const auto                symbols = sema.getSymbolList(sema.curNodeRef());
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }

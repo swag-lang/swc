@@ -55,8 +55,8 @@ namespace
 
     const SymbolStruct* usingTargetStruct(Sema& sema, const SymbolVariable& symVar)
     {
-        const TaskContext& ctx = sema.ctx();
-        const auto& typeMgr = sema.typeMgr();
+        const TaskContext& ctx     = sema.ctx();
+        const auto&        typeMgr = sema.typeMgr();
 
         // Resolve aliases so that `using v: AliasToStruct` works.
         const TypeRef   ultimateTypeRef = typeMgr.get(symVar.typeRef()).unwrap(ctx, symVar.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
@@ -205,8 +205,8 @@ namespace
         const auto count = lookUpCxt.symMaps.size();
         for (size_t i = 0; i < count; ++i)
         {
-            const SymbolMap* symMap = lookUpCxt.symMaps[i];
-            const auto& priority = lookUpCxt.symMapPriorities[i];
+            const SymbolMap* symMap   = lookUpCxt.symMaps[i];
+            const auto&      priority = lookUpCxt.symMapPriorities[i];
 
             // Tell the context: "we're now scanning this layer with this priority".
             lookUpCxt.beginSymMapLookup(priority);

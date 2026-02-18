@@ -12,7 +12,7 @@ class SymbolEnumValue : public SymbolT<SymbolKind::EnumValue>
     ConstantRef cstRef_ = ConstantRef::invalid();
 
 public:
-    static constexpr SymbolKind K = SymbolKind::EnumValue;
+    static constexpr auto K = SymbolKind::EnumValue;
 
     explicit SymbolEnumValue(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolT(decl, tokRef, idRef, flags)
@@ -33,7 +33,7 @@ using SymbolEnumFlags = EnumFlags<SymbolEnumFlagsE>;
 class SymbolEnum : public SymbolMapT<SymbolKind::Enum, SymbolEnumFlagsE>
 {
 public:
-    static constexpr SymbolKind K = SymbolKind::Enum;
+    static constexpr auto K = SymbolKind::Enum;
 
     explicit SymbolEnum(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)

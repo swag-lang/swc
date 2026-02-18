@@ -46,8 +46,8 @@ namespace
         if (decl->nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& bodyNode = sema.node(decl->nodeBodyRef);
-        const AstEmbeddedBlock* block = bodyNode.safeCast<AstEmbeddedBlock>();
+        const AstNode&          bodyNode = sema.node(decl->nodeBodyRef);
+        const AstEmbeddedBlock* block    = bodyNode.safeCast<AstEmbeddedBlock>();
         if (!block)
             return AstNodeRef::invalid();
 
@@ -87,7 +87,7 @@ namespace
                 continue;
 
             const AstNamedArgument* namedArg = argNode.cast<AstNamedArgument>();
-            const IdentifierRef idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg->codeRef());
+            const IdentifierRef     idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg->codeRef());
 
             size_t paramIndex = params.size();
             for (size_t i = 0; i < params.size(); i++)

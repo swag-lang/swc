@@ -5,8 +5,8 @@ SWC_BEGIN_NAMESPACE();
 
 AstNodeRef Parser::parseGenericParam()
 {
-    bool        isConstant  = false;
-    bool        isType      = false;
+    bool         isConstant  = false;
+    bool         isType      = false;
     const Token& tknConstVar = tok();
 
     if (consumeIf(TokenId::KwdConst).isValid())

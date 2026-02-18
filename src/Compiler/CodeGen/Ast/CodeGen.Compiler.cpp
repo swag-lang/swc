@@ -40,19 +40,19 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const auto&    callConv     = CallConv::host();
-    constexpr CallConvKind callConvKind = CallConvKind::Host;
+    constexpr auto callConvKind = CallConvKind::Host;
     MicroBuilder&  builder      = codeGen.builder();
     const auto     exprView     = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
 
     const CodeGenNodePayload* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
-    const MicroReg payloadReg       = payload->reg;
-    const bool     payloadLValue    = payload->storageKind == CodeGenNodePayload::StorageKind::Address;
-    const CodeGenNodePayload* runExprPayload = codeGen.payload(codeGen.curNodeRef());
-    const MicroReg outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
+    const MicroReg            payloadReg       = payload->reg;
+    const bool                payloadLValue    = payload->storageKind == CodeGenNodePayload::StorageKind::Address;
+    const CodeGenNodePayload* runExprPayload   = codeGen.payload(codeGen.curNodeRef());
+    const MicroReg            outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
     SWC_ASSERT(outputStorageReg.isValid());
-    const AstNode& exprNode          = codeGen.node(nodeExprRef);
+    const AstNode& exprNode = codeGen.node(nodeExprRef);
 
     const auto normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 

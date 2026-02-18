@@ -46,7 +46,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
 {
     SWC_ASSERT(castRequest.kind == CastKind::Explicit);
 
-    TaskContext& ctx = sema.ctx();
+    TaskContext&       ctx     = sema.ctx();
     const TypeManager& typeMgr = ctx.typeMgr();
     const TypeInfo*    srcType = &typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
@@ -557,7 +557,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
 
 Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext&    ctx     = sema.ctx();
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
 

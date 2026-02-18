@@ -20,7 +20,7 @@ using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 class SymbolStruct : public SymbolMapT<SymbolKind::Struct, SymbolStructFlagsE>
 {
 public:
-    static constexpr SymbolKind K = SymbolKind::Struct;
+    static constexpr auto K = SymbolKind::Struct;
 
     explicit SymbolStruct(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)

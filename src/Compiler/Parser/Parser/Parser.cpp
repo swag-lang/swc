@@ -62,7 +62,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 
 Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
+    Diagnostic     diag   = Diagnostic::get(id, ast_->srcView().fileRef());
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);
@@ -101,9 +101,9 @@ bool Parser::skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags
 
 bool Parser::skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
 {
-    int        parenDepth   = 0;
-    int        bracketDepth = 0;
-    int        curlyDepth   = 0;
+    int            parenDepth   = 0;
+    int            bracketDepth = 0;
+    int            curlyDepth   = 0;
     const TokenRef refStart     = ref();
 
     while (!atEnd())

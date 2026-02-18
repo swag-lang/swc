@@ -255,7 +255,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
     if (!nodeView.sym->isType())
     {
-        AstNodeRef nodeRef  = nodeIdentRef;
+        AstNodeRef                 nodeRef  = nodeIdentRef;
         const AstMemberAccessExpr* nodeQual = nodeView.node->safeCast<AstMemberAccessExpr>();
         if (nodeQual)
             nodeRef = nodeQual->nodeRightRef;
@@ -269,7 +269,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext&       ctx      = sema.ctx();
     const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef);
 
     // Unknown dimension [?]
@@ -327,7 +327,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 
 Result AstCompilerTypeExpr::semaPostNode(Sema& sema) const
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext&        ctx     = sema.ctx();
     const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));

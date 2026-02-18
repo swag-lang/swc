@@ -8,7 +8,7 @@ class SymbolFunction;
 class SymbolInterface : public SymbolMapT<SymbolKind::Interface>
 {
 public:
-    static constexpr SymbolKind K = SymbolKind::Interface;
+    static constexpr auto K = SymbolKind::Interface;
 
     explicit SymbolInterface(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)

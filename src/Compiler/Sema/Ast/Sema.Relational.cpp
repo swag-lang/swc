@@ -30,7 +30,7 @@ namespace
         {
             const ConstantValue& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef);
             const ConstantValue& rightCst = sema.cstMgr().get(nodeRightView.cstRef);
-            result               = sema.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
+            result                        = sema.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
             return Result::Continue;
         }
 
@@ -51,7 +51,7 @@ namespace
         if (left.isFloat())
         {
             const ConstantValue& right = sema.cstMgr().get(rightCstRef);
-            result            = sema.cstMgr().cstBool(left.eq(right));
+            result                     = sema.cstMgr().cstBool(left.eq(right));
             return Result::Continue;
         }
 

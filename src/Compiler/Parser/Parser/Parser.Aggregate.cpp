@@ -143,7 +143,7 @@ AstNodeRef Parser::parseAggregateDecl()
     while (is(TokenId::KwdWhere))
     {
         const Token* loopStartToken = curToken_;
-        AstNodeRef whereRef       = parseConstraint();
+        AstNodeRef   whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
 

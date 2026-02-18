@@ -295,7 +295,7 @@ namespace
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        SYMBOL_INFO*                                            symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        auto                                                    symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
         symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
@@ -319,11 +319,11 @@ namespace
         if (codeRef.tokRef.get() >= srcView.numTokens())
             return;
 
-        const auto   codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
-        const SourceFile* file = srcView.file();
-        const auto   path      = file ? file->path().string() : "<no-file>";
-        const Token& token     = srcView.token(codeRef.tokRef);
-        Utf8         line      = srcView.codeLine(ctx, codeRange.line);
+        const auto        codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
+        const SourceFile* file      = srcView.file();
+        const auto        path      = file ? file->path().string() : "<no-file>";
+        const Token&      token     = srcView.token(codeRef.tokRef);
+        Utf8              line      = srcView.codeLine(ctx, codeRange.line);
         line.trim_end();
         if (line.length() > 220)
             line = line.substr(0, 220) + " ...";
@@ -376,11 +376,11 @@ namespace
         const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
         if (modBase)
         {
-            char       modulePath[MAX_PATH + 1]{};
+            char        modulePath[MAX_PATH + 1]{};
             const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
-                modulePath[len]       = 0;
+                modulePath[len]              = 0;
                 const std::string moduleName = fs::path(modulePath).filename().string();
                 outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
             }
@@ -392,7 +392,7 @@ namespace
         outMsg += "\n";
         if (modBase)
         {
-            char       modulePath[MAX_PATH + 1]{};
+            char        modulePath[MAX_PATH + 1]{};
             const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
@@ -421,7 +421,7 @@ namespace
                 return;
             }
 
-            const auto op         = record->ExceptionInformation[0];
+            const auto     op         = record->ExceptionInformation[0];
             const uint64_t accessAddr = static_cast<uint64_t>(record->ExceptionInformation[1]);
             outMsg += std::format("  fault: {} at 0x{:016X}\n", windowsAccessViolationOpName(op), accessAddr);
 
@@ -552,11 +552,11 @@ namespace
                 const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
                 if (modBase)
                 {
-                    char       modulePath[MAX_PATH + 1]{};
+                    char        modulePath[MAX_PATH + 1]{};
                     const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                     if (len)
                     {
-                        modulePath[len]       = 0;
+                        modulePath[len]              = 0;
                         const std::string moduleName = fs::path(modulePath).filename().string();
                         outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }

@@ -22,7 +22,7 @@ namespace
 
     ConstantRef makeStructConstantFromBytes(Sema& sema, TypeRef structTypeRef, ByteSpan bytes)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&    ctx        = sema.ctx();
         const TypeInfo& structType = sema.typeMgr().get(structTypeRef);
         SWC_ASSERT(structType.isStruct());
         SWC_ASSERT(structType.sizeOf(ctx) <= bytes.size());
@@ -33,7 +33,7 @@ namespace
 
     ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&    ctx       = sema.ctx();
         const TypeInfo& arrayType = sema.typeMgr().get(arrayTypeRef);
         SWC_ASSERT(arrayType.isArray());
         SWC_ASSERT(arrayType.sizeOf(ctx) <= bytes.size());
@@ -80,9 +80,9 @@ namespace
 
     void extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
     {
-        const auto& values = cst.getAggregateStruct();
-        const SymbolMap* owner = symVar.ownerSymMap();
-        const SymbolStruct* sym = owner ? owner->safeCast<SymbolStruct>() : nullptr;
+        const auto&         values = cst.getAggregateStruct();
+        const SymbolMap*    owner  = symVar.ownerSymMap();
+        const SymbolStruct* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
         if (!sym)
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
@@ -201,7 +201,7 @@ namespace
 
     Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext&    ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
         RESULT_VERIFY(sema.waitSemaCompleted(&elemType, nodeArgRef));
         const uint64_t elemSize = elemType.sizeOf(ctx);

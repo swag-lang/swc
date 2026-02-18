@@ -86,6 +86,7 @@ namespace
 
         if (normalizedRet.isVoid)
         {
+            // Void returns only need control transfer; ABI return registers are irrelevant.
             codeGen.builder().encodeRet();
             return Result::Continue;
         }
@@ -109,6 +110,7 @@ namespace
         }
         else
         {
+            // Direct returns are normalized to ABI return registers (int/float lane).
             const bool isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
             ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
         }
@@ -186,6 +188,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const bool deferMaterializationToRunExpr = shouldDeferCallResultMaterializationToCompilerRun(codeGen, normalizedRet);
     if (deferMaterializationToRunExpr)
     {
+        // Compiler-run call wrapper reads raw ABI return regs itself.
         if (normalizedRet.isFloat)
             nodePayload.reg = callConv.floatReturn;
         else

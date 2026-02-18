@@ -33,6 +33,7 @@ namespace
 
     std::string_view passStageName(MicroPassKind passKind, bool before)
     {
+        // Stage names are user-facing and used by --pass print filters.
         switch (passKind)
         {
             case MicroPassKind::RegisterAllocation:
@@ -57,6 +58,7 @@ namespace
 
     bool shouldPrintPass(const MicroPassContext& context, MicroPassKind passKind, bool before)
     {
+        // Printing is opt-in to keep non-debug runs quiet and fast.
         if (context.passPrintOptions.empty())
             return false;
 
@@ -143,6 +145,7 @@ void MicroPassManager::add(MicroPass& pass)
 
 void MicroPassManager::run(MicroPassContext& context) const
 {
+    // Keep one linear pipeline: each pass observes outputs from previous passes.
     for (MicroPass* pass : passes_)
     {
         SWC_ASSERT(pass);

@@ -369,7 +369,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
     const auto& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {
-        // For indirect returns, return register carries the storage pointer.
+        // For indirect returns, the return register carries the storage pointer.
         builder.encodeLoadRegReg(dstReg, conv.intReturn, MicroOpBits::B64);
         return;
     }

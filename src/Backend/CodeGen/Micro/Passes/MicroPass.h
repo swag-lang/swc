@@ -12,9 +12,13 @@ struct MicroInstrOperand;
 
 enum class MicroPassKind : uint8_t
 {
+    // Map virtual registers to concrete machine registers and insert spill code.
     RegisterAllocation,
+    // Save/restore ABI persistent registers used by the function body.
     PrologEpilog,
+    // Rewrite micro instructions so every instruction is encoder-conformant.
     Legalize,
+    // Encode legalized instructions to machine code and patch jumps/relocations.
     Emit,
 };
 
@@ -22,6 +26,7 @@ struct MicroPassContext
 {
     MicroPassContext() = default;
 
+    // Selected call convention drives register classes, stack alignment, and saved regs.
     Encoder*              encoder                = nullptr;
     TaskContext*          taskContext            = nullptr;
     MicroBuilder*         builder                = nullptr;
@@ -43,6 +48,7 @@ public:
 class MicroPassManager
 {
 public:
+    // Passes execute in insertion order. Later passes consume the transformed IR.
     void add(MicroPass& pass);
     void run(MicroPassContext& context) const;
 

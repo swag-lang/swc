@@ -16,6 +16,7 @@ namespace
 
     void invalidateInstruction(MicroInstr& inst)
     {
+        // Mark instruction as removed; replacement instructions are inserted before it.
         inst.op          = MicroInstrOpcode::Ignore;
         inst.opsRef      = INVALID_REF;
         inst.numOperands = 0;
@@ -45,6 +46,8 @@ namespace
         const uint32_t lowU32    = static_cast<uint32_t>(value & U32_MASK);
         const uint32_t highU32   = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
+        // Some encoders cannot store a 64-bit immediate to memory directly.
+        // Rewrite as two 32-bit stores at [offset] and [offset + 4].
         invalidateInstruction(inst);
 
         std::array<MicroInstrOperand, 4> lowOps;
@@ -77,6 +80,7 @@ namespace
         const uint32_t    lowU32        = static_cast<uint32_t>(value & U32_MASK);
         const uint32_t    highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
+        // Same split strategy for address-mode-combined memory stores.
         invalidateInstruction(inst);
 
         std::array<MicroInstrOperand, 8> lowOps;
@@ -113,6 +117,8 @@ namespace
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 
+        // Generic fallback for float-immediate loads:
+        // spill scratch bytes on stack, store immediate as integer bits, then reload as float reg.
         invalidateInstruction(inst);
 
         std::array<MicroInstrOperand, 4> subOps;
@@ -146,6 +152,7 @@ namespace
 
     void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
+        // Encoder reports one issue at a time; apply one targeted rewrite/fix.
         switch (issue.kind)
         {
             case MicroConformanceIssueKind::ClampImmediate:
@@ -176,6 +183,8 @@ void MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands);
     const auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
 
+    // Iterate once over instructions, but keep fixing a given instruction
+    // until the encoder reports it conformant.
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         auto&                    inst = *it;

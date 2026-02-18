@@ -9,6 +9,7 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
+    // Caller can disable this when generated code does not need ABI-preserved registers.
     if (!context.preservePersistentRegs)
     {
         pushedRegs_.clear();
@@ -68,6 +69,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     savedRegSlots_.clear();
     savedRegsStackSubSize_ = 0;
 
+    // Scan concrete register operands and collect only ABI-persistent regs that are used.
     auto& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
     for (const auto& inst : context.instructions->view())
     {
@@ -113,6 +115,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
         frameOffset += slotSize;
     }
 
+    // Final frame size includes push area + spill slots, rounded to ABI stack alignment.
     const uint64_t pushedRegsSize = pushedRegs_.size() * sizeof(uint64_t);
     const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
     const uint64_t totalFrameSize = Math::alignUpU64(pushedRegsSize + frameOffset, stackAlignment);
@@ -127,6 +130,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
     auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
+    // Integer persistent regs are saved with push/pop.
     for (const MicroReg pushedReg : pushedRegs_)
     {
         MicroInstrOperand pushOps[1];
@@ -144,6 +148,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
     }
 
+    // Float persistent regs use explicit stack slots because there is no push/pop form.
     for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand storeOps[4];
@@ -163,6 +168,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
     auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
+    // Restore in reverse: load slot-backed regs, undo stack allocation, then pop integer regs.
     for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand loadOps[4];

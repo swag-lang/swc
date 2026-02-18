@@ -33,11 +33,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             break;
 
         case MicroInstrOpcode::Label:
+            // Record concrete code offset so pending branch patches can resolve target.
             SWC_ASSERT(ops[0].valueU64 <= std::numeric_limits<Ref>::max());
             labelOffsets_[static_cast<Ref>(ops[0].valueU64)] = encoder.currentOffset();
             break;
         case MicroInstrOpcode::JumpCond:
         {
+            // Emit jump with placeholder displacement; patch after all labels are seen.
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
             jump.valid = true;
@@ -187,6 +189,7 @@ void MicroEmitPass::run(MicroPassContext& context)
     pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();
 
+    // Build instruction->relocation lookup once so LoadRegPtrImm can bind encoded offsets.
     const auto& relocations = context.builder->codeRelocations();
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
     {
@@ -196,11 +199,13 @@ void MicroEmitPass::run(MicroPassContext& context)
         relocationByInstructionRef_[reloc.instructionRef] = idx;
     }
 
+    // Single forward pass emits bytes and accumulates unresolved label jumps.
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         encodeInstruction(context, it.current, *it);
     }
 
+    // Second pass patches all label-relative branches now that offsets are known.
     for (const auto& pending : pendingLabelJumps_)
     {
         const auto it = labelOffsets_.find(pending.labelRef);

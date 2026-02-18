@@ -174,6 +174,7 @@ namespace
 
     void analyzeLiveness(PassState& state)
     {
+        // Backward liveness: capture live-out set per instruction and detect values live across calls.
         state.liveOut.clear();
         state.liveOut.resize(state.instructionCount);
         state.vregsLiveAcrossCall.clear();
@@ -215,6 +216,7 @@ namespace
 
     void buildUsePositions(PassState& state)
     {
+        // Forward index of uses to pick better eviction victims (furthest next use first).
         state.usePositions.clear();
 
         uint32_t idx = 0;
@@ -235,6 +237,7 @@ namespace
 
     void setupPools(PassState& state)
     {
+        // Build free lists split by class (int/float) and persistence (transient/persistent).
         state.intPersistentSet.clear();
         state.floatPersistentSet.clear();
         state.intPersistentSet.reserve(state.conv->intPersistentRegs.size() * 2 + 8);
@@ -270,6 +273,7 @@ namespace
 
     void ensureSpillSlot(PassState& state, VRegState& regState, bool isFloat)
     {
+        // Allocate spill slots lazily to avoid stack growth for registers that never spill.
         if (regState.hasSpill)
             return;
 
@@ -346,6 +350,7 @@ namespace
                                  uint32_t&                 outVirtKey,
                                  MicroReg&                 outPhys)
     {
+        // Choose mapped virtual reg that is cheapest to evict under current constraints.
         outVirtKey = 0;
         outPhys    = MicroReg::invalid();
 
@@ -448,6 +453,7 @@ namespace
                               uint32_t                    stamp,
                               std::vector<PendingInsert>& pending)
     {
+        // Prefer free registers; otherwise evict one candidate and spill if needed.
         MicroReg physReg;
         if (tryTakeFreePhysical(state, request, physReg))
             return physReg;
@@ -494,6 +500,7 @@ namespace
                            uint32_t                    stamp,
                            std::vector<PendingInsert>& pending)
     {
+        // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
         const auto& regState = state.states[request.virtKey];
         if (regState.mapped)
             return regState.phys;
@@ -516,6 +523,7 @@ namespace
 
     void spillCallLiveOut(PassState& state, uint32_t stamp, std::vector<PendingInsert>& pending)
     {
+        // Calls may clobber transient regs; force spill of vulnerable live values before call.
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
         {
             const uint32_t virtKey = it->first;
@@ -571,6 +579,10 @@ namespace
 
     void rewriteInstructions(PassState& state)
     {
+        // Main rewrite pass:
+        // 1) assign physical registers for each virtual operand,
+        // 2) queue spill loads/stores around the instruction,
+        // 3) release dead mappings.
         state.liveStamp.clear();
         state.liveStamp.reserve(state.instructionCount * 2ull);
 
@@ -633,6 +645,7 @@ namespace
                 else
                     request.needsPersistent = liveAcrossCall && !state.conv->floatPersistentRegs.empty();
 
+                // If no persistent class exists, remember to spill around call boundaries.
                 if (liveAcrossCall && !request.needsPersistent)
                     state.callSpillVregs.insert(request.virtKey);
 
@@ -659,6 +672,7 @@ namespace
 
     void insertSpillFrame(const PassState& state)
     {
+        // Materialize one function-level spill frame and balance it before every return.
         if (!state.spillFrameUsed)
             return;
 
@@ -703,6 +717,7 @@ void MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
+    // Order matters: liveness/use analysis informs allocation, then we patch IR and finalize frame.
     PassState state;
     initState(state, context);
 

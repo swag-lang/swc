@@ -205,7 +205,7 @@ namespace
         {
             if (dstUsed[i])
                 continue;
-            const auto* field = dstFields[i];
+            const SymbolVariable* field = dstFields[i];
             if (!field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
                 continue;
             return failStructMissingFieldNoDefault(args, args.sema->idMgr().get(field->idRef()).name);
@@ -252,7 +252,7 @@ namespace
         {
             if (castedByDst[i].isValid())
                 continue;
-            const auto* field = dstFields[i];
+            const SymbolVariable* field = dstFields[i];
             if (!field)
                 continue;
             castedByDst[i] = field->defaultValueRef();

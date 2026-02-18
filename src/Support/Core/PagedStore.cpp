@@ -66,7 +66,7 @@ void PagedStore::copyTo(ByteSpanRW dst) const
 {
     SWC_ASSERT(dst.size() <= size());
 
-    auto*    out       = dst.data();
+    std::byte* out     = dst.data();
     uint32_t remaining = static_cast<uint32_t>(dst.size());
     for (const auto& page : pagesStorage_)
     {

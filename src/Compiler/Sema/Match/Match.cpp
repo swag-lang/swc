@@ -14,7 +14,7 @@ namespace
 {
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
-        for (const auto* existing : lookUpCxt.symMaps)
+        for (const SymbolMap* existing : lookUpCxt.symMaps)
         {
             if (existing == symMap)
                 return;
@@ -25,12 +25,12 @@ namespace
 
         if (const SymbolStruct* structSym = symMap->safeCast<SymbolStruct>())
         {
-            for (const auto* impl : structSym->impls())
+            for (const SymbolImpl* impl : structSym->impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
         else if (const SymbolEnum* enumSym = symMap->safeCast<SymbolEnum>())
         {
-            for (const auto* impl : enumSym->impls())
+            for (const SymbolImpl* impl : enumSym->impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
         else if (const SymbolImpl* implSym = symMap->safeCast<SymbolImpl>())
@@ -78,7 +78,7 @@ namespace
 
     void addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
     {
-        for (const auto* s : visited)
+        for (const Symbol* s : visited)
         {
             if (s == &symStruct)
                 return;
@@ -86,7 +86,7 @@ namespace
 
         visited.push_back(&symStruct);
 
-        for (const auto* field : symStruct.fields())
+        for (const Symbol* field : symStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
             if (!isUsingMemberDecl(symVar.decl()))
@@ -151,7 +151,7 @@ namespace
         const SemaScope* scope = &sema.curScope();
         while (scope)
         {
-            if (const auto* symMap = scope->symMap())
+            if (const SymbolMap* symMap = scope->symMap())
             {
                 MatchContext::Priority priority;
                 priority.scopeDepth = scopeDepth;
@@ -159,7 +159,7 @@ namespace
                 addSymMap(lookUpCxt, symMap, priority);
             }
 
-            for (const auto* symbol : scope->symbols())
+            for (const Symbol* symbol : scope->symbols())
             {
                 MatchContext::Priority priority;
                 priority.scopeDepth = scopeDepth;
@@ -168,7 +168,7 @@ namespace
             }
 
             // Namespaces imported via "using" in this scope:
-            for (const auto* usingSymMap : scope->usingSymMaps())
+            for (const SymbolMap* usingSymMap : scope->usingSymMaps())
             {
                 MatchContext::Priority priority;
                 priority.scopeDepth = scopeDepth;
@@ -205,7 +205,7 @@ namespace
         const auto count = lookUpCxt.symMaps.size();
         for (size_t i = 0; i < count; ++i)
         {
-            const auto* symMap   = lookUpCxt.symMaps[i];
+            const SymbolMap* symMap = lookUpCxt.symMaps[i];
             const auto& priority = lookUpCxt.symMapPriorities[i];
 
             // Tell the context: "we're now scanning this layer with this priority".
@@ -262,9 +262,9 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     if (lookUpCxt.count() == 1)
         return Result::Continue;
 
-    const auto* symMapOfSym = sym.ownerSymMap();
+    const SymbolMap* symMapOfSym = sym.ownerSymMap();
 
-    for (const auto* other : lookUpCxt.symbols())
+    for (const Symbol* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;
@@ -285,7 +285,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         return SemaError::raiseAlreadyDefined(sema, &sym, other);
     }
 
-    for (const auto* other : lookUpCxt.symbols())
+    for (const Symbol* other : lookUpCxt.symbols())
     {
         if (other == &sym)
             continue;

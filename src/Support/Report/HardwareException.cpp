@@ -320,7 +320,7 @@ namespace
             return;
 
         const auto   codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
-        const auto*  file      = srcView.file();
+        const SourceFile* file = srcView.file();
         const auto   path      = file ? file->path().string() : "<no-file>";
         const Token& token     = srcView.token(codeRef.tokRef);
         Utf8         line      = srcView.codeLine(ctx, codeRange.line);

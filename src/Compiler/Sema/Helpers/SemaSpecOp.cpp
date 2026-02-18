@@ -262,7 +262,7 @@ namespace
 
     bool isSpecOpInImplFor(const SymbolFunction& sym)
     {
-        const auto* symMap = sym.ownerSymMap();
+        const SymbolMap* symMap = sym.ownerSymMap();
         if (!symMap)
             return false;
         const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>();

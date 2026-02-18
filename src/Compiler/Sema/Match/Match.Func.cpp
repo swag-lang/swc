@@ -549,8 +549,6 @@ namespace
 
         sema.setSymbolList(memberRef, lookUpCxt.symbols());
         sema.setSymbolList(autoMem->nodeIdentRef, lookUpCxt.symbols());
-        sema.setType(memberRef, paramTy);
-        sema.setType(argRef, paramTy);
         sema.setSubstitute(argRef, memberRef);
         sema.setIsValue(*memberPtr);
 

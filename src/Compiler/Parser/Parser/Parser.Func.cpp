@@ -230,7 +230,7 @@ AstNodeRef Parser::parseFunctionParam()
     if (is(TokenId::SymAttrStart))
     {
         const AstNodeRef nodeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
-        const auto       nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
+        AstAttributeList* nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
         nodePtr->nodeBodyRef     = parseFunctionParam();
         return nodeRef;
     }

@@ -179,7 +179,7 @@ AstNodeRef Parser::parseAttributeList()
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 
-    const auto nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
+    AstAttributeList* nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBodyRef = parseCompound<ID>(TokenId::SymLeftCurly);
     else

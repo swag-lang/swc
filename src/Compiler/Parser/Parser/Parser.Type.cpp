@@ -91,7 +91,7 @@ namespace
 
     const QualifierDesc* findQualifier(TokenId id)
     {
-        for (const auto& q : G_QUALIFIER_TABLE)
+        for (const QualifierDesc& q : G_QUALIFIER_TABLE)
         {
             if (q.tokenId == id)
                 return &q;

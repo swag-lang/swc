@@ -319,7 +319,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         nodePtr->mode        = AstCompilerGlobal::Mode::AttributeList;
         nodePtr->nodeModeRef = parseCompound<AstNodeId::AttributeList>(TokenId::SymAttrStart);
-        const auto attrPtr   = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeModeRef);
+        AstAttributeList* attrPtr = ast_->node<AstNodeId::AttributeList>(nodePtr->nodeModeRef);
         attrPtr->nodeBodyRef.setInvalid();
     }
     else if (is(TokenId::KwdPublic))

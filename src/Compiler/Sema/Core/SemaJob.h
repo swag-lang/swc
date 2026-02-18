@@ -12,7 +12,7 @@ class SemaJob : public Job
     SymbolNamespace* moduleNamespace_ = nullptr;
 
 public:
-    static constexpr auto K = JobKind::Sema;
+    static constexpr JobKind K = JobKind::Sema;
 
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass);
     SemaJob(const TaskContext& ctx, const Sema& parentSema, AstNodeRef root);

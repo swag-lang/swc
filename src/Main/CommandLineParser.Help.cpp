@@ -33,7 +33,7 @@ namespace
 
         Utf8 result;
         bool first = true;
-        for (const auto& value : values)
+        for (const Utf8& value : values)
         {
             if (!first)
                 result += ", ";
@@ -51,7 +51,7 @@ namespace
 
         Utf8 result;
         bool first = true;
-        for (const auto& value : values)
+        for (const fs::path& value : values)
         {
             if (!first)
                 result += ", ";
@@ -243,9 +243,9 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         std::ranges::sort(commands, commandInfoLess);
 
         size_t maxLen = 0;
-        for (const auto& cmd : commands)
+        for (const CommandInfo& cmd : commands)
             maxLen = std::max(maxLen, strlen(cmd.name));
-        for (const auto& cmd : commands)
+        for (const CommandInfo& cmd : commands)
             Logger::printDim(ctx, std::format("    {:<{}}    {}\n", cmd.name, maxLen, cmd.description));
     }
     else
@@ -258,7 +258,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         std::vector<HelpOptionEntry> entries;
         entries.reserve(args_.size());
-        for (const auto& arg : args_)
+        for (const ArgInfo& arg : args_)
         {
             if (!commandMatches(arg.commands))
                 continue;
@@ -272,14 +272,14 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         std::ranges::sort(entries, optionEntryLess);
 
         size_t maxLen = 0;
-        for (const auto& entry : entries)
+        for (const HelpOptionEntry& entry : entries)
         {
             maxLen = std::max(maxLen, entry.displayName.length());
         }
 
         HelpOptionGroup currentGroup = HelpOptionGroup::Other;
         bool firstGroup   = true;
-        for (const auto& entry : entries)
+        for (const HelpOptionEntry& entry : entries)
         {
             if (firstGroup || currentGroup != entry.group)
             {

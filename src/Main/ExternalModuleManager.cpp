@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 bool ExternalModuleManager::findLoadedModule(void*& outModuleHandle, std::string_view moduleName) const
 {
     outModuleHandle = nullptr;
-    for (const auto& loadedModule : modules_)
+    for (const ModuleEntry& loadedModule : modules_)
     {
         if (loadedModule.moduleName == moduleName)
         {

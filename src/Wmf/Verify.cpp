@@ -226,7 +226,7 @@ void Verify::tokenize(TaskContext& ctx)
     lexer.tokenizeRaw(ctx, *srcView_);
 
     // Parse all comments to find a verify directive
-    for (const auto& trivia : srcView_->trivia())
+    for (const SourceTrivia& trivia : srcView_->trivia())
     {
         const std::string_view comment = trivia.tok.string(*srcView_);
         if (trivia.tok.is(TokenId::CommentLine))
@@ -242,10 +242,10 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     if (directives_.empty())
         return false;
 
-    for (auto& elem : diag.elements())
+    for (const std::shared_ptr<DiagnosticElement>& elem : diag.elements())
     {
         const SourceCodeRange codeRange = elem->codeRange(0, ctx);
-        for (auto& directive : directives_)
+        for (const VerifyDirective& directive : directives_)
         {
             if (directive.kind != elem->severity())
                 continue;
@@ -267,7 +267,7 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
 
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
-    for (const auto& directive : directives_)
+    for (const VerifyDirective& directive : directives_)
     {
         if (!directive.touched)
         {
@@ -280,12 +280,12 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
 
 void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 {
-    const auto& langSpec = ctx.global().langSpec();
+    const LangSpec& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
     while (true)
     {
-        const auto found = comment.find(LangSpec::VERIFY_COMMENT_OPTION, pos);
+        const size_t found = comment.find(LangSpec::VERIFY_COMMENT_OPTION, pos);
         if (found == std::string_view::npos)
             break;
 
@@ -332,7 +332,7 @@ void Verify::tokenizeOption(const TaskContext& ctx, std::string_view comment)
 
 void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment)
 {
-    const auto& langSpec = ctx.global().langSpec();
+    const LangSpec& langSpec = ctx.global().langSpec();
 
     size_t pos = 0;
     while (true)
@@ -348,7 +348,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         size_t       i     = start;
         while (i < comment.size() && langSpec.isLetter(comment[i]))
             i++;
-        const auto word = comment.substr(start, i - start);
+        const std::string_view word = comment.substr(start, i - start);
         if (word == "error")
             directive.kind = DiagnosticSeverity::Error;
         else if (word == "warning")

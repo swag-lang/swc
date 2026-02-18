@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroOptimizationHelpers.h"
+#include "Backend/Micro/Passes/MicroOptimization.h"
 
 SWC_BEGIN_NAMESPACE();
 

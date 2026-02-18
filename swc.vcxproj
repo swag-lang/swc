@@ -194,19 +194,19 @@
         <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
-        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp" />
-        <ClCompile Include="src\Backend\JIT\JITMemory.cpp" />
+        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
         <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
         <ClCompile Include="src\Backend\\ABI\ABICall.cpp"/>
         <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrStorage.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLegalizePass.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\MicroOptimizationHelpers.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroOptimization.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroEmitPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.cpp"/>
@@ -371,8 +371,8 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
-        <ClInclude Include="src\Backend\Micro\Passes\MicroOptimizationHelpers.h" />
-        <ClInclude Include="src\Backend\\Micro\MicroStorage.h" />
+        <ClInclude Include="src\Backend\Micro\Passes\MicroOptimization.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
         <ClInclude Include="src\Backend\\ABI\CallConv.h"/>
@@ -383,7 +383,7 @@
         <ClInclude Include="src\Backend\\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroPrinter.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroBuilder.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroBuilder.h"/>
         <ClInclude Include="src\Backend\\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroLegalizePass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroPeepholePass.h"/>
@@ -392,8 +392,8 @@
         <ClInclude Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroPass.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
-        <ClInclude Include="src\Backend\JIT\JITMemory.h" />
-        <ClInclude Include="src\Backend\JIT\JITMemoryManager.h" />
+        <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
+        <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroReg.h"/>

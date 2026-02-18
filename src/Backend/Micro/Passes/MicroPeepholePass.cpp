@@ -2,7 +2,7 @@
 
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/Passes/MicroOptimizationHelpers.h"
+#include "Backend/Micro/Passes/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.h"
 
 SWC_BEGIN_NAMESPACE();

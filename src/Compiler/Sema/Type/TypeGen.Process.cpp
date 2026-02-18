@@ -42,7 +42,7 @@ namespace TypeGenInternal
 
             case LayoutKind::Struct:
             {
-                for (const auto* field : type.payloadSymStruct().fields())
+                for (const SymbolVariable* field : type.payloadSymStruct().fields())
                 {
                     if (!field)
                         continue;

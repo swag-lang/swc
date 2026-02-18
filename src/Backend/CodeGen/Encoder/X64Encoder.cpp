@@ -2491,7 +2491,7 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
 
     const auto startIdx = store_.size();
     emitRelocAddressLoad(offsetReg, cpuFct_->symbolIndex, store_.size() - cpuFct_->startAddress);
-    auto* patchPtr = store_.seekPtr() - sizeof(uint32_t);
+    uint8_t* patchPtr = store_.seekPtr() - sizeof(uint32_t);
     encodeOpBinaryRegReg(offsetReg, tableReg, MicroOp::Add, MicroOpBits::B64);
     encodeJumpReg(offsetReg);
     const auto endIdx     = store_.size();

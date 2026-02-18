@@ -26,7 +26,7 @@ namespace
 
     void completeConst(Sema& sema, const std::span<Symbol*>& symbols, ConstantRef cstRef, TypeRef typeRef)
     {
-        for (auto* s : symbols)
+        for (Symbol* s : symbols)
         {
             SymbolConstant& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
@@ -39,7 +39,7 @@ namespace
 
     void completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
     {
-        for (auto* s : symbols)
+        for (Symbol* s : symbols)
         {
             SymbolVariable& symVar = s->cast<SymbolVariable>();
             if (symVar.typeRef().isInvalid())
@@ -220,7 +220,7 @@ namespace
         if (cstRef.isInvalid())
             return;
 
-        for (auto* s : symbols)
+        for (Symbol* s : symbols)
         {
             SymbolVariable* symVar = s->safeCast<SymbolVariable>();
             if (!symVar)
@@ -362,7 +362,7 @@ namespace
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {
-            for (auto* s : symbols)
+            for (Symbol* s : symbols)
             {
                 if (SymbolVariable* symVar = s->safeCast<SymbolVariable>())
                     symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);

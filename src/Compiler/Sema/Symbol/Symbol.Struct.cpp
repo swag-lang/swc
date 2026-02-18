@@ -54,7 +54,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
     // Expose the interface implementation scope under the struct symbol map so we can resolve
     // `StructName.InterfaceName.Symbol`.
-    if (const auto* inserted = addSingleSymbol(sema.ctx(), &symImpl); inserted != &symImpl)
+    if (const Symbol* inserted = addSingleSymbol(sema.ctx(), &symImpl); inserted != &symImpl)
         return SemaError::raiseAlreadyDefined(sema, &symImpl, inserted);
 
     symImpl.setSymStruct(this);
@@ -71,7 +71,7 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 
 void SymbolStruct::removeIgnoredFields()
 {
-    fields_.erase(std::ranges::remove_if(fields_, [](const auto* field) {
+    fields_.erase(std::ranges::remove_if(fields_, [](const Symbol* field) {
                       return field->isIgnored();
                   }).begin(),
                   fields_.end());
@@ -128,7 +128,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
     const TaskContext& ctx = sema.ctx();
     const auto& typeMgr = sema.typeMgr();
 
-    for (const auto* field : fields_)
+    for (const Symbol* field : fields_)
     {
         if (!field)
             continue;
@@ -187,11 +187,11 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 
 Result SymbolStruct::registerSpecOps(Sema& sema) const
 {
-    for (const auto* symImpl : impls())
+    for (const SymbolImpl* symImpl : impls())
     {
         if (!symImpl)
             continue;
-        for (auto* symFunc : symImpl->specOps())
+        for (SymbolFunction* symFunc : symImpl->specOps())
         {
             if (!symFunc)
                 continue;
@@ -239,7 +239,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
     SmallVector<SymbolFunction*> result;
 
     std::shared_lock lk(mutexSpecOps_);
-    for (auto* symFunc : specOps_)
+    for (SymbolFunction* symFunc : specOps_)
     {
         if (symFunc->idRef() == identifierRef)
             result.push_back(symFunc);

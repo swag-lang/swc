@@ -1019,7 +1019,7 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             for (const TypeRef tr : payloadAggregate_.types)
-                if (auto* sym = getTypeBlockingSymbol(tr))
+                if (Symbol* sym = getTypeBlockingSymbol(tr))
                     return sym;
             return nullptr;
         default:

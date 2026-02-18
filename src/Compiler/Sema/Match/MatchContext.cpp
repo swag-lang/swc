@@ -66,7 +66,7 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 
     // Same priority: keep all candidates at this level (for ambiguity checks),
     // but avoid duplicates.
-    for (const auto* s : symbols_)
+    for (const Symbol* s : symbols_)
         if (s == symbol)
             return;
 

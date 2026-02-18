@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Micro/MicroPrinter.h"
 #include "Backend/CodeGen/Encoder/Encoder.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
@@ -1086,7 +1086,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroInstr& inst     = *it;
         if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
         {
-            const auto* ops                                    = inst.ops(storeOps);
+            const MicroInstrOperand* ops                                    = inst.ops(storeOps);
             labelIndexByRef[static_cast<Ref>(ops[0].valueU64)] = scanIdx;
         }
         ++scanIdx;
@@ -1098,7 +1098,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     {
         const Ref         instRef = it.current;
         const MicroInstr& inst    = *it;
-        const auto*       ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
+        const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto               relocIt                = relocationByInstructionRef.find(instRef);
         const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;

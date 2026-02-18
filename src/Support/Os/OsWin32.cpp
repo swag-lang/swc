@@ -155,7 +155,7 @@ namespace Os
             modulePath += ".dll";
 
         const Utf8 moduleFileName = modulePath.string();
-        auto*      moduleHandle   = LoadLibraryA(moduleFileName.c_str());
+        HMODULE    moduleHandle   = LoadLibraryA(moduleFileName.c_str());
         if (!moduleHandle)
             return false;
 

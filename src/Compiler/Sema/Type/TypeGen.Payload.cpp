@@ -26,8 +26,8 @@ namespace
     {
         storage.addRelocation(baseOffset + fieldOffset, targetOffset);
 
-        auto* ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
-        *ptrField      = storage.ptr<Runtime::TypeInfo>(targetOffset);
+        const Runtime::TypeInfo** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
+        *ptrField                          = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
     template<typename T>
@@ -35,7 +35,7 @@ namespace
     {
         const auto res = storage.reserve<T>();
         const auto off = res.first;
-        auto*      ptr = res.second;
+        T*         ptr = res.second;
         ptr->base.kind = kind;
         return {off, &ptr->base};
     }
@@ -177,7 +177,7 @@ namespace TypeGenInternal
 
         for (uint32_t i = 0; i < fields.size(); ++i)
         {
-            const auto* symField = fields[i];
+            const SymbolVariable* symField = fields[i];
             SWC_ASSERT(symField);
 
             Runtime::TypeValue& tv = fieldsPtr[i];

@@ -203,7 +203,7 @@ void ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpan dstBytes, c
     const auto& dstFields = dstType.payloadSymStruct().fields();
     size_t      valueIdx  = 0;
 
-    for (const auto* field : dstFields)
+    for (const SymbolVariable* field : dstFields)
     {
         if (!field)
             continue;

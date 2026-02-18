@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroEmitPass.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
@@ -48,7 +48,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
     auto&       encoder = *SWC_CHECK_NOT_NULL(context.encoder);
-    const auto* ops     = inst.ops(*context.operands);
+    const MicroInstrOperand* ops     = inst.ops(*context.operands);
     switch (inst.op)
     {
         case MicroInstrOpcode::End:

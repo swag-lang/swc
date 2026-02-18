@@ -86,7 +86,7 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
 
 void Symbol::registerCompilerIf(Sema& sema)
 {
-    if (auto* compilerIf = sema.frame().currentCompilerIf())
+    if (SemaCompilerIf* compilerIf = sema.frame().currentCompilerIf())
         compilerIf->addSymbolToChain(this);
 }
 

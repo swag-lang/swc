@@ -110,7 +110,7 @@ AstNodeRef Parser::parseSubType()
     // Consume all leading qualifiers in order, diagnose duplicates / mis-ordering.
     for (;;)
     {
-        const auto* qd = findQualifier(id());
+        const QualifierDesc* qd = findQualifier(id());
         if (!qd)
             break;
 

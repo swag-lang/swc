@@ -15,7 +15,7 @@ struct SemaCompilerIf
 
     void addSymbolToChain(Symbol* sym)
     {
-        for (auto* it = this; it; it = it->parent)
+        for (SemaCompilerIf* it = this; it; it = it->parent)
             it->symbols.push_back(sym);
     }
 };

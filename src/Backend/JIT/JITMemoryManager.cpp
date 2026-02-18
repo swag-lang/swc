@@ -57,8 +57,8 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
 
     if (!targetBlock)
     {
-        const auto blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSizeAlign, pageSize));
-        auto*      ptr       = Os::allocExecutableMemory(blockSize);
+        const uint32_t blockSize = std::max(DEFAULT_BLOCK_SIZE, alignUp(requestSizeAlign, pageSize));
+        void*          ptr       = Os::allocExecutableMemory(blockSize);
         if (!ptr)
             return false;
 
@@ -67,7 +67,7 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     }
 
     SWC_ASSERT(targetBlock);
-    auto* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
+    std::byte* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
     targetBlock->allocated += requestSizeAlign;
 
     outExecutableMemory.ptr_            = dst;

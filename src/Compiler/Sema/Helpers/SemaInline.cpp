@@ -138,7 +138,7 @@ namespace
 
     bool hasVariadicParam(Sema& sema, const SymbolFunction& fn)
     {
-        for (const auto* param : fn.parameters())
+        for (const SymbolVariable* param : fn.parameters())
         {
             if (!param)
                 continue;

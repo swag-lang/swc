@@ -31,7 +31,7 @@ namespace
         {
             const auto current = stack.back();
             stack.pop_back();
-            auto* const function = current.function;
+            SymbolFunction* const function = current.function;
             if (!function)
                 continue;
 
@@ -151,7 +151,7 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
 {
     std::scoped_lock lock(callDepsMutex_);
     out.reserve(out.size() + callDependencies_.size());
-    for (auto* dep : callDependencies_)
+    for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
 }
 
@@ -177,7 +177,7 @@ void SymbolFunction::jit(TaskContext& ctx)
 
     SmallVector<SymbolFunction*> jitOrder;
     appendDepOrder(jitOrder, *this);
-    for (auto* function : jitOrder)
+    for (SymbolFunction* function : jitOrder)
         function->jitEmit(ctx);
 }
 
@@ -189,7 +189,7 @@ void SymbolFunction::jitEmit(TaskContext& ctx)
 
     SWC_ASSERT(hasLoweredCode());
     JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations);
-    auto* const entry = jitExecMemory_.entryPoint();
+    void* const entry = jitExecMemory_.entryPoint();
     SWC_FORCE_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);
 
@@ -229,7 +229,7 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 SymbolStruct* SymbolFunction::ownerStruct()
 {
     SymbolStruct* ownerStruct = nullptr;
-    if (auto* symMap = ownerSymMap())
+    if (SymbolMap* symMap = ownerSymMap())
     {
         if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
             ownerStruct = symImpl->symStruct();
@@ -243,7 +243,7 @@ SymbolStruct* SymbolFunction::ownerStruct()
 const SymbolStruct* SymbolFunction::ownerStruct() const
 {
     const SymbolStruct* ownerStruct = nullptr;
-    if (const auto* symMap = ownerSymMap())
+    if (const SymbolMap* symMap = ownerSymMap())
     {
         if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
             ownerStruct = symImpl->symStruct();

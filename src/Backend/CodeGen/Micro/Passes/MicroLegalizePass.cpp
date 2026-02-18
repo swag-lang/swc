@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/CodeGen/Micro/MicroInstr.h"
 
@@ -179,7 +179,7 @@ void MicroLegalizePass::run(MicroPassContext& context)
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         auto&       inst = *it;
-        auto* const ops  = inst.ops(*context.operands);
+        MicroInstrOperand* const ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))

@@ -12,7 +12,7 @@ namespace
     Result codeGenUnaryDeref(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         MicroBuilder& builder      = codeGen.builder();
-        const auto*   childPayload = codeGen.payload(nodeExprRef);
+        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
 
         const auto nodeView = codeGen.curNodeView();

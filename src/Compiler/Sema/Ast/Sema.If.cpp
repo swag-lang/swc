@@ -29,7 +29,7 @@ namespace
         {
             const auto list = sema.getSymbolList(declRef);
             symbols.reserve(list.size());
-            for (auto* sym : list)
+            for (Symbol* sym : list)
                 symbols.push_back(sym);
         }
         else if (sema.hasSymbol(declRef))

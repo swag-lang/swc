@@ -230,7 +230,7 @@ namespace
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
 
-        const auto* ops = inst.ops(operands);
+        const MicroInstrOperand* ops = inst.ops(operands);
         return ops[0].reg == stackPtr && ops[1].opBits == MicroOpBits::B64 && ops[2].microOp == op;
     }
 
@@ -256,13 +256,13 @@ namespace
                 hasPop = true;
             else if (inst.op == MicroInstrOpcode::LoadMemReg)
             {
-                const auto* ops = inst.ops(storeOps);
+                const MicroInstrOperand* ops = inst.ops(storeOps);
                 if (ops[0].reg == conv.stackPointer)
                     hasStore = true;
             }
             else if (inst.op == MicroInstrOpcode::LoadRegMem)
             {
-                const auto* ops = inst.ops(storeOps);
+                const MicroInstrOperand* ops = inst.ops(storeOps);
                 if (ops[1].reg == conv.stackPointer)
                     hasLoad = true;
             }
@@ -298,7 +298,7 @@ namespace
             if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem)
                 continue;
 
-            const auto* ops = inst.ops(storeOps);
+            const MicroInstrOperand* ops = inst.ops(storeOps);
             if (inst.op == MicroInstrOpcode::LoadMemReg && ops[0].reg == conv.stackPointer)
                 hasStore = true;
             else if (inst.op == MicroInstrOpcode::LoadRegMem && ops[1].reg == conv.stackPointer)

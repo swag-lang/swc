@@ -131,7 +131,7 @@ namespace
         printPassHeader(ctx, builder, stageName);
 
         const auto  printMode = passPrintMode(passKind, before);
-        const auto* encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
+        const Encoder* encoder = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
     }
 }
@@ -143,7 +143,7 @@ void MicroPassManager::add(MicroPass& pass)
 
 void MicroPassManager::run(MicroPassContext& context) const
 {
-    for (auto* pass : passes_)
+    for (MicroPass* pass : passes_)
     {
         SWC_ASSERT(pass);
         const auto passKind = pass->kind();

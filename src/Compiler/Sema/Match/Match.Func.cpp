@@ -946,26 +946,41 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef findInterfaceReceiverArg(Sema& sema, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn)
+    AstNodeRef findInterfaceReceiverArg(Sema& sema, const SemaNodeView& nodeCallee)
     {
-        if (!selectedFn.hasInterfaceMethodSlot())
-            return AstNodeRef::invalid();
-
         const AstMemberAccessExpr* memberAccess = nodeCallee.node ? nodeCallee.node->safeCast<AstMemberAccessExpr>() : nullptr;
         if (!memberAccess)
             return AstNodeRef::invalid();
 
         const SemaNodeView receiverView = sema.nodeView(memberAccess->nodeLeftRef);
-        if (receiverView.type && receiverView.type->isInterface())
+        if (receiverView.type && receiverView.type->isInterface() && sema.isValue(*receiverView.node))
             return receiverView.nodeRef;
 
         return AstNodeRef::invalid();
     }
 
-    void buildResolvedCallArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, AstNodeRef interfaceReceiverArg, SmallVector<ResolvedCallArgument>& outResolvedArgs)
+    bool mappedReceiverAsFirstArg(const Sema& sema, AstNodeRef receiverArgRef, const CallArgMapping& mapping)
+    {
+        if (receiverArgRef.isInvalid())
+            return false;
+        if (mapping.paramArgs.empty())
+            return false;
+
+        const AstNodeRef firstArgRef = mapping.paramArgs[0].argRef;
+        if (firstArgRef.isInvalid())
+            return false;
+
+        return Match::resolveCallArgumentValueRef(sema, firstArgRef) == Match::resolveCallArgumentValueRef(sema, receiverArgRef);
+    }
+
+    void buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
-        const bool hasImplicitInterfaceReceiver = interfaceReceiverArg.isValid() && selectedFn.hasInterfaceMethodSlot();
+
+        AstNodeRef interfaceReceiverArg = AstNodeRef::invalid();
+        if (selectedFn.hasInterfaceMethodSlot())
+            interfaceReceiverArg = findInterfaceReceiverArg(sema, nodeCallee);
+        const bool hasImplicitInterfaceReceiver = interfaceReceiverArg.isValid() && !mappedReceiverAsFirstArg(sema, interfaceReceiverArg, mapping);
         if (hasImplicitInterfaceReceiver)
             outResolvedArgs.push_back({.argRef = interfaceReceiverArg, .passKind = CallArgumentPassKind::InterfaceObject});
 
@@ -978,9 +993,6 @@ namespace
             AstNodeRef finalArgRef = entry.argRef;
             if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
                 finalArgRef = namedArg->nodeArgRef;
-
-            if (hasImplicitInterfaceReceiver && i == 0 && finalArgRef == interfaceReceiverArg)
-                continue;
 
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
@@ -1073,8 +1085,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
     if (outResolvedArgs)
     {
-        const AstNodeRef interfaceReceiverArg = findInterfaceReceiverArg(sema, nodeCallee, *selectedFn);
-        buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, interfaceReceiverArg, *outResolvedArgs);
+        buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg);
     }
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);

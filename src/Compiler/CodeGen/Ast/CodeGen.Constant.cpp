@@ -162,8 +162,7 @@ namespace
                 return;
 
             default:
-                emitLoweredConstantToPayload(codeGen, payload, cstRef, cst, targetTypeRef);
-                return;
+                SWC_UNREACHABLE();
         }
     }
 }

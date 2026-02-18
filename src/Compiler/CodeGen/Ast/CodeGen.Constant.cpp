@@ -22,30 +22,6 @@ namespace
         const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
         const TypeInfo& typeInfo     = codeGen.typeMgr().get(finalTypeRef);
         const uint64_t  storageSize  = typeInfo.sizeOf(codeGen.ctx());
-        if (!storageSize)
-        {
-            codeGen.builder().encodeLoadRegImm(payload.reg, 0, MicroOpBits::B64);
-            payload.storageKind = CodeGenNodePayload::StorageKind::Value;
-            return;
-        }
-
-        if (typeInfo.isStruct() && cst.isStruct())
-        {
-            const ByteSpan structBytes = cst.getStruct();
-            SWC_ASSERT(structBytes.size() == storageSize);
-            codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
-            payload.storageKind = CodeGenNodePayload::StorageKind::Address;
-            return;
-        }
-
-        if (typeInfo.isArray() && cst.isArray())
-        {
-            const ByteSpan arrayBytes = cst.getArray();
-            SWC_ASSERT(arrayBytes.size() == storageSize);
-            codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
-            payload.storageKind = CodeGenNodePayload::StorageKind::Address;
-            return;
-        }
 
         SmallVector<std::byte> tmpStorage(storageSize);
         ByteSpanRW             tmpSpan{tmpStorage.data(), tmpStorage.size()};
@@ -161,7 +137,25 @@ namespace
                 return;
 
             case ConstantKind::Struct:
+            {
+                const ByteSpan structBytes = cst.getStruct();
+                const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
+                SWC_ASSERT(structBytes.size() == storageSize);
+                codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+                return;
+            }
+
             case ConstantKind::Array:
+            {
+                const ByteSpan arrayBytes  = cst.getArray();
+                const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
+                SWC_ASSERT(arrayBytes.size() == storageSize);
+                codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
+                payload.storageKind = CodeGenNodePayload::StorageKind::Address;
+                return;
+            }
+
             case ConstantKind::AggregateStruct:
             case ConstantKind::AggregateArray:
                 emitLoweredConstantToPayload(codeGen, payload, cstRef, cst, targetTypeRef);

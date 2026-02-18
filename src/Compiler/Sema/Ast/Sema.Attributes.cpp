@@ -67,7 +67,7 @@ namespace
     {
         if (args.empty())
         {
-            outAttributes.printMicroPassOptions.push_back(Utf8{"before-emit"});
+            outAttributes.printMicroPassOptions.push_back(Utf8{"pre-emit"});
             return Result::Continue;
         }
 

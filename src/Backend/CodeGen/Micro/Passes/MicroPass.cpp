@@ -36,13 +36,13 @@ namespace
         switch (passKind)
         {
             case MicroPassKind::RegisterAllocation:
-                return before ? "before-register-allocation" : "after-register-allocation";
+                return before ? "pre-regalloc" : "post-regalloc";
             case MicroPassKind::PrologEpilog:
-                return before ? "before-prolog-epilog" : "after-prolog-epilog";
+                return before ? "pre-prolog-epilog" : "post-prolog-epilog";
             case MicroPassKind::Legalize:
-                return before ? "before-legalize" : "after-legalize";
+                return before ? "pre-legalize" : "post-legalize";
             case MicroPassKind::Emit:
-                return before ? "before-emit" : "after-emit";
+                return before ? "pre-emit" : "post-emit";
             default:
                 SWC_UNREACHABLE();
         }

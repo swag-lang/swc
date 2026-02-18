@@ -50,7 +50,7 @@ struct S
     const V = #run dref (@compiler.unknownMethod)() // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
-//#[Swag.PrintMicro("before-register-allocation", "after-emit")]
+//#[Swag.PrintMicro("pre-regalloc", "post-emit")]
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()

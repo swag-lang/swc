@@ -182,8 +182,8 @@ namespace
                 return "Input";
             case HelpOptionGroup::Target:
                 return "Target";
-            case HelpOptionGroup::Runtime:
-                return "Runtime";
+            case HelpOptionGroup::Compiler:
+                return "Compiler";
             case HelpOptionGroup::Diagnostics:
                 return "Diagnostics";
             case HelpOptionGroup::LoggingAndOutput:

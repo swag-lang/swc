@@ -2,7 +2,6 @@
 #include "Main/CommandLineParser.h"
 #include "Main/CommandLine.h"
 #include "Main/FileSystem.h"
-#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -147,7 +146,7 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
     return false;
 }
 
-void CommandLineParser::addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, HelpOptionGroup group, const char* description)
+void CommandLineParser::addArg(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description)
 {
     ArgInfo info;
     info.commands    = commands ? commands : "";
@@ -424,42 +423,41 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, HelpOptionGroup::Input, "Specify one or more directories to process recursively for input files.");
-    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, HelpOptionGroup::Input, "Specify one or more individual files to process directly.");
-    addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, HelpOptionGroup::Input, "Apply a substring filter to select specific files by name.");
-    addArg("all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, HelpOptionGroup::Input, "Specify a module path to compile.");
+    addArg(HelpOptionGroup::Input, "all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
+    addArg(HelpOptionGroup::Input, "all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
+    addArg(HelpOptionGroup::Input, "all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
+    addArg(HelpOptionGroup::Input, "all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, "Specify a module path to compile.");
+    addArg(HelpOptionGroup::Input, "all", "--runtime", nullptr, CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Add runtime files.");
 
-    addArg("all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", HelpOptionGroup::Target, "Set the target architecture used by #arch.");
-    addArg("all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, HelpOptionGroup::Target, "Set the build configuration string used by #cfg.");
-    addArg("all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, HelpOptionGroup::Target, "Set the target CPU string used by #cpu.");
+    addArg(HelpOptionGroup::Target, "all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch.");
+    addArg(HelpOptionGroup::Target, "all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
+    addArg(HelpOptionGroup::Target, "all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
+    addArg(HelpOptionGroup::Target, "all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, "Enable backend micro-instruction debug information.");
 
-    addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, HelpOptionGroup::Runtime, "Set the maximum number of CPU cores to use (0 = auto-detect).");
-    addArg("all", "--runtime", nullptr, CommandLineType::Bool, &cmdLine_->runtime, nullptr, HelpOptionGroup::Runtime, "Add runtime files.");
-    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, HelpOptionGroup::Runtime, "Display runtime statistics after execution.");
+    addArg(HelpOptionGroup::Compiler, "all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    addArg(HelpOptionGroup::Compiler, "all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
 
-    addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, HelpOptionGroup::Diagnostics, "Show absolute file paths in diagnostic messages.");
-    addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, HelpOptionGroup::Diagnostics, "Show diagnostic identifiers.");
-    addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, HelpOptionGroup::Diagnostics, "Display diagnostics as a single line.");
-    addArg("all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, HelpOptionGroup::Diagnostics, "Log diagnostics that are normally suppressed by --verify.");
-    addArg("all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, HelpOptionGroup::Diagnostics, "Filter --verbose-verify logs by matching a specific string.");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, HelpOptionGroup::Diagnostics, "Verify source-file expected diagnostics comments.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by --verify.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
+    addArg(HelpOptionGroup::Diagnostics, "all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify source-file expected diagnostics comments.");
 
-    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, HelpOptionGroup::LoggingAndOutput, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, HelpOptionGroup::LoggingAndOutput, "Enable colored log output for better readability.");
-    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, HelpOptionGroup::LoggingAndOutput, "Suppress all log output.");
-    addArg("all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, HelpOptionGroup::LoggingAndOutput, "Syntax color output code.");
-    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, HelpOptionGroup::LoggingAndOutput, "Syntax color luminosity factor [0-100].");
+    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
+    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
+    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
+    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
+    addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
 
-    addArg("all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, HelpOptionGroup::Testing, "Run internal C++ unit tests before executing command.");
-    addArg("all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, HelpOptionGroup::Testing, "Print each internal unit test status.");
+    addArg(HelpOptionGroup::Testing, "all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
+    addArg(HelpOptionGroup::Testing, "all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
 
-    addArg("all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, HelpOptionGroup::Development, "Enable backend micro-instruction debug information.");
-    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, HelpOptionGroup::Development, "Open a message box in case of errors.");
-    addArg("all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, HelpOptionGroup::Development, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
-
+    addArg(HelpOptionGroup::Development, "all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, "Open a message box in case of errors.");
+    addArg(HelpOptionGroup::Development, "all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
 #if SWC_DEV_MODE
-    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, HelpOptionGroup::Development, "Randomize behavior. Forces --num-cores=1.");
-    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, HelpOptionGroup::Development, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
+    addArg(HelpOptionGroup::Development, "all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior. Forces --num-cores=1.");
+    addArg(HelpOptionGroup::Development, "all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
 #endif
 }
 

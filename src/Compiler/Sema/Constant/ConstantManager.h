@@ -9,7 +9,7 @@ class CompilerInstance;
 class ConstantManager
 {
 public:
-    void             setup(TaskContext& ctx);
+    void             setup(const TaskContext& ctx);
     ConstantRef      addS32(const TaskContext& ctx, int32_t value);
     ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
     std::string_view addString(const TaskContext& ctx, std::string_view str);

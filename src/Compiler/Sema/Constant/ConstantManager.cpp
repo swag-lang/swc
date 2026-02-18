@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void ConstantManager::setup(TaskContext& ctx)
+void ConstantManager::setup(const TaskContext& ctx)
 {
     cstBool_true_  = addConstant(ctx, ConstantValue::makeBool(ctx, true));
     cstBool_false_ = addConstant(ctx, ConstantValue::makeBool(ctx, false));

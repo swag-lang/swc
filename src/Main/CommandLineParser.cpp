@@ -19,6 +19,76 @@ constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
 constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 
+struct HelpOptionEntry
+{
+    const ArgInfo*  arg = nullptr;
+    Utf8            displayName;
+    HelpOptionGroup group = HelpOptionGroup::Other;
+};
+
+namespace
+{
+    Utf8 makeOptionDisplayName(const ArgInfo& arg)
+    {
+        Utf8 name = arg.longForm;
+        if (!arg.shortForm.empty())
+        {
+            name += ", ";
+            name += arg.shortForm;
+        }
+
+        return name;
+    }
+
+    int optionGroupOrder(HelpOptionGroup group)
+    {
+        return static_cast<int>(group);
+    }
+
+    const char* optionGroupName(HelpOptionGroup group)
+    {
+        switch (group)
+        {
+            case HelpOptionGroup::Input:
+                return "Input";
+            case HelpOptionGroup::Target:
+                return "Target";
+            case HelpOptionGroup::Runtime:
+                return "Runtime";
+            case HelpOptionGroup::Diagnostics:
+                return "Diagnostics";
+            case HelpOptionGroup::LoggingAndOutput:
+                return "Logging/Output";
+            case HelpOptionGroup::Testing:
+                return "Testing";
+            case HelpOptionGroup::Development:
+                return "Development";
+            case HelpOptionGroup::Other:
+                return "Other";
+        }
+
+        return "Other";
+    }
+
+    bool optionEntryLess(const HelpOptionEntry& lhs, const HelpOptionEntry& rhs)
+    {
+        const int leftOrder  = optionGroupOrder(lhs.group);
+        const int rightOrder = optionGroupOrder(rhs.group);
+        if (leftOrder != rightOrder)
+            return leftOrder < rightOrder;
+
+        if (lhs.displayName != rhs.displayName)
+            return lhs.displayName < rhs.displayName;
+
+        return lhs.arg->description < rhs.arg->description;
+    }
+
+    bool commandInfoLess(const CommandInfo& lhs, const CommandInfo& rhs)
+    {
+        return Utf8(lhs.name) < Utf8(rhs.name);
+    }
+}
+
 // Pipe-delimited list of allowed command names.
 // Adjust to match your tool's commands.
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
@@ -149,7 +219,7 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
     return false;
 }
 
-void CommandLineParser::addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description)
+void CommandLineParser::addArg(const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, HelpOptionGroup group, const char* description)
 {
     ArgInfo info;
     info.commands    = commands ? commands : "";
@@ -158,6 +228,7 @@ void CommandLineParser::addArg(const char* commands, const char* longForm, const
     info.type        = type;
     info.target      = target;
     info.enumValues  = enumValues ? enumValues : "";
+    info.group       = group;
     info.description = description ? description : "";
 
     args_.push_back(info);
@@ -303,57 +374,71 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         Logger::printDim(ctx, "    swc help <command>\n\n");
 
         Logger::printDim(ctx, "Commands:\n");
+        std::vector<CommandInfo> commands(std::begin(COMMANDS), std::end(COMMANDS));
+        std::ranges::sort(commands, commandInfoLess);
+
         size_t maxLen = 0;
-        for (const auto& cmd : COMMANDS)
+        for (const auto& cmd : commands)
             maxLen = std::max(maxLen, strlen(cmd.name));
-        for (const auto& cmd : COMMANDS)
+        for (const auto& cmd : commands)
             Logger::printDim(ctx, std::format("    {:<{}}    {}\n", cmd.name, maxLen, cmd.description));
     }
     else
     {
         Logger::printDim(ctx, std::format("    swc {} [options]\n\n", command));
-        Logger::printDim(ctx, "Options:\n");
+        Logger::printDim(ctx, "Options (grouped and sorted):\n");
+
+        const Utf8 oldCommand = command_;
+        command_              = command;
+
+        std::vector<HelpOptionEntry> entries;
+        entries.reserve(args_.size());
+        for (const auto& arg : args_)
+        {
+            if (!commandMatches(arg.commands))
+                continue;
+
+            HelpOptionEntry entry;
+            entry.arg         = &arg;
+            entry.displayName = makeOptionDisplayName(arg);
+            entry.group       = arg.group;
+            entries.push_back(std::move(entry));
+        }
+        std::ranges::sort(entries, optionEntryLess);
 
         size_t maxLen = 0;
-        for (const auto& arg : args_)
+        for (const auto& entry : entries)
         {
-            command_ = command; // Temporarily set command_ to use commandMatches
-            if (!commandMatches(arg.commands))
-                continue;
-
-            Utf8 name = arg.longForm;
-            if (!arg.shortForm.empty())
-            {
-                name += ", ";
-                name += arg.shortForm;
-            }
-            maxLen = std::max(maxLen, name.length());
+            maxLen = std::max(maxLen, entry.displayName.length());
         }
 
-        for (const auto& arg : args_)
+        auto currentGroup = HelpOptionGroup::Other;
+        bool firstGroup   = true;
+        for (const auto& entry : entries)
         {
-            command_ = command;
-            if (!commandMatches(arg.commands))
-                continue;
-
-            Utf8 name = arg.longForm;
-            if (!arg.shortForm.empty())
+            if (firstGroup || currentGroup != entry.group)
             {
-                name += ", ";
-                name += arg.shortForm;
+                if (!firstGroup)
+                    Logger::printDim(ctx, "\n");
+
+                Logger::printDim(ctx, std::format("  {}:\n", optionGroupName(entry.group)));
+                currentGroup = entry.group;
+                firstGroup   = false;
             }
 
-            Utf8 line = std::format("    {:<{}}    {}", name, maxLen, arg.description);
-            if (!arg.enumValues.empty())
+            Utf8 line = std::format("    {:<{}}    {}", entry.displayName, maxLen, entry.arg->description);
+            if (!entry.arg->enumValues.empty())
             {
                 line += " (";
-                line += arg.enumValues;
+                line += entry.arg->enumValues;
                 line += ")";
             }
 
             Logger::printDim(ctx, line);
             Logger::printDim(ctx, "\n");
         }
+
+        command_ = oldCommand;
     }
 }
 
@@ -491,36 +576,36 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
-    addArg("all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
-    addArg("all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch.");
-    addArg("all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
-    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, "Suppress all log output.");
-    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
-    addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
-    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, "Enable colored log output for better readability.");
-    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, "Restrict console output to ASCII characters (disable Unicode).");
-    addArg("all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
-    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
-    addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, "Show absolute file paths in diagnostic messages.");
-    addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, "Display diagnostics as a single line.");
-    addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, "Show diagnostic identifiers.");
-    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, "Verify source-file expected diagnostics comments.");
-    addArg("all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, "Enable backend micro-instruction debug information.");
-    addArg("all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, "Log diagnostics that are normally suppressed by --verify.");
-    addArg("all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, "Filter --verbose-verify logs by matching a specific string.");
-    addArg("all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
-    addArg("all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
-    addArg("all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
-    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, "Specify one or more directories to process recursively for input files.");
-    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, "Specify one or more individual files to process directly.");
-    addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, "Apply a substring filter to select specific files by name.");
-    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, "Open a message box in case of errors.");
-    addArg("all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, "Specify a module path to compile.");
-    addArg("all", "--runtime", nullptr, CommandLineType::Bool, &cmdLine_->runtime, nullptr, "Add runtime files.");
+    addArg("all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, HelpOptionGroup::Target, "Set the build configuration string used by #cfg.");
+    addArg("all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", HelpOptionGroup::Target, "Set the target architecture used by #arch.");
+    addArg("all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, HelpOptionGroup::Target, "Set the target CPU string used by #cpu.");
+    addArg("all", "--silent", nullptr, CommandLineType::Bool, &cmdLine_->silent, nullptr, HelpOptionGroup::LoggingAndOutput, "Suppress all log output.");
+    addArg("all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, HelpOptionGroup::Runtime, "Display runtime statistics after execution.");
+    addArg("all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, HelpOptionGroup::Runtime, "Set the maximum number of CPU cores to use (0 = auto-detect).");
+    addArg("all", "--log-color", nullptr, CommandLineType::Bool, &cmdLine_->logColor, nullptr, HelpOptionGroup::LoggingAndOutput, "Enable colored log output for better readability.");
+    addArg("all", "--log-ascii", nullptr, CommandLineType::Bool, &cmdLine_->logAscii, nullptr, HelpOptionGroup::LoggingAndOutput, "Restrict console output to ASCII characters (disable Unicode).");
+    addArg("all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, HelpOptionGroup::LoggingAndOutput, "Syntax color output code.");
+    addArg("all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, HelpOptionGroup::LoggingAndOutput, "Syntax color luminosity factor [0-100].");
+    addArg("all", "--diag-absolute", "-da", CommandLineType::Bool, &cmdLine_->diagAbsolute, nullptr, HelpOptionGroup::Diagnostics, "Show absolute file paths in diagnostic messages.");
+    addArg("all", "--diag-one-line", "-dl", CommandLineType::Bool, &cmdLine_->diagOneLine, nullptr, HelpOptionGroup::Diagnostics, "Display diagnostics as a single line.");
+    addArg("all", "--diag-id", "-did", CommandLineType::Bool, &cmdLine_->errorId, nullptr, HelpOptionGroup::Diagnostics, "Show diagnostic identifiers.");
+    addArg("all", "--verify", "-v", CommandLineType::Bool, &cmdLine_->verify, nullptr, HelpOptionGroup::Diagnostics, "Verify source-file expected diagnostics comments.");
+    addArg("all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, HelpOptionGroup::Development, "Enable backend micro-instruction debug information.");
+    addArg("all", "--verbose-verify", "-vv", CommandLineType::Bool, &cmdLine_->verboseVerify, nullptr, HelpOptionGroup::Diagnostics, "Log diagnostics that are normally suppressed by --verify.");
+    addArg("all", "--verbose-verify-filter", "-vvf", CommandLineType::String, &cmdLine_->verboseVerifyFilter, nullptr, HelpOptionGroup::Diagnostics, "Filter --verbose-verify logs by matching a specific string.");
+    addArg("all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, HelpOptionGroup::Development, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
+    addArg("all", "--internal-unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, HelpOptionGroup::Testing, "Run internal C++ unit tests before executing command.");
+    addArg("all", "--verbose-internal-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, HelpOptionGroup::Testing, "Print each internal unit test status.");
+    addArg("all", "--directory", "-d", CommandLineType::PathSet, &cmdLine_->directories, nullptr, HelpOptionGroup::Input, "Specify one or more directories to process recursively for input files.");
+    addArg("all", "--file", "-f", CommandLineType::PathSet, &cmdLine_->files, nullptr, HelpOptionGroup::Input, "Specify one or more individual files to process directly.");
+    addArg("all", "--file-filter", "-ff", CommandLineType::StringSet, &cmdLine_->fileFilter, nullptr, HelpOptionGroup::Input, "Apply a substring filter to select specific files by name.");
+    addArg("all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, HelpOptionGroup::Development, "Open a message box in case of errors.");
+    addArg("all", "--module", "-m", CommandLineType::Path, &cmdLine_->modulePath, nullptr, HelpOptionGroup::Input, "Specify a module path to compile.");
+    addArg("all", "--runtime", nullptr, CommandLineType::Bool, &cmdLine_->runtime, nullptr, HelpOptionGroup::Runtime, "Add runtime files.");
 
 #if SWC_DEV_MODE
-    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior. Forces --num-cores=1.");
-    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
+    addArg("all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, HelpOptionGroup::Development, "Randomize behavior. Forces --num-cores=1.");
+    addArg("all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, HelpOptionGroup::Development, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");
 #endif
 }
 

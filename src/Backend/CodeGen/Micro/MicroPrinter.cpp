@@ -485,10 +485,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::Label:
-                if (inst.numOperands >= 1)
-                    return std::format("L{}:", static_cast<Ref>(ops[0].valueU64));
-                return "label";
-
+                return std::format("L{}:", static_cast<Ref>(ops[0].valueU64));
             case MicroInstrOpcode::LoadRegReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
@@ -1082,7 +1079,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroInstr& inst     = *it;
         if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
         {
-            const MicroInstrOperand* ops                                    = inst.ops(storeOps);
+            const MicroInstrOperand* ops                       = inst.ops(storeOps);
             labelIndexByRef[static_cast<Ref>(ops[0].valueU64)] = scanIdx;
         }
         ++scanIdx;
@@ -1092,8 +1089,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {
-        const Ref         instRef = it.current;
-        const MicroInstr& inst    = *it;
+        const Ref                instRef = it.current;
+        const MicroInstr&        inst    = *it;
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto               relocIt                = relocationByInstructionRef.find(instRef);

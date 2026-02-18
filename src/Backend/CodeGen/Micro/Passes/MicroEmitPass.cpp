@@ -53,15 +53,12 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
     {
         case MicroInstrOpcode::End:
             break;
-
         case MicroInstrOpcode::Ignore:
         case MicroInstrOpcode::Debug:
             break;
+
         case MicroInstrOpcode::Label:
-            if (inst.numOperands >= 1)
-            {
-                labelOffsets_[resolveRef(ops[0].valueU64)] = encoder.currentOffset();
-            }
+            labelOffsets_[resolveRef(ops[0].valueU64)] = encoder.currentOffset();
             break;
 
         case MicroInstrOpcode::Push:
@@ -87,7 +84,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
             jump.valid = true;
-            SWC_ASSERT(inst.numOperands >= 3);
             pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64});
             break;
         }

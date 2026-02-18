@@ -27,11 +27,11 @@ std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 
 uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value)
 {
-    const auto res = addString(value);
+    const std::pair<std::string_view, Ref> res = addString(value);
     addRelocation(baseOffset + fieldOffset, res.second);
 
-    const auto ptrField = ptr<char*>(baseOffset + fieldOffset);
-    *ptrField           = const_cast<char*>(res.first.data());
+    char** ptrField = ptr<char*>(baseOffset + fieldOffset);
+    *ptrField       = const_cast<char*>(res.first.data());
 
     return static_cast<uint32_t>(res.first.size());
 }

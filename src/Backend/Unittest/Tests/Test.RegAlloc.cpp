@@ -83,9 +83,9 @@ namespace
 
     void buildPersistentAcross(MicroBuilder& b, CallConvKind callConvKind)
     {
-        constexpr auto v0 = MicroReg::virtualIntReg(0);
-        constexpr auto v1 = MicroReg::virtualIntReg(1);
-        constexpr auto v2 = MicroReg::virtualIntReg(2);
+        constexpr MicroReg v0 = MicroReg::virtualIntReg(0);
+        constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
+        constexpr MicroReg v2 = MicroReg::virtualIntReg(2);
 
         b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
         b.encodeLoadRegImm(v1, 2, MicroOpBits::B64);
@@ -100,9 +100,9 @@ namespace
 
     void buildNoCalls(MicroBuilder& b, CallConvKind)
     {
-        constexpr auto v0 = MicroReg::virtualIntReg(10);
-        constexpr auto v1 = MicroReg::virtualIntReg(11);
-        constexpr auto v2 = MicroReg::virtualIntReg(12);
+        constexpr MicroReg v0 = MicroReg::virtualIntReg(10);
+        constexpr MicroReg v1 = MicroReg::virtualIntReg(11);
+        constexpr MicroReg v2 = MicroReg::virtualIntReg(12);
 
         b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
         b.encodeOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
@@ -114,11 +114,11 @@ namespace
 
     void buildMixedIntFloat(MicroBuilder& b, CallConvKind callConvKind)
     {
-        constexpr auto vi  = MicroReg::virtualIntReg(20);
-        constexpr auto vf0 = MicroReg::virtualFloatReg(0);
-        constexpr auto vf1 = MicroReg::virtualFloatReg(1);
-        constexpr auto vf2 = MicroReg::virtualFloatReg(2);
-        constexpr auto vf3 = MicroReg::virtualFloatReg(3);
+        constexpr MicroReg vi  = MicroReg::virtualIntReg(20);
+        constexpr MicroReg vf0 = MicroReg::virtualFloatReg(0);
+        constexpr MicroReg vf1 = MicroReg::virtualFloatReg(1);
+        constexpr MicroReg vf2 = MicroReg::virtualFloatReg(2);
+        constexpr MicroReg vf3 = MicroReg::virtualFloatReg(3);
 
         b.encodeLoadRegImm(vi, 9, MicroOpBits::B64);
         b.encodeClearReg(vf0, MicroOpBits::B64);
@@ -156,7 +156,7 @@ namespace
 
     void buildPersistentWithReturn(MicroBuilder& b, CallConvKind callConvKind)
     {
-        constexpr auto v0 = MicroReg::virtualIntReg(3000);
+        constexpr MicroReg v0 = MicroReg::virtualIntReg(3000);
 
         b.encodeLoadRegImm(v0, 1, MicroOpBits::B64);
         b.encodeCallReg(MicroReg::intReg(0), callConvKind);
@@ -166,7 +166,7 @@ namespace
 
     void buildNoPersistentWithReturn(MicroBuilder& b, CallConvKind)
     {
-        constexpr auto v0 = MicroReg::virtualIntReg(3100);
+        constexpr MicroReg v0 = MicroReg::virtualIntReg(3100);
 
         b.encodeLoadRegImm(v0, 3, MicroOpBits::B64);
         b.encodeRet();
@@ -214,8 +214,8 @@ namespace
     {
         const auto& conv = CallConv::get(callConvKind);
 
-        constexpr auto v0 = MicroReg::virtualIntReg(6000);
-        constexpr auto v1 = MicroReg::virtualIntReg(6001);
+        constexpr MicroReg v0 = MicroReg::virtualIntReg(6000);
+        constexpr MicroReg v1 = MicroReg::virtualIntReg(6001);
         b.addVirtualRegForbiddenPhysRegs(v0, conv.intArgRegs);
         b.addVirtualRegForbiddenPhysRegs(v1, conv.intArgRegs);
 

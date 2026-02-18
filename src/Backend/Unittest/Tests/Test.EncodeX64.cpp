@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/CodeGen/Encoder/X64Encoder.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Main/CompilerInstance.h"
@@ -29,23 +29,23 @@ namespace
     using BuilderCaseFn = std::function<void(MicroBuilder&)>;
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
-    constexpr auto RAX  = MicroReg::intReg(0);
-    constexpr auto RCX  = MicroReg::intReg(2);
-    constexpr auto RDX  = MicroReg::intReg(3);
-    constexpr auto RSP  = MicroReg::intReg(4);
-    constexpr auto RBP  = MicroReg::intReg(5);
-    constexpr auto R8   = MicroReg::intReg(8);
-    constexpr auto R9   = MicroReg::intReg(9);
-    constexpr auto R10  = MicroReg::intReg(10);
-    constexpr auto R11  = MicroReg::intReg(11);
-    constexpr auto R12  = MicroReg::intReg(12);
-    constexpr auto R13  = MicroReg::intReg(13);
-    constexpr auto R14  = MicroReg::intReg(14);
-    constexpr auto R15  = MicroReg::intReg(15);
-    constexpr auto XMM0 = MicroReg::floatReg(0);
-    constexpr auto XMM1 = MicroReg::floatReg(1);
-    constexpr auto XMM2 = MicroReg::floatReg(2);
-    constexpr auto XMM3 = MicroReg::floatReg(3);
+    constexpr MicroReg RAX  = MicroReg::intReg(0);
+    constexpr MicroReg RCX  = MicroReg::intReg(2);
+    constexpr MicroReg RDX  = MicroReg::intReg(3);
+    constexpr MicroReg RSP  = MicroReg::intReg(4);
+    constexpr MicroReg RBP  = MicroReg::intReg(5);
+    constexpr MicroReg R8   = MicroReg::intReg(8);
+    constexpr MicroReg R9   = MicroReg::intReg(9);
+    constexpr MicroReg R10  = MicroReg::intReg(10);
+    constexpr MicroReg R11  = MicroReg::intReg(11);
+    constexpr MicroReg R12  = MicroReg::intReg(12);
+    constexpr MicroReg R13  = MicroReg::intReg(13);
+    constexpr MicroReg R14  = MicroReg::intReg(14);
+    constexpr MicroReg R15  = MicroReg::intReg(15);
+    constexpr MicroReg XMM0 = MicroReg::floatReg(0);
+    constexpr MicroReg XMM1 = MicroReg::floatReg(1);
+    constexpr MicroReg XMM2 = MicroReg::floatReg(2);
+    constexpr MicroReg XMM3 = MicroReg::floatReg(3);
 
 #define ENCODE_CASE(__name, __hex, ...)                                        \
     do                                                                         \

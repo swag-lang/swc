@@ -94,13 +94,13 @@ namespace
             {
                 if (color == SyntaxColor::Default)
                     return LogColorHelper::toAnsi(ctx, LogColor::Reset);
-                const auto rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
+                const uint32_t rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
                 return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
             }
 
             case SyntaxColorMode::ForDoc:
             {
-                const char* colorName = nullptr;
+                std::string_view colorName;
                 switch (color)
                 {
                     case SyntaxColor::Default:
@@ -161,7 +161,7 @@ namespace
                         break;
                 }
 
-                if (colorName)
+                if (!colorName.empty())
                     return std::format("<span class=\"{}\">", colorName);
                 break;
             }
@@ -173,7 +173,7 @@ namespace
 
 Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force)
 {
-    const auto& cmdLine = ctx.cmdLine();
+    const CommandLine& cmdLine = ctx.cmdLine();
 
     if (!force)
     {
@@ -183,13 +183,13 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             return line;
     }
 
-    const auto& langSpec = ctx.global().langSpec();
-    auto        cur      = reinterpret_cast<const char8_t*>(line.data());
-    auto        end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
-    Utf8        result;
-    char32_t    c;
-    uint32_t    offset;
-    uint32_t    multiLineCommentLevel = 0;
+    const LangSpec&  langSpec = ctx.global().langSpec();
+    const char8_t*   cur      = reinterpret_cast<const char8_t*>(line.data());
+    const char8_t*   end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
+    Utf8             result;
+    char32_t         c;
+    uint32_t         offset;
+    uint32_t         multiLineCommentLevel = 0;
 
     bool hasCode = false;
     cur          = Utf8Helper::decodeOneChar(cur, end, c, offset);
@@ -335,7 +335,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
         {
             Utf8 word;
             word += c;
-            auto pz1 = cur;
+            const char8_t* pz1 = cur;
             while (pz1 < end && (langSpec.isAscii(*pz1) || langSpec.isDigit(*pz1)))
                 word += *pz1++;
             if (pz1 < end && *pz1 == '\'')
@@ -427,10 +427,10 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
             }
 
-            auto tokenId = langSpec.keyword(identifier);
+            const TokenId tokenId = langSpec.keyword(identifier);
             if (tokenId != TokenId::Identifier)
             {
-                auto tokColor = SyntaxColor::Code;
+                SyntaxColor tokColor = SyntaxColor::Code;
                 if (Token::isModifier(tokenId))
                     tokColor = SyntaxColor::Intrinsic;
                 else if (Token::isCompilerIntrinsic(tokenId))

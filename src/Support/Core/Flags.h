@@ -190,7 +190,7 @@ struct AtomicEnumFlags
     bool hasAny(std::initializer_list<EnumFlags<T>> list, std::memory_order mo = std::memory_order_acquire) const noexcept
     {
         U mask = 0;
-        for (auto x : list)
+        for (const EnumFlags<T> x : list)
             mask |= x.flags;
         const U v = flags.load(mo);
         return (v & mask) != 0;

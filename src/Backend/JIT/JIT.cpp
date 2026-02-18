@@ -173,7 +173,7 @@ namespace
 
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
-        const auto     basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
+        uint8_t* const basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
         SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
@@ -189,7 +189,7 @@ namespace
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_FORCE_ASSERT(basePtr != nullptr);
 
-        for (const auto& reloc : relocations)
+        for (const MicroRelocation& reloc : relocations)
         {
             uint64_t   targetAddress    = 0;
             const bool hasTargetAddress = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr);
@@ -224,7 +224,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
 {
     SWC_ASSERT(targetFn != nullptr);
 
-    constexpr auto                         callConvKind = CallConvKind::Host;
+    constexpr CallConvKind                 callConvKind = CallConvKind::Host;
     const CallConv&                        conv         = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType retType      = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
@@ -297,7 +297,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     MicroBuilder builder(ctx);
 
     void* const retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
-    const auto  retMeta   = ABICall::Return{
+    const ABICall::Return retMeta = {
            .valuePtr   = retOutPtr,
            .isVoid     = retType.isVoid,
            .isFloat    = retType.isFloat,
@@ -328,14 +328,14 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
     {
         if (arg0)
         {
-            using InvokerVoidU64    = void (*)(uint64_t);
-            const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
+            using InvokerVoidU64       = void (*)(uint64_t);
+            const InvokerVoidU64 typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
             typedInvoker(*arg0);
         }
         else
         {
-            using InvokerFn         = void (*)();
-            const auto typedInvoker = reinterpret_cast<InvokerFn>(invoker);
+            using InvokerFn          = void (*)();
+            const InvokerFn typedInvoker = reinterpret_cast<InvokerFn>(invoker);
             typedInvoker();
         }
     }

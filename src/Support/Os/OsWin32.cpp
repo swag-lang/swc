@@ -42,7 +42,7 @@ namespace Os
                         "Press 'Retry' to break\n",
                         expr);
 
-        const auto result = MessageBoxA(nullptr, msg, "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        const int result = MessageBoxA(nullptr, msg, "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
         switch (result)
         {
             case IDCANCEL:

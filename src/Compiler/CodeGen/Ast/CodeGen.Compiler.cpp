@@ -27,11 +27,11 @@ namespace
 
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
-    const auto& callConv = CallConv::host();
+    const CallConv& callConv = CallConv::host();
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     const MicroReg outputStorageReg = callConv.intArgRegs[0];
-    auto&          nodePayload      = codeGen.setPayload(codeGen.curNodeRef());
+    CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef());
     codeGen.builder().encodeLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
     nodePayload.storageKind = CodeGenNodePayload::StorageKind::Address;
     return Result::Continue;
@@ -39,8 +39,8 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const auto&    callConv     = CallConv::host();
-    constexpr auto callConvKind = CallConvKind::Host;
+    const CallConv& callConv     = CallConv::host();
+    constexpr CallConvKind callConvKind = CallConvKind::Host;
     MicroBuilder&  builder      = codeGen.builder();
     const auto     exprView     = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);
@@ -54,7 +54,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(outputStorageReg.isValid());
     const AstNode& exprNode = codeGen.node(nodeExprRef);
 
-    const auto normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {
@@ -65,7 +65,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         }
         else
         {
-            const auto spillSize = normalizedRet.indirectSize;
+            const uint32_t spillSize = normalizedRet.indirectSize;
             std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 

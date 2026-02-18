@@ -6,7 +6,7 @@
 void* operator new(size_t size)
 {
 #if SWC_HAS_STATS
-    auto& stats = swc::Stats::get();
+    swc::Stats& stats = swc::Stats::get();
     stats.memAllocated.fetch_add(static_cast<uint32_t>(size));
     swc::Stats::setMax(stats.memAllocated, stats.memMaxAllocated);
 #endif

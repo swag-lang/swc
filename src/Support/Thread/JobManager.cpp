@@ -173,7 +173,7 @@ JobRecord* JobManager::popReadyLocked()
 {
     for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
     {
-        auto& q = readyQ_[idx];
+        std::deque<JobRecord*>& q = readyQ_[idx];
         if (!q.empty())
         {
 #if SWC_DEV_MODE
@@ -198,7 +198,7 @@ JobRecord* JobManager::popReadyForClientLocked(JobClientId client)
 {
     for (int idx = static_cast<int>(JobPriority::High); idx <= static_cast<int>(JobPriority::Low); idx++)
     {
-        auto& q = readyQ_[idx];
+        std::deque<JobRecord*>& q = readyQ_[idx];
         if (q.empty())
             continue;
 

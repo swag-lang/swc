@@ -174,6 +174,7 @@ void MicroBuilder::encodeRet()
 
 void MicroBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
+    // Convenience wrapper: materialize target address then use the generic indirect call opcode.
     const CallConv& conv = CallConv::get(callConv);
     encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     encodeCallReg(conv.intReturn, callConv);
@@ -182,6 +183,7 @@ void MicroBuilder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 
 void MicroBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv)
 {
+    // Extern/local share the same micro-level representation; relocation kind differs.
     const CallConv& conv = CallConv::get(callConv);
     encodeLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     encodeCallReg(conv.intReturn, callConv);
@@ -190,6 +192,7 @@ void MicroBuilder::encodeCallExtern(Symbol* targetSymbol, CallConvKind callConv)
 
 void MicroBuilder::encodeCallReg(MicroReg reg, CallConvKind callConv)
 {
+    // Micro IR models calls as indirect calls carrying the selected calling convention.
     const auto&        inst = addInstruction(MicroInstrOpcode::CallIndirect, 2);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
@@ -250,6 +253,7 @@ void MicroBuilder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits op
 
 void MicroBuilder::encodeLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
 {
+    // Record relocation metadata so the emitter/JIT can patch the final absolute target.
     auto relocationKind = MicroRelocation::Kind::ConstantAddress;
     if (targetSymbol && targetSymbol->isFunction())
     {

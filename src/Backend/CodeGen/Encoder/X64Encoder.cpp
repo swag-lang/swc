@@ -2697,6 +2697,7 @@ void X64Encoder::encodeJumpReg(MicroReg reg)
 
 void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)
 {
+    // External address calls are lowered as mov target -> temp, then indirect call.
     SWC_UNUSED(targetSymbol);
     const auto& conv = CallConv::get(callConv);
     encodeLoadRegImm(conv.intReturn, targetAddress, MicroOpBits::B64);
@@ -2706,6 +2707,7 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, 
 
 void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
+    // Local calls use E8 + relocation patched later by the linker/JIT relocation pass.
     SWC_UNUSED(targetSymbol);
     SWC_UNUSED(callConv);
 
@@ -2716,6 +2718,7 @@ void X64Encoder::encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 
 void X64Encoder::encodeCallReg(MicroReg reg, CallConvKind callConv)
 {
+    // FF /2 encodes `call r/m64`.
     SWC_UNUSED(callConv);
     emitRex(store_, MicroOpBits::Zero, MicroReg{}, reg);
     emitCpuOp(store_, 0xFF);

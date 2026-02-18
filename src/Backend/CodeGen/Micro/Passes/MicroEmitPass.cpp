@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
+    // LoadRegPtrImm always embeds an absolute 64-bit immediate at the end of the instruction.
     const auto found = relocationByInstructionRef_.find(instructionRef);
     SWC_ASSERT(found != relocationByInstructionRef_.end());
     if (found == relocationByInstructionRef_.end())
@@ -74,6 +75,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeRet();
             break;
         case MicroInstrOpcode::CallIndirect:
+            // Call target is already materialized in ops[0] by earlier lowering stages.
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv);
             break;
         case MicroInstrOpcode::JumpTable:

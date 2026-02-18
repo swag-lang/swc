@@ -31,6 +31,7 @@ struct StructReturnPassingInfo
 
 struct CallConv
 {
+    // Concrete ABI contract used by lowering, register allocation, and final encoding.
     std::string_view name = "?";
 
     MicroReg stackPointer = MicroReg::invalid();
@@ -50,6 +51,7 @@ struct CallConv
     SmallVector<MicroReg> floatTransientRegs;
     SmallVector<MicroReg> floatPersistentRegs;
 
+    // Stack layout fields are expressed in bytes.
     uint32_t                stackAlignment       = 0;
     uint32_t                stackParamAlignment  = 0;
     uint32_t                stackParamSlotSize   = 0;

@@ -13,6 +13,7 @@ namespace ABITypeNormalize
 
     struct NormalizedType
     {
+        // Normalized ABI shape consumed by call/return lowering.
         bool     isVoid            = true;
         bool     isFloat           = false;
         bool     isIndirect        = false;

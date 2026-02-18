@@ -18,6 +18,7 @@ namespace
 
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex, uint32_t numRegArgs)
     {
+        // Register arguments also get home slots so the same offset rule works for all args.
         const uint32_t stackSlotSize = conv.stackSlotSize();
         if (argIndex < numRegArgs)
             return static_cast<uint64_t>(argIndex) * stackSlotSize;
@@ -27,6 +28,7 @@ namespace
 
     void emitCallArgs(MicroBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
     {
+        // JIT bridge path: pack arguments in memory and expand them into ABI locations.
         if (args.empty())
             return;
 
@@ -83,6 +85,7 @@ namespace
 
     PreparedCallStackAdjust computePreparedCallStackAdjust(CallConvKind callConvKind, const ABICall::PreparedCall& preparedCall)
     {
+        // Avoid double-adjusting the stack when prepareArgs already reserved call space.
         PreparedCallStackAdjust result;
         if (preparedCall.stackAlreadyAdjusted)
         {
@@ -115,6 +118,7 @@ namespace
 
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
+    // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
     const auto&    conv          = CallConv::get(callConvKind);
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
@@ -128,6 +132,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t num
 
 ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
+    // Move lowered argument values into the concrete ABI argument registers/stack slots.
     PreparedCall   preparedCall;
     const auto&    conv            = CallConv::get(callConvKind);
     const uint32_t numPreparedArgs = static_cast<uint32_t>(args.size());
@@ -161,6 +166,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
             if (isRegArg)
             {
+                // Float and non-virtual int values are staged through home slots for uniformity.
                 const bool useHomeSlot = arg.isFloat || !arg.srcReg.isVirtualInt();
                 regArgsUseHomeSlot[i]  = useHomeSlot ? 1 : 0;
 
@@ -276,6 +282,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (!ret.isIndirect)
         return prepareArgs(builder, callConvKind, args);
 
+    // Indirect returns consume a hidden first argument pointing to return storage.
     const auto& conv = CallConv::get(callConvKind);
     SWC_ASSERT(!conv.intArgRegs.empty());
     SWC_ASSERT(ret.indirectSize != 0);
@@ -362,6 +369,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
     const auto& conv = CallConv::get(callConvKind);
     if (ret.isIndirect)
     {
+        // For indirect returns, return register carries the storage pointer.
         builder.encodeLoadRegReg(dstReg, conv.intReturn, MicroOpBits::B64);
         return;
     }
@@ -377,6 +385,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
+    // Fully self-contained call helper for runtime/JIT address calls.
     const auto&    conv        = CallConv::get(callConvKind);
     const uint32_t numArgs     = static_cast<uint32_t>(args.size());
     const auto     stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
@@ -403,6 +412,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
     if (!targetReg.isValid())
         targetReg = conv.intReturn;
 
+    // The temporary target register must not alias ABI argument registers.
     SWC_ASSERT(targetReg.isInt() || targetReg.isVirtualInt());
     if (targetReg.isVirtualInt())
         builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
@@ -429,6 +439,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     if (!targetReg.isValid())
         targetReg = conv.intReturn;
 
+    // The temporary target register must not alias ABI argument registers.
     SWC_ASSERT(targetReg.isInt() || targetReg.isVirtualInt());
     if (targetReg.isVirtualInt())
         builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);

@@ -25,6 +25,7 @@ namespace
 
 ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, TypeRef typeRef, Usage usage)
 {
+    // Convert semantic types into one ABI transfer model: register value or indirect pointer.
     SWC_ASSERT(typeRef.isValid());
 
     const TypeRef expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
@@ -58,10 +59,12 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         const auto passingKind = usage == Usage::Argument ? conv.classifyStructArgPassing(size) : conv.classifyStructReturnPassing(size);
         if (passingKind == StructArgPassingKind::ByValue)
         {
+            // Current supported by-value aggregate widths match the platform ABI slots.
             SWC_ASSERT(size == 1 || size == 2 || size == 4 || size == 8);
             return makeNormalizedType(false, false, static_cast<uint8_t>(size * 8));
         }
 
+        // Non-by-value aggregates are passed/returned through an ABI-managed pointer.
         const uint32_t align     = std::max(ty.alignOf(ctx), uint32_t{1});
         const bool     needsCopy = usage == Usage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
         return makeIndirectStructType(size, align, needsCopy);

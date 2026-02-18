@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace ABICall
 {
+    // Compute total stack reservation needed before issuing a call instruction.
     uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
 
     struct Arg
@@ -24,6 +25,7 @@ namespace ABICall
 
     struct PreparedArg
     {
+        // Source register already contains the lowered argument value.
         MicroReg        srcReg  = MicroReg::invalid();
         PreparedArgKind kind    = PreparedArgKind::Direct;
         bool            isFloat = false;
@@ -32,6 +34,7 @@ namespace ABICall
 
     struct Return
     {
+        // Optional out buffer used by call helpers to materialize direct returns.
         void*   valuePtr   = nullptr;
         bool    isVoid     = true;
         bool    isFloat    = false;
@@ -41,6 +44,7 @@ namespace ABICall
 
     struct PreparedCall
     {
+        // prepareArgs may pre-adjust the stack when stack arguments are present.
         uint32_t numPreparedArgs      = 0;
         uint32_t stackAdjust          = 0;
         bool     stackAlreadyAdjusted = false;

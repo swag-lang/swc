@@ -15,6 +15,7 @@ namespace
 {
     bool shouldDeferCallResultMaterializationToCompilerRun(CodeGen& codeGen, const ABITypeNormalize::NormalizedType& normalizedRet)
     {
+        // Compiler-run wrappers consume return registers directly, so avoid extra moves.
         if (normalizedRet.isVoid || normalizedRet.isIndirect)
             return false;
 
@@ -35,6 +36,7 @@ namespace
 
     void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
     {
+        // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
         outArgs.reserve(args.size());
 
@@ -93,6 +95,7 @@ namespace
         const CodeGenNodePayload* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
         if (normalizedRet.isIndirect)
         {
+            // Hidden first argument points to caller-provided return storage.
             SWC_ASSERT(!callConv.intArgRegs.empty());
 
             const CodeGenNodePayload* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
@@ -126,6 +129,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
     {
+        // Cache hidden return pointer in the function payload for return statements.
         SWC_ASSERT(!callConv.intArgRegs.empty());
         CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef());
         codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
@@ -161,12 +165,14 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
+    // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const CodeGenNodePayload*   calleePayload = codeGen.payload(calleeView.nodeRef);
     const MicroReg              resultReg     = nodePayload.reg;
 
     if (calleePayload)
+        // Function value call: target already computed in a register.
         ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
     else
     {

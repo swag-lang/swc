@@ -28,6 +28,7 @@ namespace
 
     void setupCallConvWindowsX64(CallConv& conv)
     {
+        // Windows x64 ABI model used by both compiled calls and JIT bridge calls.
         conv.name         = "win64";
         conv.stackPointer = MicroReg::intReg(4);
         conv.framePointer = MicroReg::intReg(5);
@@ -117,6 +118,7 @@ namespace
 
 uint32_t CallConv::numArgRegisterSlots() const
 {
+    // A call site can only use argument register slots common to int and float lanes.
     if (argRegisterSlotCount)
         return argRegisterSlotCount;
 
@@ -127,6 +129,7 @@ uint32_t CallConv::numArgRegisterSlots() const
 
 uint32_t CallConv::stackSlotSize() const
 {
+    // Slot granularity used for shadow-space and stack-passed arguments.
     if (stackParamSlotSize)
         return stackParamSlotSize;
     if (stackParamAlignment)
@@ -195,6 +198,7 @@ bool CallConv::isFloatPersistentReg(MicroReg reg) const
 
 bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::span<const MicroReg> forbidden) const
 {
+    // Scratch regs are needed for ABI shuffles; avoid reserved/argument registers first.
     auto isForbidden = [&](MicroReg reg) {
         if (!reg.isValid() || reg == stackPointer || reg == framePointer || reg == intReturn || isIntArgReg(reg))
             return true;

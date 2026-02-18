@@ -69,6 +69,12 @@ attr Over1(a: s8)
 
 attr MatchCallFixed(a: s32, b: string = "")
 attr MatchCallVariadic(a: s32...)
+enum AttrAutoScopeMode: u8
+{
+    A
+    B
+}
+attr AttrAutoScope(mode: AttrAutoScopeMode)
 
 #[MatchCallFixed(1)]
 var MatchCallOk1: s32 = 0
@@ -112,5 +118,17 @@ var MatchCallOk3: s32 = 0
 #test
 {
     #[MatchCallFixed(a: 1, 2)] // swc-expected-error {{sema_err_unnamed_parameter}}
+    var V: s32 = 0
+}
+
+#test
+{
+    #[AttrAutoScope(.B)]
+    var V: s32 = 0
+}
+
+#test
+{
+    #[AttrAutoScope(.C)] // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
     var V: s32 = 0
 }

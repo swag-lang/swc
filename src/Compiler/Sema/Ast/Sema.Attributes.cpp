@@ -175,7 +175,7 @@ Result AstAccessModifier::semaPreNode(Sema& sema) const
     return semaPreDecl(sema);
 }
 
-Result AstAccessModifier::semaPostNode(Sema& sema)
+Result AstAccessModifier::semaPostNode(const Sema& sema)
 {
     return semaPostDecl(sema);
 }

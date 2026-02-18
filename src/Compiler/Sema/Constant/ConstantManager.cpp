@@ -240,7 +240,7 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
 
     if (cst.isValuePointer())
     {
-        auto          ptr = reinterpret_cast<const void*>(cst.getValuePointer());
+        const auto    ptr = reinterpret_cast<const void*>(cst.getValuePointer());
         const TypeRef res = sema.typeGen().getBackTypeRef(ptr);
         if (res.isValid())
             return res;

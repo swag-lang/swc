@@ -137,7 +137,7 @@ namespace
 
             case CommandLineType::Path:
             {
-                const Utf8 value = formatPathValue(*static_cast<const fs::path*>(arg.target));
+                Utf8 value = formatPathValue(*static_cast<const fs::path*>(arg.target));
                 if (value.empty())
                     return "(none)";
                 return value;
@@ -145,7 +145,7 @@ namespace
 
             case CommandLineType::StringSet:
             {
-                const Utf8 value = formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
+                Utf8 value = formatStringSetValue(*static_cast<const std::set<Utf8>*>(arg.target));
                 if (value.empty())
                     return "(none)";
                 return value;
@@ -153,7 +153,7 @@ namespace
 
             case CommandLineType::PathSet:
             {
-                const Utf8 value = formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
+                Utf8 value = formatPathSetValue(*static_cast<const std::set<fs::path>*>(arg.target));
                 if (value.empty())
                     return "(none)";
                 return value;
@@ -256,7 +256,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         Logger::printDim(ctx, "    swc help <command>\n\n");
 
         Logger::printDim(ctx, "Commands:\n");
-        std::vector<CommandInfo> commands(std::begin(COMMANDS), std::end(COMMANDS));
+        std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
         std::ranges::sort(commands, commandInfoLess);
 
         size_t maxLen = 0;

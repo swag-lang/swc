@@ -295,9 +295,10 @@ namespace
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        auto                                                    symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen                                             = MAX_SYM_NAME;
+
+        const auto symbol    = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen   = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol))

@@ -248,8 +248,11 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         case TokenId::CompilerArch:
         case TokenId::CompilerCpu:
         case TokenId::CompilerBuildCfg:
-        case TokenId::CompilerModule:
         case TokenId::CompilerSwagOs:
+            // TODO
+            SWC_INTERNAL_ERROR();
+
+        case TokenId::CompilerModule:
         case TokenId::CompilerScopeName:
             // TODO
             SWC_INTERNAL_ERROR();

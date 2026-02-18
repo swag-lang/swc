@@ -23,26 +23,24 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
         return;
 
     Ref              firstRef = INVALID_REF;
-    std::vector<Ref> retRefs;
+    SmallVector<Ref> retRefs;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         if (firstRef == INVALID_REF)
             firstRef = it.current;
-
         if (it->op == MicroInstrOpcode::Ret)
             retRefs.push_back(it.current);
     }
 
     if (firstRef != INVALID_REF)
         insertSavedRegsPrologue(context, conv, firstRef);
-
-    for (const auto retRef : retRefs)
+    for (const Ref retRef : retRefs)
         insertSavedRegsEpilogue(context, conv, retRef);
 }
 
 bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const
 {
-    for (const auto& slot : savedRegSlots_)
+    for (const SavedRegSlot& slot : savedRegSlots_)
     {
         if (slot.reg == reg)
             return true;
@@ -53,7 +51,7 @@ bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const
 
 bool MicroPrologEpilogPass::containsPushedReg(MicroReg reg) const
 {
-    for (const auto pushedReg : pushedRegs_)
+    for (const MicroReg pushedReg : pushedRegs_)
     {
         if (pushedReg == reg)
             return true;
@@ -75,7 +73,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     {
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(storeOps, refs, context.encoder);
-        for (const auto& ref : refs)
+        for (const MicroInstrRegOperandRef& ref : refs)
         {
             if (!ref.reg)
                 continue;
@@ -115,7 +113,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
         frameOffset += slotSize;
     }
 
-    const uint64_t pushedRegsSize = static_cast<uint64_t>(pushedRegs_.size()) * sizeof(uint64_t);
+    const uint64_t pushedRegsSize = pushedRegs_.size() * sizeof(uint64_t);
     const uint64_t stackAlignment = conv.stackAlignment ? conv.stackAlignment : 16;
     const uint64_t totalFrameSize = Math::alignUpU64(pushedRegsSize + frameOffset, stackAlignment);
     savedRegsStackSubSize_        = totalFrameSize > pushedRegsSize ? totalFrameSize - pushedRegsSize : 0;
@@ -129,7 +127,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
     auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
-    for (const auto pushedReg : pushedRegs_)
+    for (const MicroReg pushedReg : pushedRegs_)
     {
         MicroInstrOperand pushOps[1];
         pushOps[0].reg = pushedReg;
@@ -146,7 +144,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
     }
 
-    for (const auto& slot : savedRegSlots_)
+    for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand storeOps[4];
         storeOps[0].reg      = conv.stackPointer;
@@ -165,7 +163,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
     auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
 
-    for (const auto& slot : savedRegSlots_)
+    for (const SavedRegSlot& slot : savedRegSlots_)
     {
         MicroInstrOperand loadOps[4];
         loadOps[0].reg      = slot.reg;
@@ -185,10 +183,10 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
     }
 
-    for (auto it = pushedRegs_.rbegin(); it != pushedRegs_.rend(); ++it)
+    for (const MicroReg pushedReg : std::ranges::reverse_view(pushedRegs_))
     {
         MicroInstrOperand popOps[1];
-        popOps[0].reg = *it;
+        popOps[0].reg = pushedReg;
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Pop, popOps);
     }
 }

@@ -170,8 +170,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeOpTernaryRegRegReg(ops[0].reg, ops[1].reg, ops[2].reg, ops[4].microOp, ops[3].opBits);
             break;
         default:
-            SWC_ASSERT(false);
-            break;
+            SWC_UNREACHABLE();
     }
 }
 

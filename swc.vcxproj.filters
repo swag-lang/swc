@@ -510,6 +510,9 @@
     <ClCompile Include="src\Main\CommandLineParser.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\CommandLineParser.Help.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\CompilerInstance.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>

@@ -241,6 +241,7 @@
         <ClCompile Include="src\Main\Command.Sema.cpp"/>
         <ClCompile Include="src\Main\Command.Syntax.cpp"/>
         <ClCompile Include="src\Main\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>

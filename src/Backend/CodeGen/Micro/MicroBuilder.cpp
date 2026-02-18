@@ -143,7 +143,7 @@ void MicroBuilder::encodeNop()
 
 Ref MicroBuilder::createLabel()
 {
-    const auto labelRef = static_cast<Ref>(labels_.size());
+    const Ref labelRef = static_cast<Ref>(labels_.size());
     labels_.push_back(INVALID_REF);
     return labelRef;
 }

@@ -28,7 +28,7 @@ namespace Unittest
 
         void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
         {
-            const auto header = std::format("Test-{}", name);
+            const std::string header = std::format("Test-{}", name);
             Logger::printHeaderDot(ctx,
                                    LogColor::BrightCyan,
                                    header,

@@ -125,7 +125,7 @@ namespace
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
-        const std::span<SymbolVariable* const> params = fn.parameters();
+        const auto params = fn.parameters();
         if (params.empty())
             return vi;
 
@@ -168,7 +168,7 @@ namespace
     {
         outMapping = {};
 
-        const std::span<SymbolVariable* const> params     = fn.parameters();
+        const auto params     = fn.parameters();
         const uint32_t numParams  = static_cast<uint32_t>(params.size());
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
@@ -559,7 +559,7 @@ namespace
 
     uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
     {
-        const std::span<SymbolVariable* const> params = fn.parameters();
+        const auto params = fn.parameters();
         const uint32_t n      = static_cast<uint32_t>(params.size());
         const uint32_t end    = (ignoreVariadicTail && n > 0) ? (n - 1) : n;
 
@@ -579,7 +579,7 @@ namespace
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
-        const std::span<SymbolVariable* const> params    = fn.parameters();
+        const auto params    = fn.parameters();
         const uint32_t numParams = static_cast<uint32_t>(params.size());
         const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 
@@ -831,7 +831,7 @@ namespace
     Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const std::span<SymbolVariable* const> params         = selectedFn.parameters();
+        const auto params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
 
@@ -903,7 +903,7 @@ namespace
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const std::span<SymbolVariable* const> params         = selectedFn.parameters();
+        const auto params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
 

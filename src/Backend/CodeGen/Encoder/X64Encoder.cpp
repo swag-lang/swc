@@ -280,7 +280,7 @@ namespace
 
     uint8_t getModRm(ModRmMode mod, uint8_t reg, uint8_t rm)
     {
-        const auto result = static_cast<uint32_t>(mod) << 6 | ((reg & 0b111) << 3) | (rm & 0b111);
+        const uint32_t result = static_cast<uint32_t>(mod) << 6 | ((reg & 0b111) << 3) | (rm & 0b111);
         return static_cast<uint8_t>(result);
     }
 
@@ -1136,7 +1136,7 @@ namespace
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const auto scale = static_cast<uint8_t>(log2(mulValue));
+        const uint8_t scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
@@ -1222,7 +1222,7 @@ namespace
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const auto scale = static_cast<uint8_t>(log2(mulValue));
+        const uint8_t scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
@@ -1294,8 +1294,8 @@ void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t 
     {
         if (opBits == MicroOpBits::B64)
         {
-            const auto lowU32  = static_cast<uint32_t>(value & 0xFFFFFFFFu);
-            const auto highU32 = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
+            const uint32_t lowU32  = static_cast<uint32_t>(value & 0xFFFFFFFFu);
+            const uint32_t highU32 = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
             encodeLoadMemImm(memReg, memOffset, lowU32, MicroOpBits::B32);
             encodeLoadMemImm(memReg, memOffset + 4, highU32, MicroOpBits::B32);
             return;
@@ -2501,7 +2501,7 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
     std::memcpy(patchPtr, &patchValue, sizeof(patchValue));
 
     const auto tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
-    const auto currentOffset = static_cast<int32_t>(store_.size());
+    const int32_t currentOffset = static_cast<int32_t>(store_.size());
 
     EncoderJumpLabel label;
     for (uint32_t idx = 0; idx < numEntries; idx++)

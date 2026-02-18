@@ -120,7 +120,7 @@ Utf8 Utf8Helper::toNiceSize(std::size_t size)
 
 Utf8 Utf8Helper::toNiceBigNumber(std::size_t number)
 {
-    auto str = std::format("{}", number);
+    std::string str = std::format("{}", number);
 
     // Insert separators from right to left
     int count = 0;
@@ -148,28 +148,28 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     // Microseconds (< 1ms)
     if (seconds < MILLISECOND)
     {
-        auto us = static_cast<size_t>(seconds / MICROSECOND);
+        size_t us = static_cast<size_t>(seconds / MICROSECOND);
         return std::format("{} µs", us);
     }
 
     // Milliseconds (< 1s)
     if (seconds < 1.0)
     {
-        auto ms = static_cast<size_t>(seconds / MILLISECOND);
+        size_t ms = static_cast<size_t>(seconds / MILLISECOND);
         return std::format("{} ms", ms);
     }
 
     // Seconds only (< 1min)
     if (seconds < MINUTE)
     {
-        auto wholeSeconds = static_cast<size_t>(seconds);
-        auto ms           = static_cast<size_t>((seconds - static_cast<double>(wholeSeconds)) / MILLISECOND);
+        size_t wholeSeconds = static_cast<size_t>(seconds);
+        size_t ms           = static_cast<size_t>((seconds - static_cast<double>(wholeSeconds)) / MILLISECOND);
         return std::format("{} s {} ms", wholeSeconds, ms);
     }
 
     // Minutes and seconds (>= 1 min)
-    auto minutes          = static_cast<size_t>(seconds / MINUTE);
-    auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
+    size_t minutes          = static_cast<size_t>(seconds / MINUTE);
+    size_t remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
 

@@ -703,7 +703,7 @@ void Lexer::lexIdentifier()
             else if (name[0] == '@')
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
-            const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
+            const uint32_t idx = static_cast<uint32_t>(srcView_->identifiers().size());
             srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }

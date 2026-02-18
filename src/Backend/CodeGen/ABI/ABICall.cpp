@@ -36,7 +36,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const auto& arg      = args[i];
-            const auto  argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
+            const uint64_t  argAddr  = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
             const auto  argBits  = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
             const bool  isRegArg = i < numRegArgs;
 
@@ -130,7 +130,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 {
     PreparedCall preparedCall;
     const auto&  conv            = CallConv::get(callConvKind);
-    const auto   numPreparedArgs = static_cast<uint32_t>(args.size());
+    const uint32_t   numPreparedArgs = static_cast<uint32_t>(args.size());
     preparedCall.numPreparedArgs = numPreparedArgs;
     if (args.empty())
         return preparedCall;
@@ -378,7 +378,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint64_t targetAddress, std::span<const Arg> args, const Return& ret)
 {
     const auto& conv        = CallConv::get(callConvKind);
-    const auto  numArgs     = static_cast<uint32_t>(args.size());
+    const uint32_t  numArgs     = static_cast<uint32_t>(args.size());
     const auto  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
     MicroReg regBase = MicroReg::invalid();

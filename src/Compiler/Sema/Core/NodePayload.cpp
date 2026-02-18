@@ -98,7 +98,7 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
 
         case NodePayloadKind::SymbolList:
         {
-            const std::span<const Symbol*> symList = getSymbolList(nodeRef);
+            const auto symList = getSymbolList(nodeRef);
             if (symList.size() > 1)
                 return ConstantRef::invalid();
             if (symList.front()->isConstant())

@@ -93,7 +93,7 @@ bool JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan 
         return false;
 
     SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
-    const auto requestSize = static_cast<uint32_t>(bytes.size());
+    const uint32_t requestSize = static_cast<uint32_t>(bytes.size());
     if (!allocate(outExecutableMemory, requestSize))
         return false;
 

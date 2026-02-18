@@ -150,7 +150,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
     }
 
     SWC_ASSERT(data != nullptr);
-    auto           src        = static_cast<const uint8_t*>(data);
+    const uint8_t*           src        = static_cast<const uint8_t*>(data);
     uint32_t       remaining  = count;
     const uint32_t totalElems = count;
     SpanRef        firstRef   = SpanRef::invalid();
@@ -315,13 +315,13 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto bPtr = static_cast<const uint8_t*>(ptr);
+    const uint8_t* bPtr = static_cast<const uint8_t*>(ptr);
     for (uint32_t j = 0; j < pagesStorage_.size(); j++)
     {
         const auto& page = pagesStorage_[j];
         if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
         {
-            const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
+            const uint32_t offset = static_cast<uint32_t>(bPtr - page->bytes());
             return makeRef(pageSizeValue_, j, offset);
         }
     }

@@ -21,7 +21,7 @@ void operator delete(void* block) noexcept
         return;
 
 #if SWC_HAS_STATS
-    const auto size = static_cast<uint32_t>(mi_usable_size(block));
+    const uint32_t size = static_cast<uint32_t>(mi_usable_size(block));
     swc::Stats::get().memAllocated.fetch_sub(size, std::memory_order_relaxed);
 #endif
 

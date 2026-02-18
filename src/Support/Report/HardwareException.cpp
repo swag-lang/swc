@@ -422,7 +422,7 @@ namespace
             }
 
             const auto op         = record->ExceptionInformation[0];
-            const auto accessAddr = static_cast<uint64_t>(record->ExceptionInformation[1]);
+            const uint64_t accessAddr = static_cast<uint64_t>(record->ExceptionInformation[1]);
             outMsg += std::format("  fault: {} at 0x{:016X}\n", windowsAccessViolationOpName(op), accessAddr);
 
             if (accessAddr < 0x10000)

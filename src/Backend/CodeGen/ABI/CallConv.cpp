@@ -120,8 +120,8 @@ uint32_t CallConv::numArgRegisterSlots() const
     if (argRegisterSlotCount)
         return argRegisterSlotCount;
 
-    const auto numIntArgRegs   = static_cast<uint32_t>(intArgRegs.size());
-    const auto numFloatArgRegs = static_cast<uint32_t>(floatArgRegs.size());
+    const uint32_t numIntArgRegs   = static_cast<uint32_t>(intArgRegs.size());
+    const uint32_t numFloatArgRegs = static_cast<uint32_t>(floatArgRegs.size());
     return std::min(numIntArgRegs, numFloatArgRegs);
 }
 
@@ -271,7 +271,7 @@ void CallConv::setup()
 
 const CallConv& CallConv::get(CallConvKind kind)
 {
-    const auto index = static_cast<size_t>(kind);
+    const size_t index = static_cast<size_t>(kind);
     SWC_ASSERT(index < K_CALL_CONV_COUNT);
     return g_CallConvs[index];
 }

@@ -34,7 +34,7 @@ std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_
     SWC_UNUSED(ctx);
     const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    auto& shard = shards_[shardIndex];
+    Shard& shard = shards_[shardIndex];
     return shard.dataSegment.addString(str).first;
 }
 
@@ -111,7 +111,7 @@ namespace
             return it->second;
 
         const auto     res        = shard.dataSegment.addString(value.getString());
-        const auto     strValue   = ConstantValue::makeString(ctx, res.first);
+        const ConstantValue strValue = ConstantValue::makeString(ctx, res.first);
         const uint32_t localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
@@ -145,7 +145,7 @@ ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& 
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    auto& shard = shards_[shardIndex];
+    Shard& shard = shards_[shardIndex];
 
     if (value.isStruct())
     {
@@ -175,7 +175,7 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload)
 {
     const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    auto& shard = shards_[shardIndex];
+    Shard& shard = shards_[shardIndex];
     return shard.dataSegment.addString(payload).first;
 }
 
@@ -197,9 +197,9 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
-    const auto shardIndex = constantRef.get() >> LOCAL_BITS;
+    const uint32_t shardIndex = constantRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    const auto localIndex = constantRef.get() & LOCAL_MASK;
+    const uint32_t localIndex = constantRef.get() & LOCAL_MASK;
     return *SWC_CHECK_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
@@ -208,7 +208,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     TaskContext& ctx = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    auto& shard = shards_[shardIndex];
+    Shard& shard = shards_[shardIndex];
 
     TypeGen::TypeGenResult infoResult;
 
@@ -221,8 +221,8 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     // That type is a pointer to the runtime typeinfo payload stored in the 'DataSegment'.
     SWC_ASSERT(infoResult.span.data());
     const uint64_t ptrValue = reinterpret_cast<uint64_t>(infoResult.span.data());
-    const auto     value    = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
-    ConstantValue  stored   = value;
+    const ConstantValue value  = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
+    ConstantValue       stored = value;
     stored.setTypeRef(sema.typeMgr().typeTypeInfo());
     outRef = addConstant(sema.ctx(), stored);
     return Result::Continue;
@@ -233,15 +233,15 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
     if (!cstRef.isValid())
         return TypeRef::invalid();
 
-    const auto& cst  = get(cstRef);
-    const auto& type = sema.typeMgr().get(cst.typeRef());
+    const ConstantValue& cst  = get(cstRef);
+    const TypeInfo&      type = sema.typeMgr().get(cst.typeRef());
     if (!type.isAnyTypeInfo(sema.ctx()))
         return TypeRef::invalid();
 
     if (cst.isValuePointer())
     {
-        const auto ptr = reinterpret_cast<const void*>(cst.getValuePointer());
-        const auto res = sema.typeGen().getBackTypeRef(ptr);
+        const void* const ptr = reinterpret_cast<const void*>(cst.getValuePointer());
+        const TypeRef res     = sema.typeGen().getBackTypeRef(ptr);
         if (res.isValid())
             return res;
     }

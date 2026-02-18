@@ -14,7 +14,7 @@ namespace
 
     const SemaClone::ParamBinding* findBinding(const CloneContext& cloneContext, IdentifierRef idRef)
     {
-        for (const auto& binding : cloneContextAsInline(cloneContext).bindings)
+        for (const SemaClone::ParamBinding& binding : cloneContextAsInline(cloneContext).bindings)
         {
             if (binding.idRef == idRef)
                 return &binding;
@@ -48,7 +48,7 @@ namespace
 
         SmallVector<AstNodeRef> cloned;
         cloned.reserve(children.size());
-        for (const auto childRef : children)
+        for (const AstNodeRef childRef : children)
         {
             const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContextAsInline(cloneContext));
             if (clonedRef.isInvalid())
@@ -62,7 +62,7 @@ namespace
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const CloneContext& cloneContext)
     {
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
-        if (const auto* binding = findBinding(cloneContext, idRef))
+        if (const SemaClone::ParamBinding* binding = findBinding(cloneContext, idRef))
             return binding->exprRef;
 
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());

@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr auto makePredefinedRuntimeMap()
+    constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> makePredefinedRuntimeMap()
     {
         using Pn                                                        = IdentifierManager::PredefinedName;
         std::array<RuntimeTypeKind, static_cast<size_t>(Pn::Count)> map = {};
@@ -47,22 +47,22 @@ namespace
         return map;
     }
 
-    constexpr auto PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
+    constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
 }
 
 void TypeManager::setup(TaskContext& ctx)
 {
-    const auto& idMgr = ctx.idMgr();
+    const IdentifierManager& idMgr = ctx.idMgr();
     for (size_t i = 0; i < PREDEFINED_RUNTIME_MAP.size(); ++i)
     {
-        const auto kind = PREDEFINED_RUNTIME_MAP[i];
+        const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
         if (kind == RuntimeTypeKind::Count)
             continue;
-        const auto name                    = static_cast<IdentifierManager::PredefinedName>(i);
+        const IdentifierManager::PredefinedName name = static_cast<IdentifierManager::PredefinedName>(i);
         mapRtKind_[idMgr.predefined(name)] = kind;
     }
 
-    for (auto& rt : runtimeTypes_)
+    for (TypeRef& rt : runtimeTypes_)
         rt = TypeRef::invalid();
 
     typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unsigned));
@@ -207,16 +207,16 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 const TypeInfo& TypeManager::getNoLock(TypeRef typeRef) const
 {
     SWC_ASSERT(typeRef.isValid());
-    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    const auto localIndex = typeRef.get() & LOCAL_MASK;
+    const uint32_t localIndex = typeRef.get() & LOCAL_MASK;
     return *SWC_CHECK_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
 const TypeInfo& TypeManager::get(TypeRef typeRef) const
 {
     SWC_ASSERT(typeRef.isValid());
-    const auto shardIndex = typeRef.get() >> LOCAL_BITS;
+    const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     std::shared_lock lk(shards_[shardIndex].mutex);
     return getNoLock(typeRef);
@@ -265,7 +265,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
     if (it == mapRtKind_.end())
         return false;
 
-    const auto     kind  = it->second;
+    const RuntimeTypeKind kind  = it->second;
     const uint32_t uKind = static_cast<uint32_t>(kind);
     return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
            uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
@@ -274,7 +274,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
     std::unique_lock lk(mutexRt_);
-    const auto       it = mapRtKind_.find(idRef);
+    const auto it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
     runtimeTypes_[static_cast<uint32_t>(it->second)] = typeRef;
@@ -288,7 +288,7 @@ TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
 
 TypeRef TypeManager::runtimeType(IdentifierManager::PredefinedName name) const
 {
-    const auto kind = PREDEFINED_RUNTIME_MAP[static_cast<size_t>(name)];
+    const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[static_cast<size_t>(name)];
     if (kind == RuntimeTypeKind::Count)
         return TypeRef::invalid();
     return runtimeType(kind);
@@ -375,7 +375,7 @@ void TypeManager::buildPromoteTable()
         typeChar_,
         typeRune_};
 
-    constexpr auto n = static_cast<uint32_t>(types.size());
+    constexpr uint32_t n = static_cast<uint32_t>(types.size());
 
     promoteIndex_.clear();
     promoteIndex_.reserve(n);

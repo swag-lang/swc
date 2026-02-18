@@ -17,7 +17,7 @@ namespace
     void invalidateInstruction(MicroInstr& inst)
     {
         // Mark instruction as removed; replacement instructions are inserted before it.
-        inst.op          = MicroInstrOpcode::Ignore;
+        inst.op          = MicroInstrOpcode::Debug;
         inst.opsRef      = INVALID_REF;
         inst.numOperands = 0;
     }
@@ -197,9 +197,6 @@ void MicroLegalizePass::run(MicroPassContext& context)
         for (;;)
         {
             applyLegalizeIssue(context, encoder, it.current, inst, ops, issue);
-            if (inst.op == MicroInstrOpcode::Ignore)
-                break;
-
             if (!encoder.queryConformanceIssue(issue, inst, ops))
                 break;
         }

@@ -1152,7 +1152,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         switch (inst.op)
         {
             case MicroInstrOpcode::End:
-            case MicroInstrOpcode::Ignore:
             case MicroInstrOpcode::Debug:
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:

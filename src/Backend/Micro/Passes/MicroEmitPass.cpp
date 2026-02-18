@@ -28,7 +28,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
     {
         case MicroInstrOpcode::End:
             break;
-        case MicroInstrOpcode::Ignore:
         case MicroInstrOpcode::Debug:
             break;
 

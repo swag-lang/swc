@@ -1,5 +1,4 @@
 SWC_MICRO_INSTR_DEF(End, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
-SWC_MICRO_INSTR_DEF(Ignore, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(Label, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(Debug, MicroInstrInfo{{MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 

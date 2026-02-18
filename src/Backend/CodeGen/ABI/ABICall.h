@@ -7,6 +7,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace ABICall
 {
+    uint32_t argumentIndexForFunctionParameter(const ABITypeNormalize::NormalizedType& normalizedRet, uint32_t parameterIndex);
+    uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);
+    uint64_t incomingArgStackOffset(const CallConv& conv, uint32_t argIndex);
+
     // Compute total stack reservation needed before issuing a call instruction.
     uint32_t computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs);
 

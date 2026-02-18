@@ -16,16 +16,6 @@ namespace
         uint32_t restore = 0;
     };
 
-    uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex, uint32_t numRegArgs)
-    {
-        // Register arguments also get home slots so the same offset rule works for all args.
-        const uint32_t stackSlotSize = conv.stackSlotSize();
-        if (argIndex < numRegArgs)
-            return static_cast<uint64_t>(argIndex) * stackSlotSize;
-
-        return conv.stackShadowSpace + static_cast<uint64_t>(argIndex - numRegArgs) * stackSlotSize;
-    }
-
     void emitCallArgs(MicroBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
     {
         // JIT bridge path: pack arguments in memory and expand them into ABI locations.
@@ -51,7 +41,7 @@ namespace
                 continue;
             }
 
-            const uint64_t stackOffset = callArgStackOffset(conv, i, numRegArgs);
+            const uint64_t stackOffset = ABICall::callArgStackOffset(conv, i);
             builder.encodeLoadRegMem(regTmp, regBase, argAddr, argBits);
             builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
         }
@@ -116,6 +106,30 @@ namespace
     }
 }
 
+uint32_t ABICall::argumentIndexForFunctionParameter(const ABITypeNormalize::NormalizedType& normalizedRet, uint32_t parameterIndex)
+{
+    if (normalizedRet.isIndirect)
+        return parameterIndex + 1;
+    return parameterIndex;
+}
+
+uint64_t ABICall::callArgStackOffset(const CallConv& conv, uint32_t argIndex)
+{
+    // Register arguments also get home slots so the same offset rule works for all args.
+    const uint32_t stackSlotSize = conv.stackSlotSize();
+    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
+    if (argIndex < numRegArgs)
+        return static_cast<uint64_t>(argIndex) * stackSlotSize;
+
+    return conv.stackShadowSpace + static_cast<uint64_t>(argIndex - numRegArgs) * stackSlotSize;
+}
+
+uint64_t ABICall::incomingArgStackOffset(const CallConv& conv, uint32_t argIndex)
+{
+    // Callee incoming frame adds return address above the ABI argument area.
+    return sizeof(void*) + callArgStackOffset(conv, argIndex);
+}
+
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
@@ -178,7 +192,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 }
             }
 
-            const uint64_t stackOffset = callArgStackOffset(conv, i, numRegArgs);
+            const uint64_t stackOffset = callArgStackOffset(conv, i);
 
             switch (arg.kind)
             {
@@ -204,7 +218,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (regArgsUseHomeSlot[i])
             {
                 const auto     argBits    = preparedArgBits(arg);
-                const uint64_t homeOffset = callArgStackOffset(conv, i, numRegArgs);
+                const uint64_t homeOffset = callArgStackOffset(conv, i);
                 if (arg.isFloat)
                 {
                     SWC_ASSERT(i < conv.floatArgRegs.size());

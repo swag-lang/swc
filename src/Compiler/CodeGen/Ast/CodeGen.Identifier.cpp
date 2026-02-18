@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/CodeGen/ABI/ABICall.h"
 #include "Backend/CodeGen/ABI/ABITypeNormalize.h"
-#include "Backend/CodeGen/ABI/CallConv.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -12,15 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t firstParameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc)
-    {
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        if (normalizedRet.isIndirect)
-            return 1;
-        return 0;
-    }
-
     MicroOpBits parameterLoadBits(const ABITypeNormalize::NormalizedType& normalizedParam)
     {
         if (normalizedParam.isFloat)
@@ -30,18 +21,19 @@ namespace
 
     uint32_t parameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
     {
-        const uint32_t                      firstSlot = firstParameterSlotIndex(codeGen, symbolFunc);
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
         const std::vector<SymbolVariable*>& params    = symbolFunc.parameters();
         for (size_t i = 0; i < params.size(); i++)
         {
             if (params[i] != &symVar)
                 continue;
 
-            return firstSlot + static_cast<uint32_t>(i);
+            return ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(i));
         }
 
         SWC_ASSERT(false);
-        return firstSlot;
+        return ABICall::argumentIndexForFunctionParameter(normalizedRet, 0);
     }
 
     void lowerParameterPayload(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
@@ -68,7 +60,7 @@ namespace
         }
         else
         {
-            const uint64_t stackOffset = sizeof(void*) + callConv.stackShadowSpace + static_cast<uint64_t>(slotIndex - numRegArgs) * callConv.stackSlotSize();
+            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
             builder.encodeLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
         }
 

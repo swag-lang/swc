@@ -8,7 +8,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -168,7 +167,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg              resultReg     = nodePayload.reg;
 
     if (calleePayload)
-        ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall, &calledFunction);
+        ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
     else
     {
         const MicroReg callTargetReg = codeGen.nextVirtualIntRegister();

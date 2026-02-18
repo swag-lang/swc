@@ -475,12 +475,7 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
-    Utf8 naturalInstruction(const TaskContext&       ctx,
-                            const MicroInstr&        inst,
-                            const MicroInstrOperand* ops,
-                            MicroRegPrintMode        regPrintMode,
-                            const Encoder*           encoder,
-                            bool                     hasImmediateRelocation)
+    Utf8 naturalInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation)
     {
         switch (inst.op)
         {
@@ -1097,7 +1092,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const auto               relocIt                = relocationByInstructionRef.find(instRef);
         const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
         const bool               hasImmediateRelocation = instructionRelocation != nullptr && (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm);
-        auto                     natural                = naturalInstruction(ctx, inst, ops, regPrintMode, encoder, hasImmediateRelocation);
+        auto                     natural                = naturalInstruction(inst, ops, regPrintMode, encoder, hasImmediateRelocation);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;

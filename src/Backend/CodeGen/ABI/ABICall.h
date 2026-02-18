@@ -57,8 +57,8 @@ namespace ABICall
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);
     void         callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall);
-    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret, Symbol* callDebugSymbol = nullptr);
-    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, Symbol* callDebugSymbol = nullptr);
+    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
+    void         callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall);
     void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret);
     void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall);
     void         callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret);

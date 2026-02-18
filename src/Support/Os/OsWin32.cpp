@@ -154,8 +154,8 @@ namespace Os
         if (!modulePath.has_extension())
             modulePath += ".dll";
 
-        const Utf8 moduleFileName = modulePath.string();
-        HMODULE    moduleHandle   = LoadLibraryA(moduleFileName.c_str());
+        const Utf8    moduleFileName = modulePath.string();
+        const HMODULE moduleHandle   = LoadLibraryA(moduleFileName.c_str());
         if (!moduleHandle)
             return false;
 
@@ -169,8 +169,8 @@ namespace Os
         if (!moduleHandle || functionName.empty())
             return false;
 
-        const Utf8 functionNameUtf8{functionName};
-        FARPROC    func = GetProcAddress(static_cast<HMODULE>(moduleHandle), functionNameUtf8.c_str());
+        const Utf8    functionNameUtf8{functionName};
+        const FARPROC func = GetProcAddress(static_cast<HMODULE>(moduleHandle), functionNameUtf8.c_str());
         if (!func)
             return false;
 

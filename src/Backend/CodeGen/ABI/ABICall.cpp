@@ -455,7 +455,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     callExtern(builder, callConvKind, targetSymbol, MicroReg::invalid(), preparedCall, Return{});
 }
 
-void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret, Symbol* callDebugSymbol)
+void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
 
@@ -466,9 +466,9 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
-void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall, Symbol* callDebugSymbol)
+void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg targetReg, const PreparedCall& preparedCall)
 {
-    callReg(builder, callConvKind, targetReg, preparedCall, Return{}, callDebugSymbol);
+    callReg(builder, callConvKind, targetReg, preparedCall, Return{});
 }
 
 void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall)

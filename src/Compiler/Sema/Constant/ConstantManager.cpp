@@ -141,7 +141,7 @@ namespace
     }
 }
 
-ConstantRef ConstantManager::addConstant(TaskContext& ctx, const ConstantValue& value)
+ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t shardIndex = value.hash() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);

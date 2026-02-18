@@ -72,15 +72,14 @@ bool Arena::canAllocateFrom(const Block* block, std::size_t size, std::size_t al
 
 Arena::Block* Arena::addBlock(std::size_t minSize)
 {
-    const std::size_t blockSize =
-        minSize > defaultBlockSize_ ? minSize : defaultBlockSize_;
+    const std::size_t blockSize = minSize > defaultBlockSize_ ? minSize : defaultBlockSize_;
 
     // Allocate Block header + buffer in one go.
     constexpr std::size_t headerSize = sizeof(Block);
     const std::size_t     totalSize  = headerSize + blockSize;
 
-    auto raw   = static_cast<uint8_t*>(operator new(totalSize));
-    auto block = reinterpret_cast<Block*>(raw);
+    const auto raw   = static_cast<uint8_t*>(operator new(totalSize));
+    const auto block = reinterpret_cast<Block*>(raw);
 
     block->size = blockSize;
     block->used = 0;

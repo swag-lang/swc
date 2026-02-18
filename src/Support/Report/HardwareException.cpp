@@ -295,7 +295,7 @@ namespace
         const HANDLE process = GetCurrentProcess();
 
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        auto                                                    symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        const auto                                              symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
         symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen                                             = MAX_SYM_NAME;
 
@@ -421,8 +421,8 @@ namespace
                 return;
             }
 
-            const auto     op         = record->ExceptionInformation[0];
-            const uint64_t accessAddr = static_cast<uint64_t>(record->ExceptionInformation[1]);
+            const ULONG_PTR op         = record->ExceptionInformation[0];
+            const uint64_t  accessAddr = record->ExceptionInformation[1];
             outMsg += std::format("  fault: {} at 0x{:016X}\n", windowsAccessViolationOpName(op), accessAddr);
 
             if (accessAddr < 0x10000)

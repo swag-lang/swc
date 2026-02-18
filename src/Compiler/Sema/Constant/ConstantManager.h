@@ -13,7 +13,7 @@ public:
     ConstantRef      addS32(TaskContext& ctx, int32_t value);
     ConstantRef      addInt(TaskContext& ctx, uint64_t value);
     std::string_view addString(const TaskContext& ctx, std::string_view str);
-    ConstantRef      addConstant(TaskContext& ctx, const ConstantValue& value);
+    ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
     std::string_view addPayloadBuffer(std::string_view payload);
 
     ConstantRef          cstNull() const { return cstNull_; }

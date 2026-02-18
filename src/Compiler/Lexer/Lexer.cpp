@@ -1132,7 +1132,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
         return;
     }
 
-    auto data = reinterpret_cast<const char8_t*>(content.data());
+    const auto data = reinterpret_cast<const char8_t*>(content.data());
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
@@ -1213,10 +1213,10 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(startOffset);
 
-    auto base    = reinterpret_cast<const char8_t*>(srcView.stringView().data());
-    buffer_      = base + startOffset;
-    startBuffer_ = base;
-    endBuffer_   = startBuffer_ + srcView.stringView().size();
+    const auto base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
+    buffer_         = base + startOffset;
+    startBuffer_    = base;
+    endBuffer_      = startBuffer_ + srcView.stringView().size();
 
     // Reserve space based on source size
     srcView_->tokens().reserve(srcView.stringView().size() / 10);

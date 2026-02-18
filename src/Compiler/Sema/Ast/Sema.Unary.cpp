@@ -15,7 +15,7 @@ namespace
 {
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& nodeView)
     {
-        TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
 
         if (nodeView.type->isInt())
         {
@@ -39,7 +39,7 @@ namespace
             return Result::Continue;
         }
 
-        TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         if (nodeView.type->isInt())
         {
             ApsInt value = nodeView.cst->getInt();
@@ -105,8 +105,8 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
         SWC_UNUSED(expr);
-        TaskContext& ctx   = sema.ctx();
-        ApsInt       value = nodeView.cst->getInt();
+        const TaskContext& ctx   = sema.ctx();
+        ApsInt             value = nodeView.cst->getInt();
         value.invertAllBits();
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
         return Result::Continue;

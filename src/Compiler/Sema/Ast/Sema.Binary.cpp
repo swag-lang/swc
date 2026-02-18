@@ -197,8 +197,8 @@ namespace
     Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         SWC_UNUSED(node);
-        TaskContext& ctx = sema.ctx();
-        Utf8         str = nodeLeftView.cst->toString(ctx);
+        const TaskContext& ctx = sema.ctx();
+        Utf8               str = nodeLeftView.cst->toString(ctx);
         str += nodeRightView.cst->toString(ctx);
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
         return Result::Continue;

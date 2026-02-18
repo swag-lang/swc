@@ -2,7 +2,6 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 

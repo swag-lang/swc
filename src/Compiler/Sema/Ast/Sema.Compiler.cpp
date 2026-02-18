@@ -438,7 +438,7 @@ namespace
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext&       ctx      = sema.ctx();
+        const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 
@@ -455,7 +455,7 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext&       ctx      = sema.ctx();
+        const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 
@@ -472,7 +472,7 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext&       ctx      = sema.ctx();
+        const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 

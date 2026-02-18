@@ -57,7 +57,7 @@ namespace
         if (!strPtrAddress)
             return ConstantValue::makeString(ctx, std::string_view{});
 
-        auto str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        const auto str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
         if (!str->ptr || !str->length)
             return ConstantValue::makeString(ctx, std::string_view{});
 

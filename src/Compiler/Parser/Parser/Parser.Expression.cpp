@@ -138,7 +138,7 @@ AstModifierFlags Parser::parseModifiers()
 
     while (true)
     {
-        auto toSet = AstModifierFlagsE::Zero;
+        AstModifierFlags toSet = AstModifierFlagsE::Zero;
         switch (id())
         {
             case TokenId::ModifierBit:
@@ -189,7 +189,7 @@ AstModifierFlags Parser::parseModifiers()
 
         if (result.has(toSet))
         {
-            auto diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
             diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, done[toSet]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
@@ -204,13 +204,13 @@ AstModifierFlags Parser::parseModifiers()
 
 AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
 {
-    auto left = parsePrefixExpr();
+    AstNodeRef left = parsePrefixExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();
 
     while (true)
     {
-        const auto opId = id();
+        const TokenId opId = id();
         if (!isBinaryOperator(opId))
             break;
 
@@ -218,16 +218,16 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
         if (precedence < minPrecedence)
             break;
 
-        const auto tokOp = consume();
+        const TokenRef tokOp = consume();
 
         // Modifier flags.
-        const auto modifierFlags = parseModifiers();
+        const AstModifierFlags modifierFlags = parseModifiers();
 
         // All these operators are left-associative.
         // For right-associative ops, use 'precedence' instead of 'precedence + 1'
         const int nextMinPrecedence = precedence + 1;
 
-        auto right = parseBinaryExpr(nextMinPrecedence);
+        AstNodeRef right = parseBinaryExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
@@ -251,9 +251,9 @@ AstNodeRef Parser::parseBinaryExpr()
 
 AstNodeRef Parser::parseCast()
 {
-    const auto tknOp         = consume();
-    const auto openRef       = ref();
-    const auto modifierFlags = parseModifiers();
+    const TokenRef tknOp         = consume();
+    const TokenRef openRef       = ref();
+    const AstModifierFlags modifierFlags = parseModifiers();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     if (consumeIf(TokenId::SymRightParen).isValid())
@@ -278,12 +278,12 @@ AstNodeRef Parser::parseCast()
 
 AstNodeRef Parser::parseExpression()
 {
-    const auto nodeExpr1 = parseLogicalExpr();
+    const AstNodeRef nodeExpr1 = parseLogicalExpr();
 
     if (is(TokenId::KwdOrElse))
     {
-        const auto tokOp              = consume();
-        const auto nodeExpr2          = parseExpression();
+        const TokenRef tokOp          = consume();
+        const AstNodeRef nodeExpr2    = parseExpression();
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullCoalescingExpr>(tokOp);
         nodePtr->nodeLeftRef          = nodeExpr1;
         nodePtr->nodeRightRef         = nodeExpr2;
@@ -292,10 +292,10 @@ AstNodeRef Parser::parseExpression()
 
     if (is(TokenId::SymQuestion))
     {
-        const auto tokOp     = consume();
-        const auto nodeExpr2 = parseExpression();
+        const TokenRef tokOp     = consume();
+        const AstNodeRef nodeExpr2 = parseExpression();
         expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-        const auto nodeExpr3 = parseExpression();
+        const AstNodeRef nodeExpr3 = parseExpression();
 
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ConditionalExpr>(tokOp);
         nodePtr->nodeCondRef          = nodeExpr1;
@@ -370,7 +370,7 @@ AstNodeRef Parser::parseIdentifier()
             break;
     }
 
-    const auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
     if (tokName.isInvalid())
         return AstNodeRef::invalid();
     auto [identRef, identPtr] = ast_->makeNode<AstNodeId::Identifier>(tokName);
@@ -387,7 +387,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
 
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
     {
-        const auto tokQuote = consume();
+        const TokenRef tokQuote = consume();
 
         if (is(TokenId::SymLeftParen))
         {
@@ -432,13 +432,13 @@ AstNodeRef Parser::parseIntrinsicValue()
 
 AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
 {
-    auto left = parseRelationalExpr();
+    AstNodeRef left = parseRelationalExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();
 
     while (true)
     {
-        const auto opId = id();
+        const TokenId opId = id();
         if (!isLogicalOperator(opId))
             break;
 
@@ -449,10 +449,10 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
         if (precedence < minPrecedence)
             break;
 
-        const auto tokOp             = consume();
+        const TokenRef tokOp         = consume();
         const int  nextMinPrecedence = precedence + 1;
 
-        auto right = parseLogicalExpr(nextMinPrecedence);
+        AstNodeRef right = parseLogicalExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
@@ -487,7 +487,7 @@ AstNodeRef Parser::parseNamedArg()
 
 AstNodeRef Parser::parseParenExpr()
 {
-    const auto openRef            = ref();
+    const TokenRef openRef        = ref();
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(consume());
     nodePtr->nodeExprRef          = parseExpression();
     if (nodePtr->nodeExprRef.isInvalid())
@@ -498,7 +498,7 @@ AstNodeRef Parser::parseParenExpr()
 
 AstNodeRef Parser::parsePostFixExpression()
 {
-    auto nodeRef = parsePrimaryExpression();
+    AstNodeRef nodeRef = parsePrimaryExpression();
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();
 
@@ -539,7 +539,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Quote
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
-            const auto tokQuote = consume();
+            const TokenRef tokQuote = consume();
 
             if (is(TokenId::SymLeftParen))
             {
@@ -833,15 +833,15 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    auto leftNodeRef = parseQuotedIdentifier();
+    AstNodeRef leftNodeRef = parseQuotedIdentifier();
     if (leftNodeRef.isInvalid())
         return AstNodeRef::invalid();
 
     while (!tok().startsLine() && is(TokenId::SymDot))
     {
-        const auto tokDot = consume();
+        const TokenRef tokDot = consume();
 
-        auto rightNodeRef = parseQuotedIdentifier();
+        AstNodeRef rightNodeRef = parseQuotedIdentifier();
         if (rightNodeRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -858,13 +858,13 @@ AstNodeRef Parser::parseQualifiedIdentifier()
 AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
 {
     // Parse the left-hand side from the next lower level (binary expr)
-    auto left = parseBinaryExpr();
+    AstNodeRef left = parseBinaryExpr();
     if (left.isInvalid())
         return AstNodeRef::invalid();
 
     while (true)
     {
-        const auto opId = id();
+        const TokenId opId = id();
         if (!isRelationalOperator(opId))
             break;
 
@@ -872,11 +872,11 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
         if (precedence < minPrecedence)
             break;
 
-        const auto tokOp = consume();
+        const TokenRef tokOp = consume();
 
         const int nextMinPrecedence = precedence + 1;
 
-        auto right = parseRelationalExpr(nextMinPrecedence);
+        AstNodeRef right = parseRelationalExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
@@ -916,10 +916,10 @@ AstNodeRef Parser::parsePrefixExpr()
         case TokenId::SymBang:
         case TokenId::SymTilde:
         {
-            const auto tokOp = consume();
+            const TokenRef tokOp = consume();
             if (isAny(TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde))
             {
-                const auto diag = reportError(DiagnosticId::parser_err_unexpected_token, ref());
+                const Diagnostic diag = reportError(DiagnosticId::parser_err_unexpected_token, ref());
                 diag.report(*ctx_);
                 consume();
             }
@@ -951,7 +951,7 @@ AstNodeRef Parser::parseTryCatchAssume()
 
 AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 {
-    const auto openRef = consumeAssert(TokenId::SymLeftBracket);
+    const TokenRef openRef = consumeAssert(TokenId::SymLeftBracket);
     if (is(TokenId::SymRightBracket))
     {
         raiseError(DiagnosticId::parser_err_empty_indexing, ref());

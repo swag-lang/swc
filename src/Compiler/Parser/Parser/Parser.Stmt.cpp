@@ -44,7 +44,7 @@ AstNodeRef Parser::parseUsing()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::UsingDecl>(consume());
 
     SmallVector<AstNodeRef> nodeChildren;
-    auto                    nodeIdentifier = parseQualifiedIdentifier();
+    AstNodeRef              nodeIdentifier = parseQualifiedIdentifier();
     nodeChildren.push_back(nodeIdentifier);
     while (consumeIf(TokenId::SymComma).isValid())
     {
@@ -233,7 +233,7 @@ AstNodeRef Parser::parseWith()
 AstNodeRef Parser::parseIntrinsicInit()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicInit>(consume());
-    const auto openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeWhatRef = parseExpression();
@@ -254,7 +254,7 @@ AstNodeRef Parser::parseIntrinsicInit()
 AstNodeRef Parser::parseIntrinsicDrop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicDrop>(consume());
-    const auto openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeWhatRef = parseExpression();
@@ -270,7 +270,7 @@ AstNodeRef Parser::parseIntrinsicDrop()
 AstNodeRef Parser::parseIntrinsicPostCopy()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostCopy>(consume());
-    const auto openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeWhatRef = parseExpression();
@@ -286,7 +286,7 @@ AstNodeRef Parser::parseIntrinsicPostCopy()
 AstNodeRef Parser::parseIntrinsicPostMove()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicPostMove>(consume());
-    const auto openRef      = ref();
+    const TokenRef openRef  = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeWhatRef = parseExpression();
@@ -390,7 +390,7 @@ AstNodeRef Parser::parseForeach()
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
-        auto tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
 
@@ -432,7 +432,7 @@ AstNodeRef Parser::parseSwitchCaseDefault()
     if (consumeIf(TokenId::KwdCase).isValid())
     {
         SmallVector<AstNodeRef> nodeExpressions;
-        auto                    nodeExpr = parseRangeExpression();
+        AstNodeRef              nodeExpr = parseRangeExpression();
         nodeExpressions.push_back(nodeExpr);
         while (consumeIf(TokenId::SymComma).isValid())
         {
@@ -466,7 +466,7 @@ AstNodeRef Parser::parseSwitch()
     else
         nodePtr->nodeExprRef.setInvalid();
 
-    const auto openRef = ref();
+    const TokenRef openRef = ref();
     expectAndConsume(TokenId::SymLeftCurly, DiagnosticId::parser_err_expected_token_before);
 
     SmallVector<AstNodeRef> nodeChildren;
@@ -490,7 +490,7 @@ AstNodeRef Parser::parseSwitch()
 
                 nodeStmts.clear();
 
-                auto caseRef = parseSwitchCaseDefault();
+                AstNodeRef caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
 
@@ -509,7 +509,7 @@ AstNodeRef Parser::parseSwitch()
                     break;
                 }
 
-                auto stmtRef = parseEmbeddedStmt();
+                AstNodeRef stmtRef = parseEmbeddedStmt();
                 nodeStmts.push_back(stmtRef);
                 break;
             }
@@ -620,7 +620,7 @@ AstNodeRef Parser::parseDoCurlyBlock()
     if (is(TokenId::SymLeftCurly))
         return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
+    const Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
     diag.report(*ctx_);
     return AstNodeRef::invalid();
 }
@@ -632,7 +632,7 @@ AstNodeRef Parser::parseAssignStmt()
     // Decomposition
     if (is(TokenId::SymLeftParen))
     {
-        const auto openRef = consume();
+        const TokenRef openRef = consume();
 
         const auto [listRef, listPtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
         listPtr->addFlag(AstAssignListFlagsE::Destructuring);

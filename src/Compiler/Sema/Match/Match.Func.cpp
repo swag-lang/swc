@@ -125,11 +125,11 @@ namespace
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
-        const auto&  params = fn.parameters();
+        const std::span<SymbolVariable* const> params = fn.parameters();
         if (params.empty())
             return vi;
 
-        const auto& lastParamTy = params.back()->type(sema.ctx());
+        const TypeInfo& lastParamTy = params.back()->type(sema.ctx());
         vi.isVariadic           = lastParamTy.isVariadic();
         vi.isTypedVariadic      = lastParamTy.isTypedVariadic();
         return vi;
@@ -168,12 +168,12 @@ namespace
     {
         outMapping = {};
 
-        const auto&    params     = fn.parameters();
+        const std::span<SymbolVariable* const> params     = fn.parameters();
         const uint32_t numParams  = static_cast<uint32_t>(params.size());
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
         outMapping.paramArgs.resize(numParams);
-        for (auto& entry : outMapping.paramArgs)
+        for (CallArgEntry& entry : outMapping.paramArgs)
             entry.callArgIndex = 0;
 
         if (ufcsArg.isValid() && numParams > 0)
@@ -267,7 +267,7 @@ namespace
 
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
+        const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -344,7 +344,7 @@ namespace
                 break;
         }
 
-        auto diag = SemaError::report(sema, id, nodeCallee.nodeRef);
+        Diagnostic diag = SemaError::report(sema, id, nodeCallee.nodeRef);
         fillMatchDiagnostic(sema, diag.last(), diag, fn, fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
@@ -396,7 +396,7 @@ namespace
 
         std::ranges::sort(sorted, SortedAttemptByRankDesc{});
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
 
         // One note per overload attempt describing why it failed (and where when possible).
         int count = 0;
@@ -434,7 +434,7 @@ namespace
         const SemaNodeView argNodeView(sema, argRef);
         auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
-        if (const auto* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
+            if (const AstAutoCastExpr* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
         {
             castKind = CastKind::Explicit;
             if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
@@ -471,7 +471,7 @@ namespace
         const AstNodeRef argSubRef   = sema.getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
-        const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
+        const AstAutoMemberAccessExpr* autoMem = argNode.safeCast<AstAutoMemberAccessExpr>();
         if (!autoMem)
             return Result::Continue;
 
@@ -514,7 +514,7 @@ namespace
         const AstNodeRef argSubRef   = sema.getSubstituteRef(argRef);
         const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&   argNode     = sema.node(finalArgRef);
-        const auto*      autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
+        const AstAutoMemberAccessExpr* autoMem = argNode.safeCast<AstAutoMemberAccessExpr>();
         if (!autoMem)
             return Result::Continue;
 
@@ -559,7 +559,7 @@ namespace
 
     uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
     {
-        const auto&    params = fn.parameters();
+        const std::span<SymbolVariable* const> params = fn.parameters();
         const uint32_t n      = static_cast<uint32_t>(params.size());
         const uint32_t end    = (ignoreVariadicTail && n > 0) ? (n - 1) : n;
 
@@ -579,7 +579,7 @@ namespace
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
-        const auto&    params    = fn.parameters();
+        const std::span<SymbolVariable* const> params    = fn.parameters();
         const uint32_t numParams = static_cast<uint32_t>(params.size());
         const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 
@@ -650,7 +650,7 @@ namespace
             }
 
             const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
-            auto       r              = ConvRank::Bad;
+            ConvRank   r              = ConvRank::Bad;
             RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
             {
@@ -671,7 +671,7 @@ namespace
         {
             if (vi.isVariadic)
             {
-                for ([[maybe_unused]] const auto& entry : mapping.variadicArgs)
+                for ([[maybe_unused]] const CallArgEntry& entry : mapping.variadicArgs)
                     outCandidate.perArg.push_back(ConvRank::Ellipsis);
             }
             else
@@ -679,12 +679,12 @@ namespace
                 const uint32_t startVariadic = numParams - 1;
                 const TypeRef  variadicTy    = params.back()->type(ctx).payloadTypeRef();
 
-                for (const auto& entry : mapping.variadicArgs)
+                for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
                     const TypeRef    argTy  = SemaNodeView(sema, argRef).typeRef;
                     CastFailure      cf{};
-                    auto             r = ConvRank::Bad;
+                    ConvRank         r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
                     if (r == ConvRank::Bad)
                     {
@@ -753,7 +753,7 @@ namespace
             }
             else if (s->isVariable())
             {
-                const auto& type = s->type(sema.ctx());
+                const TypeInfo& type = s->type(sema.ctx());
                 if (type.isFunction())
                     fn = &type.payloadSymFunction();
             }
@@ -831,7 +831,7 @@ namespace
     Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const auto&     params         = selectedFn.parameters();
+        const std::span<SymbolVariable* const> params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
 
@@ -903,7 +903,7 @@ namespace
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const auto&     params         = selectedFn.parameters();
+        const std::span<SymbolVariable* const> params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
 
@@ -937,7 +937,7 @@ namespace
 
         const TypeRef variadicTy = selectedFnType.payloadTypeRef();
 
-        for (const auto& entry : mapping.variadicArgs)
+        for (const CallArgEntry& entry : mapping.variadicArgs)
         {
             SemaNodeView argView(sema, entry.argRef);
             RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
@@ -952,17 +952,17 @@ namespace
 
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
-            const auto& entry = mapping.paramArgs[i];
+            const CallArgEntry& entry = mapping.paramArgs[i];
             if (entry.argRef.isInvalid())
                 continue;
 
             AstNodeRef finalArgRef = entry.argRef;
-            if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
+            if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
                 finalArgRef = namedArg->nodeArgRef;
-            auto passKind = CallArgumentPassKind::Direct;
+            CallArgumentPassKind passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
-                const auto argView = sema.nodeView(finalArgRef);
+                const SemaNodeView argView = sema.nodeView(finalArgRef);
                 if (argView.type && argView.type->isInterface())
                     passKind = CallArgumentPassKind::InterfaceObject;
             }
@@ -970,12 +970,12 @@ namespace
             outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = passKind});
         }
 
-        for (const auto& entry : mapping.variadicArgs)
+        for (const CallArgEntry& entry : mapping.variadicArgs)
         {
             if (entry.argRef.isInvalid())
                 continue;
             AstNodeRef finalArgRef = entry.argRef;
-            if (const auto* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
+            if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
                 finalArgRef = namedArg->nodeArgRef;
             outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = CallArgumentPassKind::Direct});
         }
@@ -994,7 +994,7 @@ AstNodeRef Match::resolveCallArgumentValueRef(const Sema& sema, AstNodeRef argRe
 {
     const AstNodeRef finalRef = resolveCallArgumentRef(sema, argRef);
 
-    if (const auto* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
+    if (const AstNamedArgument* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
         return resolveCallArgumentRef(sema, namedArg->nodeArgRef);
 
     return finalRef;

@@ -19,7 +19,7 @@ namespace
     {
         for (const auto& s : symbols)
         {
-            if (const auto symVar = s->safeCast<SymbolVariable>())
+            if (SymbolVariable* symVar = s->safeCast<SymbolVariable>())
                 symVar->addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         }
     }
@@ -28,7 +28,7 @@ namespace
     {
         for (auto* s : symbols)
         {
-            auto& symCst = s->cast<SymbolConstant>();
+            SymbolConstant& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
             if (symCst.typeRef().isInvalid())
                 symCst.setTypeRef(typeRef);
@@ -41,7 +41,7 @@ namespace
     {
         for (auto* s : symbols)
         {
-            auto& symVar = s->cast<SymbolVariable>();
+            SymbolVariable& symVar = s->cast<SymbolVariable>();
             if (symVar.typeRef().isInvalid())
                 symVar.setTypeRef(typeRef);
             symVar.setTyped(sema.ctx());
@@ -319,7 +319,7 @@ namespace
             {
                 if (!ultimateType.isAnyPointer() || !sema.typeMgr().get(ultimateType.payloadTypeRef()).isStruct())
                 {
-                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+                    Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);
                     diag.report(sema.ctx());
                     return Result::Error;
@@ -364,7 +364,7 @@ namespace
         {
             for (auto* s : symbols)
             {
-                if (const auto symVar = s->safeCast<SymbolVariable>())
+                if (SymbolVariable* symVar = s->safeCast<SymbolVariable>())
                     symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }
@@ -403,7 +403,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
         const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
-        auto               frame        = sema.frame();
+        SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
     }
@@ -454,16 +454,16 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
     {
         if (!sema.hasSymbolList(sema.curNodeRef()))
             semaPreDecl(sema);
-        const auto symbols = sema.getSymbolList(sema.curNodeRef());
-        for (const auto sym : symbols)
+        const std::span<Symbol*> symbols = sema.getSymbolList(sema.curNodeRef());
+        for (Symbol* sym : symbols)
         {
             sym->registerAttributes(sema);
             sym->setDeclared(sema.ctx());
         }
     }
 
-    const auto symbols = sema.getSymbolList(sema.curNodeRef());
-    for (const auto sym : symbols)
+    const std::span<Symbol*> symbols = sema.getSymbolList(sema.curNodeRef());
+    for (const Symbol* sym : symbols)
     {
         RESULT_VERIFY(Match::ghosting(sema, *sym));
     }
@@ -476,7 +476,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
         const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
-        auto               frame        = sema.frame();
+        SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
     }
@@ -486,7 +486,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const auto                symbols = sema.getSymbolList(sema.curNodeRef());
+    const std::span<Symbol*> symbols = sema.getSymbolList(sema.curNodeRef());
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }
@@ -496,7 +496,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     const SemaNodeView nodeInitView = sema.nodeView(nodeInitRef);
     if (!nodeInitView.type->isStruct())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef);
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, nodeInitView.typeRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -510,7 +510,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     if (tokNames.size() > fields.size())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, nodeRef(sema.ast()));
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, nodeRef(sema.ast()));
         diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
         diag.report(sema.ctx());
         return Result::Error;
@@ -518,7 +518,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     if (tokNames.size() < fields.size())
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()));
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()));
         diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
         diag.report(sema.ctx());
         return Result::Error;

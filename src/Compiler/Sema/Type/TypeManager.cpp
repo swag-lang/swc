@@ -376,7 +376,7 @@ void TypeManager::buildPromoteTable()
         typeChar_,
         typeRune_};
 
-    constexpr uint32_t n = types.size();
+    constexpr size_t n = types.size();
 
     promoteIndex_.clear();
     promoteIndex_.reserve(n);

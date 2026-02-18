@@ -21,7 +21,7 @@ namespace
         return MicroOpBits::B64;
     }
 
-    void spillRegisterParametersToIncomingSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc, const ABITypeNormalize::NormalizedType& normalizedRet)
+    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, const ABITypeNormalize::NormalizedType& normalizedRet)
     {
         const CallConv&                     callConv   = CallConv::get(symbolFunc.callConvKind());
         const uint32_t                      numRegArgs = callConv.numArgRegisterSlots();
@@ -40,18 +40,53 @@ namespace
             if (slotIndex >= numRegArgs)
                 continue;
 
-            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            symbolPayload.typeRef = symVar->typeRef();
+
+            SmallVector<MicroReg> futureSourceRegs;
+            for (size_t j = i + 1; j < params.size(); ++j)
+            {
+                const SymbolVariable* const laterSymVar = params[j];
+                if (!laterSymVar)
+                    continue;
+
+                const ABITypeNormalize::NormalizedType normalizedLater = ABITypeNormalize::normalize(codeGen.ctx(), callConv, laterSymVar->typeRef(), ABITypeNormalize::Usage::Argument);
+                const uint32_t                         laterSlotIndex   = ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(j));
+                if (laterSlotIndex >= numRegArgs)
+                    continue;
+
+                if (normalizedLater.isFloat)
+                {
+                    SWC_ASSERT(laterSlotIndex < callConv.floatArgRegs.size());
+                    futureSourceRegs.push_back(callConv.floatArgRegs[laterSlotIndex]);
+                }
+                else
+                {
+                    SWC_ASSERT(laterSlotIndex < callConv.intArgRegs.size());
+                    futureSourceRegs.push_back(callConv.intArgRegs[laterSlotIndex]);
+                }
+            }
+
+            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
 
             if (normalizedParam.isFloat)
             {
                 SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.emitLoadMemReg(callConv.stackPointer, stackOffset, callConv.floatArgRegs[slotIndex], opBits);
+                builder.emitLoadRegReg(symbolPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
             }
             else
             {
                 SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.emitLoadMemReg(callConv.stackPointer, stackOffset, callConv.intArgRegs[slotIndex], opBits);
+                builder.emitLoadRegReg(symbolPayload.reg, callConv.intArgRegs[slotIndex], opBits);
             }
+
+            if (normalizedParam.isIndirect)
+                CodeGen::setPayloadAddress(symbolPayload);
+            else
+                CodeGen::setPayloadValue(symbolPayload);
+
+            codeGen.setVariablePayload(symVar, symbolPayload);
         }
     }
 
@@ -173,7 +208,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-    spillRegisterParametersToIncomingSlots(codeGen, symbolFunc, normalizedRet);
+    materializeRegisterParameters(codeGen, symbolFunc, normalizedRet);
 
     if (normalizedRet.isIndirect)
     {

@@ -42,10 +42,27 @@ namespace
         const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex       = parameterSlotIndex(codeGen, symbolFunc, symVar);
         const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
+        const uint32_t                         numRegArgs      = callConv.numArgRegisterSlots();
         MicroBuilder&                          builder         = codeGen.builder();
 
-        const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
-        builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
+        if (slotIndex < numRegArgs)
+        {
+            if (normalizedParam.isFloat)
+            {
+                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
+                builder.emitLoadRegReg(outPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
+            }
+            else
+            {
+                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
+                builder.emitLoadRegReg(outPayload.reg, callConv.intArgRegs[slotIndex], opBits);
+            }
+        }
+        else
+        {
+            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
+            builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
+        }
 
         if (normalizedParam.isIndirect)
             CodeGen::setPayloadAddress(outPayload);

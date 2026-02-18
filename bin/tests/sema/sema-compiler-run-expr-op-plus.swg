@@ -18,7 +18,6 @@
 
 #test
 {
-    #[Swag.PrintMicro("pre-regalloc")]
     func add(a: s64, b: s64)->s64 { return a + b }
     const V = #run add(10000000000's64, 7's64)
     #assert(#typeof(V) == s64)
@@ -64,13 +63,14 @@
     #assert(V == 42)
 }
 
-//#test
-//{
-//    func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-//    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
-//    #assert(#typeof(V) == f64)
-//    #assert(V == 42.0'f64)
-//}
+#test
+{
+    #[Swag.PrintMicro]
+    func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
+    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    #assert(#typeof(V) == f64)
+    #assert(V == 42.0'f64)
+}
 
 //#test
 //{

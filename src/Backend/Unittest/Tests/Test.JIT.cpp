@@ -94,8 +94,8 @@ SWC_TEST_BEGIN(JIT_ExecMemoryManagerReusesBlock)
     JITMemory        memA;
     JITMemory        memB;
 
-    constexpr std::array code = {std::byte{0xC3}};
-    const ByteSpan       bytes(code.data(), code.size());
+    static constexpr std::array CODE = {std::byte{0xC3}};
+    constexpr ByteSpan          bytes(CODE.data(), CODE.size());
 
     SWC_ASSERT(manager.allocateAndCopy(memA, bytes));
     SWC_ASSERT(manager.allocateAndCopy(memB, bytes));

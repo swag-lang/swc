@@ -572,7 +572,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isStruct())
     {
-        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const ByteSpan bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeStructBorrowed(ctx, typeRef, bytes);
         return makeStruct(ctx, typeRef, bytes);
@@ -580,7 +580,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isArray())
     {
-        const auto bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
+        const ByteSpan bytes = ByteSpan{static_cast<const std::byte*>(valuePtr), ty.sizeOf(ctx)};
         if (ownership == PayloadOwnership::Borrowed)
             return makeArrayBorrowed(ctx, typeRef, bytes);
         return makeArray(ctx, typeRef, bytes);
@@ -611,13 +611,13 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isValuePointer())
     {
-        const auto val = *static_cast<const uint64_t*>(valuePtr);
+        const uint64_t val = *static_cast<const uint64_t*>(valuePtr);
         return makeValuePointer(ctx, ty.payloadTypeRef(), val, ty.flags());
     }
 
     if (ty.isBlockPointer())
     {
-        const auto val = *static_cast<const uint64_t*>(valuePtr);
+        const uint64_t val = *static_cast<const uint64_t*>(valuePtr);
         return makeBlockPointer(ctx, ty.payloadTypeRef(), val, ty.flags());
     }
 
@@ -635,7 +635,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
 uint32_t ConstantValue::hash() const noexcept
 {
-    auto h = Math::hash(static_cast<uint32_t>(kind_));
+    uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
     h      = Math::hashCombine(h, typeRef_.get());
     switch (kind_)
     {

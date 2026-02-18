@@ -686,7 +686,7 @@ void Lexer::lexIdentifier()
     while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
 
-    const auto name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
+    const std::string_view name = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startToken_), buffer_ - startToken_);
     if (name[0] == '#' && name.length() > 1 && name[1] >= 'A' && name[1] <= 'Z')
         token_.id = TokenId::SharpIdentifier;
     else if (isRawMode())
@@ -719,7 +719,7 @@ void Lexer::lexIdentifier()
             while (langSpec_->isIdentifierPart(tmp[0]))
                 tmp++;
 
-            const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
+            const std::string_view tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
             if (tokStr == Token::toName(TokenId::KwdSkip))
                 srcView_->setMustSkip();
         }

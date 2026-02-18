@@ -58,7 +58,7 @@ namespace
         {
             const SymbolImpl* symImpl   = sema.frame().currentImpl()->asSymMap()->safeCast<SymbolImpl>();
             const TypeRef     ownerType = symImpl->symStruct()->typeRef();
-            TaskContext& ctx = sema.ctx();
+            TaskContext&      ctx       = sema.ctx();
             SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
@@ -101,7 +101,7 @@ namespace
         SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
         const Symbol& sym = sema.symbolOf(sema.curNodeRef());
         SWC_ASSERT(sym.isFunction());
-        if (auto* currentFn = sema.frame().currentFunction())
+        if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
             SymbolFunction* calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
             if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef() && !calledFn->isForeign())
@@ -214,8 +214,8 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const TypeRef ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-    auto&         sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+    const TypeRef   ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    SymbolVariable& sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))
@@ -240,8 +240,8 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     const SymbolFunction* sym = sema.frame().currentFunction();
     SWC_ASSERT(sym);
 
-    const TypeRef returnTypeRef = sym->returnTypeRef();
-    const auto&   returnType    = sema.typeMgr().get(returnTypeRef);
+    const TypeRef   returnTypeRef = sym->returnTypeRef();
+    const TypeInfo& returnType    = sema.typeMgr().get(returnTypeRef);
     if (nodeExprRef.isValid())
     {
         if (returnType.isVoid())

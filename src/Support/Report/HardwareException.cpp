@@ -377,11 +377,11 @@ namespace
         if (modBase)
         {
             char       modulePath[MAX_PATH + 1]{};
-            const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
                 modulePath[len]       = 0;
-                const auto moduleName = fs::path(modulePath).filename().string();
+                const std::string moduleName = fs::path(modulePath).filename().string();
                 outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
             }
         }
@@ -393,7 +393,7 @@ namespace
         if (modBase)
         {
             char       modulePath[MAX_PATH + 1]{};
-            const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
                 modulePath[len] = 0;
@@ -553,11 +553,11 @@ namespace
                 if (modBase)
                 {
                     char       modulePath[MAX_PATH + 1]{};
-                    const auto len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+                    const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                     if (len)
                     {
                         modulePath[len]       = 0;
-                        const auto moduleName = fs::path(modulePath).filename().string();
+                        const std::string moduleName = fs::path(modulePath).filename().string();
                         outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }
                 }

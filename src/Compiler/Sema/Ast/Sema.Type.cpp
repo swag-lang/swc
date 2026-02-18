@@ -256,7 +256,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
     if (!nodeView.sym->isType())
     {
         AstNodeRef nodeRef  = nodeIdentRef;
-        const auto nodeQual = nodeView.node->safeCast<AstMemberAccessExpr>();
+        const AstMemberAccessExpr* nodeQual = nodeView.node->safeCast<AstMemberAccessExpr>();
         if (nodeQual)
             nodeRef = nodeQual->nodeRightRef;
         SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);

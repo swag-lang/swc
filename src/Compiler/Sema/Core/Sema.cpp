@@ -588,7 +588,7 @@ namespace
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
             {
                 // @CompilerNotDefined
-                const auto semaJob = job->cast<SemaJob>();
+                SemaJob* semaJob = job->cast<SemaJob>();
                 semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
                 doneSomething = true;
             }

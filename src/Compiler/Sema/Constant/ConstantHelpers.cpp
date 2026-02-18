@@ -28,8 +28,8 @@ ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCode
     rtLoc.lineEnd   = codeRange.line;
     rtLoc.colEnd    = codeRange.column + codeRange.len;
 
-    const auto bytes  = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
-    const auto cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
+    const ByteSpan bytes  = ByteSpan{reinterpret_cast<const std::byte*>(&rtLoc), sizeof(rtLoc)};
+    const ConstantValue cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
     return sema.cstMgr().addConstant(ctx, cstVal);
 }
 

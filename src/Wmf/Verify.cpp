@@ -360,7 +360,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         }
 
         // Base location info
-        const auto byteStart = trivia.tok.byteStart + static_cast<uint32_t>(pos);
+        const uint32_t byteStart = trivia.tok.byteStart + static_cast<uint32_t>(pos);
         const uint32_t byteLen   = static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size());
         directive.myCodeRange.fromOffset(ctx, *srcView_, byteStart, byteLen);
         directive.codeRange = directive.myCodeRange;

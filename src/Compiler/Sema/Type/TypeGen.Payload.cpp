@@ -185,7 +185,7 @@ namespace TypeGenInternal
             // Name
             const auto& id = ctx.idMgr().get(symField->idRef());
             const Utf8  fName{id.name};
-            const auto  elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+            const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
             tv.name.length         = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
 
             // Offset in bytes within the struct
@@ -322,7 +322,7 @@ namespace TypeGenInternal
                 {
                     const TypeRef depKey     = entry.structFieldTypes[i];
                     const auto&   dep        = requireDone(depKey);
-                    const auto    elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                    const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                     addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
                 }
 

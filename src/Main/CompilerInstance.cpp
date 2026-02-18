@@ -88,6 +88,19 @@ namespace
             buildCfg.backend.fpMathNoInf        = true;
             buildCfg.backend.fpMathNoSignedZero = true;
         }
+        else
+        {
+            buildCfg.byteCodeOptimizeLevel    = Runtime::BuildCfgByteCodeOptim::O2;
+            buildCfg.byteCodeInline           = true;
+            buildCfg.byteCodeAutoInline       = true;
+            buildCfg.byteCodeEmitAssume       = true;
+            buildCfg.safetyGuards             = Runtime::SafetyWhat::All;
+            buildCfg.sanity                   = true;
+            buildCfg.errorStackTrace          = true;
+            buildCfg.debugAllocator           = true;
+            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backendDebugInformations = true;
+        }
 
         if (cmdLine.debugInfo)
             buildCfg.backendDebugInformations = true;

@@ -11,10 +11,10 @@ namespace
 {
     constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT = 256;
 
-    uint32_t getUnrollMemLimit(const Runtime::BuildCfg& buildCfg)
+    uint32_t getUnrollMemLimit(const Runtime::BuildCfgBackend& buildCfg)
     {
-        if (buildCfg.backend.unrollMemLimit)
-            return buildCfg.backend.unrollMemLimit;
+        if (buildCfg.unrollMemLimit)
+            return buildCfg.unrollMemLimit;
         return K_DEFAULT_UNROLL_MEM_LIMIT;
     }
 

@@ -40,7 +40,7 @@ namespace
             buildCfg.sanity                   = false;
             buildCfg.errorStackTrace          = false;
             buildCfg.debugAllocator           = true;
-            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backend.backendOptimize  = Runtime::BuildCfgBackendOptim::O0;
             buildCfg.backendDebugInformations = false;
             buildCfg.backendDebugInline       = false;
         }
@@ -54,7 +54,7 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backend.backendOptimize  = Runtime::BuildCfgBackendOptim::O0;
             buildCfg.backendDebugInformations = true;
             buildCfg.backendDebugInline       = true;
         }
@@ -68,7 +68,7 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backend.backendOptimize  = Runtime::BuildCfgBackendOptim::O1;
             buildCfg.backendDebugInformations = true;
         }
         else if (cfgName == "release")
@@ -81,7 +81,7 @@ namespace
             buildCfg.sanity                     = false;
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
-            buildCfg.backendOptimize            = Runtime::BuildCfgBackendOptim::O3;
+            buildCfg.backend.backendOptimize    = Runtime::BuildCfgBackendOptim::O3;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
@@ -98,7 +98,7 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backendOptimize          = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backend.backendOptimize  = Runtime::BuildCfgBackendOptim::O1;
             buildCfg.backendDebugInformations = true;
         }
 

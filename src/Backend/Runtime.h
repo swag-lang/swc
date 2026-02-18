@@ -345,8 +345,11 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
+    enum class BuildCfgBackendOptim;
+
     struct BuildCfgBackend
     {
+        BuildCfgBackendOptim backendOptimize;
         bool     fpMathFma;
         bool     fpMathNoNaN;
         bool     fpMathNoInf;
@@ -459,7 +462,6 @@ namespace Runtime
         BuildCfgBackendSubKind backendSubKind           = BuildCfgBackendSubKind::Console;
         bool                   backendDebugInformations = false;
         bool                   backendDebugInline       = false;
-        BuildCfgBackendOptim   backendOptimize          = BuildCfgBackendOptim::O0;
         uint32_t               backendNumCu             = 0;
 
         String          linkerArgs;

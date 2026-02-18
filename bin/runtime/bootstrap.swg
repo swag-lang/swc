@@ -730,6 +730,7 @@ namespace Swag
     // Backend options
     struct BuildCfgBackend
     {
+        backendOptimize            = BuildCfgBackendOptim.O0       // Backend optimization level
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'
         fpMathNoInf:            bool     // true in 'release'
@@ -851,7 +852,6 @@ namespace Swag
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
         backendDebugInformations       = false                              // Output debug information if 'true'
         backendDebugInline             = false                              // Generate specific line information for inline code
-        backendOptimize                = BuildCfgBackendOptim.O0            // Backend optimization level
         backendNumCU                   = 0'u32
 
         linkerArgs:                    string                               // Additional linker arguments

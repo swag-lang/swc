@@ -55,8 +55,8 @@ public:
     const uint8_t*                data() const;
     uint8_t                       byteAt(uint32_t index) const;
     void                          copyTo(ByteSpanRW dst) const;
-    void                          setBackendOptimizeLevel(Runtime::BuildCfgBackendOptim value) { backendOptimizeLevel_ = value; }
-    Runtime::BuildCfgBackendOptim backendOptimizeLevel() const { return backendOptimizeLevel_; }
+    void                          setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
     virtual std::string           formatRegisterName(MicroReg reg) const;
     virtual MicroReg              stackPointerReg() const = 0;
 
@@ -127,12 +127,12 @@ protected:
 
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
-    TaskContext*                  ctx_ = nullptr;
-    PagedStore                    store_;
-    uint32_t                      textSectionOffset_    = 0;
-    uint32_t                      symCsIndex_           = 0;
-    EncoderFunction*              cpuFct_               = nullptr;
-    Runtime::BuildCfgBackendOptim backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
+    TaskContext*             ctx_ = nullptr;
+    PagedStore               store_;
+    uint32_t                 textSectionOffset_ = 0;
+    uint32_t                 symCsIndex_        = 0;
+    EncoderFunction*         cpuFct_            = nullptr;
+    Runtime::BuildCfgBackend backendBuildCfg_{};
 };
 
 SWC_END_NAMESPACE();

@@ -2006,7 +2006,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, 
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && backendOptimizeLevel() >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && backendBuildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xFF, opBits);
@@ -2043,7 +2043,7 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, 
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && backendOptimizeLevel() >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && backendBuildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xFF, opBits);
@@ -2254,7 +2254,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint6
 
     else if (op == MicroOp::Add)
     {
-        if (value == 1 && backendOptimizeLevel() >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && backendBuildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xFF, opBits);
@@ -2291,7 +2291,7 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint6
 
     else if (op == MicroOp::Subtract)
     {
-        if (value == 1 && backendOptimizeLevel() >= Runtime::BuildCfgBackendOptim::O1)
+        if (value == 1 && backendBuildCfg().backendOptimize >= Runtime::BuildCfgBackendOptim::O1)
         {
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xFF, opBits);

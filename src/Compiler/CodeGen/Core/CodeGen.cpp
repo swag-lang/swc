@@ -26,7 +26,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     MicroBuilderFlags builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&       attributes      = symbolFunc.attributes();
-    Runtime::BuildCfg backendBuildCfg = compiler().buildCfg();
+    Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
     if (attributes.hasBackendOptimize)
         backendBuildCfg.backendOptimize = attributes.backendOptimize;
 

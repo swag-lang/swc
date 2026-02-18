@@ -83,8 +83,8 @@ public:
     void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
     const MicroDebugInfo*               debugInfo(Ref instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    void                                setBackendBuildCfg(const Runtime::BuildCfg& value) { backendBuildCfg_ = value; }
-    const Runtime::BuildCfg&            backendBuildCfg() const { return backendBuildCfg_; }
+    void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend&     backendBuildCfg() const { return backendBuildCfg_; }
     void                                setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sourceLine);
     const Utf8&                         printSymbolName() const { return printSymbolName_; }
     const Utf8&                         printFilePath() const { return printFilePath_; }
@@ -160,7 +160,7 @@ private:
     Utf8                                                printFilePath_;
     uint32_t                                            printSourceLine_ = 0;
     std::vector<Utf8>                                   printPassOptions_;
-    Runtime::BuildCfg                                   backendBuildCfg_{};
+    Runtime::BuildCfgBackend                            backendBuildCfg_{};
     std::vector<Ref>                                    labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;

@@ -331,16 +331,14 @@ alias BigArray = [5] s32
     const V = #run passErr("ok", 1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
-// Known failing identity cases kept for regression tracking:
-//
-// #test
-// {
-//     func passPointerFail(x: *void) => x
-//     const V = #run passPointerFail(null)
-//     #assert(#typeof(V) == *void)
-//     #assert(V == null)
-// }
-//
+#test
+{
+    func passPointerFail(x: *void) => x
+    const V = #run passPointerFail(null)
+    #assert(#typeof(V) == *void)
+    #assert(V == null)
+}
+
 // #test
 // {
 //     struct TinyPair

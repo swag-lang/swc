@@ -37,11 +37,26 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
         SWC_ASSERT(nodeView.type);
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
         if (nodeView.type->isEnum())
         {
             const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
             const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
             return ConstantValue::makeEnumValue(ctx, storageRef, nodeView.typeRef);
+        }
+
+        if (storageType.isValuePointer() || storageType.isBlockPointer())
+        {
+            const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(storagePtr);
+            if (!ptrValue)
+            {
+                ConstantValue nullValue = ConstantValue::makeNull(ctx);
+                if (nodeView.type->isAlias())
+                    nullValue.setTypeRef(nodeView.typeRef);
+                else
+                    nullValue.setTypeRef(storageTypeRef);
+                return nullValue;
+            }
         }
 
         ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);

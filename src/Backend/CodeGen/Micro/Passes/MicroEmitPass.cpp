@@ -47,7 +47,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
-    auto&       encoder = *SWC_CHECK_NOT_NULL(context.encoder);
+    auto&                    encoder = *SWC_CHECK_NOT_NULL(context.encoder);
     const MicroInstrOperand* ops     = inst.ops(*context.operands);
     switch (inst.op)
     {
@@ -62,15 +62,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             {
                 labelOffsets_[resolveRef(ops[0].valueU64)] = encoder.currentOffset();
             }
-            break;
-
-        case MicroInstrOpcode::Enter:
-        case MicroInstrOpcode::Leave:
-        case MicroInstrOpcode::LoadCallParam:
-        case MicroInstrOpcode::LoadCallAddrParam:
-        case MicroInstrOpcode::LoadCallZeroExtParam:
-        case MicroInstrOpcode::StoreCallParam:
-            SWC_ASSERT(false);
             break;
 
         case MicroInstrOpcode::Push:
@@ -100,9 +91,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = ops[2].valueU64});
             break;
         }
-        case MicroInstrOpcode::PatchJump:
-            SWC_ASSERT(false);
-            break;
         case MicroInstrOpcode::JumpCondImm:
         {
             MicroJump  jump;

@@ -309,7 +309,7 @@ namespace
 
     bool isInstructionToken(std::string_view token)
     {
-        return token == "if" || token == "call" || token == "ret" || token == "enter" || token == "leave" || token == "push" || token == "pop" || token == "jump" || token == "patch" || token == "cmp" || token == "jumptable";
+        return token == "if" || token == "call" || token == "ret" || token == "push" || token == "pop" || token == "jump" || token == "cmp" || token == "jumptable";
     }
 
     bool isStrongInstructionToken(std::string_view token)
@@ -601,10 +601,6 @@ namespace
 
             case MicroInstrOpcode::Ret:
                 return "ret";
-            case MicroInstrOpcode::Enter:
-                return "enter";
-            case MicroInstrOpcode::Leave:
-                return "leave";
             case MicroInstrOpcode::Push:
                 return std::format("push {}", regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Pop:
@@ -1163,8 +1159,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         switch (inst.op)
         {
             case MicroInstrOpcode::End:
-            case MicroInstrOpcode::Enter:
-            case MicroInstrOpcode::Leave:
             case MicroInstrOpcode::Ignore:
             case MicroInstrOpcode::Debug:
             case MicroInstrOpcode::Nop:
@@ -1222,28 +1216,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                         appendColored(out, ctx, SyntaxColor::InstructionIndex, unknownInstructionIndex(indexWidth));
                     }
                 }
-                break;
-
-            case MicroInstrOpcode::PatchJump:
-                appendColored(out, ctx, SyntaxColor::Number, std::format("from={}", ops[0].valueU64));
-                appendSep(out);
-                if (ops[2].valueU64 == 2)
-                {
-                    const Ref targetRef = static_cast<Ref>(ops[1].valueU64);
-                    appendColored(out, ctx, SyntaxColor::Number, std::format("to_ref={}", targetRef));
-                    auto itDst = instIndexByRef.find(targetRef);
-                    if (itDst != instIndexByRef.end())
-                    {
-                        out += " ";
-                        appendColored(out, ctx, SyntaxColor::Compiler, std::format("(idx={})", itDst->second));
-                    }
-                }
-                else
-                {
-                    appendColored(out, ctx, SyntaxColor::Number, std::format("to={}", ops[1].valueU64));
-                }
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Number, std::format("imm={}", ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
@@ -1412,13 +1384,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[3].opBits);
-                break;
-
-            case MicroInstrOpcode::LoadCallParam:
-            case MicroInstrOpcode::LoadCallAddrParam:
-            case MicroInstrOpcode::LoadCallZeroExtParam:
-            case MicroInstrOpcode::StoreCallParam:
-                appendColored(out, ctx, SyntaxColor::Compiler, std::format("{} operand(s)", inst.numOperands));
                 break;
 
             default:

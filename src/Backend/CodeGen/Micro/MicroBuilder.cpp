@@ -61,7 +61,7 @@ const MicroDebugInfo* MicroBuilder::debugInfo(Ref instructionRef) const
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
-    codeRelocations_.push_back(relocation);
+    relocations_.push_back(relocation);
 }
 
 void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg)

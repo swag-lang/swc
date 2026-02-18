@@ -89,10 +89,10 @@ public:
     const Utf8&                         printSymbolName() const { return printSymbolName_; }
     const Utf8&                         printFilePath() const { return printFilePath_; }
     uint32_t                            printSourceLine() const { return printSourceLine_; }
-    void                                clearRelocations() { codeRelocations_.clear(); }
+    void                                clearRelocations() { relocations_.clear(); }
     void                                addRelocation(const MicroRelocation& relocation);
-    std::vector<MicroRelocation>&       codeRelocations() { return codeRelocations_; }
-    const std::vector<MicroRelocation>& codeRelocations() const { return codeRelocations_; }
+    std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
+    const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
     void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
     void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, std::span<const MicroReg> forbiddenRegs);
     bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
@@ -100,11 +100,12 @@ public:
 
     void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
+    Ref  createLabel();
+    void placeLabel(Ref labelRef);
+
     void encodePush(MicroReg reg);
     void encodePop(MicroReg reg);
     void encodeNop();
-    Ref  createLabel();
-    void placeLabel(Ref labelRef);
     void encodeLabel(Ref& outLabelRef);
     void encodeRet();
     void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv);
@@ -161,7 +162,7 @@ private:
     std::vector<Utf8>                                   printPassOptions_;
     Runtime::BuildCfgBackendOptim                       backendOptimizeLevel_ = Runtime::BuildCfgBackendOptim::O0;
     std::vector<Ref>                                    labels_;
-    std::vector<MicroRelocation>                        codeRelocations_;
+    std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
 };
 

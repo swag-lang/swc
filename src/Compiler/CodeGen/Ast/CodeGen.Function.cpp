@@ -166,19 +166,6 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
-
-    if (calledFunction.hasInterfaceMethodSlot())
-    {
-        const AstMemberAccessExpr* memberAccess = calleeView.node ? calleeView.node->safeCast<AstMemberAccessExpr>() : nullptr;
-        if (memberAccess)
-        {
-            const AstNodeRef receiverRef = memberAccess->nodeLeftRef;
-            const bool       hasReceiver = !args.empty() && args[0].argRef == receiverRef && args[0].passKind == CallArgumentPassKind::InterfaceObject;
-            if (!hasReceiver)
-                args.insert(args.begin(), {.argRef = receiverRef, .passKind = CallArgumentPassKind::InterfaceObject});
-        }
-    }
-
     buildPreparedABIArguments(codeGen, args, preparedArgs);
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);

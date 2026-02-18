@@ -125,7 +125,7 @@ namespace
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
     {
         VariadicInfo vi;
-        const auto   params = fn.parameters();
+        const auto&  params = fn.parameters();
         if (params.empty())
             return vi;
 
@@ -168,7 +168,7 @@ namespace
     {
         outMapping = {};
 
-        const auto     params     = fn.parameters();
+        const auto&    params     = fn.parameters();
         const uint32_t numParams  = static_cast<uint32_t>(params.size());
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
@@ -421,7 +421,7 @@ namespace
         return Result::Error;
     }
 
-    // Probes if an implicit conversion from 'from' to 'to' is possible, and returns its rank.
+    // Probes if an implicit conversion from 'from' to 'to' is possible and returns its rank.
     Result probeImplicitConversion(Sema& sema, ConvRank& outRank, AstNodeRef argRef, TypeRef from, TypeRef to, CastFailure& outCastFailure, bool isUfcsArgument)
     {
         outRank = ConvRank::Bad;
@@ -559,7 +559,7 @@ namespace
 
     uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
     {
-        const auto     params = fn.parameters();
+        const auto&    params = fn.parameters();
         const uint32_t n      = static_cast<uint32_t>(params.size());
         const uint32_t end    = (ignoreVariadicTail && n > 0) ? (n - 1) : n;
 
@@ -831,7 +831,7 @@ namespace
     Result finalizeAutoEnumArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const auto      params         = selectedFn.parameters();
+        const auto&     params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
 
@@ -903,7 +903,7 @@ namespace
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const auto      params         = selectedFn.parameters();
+        const auto&     params         = selectedFn.parameters();
         const uint32_t  numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
 
@@ -946,9 +946,27 @@ namespace
         return Result::Continue;
     }
 
-    void buildResolvedCallArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, SmallVector<ResolvedCallArgument>& outResolvedArgs)
+    void buildResolvedCallArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, AstNodeRef interfaceReceiverArg, SmallVector<ResolvedCallArgument>& outResolvedArgs)
     {
         outResolvedArgs.clear();
+
+        if (selectedFn.hasInterfaceMethodSlot() && interfaceReceiverArg.isValid())
+        {
+            bool hasReceiverArg = false;
+            if (!mapping.paramArgs.empty())
+            {
+                AstNodeRef firstArgRef = mapping.paramArgs[0].argRef;
+                if (firstArgRef.isValid())
+                {
+                    if (const AstNamedArgument* namedArg = sema.node(firstArgRef).safeCast<AstNamedArgument>())
+                        firstArgRef = namedArg->nodeArgRef;
+                    hasReceiverArg = firstArgRef == interfaceReceiverArg;
+                }
+            }
+
+            if (!hasReceiverArg)
+                outResolvedArgs.push_back({.argRef = interfaceReceiverArg, .passKind = CallArgumentPassKind::InterfaceObject});
+        }
 
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
@@ -1049,7 +1067,21 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
     if (outResolvedArgs)
-        buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, *outResolvedArgs);
+    {
+        AstNodeRef interfaceReceiverArg = AstNodeRef::invalid();
+        if (selectedFn->hasInterfaceMethodSlot())
+        {
+            const AstMemberAccessExpr* memberAccess = nodeCallee.node ? nodeCallee.node->safeCast<AstMemberAccessExpr>() : nullptr;
+            if (memberAccess)
+            {
+                const SemaNodeView receiverView = sema.nodeView(memberAccess->nodeLeftRef);
+                if (receiverView.type && receiverView.type->isInterface())
+                    interfaceReceiverArg = receiverView.nodeRef;
+            }
+        }
+
+        buildResolvedCallArgs(sema, *selectedFn, mapping, appliedUfcsArg, interfaceReceiverArg, *outResolvedArgs);
+    }
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.curNode());

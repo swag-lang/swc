@@ -19,7 +19,7 @@ using SymbolImplFlags = EnumFlags<SymbolImplFlagsE>;
 class SymbolImpl : public SymbolMapT<SymbolKind::Impl, SymbolImplFlagsE>
 {
 public:
-    static constexpr auto K = SymbolKind::Impl;
+    static constexpr SymbolKind K = SymbolKind::Impl;
 
     explicit SymbolImpl(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)

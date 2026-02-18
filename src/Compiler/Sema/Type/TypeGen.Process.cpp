@@ -60,7 +60,7 @@ namespace TypeGenInternal
 
     Result processTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGen::TypeGenResult& result, TypeGen::TypeGenCache& cache)
     {
-        auto&              ctx  = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const TypeManager& tm   = ctx.typeMgr();
         const AstNode&     node = sema.node(ownerNodeRef);
 

@@ -38,14 +38,14 @@ namespace
         {
             if (argType.numBits == 32)
             {
-                const auto value = *static_cast<const float*>(valuePtr);
+                const float value = *static_cast<const float*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(float));
                 return outArg;
             }
 
             if (argType.numBits == 64)
             {
-                const auto value = *static_cast<const double*>(valuePtr);
+                const double value = *static_cast<const double*>(valuePtr);
                 std::memcpy(&outArg.value, &value, sizeof(double));
                 return outArg;
             }
@@ -76,7 +76,7 @@ namespace
 
     void appendExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
-        const auto& info = *static_cast<const ExceptionInfo*>(userData);
+        const ExceptionInfo& info = *static_cast<const ExceptionInfo*>(userData);
         outMsg += "  call site: jit invoker\n";
         if (ctx.cmdLine().verboseHardwareException)
             outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));
@@ -173,7 +173,7 @@ namespace
 
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
-        const auto     basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
+        uint8_t* const basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
         SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
@@ -209,8 +209,8 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     SWC_FORCE_ASSERT(!linearCode.empty());
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
-    auto&      memoryManager = ctx.compiler().jitMemMgr();
-    const auto codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
+    JITMemoryManager& memoryManager = ctx.compiler().jitMemMgr();
+    const uint32_t    codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
     ByteSpanRW writableCode;
 
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
@@ -224,8 +224,8 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
 {
     SWC_ASSERT(targetFn != nullptr);
 
-    constexpr auto                         callConvKind = CallConvKind::Host;
-    const auto&                            conv         = CallConv::get(callConvKind);
+    constexpr CallConvKind                 callConvKind = CallConvKind::Host;
+    const CallConv&                        conv         = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType retType      = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
@@ -245,10 +245,10 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
         packedArgs[0].numBits = 64;
     }
 
-    const auto numArgs = static_cast<uint32_t>(args.size());
+    const uint32_t numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto&                            arg     = args[i];
+        const JITArgument&                     arg     = args[i];
         const ABITypeNormalize::NormalizedType argType = ABITypeNormalize::normalize(ctx, conv, arg.typeRef, ABITypeNormalize::Usage::Argument);
         SWC_ASSERT(!argType.isVoid);
         normalizedArgTypes[i] = argType;
@@ -269,7 +269,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     uint32_t indirectArgStorageOffset = 0;
     for (uint32_t i = 0; i < numArgs; ++i)
     {
-        const auto&                            arg     = args[i];
+        const JITArgument&                     arg     = args[i];
         const ABITypeNormalize::NormalizedType argType = normalizedArgTypes[i];
         SWC_ASSERT(arg.valuePtr != nullptr);
 
@@ -283,7 +283,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
         if (argType.needsIndirectCopy)
         {
             indirectArgStorageOffset = Math::alignUpU32(indirectArgStorageOffset, argType.indirectAlign);
-            auto* const copyPtr      = indirectArgStorage.data() + indirectArgStorageOffset;
+            uint8_t* const copyPtr   = indirectArgStorage.data() + indirectArgStorageOffset;
             std::memcpy(copyPtr, arg.valuePtr, argType.indirectSize);
             indirectValuePtr = copyPtr;
             indirectArgStorageOffset += argType.indirectSize;
@@ -296,8 +296,8 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
 
     MicroBuilder builder(ctx);
 
-    const auto retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
-    const auto retMeta   = ABICall::Return{
+    void* const retOutPtr = retType.isIndirect ? nullptr : ret.valuePtr;
+    const ABICall::Return retMeta = ABICall::Return{
           .valuePtr   = retOutPtr,
           .isVoid     = retType.isVoid,
           .isFloat    = retType.isFloat,
@@ -313,7 +313,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     JITMemory executableMemory;
     emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
 
-    const auto invoker = executableMemory.entryPoint();
+    void* const invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);
     (void) call(ctx, invoker);
 }
@@ -329,13 +329,13 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
         if (arg0)
         {
             using InvokerVoidU64    = void (*)(uint64_t);
-            const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
+            const InvokerVoidU64 typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
             typedInvoker(*arg0);
         }
         else
         {
             using InvokerFn         = void (*)();
-            const auto typedInvoker = reinterpret_cast<InvokerFn>(invoker);
+            const InvokerFn typedInvoker = reinterpret_cast<InvokerFn>(invoker);
             typedInvoker();
         }
     }

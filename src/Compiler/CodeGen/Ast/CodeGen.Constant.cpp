@@ -12,7 +12,7 @@ namespace
 {
     void emitLoweredConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
-        auto&           ctx          = codeGen.ctx();
+        TaskContext&    ctx          = codeGen.ctx();
         const TypeRef   finalTypeRef = targetTypeRef.isValid() ? targetTypeRef : cst.typeRef();
         const TypeInfo& typeInfo     = ctx.typeMgr().get(finalTypeRef);
         const uint64_t  storageSize  = typeInfo.sizeOf(ctx);
@@ -37,7 +37,7 @@ namespace
             return;
         }
 
-        auto* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
+        std::byte* const storage = ctx.compiler().allocateArray<std::byte>(storageSize);
         std::memcpy(storage, tmpSpan.data(), tmpSpan.size());
         codeGen.builder().encodeLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(storage), cstRef);
         payload.storageKind = CodeGenNodePayload::StorageKind::Address;
@@ -45,7 +45,7 @@ namespace
 
     void emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
     {
-        auto& builder = codeGen.builder();
+        MicroBuilder& builder = codeGen.builder();
 
         switch (cst.kind())
         {
@@ -112,7 +112,7 @@ namespace
                     std::memcpy(data, value.data(), value.size());
                 }
 
-                auto* runtimeString   = codeGen.ctx().compiler().allocate<Runtime::String>();
+                Runtime::String* runtimeString = codeGen.ctx().compiler().allocate<Runtime::String>();
                 runtimeString->ptr    = data;
                 runtimeString->length = value.size();
 
@@ -179,9 +179,9 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (typeRef.isInvalid())
         typeRef = sema().typeRefOf(nodeRef);
 
-    const auto& cst = sema().cstMgr().get(cstRef);
+    const ConstantValue& cst = sema().cstMgr().get(cstRef);
 
-    auto& payload = setPayload(nodeRef, typeRef);
+    CodeGenNodePayload& payload = setPayload(nodeRef, typeRef);
     emitConstantToPayload(*this, payload, cstRef, cst, typeRef);
     return Result::SkipChildren;
 }

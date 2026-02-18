@@ -55,7 +55,7 @@ namespace
 
     const SymbolStruct* usingTargetStruct(Sema& sema, const SymbolVariable& symVar)
     {
-        const auto& ctx     = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         const auto& typeMgr = sema.typeMgr();
 
         // Resolve aliases so that `using v: AliasToStruct` works.

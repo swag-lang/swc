@@ -274,7 +274,7 @@ namespace
 
     void fillMatchDiagnostic(Sema& sema, DiagnosticElement& diagElement, Diagnostic& diag, const SymbolFunction& fn, const MatchFailure& fail, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool isNote)
     {
-        const auto&    ctx     = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         const uint32_t numArgs = countCallArgs(args, ufcsArg);
 
         switch (fail.kind)
@@ -352,7 +352,7 @@ namespace
 
     Result errorNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         struct SortedAttempt
         {
@@ -589,7 +589,7 @@ namespace
         outCandidate.viable       = false;
         outCandidate.ufcsUsed     = ufcsArg.isValid();
 
-        auto&              ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const VariadicInfo vi  = getVariadicInfo(sema, fn);
 
         CallArgMapping mapping;

@@ -322,7 +322,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
 Symbol* SymbolMap::addSingleSymbolOrError(Sema& sema, Symbol* symbol)
 {
-    auto&   ctx         = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     Symbol* insertedSym = addSymbol(ctx, symbol, true);
     if (symbol->nextHomonym())
         SemaError::raiseAlreadyDefined(sema, symbol, symbol->nextHomonym());

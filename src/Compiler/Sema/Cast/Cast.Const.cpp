@@ -16,7 +16,7 @@ void Cast::foldConstantIdentity(CastRequest& castRequest)
 
 bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     // Be sure constant is sized
     if (dstType.isInt())
@@ -98,7 +98,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
 bool Cast::foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     const TypeInfo&      dstType        = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src            = sema.cstMgr().get(castRequest.constantFoldingSrc());
@@ -115,7 +115,7 @@ bool Cast::foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeR
 
 bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
 {
-    auto&                ctx   = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const ConstantValue& src   = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApsInt         value = src.getIntLike();
     const bool           b     = !value.isZero();
@@ -128,7 +128,7 @@ bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
 
 bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
@@ -244,7 +244,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
 
 bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    auto&                ctx        = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApsInt         intVal     = src.getIntLike();
@@ -268,7 +268,7 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, Type
 
 bool Cast::foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    auto&                ctx        = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApFloat&       srcVal     = src.getFloat();
@@ -292,7 +292,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, Type
 
 bool Cast::foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    auto&                ctx        = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
     const ApFloat&       floatVal   = src.getFloat();
@@ -389,7 +389,7 @@ Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef node
 
 bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts)
 {
-    auto&                ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const ConstantValue& srcCst  = sema.cstMgr().get(cstRef);
     const TypeManager&   typeMgr = ctx.typeMgr();
     const TypeInfo&      ty      = typeMgr.get(srcCst.typeRef());

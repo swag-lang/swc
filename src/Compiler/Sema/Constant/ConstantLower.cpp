@@ -16,7 +16,7 @@ namespace
 
     void lowerAggregateArrayToBytesInternal(Sema& sema, ByteSpan dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
     {
-        auto&           ctx         = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
         const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
         const uint64_t  elemSize    = elemType.sizeOf(ctx);

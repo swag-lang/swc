@@ -58,7 +58,7 @@ namespace
         {
             const SymbolImpl* symImpl   = sema.frame().currentImpl()->asSymMap()->safeCast<SymbolImpl>();
             const TypeRef     ownerType = symImpl->symStruct()->typeRef();
-            auto&             ctx       = sema.ctx();
+            TaskContext& ctx = sema.ctx();
             SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))

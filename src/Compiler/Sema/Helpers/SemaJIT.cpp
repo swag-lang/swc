@@ -35,7 +35,7 @@ namespace
 
     ConstantValue makeRunExprConstant(Sema& sema, const SemaNodeView& nodeView, TypeRef storageTypeRef, const std::byte* storagePtr)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         SWC_ASSERT(nodeView.type);
         if (nodeView.type->isEnum())
         {
@@ -52,7 +52,7 @@ namespace
 
     ConstantValue makeRunExprPointerStringConstant(Sema& sema, const std::byte* storagePtr)
     {
-        const auto& ctx           = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         const auto  strPtrAddress = *reinterpret_cast<const uint64_t*>(storagePtr);
         if (!strPtrAddress)
             return ConstantValue::makeString(ctx, std::string_view{});
@@ -76,7 +76,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
-    auto&           ctx            = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeRef   storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
     const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
     const auto      normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef, ABITypeNormalize::Usage::Return);

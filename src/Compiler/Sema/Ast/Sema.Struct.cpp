@@ -32,7 +32,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 {
     if (childRef == nodeBodyRef)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
         SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();
@@ -88,7 +88,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 {
     if (childRef == nodeBodyRef)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
         SymbolStruct&  sym           = sema.symbolOf(sema.curNodeRef()).cast<SymbolStruct>();

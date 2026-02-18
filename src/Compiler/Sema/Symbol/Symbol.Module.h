@@ -6,7 +6,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolModule : public SymbolMapT<SymbolKind::Module>
 {
 public:
-    static constexpr auto K = SymbolKind::Module;
+    static constexpr SymbolKind K = SymbolKind::Module;
 
     explicit SymbolModule(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero)
@@ -21,7 +21,7 @@ public:
 class SymbolNamespace : public SymbolMapT<SymbolKind::Namespace>
 {
 public:
-    static constexpr auto K = SymbolKind::Namespace;
+    static constexpr SymbolKind K = SymbolKind::Namespace;
 
     explicit SymbolNamespace(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :
         SymbolMapT(decl, tokRef, idRef, flags)

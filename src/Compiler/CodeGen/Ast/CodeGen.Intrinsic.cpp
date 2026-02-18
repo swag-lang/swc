@@ -3,6 +3,7 @@
 #include "Backend/CodeGen/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -53,9 +54,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicCompiler:
         {
-            const auto compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
-            const auto nodeView          = codeGen.curNodeView();
-            auto&      payload           = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+            const uint64_t compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.ctx().compiler().runtimeCompiler());
+            const SemaNodeView nodeView      = codeGen.curNodeView();
+            CodeGenNodePayload& payload      = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
             codeGen.builder().encodeLoadRegPtrImm(payload.reg, compilerIfAddress);
             payload.storageKind = CodeGenNodePayload::StorageKind::Value;
             return Result::Continue;

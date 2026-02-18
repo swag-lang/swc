@@ -19,7 +19,7 @@ namespace SemaHelpers
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(ctx, {node.srcViewRef(), tokNameRef});
         const SymbolFlags   flags = sema.frame().flagsForCurrentAccess();
@@ -48,7 +48,7 @@ namespace SemaHelpers
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
-        auto&               ctx         = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const Utf8          privateName = Utf8("__") + Utf8(name);
         const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
         const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();

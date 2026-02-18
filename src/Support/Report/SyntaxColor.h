@@ -27,25 +27,25 @@ enum class SyntaxColor
     Invalid,
 };
 
-static constexpr auto SYN_CODE       = "SCde";
-static constexpr auto SYN_INST_INDEX = "SIdx";
-static constexpr auto SYN_MICRO_INST = "SMic";
-static constexpr auto SYN_COMMENT    = "SCmt";
-static constexpr auto SYN_COMPILER   = "SCmp";
-static constexpr auto SYN_FUNCTION   = "SFct";
-static constexpr auto SYN_CONSTANT   = "SCst";
-static constexpr auto SYN_INTRINSIC  = "SItr";
-static constexpr auto SYN_TYPE       = "STpe";
-static constexpr auto SYN_KEYWORD    = "SKwd";
-static constexpr auto SYN_LOGIC      = "SLgc";
-static constexpr auto SYN_NUMBER     = "SNum";
-static constexpr auto SYN_STRING     = "SStr";
-static constexpr auto SYN_ATTRIBUTE  = "SAtr";
-static constexpr auto SYN_DEFAULT    = "SDft";
-static constexpr auto SYN_INVALID    = "SInv";
-static constexpr auto SYN_REGISTER   = "SBcR";
-static constexpr auto SYN_REGISTER_V = "SBvR";
-static constexpr auto SYN_RELOCATION = "SRel";
+static constexpr const char* SYN_CODE       = "SCde";
+static constexpr const char* SYN_INST_INDEX = "SIdx";
+static constexpr const char* SYN_MICRO_INST = "SMic";
+static constexpr const char* SYN_COMMENT    = "SCmt";
+static constexpr const char* SYN_COMPILER   = "SCmp";
+static constexpr const char* SYN_FUNCTION   = "SFct";
+static constexpr const char* SYN_CONSTANT   = "SCst";
+static constexpr const char* SYN_INTRINSIC  = "SItr";
+static constexpr const char* SYN_TYPE       = "STpe";
+static constexpr const char* SYN_KEYWORD    = "SKwd";
+static constexpr const char* SYN_LOGIC      = "SLgc";
+static constexpr const char* SYN_NUMBER     = "SNum";
+static constexpr const char* SYN_STRING     = "SStr";
+static constexpr const char* SYN_ATTRIBUTE  = "SAtr";
+static constexpr const char* SYN_DEFAULT    = "SDft";
+static constexpr const char* SYN_INVALID    = "SInv";
+static constexpr const char* SYN_REGISTER   = "SBcR";
+static constexpr const char* SYN_REGISTER_V = "SBvR";
+static constexpr const char* SYN_RELOCATION = "SRel";
 
 enum class SyntaxColorMode
 {

@@ -35,7 +35,7 @@ Result AstFile::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef)
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     SmallVector<TokenRef> namesRef;
     sema.ast().appendTokens(namesRef, spanNameRef);

@@ -14,7 +14,7 @@ namespace
 {
     void setDataOfPointerConstant(Sema& sema, TypeRef resultTypeRef, uint64_t ptrValue)
     {
-        auto&           ctx        = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
 
         ConstantValue resultCst;

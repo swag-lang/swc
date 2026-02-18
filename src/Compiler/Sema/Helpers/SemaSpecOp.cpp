@@ -84,7 +84,7 @@ namespace
 
     Result validateSpecOpSignature(Sema& sema, const SymbolStruct& owner, SymbolFunction& sym, SpecOpKind kind)
     {
-        auto&       ctx     = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const auto& typeMgr = sema.typeMgr();
         const auto& params  = sym.parameters();
 

@@ -39,9 +39,9 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    auto&          ctx          = codeGen.ctx();
+    TaskContext& ctx = codeGen.ctx();
     const auto&    callConv     = CallConv::host();
-    constexpr auto callConvKind = CallConvKind::Host;
+    constexpr CallConvKind callConvKind = CallConvKind::Host;
     MicroBuilder&  builder      = codeGen.builder();
     const auto     exprView     = codeGen.nodeView(nodeExprRef);
     SWC_ASSERT(exprView.type);

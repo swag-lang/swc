@@ -224,7 +224,7 @@ protected:
 template<AstNodeId I, typename E = void>
 struct AstNodeT : AstNode
 {
-    static constexpr auto ID = I;
+    static constexpr AstNodeId ID = I;
     using FlagsE             = E;
     using FlagsType          = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 

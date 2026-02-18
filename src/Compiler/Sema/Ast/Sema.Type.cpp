@@ -269,7 +269,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
-    auto&              ctx      = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef);
 
     // Unknown dimension [?]
@@ -327,7 +327,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 
 Result AstCompilerTypeExpr::semaPostNode(Sema& sema) const
 {
-    auto&               ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
@@ -385,7 +385,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
 
 Result AstLambdaType::semaPostNode(Sema& sema) const
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     SymbolFunction* const symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
 

@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
 {
-    const auto& ctx  = sema.ctx();
+    const TaskContext& ctx = sema.ctx();
     const auto& node = sema.node(atNodeRef);
     switch (location)
     {
@@ -26,7 +26,7 @@ void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const SourceCod
 {
     SWC_ASSERT(codeRange.isValid());
 
-    const auto&       ctx     = sema.ctx();
+    const TaskContext& ctx = sema.ctx();
     const SourceView& srcView = sema.srcView(codeRange.srcViewRef);
     const Token&      token   = srcView.token(codeRange.tokRef);
     const Utf8&       tokStr  = Diagnostic::tokenErrorString(ctx, codeRange);
@@ -72,7 +72,7 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNod
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
-    auto              diag    = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
     const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
     diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
 
@@ -89,7 +89,7 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCode
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
 {
-    auto diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
     diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
     setReportArguments(sema, diag, atNodeRef);
     return diag;

@@ -49,7 +49,7 @@ void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
 
 Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 {
-    auto diag = Diagnostic::get(id, ast_->srcView().fileRef());
+    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
     setReportArguments(diag, tknRef);
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
 
@@ -62,7 +62,7 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
 
 Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
 {
-    auto           diag   = Diagnostic::get(id, ast_->srcView().fileRef());
+    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
     const AstNode& node   = ast_->node(nodeRef);
     const TokenRef tknRef = node.tokRef();
     setReportArguments(diag, tknRef);

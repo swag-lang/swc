@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr auto K_NATURAL_COLUMN_WIDTH = 56U;
+    constexpr uint32_t K_NATURAL_COLUMN_WIDTH = 56U;
 
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {

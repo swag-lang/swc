@@ -27,7 +27,7 @@ namespace
 
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        auto&       ctx         = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         ConstantRef leftCstRef  = nodeLeftView.cstRef;
         ConstantRef rightCstRef = nodeRightView.cstRef;
         const bool  keepEnumRes = keepEnumFlagsResult(nodeLeftView, nodeRightView, op);
@@ -197,7 +197,7 @@ namespace
     Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         SWC_UNUSED(node);
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         Utf8  str = nodeLeftView.cst->toString(ctx);
         str += nodeRightView.cst->toString(ctx);
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));

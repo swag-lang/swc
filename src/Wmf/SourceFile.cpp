@@ -54,21 +54,21 @@ Result SourceFile::loadContent(TaskContext& ctx)
 
     if (!file)
     {
-        auto diag = Diagnostic::get(DiagnosticId::io_err_open_file, ref());
+        Diagnostic diag = Diagnostic::get(DiagnosticId::io_err_open_file, ref());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.report(ctx);
         return Result::Error;
     }
 
-    const auto fileSize = file.tellg();
+    const std::streampos fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
     content_.reserve(static_cast<size_t>(fileSize) + TRAILING_0);
     content_.resize(fileSize);
 
     if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
     {
-        auto diag = Diagnostic::get(DiagnosticId::io_err_read_file, ref());
+        Diagnostic diag = Diagnostic::get(DiagnosticId::io_err_read_file, ref());
         diag.addArgument(Diagnostic::ARG_PATH, path_.string());
         diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
         diag.report(ctx);
@@ -79,7 +79,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 
-    auto& srcView = ctx.compiler().addSourceView(fileRef_);
+    SourceView& srcView = ctx.compiler().addSourceView(fileRef_);
     ast().setSourceView(srcView);
     return Result::Continue;
 }

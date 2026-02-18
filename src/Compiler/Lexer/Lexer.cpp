@@ -33,7 +33,7 @@ void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
     if (isRawMode())
         return;
 
-    const auto diag = Diagnostic::get(id, srcView_->fileRef());
+    const Diagnostic diag = Diagnostic::get(id, srcView_->fileRef());
     diag.last().addSpan(srcView_, offset, len);
     diag.report(*ctx_);
 }
@@ -47,7 +47,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     if (isRawMode())
         return {};
 
-    auto diag = Diagnostic::get(id, srcView_->fileRef());
+    Diagnostic diag = Diagnostic::get(id, srcView_->fileRef());
     diag.last().addSpan(srcView_, offset, len);
 
     // Add an argument with the token string

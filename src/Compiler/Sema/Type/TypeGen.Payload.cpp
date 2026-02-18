@@ -45,7 +45,7 @@ namespace TypeGenInternal
 {
     void initCommon(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenResult& result)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
 
         rtType.sizeofType = static_cast<uint32_t>(type.sizeOf(ctx));
         rtType.crc        = type.hash();
@@ -152,7 +152,7 @@ namespace TypeGenInternal
 
     void initStruct(Sema& sema, DataSegment& storage, Runtime::TypeInfoStruct& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
-        const auto& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
 
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
@@ -255,7 +255,7 @@ namespace TypeGenInternal
 
     void wireRelocations(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGen::TypeGenCache::Entry& entry, LayoutKind kind)
     {
-        const auto&        ctx     = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         const TypeManager& typeMgr = sema.typeMgr();
 
         const auto requireDone = [&cache](TypeRef depKey) -> const TypeGen::TypeGenCache::Entry& {

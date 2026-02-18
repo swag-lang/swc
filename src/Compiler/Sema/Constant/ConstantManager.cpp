@@ -205,7 +205,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
 {
-    auto&          ctx        = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const uint32_t shardIndex = typeRef.get() & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];

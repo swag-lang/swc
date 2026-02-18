@@ -22,7 +22,7 @@ namespace
 
     ConstantRef makeStructConstantFromBytes(Sema& sema, TypeRef structTypeRef, ByteSpan bytes)
     {
-        auto&           ctx        = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const TypeInfo& structType = sema.typeMgr().get(structTypeRef);
         SWC_ASSERT(structType.isStruct());
         SWC_ASSERT(structType.sizeOf(ctx) <= bytes.size());
@@ -33,7 +33,7 @@ namespace
 
     ConstantRef makeArrayConstantFromBytes(Sema& sema, TypeRef arrayTypeRef, ByteSpan bytes)
     {
-        auto&           ctx       = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const TypeInfo& arrayType = sema.typeMgr().get(arrayTypeRef);
         SWC_ASSERT(arrayType.isArray());
         SWC_ASSERT(arrayType.sizeOf(ctx) <= bytes.size());
@@ -113,7 +113,7 @@ namespace
 
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
-        auto& ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         if (typeField.isArray())
         {
             outCstRef = makeArrayConstantFromBytes(sema, fieldTypeRef, bytes);
@@ -152,7 +152,7 @@ namespace
 
 Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
 {
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     if (cst.isAggregateStruct())
     {
@@ -201,7 +201,7 @@ namespace
 
     Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef)
     {
-        auto&           ctx      = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
         RESULT_VERIFY(sema.waitSemaCompleted(&elemType, nodeArgRef));
         const uint64_t elemSize = elemType.sizeOf(ctx);

@@ -23,11 +23,11 @@ namespace
         if (parentNodeRef.isInvalid())
             return false;
 
-        const auto* parentNode = codeGen.visit().parentNode(0);
+        const AstNode* parentNode = codeGen.visit().parentNode(0);
         if (!parentNode || parentNode->isNot(AstNodeId::CompilerRunExpr))
             return false;
 
-        const auto* runExpr = parentNode->safeCast<AstCompilerRunExpr>();
+        const AstCompilerRunExpr* runExpr = parentNode->safeCast<AstCompilerRunExpr>();
         if (!runExpr)
             return false;
 
@@ -44,13 +44,13 @@ namespace
             const AstNodeRef argRef = arg.argRef;
             if (argRef.isInvalid())
                 continue;
-            const auto* argPayload = codeGen.payload(argRef);
+            const CodeGenNodePayload* argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
 
             ABICall::PreparedArg preparedArg;
             preparedArg.srcReg = argPayload->reg;
 
-            const auto argView = codeGen.nodeView(argRef);
+            const SemaNodeView argView = codeGen.nodeView(argRef);
             if (argView.type)
             {
                 preparedArg.isFloat = argView.type->isFloat();
@@ -81,7 +81,7 @@ namespace
         const CallConvKind callConvKind  = symbolFunc.callConvKind();
         const CallConv&    callConv      = CallConv::get(callConvKind);
         const TypeRef      returnTypeRef = symbolFunc.returnTypeRef();
-        const auto         normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
 
         if (normalizedRet.isVoid)
         {
@@ -91,12 +91,12 @@ namespace
 
         SWC_ASSERT(exprRef.isValid());
 
-        const auto* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
+        const CodeGenNodePayload* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
 
-            const auto* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
+            const CodeGenNodePayload* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
             SWC_ASSERT(fnPayload);
             SWC_ASSERT(fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
 
@@ -121,14 +121,14 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
 
-    const auto& symbolFunc    = codeGen.function();
-    const auto  callConvKind  = symbolFunc.callConvKind();
-    const auto& callConv      = CallConv::get(callConvKind);
-    const auto  normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const SymbolFunction& symbolFunc    = codeGen.function();
+    const CallConvKind    callConvKind  = symbolFunc.callConvKind();
+    const CallConv&       callConv      = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(!callConv.intArgRegs.empty());
-        auto& payload = codeGen.setPayload(codeGen.curNodeRef());
+        CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef());
         codeGen.builder().encodeLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
         payload.storageKind = CodeGenNodePayload::StorageKind::Address;
     }
@@ -152,19 +152,19 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroBuilder&      builder        = codeGen.builder();
-    const auto         calleeView     = codeGen.nodeView(nodeExprRef);
+    const SemaNodeView calleeView     = codeGen.nodeView(nodeExprRef);
     SymbolFunction&    calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
     const CallConvKind callConvKind   = calledFunction.callConvKind();
     const CallConv&    callConv       = CallConv::get(callConvKind);
-    const auto         normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, args, preparedArgs);
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
-    auto&                       nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const auto*                 calleePayload = codeGen.payload(calleeView.nodeRef);
+    CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    const CodeGenNodePayload*   calleePayload = codeGen.payload(calleeView.nodeRef);
     const MicroReg              resultReg     = nodePayload.reg;
 
     if (calleePayload)

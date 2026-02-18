@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 ConstantRef ConstantHelpers::makeSourceCodeLocation(Sema& sema, const SourceCodeRange& codeRange)
 {
-    auto&         ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const TypeRef typeRef = sema.typeMgr().structSourceCodeLocation();
 
     Runtime::SourceCodeLocation rtLoc;

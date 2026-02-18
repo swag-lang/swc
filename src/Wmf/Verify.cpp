@@ -271,7 +271,7 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
     {
         if (!directive.touched)
         {
-            const auto diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::unittest_err_not_raised, srcView.fileRef());
             diag.last().addSpan(directive.myCodeRange, "");
             diag.report(ctx);
         }

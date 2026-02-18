@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_already_defined, symbol->codeRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
     diag.last().addSpan(otherSymbol->codeRange(ctx));
@@ -19,7 +19,7 @@ Result SemaError::raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Sy
 
 Result SemaError::raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_ghosting, symbol->codeRef());
     diag.addNote(DiagnosticId::sema_note_other_definition);
     diag.last().addSpan(otherSymbol->codeRange(ctx));
@@ -37,7 +37,7 @@ Diagnostic SemaError::reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef
 
 Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_invalid_type, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, targetTypeRef);
@@ -47,7 +47,7 @@ Result SemaError::raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef src
 
 Result SemaError::raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_invalid_range_type, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     diag.report(ctx);
@@ -56,7 +56,7 @@ Result SemaError::raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRe
 
 Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_expected_type_fam, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
     const TypeInfo& ty = sema.typeMgr().get(targetTypeRef);
@@ -125,7 +125,7 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
 
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)
 {
-    auto& ctx  = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     auto  diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_SYM, symbols.front()->name(ctx));
 

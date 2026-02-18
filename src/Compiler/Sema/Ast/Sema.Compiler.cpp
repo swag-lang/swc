@@ -156,7 +156,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
         case TokenId::CompilerPrint:
         {
-            const auto& ctx = sema.ctx();
+            const TaskContext& ctx = sema.ctx();
             ctx.global().logger().lock();
             Logger::print(ctx, constant.toString(ctx));
             Logger::print(ctx, "\n");
@@ -178,7 +178,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
-    auto&             ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const Token&      tok     = sema.token(codeRef());
     const SourceView& srcView = sema.ast().srcView();
 
@@ -412,7 +412,7 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        auto&            ctx      = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     nodeView = sema.nodeView(childRef);
 
@@ -438,7 +438,7 @@ namespace
 
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        auto&              ctx      = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 
@@ -455,7 +455,7 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        auto&              ctx      = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 
@@ -472,7 +472,7 @@ namespace
 
     Result semaCompilerDefined(Sema& sema, const AstCompilerCallOne& node)
     {
-        auto&              ctx      = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView nodeView = sema.nodeView(childRef);
 
@@ -572,7 +572,7 @@ Result AstCompilerCall::semaPostNode(const Sema& sema) const
 
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
-    auto&        ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerFuncMain)
     {
@@ -643,7 +643,7 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
     const AstNodeRef nodeRef = sema.curNodeRef();
     if (!sema.hasSymbol(nodeRef))
     {
-        auto&               ctx   = sema.ctx();
+        TaskContext& ctx = sema.ctx();
         const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
         const AstNode&      node  = sema.node(nodeRef);
 

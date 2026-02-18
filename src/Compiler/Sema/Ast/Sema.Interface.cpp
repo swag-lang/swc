@@ -29,7 +29,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    auto& ctx = sema.ctx();
+    TaskContext& ctx = sema.ctx();
 
     // Creates symbol with type
     SymbolInterface& symItf     = sema.symbolOf(sema.curNodeRef()).cast<SymbolInterface>();

@@ -206,6 +206,7 @@
         <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLegalizePass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroEmitPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.cpp"/>
@@ -383,6 +384,7 @@
         <ClInclude Include="src\Backend\\Micro\MicroBuilder.h" />
         <ClInclude Include="src\Backend\\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroLegalizePass.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\MicroPeepholePass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroEmitPass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.h"/>

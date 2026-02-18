@@ -65,7 +65,7 @@
 
 #test
 {
-    #[Swag.PrintMicro]
+    #[Swag.PrintMicro, Swag.Optimize(.O0)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
     const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
     #assert(#typeof(V) == f64)

@@ -42,6 +42,8 @@ namespace
                 return before ? "pre-prolog-epilog" : "post-prolog-epilog";
             case MicroPassKind::Legalize:
                 return before ? "pre-legalize" : "post-legalize";
+            case MicroPassKind::Peephole:
+                return before ? "pre-peephole" : "post-peephole";
             case MicroPassKind::Emit:
                 return before ? "pre-emit" : "post-emit";
             default:

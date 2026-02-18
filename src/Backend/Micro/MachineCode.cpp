@@ -4,6 +4,7 @@
 #include "Backend/Micro/Passes/MicroEmitPass.h"
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.h"
 #include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
 
@@ -14,6 +15,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     MicroRegisterAllocationPass regAllocPass;
     MicroPrologEpilogPass       persistentRegsPass;
     MicroLegalizePass           legalizePass;
+    MicroPeepholePass           peepholePass;
     MicroEmitPass               encodePass;
 
     MicroPassContext passContext;
@@ -29,6 +31,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     passManager.add(regAllocPass);
     passManager.add(persistentRegsPass);
     passManager.add(legalizePass);
+    passManager.add(peepholePass);
     passManager.add(encodePass);
     builder.runPasses(passManager, &encoder, passContext);
 

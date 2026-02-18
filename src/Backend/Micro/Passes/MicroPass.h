@@ -18,6 +18,8 @@ enum class MicroPassKind : uint8_t
     PrologEpilog,
     // Rewrite micro instructions so every instruction is encoder-conformant.
     Legalize,
+    // Last-minute cleanup after register allocation and legalization.
+    Peephole,
     // Encode legalized instructions to machine code and patch jumps/relocations.
     Emit,
 };

@@ -214,6 +214,32 @@ std::pair<Ref, MicroInstr*> MicroStorage::emplaceUninit()
     return {ref, &nodes_[ref].instr};
 }
 
+bool MicroStorage::erase(Ref ref)
+{
+    if (ref == INVALID_REF || ref >= nodes_.size())
+        return false;
+
+    Node& node = nodes_[ref];
+    if (!node.alive)
+        return false;
+
+    if (node.prev != INVALID_REF)
+        nodes_[node.prev].next = node.next;
+    else
+        head_ = node.next;
+
+    if (node.next != INVALID_REF)
+        nodes_[node.next].prev = node.prev;
+    else
+        tail_ = node.prev;
+
+    node = Node{};
+    freeList_.push_back(ref);
+    SWC_ASSERT(count_ > 0);
+    --count_;
+    return true;
+}
+
 Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
 {
     SWC_ASSERT(beforeRef != INVALID_REF);

@@ -34,11 +34,12 @@ namespace
         return runExpr->nodeExprRef == codeGen.curNodeRef();
     }
 
-    void buildPreparedABIArguments(CodeGen& codeGen, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
+    void buildPreparedABIArguments(CodeGen& codeGen, CallConvKind callConvKind, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
         outArgs.reserve(args.size());
+        const CallConv& callConv = CallConv::get(callConvKind);
 
         for (const auto& arg : args)
         {
@@ -54,9 +55,10 @@ namespace
             const SemaNodeView argView = codeGen.nodeView(argRef);
             if (argView.type)
             {
-                preparedArg.isFloat = argView.type->isFloat();
-                if (preparedArg.isFloat)
-                    preparedArg.numBits = static_cast<uint8_t>(argView.type->payloadFloatBits());
+                const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argView.typeRef, ABITypeNormalize::Usage::Argument);
+                preparedArg.isFloat     = normalizedArg.isFloat;
+                preparedArg.numBits     = normalizedArg.numBits;
+                preparedArg.isAddressed = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
             }
 
             switch (arg.passKind)
@@ -166,7 +168,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    buildPreparedABIArguments(codeGen, args, preparedArgs);
+    buildPreparedABIArguments(codeGen, callConvKind, args, preparedArgs);
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);

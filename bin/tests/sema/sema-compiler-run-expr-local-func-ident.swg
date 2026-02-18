@@ -315,6 +315,37 @@ alias BigArray = [5] s32
 
 #test
 {
+    func passPointerFail(x: *void) => x
+    const V = #run passPointerFail(null)
+    #assert(#typeof(V) == *void)
+    #assert(V == null)
+}
+
+#test
+{
+    struct TinyPair
+    {
+        a: u32
+        b: u32
+    }
+    func passTinyPairFail(x: TinyPair) => x
+    const V = #run passTinyPairFail({a: 12'u32, b: 34'u32})
+    #assert(V.a == 12'u32)
+    #assert(V.b == 34'u32)
+}
+
+#test
+{
+    alias TinyArray = [2] s32
+
+    func passTinyArrayFail(x: TinyArray) => x
+    const V = #run passTinyArrayFail([12's32, 34's32])
+    #assert(V[0] == 12's32)
+    #assert(V[1] == 34's32)
+}
+
+#test
+{
     func passErr(x: BigBlob) => x
     const V = #run passErr() // swc-expected-error {{sema_err_too_few_arguments}}
 }
@@ -330,35 +361,3 @@ alias BigArray = [5] s32
     func passErr(x: string) => x
     const V = #run passErr("ok", 1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
-
-#test
-{
-    func passPointerFail(x: *void) => x
-    const V = #run passPointerFail(null)
-    #assert(#typeof(V) == *void)
-    #assert(V == null)
-}
-
-// #test
-// {
-//     struct TinyPair
-//     {
-//         a: u32
-//         b: u32
-//     }
-//
-//     func passTinyPairFail(x: TinyPair) => x
-//     const V = #run passTinyPairFail({a: 12'u32, b: 34'u32})
-//     #assert(V.a == 12'u32)
-//     #assert(V.b == 34'u32)
-// }
-//
-// #test
-// {
-//     alias TinyArray = [2] s32
-//
-//     func passTinyArrayFail(x: TinyArray) => x
-//     const V = #run passTinyArrayFail([12's32, 34's32])
-//     #assert(V[0] == 12's32)
-//     #assert(V[1] == 34's32)
-// }

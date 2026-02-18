@@ -180,8 +180,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
             if (isRegArg)
             {
-                // Float and non-virtual int values are staged through home slots for uniformity.
-                const bool useHomeSlot = arg.isFloat || !arg.srcReg.isVirtualInt();
+                // Float values, addressed values, and non-virtual int values are staged through home slots for uniformity.
+                const bool useHomeSlot = arg.isFloat || arg.isAddressed || !arg.srcReg.isVirtualInt();
                 regArgsUseHomeSlot[i]  = useHomeSlot ? 1 : 0;
 
                 if (!useHomeSlot)
@@ -197,7 +197,15 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             switch (arg.kind)
             {
                 case PreparedArgKind::Direct:
-                    builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
+                    if (arg.isAddressed)
+                    {
+                        builder.encodeLoadRegMem(regTmp, arg.srcReg, 0, argBits);
+                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, regTmp, argBits);
+                    }
+                    else
+                    {
+                        builder.encodeLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
+                    }
                     break;
 
                 case PreparedArgKind::InterfaceObject:
@@ -279,12 +287,18 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 if (arg.isFloat)
                 {
                     SWC_ASSERT(i < conv.floatArgRegs.size());
-                    builder.encodeLoadRegReg(conv.floatArgRegs[i], arg.srcReg, argBits);
+                    if (arg.isAddressed)
+                        builder.encodeLoadRegMem(conv.floatArgRegs[i], arg.srcReg, 0, argBits);
+                    else
+                        builder.encodeLoadRegReg(conv.floatArgRegs[i], arg.srcReg, argBits);
                 }
                 else
                 {
                     SWC_ASSERT(i < conv.intArgRegs.size());
-                    builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits);
+                    if (arg.isAddressed)
+                        builder.encodeLoadRegMem(conv.intArgRegs[i], arg.srcReg, 0, argBits);
+                    else
+                        builder.encodeLoadRegReg(conv.intArgRegs[i], arg.srcReg, argBits);
                 }
                 break;
             }

@@ -48,14 +48,14 @@ AstNodeRef Parser::parseCompilerTypeOf()
 
     if (nodeArgs.empty())
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
         diag.addArgument(Diagnostic::ARG_COUNT, 1);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
         diag.addArgument(Diagnostic::ARG_COUNT, 1);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
@@ -98,14 +98,14 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
 
     if (nodeArgs.size() < numParams)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
         diag.addArgument(Diagnostic::ARG_COUNT, numParams);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > numParams)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[numParams]);
         diag.addArgument(Diagnostic::ARG_COUNT, numParams);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
@@ -145,14 +145,14 @@ AstNodeRef Parser::parseCompilerCallOne()
 
     if (nodeArgs.empty())
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_few_arguments, ref());
         diag.addArgument(Diagnostic::ARG_COUNT, 1);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
     }
     else if (nodeArgs.size() > 1)
     {
-        auto diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
+        Diagnostic diag = reportError(DiagnosticId::parser_err_too_many_arguments, nodeArgs[1]);
         diag.addArgument(Diagnostic::ARG_COUNT, 1);
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(nodeArgs.size()));
         diag.report(*ctx_);
@@ -247,7 +247,7 @@ AstNodeRef Parser::parseCompilerIfStmt()
     if (is(TokenId::SymLeftCurly))
         return parseCompound<ID>(TokenId::SymLeftCurly);
 
-    const auto diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
+    Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, ref().offset(-1));
     diag.report(*ctx_);
     return AstNodeRef::invalid();
 }

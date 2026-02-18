@@ -7,10 +7,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-constexpr auto   LONG_PREFIX         = "--";
-constexpr auto   SHORT_PREFIX        = "-";
-constexpr auto   LONG_NO_PREFIX      = "--no-";
-constexpr auto   SHORT_NO_PREFIX     = "-no-";
+constexpr std::string_view LONG_PREFIX         = "--";
+constexpr std::string_view SHORT_PREFIX        = "-";
+constexpr std::string_view LONG_NO_PREFIX      = "--no-";
+constexpr std::string_view SHORT_NO_PREFIX     = "-no-";
 constexpr size_t LONG_PREFIX_LEN     = 2;
 constexpr size_t SHORT_PREFIX_LEN    = 1;
 constexpr size_t LONG_NO_PREFIX_LEN  = 5;
@@ -21,7 +21,7 @@ constexpr size_t SHORT_NO_PREFIX_LEN = 4;
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
     int index = 0;
-    for (const auto& allowed : COMMANDS)
+    for (const CommandInfo& allowed : COMMANDS)
     {
         if (allowed.name == cmd)
             return static_cast<CommandKind>(index);
@@ -34,7 +34,7 @@ CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 Utf8 CommandLineParser::getAllowedCommands()
 {
     Utf8 result;
-    for (const auto& cmd : COMMANDS)
+    for (const CommandInfo& cmd : COMMANDS)
     {
         if (!result.empty())
             result += "|";
@@ -198,7 +198,7 @@ std::optional<ArgInfo> CommandLineParser::findShortFormArgument(TaskContext& ctx
     return std::nullopt;
 }
 
-std::optional<ArgInfo> CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
+std::optional<ArgInfo> CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, std::string_view prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean)
 {
     const Utf8 baseArg = Utf8(prefix) + arg.substr(noPrefixLen);
     const auto it      = argMap.find(baseArg);
@@ -347,7 +347,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         Utf8 arg           = argv[i];
         bool invertBoolean = false;
 
-        const auto info = findArgument(ctx, arg, invertBoolean);
+        const std::optional<ArgInfo> info = findArgument(ctx, arg, invertBoolean);
         if (!info)
         {
             if (!errorRaised_)
@@ -390,7 +390,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     // Resolve all folders
     std::set<fs::path> resolvedFolders;
-    for (const auto& folder : cmdLine_->directories)
+    for (const fs::path& folder : cmdLine_->directories)
     {
         fs::path temp = folder;
         RESULT_VERIFY(FileSystem::resolveFolder(ctx, temp));
@@ -400,7 +400,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     // Resolve all files
     std::set<fs::path> resolvedFiles;
-    for (const auto& file : cmdLine_->files)
+    for (const fs::path& file : cmdLine_->files)
     {
         fs::path temp = file;
         RESULT_VERIFY(FileSystem::resolveFile(ctx, temp));

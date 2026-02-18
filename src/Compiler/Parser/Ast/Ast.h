@@ -43,7 +43,7 @@ public:
     void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
 
     template<AstNodeId ID>
-    auto node(AstNodeRef nodeRef)
+    typename AstTypeOf<ID>::type* node(AstNodeRef nodeRef)
     {
         SWC_ASSERT(nodeRef.isValid());
         using NodeType = AstTypeOf<ID>::type;
@@ -65,7 +65,7 @@ public:
     }
 
     template<AstNodeId ID>
-    auto makeNode(TokenRef tokRef)
+    std::pair<AstNodeRef, typename AstTypeOf<ID>::type*> makeNode(TokenRef tokRef)
     {
         using NodeType = AstTypeOf<ID>::type;
 
@@ -87,7 +87,7 @@ public:
         Stats::get().numAstNodes.fetch_add(1, std::memory_order_relaxed);
 #endif
 
-        auto value = std::pair<AstNodeRef, NodeType*>{globalRef, local.second};
+        std::pair<AstNodeRef, NodeType*> value{globalRef, local.second};
 #if SWC_HAS_REF_DEBUG_INFO
         value.first.dbgPtr     = value.second;
         value.second->dbgMyRef = value.first;

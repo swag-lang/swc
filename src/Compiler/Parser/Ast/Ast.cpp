@@ -123,13 +123,13 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
 
     while (!stack.empty())
     {
-        const auto nodeRef = stack.back();
+        const AstNodeRef nodeRef = stack.back();
         stack.pop_back();
         if (!nodeRef.isValid())
             continue;
 
-        const auto& node = ast.node(nodeRef);
-        const auto  res  = f(nodeRef, node);
+        const AstNode&   node = ast.node(nodeRef);
+        const VisitResult res = f(nodeRef, node);
         if (res == VisitResult::Stop)
             break;
         if (res == VisitResult::Skip)
@@ -137,7 +137,7 @@ void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)
 
         children.clear();
         nodeIdInfos(node.id()).collectChildren(children, ast, node);
-        for (auto& it : std::ranges::reverse_view(children))
+        for (const AstNodeRef it : std::ranges::reverse_view(children))
             stack.push_back(it);
     }
 }

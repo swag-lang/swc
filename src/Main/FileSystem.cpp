@@ -122,7 +122,7 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
 
 void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files, bool canFilter)
 {
-    for (const auto& entry : fs::recursive_directory_iterator(folder))
+    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(folder))
     {
         if (!entry.is_regular_file())
             continue;
@@ -133,7 +133,7 @@ void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& fol
         if (canFilter)
         {
             bool ignore = false;
-            for (const auto& filter : ctx.cmdLine().fileFilter)
+            for (const Utf8& filter : ctx.cmdLine().fileFilter)
             {
                 if (!entry.path().string().contains(filter))
                 {

@@ -20,8 +20,8 @@ namespace Command
     {
         TaskContext ctx(compiler);
 
-        const auto&       global   = ctx.global();
-        auto&             jobMgr   = global.jobMgr();
+        const Global&     global   = ctx.global();
+        JobManager&       jobMgr   = global.jobMgr();
         const JobClientId clientId = compiler.jobClientId();
 
         // Collect files

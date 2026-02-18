@@ -78,13 +78,13 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
 
 void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 {
-    const auto diag = reportError(id, tknRef);
+    Diagnostic diag = reportError(id, tknRef);
     diag.report(*ctx_);
 }
 
 void Parser::raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected)
 {
-    auto diag = reportError(id, tknRef);
+    Diagnostic diag = reportError(id, tknRef);
     setReportExpected(diag, tknExpected);
     diag.report(*ctx_);
 }
@@ -215,7 +215,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     if (is(id))
         return consume();
 
-    auto diag = reportError(diagId, ref());
+    Diagnostic diag = reportError(diagId, ref());
     setReportExpected(diag, id);
 
     if (id == TokenId::Identifier && Token::isSpecialWord(tok().id))
@@ -235,7 +235,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
 
     if (tok.id == openId)
     {
-        auto diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
+        Diagnostic diag = reportError(DiagnosticId::parser_err_expected_closing_before, ref());
         setReportExpected(diag, closeId);
         diag.last().addSpan(tok.codeRange(*ctx_, ast_->srcView()), DiagnosticId::parser_note_opening, DiagnosticSeverity::Note);
         diag.report(*ctx_);
@@ -264,7 +264,7 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const auto      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+    Diagnostic      diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
     SourceCodeRange codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
     codeRange.column += codeRange.len;
     codeRange.offset += codeRange.len;

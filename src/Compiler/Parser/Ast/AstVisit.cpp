@@ -104,7 +104,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
             }
 
             // Collect children once we've completed preNode (or if no preNodeVisitor_)
-            const auto& info = Ast::nodeIdInfos(fr.node->id());
+            const AstNodeIdInfo& info = Ast::nodeIdInfos(fr.node->id());
             fr.firstChildIx  = children_.size32();
             info.collectChildren(children_, *ast_, *fr.node);
             fr.numChildren = children_.size32() - fr.firstChildIx;

@@ -239,7 +239,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         Logger::printDim(ctx, "    swc help <command>\n\n");
 
         Logger::printDim(ctx, "Commands:\n");
-        std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
+        std::vector<CommandInfo> commands(std::begin(COMMANDS), std::end(COMMANDS));
         std::ranges::sort(commands, commandInfoLess);
 
         size_t maxLen = 0;
@@ -277,7 +277,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             maxLen = std::max(maxLen, entry.displayName.length());
         }
 
-        auto currentGroup = HelpOptionGroup::Other;
+        HelpOptionGroup currentGroup = HelpOptionGroup::Other;
         bool firstGroup   = true;
         for (const auto& entry : entries)
         {

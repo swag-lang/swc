@@ -81,7 +81,7 @@ private:
     std::optional<ArgInfo> findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     std::optional<ArgInfo> findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     std::optional<ArgInfo> findShortFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
-    std::optional<ArgInfo> findNegatedArgument(TaskContext& ctx, const Utf8& arg, const char* prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
+    std::optional<ArgInfo> findNegatedArgument(TaskContext& ctx, const Utf8& arg, std::string_view prefix, size_t noPrefixLen, const std::map<Utf8, ArgInfo>& argMap, bool& invertBoolean);
     void                   reportInvalidArgument(TaskContext& ctx, const Utf8& arg);
     bool                   processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, int& index, int argc, char* argv[]);
     void                   addArg(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, CommandLineType type, void* target, const char* enumValues, const char* description);

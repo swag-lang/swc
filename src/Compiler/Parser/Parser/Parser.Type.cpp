@@ -237,7 +237,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         // []
         if (is(TokenId::SymRightBracket))
         {
-            auto diag = reportError(DiagnosticId::parser_err_expected_array_dim, consume());
+            Diagnostic diag = reportError(DiagnosticId::parser_err_expected_array_dim, consume());
             diag.addElement(DiagnosticId::parser_help_empty_array_dim);
             diag.report(*ctx_);
             return AstNodeRef::invalid();

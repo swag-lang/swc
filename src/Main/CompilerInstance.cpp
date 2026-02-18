@@ -257,7 +257,7 @@ ExitCode CompilerInstance::run()
 SourceView& CompilerInstance::addSourceView()
 {
     std::unique_lock lock(mutex_);
-    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceViewRef    srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -271,7 +271,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     SWC_RACE_CONDITION_READ(rcFiles_);
 
     std::unique_lock lock(mutex_);
-    auto             srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceViewRef    srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -291,7 +291,7 @@ bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
     std::unique_lock lock(mutex_);
-    for (const auto& lib : foreignLibs_)
+    for (const Utf8& lib : foreignLibs_)
     {
         if (lib == name)
             return false;
@@ -305,7 +305,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     path         = fs::absolute(path);
-    auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
+    FileRef fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
@@ -318,7 +318,7 @@ std::vector<SourceFile*> CompilerInstance::files() const
     SWC_RACE_CONDITION_READ(rcFiles_);
     std::vector<SourceFile*> result;
     result.reserve(files_.size());
-    for (const auto& f : files_)
+    for (const std::unique_ptr<SourceFile>& f : files_)
         result.push_back(f.get());
     return result;
 }
@@ -330,22 +330,22 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
     // Collect direct folders from the command line
     paths.clear();
-    for (const auto& folder : cmdLine.directories)
+    for (const fs::path& folder : cmdLine.directories)
     {
         FileSystem::collectSwagFilesRec(ctx, folder, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
-        for (const auto& f : paths)
+        for (const fs::path& f : paths)
             addFile(f, FileFlagsE::CustomSrc);
     }
 
     // Collect direct files from the command line
     paths.clear();
-    for (const auto& file : cmdLine.files)
+    for (const fs::path& file : cmdLine.files)
         paths.push_back(file);
     if (cmdLine.numCores == 1)
         std::ranges::sort(paths);
-    for (const auto& f : paths)
+    for (const fs::path& f : paths)
         addFile(f, FileFlagsE::CustomSrc);
 
     // Collect files for the module
@@ -360,7 +360,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
-        for (const auto& f : paths)
+        for (const fs::path& f : paths)
             addFile(f, FileFlagsE::ModuleSrc);
     }
 
@@ -372,7 +372,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
-        for (const auto& f : paths)
+        for (const fs::path& f : paths)
             addFile(f, FileFlagsE::Runtime);
     }
 

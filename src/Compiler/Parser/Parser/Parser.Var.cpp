@@ -21,7 +21,7 @@ AstNodeRef Parser::parseGenericParam()
     {
         if (isType)
         {
-            auto diag = reportError(DiagnosticId::parser_err_gen_param_type, ref().offset(-1));
+            Diagnostic diag = reportError(DiagnosticId::parser_err_gen_param_type, ref().offset(-1));
             diag.last().addSpan(tknConstVar.codeRange(*ctx_, ast_->srcView()), DiagnosticId::parser_note_gen_param_type, DiagnosticSeverity::Note);
             diag.addElement(DiagnosticId::parser_help_gen_param_type);
             diag.report(*ctx_);
@@ -87,7 +87,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
 
         if (is(TokenId::SymRightParen))
         {
-            auto diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
+            Diagnostic diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
             setReportExpected(diag, TokenId::Identifier);
             diag.report(*ctx_);
         }

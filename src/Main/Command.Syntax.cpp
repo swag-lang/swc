@@ -17,14 +17,14 @@ namespace Command
     void syntax(CompilerInstance& compiler)
     {
         TaskContext ctx(compiler);
-        const auto& global   = ctx.global();
-        auto&       jobMgr   = global.jobMgr();
-        const auto  clientId = compiler.jobClientId();
+        const Global&  global   = ctx.global();
+        JobManager&    jobMgr   = global.jobMgr();
+        const JobClientId clientId = compiler.jobClientId();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        for (const auto& f : compiler.files())
+        for (SourceFile* f : compiler.files())
         {
             ParserJob* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
@@ -32,9 +32,9 @@ namespace Command
 
         jobMgr.waitAll(compiler.jobClientId());
 
-        for (const auto& f : compiler.files())
+        for (SourceFile* f : compiler.files())
         {
-            const auto& srcView = f->ast().srcView();
+            const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;
             f->unitTest().verifyUntouchedExpected(ctx, srcView);

@@ -17,11 +17,11 @@ ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file) :
 
 JobResult ParserJob::exec()
 {
-    auto& jobCtx = ctx();
+    TaskContext& jobCtx = ctx();
     if (file_->loadContent(jobCtx) != Result::Continue)
         return JobResult::Done;
 
-    auto& ast = file_->ast();
+    Ast& ast = file_->ast();
 
     file_->unitTest().tokenize(jobCtx);
 

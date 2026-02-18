@@ -295,21 +295,29 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
             line += colorize(ctx, LogColor::BrightCyan, std::format("{:<{}}", entry.displayName, maxLen));
             line += "    ";
             line += entry.arg->description;
-            if ((entry.arg->type == CommandLineType::EnumString || entry.arg->type == CommandLineType::EnumInt) && !entry.arg->enumValues.empty())
-            {
-                line += " (choices: ";
-                line += colorize(ctx, LogColor::Yellow, formatEnumChoices(entry.arg->enumValues));
-                line += ")";
-            }
-            if (hasDisplayableDefaultValue(*entry.arg))
-            {
-                line += " [default: ";
-                line += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
-                line += "]";
-            }
-
             Logger::print(ctx, line);
             Logger::print(ctx, "\n");
+
+            const Utf8 metadataPrefix = std::format("    {:<{}}    ", "", maxLen);
+            if ((entry.arg->type == CommandLineType::EnumString || entry.arg->type == CommandLineType::EnumInt) && !entry.arg->enumValues.empty())
+            {
+                Utf8 choiceLine = metadataPrefix;
+                choiceLine += colorize(ctx, LogColor::Dim, "choices:");
+                choiceLine += " ";
+                choiceLine += colorize(ctx, LogColor::Yellow, formatEnumChoices(entry.arg->enumValues));
+                Logger::print(ctx, choiceLine);
+                Logger::print(ctx, "\n");
+            }
+
+            if (hasDisplayableDefaultValue(*entry.arg))
+            {
+                Utf8 defaultLine = metadataPrefix;
+                defaultLine += colorize(ctx, LogColor::Dim, "default:");
+                defaultLine += " ";
+                defaultLine += colorize(ctx, LogColor::BrightGreen, defaultValueToString(*entry.arg));
+                Logger::print(ctx, defaultLine);
+                Logger::print(ctx, "\n");
+            }
         }
 
         command_ = oldCommand;

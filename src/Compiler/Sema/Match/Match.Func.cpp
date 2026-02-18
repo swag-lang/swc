@@ -973,16 +973,28 @@ namespace
         return Match::resolveCallArgumentValueRef(sema, firstArgRef) == Match::resolveCallArgumentValueRef(sema, receiverArgRef);
     }
 
+    bool appendImplicitInterfaceReceiverArg(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
+    {
+        if (!selectedFn.hasInterfaceMethodSlot())
+            return false;
+
+        // Interface member calls may need an implicit receiver argument carrying the concrete object.
+        const AstNodeRef interfaceReceiverArg = findInterfaceReceiverArg(sema, nodeCallee);
+        if (interfaceReceiverArg.isInvalid())
+            return false;
+
+        // When overload mapping already placed that same receiver as the first argument, do not duplicate it.
+        if (mappedReceiverAsFirstArg(sema, interfaceReceiverArg, mapping))
+            return false;
+
+        outResolvedArgs.push_back({.argRef = interfaceReceiverArg, .passKind = CallArgumentPassKind::InterfaceObject});
+        return true;
+    }
+
     void buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
-
-        AstNodeRef interfaceReceiverArg = AstNodeRef::invalid();
-        if (selectedFn.hasInterfaceMethodSlot())
-            interfaceReceiverArg = findInterfaceReceiverArg(sema, nodeCallee);
-        const bool hasImplicitInterfaceReceiver = interfaceReceiverArg.isValid() && !mappedReceiverAsFirstArg(sema, interfaceReceiverArg, mapping);
-        if (hasImplicitInterfaceReceiver)
-            outResolvedArgs.push_back({.argRef = interfaceReceiverArg, .passKind = CallArgumentPassKind::InterfaceObject});
+        appendImplicitInterfaceReceiverArg(sema, outResolvedArgs, nodeCallee, selectedFn, mapping);
 
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {

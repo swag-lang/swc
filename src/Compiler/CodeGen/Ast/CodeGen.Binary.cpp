@@ -44,6 +44,27 @@ namespace
         return MicroOpBits::Zero;
     }
 
+    bool canUseOperandRegDirect(const CodeGenNodePayload& operandPayload, BinaryOperandKind operandKindValue)
+    {
+        if (operandPayload.storageKind != CodeGenNodePayload::StorageKind::Value)
+            return false;
+
+        if (!operandPayload.reg.isValid())
+            return false;
+
+        switch (operandKindValue)
+        {
+            case BinaryOperandKind::Float:
+                return operandPayload.reg.isFloat() || operandPayload.reg.isVirtualFloat();
+
+            case BinaryOperandKind::IntLike:
+                return !operandPayload.reg.isFloat() && !operandPayload.reg.isVirtualFloat();
+
+            default:
+                return false;
+        }
+    }
+
     void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -62,7 +83,8 @@ namespace
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        const MicroOpBits opBits = arithmeticOpBits(*leftView.type, BinaryOperandKind::IntLike);
+        constexpr auto    operandTypeKind = BinaryOperandKind::IntLike;
+        const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
@@ -70,7 +92,10 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
+        if (canUseOperandRegDirect(*rightPayload, operandTypeKind))
+            rightReg = rightPayload->reg;
+        else
+            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
 
         codeGen.builder().encodeOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Add, opBits);
         return Result::Continue;
@@ -84,7 +109,8 @@ namespace
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        const MicroOpBits opBits = arithmeticOpBits(*leftView.type, BinaryOperandKind::Float);
+        constexpr auto    operandTypeKind = BinaryOperandKind::Float;
+        const MicroOpBits opBits          = arithmeticOpBits(*leftView.type, operandTypeKind);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
@@ -92,7 +118,10 @@ namespace
 
         MicroReg rightReg = MicroReg::invalid();
         materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
-        materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
+        if (canUseOperandRegDirect(*rightPayload, operandTypeKind))
+            rightReg = rightPayload->reg;
+        else
+            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
 
         codeGen.builder().encodeOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::FloatAdd, opBits);
         return Result::Continue;

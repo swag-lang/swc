@@ -17,6 +17,19 @@ namespace
 {
     constexpr uint32_t K_NATURAL_COLUMN_WIDTH = 56U;
 
+    uint32_t opcodeColumnWidth()
+    {
+        static const uint32_t width = [] {
+            uint32_t result = 0;
+#define SWC_MICRO_INSTR_DEF(__enum, ...) result = std::max<uint32_t>(result, static_cast<uint32_t>(Utf8Helper::toLowerSnake(#__enum).size()));
+#include "Backend/Micro/MicroInstr.Def.inc"
+#undef SWC_MICRO_INSTR_DEF
+            return result;
+        }();
+
+        return width;
+    }
+
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t& outSourceLine)
     {
         outSourceLine = 0;
@@ -637,7 +650,7 @@ namespace
             const Utf8 tokenStr(token);
             if (isRelocationImmediateToken(token))
             {
-                appendColored(out, ctx, SyntaxColor::Function, token);
+                appendColored(out, ctx, SyntaxColor::Compiler, token);
             }
             else if (expectCallTarget)
             {
@@ -858,7 +871,7 @@ namespace
     void appendImmediate(Utf8& out, const TaskContext& ctx, std::string_view value, bool hasImmediateRelocation)
     {
         if (hasImmediateRelocation)
-            appendColored(out, ctx, SyntaxColor::Function, std::format("<{}>", value));
+            appendColored(out, ctx, SyntaxColor::Compiler, std::format("<{}>", value));
         else
             appendColored(out, ctx, SyntaxColor::Number, value);
     }
@@ -1015,7 +1028,7 @@ namespace
 
         trimTrailingSpaces(out);
         out += "  ";
-        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc={}={}", relocationKindName(*relocation), relocationTargetDebugValue(ctx, *relocation)));
+        appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc = {} = {}", relocationKindName(*relocation), relocationTargetDebugValue(ctx, *relocation)));
     }
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
@@ -1155,7 +1168,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             continue;
         }
 
-        appendColored(out, ctx, SyntaxColor::MicroInstruction, std::format("{:>26}", opcodeName(inst.op)));
+        appendColored(out, ctx, SyntaxColor::MicroInstruction, std::format("{:>{}}", opcodeName(inst.op), opcodeColumnWidth()));
         out += " ";
 
         switch (inst.op)

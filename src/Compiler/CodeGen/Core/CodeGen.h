@@ -51,19 +51,21 @@ public:
     const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
-    Ast&                     ast();
-    const Ast&               ast() const;
-    SourceView&              srcView(SourceViewRef srcViewRef);
-    const SourceView&        srcView(SourceViewRef srcViewRef) const;
-    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    AstVisit&                visit() { return visit_; }
-    const AstVisit&          visit() const { return visit_; }
+    MicroBuilder&            builder() { return *SWC_CHECK_NOT_NULL(builder_); }
+    const MicroBuilder&      builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
 
-    AstNodeRef     curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&       curNode() { return node(curNodeRef()); }
-    const AstNode& curNode() const { return node(curNodeRef()); }
-    const Token&   token(const SourceCodeRef& codeRef) const;
+    Ast&              ast();
+    const Ast&        ast() const;
+    SourceView&       srcView(SourceViewRef srcViewRef);
+    const SourceView& srcView(SourceViewRef srcViewRef) const;
+    AstNode&          node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&    node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    AstVisit&         visit() { return visit_; }
+    const AstVisit&   visit() const { return visit_; }
+    AstNodeRef        curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&          curNode() { return node(curNodeRef()); }
+    const AstNode&    curNode() const { return node(curNodeRef()); }
+    const Token&      token(const SourceCodeRef& codeRef) const;
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
@@ -96,9 +98,10 @@ public:
     SemaNodeView curViewNodeTypeSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
     SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
-    void                      appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    SymbolFunction&           function() { return *SWC_CHECK_NOT_NULL(function_); }
-    const SymbolFunction&     function() const { return *SWC_CHECK_NOT_NULL(function_); }
+    void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    SymbolFunction&       function() { return *SWC_CHECK_NOT_NULL(function_); }
+    const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
+
     CodeGenNodePayload*       payload(AstNodeRef nodeRef) const;
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
@@ -108,21 +111,21 @@ public:
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     static void               setPayloadValue(CodeGenNodePayload& payload);
     static void               setPayloadAddress(CodeGenNodePayload& payload);
-    MicroReg                  nextVirtualRegisterForType(TypeRef typeRef);
-    bool                      canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const;
-    MicroReg                  nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
-    MicroReg                  nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
-    MicroReg                  nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
-    MicroBuilder&             builder() { return *SWC_CHECK_NOT_NULL(builder_); }
-    const MicroBuilder&       builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
+
+    MicroReg nextVirtualRegisterForType(TypeRef typeRef);
+    MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
+    MicroReg nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
+    MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
+
+    bool canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const;
 
 private:
     void   setVisitors();
-    Result emitConstant(AstNodeRef nodeRef);
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result emitConstant(AstNodeRef nodeRef);
 
     Sema*                                                         sema_ = nullptr;
     AstVisit                                                      visit_;

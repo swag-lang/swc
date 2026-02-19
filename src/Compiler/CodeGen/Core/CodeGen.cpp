@@ -10,6 +10,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// ============================================================================
+// Lifecycle
+// ============================================================================
+
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -54,6 +58,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             return Result::Continue;
     }
 }
+
+// ============================================================================
+// Compiler Context Access
+// ============================================================================
 
 TaskContext& CodeGen::ctx()
 {
@@ -115,6 +123,10 @@ const IdentifierManager& CodeGen::idMgr() const
     return sema().idMgr();
 }
 
+// ============================================================================
+// AST And Traversal Access
+// ============================================================================
+
 Ast& CodeGen::ast()
 {
     return sema().ast();
@@ -144,6 +156,10 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
 {
     sema().appendResolvedCallArguments(nodeRef, out);
 }
+
+// ============================================================================
+// Node Payload Management
+// ============================================================================
 
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
@@ -216,6 +232,10 @@ void CodeGen::setPayloadAddress(CodeGenNodePayload& payload)
     payload.storageKind = CodeGenNodePayload::StorageKind::Address;
 }
 
+// ============================================================================
+// Virtual Registers And Emission Helpers
+// ============================================================================
+
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isValid())
@@ -248,6 +268,10 @@ bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) c
 
     return false;
 }
+
+// ============================================================================
+// Traversal Hooks
+// ============================================================================
 
 void CodeGen::setVisitors()
 {

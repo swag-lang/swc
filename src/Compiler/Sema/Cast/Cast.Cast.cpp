@@ -279,7 +279,10 @@ Result Cast::castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcType
         if (srcType.isAnyPointer() && dstTypeRef == sema.typeMgr().typeU64())
         {
             if (castRequest.isConstantFolding())
-                foldConstantIdentity(castRequest);
+            {
+                if (!foldConstantPointerToIntLike(sema, castRequest, dstTypeRef))
+                    return Result::Error;
+            }
             return Result::Continue;
         }
     }
@@ -525,7 +528,14 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     if (srcTypeRef == sema.typeMgr().typeU64())
     {
         if (castRequest.kind == CastKind::Explicit)
+        {
+            if (castRequest.isConstantFolding())
+            {
+                if (!foldConstantIntLikeToPointer(sema, castRequest, dstTypeRef))
+                    return Result::Error;
+            }
             return Result::Continue;
+        }
     }
 
     if (srcType.isArray())

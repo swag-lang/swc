@@ -89,7 +89,7 @@ struct AbiPayload
     #assert(V2.a3 == 4'u64)
 }
 
-/*#test
+#test
 {
     func passPointer(value: *void)->*void { return value }
     const V = #run passPointer(null)
@@ -98,7 +98,7 @@ struct AbiPayload
     #assert(V1 == cast(*void) 0x1234'u64)
     const V2 = #run passPointer(cast(*void) 0xABCD'u64)
     #assert(V2 == cast(*void) 0xABCD'u64)
-}*/
+}
 
 #test
 {
@@ -107,7 +107,6 @@ struct AbiPayload
     #assert(V == 22)
     const V1 = #run passMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64)
     #assert(V1 == 220)
-    #[Swag.PrintMicro]
     const V2 = #run passMixed(-30, "mix3", {a: 100, b: 110}, [80, 90], cast(*void) 0xFEDC'u64)
     #assert(V2 == 160)
 }

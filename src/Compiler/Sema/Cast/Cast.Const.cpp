@@ -313,6 +313,52 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRe
     return true;
 }
 
+bool Cast::foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
+{
+    TaskContext&       ctx     = sema.ctx();
+    const TypeInfo&    dstType = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue src    = sema.cstMgr().get(castRequest.constantFoldingSrc());
+
+    ApsInt value = src.getIntLike();
+    value.resize(64);
+    value.setUnsigned(true);
+
+    const uint64_t ptrValue = value.as64();
+    ConstantValue  result;
+    if (dstType.isValuePointer())
+        result = ConstantValue::makeValuePointer(ctx, dstType.payloadTypeRef(), ptrValue, dstType.flags());
+    else
+        result = ConstantValue::makeBlockPointer(ctx, dstType.payloadTypeRef(), ptrValue, dstType.flags());
+
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    return true;
+}
+
+bool Cast::foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
+{
+    TaskContext&       ctx     = sema.ctx();
+    const TypeInfo&    dstType = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue src    = sema.cstMgr().get(castRequest.constantFoldingSrc());
+
+    uint64_t ptrValue = 0;
+    if (src.isValuePointer())
+        ptrValue = src.getValuePointer();
+    else if (src.isBlockPointer())
+        ptrValue = src.getBlockPointer();
+    else
+    {
+        ApsInt value = src.getIntLike();
+        value.resize(64);
+        value.setUnsigned(true);
+        ptrValue = value.as64();
+    }
+
+    const ApsInt        intValue = ApsInt::makeUnsigned64(ptrValue);
+    const ConstantValue result   = ConstantValue::makeFromIntLike(ctx, intValue, dstType);
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    return true;
+}
+
 Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef)
 {
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);

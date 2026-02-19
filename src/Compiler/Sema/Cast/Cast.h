@@ -57,6 +57,8 @@ private:
     static bool foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static bool foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static bool foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
 
     static Result  castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
     static Result  castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);

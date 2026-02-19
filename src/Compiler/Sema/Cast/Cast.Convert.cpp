@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
@@ -12,7 +13,8 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 
     if (nodeView.cstRef.isValid())
     {
-        nodeView.setCstRef(sema, nodeView.cst->getEnumValue());
+        sema.setConstant(nodeView.nodeRef, nodeView.cst->getEnumValue());
+        nodeView.compute(sema, nodeView.nodeRef);
         return;
     }
 

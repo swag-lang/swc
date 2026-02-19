@@ -61,28 +61,6 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     }
 }
 
-void SemaNodeView::setCstRef(Sema& sema, ConstantRef ref)
-{
-    if (cstRef == ref)
-        return;
-
-    cstRef  = ref;
-    sym     = nullptr;
-    symList = {};
-
-    if (cstRef.isInvalid())
-    {
-        cst     = nullptr;
-        type    = nullptr;
-        typeRef = TypeRef::invalid();
-        return;
-    }
-
-    cst     = &sema.cstMgr().get(cstRef);
-    typeRef = cst->typeRef();
-    type    = typeRef.isValid() ? &sema.typeMgr().get(typeRef) : nullptr;
-}
-
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 {
     if (!symList.empty())

@@ -392,7 +392,8 @@ namespace
         {
             ConstantRef newCstRef;
             RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown));
-            nodeView.setCstRef(sema, newCstRef);
+            sema.setConstant(nodeView.nodeRef, newCstRef);
+            nodeView.compute(sema, nodeView.nodeRef);
         }
 
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
@@ -410,7 +411,6 @@ namespace
         {
             const TypeRef     typeRef = nodeView.type->payloadSymEnum().underlyingTypeRef();
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
-            nodeView.setCstRef(sema, cstRef);
             sema.setConstant(sema.curNodeRef(), cstRef);
             return Result::Continue;
         }

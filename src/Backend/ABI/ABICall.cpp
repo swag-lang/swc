@@ -106,8 +106,10 @@ namespace
     }
 }
 
-uint32_t ABICall::argumentIndexForFunctionParameter(const ABITypeNormalize::NormalizedType& normalizedRet, uint32_t parameterIndex)
+uint32_t ABICall::argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex)
 {
+    const CallConv&                        callConv      = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
         return parameterIndex + 1;
     return parameterIndex;

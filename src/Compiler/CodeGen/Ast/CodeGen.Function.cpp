@@ -21,7 +21,7 @@ namespace
         return MicroOpBits::B64;
     }
 
-    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, const ABITypeNormalize::NormalizedType& normalizedRet)
+    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const CallConv&                     callConv   = CallConv::get(symbolFunc.callConvKind());
         const uint32_t                      numRegArgs = callConv.numArgRegisterSlots();
@@ -35,7 +35,7 @@ namespace
                 continue;
 
             const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
-            const uint32_t                         slotIndex       = ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(i));
+            const uint32_t                         slotIndex       = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(i));
             const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
             if (slotIndex >= numRegArgs)
                 continue;
@@ -52,7 +52,7 @@ namespace
                     continue;
 
                 const ABITypeNormalize::NormalizedType normalizedLater = ABITypeNormalize::normalize(codeGen.ctx(), callConv, laterSymVar->typeRef(), ABITypeNormalize::Usage::Argument);
-                const uint32_t                         laterSlotIndex   = ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(j));
+                const uint32_t                         laterSlotIndex   = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(j));
                 if (laterSlotIndex >= numRegArgs)
                     continue;
 
@@ -208,7 +208,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-    materializeRegisterParameters(codeGen, symbolFunc, normalizedRet);
+    materializeRegisterParameters(codeGen, symbolFunc);
 
     if (normalizedRet.isIndirect)
     {

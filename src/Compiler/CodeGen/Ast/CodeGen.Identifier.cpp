@@ -24,9 +24,7 @@ namespace
     {
         SWC_ASSERT(symVar.hasParameterIndex());
         const uint32_t parameterIndex = symVar.parameterIndex();
-        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        return ABICall::argumentIndexForFunctionParameter(normalizedRet, parameterIndex);
+        return ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), parameterIndex);
     }
 
     void lowerParameterPayload(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)

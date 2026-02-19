@@ -5,9 +5,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class TaskContext;
+
 namespace ABICall
 {
-    uint32_t argumentIndexForFunctionParameter(const ABITypeNormalize::NormalizedType& normalizedRet, uint32_t parameterIndex);
+    uint32_t argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKind callConvKind, TypeRef returnTypeRef, uint32_t parameterIndex);
     uint64_t callArgStackOffset(const CallConv& conv, uint32_t argIndex);
     uint64_t incomingArgStackOffset(const CallConv& conv, uint32_t argIndex);
 

@@ -22,7 +22,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     visit_.start(ast(), root);
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
-    variablePayloads_.clear();
+
+    SWC_ASSERT(nextVirtualRegister_ == 1);
+    SWC_ASSERT(variablePayloads_.empty());
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();
@@ -310,4 +312,3 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 }
 
 SWC_END_NAMESPACE();
-

@@ -31,33 +31,34 @@ namespace
         if (outIndexBits == MicroOpBits::B64 && indexPayload->storageKind == CodeGenNodePayload::StorageKind::Value)
             return indexPayload->reg;
 
-        const MicroReg indexReg = codeGen.nextVirtualIntRegister();
+        const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
+        MicroBuilder&  microBuilder = codeGen.builder();
         if (indexPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
         {
             if (outIndexBits == MicroOpBits::B64)
             {
-                codeGen.builder().emitLoadRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64);
+                microBuilder.emitLoadRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64);
             }
             else if (indexSigned)
             {
-                codeGen.builder().emitLoadSignedExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadSignedExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
             }
             else
             {
-                codeGen.builder().emitClearReg(indexReg, MicroOpBits::B64);
-                codeGen.builder().emitLoadRegMem(indexReg, indexPayload->reg, 0, outIndexBits);
+                microBuilder.emitClearReg(indexReg, MicroOpBits::B64);
+                microBuilder.emitLoadRegMem(indexReg, indexPayload->reg, 0, outIndexBits);
             }
         }
         else
         {
             if (indexSigned)
             {
-                codeGen.builder().emitLoadSignedExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadSignedExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
             }
             else
             {
-                codeGen.builder().emitClearReg(indexReg, MicroOpBits::B64);
-                codeGen.builder().emitLoadRegReg(indexReg, indexPayload->reg, outIndexBits);
+                microBuilder.emitClearReg(indexReg, MicroOpBits::B64);
+                microBuilder.emitLoadRegReg(indexReg, indexPayload->reg, outIndexBits);
             }
         }
 
@@ -138,6 +139,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     const TypeRef             resultTypeRef  = codeGen.sema().viewType(codeGen.curNodeRef()).typeRef();
     const SemaNodeView        indexedView    = codeGen.sema().viewType(nodeExprRef);
     const SemaNodeView        resultView     = codeGen.sema().viewType(codeGen.curNodeRef());
+
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 

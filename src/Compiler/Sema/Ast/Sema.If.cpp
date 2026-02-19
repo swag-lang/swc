@@ -25,16 +25,17 @@ namespace
         }
 
         SmallVector<Symbol*> symbols;
-        if (sema.hasSymbolList(declRef))
+        const SemaNodeView declView = sema.nodeView(declRef, SemaNodeViewPartE::Symbol | SemaNodeViewPartE::SymbolList);
+        if (declView.hasSymbolList())
         {
-            const auto list = sema.getSymbolList(declRef);
+            const std::span<Symbol*> list = declView.symList();
             symbols.reserve(list.size());
             for (Symbol* sym : list)
                 symbols.push_back(sym);
         }
-        else if (sema.hasSymbol(declRef))
+        else if (declView.hasSymbol())
         {
-            symbols.push_back(&sema.symbolOf(declRef));
+            symbols.push_back(declView.sym());
         }
 
         if (symbols.size() != 1)

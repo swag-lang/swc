@@ -208,7 +208,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeParamsRef)
         return Result::Continue;
 
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
@@ -216,7 +216,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
     sym.setTypeRef(typeRef);

@@ -44,6 +44,10 @@ struct SemaNodeView
     ConstantRef& cstRef();
     TypeRef      typeRef() const;
     TypeRef&     typeRef();
+    bool         hasType() const;
+    bool         hasConstant() const;
+    bool         hasSymbol() const;
+    bool         hasSymbolList() const;
 
 private:
     const AstNode*       node_         = nullptr;
@@ -51,6 +55,8 @@ private:
     const TypeInfo*      type_         = nullptr;
     Symbol*              sym_          = nullptr;
     std::span<Symbol*>   symList_      = {};
+    bool                 hasSymbol_    = false;
+    bool                 hasSymList_   = false;
     AstNodeRef           nodeRef_      = AstNodeRef::invalid();
     ConstantRef          cstRef_       = ConstantRef::invalid();
     TypeRef              typeRef_      = TypeRef::invalid();

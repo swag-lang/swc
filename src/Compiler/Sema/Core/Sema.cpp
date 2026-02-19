@@ -241,8 +241,9 @@ namespace
     const Symbol* guessCurrentSymbol(Sema& sema)
     {
         const AstNodeRef n = sema.visit().root();
-        if (sema.hasSymbol(n))
-            return &sema.symbolOf(n);
+        const SemaNodeView nodeView = sema.nodeViewSymbol(n);
+        if (nodeView.hasSymbol())
+            return nodeView.sym();
         return sema.topSymMap();
     }
 }

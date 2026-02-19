@@ -328,7 +328,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 Result AstCompilerTypeExpr::semaPostNode(Sema& sema) const
 {
     TaskContext&        ctx     = sema.ctx();
-    const TypeRef       typeRef = sema.typeRefOf(nodeTypeRef);
+    const TypeRef       typeRef = sema.nodeViewType(nodeTypeRef).typeRef();
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
     return Result::Continue;
@@ -344,7 +344,7 @@ Result AstAliasDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    const Symbol& sym = *sema.curNodeViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -354,7 +354,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     if (!nodeView.type() && !nodeView.sym())
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alias, nodeExprRef);
 
-    SymbolAlias& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolAlias>();
+    SymbolAlias& sym = sema.curNodeViewSymbol().sym()->cast<SymbolAlias>();
 
     if (sym.isStrict() && nodeView.sym() && !nodeView.sym()->isType())
     {
@@ -395,7 +395,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     for (const auto& paramRef : params)
     {
         const AstLambdaParam* param        = sema.node(paramRef).cast<AstLambdaParam>();
-        TypeRef               paramTypeRef = sema.typeRefOf(param->nodeTypeRef);
+        TypeRef               paramTypeRef = sema.nodeViewType(param->nodeTypeRef).typeRef();
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();
@@ -412,7 +412,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     TypeRef returnType = ctx.typeMgr().typeVoid();
     if (nodeReturnTypeRef.isValid())
-        returnType = sema.typeRefOf(nodeReturnTypeRef);
+        returnType = sema.nodeViewType(nodeReturnTypeRef).typeRef();
     symFunc->setReturnTypeRef(returnType);
     symFunc->setExtraFlags(flags());
 

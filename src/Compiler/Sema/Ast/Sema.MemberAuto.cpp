@@ -254,8 +254,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     // Re-bind the resolved list to the substituted member-access node as well,
     // so downstream passes can read from the final node.
-    sema.setSymbolList(nodeRef, sema.getSymbolList(sema.curNodeRef()));
-    sema.setSymbolList(nodeIdentRef, sema.getSymbolList(nodeRef));
+    const std::span<Symbol*> symbols = sema.curNodeViewSymbolList().symList();
+    sema.setSymbolList(nodeRef, symbols);
+    sema.setSymbolList(nodeIdentRef, symbols);
 
     sema.setSubstitute(sema.curNodeRef(), nodeRef);
     sema.setIsValue(*nodePtr);

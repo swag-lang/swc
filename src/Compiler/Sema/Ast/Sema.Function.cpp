@@ -35,7 +35,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
 
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isMethod() && !sema.frame().currentImpl() && !sema.frame().currentInterface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
@@ -98,8 +98,9 @@ namespace
         const auto                        resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
-        SWC_ASSERT(sema.hasSymbol(sema.curNodeRef()));
-        const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        const SemaNodeView nodeSymView = sema.curNodeViewSymbol();
+        SWC_ASSERT(nodeSymView.hasSymbol());
+        const Symbol& sym = *nodeSymView.sym();
         SWC_ASSERT(sym.isFunction());
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
@@ -125,7 +126,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef == nodeParamsRef)
     {
-        SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+        SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, childRef);
         sema.curScope().setSymMap(&sym);
         if (sym.isMethod())
@@ -133,7 +134,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        SymbolFunction& sym   = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+        SymbolFunction& sym   = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
         auto            frame = sema.frame();
         if (sym.isMethod())
         {
@@ -154,7 +155,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
 
     bool setIsTyped = false;
     if (hasFlag(AstFunctionFlagsE::Short))
@@ -163,13 +164,13 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         {
             if (childRef == nodeReturnTypeRef)
             {
-                sym.setReturnTypeRef(sema.typeRefOf(nodeReturnTypeRef));
+                sym.setReturnTypeRef(sema.nodeViewType(nodeReturnTypeRef).typeRef());
                 setIsTyped = true;
             }
         }
         else if (childRef == nodeBodyRef)
         {
-            sym.setReturnTypeRef(sema.typeRefOf(nodeBodyRef));
+            sym.setReturnTypeRef(sema.nodeViewType(nodeBodyRef).typeRef());
             setIsTyped = true;
         }
     }
@@ -177,7 +178,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         TypeRef returnType = sema.typeMgr().typeVoid();
         if (nodeReturnTypeRef.isValid())
-            returnType = sema.typeRefOf(nodeReturnTypeRef);
+            returnType = sema.nodeViewType(nodeReturnTypeRef).typeRef();
         sym.setReturnTypeRef(returnType);
         setIsTyped = true;
     }
@@ -200,7 +201,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 

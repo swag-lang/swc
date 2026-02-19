@@ -26,7 +26,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
 
         // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
         // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
-        Symbol& sym = sema.symbolOf(sema.curNodeRef());
+        Symbol& sym = *sema.curNodeViewSymbol().sym();
         if (sym.inSwagNamespace(sema.ctx()))
         {
             if (sym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::AttributeUsage))
@@ -34,7 +34,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    const Symbol& sym = *sema.curNodeViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -85,7 +85,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    SymbolEnum&  sym      = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    SymbolEnum&  sym      = sema.curNodeViewSymbol().sym()->cast<SymbolEnum>();
     SemaNodeView typeView = sema.nodeViewType(nodeTypeRef);
 
     if (nodeTypeRef.isValid())
@@ -110,7 +110,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstEnumDecl::semaPostNode(Sema& sema) const
 {
-    SymbolEnum& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
+    SymbolEnum& sym = sema.curNodeViewSymbol().sym()->cast<SymbolEnum>();
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 

@@ -32,7 +32,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 
 Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SymbolImpl& symImpl = sema.symbolOf(sema.curNodeRef()).cast<SymbolImpl>();
+    SymbolImpl& symImpl = sema.curNodeViewSymbol().sym()->cast<SymbolImpl>();
 
     // After the first name
     if (childRef == nodeIdentRef)
@@ -101,9 +101,10 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
 void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 {
-    if (!sema.hasSymbol(nodeRef))
+    const SemaNodeView nodeView = sema.nodeViewSymbol(nodeRef);
+    if (!nodeView.hasSymbol())
         return;
-    SymbolImpl& symImpl = sema.symbolOf(nodeRef).cast<SymbolImpl>();
+    SymbolImpl& symImpl = nodeView.sym()->cast<SymbolImpl>();
     if (!symImpl.isPendingRegistrationResolved())
     {
         symImpl.setPendingRegistrationResolved();

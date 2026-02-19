@@ -97,9 +97,8 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 Result AstCompilerIf::semaPostNode(Sema& sema) const
 {
     // Condition must already be a constant at this point
-    SWC_ASSERT(sema.hasConstant(nodeConditionRef));
-
     const SemaNodeView condView = sema.nodeViewConstant(nodeConditionRef);
+    SWC_ASSERT(condView.hasConstant());
     SWC_ASSERT(condView.cst());
     const bool takenIfBranch = condView.cst()->getBool();
 
@@ -124,10 +123,9 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
 
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    SWC_ASSERT(sema.hasConstant(nodeArgRef));
-
     const Token&         tok      = sema.token(codeRef());
     const SemaNodeView   argView  = sema.nodeViewConstant(nodeArgRef);
+    SWC_ASSERT(argView.hasConstant());
     const ConstantValue& constant = *SWC_CHECK_NOT_NULL(argView.cst());
     switch (tok.id)
     {
@@ -670,7 +668,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     auto frame                = sema.frame();
@@ -685,7 +683,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 {
     const AstNodeRef nodeRef = sema.curNodeRef();
-    if (!sema.hasSymbol(nodeRef))
+    if (!sema.nodeViewSymbol(nodeRef).hasSymbol())
     {
         TaskContext&        ctx   = sema.ctx();
         const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
@@ -703,7 +701,7 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
     }
 
     SemaFrame frame           = sema.frame();
-    auto&     symFn           = sema.symbolOf(nodeRef).cast<SymbolFunction>();
+    auto&     symFn           = sema.nodeViewSymbol(nodeRef).sym()->cast<SymbolFunction>();
     frame.currentAttributes() = symFn.attributes();
     frame.setCurrentFunction(&symFn);
     sema.pushFramePopOnPostNode(frame);
@@ -717,7 +715,7 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
     if (nodeView.type()->isVoid())
         return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
 
-    auto& runExprSymFn = sema.symbolOf(sema.curNodeRef()).cast<SymbolFunction>();
+    auto& runExprSymFn = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
     RESULT_VERIFY(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 

@@ -383,7 +383,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
         {
-            SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+            SymbolVariable& symVar = sema.curNodeViewSymbol().sym()->cast<SymbolVariable>();
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
         }
     }
@@ -395,7 +395,7 @@ Result AstSingleVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = sema.symbolOf(sema.curNodeRef());
+    const Symbol& sym = *sema.curNodeViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -414,7 +414,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
-    Symbol&                   sym     = sema.symbolOf(sema.curNodeRef());
+    Symbol&                   sym     = *sema.curNodeViewSymbol().sym();
     Symbol*                   one[]   = {&sym};
     const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, std::span<Symbol*>{one});
@@ -439,7 +439,7 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
             symbols.push_back(&sym);
             if (hasFlag(AstVarDeclFlagsE::Let))
             {
-                SymbolVariable& symVar = sema.symbolOf(sema.curNodeRef()).cast<SymbolVariable>();
+                SymbolVariable& symVar = sema.curNodeViewSymbol().sym()->cast<SymbolVariable>();
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
             }
         }
@@ -453,9 +453,11 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {
-        if (!sema.hasSymbolList(sema.curNodeRef()))
+        SemaNodeView nodeSymbolsView = sema.curNodeViewSymbolList();
+        if (!nodeSymbolsView.hasSymbolList())
             semaPreDecl(sema);
-        const auto symbols = sema.getSymbolList(sema.curNodeRef());
+        nodeSymbolsView.recompute(sema, SemaNodeViewPartE::SymbolList);
+        const std::span<Symbol*> symbols = nodeSymbolsView.symList();
         for (Symbol* sym : symbols)
         {
             sym->registerAttributes(sema);
@@ -463,7 +465,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const auto symbols = sema.getSymbolList(sema.curNodeRef());
+    const std::span<Symbol*> symbols = sema.curNodeViewSymbolList().symList();
     for (const Symbol* sym : symbols)
     {
         RESULT_VERIFY(Match::ghosting(sema, *sym));
@@ -487,7 +489,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const auto                symbols = sema.getSymbolList(sema.curNodeRef());
+    const std::span<Symbol*>  symbols = sema.curNodeViewSymbolList().symList();
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }

@@ -83,7 +83,7 @@ namespace
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-    if (sema.hasConstant(nodeExprRef))
+    if (sema.nodeViewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
     const SemaNodeView nodeView = sema.nodeViewType(nodeExprRef);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), nodeExprRef));

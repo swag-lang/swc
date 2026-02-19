@@ -468,7 +468,7 @@ namespace
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef               argSubRef   = sema.getSubstituteRef(argRef);
+        const AstNodeRef               argSubRef   = sema.nodeViewZero(argRef).nodeRef();
         const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&                 argNode     = sema.node(finalArgRef);
         const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -511,7 +511,7 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef               argSubRef   = sema.getSubstituteRef(argRef);
+        const AstNodeRef               argSubRef   = sema.nodeViewZero(argRef).nodeRef();
         const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&                 argNode     = sema.node(finalArgRef);
         const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -957,7 +957,7 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    bool mappedReceiverAsFirstArg(const Sema& sema, AstNodeRef receiverArgRef, const CallArgMapping& mapping)
+    bool mappedReceiverAsFirstArg(Sema& sema, AstNodeRef receiverArgRef, const CallArgMapping& mapping)
     {
         if (receiverArgRef.isInvalid())
             return false;
@@ -1027,15 +1027,15 @@ namespace
     }
 }
 
-AstNodeRef Match::resolveCallArgumentRef(const Sema& sema, AstNodeRef argRef)
+AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
 {
-    AstNodeRef finalRef = sema.getSubstituteRef(argRef);
+    AstNodeRef finalRef = sema.nodeViewZero(argRef).nodeRef();
     if (finalRef.isInvalid())
         finalRef = argRef;
     return finalRef;
 }
 
-AstNodeRef Match::resolveCallArgumentValueRef(const Sema& sema, AstNodeRef argRef)
+AstNodeRef Match::resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef)
 {
     const AstNodeRef finalRef = resolveCallArgumentRef(sema, argRef);
 
@@ -1045,7 +1045,7 @@ AstNodeRef Match::resolveCallArgumentValueRef(const Sema& sema, AstNodeRef argRe
     return finalRef;
 }
 
-void Match::resolveCallArgumentValues(const Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args)
+void Match::resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args)
 {
     outArgs.clear();
     outArgs.reserve(args.size());

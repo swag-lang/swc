@@ -19,6 +19,8 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     type_         = nullptr;
     sym_          = nullptr;
     symList_      = {};
+    hasSymbol_    = false;
+    hasSymList_   = false;
     nodeRef_      = AstNodeRef::invalid();
     cstRef_       = ConstantRef::invalid();
     typeRef_      = TypeRef::invalid();
@@ -50,6 +52,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 
     if (sema.hasSymbolList(nodeRef_))
     {
+        hasSymList_ = true;
         const std::span<Symbol*> symbols = sema.getSymbolList(nodeRef_);
         if (part.has(SemaNodeViewPartE::SymbolList))
             symList_ = symbols;
@@ -58,7 +61,12 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     }
     else if (part.has(SemaNodeViewPartE::Symbol) && sema.hasSymbol(nodeRef_))
     {
+        hasSymbol_ = true;
         sym_ = &sema.symbolOf(nodeRef_);
+    }
+    else if (part.has(SemaNodeViewPartE::SymbolList) && sema.hasSymbol(nodeRef_))
+    {
+        hasSymbol_ = true;
     }
 }
 
@@ -173,6 +181,30 @@ TypeRef& SemaNodeView::typeRef()
 {
     SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
     return typeRef_;
+}
+
+bool SemaNodeView::hasType() const
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
+    return typeRef_.isValid();
+}
+
+bool SemaNodeView::hasConstant() const
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Constant));
+    return cstRef_.isValid();
+}
+
+bool SemaNodeView::hasSymbol() const
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol) || computedPart_.has(SemaNodeViewPartE::SymbolList));
+    return hasSymbol_;
+}
+
+bool SemaNodeView::hasSymbolList() const
+{
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol) || computedPart_.has(SemaNodeViewPartE::SymbolList));
+    return hasSymList_;
 }
 
 SWC_END_NAMESPACE();

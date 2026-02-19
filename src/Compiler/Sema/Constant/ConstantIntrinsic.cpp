@@ -64,7 +64,7 @@ namespace
         if (!std::isfinite(value))
             return Result::Continue;
 
-        const TypeRef  resultTypeRef = sema.typeRefOf(callRef);
+        const TypeRef  resultTypeRef = sema.nodeViewType(callRef).typeRef();
         const TypeInfo resultTy      = sema.typeMgr().get(resultTypeRef);
         if (!resultTy.isFloat())
             return Result::Continue;

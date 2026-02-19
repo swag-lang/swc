@@ -16,6 +16,7 @@ class IdentifierManager;
 class SourceView;
 class SymbolVariable;
 struct SemaNodeView;
+enum class SemaNodeViewPartE;
 struct ResolvedCallArgument;
 struct Token;
 
@@ -62,7 +63,9 @@ public:
     const AstVisit&           visit() const { return visit_; }
     AstNodeRef                curNodeRef() const { return visit_.currentNodeRef(); }
     SemaNodeView              nodeView(AstNodeRef nodeRef);
+    SemaNodeView              nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
     SemaNodeView              curNodeView();
+    SemaNodeView              curNodeView(EnumFlags<SemaNodeViewPartE> part);
     const Token&              token(const SourceCodeRef& codeRef) const;
     void                      appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     SymbolFunction&           function() { return *SWC_CHECK_NOT_NULL(function_); }

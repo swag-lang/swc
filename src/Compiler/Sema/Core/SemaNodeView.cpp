@@ -6,12 +6,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref)
+SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 {
-    compute(sema, ref);
+    compute(sema, ref, part);
 }
 
-void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
+void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 {
     // Reset everything first, as compute() can be called multiple times on the same view.
     node    = nullptr;
@@ -27,20 +27,35 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref)
     if (!nodeRef.isValid())
         return;
 
-    node    = &sema.node(nodeRef);
-    typeRef = sema.typeRefOf(nodeRef);
-    if (typeRef.isValid())
-        type = &sema.typeMgr().get(typeRef);
-    cstRef = sema.constantRefOf(nodeRef);
-    if (cstRef.isValid())
-        cst = &sema.cstMgr().get(cstRef);
+    if (part.has(SemaNodeViewPartE::Node))
+        node = &sema.node(nodeRef);
+
+    if (part.has(SemaNodeViewPartE::Type))
+    {
+        typeRef = sema.typeRefOf(nodeRef);
+        if (typeRef.isValid())
+            type = &sema.typeMgr().get(typeRef);
+    }
+
+    if (part.has(SemaNodeViewPartE::Constant))
+    {
+        cstRef = sema.constantRefOf(nodeRef);
+        if (cstRef.isValid())
+            cst = &sema.cstMgr().get(cstRef);
+    }
+
+    if (!part.has(SemaNodeViewPartE::Symbol) && !part.has(SemaNodeViewPartE::SymbolList))
+        return;
 
     if (sema.hasSymbolList(nodeRef))
     {
-        symList = sema.getSymbolList(nodeRef);
-        sym     = symList.front();
+        const std::span<Symbol*> symbols = sema.getSymbolList(nodeRef);
+        if (part.has(SemaNodeViewPartE::SymbolList))
+            symList = symbols;
+        if (part.has(SemaNodeViewPartE::Symbol) && !symbols.empty())
+            sym = symbols.front();
     }
-    else if (sema.hasSymbol(nodeRef))
+    else if (part.has(SemaNodeViewPartE::Symbol) && sema.hasSymbol(nodeRef))
     {
         sym = &sema.symbolOf(nodeRef);
     }

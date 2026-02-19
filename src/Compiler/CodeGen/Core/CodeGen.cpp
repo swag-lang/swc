@@ -138,12 +138,22 @@ const SourceView& CodeGen::srcView(SourceViewRef srcViewRef) const
 
 SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef)
 {
-    return {sema(), nodeRef};
+    return nodeView(nodeRef, SemaNodeViewPartE::All);
+}
+
+SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
+{
+    return {sema(), nodeRef, part};
 }
 
 SemaNodeView CodeGen::curNodeView()
 {
-    return nodeView(curNodeRef());
+    return curNodeView(SemaNodeViewPartE::All);
+}
+
+SemaNodeView CodeGen::curNodeView(EnumFlags<SemaNodeViewPartE> part)
+{
+    return nodeView(curNodeRef(), part);
 }
 
 const Token& CodeGen::token(const SourceCodeRef& codeRef) const
@@ -274,7 +284,7 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
-    if (curNodeView().cst)
+    if (curNodeView(SemaNodeViewPartE::Constant).cst)
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -283,7 +293,7 @@ Result CodeGen::preNode(AstNode& node)
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
-    if (curNodeView().cst)
+    if (curNodeView(SemaNodeViewPartE::Constant).cst)
         return emitConstant(curNodeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());

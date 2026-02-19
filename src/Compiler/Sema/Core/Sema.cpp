@@ -122,12 +122,22 @@ const Ast& Sema::ast() const
 
 SemaNodeView Sema::nodeView(AstNodeRef nodeRef)
 {
-    return {*this, nodeRef};
+    return nodeView(nodeRef, SemaNodeViewPartE::All);
+}
+
+SemaNodeView Sema::nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
+{
+    return {*this, nodeRef, part};
 }
 
 SemaNodeView Sema::curNodeView()
 {
-    return nodeView(curNodeRef());
+    return curNodeView(SemaNodeViewPartE::All);
+}
+
+SemaNodeView Sema::curNodeView(EnumFlags<SemaNodeViewPartE> part)
+{
+    return nodeView(curNodeRef(), part);
 }
 
 SemaScope* Sema::pushScope(SemaScopeFlags flags)

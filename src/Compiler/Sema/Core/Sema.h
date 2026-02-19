@@ -12,6 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct CastRequest;
 struct SemaNodeView;
+enum class SemaNodeViewPartE;
 class SymbolNamespace;
 class MatchContext;
 class IdentifierManager;
@@ -63,26 +64,27 @@ public:
     SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
     void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
 
-    TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
-    ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
-    const ConstantValue&     constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), n); }
-    const Symbol&            symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
-    Symbol&                  symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    AstNodeRef               resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
+    TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
+    ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
+    const ConstantValue&     constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
+    const Symbol&            symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    Symbol&                  symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
     void                     setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
     void                     setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }
     void                     setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
     void                     setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
-    bool                     hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), n); }
-    bool                     hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), n); }
-    bool                     hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    bool                     hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
+    bool                     hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
+    bool                     hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
     bool                     hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
-    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
+    AstNodeRef               getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
     void                     setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
     void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void                     setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
-    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
-    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
-    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
+    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
     bool                     hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
     void                     setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
     void                     setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
@@ -97,9 +99,9 @@ public:
     void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
     void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     void unsetIsLValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::LValue); }
-    bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
+    bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::Value); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
     void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
     void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
     void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
@@ -125,7 +127,9 @@ public:
     AstNode&         curNode() { return node(curNodeRef()); }
     const AstNode&   curNode() const { return node(curNodeRef()); }
     SemaNodeView     nodeView(AstNodeRef nodeRef);
+    SemaNodeView     nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
     SemaNodeView     curNodeView();
+    SemaNodeView     curNodeView(EnumFlags<SemaNodeViewPartE> part);
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }

@@ -163,19 +163,19 @@ enum AbiEnum: u16
     #assert(V2 == -3)
 }
 
-//#test
-//{
-//    func passSlice(values: [..] s32, idx: s32)->s32 { return values[idx] }
-//    var values0: [4] s32 = [11, 22, 33, 44]
-//    var values1: [4] s32 = [101, 202, 303, 404]
-//    var values2: [4] s32 = [-1, -2, -3, -4]
-//    const V = #run passSlice(values0, 2)
-//    #assert(V == 33)
-//    const V1 = #run passSlice(values1, 3)
-//    #assert(V1 == 404)
-//    const V2 = #run passSlice(values2, 0)
-//    #assert(V2 == -1)
-//}
+#test
+{
+    func passSlice(values: [..] s32, idx: s32)->s32 { return values[idx] }
+    const values0: [4] s32 = [11, 22, 33, 44]
+    const values1: [4] s32 = [101, 202, 303, 404]
+    const values2: [4] s32 = [-1, -2, -3, -4]
+    const V = #run passSlice(values0, 2)
+    #assert(V == 33)
+    const V1 = #run passSlice(values1, 3)
+    #assert(V1 == 404)
+    const V2 = #run passSlice(values2, 0)
+    #assert(V2 == -1)
+}
 
 //#test
 //{

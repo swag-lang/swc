@@ -329,4 +329,3 @@ void MicroStorage::linkAtEnd(Ref ref)
 }
 
 SWC_END_NAMESPACE();
-

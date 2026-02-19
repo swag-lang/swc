@@ -1402,4 +1402,3 @@ void MicroPrinter::print(const TaskContext& ctx, const MicroStorage& instruction
 }
 
 SWC_END_NAMESPACE();
-

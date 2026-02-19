@@ -27,4 +27,3 @@ namespace ABITypeNormalize
 }
 
 SWC_END_NAMESPACE();
-

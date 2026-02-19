@@ -3,10 +3,10 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/MachineCode.h"
-#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/Micro/MachineCode.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -348,4 +348,3 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
 }
 
 SWC_END_NAMESPACE();
-

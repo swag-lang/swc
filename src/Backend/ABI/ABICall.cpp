@@ -537,4 +537,3 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 }
 
 SWC_END_NAMESPACE();
-

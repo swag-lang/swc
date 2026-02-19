@@ -1,7 +1,7 @@
 #pragma once
+#include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/JIT/JITMemory.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -103,4 +103,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

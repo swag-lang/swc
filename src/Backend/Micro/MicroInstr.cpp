@@ -153,4 +153,3 @@ void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<M
 }
 
 SWC_END_NAMESPACE();
-

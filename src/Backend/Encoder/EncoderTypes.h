@@ -33,4 +33,3 @@ struct EncoderFunction
 };
 
 SWC_END_NAMESPACE();
-

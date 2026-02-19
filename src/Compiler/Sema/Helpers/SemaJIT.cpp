@@ -126,4 +126,3 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 }
 
 SWC_END_NAMESPACE();
-

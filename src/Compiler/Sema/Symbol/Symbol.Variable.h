@@ -16,7 +16,7 @@ using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 class SymbolVariable : public SymbolT<SymbolKind::Variable, SymbolVariableFlagsE>
 {
 public:
-    static constexpr auto K = SymbolKind::Variable;
+    static constexpr auto     K                         = SymbolKind::Variable;
     static constexpr uint32_t K_INVALID_PARAMETER_INDEX = 0xFFFFFFFFu;
 
     explicit SymbolVariable(const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, const SymbolFlags& flags) :

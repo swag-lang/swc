@@ -136,4 +136,3 @@ protected:
 };
 
 SWC_END_NAMESPACE();
-

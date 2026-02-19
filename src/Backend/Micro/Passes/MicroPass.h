@@ -59,4 +59,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

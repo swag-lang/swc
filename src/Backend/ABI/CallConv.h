@@ -79,4 +79,3 @@ struct CallConv
 };
 
 SWC_END_NAMESPACE();
-

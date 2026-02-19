@@ -15,4 +15,3 @@ struct MachineCode
 };
 
 SWC_END_NAMESPACE();
-

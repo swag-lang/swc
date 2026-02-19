@@ -24,4 +24,3 @@ namespace Backend::Unittest
 #endif
 
 SWC_END_NAMESPACE();
-

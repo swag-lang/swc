@@ -120,4 +120,3 @@ struct MicroInstr
 };
 
 SWC_END_NAMESPACE();
-

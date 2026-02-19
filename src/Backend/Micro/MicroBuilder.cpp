@@ -613,4 +613,3 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
 }
 
 SWC_END_NAMESPACE();
-

@@ -44,4 +44,3 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 }
 
 SWC_END_NAMESPACE();
-

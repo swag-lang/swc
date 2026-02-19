@@ -53,4 +53,3 @@ void Encoder::addSymbolRelocation(uint32_t, uint32_t, uint16_t)
 }
 
 SWC_END_NAMESPACE();
-

@@ -2733,4 +2733,3 @@ void X64Encoder::encodeNop()
 }
 
 SWC_END_NAMESPACE();
-

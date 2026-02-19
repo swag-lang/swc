@@ -163,4 +163,3 @@ void MicroPassManager::run(MicroPassContext& context) const
 }
 
 SWC_END_NAMESPACE();
-

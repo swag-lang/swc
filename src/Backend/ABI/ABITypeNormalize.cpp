@@ -75,4 +75,3 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
 }
 
 SWC_END_NAMESPACE();
-

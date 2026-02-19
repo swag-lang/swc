@@ -12,4 +12,3 @@ public:
 };
 
 SWC_END_NAMESPACE();
-

@@ -10,10 +10,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// ============================================================================
-// Lifecycle
-// ============================================================================
-
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -58,10 +54,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             return Result::Continue;
     }
 }
-
-// ============================================================================
-// Compiler Context Access
-// ============================================================================
 
 TaskContext& CodeGen::ctx()
 {
@@ -123,10 +115,6 @@ const IdentifierManager& CodeGen::idMgr() const
     return sema().idMgr();
 }
 
-// ============================================================================
-// AST And Traversal Access
-// ============================================================================
-
 Ast& CodeGen::ast()
 {
     return sema().ast();
@@ -156,10 +144,6 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
 {
     sema().appendResolvedCallArguments(nodeRef, out);
 }
-
-// ============================================================================
-// Node Payload Management
-// ============================================================================
 
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
@@ -232,10 +216,6 @@ void CodeGen::setPayloadAddress(CodeGenNodePayload& payload)
     payload.storageKind = CodeGenNodePayload::StorageKind::Address;
 }
 
-// ============================================================================
-// Virtual Registers And Emission Helpers
-// ============================================================================
-
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isValid())
@@ -247,31 +227,6 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 
     return nextVirtualIntRegister();
 }
-
-bool CodeGen::canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const
-{
-    if (operandPayload.storageKind != CodeGenNodePayload::StorageKind::Value)
-        return false;
-
-    if (!operandPayload.reg.isValid())
-        return false;
-
-    if (!operandPayload.typeRef.isValid())
-        return false;
-
-    const TypeInfo& operandType = typeMgr().get(operandPayload.typeRef);
-    if (operandType.isFloat())
-        return operandPayload.reg.isFloat() || operandPayload.reg.isVirtualFloat();
-
-    if (operandType.isIntLike())
-        return !operandPayload.reg.isFloat() && !operandPayload.reg.isVirtualFloat();
-
-    return false;
-}
-
-// ============================================================================
-// Traversal Hooks
-// ============================================================================
 
 void CodeGen::setVisitors()
 {

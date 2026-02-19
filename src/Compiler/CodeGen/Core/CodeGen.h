@@ -117,8 +117,6 @@ public:
     MicroReg nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
-    bool canUseOperandRegDirect(const CodeGenNodePayload& operandPayload) const;
-
 private:
     void   setVisitors();
     Result preNode(AstNode& node);

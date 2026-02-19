@@ -36,6 +36,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
     attr PrintMicro(stages: string...)
 
+    // On a function or a struct, this prints the associated AST shape.
+    #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]
+    attr PrintAst(stages: string...)
+
     // The following function or variable is only defined at compile time
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]
     attr Compiler()

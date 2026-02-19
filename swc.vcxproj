@@ -268,6 +268,7 @@
         </ClCompile>
         <ClCompile Include="src\Support\Os\OsWin32.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp"/>
@@ -444,6 +445,7 @@
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Def.inc"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h"/>
+        <ClInclude Include="src\Compiler\Parser\Ast\AstPrinter.h"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h"/>
         <ClInclude Include="src\Compiler\Parser\Parser\Parser.h"/>

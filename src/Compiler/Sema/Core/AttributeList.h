@@ -17,6 +17,7 @@ enum class RtAttributeFlagsE : uint64_t
     AttrMulti    = 1 << 4,
     ConstExpr    = 1 << 5,
     PrintMicro   = 1 << 6,
+    PrintAst     = 1 << 7,
     Compiler     = 1 << 9,
     Inline       = 1 << 10,
     NoInline     = 1 << 11,
@@ -51,6 +52,7 @@ struct AttributeList
     SmallVector4<AttributeInstance> attributes;
     RtAttributeFlags                rtFlags = RtAttributeFlagsE::Zero;
     SmallVector4<Utf8>              printMicroPassOptions;
+    SmallVector4<Utf8>              printAstStageOptions;
     bool                            hasBackendOptimize = false;
     Runtime::BuildCfgBackendOptim   backendOptimize    = Runtime::BuildCfgBackendOptim::O0;
     bool                            hasForeign         = false;

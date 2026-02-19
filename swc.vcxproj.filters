@@ -243,6 +243,9 @@
     <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp">
       <Filter>src\Compiler\Parser\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp">
       <Filter>src\Compiler\Parser\Ast</Filter>
     </ClCompile>
@@ -738,6 +741,9 @@
       <Filter>src\Compiler\Parser\Ast</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h">
+      <Filter>src\Compiler\Parser\Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Parser\Ast\AstPrinter.h">
       <Filter>src\Compiler\Parser\Ast</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc">

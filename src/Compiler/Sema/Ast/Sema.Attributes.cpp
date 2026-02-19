@@ -29,6 +29,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::AttrMulti, .flag = RtAttributeFlagsE::AttrMulti},
             {.name = IdentifierManager::PredefinedName::ConstExpr, .flag = RtAttributeFlagsE::ConstExpr},
             {.name = IdentifierManager::PredefinedName::PrintMicro, .flag = RtAttributeFlagsE::PrintMicro},
+            {.name = IdentifierManager::PredefinedName::PrintAst, .flag = RtAttributeFlagsE::PrintAst},
             {.name = IdentifierManager::PredefinedName::Compiler, .flag = RtAttributeFlagsE::Compiler},
             {.name = IdentifierManager::PredefinedName::Inline, .flag = RtAttributeFlagsE::Inline},
             {.name = IdentifierManager::PredefinedName::NoInline, .flag = RtAttributeFlagsE::NoInline},
@@ -76,6 +77,24 @@ namespace
             RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
+        }
+
+        return Result::Continue;
+    }
+
+    Result collectPrintAstOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
+    {
+        if (args.empty())
+        {
+            outAttributes.printAstStageOptions.push_back(Utf8{"post-sema"});
+            return Result::Continue;
+        }
+
+        for (const auto argValueRef : args)
+        {
+            RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+            const SemaNodeView argView = sema.viewConstant(argValueRef);
+            outAttributes.printAstStageOptions.push_back(Utf8{argView.cst()->getString()});
         }
 
         return Result::Continue;
@@ -136,6 +155,8 @@ namespace
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
             return collectPrintMicroOptions(sema, args, outAttributes);
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintAst))
+            return collectPrintAstOptions(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, args, outAttributes);
         return Result::Continue;

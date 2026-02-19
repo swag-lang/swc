@@ -83,3 +83,19 @@ struct S
 {
     const Cfg = #run dref @compiler.getBuildCfg()
 }
+
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+}
+
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+}
+
+#[Swag.PrintAst(1)] // swc-expected-error {{sema_err_cannot_cast}}
+#test
+{
+    const Cfg = #run dref @compiler.getBuildCfg()
+}

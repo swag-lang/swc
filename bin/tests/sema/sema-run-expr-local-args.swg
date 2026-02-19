@@ -30,6 +30,7 @@ struct AbiPayload
 
 #test
 {
+    #[Swag.PrintAst]
     func passArray(values: [4] s32)->[4] s32 { return values }
     const V = #run passArray([11, 22, 33, 44])
     #assert(V[0] == 11)

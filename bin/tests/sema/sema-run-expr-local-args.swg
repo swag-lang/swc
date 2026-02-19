@@ -111,10 +111,10 @@ struct AbiPayload
     #assert(V2 == 160)
 }
 
-// #test
-// {
-//     func passConstRef(value: const &AbiPair)->s32 { return value.b }
-//     var p: AbiPair = {a: 6, b: 7}
-//     const V = #run passConstRef(p)
-//     #assert(V == 7)
-// }
+#test
+{
+    func passConstRef(value: const &AbiPair)->s32 { return value.b }
+    const p: AbiPair = {a: 6, b: 7}
+    const V = #run passConstRef(p)
+    #assert(V == 7)
+}

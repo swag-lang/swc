@@ -247,3 +247,56 @@ struct BigCopy
     #assert(V.a7 == 0x7172_7374_7576_7778'u64)
     #assert(V.a8 == 0x8182_8384_8586_8788'u64)
 }
+
+#test
+{
+    func sumPair()->s32
+    {
+        var a, b: s32 = 7
+        return a + b
+    }
+
+    const V = #run sumPair()
+    #assert(V == 14)
+}
+
+#test
+{
+    func sumPairLet()->s32
+    {
+        let a, b = 9
+        return a + b
+    }
+
+    const V = #run sumPairLet()
+    #assert(V == 18)
+}
+
+#test
+{
+    func add(a, b: s32)->s32
+    {
+        return a + b
+    }
+
+    const V = #run add(40, 2)
+    #assert(V == 42)
+}
+
+#test
+{
+    func bad()->s32
+    {
+        var a, b: s32 = "bad" // swc-expected-error {{sema_err_cannot_cast}}
+        return a + b
+    }
+}
+
+#test
+{
+    func bad()->s32
+    {
+        let a, b: s32 // swc-expected-error {{sema_err_let_missing_init}}
+        return a + b
+    }
+}

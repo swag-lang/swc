@@ -120,9 +120,9 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
         return Result::Continue;
     }
 
-    if (nodeView.symList.size() == 1)
+    for (Symbol* sym : nodeView.symList)
     {
-        const SymbolVariable& symVar = nodeView.symList.front()->cast<SymbolVariable>();
+        const SymbolVariable& symVar = sym->cast<SymbolVariable>();
         bindSingleVariableFromInitializer(codeGen, symVar, nodeInitRef);
     }
 

@@ -1082,6 +1082,15 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     }
     const uint32_t indexWidth = computeInstructionIndexWidth(scanIdx);
 
+    if (builder)
+    {
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            if (appendInstructionDebugInfo(out, ctx, builder, it.current, indexWidth, seenDebugLines))
+                break;
+        }
+    }
+
     uint32_t idx = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {

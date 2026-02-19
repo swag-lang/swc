@@ -114,7 +114,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
     if (!symbolPayload)
         return Result::Continue;
 
-    CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef(), nodeView.typeRef);
+    CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef(), symVar->typeRef());
     payload.reg                 = symbolPayload->reg;
     payload.storageKind         = symbolPayload->storageKind;
     return Result::Continue;

@@ -1,20 +1,117 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    MicroOpBits castPayloadBits(const TypeInfo& typeInfo)
+    {
+        if (typeInfo.isFloat())
+        {
+            const uint32_t floatBits = typeInfo.payloadFloatBits() ? typeInfo.payloadFloatBits() : 64;
+            return microOpBitsFromBitWidth(floatBits);
+        }
+
+        if (typeInfo.isIntLike())
+        {
+            const uint32_t intBits = typeInfo.payloadIntLikeBits() ? typeInfo.payloadIntLikeBits() : 64;
+            return microOpBitsFromBitWidth(intBits);
+        }
+
+        return MicroOpBits::Zero;
+    }
+
+    Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
+    {
+        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
+        SWC_ASSERT(srcPayload != nullptr);
+
+        if (dstTypeRef.isInvalid())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef);
+            return Result::Continue;
+        }
+
+        if (!srcPayload->typeRef.isValid())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        const TypeInfo& srcType = codeGen.typeMgr().get(srcPayload->typeRef);
+        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        const bool      srcFloatType = srcType.isFloat();
+        const bool      srcIntLikeType = srcType.isIntLike();
+        const bool      dstFloatType = dstType.isFloat();
+        const bool      dstIntLikeType = dstType.isIntLike();
+
+        if (srcPayload->typeRef == dstTypeRef)
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        if (!((srcIntLikeType && dstFloatType) || (srcFloatType && dstFloatType) || (srcFloatType && dstIntLikeType)))
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        const MicroOpBits srcOpBits = castPayloadBits(srcType);
+        const MicroOpBits dstOpBits = castPayloadBits(dstType);
+        if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        MicroReg srcReg = srcPayload->reg;
+        if (srcPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        {
+            srcReg = codeGen.nextVirtualRegisterForType(srcPayload->typeRef);
+            codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+        }
+
+        if (srcIntLikeType && dstFloatType)
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            codeGen.builder().emitClearReg(dstPayload.reg, dstOpBits);
+            codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+            return Result::Continue;
+        }
+
+        if (srcFloatType && dstFloatType)
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = srcReg;
+            codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
+            return Result::Continue;
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        codeGen.builder().emitClearReg(dstPayload.reg, dstOpBits);
+        codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+
+        return Result::Continue;
+    }
+}
+
 Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
-    return Result::Continue;
+    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView().typeRef);
 }
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeView().typeRef);
-    return Result::Continue;
+    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView().typeRef);
 }
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,17 @@
 #global internal
+/*
+#test
+{
+    func addManyMixed(a0: s32)->f64
+    {
+        return cast(f64) a0
+    }
 
+    const V = #run addManyMixed(1)
+    #assert(#typeof(V) == f64)
+    #assert(V == 1.0'f64)
+}
+*/
 #test
 {
     func add(a: s32, b: s32)->s32 { return a + b }
@@ -96,17 +108,18 @@
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }
 
-//#test
-//{
-//    func addManyMixed(
-//        a0: s32, a1: f32, a2: s64, a3: f64, a4: u32, a5: f32,
-//        a6: s32, a7: f64, a8: u16, a9: f32, a10: s8, a11: f64)->f64
-//    {
-//        return cast(f64) a0 + cast(f64) a1 + cast(f64) a2 + a3 + cast(f64) a4 + cast(f64) a5 +
-//               cast(f64) a6 + a7 + cast(f64) a8 + cast(f64) a9 + cast(f64) a10 + a11
-//    }
-//
-//    const V = #run addManyMixed(1, 2.5'f32, 3's64, 4.0'f64, 5'u32, 6.0'f32, 7, 8.0'f64, 2'u16, 1.0'f32, 2's8, 0.5'f64)
-//    #assert(#typeof(V) == f64)
-//    #assert(V == 42.5'f64)
-//}
+/*#test
+{
+    func addManyMixed(
+        a0: s32, a1: f32, a2: s64, a3: f64, a4: u32, a5: f32,
+        a6: s32, a7: f64, a8: u16, a9: f32, a10: s8, a11: f64)->f64
+    {
+        return cast(f64) a0 + cast(f64) a1 + cast(f64) a2 + a3 + cast(f64) a4 + cast(f64) a5 +
+               cast(f64) a6 + a7 + cast(f64) a8 + cast(f64) a9 + cast(f64) a10 + a11
+    }
+
+    const V = #run addManyMixed(1, 2.5'f32, 3's64, 4.0'f64, 5'u32, 6.0'f32, 7, 8.0'f64, 2'u16, 1.0'f32, 2's8, 0.5'f64)
+    #assert(#typeof(V) == f64)
+    #assert(V == 42.0'f64)
+}
+*/

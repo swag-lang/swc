@@ -724,6 +724,7 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
     AstNodeRef nodeRightRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

@@ -84,6 +84,14 @@ namespace
     }
 }
 
+Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    SWC_UNUSED(codeGen);
+    if (childRef == nodeRightRef)
+        return Result::SkipChildren;
+    return Result::Continue;
+}
+
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView leftView = codeGen.sema().viewType(nodeLeftRef);

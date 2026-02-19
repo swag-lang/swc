@@ -121,7 +121,6 @@ namespace
             case SymbolKind::Impl:
                 return Result::Continue;
 
-            case SymbolKind::Invalid:
             default:
                 SWC_UNREACHABLE();
         }

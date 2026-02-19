@@ -39,6 +39,13 @@ struct AbiPayload
 
 #test
 {
+    func passPair(value: AbiPair)->s32 { return value.a + value.b }
+    const V = #run passPair({a: 9, b: 13})
+    #assert(V == 22)
+}
+
+#test
+{
     func passPayload(value: AbiPayload)->AbiPayload { return value }
     const V = #run passPayload({a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
     #assert(V.a0 == 10'u64)

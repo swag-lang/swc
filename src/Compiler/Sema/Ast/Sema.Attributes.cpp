@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
@@ -10,11 +11,75 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/Global.h"
+#include "Support/Report/Logger.h"
+#include "Support/Report/SyntaxColor.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_AST_STAGE_PRE_SEMA  = "pre-sema";
+    constexpr std::string_view K_AST_STAGE_POST_SEMA = "post-sema";
+
+    bool shouldPrintAstStage(const AttributeList& attributes, std::string_view stageName)
+    {
+        for (const Utf8& stage : attributes.printAstStageOptions)
+        {
+            if (std::string_view{stage} == stageName)
+                return true;
+        }
+
+        return false;
+    }
+
+    void printAstStage(const Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
+    {
+        const AstNode&       node     = sema.node(nodeRef);
+        const SourceCodeRange codeLoc = node.codeRange(sema.ctx());
+        const SourceView&     srcView = sema.srcView(node.srcViewRef());
+        const SourceFile*     srcFile = srcView.file();
+        const Utf8            filePath = srcFile ? Utf8(srcFile->path().string()) : Utf8("<unknown-file>");
+
+        Logger::ScopedLock lock(sema.ctx().global().logger());
+        Logger::print(sema.ctx(), "\n");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Compiler));
+        Logger::print(sema.ctx(), "[ast]");
+        Logger::print(sema.ctx(), "\n");
+
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
+        Logger::print(sema.ctx(), "  stage");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
+        Logger::print(sema.ctx(), "    : ");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Attribute));
+        Logger::print(sema.ctx(), stageName);
+        Logger::print(sema.ctx(), "\n");
+
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
+        Logger::print(sema.ctx(), "  node");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
+        Logger::print(sema.ctx(), "     : ");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Type));
+        Logger::print(sema.ctx(), Ast::nodeIdName(node.id()));
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
+        Logger::print(sema.ctx(), " #");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::InstructionIndex));
+        Logger::print(sema.ctx(), std::format("{}", nodeRef.get()));
+        Logger::print(sema.ctx(), "\n");
+
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
+        Logger::print(sema.ctx(), "  location");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
+        Logger::print(sema.ctx(), " : ");
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::String));
+        Logger::print(sema.ctx(), std::format("{}:{}", filePath, codeLoc.line));
+        Logger::print(sema.ctx(), "\n");
+
+        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Default));
+        AstPrinter::print(sema.ctx(), sema.ast(), nodeRef);
+    }
+
     RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)
     {
         const IdentifierManager& idMgr = sema.idMgr();
@@ -260,6 +325,44 @@ Result AstAttributeList::semaPreNode(Sema& sema)
 
     const SemaFrame newFrame = sema.frame();
     sema.pushFramePopOnPostNode(newFrame);
+    return Result::Continue;
+}
+
+Result AstAttributeList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    if (nodeBodyRef.isInvalid())
+        return Result::Continue;
+
+    const AttributeList& attributes = sema.frame().currentAttributes();
+    if (!attributes.hasRtFlag(RtAttributeFlagsE::PrintAst))
+        return Result::Continue;
+
+    if (!shouldPrintAstStage(attributes, K_AST_STAGE_PRE_SEMA))
+        return Result::Continue;
+
+    printAstStage(sema, nodeBodyRef, K_AST_STAGE_PRE_SEMA);
+    return Result::Continue;
+}
+
+Result AstAttributeList::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    if (nodeBodyRef.isInvalid())
+        return Result::Continue;
+
+    const AttributeList& attributes = sema.frame().currentAttributes();
+    if (!attributes.hasRtFlag(RtAttributeFlagsE::PrintAst))
+        return Result::Continue;
+
+    if (!shouldPrintAstStage(attributes, K_AST_STAGE_POST_SEMA))
+        return Result::Continue;
+
+    printAstStage(sema, nodeBodyRef, K_AST_STAGE_POST_SEMA);
     return Result::Continue;
 }
 

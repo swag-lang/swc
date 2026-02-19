@@ -999,6 +999,8 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
     }
 
     static Result semaPreNode(Sema& sema);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

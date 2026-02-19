@@ -68,8 +68,8 @@ public:
     SymbolFunction&           function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction&     function() const { return *SWC_CHECK_NOT_NULL(function_); }
     CodeGenNodePayload*       payload(AstNodeRef nodeRef) const;
-    void                      setVariablePayload(const SymbolVariable* sym, const CodeGenNodePayload& payload);
-    const CodeGenNodePayload* variablePayload(const SymbolVariable* sym) const;
+    void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
+    const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
@@ -101,4 +101,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

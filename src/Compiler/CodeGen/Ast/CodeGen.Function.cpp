@@ -86,7 +86,7 @@ namespace
             else
                 CodeGen::setPayloadValue(symbolPayload);
 
-            codeGen.setVariablePayload(symVar, symbolPayload);
+            codeGen.setVariablePayload(*symVar, symbolPayload);
         }
     }
 

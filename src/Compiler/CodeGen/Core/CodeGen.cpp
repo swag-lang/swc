@@ -161,18 +161,14 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
 }
 
-void CodeGen::setVariablePayload(const SymbolVariable* sym, const CodeGenNodePayload& payload)
+void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
-    SWC_ASSERT(sym);
-    variablePayloads_[sym] = payload;
+    variablePayloads_[&sym] = payload;
 }
 
-const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable* sym) const
+const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
 {
-    if (!sym)
-        return nullptr;
-
-    const auto it = variablePayloads_.find(sym);
+    const auto it = variablePayloads_.find(&sym);
     if (it == variablePayloads_.end())
         return nullptr;
     return &it->second;

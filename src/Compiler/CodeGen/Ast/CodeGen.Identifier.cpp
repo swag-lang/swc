@@ -81,21 +81,20 @@ namespace
 
         CodeGenNodePayload symbolPayload = *initPayload;
         symbolPayload.typeRef            = symVar.typeRef();
-        codeGen.setVariablePayload(&symVar, symbolPayload);
+        codeGen.setVariablePayload(symVar, symbolPayload);
     }
 }
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView nodeView = codeGen.curNodeView();
-    if (!nodeView.sym)
-        return Result::Continue;
+    SWC_ASSERT(nodeView.sym);
 
     const SymbolVariable* symVar = nodeView.sym->safeCast<SymbolVariable>();
     if (!symVar)
         return Result::Continue;
 
-    const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
+    const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(*symVar);
     if (!symbolPayload && symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
     {
         const SymbolFunction&                  symbolFunc      = codeGen.function();
@@ -107,8 +106,8 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
         paramPayload.typeRef = symVar->typeRef();
 
         lowerParameterPayload(codeGen, symbolFunc, *symVar, paramPayload);
-        codeGen.setVariablePayload(symVar, paramPayload);
-        symbolPayload = codeGen.variablePayload(symVar);
+        codeGen.setVariablePayload(*symVar, paramPayload);
+        symbolPayload = codeGen.variablePayload(*symVar);
     }
 
     if (!symbolPayload)
@@ -123,37 +122,32 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView nodeView = codeGen.curNodeView();
-    if (!nodeView.sym)
-        return Result::Continue;
-
-    const SymbolVariable* symVar = nodeView.sym->safeCast<SymbolVariable>();
-    if (!symVar)
-        return Result::Continue;
+    SWC_ASSERT(nodeView.sym);
+    const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction&                  symbolFunc      = codeGen.function();
         const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
+        const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
 
         CodeGenNodePayload symbolPayload;
         symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-        symbolPayload.typeRef = symVar->typeRef();
+        symbolPayload.typeRef = symVar.typeRef();
 
-        lowerParameterPayload(codeGen, symbolFunc, *symVar, symbolPayload);
+        lowerParameterPayload(codeGen, symbolFunc, symVar, symbolPayload);
         codeGen.setVariablePayload(symVar, symbolPayload);
         return Result::Continue;
     }
 
-    bindSingleVariableFromInitializer(codeGen, *symVar, nodeInitRef);
+    bindSingleVariableFromInitializer(codeGen, symVar, nodeInitRef);
     return Result::Continue;
 }
 
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView nodeView = codeGen.curNodeView();
-    if (nodeView.symList.empty())
-        return Result::Continue;
+    SWC_ASSERT(!nodeView.symList.empty());
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
@@ -162,16 +156,14 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
         for (Symbol* sym : nodeView.symList)
         {
-            const SymbolVariable* symVar = sym ? sym->safeCast<SymbolVariable>() : nullptr;
-            if (!symVar)
-                continue;
+            const SymbolVariable& symVar = sym->cast<SymbolVariable>();
 
-            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
+            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
             CodeGenNodePayload                     symbolPayload;
             symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-            symbolPayload.typeRef = symVar->typeRef();
+            symbolPayload.typeRef = symVar.typeRef();
 
-            lowerParameterPayload(codeGen, symbolFunc, *symVar, symbolPayload);
+            lowerParameterPayload(codeGen, symbolFunc, symVar, symbolPayload);
             codeGen.setVariablePayload(symVar, symbolPayload);
         }
 

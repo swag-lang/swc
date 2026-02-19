@@ -40,7 +40,7 @@ public:
     void                                setRtAttributeFlags(RtAttributeFlags attr) { rtAttributeFlags_ = attr; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
-    void                                addParameter(SymbolVariable* sym) { parameters_.push_back(sym); }
+    void                                addParameter(SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();

@@ -5,9 +5,9 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,19 +22,11 @@ namespace
 
     uint32_t parameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
     {
+        SWC_ASSERT(symVar.hasParameterIndex());
+        const uint32_t parameterIndex = symVar.parameterIndex();
         const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-        const std::vector<SymbolVariable*>&    params        = symbolFunc.parameters();
-        for (size_t i = 0; i < params.size(); i++)
-        {
-            if (params[i] != &symVar)
-                continue;
-
-            return ABICall::argumentIndexForFunctionParameter(normalizedRet, static_cast<uint32_t>(i));
-        }
-
-        SWC_ASSERT(false);
-        return ABICall::argumentIndexForFunctionParameter(normalizedRet, 0);
+        return ABICall::argumentIndexForFunctionParameter(normalizedRet, parameterIndex);
     }
 
     void lowerParameterPayload(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)

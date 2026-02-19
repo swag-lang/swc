@@ -124,6 +124,13 @@ void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
         addExtraFlag(SymbolFunctionFlagsE::Const);
 }
 
+void SymbolFunction::addParameter(SymbolVariable* sym)
+{
+    SWC_ASSERT(sym != nullptr);
+    sym->setParameterIndex(static_cast<uint32_t>(parameters_.size()));
+    parameters_.push_back(sym);
+}
+
 MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
 {
     microInstrBuilder_.setContext(ctx);

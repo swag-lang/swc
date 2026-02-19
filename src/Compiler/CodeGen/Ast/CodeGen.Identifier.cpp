@@ -1,11 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/ABI/ABICall.h"
-#include "Backend/ABI/ABITypeNormalize.h"
-#include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -13,61 +10,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits parameterLoadBits(const ABITypeNormalize::NormalizedType& normalizedParam)
-    {
-        if (normalizedParam.isFloat)
-            return microOpBitsFromBitWidth(normalizedParam.numBits);
-        return MicroOpBits::B64;
-    }
-
-    uint32_t parameterSlotIndex(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
-    {
-        SWC_ASSERT(symVar.hasParameterIndex());
-        const uint32_t parameterIndex = symVar.parameterIndex();
-        return ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), parameterIndex);
-    }
-
-    void lowerParameterPayload(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
-    {
-        const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
-        const uint32_t                         slotIndex       = parameterSlotIndex(codeGen, symbolFunc, symVar);
-        const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
-        const uint32_t                         numRegArgs      = callConv.numArgRegisterSlots();
-        MicroBuilder&                          builder         = codeGen.builder();
-
-        if (slotIndex < numRegArgs)
-        {
-            if (normalizedParam.isFloat)
-            {
-                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.emitLoadRegReg(outPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
-            }
-            else
-            {
-                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.emitLoadRegReg(outPayload.reg, callConv.intArgRegs[slotIndex], opBits);
-            }
-        }
-        else
-        {
-            const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, slotIndex);
-            builder.emitLoadRegMem(outPayload.reg, callConv.stackPointer, stackOffset, opBits);
-        }
-
-        if (normalizedParam.isIndirect)
-            CodeGen::setPayloadAddress(outPayload);
-        else
-            CodeGen::setPayloadValue(outPayload);
-    }
-
-    void materializeParameterVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
-    {
-        outPayload.typeRef = symVar.typeRef();
-        outPayload.reg     = codeGen.nextVirtualRegisterForType(symVar.typeRef());
-        lowerParameterPayload(codeGen, symbolFunc, symVar, outPayload);
-    }
-
     void resolveIdentifierVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
@@ -81,7 +23,7 @@ namespace
         {
             const SymbolFunction& symbolFunc = codeGen.function();
             CodeGenNodePayload    paramPayload;
-            materializeParameterVariablePayload(paramPayload, codeGen, symbolFunc, symVar);
+            CodeGenHelpers::materializeFunctionParameterPayload(paramPayload, codeGen, symbolFunc, symVar);
             codeGen.setVariablePayload(symVar, paramPayload);
             outPayload = *codeGen.variablePayload(symVar);
             return;
@@ -148,7 +90,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     {
         const SymbolFunction& symbolFunc = codeGen.function();
         CodeGenNodePayload    symbolPayload;
-        materializeParameterVariablePayload(symbolPayload, codeGen, symbolFunc, symVar);
+        CodeGenHelpers::materializeFunctionParameterPayload(symbolPayload, codeGen, symbolFunc, symVar);
         codeGen.setVariablePayload(symVar, symbolPayload);
         return Result::Continue;
     }
@@ -171,7 +113,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
 
             CodeGenNodePayload symbolPayload;
-            materializeParameterVariablePayload(symbolPayload, codeGen, symbolFunc, symVar);
+            CodeGenHelpers::materializeFunctionParameterPayload(symbolPayload, codeGen, symbolFunc, symVar);
             codeGen.setVariablePayload(symVar, symbolPayload);
         }
 

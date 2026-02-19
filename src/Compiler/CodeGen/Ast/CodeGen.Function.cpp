@@ -14,19 +14,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits parameterLoadBits(const ABITypeNormalize::NormalizedType& normalizedParam)
-    {
-        if (normalizedParam.isFloat)
-            return microOpBitsFromBitWidth(normalizedParam.numBits);
-        return MicroOpBits::B64;
-    }
-
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        const CallConv&                     callConv   = CallConv::get(symbolFunc.callConvKind());
-        const uint32_t                      numRegArgs = callConv.numArgRegisterSlots();
-        const std::vector<SymbolVariable*>& params     = symbolFunc.parameters();
-        MicroBuilder&                       builder    = codeGen.builder();
+        const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
+        const std::vector<SymbolVariable*>& params   = symbolFunc.parameters();
+        MicroBuilder&                       builder  = codeGen.builder();
 
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -34,14 +26,12 @@ namespace
             if (!symVar)
                 continue;
 
-            const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar->typeRef(), ABITypeNormalize::Usage::Argument);
-            const uint32_t                         slotIndex       = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(i));
-            const MicroOpBits                      opBits          = parameterLoadBits(normalizedParam);
-            if (slotIndex >= numRegArgs)
+            const CodeGenHelpers::FunctionParameterInfo paramInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar);
+            if (!paramInfo.isRegisterArg)
                 continue;
 
             CodeGenNodePayload symbolPayload;
-            symbolPayload.reg     = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             symbolPayload.typeRef = symVar->typeRef();
 
             SmallVector<MicroReg> futureSourceRegs;
@@ -51,37 +41,25 @@ namespace
                 if (!laterSymVar)
                     continue;
 
-                const ABITypeNormalize::NormalizedType normalizedLater = ABITypeNormalize::normalize(codeGen.ctx(), callConv, laterSymVar->typeRef(), ABITypeNormalize::Usage::Argument);
-                const uint32_t                         laterSlotIndex  = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(j));
-                if (laterSlotIndex >= numRegArgs)
+                const CodeGenHelpers::FunctionParameterInfo laterParamInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *laterSymVar);
+                if (!laterParamInfo.isRegisterArg)
                     continue;
 
-                if (normalizedLater.isFloat)
+                if (laterParamInfo.isFloat)
                 {
-                    SWC_ASSERT(laterSlotIndex < callConv.floatArgRegs.size());
-                    futureSourceRegs.push_back(callConv.floatArgRegs[laterSlotIndex]);
+                    SWC_ASSERT(laterParamInfo.slotIndex < callConv.floatArgRegs.size());
+                    futureSourceRegs.push_back(callConv.floatArgRegs[laterParamInfo.slotIndex]);
                 }
                 else
                 {
-                    SWC_ASSERT(laterSlotIndex < callConv.intArgRegs.size());
-                    futureSourceRegs.push_back(callConv.intArgRegs[laterSlotIndex]);
+                    SWC_ASSERT(laterParamInfo.slotIndex < callConv.intArgRegs.size());
+                    futureSourceRegs.push_back(callConv.intArgRegs[laterParamInfo.slotIndex]);
                 }
             }
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
-
-            if (normalizedParam.isFloat)
-            {
-                SWC_ASSERT(slotIndex < callConv.floatArgRegs.size());
-                builder.emitLoadRegReg(symbolPayload.reg, callConv.floatArgRegs[slotIndex], opBits);
-            }
-            else
-            {
-                SWC_ASSERT(slotIndex < callConv.intArgRegs.size());
-                builder.emitLoadRegReg(symbolPayload.reg, callConv.intArgRegs[slotIndex], opBits);
-            }
-
-            if (normalizedParam.isIndirect)
+            CodeGenHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
+            if (paramInfo.isIndirect)
                 CodeGen::setPayloadAddress(symbolPayload);
             else
                 CodeGen::setPayloadValue(symbolPayload);

@@ -57,8 +57,6 @@ namespace
         out += entry.prefix;
         appendColored(out, ctx, SyntaxColor::Code, entry.isLastChild ? "+- " : "|- ");
         appendColored(out, ctx, SyntaxColor::Type, nodeInfo.name);
-        out += " ";
-        appendColored(out, ctx, SyntaxColor::InstructionIndex, std::format("#{}", entry.nodeRef.get()));
         if (node.tokRef().isValid())
         {
             out += " ";

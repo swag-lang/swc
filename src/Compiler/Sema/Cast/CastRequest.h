@@ -24,6 +24,7 @@ enum class CastFlagsE : uint32_t
     UnConst          = 1 << 2,
     UfcsArgument     = 1 << 3,
     FoldedTypedConst = 1 << 4,
+    FromExplicitNode = 1 << 5,
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

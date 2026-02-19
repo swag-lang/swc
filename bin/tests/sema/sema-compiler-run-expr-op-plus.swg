@@ -1,5 +1,5 @@
 #global internal
-/*
+
 #test
 {
     func addManyMixed(a0: s32)->f64
@@ -11,7 +11,7 @@
     #assert(#typeof(V) == f64)
     #assert(V == 1.0'f64)
 }
-*/
+
 #test
 {
     func add(a: s32, b: s32)->s32 { return a + b }
@@ -108,7 +108,7 @@
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }
 
-/*#test
+#test
 {
     func addManyMixed(
         a0: s32, a1: f32, a2: s64, a3: f64, a4: u32, a5: f32,
@@ -122,4 +122,3 @@
     #assert(#typeof(V) == f64)
     #assert(V == 42.0'f64)
 }
-*/

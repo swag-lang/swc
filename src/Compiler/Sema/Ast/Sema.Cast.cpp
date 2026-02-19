@@ -57,29 +57,31 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
 Result AstCastExpr::semaPostNode(Sema& sema)
 {
-    if (hasFlag(AstCastExprFlagsE::Explicit))
-    {
-        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
-        SemaNodeView       nodeExprView = sema.nodeView(nodeExprRef);
+    if (!hasFlag(AstCastExprFlagsE::Explicit))
+        return Result::Continue;
 
-        // Value-check
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
+    const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
+    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
 
-        // Check cast modifiers
-        RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+    // Value-check
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
 
-        // Cast kind
-        CastFlags castFlags = CastFlagsE::Zero;
-        if (modifierFlags.has(AstModifierFlagsE::Bit))
-            castFlags.add(CastFlagsE::BitCast);
-        if (modifierFlags.has(AstModifierFlagsE::UnConst))
-            castFlags.add(CastFlagsE::UnConst);
+    // Check cast modifiers
+    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
-        RESULT_VERIFY(Cast::cast(sema, nodeExprView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
-        sema.inheritPayload(*this, nodeExprView.nodeRef);
-        sema.setIsValue(*this);
-    }
+    // Cast kind
+    CastFlags castFlags = CastFlagsE::Zero;
+    if (modifierFlags.has(AstModifierFlagsE::Bit))
+        castFlags.add(CastFlagsE::BitCast);
+    if (modifierFlags.has(AstModifierFlagsE::UnConst))
+        castFlags.add(CastFlagsE::UnConst);
+    castFlags.add(CastFlagsE::FromExplicitNode);
 
+    sema.inheritPayload(*this, nodeExprView.nodeRef);
+    SemaNodeView nodeView = sema.curNodeView();
+    nodeView.typeRef      = nodeView.type->unwrap(sema.ctx(), nodeView.typeRef, TypeExpandE::Function);
+    RESULT_VERIFY(Cast::cast(sema, nodeView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
+    sema.setIsValue(*this);
     return Result::Continue;
 }
 

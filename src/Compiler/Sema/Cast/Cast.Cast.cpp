@@ -862,16 +862,20 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (result == Result::Pause)
         return result;
 
+    // Success !
     if (result == Result::Continue)
     {
         if (castRequest.constantFoldingResult().isInvalid())
-            view.nodeRef = createCast(sema, dstTypeRef, view.nodeRef);
-        else
         {
-            view.setCstRef(sema, castRequest.constantFoldingResult());
-            sema.setConstant(view.nodeRef, castRequest.constantFoldingResult());
+            if (castFlags.has(CastFlagsE::FromExplicitNode))
+                sema.setType(view.nodeRef, dstTypeRef);
+            else
+                view.nodeRef = createCast(sema, dstTypeRef, view.nodeRef);
         }
+        else
+            sema.setConstant(view.nodeRef, castRequest.constantFoldingResult());
 
+        view.compute(sema, view.nodeRef);
         return Result::Continue;
     }
 

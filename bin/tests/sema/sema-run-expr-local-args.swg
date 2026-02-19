@@ -21,12 +21,19 @@ struct AbiPayload
     #assert(V == "abi-string")
 }
 
-/*#test
+#test
 {
-    func passString(text: string)->rune { return text[1] }
-    const V = #run passString("abi-string")
-    #assert(V == 'b')
-}*/
+    func passString(text: string, idx: s32)->u8 { return text[idx] }
+    const V = #run passString("abi-string", 1)
+    #assert(V == 98'u8)
+    const V1 = #run passString("abi-string", 2)
+    #assert(V1 == 'i''u8)
+}
+
+#test
+{
+    func badIndexType(text: string)->u8 { return text["a"] } // swc-expected-error {{sema_err_index_not_int}}
+}
 
 #test
 {

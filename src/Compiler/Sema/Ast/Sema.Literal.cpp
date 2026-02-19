@@ -477,7 +477,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 
     for (const auto& child : elements)
     {
-        SemaNodeView nodeView = sema.nodeView(child);
+        SemaNodeView nodeView = sema.nodeView(child, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         SWC_ASSERT(nodeView.typeRef.isValid());
         values.push_back(nodeView.cstRef);
         elemTypes.push_back(nodeView.typeRef);

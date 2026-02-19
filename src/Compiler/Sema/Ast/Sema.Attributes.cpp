@@ -74,7 +74,7 @@ namespace
         for (const auto argValueRef : args)
         {
             RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
-            const SemaNodeView argView = sema.nodeView(argValueRef);
+            const SemaNodeView argView = sema.nodeView(argValueRef, SemaNodeViewPartE::Constant);
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst->getString()});
         }
 
@@ -86,7 +86,7 @@ namespace
         const AstNodeRef argValueRef = args[0];
         RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
 
-        const SemaNodeView argView = sema.nodeView(argValueRef);
+        const SemaNodeView argView = sema.nodeView(argValueRef, SemaNodeViewPartE::Constant);
         SWC_ASSERT(argView.cst != nullptr);
         SWC_ASSERT(argView.cst->isEnumValue());
 
@@ -104,7 +104,7 @@ namespace
 
         const AstNodeRef moduleValueRef = args[0];
         RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
-        const SemaNodeView moduleView = sema.nodeView(moduleValueRef);
+        const SemaNodeView moduleView = sema.nodeView(moduleValueRef, SemaNodeViewPartE::Constant);
         SWC_ASSERT(moduleView.cst != nullptr);
         if (!moduleView.cst->isString())
             return SemaError::raiseInvalidType(sema, moduleValueRef, moduleView.cst->typeRef(), sema.typeMgr().typeString());
@@ -114,7 +114,7 @@ namespace
         {
             const AstNodeRef functionValueRef = args[1];
             RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
-            const SemaNodeView functionView = sema.nodeView(functionValueRef);
+            const SemaNodeView functionView = sema.nodeView(functionValueRef, SemaNodeViewPartE::Constant);
             SWC_ASSERT(functionView.cst != nullptr);
             if (!functionView.cst->isString())
                 return SemaError::raiseInvalidType(sema, functionValueRef, functionView.cst->typeRef(), sema.typeMgr().typeString());
@@ -247,7 +247,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const AstCallExpr* callNode = sema.node(nodeCallRef).safeCast<AstCallExpr>();
     SWC_ASSERT(callNode != nullptr);
 
-    const SemaNodeView callView = sema.nodeView(nodeCallRef);
+    const SemaNodeView callView = sema.nodeView(nodeCallRef, SemaNodeViewPartE::Symbol);
     SWC_ASSERT(callView.sym);
 
     AstNodeRef errorRef = nodeCallRef;

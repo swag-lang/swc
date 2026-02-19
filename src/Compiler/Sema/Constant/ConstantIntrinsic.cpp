@@ -50,7 +50,7 @@ namespace
 
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
     {
-        const SemaNodeView argView(sema, argRef);
+        const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (!argView.cstRef.isValid())
             return false;
         if (!argView.type || !argView.type->isFloat())
@@ -160,8 +160,8 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         {
             SWC_ASSERT(args.size() == 2);
 
-            const SemaNodeView aView(sema, args[0]);
-            const SemaNodeView bView(sema, args[1]);
+            const SemaNodeView aView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            const SemaNodeView bView(sema, args[1], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             if (!aView.cstRef.isValid() || !bView.cstRef.isValid())
                 return Result::Continue;
 

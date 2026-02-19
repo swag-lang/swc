@@ -141,7 +141,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (payload(nodeRef))
         return Result::Continue;
 
-    const SemaNodeView nodeView = this->nodeView(nodeRef);
+    const SemaNodeView nodeView = this->nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     if (nodeView.cstRef.isInvalid())
         return Result::Continue;
 

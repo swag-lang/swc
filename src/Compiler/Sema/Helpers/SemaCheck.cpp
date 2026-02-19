@@ -69,7 +69,7 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 
     const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
     sema.setConstant(nodeView.nodeRef, cstRef);
-    nodeView.recompute(sema);
+    nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
 
@@ -83,13 +83,13 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
     ConstantRef cstRef;
     RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
     sema.setConstant(nodeView.nodeRef, cstRef);
-    nodeView.recompute(sema);
+    nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 {
-    const SemaNodeView nodeView(sema, nodeRef);
+    const SemaNodeView nodeView(sema, nodeRef, SemaNodeViewPartE::Constant);
     if (nodeView.cstRef.isInvalid())
     {
         SemaError::raiseExprNotConst(sema, nodeRef);

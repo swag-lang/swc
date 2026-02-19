@@ -14,7 +14,7 @@ namespace
 {
     Result finalizeInlinedCall(Sema& sema, AstNodeRef inlinedRef, AstNodeRef callRef, TypeRef returnTypeRef)
     {
-        SemaNodeView inlineView(sema, inlinedRef);
+        SemaNodeView inlineView(sema, inlinedRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (returnTypeRef != sema.typeMgr().typeVoid())
             RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
 

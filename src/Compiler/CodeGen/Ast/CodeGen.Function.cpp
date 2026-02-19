@@ -128,7 +128,7 @@ namespace
             ABICall::PreparedArg preparedArg;
             preparedArg.srcReg = argPayload->reg;
 
-            const SemaNodeView argView = codeGen.nodeView(argRef);
+            const SemaNodeView argView = codeGen.nodeView(argRef, SemaNodeViewPartE::Type);
             if (argView.type)
             {
                 const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argView.typeRef, ABITypeNormalize::Usage::Argument);
@@ -224,11 +224,12 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     calleeView     = codeGen.nodeView(nodeExprRef);
-    SymbolFunction&                        calledFunction = codeGen.curNodeView().sym->cast<SymbolFunction>();
+    const SemaNodeView                     calleeView     = codeGen.nodeView(nodeExprRef, SemaNodeViewPartE::Zero);
+    const SemaNodeView                     currentView    = codeGen.curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    SymbolFunction&                        calledFunction = currentView.sym->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
     const CallConv&                        callConv       = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.curNodeView().typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef, ABITypeNormalize::Usage::Return);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
@@ -237,7 +238,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
-    CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
+    CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef);
     emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef, preparedCall);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);

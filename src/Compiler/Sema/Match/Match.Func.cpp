@@ -431,7 +431,7 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView argNodeView(sema, argRef);
+        const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant);
         auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
         if (const AstAutoCastExpr* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
@@ -482,7 +482,7 @@ namespace
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
-        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
+        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
@@ -525,7 +525,7 @@ namespace
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
-        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef);
+        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node->tokRef();
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
 
@@ -622,7 +622,7 @@ namespace
             }
 
             CastFailure        cf{};
-            const SemaNodeView argNodeView(sema, argRef);
+            const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Type);
             TypeRef            argTy = argNodeView.typeRef;
 
             if (argTy.isInvalid())
@@ -680,7 +680,7 @@ namespace
                 for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = SemaNodeView(sema, argRef).typeRef;
+                    const TypeRef    argTy  = SemaNodeView(sema, argRef, SemaNodeViewPartE::Type).typeRef;
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
@@ -911,7 +911,7 @@ namespace
             if (argRef.isInvalid())
                 continue;
 
-            SemaNodeView argView(sema, argRef);
+            SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             CastFlags    flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
@@ -937,7 +937,7 @@ namespace
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
-            SemaNodeView argView(sema, entry.argRef);
+            SemaNodeView argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
         }
 
@@ -950,7 +950,7 @@ namespace
         if (!memberAccess)
             return AstNodeRef::invalid();
 
-        const SemaNodeView receiverView = sema.nodeView(memberAccess->nodeLeftRef);
+        const SemaNodeView receiverView = sema.nodeView(memberAccess->nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type);
         if (receiverView.type && receiverView.type->isInterface() && sema.isValue(*receiverView.node))
             return receiverView.nodeRef;
 
@@ -1007,7 +1007,7 @@ namespace
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
-                const SemaNodeView argView = sema.nodeView(finalArgRef);
+                const SemaNodeView argView = sema.nodeView(finalArgRef, SemaNodeViewPartE::Type);
                 if (argView.type && argView.type->isInterface())
                     passKind = CallArgumentPassKind::InterfaceObject;
             }

@@ -128,8 +128,8 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 
     RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
 
-    const SemaNodeView nodeWhatView = sema.nodeView(nodeWhatRef);
-    SemaNodeView       initView     = sema.curNodeView();
+    const SemaNodeView nodeWhatView = sema.nodeView(nodeWhatRef, SemaNodeViewPartE::Type);
+    SemaNodeView       initView     = sema.curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef, CastKind::Initialization));
 
     return Result::Continue;

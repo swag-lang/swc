@@ -321,13 +321,13 @@ namespace
                 if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeRightView.compute(sema, node.nodeRightRef);
+                    nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeRightView.typeRef;
                 }
                 else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeLeftView.typeRef;
                 }
                 break;
@@ -336,7 +336,7 @@ namespace
                 if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeLeftView.compute(sema, node.nodeLeftRef);
+                    nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeLeftView.typeRef;
                 }
                 else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
@@ -426,7 +426,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeLeftRef)
     {
-        const SemaNodeView nodeLeftView = sema.nodeView(nodeLeftRef);
+        const SemaNodeView nodeLeftView = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Type);
         auto               frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
@@ -437,8 +437,8 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView  = sema.nodeView(nodeLeftRef);
-    SemaNodeView nodeRightView = sema.nodeView(nodeRightRef);
+    SemaNodeView nodeLeftView  = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SemaNodeView nodeRightView = sema.nodeView(nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));

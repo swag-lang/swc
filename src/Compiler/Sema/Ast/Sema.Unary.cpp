@@ -230,7 +230,7 @@ namespace
         // TODO @legacy &arr[0] should be a value pointer, not a block pointer
         if (const AstIndexExpr* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
         {
-            const SemaNodeView baseView = sema.nodeView(idxExpr->nodeExprRef);
+            const SemaNodeView baseView = sema.nodeView(idxExpr->nodeExprRef, SemaNodeViewPartE::Type);
             if (baseView.type && baseView.type->isArray())
                 blockPointer = true;
         }
@@ -339,7 +339,7 @@ namespace
 
 Result AstUnaryExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeView = sema.nodeView(nodeExprRef);
+    SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));

@@ -11,10 +11,10 @@ SWC_BEGIN_NAMESPACE();
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const TaskContext& ctx        = sema.ctx();
-    const SemaNodeView suffixView = sema.nodeView(nodeSuffixRef);
+    const SemaNodeView suffixView = sema.nodeView(nodeSuffixRef, SemaNodeViewPartE::Type);
     const TypeRef      typeRef    = suffixView.typeRef;
 
-    SemaNodeView nodeLiteralView = sema.nodeView(nodeLiteralRef);
+    SemaNodeView nodeLiteralView = sema.nodeView(nodeLiteralRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     SWC_ASSERT(nodeLiteralView.cstRef.isValid());
 
     ConstantRef cstRef = nodeLiteralView.cstRef;
@@ -49,7 +49,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     }
 
     sema.setConstant(nodeLiteralView.nodeRef, cstRef);
-    nodeLiteralView.recompute(sema);
+    nodeLiteralView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
     sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef);
 
@@ -61,8 +61,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (!hasFlag(AstCastExprFlagsE::Explicit))
         return Result::Continue;
 
-    const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef);
-    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
+    const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Zero);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
@@ -79,7 +79,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     castFlags.add(CastFlagsE::FromExplicitNode);
 
     sema.inheritPayload(*this, nodeExprView.nodeRef);
-    SemaNodeView nodeView = sema.curNodeView();
+    SemaNodeView nodeView = sema.curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     nodeView.typeRef      = nodeView.type->unwrap(sema.ctx(), nodeView.typeRef, TypeExpandE::Function);
     RESULT_VERIFY(Cast::cast(sema, nodeView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
@@ -88,7 +88,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef);
+    const SemaNodeView nodeExprView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Zero);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));

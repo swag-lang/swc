@@ -181,7 +181,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
     }
 
-    const SemaNodeView  nodeRightView = sema.nodeView(nodeIdentRef);
+    const SemaNodeView  nodeRightView = sema.nodeView(nodeIdentRef, SemaNodeViewPartE::Node);
     const SourceCodeRef codeRef       = nodeRightView.node->codeRef();
     const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));

@@ -58,7 +58,7 @@ void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo*
 
 void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef)
 {
-    const SemaNodeView nodeView(sema, nodeRef);
+    const SemaNodeView nodeView(sema, nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     setReportArguments(sema, diag, nodeView.node->codeRef());
     setReportArguments(sema, diag, nodeView.sym);
     setReportArguments(sema, diag, nodeView.type);

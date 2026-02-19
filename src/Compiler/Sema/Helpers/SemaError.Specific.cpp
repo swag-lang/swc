@@ -84,7 +84,7 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
         if (childRef == atNodeRef)
             return Ast::VisitResult::Continue;
 
-        const SemaNodeView nodeView{sema, childRef};
+        const SemaNodeView nodeView{sema, childRef, SemaNodeViewPartE::Constant};
         if (nodeView.cstRef.isInvalid())
         {
             lowest = childRef;

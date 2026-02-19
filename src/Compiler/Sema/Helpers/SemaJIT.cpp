@@ -85,7 +85,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
-    const SemaNodeView nodeView(sema, nodeExprRef);
+    const SemaNodeView nodeView(sema, nodeExprRef, SemaNodeViewPartE::Type);
     RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
 
     scheduleCodeGen(sema, symFn);

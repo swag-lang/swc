@@ -106,12 +106,12 @@ namespace
 
 Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView().typeRef);
+    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
 }
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView().typeRef);
+    return emitNumericCast(codeGen, nodeExprRef, codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
 }
 
 SWC_END_NAMESPACE();

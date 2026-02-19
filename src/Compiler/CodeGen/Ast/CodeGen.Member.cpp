@@ -15,7 +15,7 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
-        const SemaNodeView rightView  = codeGen.nodeView(node.nodeRightRef);
+        const SemaNodeView rightView  = codeGen.nodeView(node.nodeRightRef, SemaNodeViewPartE::Symbol);
         const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym);
         const auto&        methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
@@ -31,7 +31,7 @@ namespace
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView leftView = codeGen.nodeView(nodeLeftRef);
+    const SemaNodeView leftView = codeGen.nodeView(nodeLeftRef, SemaNodeViewPartE::Type);
     SWC_ASSERT(leftView.type);
 
     if (leftView.type->isInterface())
@@ -39,11 +39,11 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (codeGen.payload(nodeRightRef))
     {
-        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curNodeView().typeRef);
+        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
         return Result::Continue;
     }
 
-    if (codeGen.curNodeView().cst)
+    if (codeGen.curNodeView(SemaNodeViewPartE::Constant).cst)
         return Result::Continue;
 
     // TODO

@@ -76,7 +76,7 @@ namespace
         {
             if (params.empty())
                 return false;
-            bound[0]  = sema.nodeViewZero(ufcsArg).nodeRef();
+            bound[0]  = sema.viewZero(ufcsArg).nodeRef();
             nextParam = 1;
         }
 
@@ -104,7 +104,7 @@ namespace
             if (bound[paramIndex].isValid())
                 return false;
 
-            bound[paramIndex] = sema.nodeViewZero(namedArg->nodeArgRef).nodeRef();
+            bound[paramIndex] = sema.viewZero(namedArg->nodeArgRef).nodeRef();
         }
 
         for (const auto argRef : args)
@@ -118,7 +118,7 @@ namespace
             if (nextParam >= params.size())
                 return false;
 
-            bound[nextParam++] = sema.nodeViewZero(argRef).nodeRef();
+            bound[nextParam++] = sema.viewZero(argRef).nodeRef();
         }
 
         if (bound.size() != params.size())

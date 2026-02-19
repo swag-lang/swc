@@ -150,7 +150,7 @@ namespace
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         // Constant struct member access
-        const SemaNodeView    nodeRightView = sema.nodeViewSymbolList(node->nodeRightRef);
+        const SemaNodeView    nodeRightView = sema.viewSymbolList(node->nodeRightRef);
         const std::span<Symbol*> symbols      = nodeRightView.symList();
         const size_t            finalSymCount = symbols.size();
         if (nodeLeftView.cst() && finalSymCount == 1 && symbols[0]->isVariable())
@@ -224,8 +224,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Parser tags the callee expression when building a call: `a.foo()`.
     const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
 
-    SemaNodeView        nodeLeftView  = sema.nodeViewNodeTypeConstantSymbol(nodeLeftRef);
-    const SemaNodeView  nodeRightView = sema.nodeViewNode(nodeRightRef);
+    SemaNodeView        nodeLeftView  = sema.viewNodeTypeConstantSymbol(nodeLeftRef);
+    const SemaNodeView  nodeRightView = sema.viewNode(nodeRightRef);
     const TokenRef      tokNameRef    = nodeRightView.node()->tokRef();
     const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
     SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));

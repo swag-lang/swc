@@ -49,8 +49,8 @@ namespace
 
 Result AstIndexExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.nodeViewTypeConstant(nodeExprRef);
-    const SemaNodeView nodeArgView  = sema.nodeViewTypeConstant(nodeArgRef);
+    const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
+    const SemaNodeView nodeArgView  = sema.viewTypeConstant(nodeArgRef);
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
@@ -134,7 +134,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
 Result AstIndexListExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.nodeViewTypeConstant(nodeExprRef);
+    const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
 
     SmallVector<AstNodeRef> children;
     sema.ast().appendNodes(children, spanChildrenRef);
@@ -161,7 +161,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         for (size_t i = 0; i < numGot; i++)
         {
             const auto         nodeRef     = children[i];
-            const SemaNodeView nodeArgView = sema.nodeViewTypeConstant(nodeRef);
+            const SemaNodeView nodeArgView = sema.viewTypeConstant(nodeRef);
 
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
@@ -225,7 +225,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
         if (numGot == 1)
         {
-            const SemaNodeView nodeArgView   = sema.nodeViewTypeConstant(children[0]);
+            const SemaNodeView nodeArgView   = sema.viewTypeConstant(children[0]);
             int64_t            constIndex    = 0;
             bool               hasConstIndex = false;
             RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));

@@ -25,7 +25,7 @@ namespace
         }
 
         SmallVector<Symbol*> symbols;
-        const SemaNodeView declView = sema.nodeView(declRef, SemaNodeViewPartE::Symbol);
+        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
         if (declView.hasSymbolList())
         {
             const std::span<Symbol*> list = declView.symList();
@@ -70,8 +70,8 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 {
     if (childRef == nodeConditionRef)
     {
-        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeConditionRef);
-        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
+        SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
+        RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;
@@ -98,8 +98,8 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeWhereRef);
-        RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
+        SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
+        RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;

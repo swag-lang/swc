@@ -181,7 +181,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, sema.curNodeRef());
     }
 
-    const SemaNodeView  nodeRightView = sema.nodeViewNode(nodeIdentRef);
+    const SemaNodeView  nodeRightView = sema.viewNode(nodeIdentRef);
     const SourceCodeRef codeRef       = nodeRightView.node()->codeRef();
     const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
     SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
@@ -254,7 +254,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     // Re-bind the resolved list to the substituted member-access node as well,
     // so downstream passes can read from the final node.
-    const std::span<Symbol*> symbols = sema.curNodeViewSymbolList().symList();
+    const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
     sema.setSymbolList(nodeRef, symbols);
     sema.setSymbolList(nodeIdentRef, symbols);
 

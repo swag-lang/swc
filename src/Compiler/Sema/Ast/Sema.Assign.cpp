@@ -147,7 +147,7 @@ namespace
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const SemaNodeView leftView = sema.nodeViewNodeTypeSymbol(leftRef);
+            const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
 
             CastRequest castRequest(CastKind::Assignment);
@@ -184,7 +184,7 @@ namespace
             if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const SemaNodeView leftView = sema.nodeViewNodeTypeSymbol(leftRef);
+            const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
             RESULT_VERIFY(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
 
             if (tok.id != TokenId::SymEqual)
@@ -222,7 +222,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeLeftRef && nodeRightRef.isValid())
     {
         // Provide a type hint to the RHS: `a = expr` should type `expr` as `typeof(a)` when possible.
-        const SemaNodeView leftView = sema.nodeViewType(nodeLeftRef);
+        const SemaNodeView leftView = sema.viewType(nodeLeftRef);
         if (leftView.typeRef().isValid())
         {
             auto frame = sema.frame();
@@ -236,8 +236,8 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstAssignStmt::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeSymbol(nodeLeftRef);
-    SemaNodeView       nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
+    const SemaNodeView nodeLeftView  = sema.viewNodeTypeSymbol(nodeLeftRef);
+    SemaNodeView       nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     const Token& tok = sema.token(codeRef());
     if (nodeLeftView.node()->is(AstNodeId::AssignList))

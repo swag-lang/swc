@@ -13,7 +13,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView  identView = sema.nodeViewNode(nodeIdentRef);
+        const SemaNodeView  identView = sema.viewNode(nodeIdentRef);
         const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
         SymbolImpl*         sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
@@ -32,12 +32,12 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 
 Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SymbolImpl& symImpl = sema.curNodeViewSymbol().sym()->cast<SymbolImpl>();
+    SymbolImpl& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
 
     // After the first name
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView identView = sema.nodeViewSymbol(nodeIdentRef);
+        const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
         Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym());
         if (hasFlag(AstImplFlagsE::Enum))
         {
@@ -64,8 +64,8 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
-        const SemaNodeView identView = sema.nodeViewType(nodeIdentRef);
-        const SemaNodeView forView   = sema.nodeViewSymbol(nodeForRef);
+        const SemaNodeView identView = sema.viewType(nodeIdentRef);
+        const SemaNodeView forView   = sema.viewSymbol(nodeForRef);
         SWC_ASSERT(forView.sym());
         if (!forView.sym()->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
@@ -101,10 +101,10 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 
 void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 {
-    const SemaNodeView nodeView = sema.nodeViewSymbol(nodeRef);
-    if (!nodeView.hasSymbol())
+    const SemaNodeView view = sema.viewSymbol(nodeRef);
+    if (!view.hasSymbol())
         return;
-    SymbolImpl& symImpl = nodeView.sym()->cast<SymbolImpl>();
+    SymbolImpl& symImpl = view.sym()->cast<SymbolImpl>();
     if (!symImpl.isPendingRegistrationResolved())
     {
         symImpl.setPendingRegistrationResolved();

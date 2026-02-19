@@ -60,37 +60,37 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
     return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
-Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
+Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)
 {
-    if (sema.isValue(nodeView.nodeRef()))
+    if (sema.isValue(view.nodeRef()))
         return Result::Continue;
-    if (nodeView.typeRef().isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef());
+    if (view.typeRef().isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
-    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef()));
-    sema.setConstant(nodeView.nodeRef(), cstRef);
-    nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
+    sema.setConstant(view.nodeRef(), cstRef);
+    view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
 
-Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
+Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
 {
-    if (sema.isValue(nodeView.nodeRef()))
+    if (sema.isValue(view.nodeRef()))
         return Result::Continue;
-    if (nodeView.typeRef().isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef());
+    if (view.typeRef().isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
     ConstantRef cstRef;
-    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef(), nodeView.nodeRef()));
-    sema.setConstant(nodeView.nodeRef(), cstRef);
-    nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, view.typeRef(), view.nodeRef()));
+    sema.setConstant(view.nodeRef(), cstRef);
+    view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 {
-    const SemaNodeView nodeView = sema.nodeViewConstant(nodeRef);
-    if (nodeView.cstRef().isInvalid())
+    const SemaNodeView view = sema.viewConstant(nodeRef);
+    if (view.cstRef().isInvalid())
     {
         SemaError::raiseExprNotConst(sema, nodeRef);
         return Result::Error;

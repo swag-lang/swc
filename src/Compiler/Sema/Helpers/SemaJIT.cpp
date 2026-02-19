@@ -27,22 +27,22 @@ namespace
         }
     }
 
-    TypeRef computeRunExprStorageTypeRef(Sema& sema, const SemaNodeView& nodeView)
+    TypeRef computeRunExprStorageTypeRef(Sema& sema, const SemaNodeView& view)
     {
-        SWC_ASSERT(nodeView.type());
-        return nodeView.type()->unwrap(sema.ctx(), nodeView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        SWC_ASSERT(view.type());
+        return view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
     }
 
-    ConstantValue makeRunExprConstant(Sema& sema, const SemaNodeView& nodeView, TypeRef storageTypeRef, const std::byte* storagePtr)
+    ConstantValue makeRunExprConstant(Sema& sema, const SemaNodeView& view, TypeRef storageTypeRef, const std::byte* storagePtr)
     {
         TaskContext& ctx = sema.ctx();
-        SWC_ASSERT(nodeView.type());
+        SWC_ASSERT(view.type());
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        if (nodeView.type()->isEnum())
+        if (view.type()->isEnum())
         {
             const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
             const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
-            return ConstantValue::makeEnumValue(ctx, storageRef, nodeView.typeRef());
+            return ConstantValue::makeEnumValue(ctx, storageRef, view.typeRef());
         }
 
         if (storageType.isValuePointer() || storageType.isBlockPointer())
@@ -51,8 +51,8 @@ namespace
             if (!ptrValue)
             {
                 ConstantValue nullValue = ConstantValue::makeNull(ctx);
-                if (nodeView.type()->isAlias())
-                    nullValue.setTypeRef(nodeView.typeRef());
+                if (view.type()->isAlias())
+                    nullValue.setTypeRef(view.typeRef());
                 else
                     nullValue.setTypeRef(storageTypeRef);
                 return nullValue;
@@ -60,8 +60,8 @@ namespace
         }
 
         ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
-        if (nodeView.type()->isAlias())
-            result.setTypeRef(nodeView.typeRef());
+        if (view.type()->isAlias())
+            result.setTypeRef(view.typeRef());
         return result;
     }
 
@@ -83,18 +83,18 @@ namespace
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
-    if (sema.nodeViewConstant(nodeExprRef).hasConstant())
+    if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
-    const SemaNodeView nodeView = sema.nodeViewType(nodeExprRef);
-    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), nodeExprRef));
+    const SemaNodeView view = sema.viewType(nodeExprRef);
+    RESULT_VERIFY(sema.waitSemaCompleted(view.type(), nodeExprRef));
 
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
     TaskContext&                           ctx            = sema.ctx();
-    const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
+    const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, view);
     const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
-    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), view.typeRef(), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression
@@ -117,10 +117,10 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
     ConstantValue resultConstant;
-    if (!normalizedRet.isIndirect && nodeView.type()->isString())
+    if (!normalizedRet.isIndirect && view.type()->isString())
         resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
     else
-        resultConstant = makeRunExprConstant(sema, nodeView, storageTypeRef, resultStorage.data());
+        resultConstant = makeRunExprConstant(sema, view, storageTypeRef, resultStorage.data());
     sema.setConstant(nodeExprRef, sema.cstMgr().addConstant(ctx, resultConstant));
     return Result::Continue;
 }

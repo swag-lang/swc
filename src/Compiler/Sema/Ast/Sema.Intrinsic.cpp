@@ -31,16 +31,16 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        SemaNodeView nodeView = sema.nodeViewNodeTypeConstantSymbol(children[0]);
-        if (nodeView.sym() && nodeView.sym()->isConstant() && nodeView.cstRef().isInvalid())
+        SemaNodeView view = sema.viewNodeTypeConstantSymbol(children[0]);
+        if (view.sym() && view.sym()->isConstant() && view.cstRef().isInvalid())
         {
-            RESULT_VERIFY(sema.waitSemaCompleted(nodeView.sym(), sema.node(nodeView.nodeRef()).codeRef()));
-            nodeView.compute(sema, children[0], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+            RESULT_VERIFY(sema.waitSemaCompleted(view.sym(), sema.node(view.nodeRef()).codeRef()));
+            view.compute(sema, children[0], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         }
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef()));
+        RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
 
-        const TypeInfo* type = nodeView.type();
+        const TypeInfo* type = view.type();
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -63,26 +63,26 @@ namespace
         }
         else if (type->isAnyPointer())
         {
-            resultTypeRef = nodeView.typeRef();
+            resultTypeRef = view.typeRef();
         }
 
         if (!resultTypeRef.isValid())
-            return SemaError::raiseInvalidType(sema, nodeView.nodeRef(), nodeView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
+            return SemaError::raiseInvalidType(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
-        ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, nodeView);
+        ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, view);
         sema.setIsValue(node);
         return Result::Continue;
     }
 
     Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeView = sema.nodeViewType(children[0]);
+        const SemaNodeView view = sema.viewType(children[0]);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef()));
+        RESULT_VERIFY(SemaCheck::isValue(sema, view.nodeRef()));
 
-        if (!nodeView.type() || !nodeView.type()->isAny())
-            return SemaError::raiseRequestedTypeFam(sema, nodeView.nodeRef(), nodeView.typeRef(), sema.typeMgr().typeAny());
+        if (!view.type() || !view.type()->isAny())
+            return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
         sema.setIsValue(node);
@@ -97,22 +97,22 @@ namespace
 
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
-        SemaNodeView       nodeViewType = sema.nodeViewTypeConstant(children[1]);
+        const SemaNodeView nodeViewPtr  = sema.viewType(children[0]);
+        SemaNodeView       viewType = sema.viewTypeConstant(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
-        RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeViewType));
+        RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, viewType));
 
         if (!nodeViewPtr.type()->isValuePointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
-        if (!nodeViewType.type()->isAnyTypeInfo(sema.ctx()))
-            return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef(), nodeViewType.typeRef(), sema.typeMgr().typeTypeInfo());
+        if (!viewType.type()->isAnyTypeInfo(sema.ctx()))
+            return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void* or a pointer to the type defined in the right expression
         const TypeRef typeRefPointee = nodeViewPtr.type()->payloadTypeRef();
-        if (!sema.typeMgr().get(typeRefPointee).isVoid() && nodeViewType.cstRef().isValid())
+        if (!sema.typeMgr().get(typeRefPointee).isVoid() && viewType.cstRef().isValid())
         {
-            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, nodeViewType.cstRef());
+            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, viewType.cstRef());
             if (typeRefPointee != typeRefTypeInfo)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef());
@@ -136,8 +136,8 @@ namespace
 
     Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
     {
-        const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
-        SemaNodeView       nodeViewSize = sema.nodeViewNodeTypeConstant(children[1]);
+        const SemaNodeView nodeViewPtr  = sema.viewType(children[0]);
+        SemaNodeView       nodeViewSize = sema.viewNodeTypeConstant(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));

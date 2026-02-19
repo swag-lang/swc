@@ -141,13 +141,13 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (payload(nodeRef))
         return Result::Continue;
 
-    const SemaNodeView nodeView = sema().nodeViewTypeConstant(nodeRef);
-    if (nodeView.cstRef().isInvalid())
+    const SemaNodeView view = sema().viewTypeConstant(nodeRef);
+    if (view.cstRef().isInvalid())
         return Result::Continue;
 
-    const ConstantValue& cst     = cstMgr().get(nodeView.cstRef());
-    CodeGenNodePayload&  payload = setPayload(nodeRef, nodeView.typeRef());
-    emitConstantToPayload(*this, payload, nodeView.cstRef(), cst, nodeView.typeRef());
+    const ConstantValue& cst     = cstMgr().get(view.cstRef());
+    CodeGenNodePayload&  payload = setPayload(nodeRef, view.typeRef());
+    emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef());
     return Result::SkipChildren;
 }
 

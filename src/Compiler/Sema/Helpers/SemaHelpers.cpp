@@ -151,60 +151,60 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
 Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
 {
     auto               ctx = sema.ctx();
-    const SemaNodeView nodeView = sema.nodeViewTypeConstant(exprRef);
+    const SemaNodeView view = sema.viewTypeConstant(exprRef);
 
-    if (!nodeView.type())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef());
+    if (!view.type())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, view.nodeRef());
 
-    if (nodeView.cst())
+    if (view.cst())
     {
-        if (nodeView.cst()->isString())
+        if (view.cst()->isString())
         {
-            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, nodeView.cst()->getString().length()));
+            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.cst()->getString().length()));
             return Result::Continue;
         }
 
-        if (nodeView.cst()->isSlice())
+        if (view.cst()->isSlice())
         {
-            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, nodeView.cst()->getSlice().size()));
+            sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.cst()->getSlice().size()));
             return Result::Continue;
         }
 
-        if (nodeView.cst()->isInt())
+        if (view.cst()->isInt())
         {
-            if (nodeView.cst()->getInt().isNegative())
+            if (view.cst()->getInt().isNegative())
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_count_negative, nodeView.nodeRef());
-                diag.addArgument(Diagnostic::ARG_VALUE, nodeView.cst()->toString(ctx));
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_count_negative, view.nodeRef());
+                diag.addArgument(Diagnostic::ARG_VALUE, view.cst()->toString(ctx));
                 diag.report(ctx);
                 return Result::Error;
             }
 
             ConstantRef newCstRef;
-            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef(), nodeView.cstRef(), TypeInfo::Sign::Unsigned));
+            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
             sema.setConstant(targetRef, newCstRef);
             return Result::Continue;
         }
     }
 
-    if (nodeView.type()->isEnum())
+    if (view.type()->isEnum())
     {
-        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), nodeView.nodeRef()));
-        sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, nodeView.type()->payloadSymEnum().count()));
+        RESULT_VERIFY(sema.waitSemaCompleted(view.type(), view.nodeRef()));
+        sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.type()->payloadSymEnum().count()));
         return Result::Continue;
     }
 
-    if (nodeView.type()->isAnyString())
+    if (view.type()->isAnyString())
     {
         sema.setType(targetRef, sema.typeMgr().typeU64());
         sema.setIsValue(targetRef);
         return Result::Continue;
     }
 
-    if (nodeView.type()->isArray())
+    if (view.type()->isArray())
     {
-        const uint64_t  sizeOf     = nodeView.type()->sizeOf(ctx);
-        const TypeRef   typeRef    = nodeView.type()->payloadArrayElemTypeRef();
+        const uint64_t  sizeOf     = view.type()->sizeOf(ctx);
+        const TypeRef   typeRef    = view.type()->payloadArrayElemTypeRef();
         const TypeInfo& ty         = sema.typeMgr().get(typeRef);
         const uint64_t  sizeOfElem = ty.sizeOf(ctx);
         SWC_ASSERT(sizeOfElem > 0);
@@ -212,22 +212,22 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
         return Result::Continue;
     }
 
-    if (nodeView.type()->isSlice())
+    if (view.type()->isSlice())
     {
         sema.setType(targetRef, sema.typeMgr().typeU64());
         sema.setIsValue(targetRef);
         return Result::Continue;
     }
 
-    if (nodeView.type()->isIntUnsigned())
+    if (view.type()->isIntUnsigned())
     {
-        sema.setType(targetRef, nodeView.typeRef());
+        sema.setType(targetRef, view.typeRef());
         sema.setIsValue(targetRef);
         return Result::Continue;
     }
 
-    auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, nodeView.nodeRef());
-    diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef());
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
+    diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
     diag.report(ctx);
     return Result::Error;
 }
@@ -251,11 +251,11 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
-        SemaNodeView nodeView = sema.nodeViewTypeConstant(child);
-        SWC_ASSERT(nodeView.typeRef().isValid());
-        memberTypes.push_back(nodeView.typeRef());
-        allConstant = allConstant && nodeView.cstRef().isValid();
-        values.push_back(nodeView.cstRef());
+        SemaNodeView view = sema.viewTypeConstant(child);
+        SWC_ASSERT(view.typeRef().isValid());
+        memberTypes.push_back(view.typeRef());
+        allConstant = allConstant && view.cstRef().isValid();
+        values.push_back(view.cstRef());
     }
 
     if (allConstant)

@@ -112,10 +112,10 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     sema.ast().appendNodes(nodeRefs, spanChildrenRef);
     for (const auto& nodeRef : nodeRefs)
     {
-        const SemaNodeView nodeView = sema.nodeViewSymbol(nodeRef);
-        SWC_ASSERT(nodeView.sym());
-        SWC_ASSERT(nodeView.sym()->isNamespace());
-        sema.curScope().addUsingSymMap(nodeView.sym()->asSymMap());
+        const SemaNodeView view = sema.viewSymbol(nodeRef);
+        SWC_ASSERT(view.sym());
+        SWC_ASSERT(view.sym()->isNamespace());
+        sema.curScope().addUsingSymMap(view.sym()->asSymMap());
     }
 
     return Result::Continue;

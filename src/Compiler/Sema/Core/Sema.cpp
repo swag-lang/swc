@@ -120,24 +120,24 @@ const Ast& Sema::ast() const
     return nodePayloadContext_->ast();
 }
 
-SemaNodeView Sema::nodeView(AstNodeRef nodeRef)
+SemaNodeView Sema::view(AstNodeRef nodeRef)
 {
-    return nodeView(nodeRef, SemaNodeViewPartE::All);
+    return view(nodeRef, SemaNodeViewPartE::All);
 }
 
-SemaNodeView Sema::nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
+SemaNodeView Sema::view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
 {
     return {*this, nodeRef, part};
 }
 
-SemaNodeView Sema::curNodeView()
+SemaNodeView Sema::curView()
 {
-    return curNodeView(SemaNodeViewPartE::All);
+    return curView(SemaNodeViewPartE::All);
 }
 
-SemaNodeView Sema::curNodeView(EnumFlags<SemaNodeViewPartE> part)
+SemaNodeView Sema::curView(EnumFlags<SemaNodeViewPartE> part)
 {
-    return nodeView(curNodeRef(), part);
+    return view(curNodeRef(), part);
 }
 
 SemaScope* Sema::pushScope(SemaScopeFlags flags)
@@ -241,9 +241,9 @@ namespace
     const Symbol* guessCurrentSymbol(Sema& sema)
     {
         const AstNodeRef n = sema.visit().root();
-        const SemaNodeView nodeView = sema.nodeViewSymbol(n);
-        if (nodeView.hasSymbol())
-            return nodeView.sym();
+        const SemaNodeView view = sema.viewSymbol(n);
+        if (view.hasSymbol())
+            return view.sym();
         return sema.topSymMap();
     }
 }

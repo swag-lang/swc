@@ -56,8 +56,8 @@ namespace
 Result AstLogicalExpr::semaPostNode(Sema& sema)
 {
     const AstNodeRef nodeRef       = sema.curNodeRef();
-    SemaNodeView     nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
-    SemaNodeView     nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
+    SemaNodeView     nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView     nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));

@@ -242,11 +242,11 @@ namespace
 
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
-        SemaNodeView nodeInitView = sema.nodeViewNodeTypeConstant(context.nodeInitRef);
+        SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
         if (context.nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
-        const SemaNodeView nodeTypeView    = sema.nodeViewType(context.nodeTypeRef);
+        const SemaNodeView nodeTypeView    = sema.viewType(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef();
 
         if (nodeInitView.typeRef().isValid())
@@ -383,7 +383,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
         {
-            SymbolVariable& symVar = sema.curNodeViewSymbol().sym()->cast<SymbolVariable>();
+            SymbolVariable& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
         }
     }
@@ -395,7 +395,7 @@ Result AstSingleVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curNodeViewSymbol().sym();
+    const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -403,7 +403,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView = sema.nodeViewType(nodeTypeRef);
+        const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -414,7 +414,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstSingleVarDecl::semaPostNode(Sema& sema) const
 {
-    Symbol&                   sym     = *sema.curNodeViewSymbol().sym();
+    Symbol&                   sym     = *sema.curViewSymbol().sym();
     Symbol*                   one[]   = {&sym};
     const SemaPostVarDeclArgs context = {this, tokNameRef, nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, std::span<Symbol*>{one});
@@ -439,7 +439,7 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
             symbols.push_back(&sym);
             if (hasFlag(AstVarDeclFlagsE::Let))
             {
-                SymbolVariable& symVar = sema.curNodeViewSymbol().sym()->cast<SymbolVariable>();
+                SymbolVariable& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
             }
         }
@@ -453,7 +453,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {
-        SemaNodeView nodeSymbolsView = sema.curNodeViewSymbolList();
+        SemaNodeView nodeSymbolsView = sema.curViewSymbolList();
         if (!nodeSymbolsView.hasSymbolList())
             semaPreDecl(sema);
         nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
@@ -465,7 +465,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const std::span<Symbol*> symbols = sema.curNodeViewSymbolList().symList();
+    const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
     for (const Symbol* sym : symbols)
     {
         RESULT_VERIFY(Match::ghosting(sema, *sym));
@@ -478,7 +478,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView = sema.nodeViewType(nodeTypeRef);
+        const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -489,14 +489,14 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const std::span<Symbol*>  symbols = sema.curNodeViewSymbolList().symList();
+    const std::span<Symbol*>  symbols = sema.curViewSymbolList().symList();
     const SemaPostVarDeclArgs context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags()};
     return semaPostVarDeclCommon(sema, context, symbols);
 }
 
 Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeInitView = sema.nodeViewType(nodeInitRef);
+    const SemaNodeView nodeInitView = sema.viewType(nodeInitRef);
     if (!nodeInitView.type()->isStruct())
     {
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef());

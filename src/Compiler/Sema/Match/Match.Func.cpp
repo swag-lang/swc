@@ -468,7 +468,7 @@ namespace
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef               argSubRef   = sema.nodeViewZero(argRef).nodeRef();
+        const AstNodeRef               argSubRef   = sema.viewZero(argRef).nodeRef();
         const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&                 argNode     = sema.node(finalArgRef);
         const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -511,7 +511,7 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef               argSubRef   = sema.nodeViewZero(argRef).nodeRef();
+        const AstNodeRef               argSubRef   = sema.viewZero(argRef).nodeRef();
         const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
         const AstNode&                 argNode     = sema.node(finalArgRef);
         const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
@@ -680,7 +680,7 @@ namespace
                 for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = sema.nodeViewType(argRef).typeRef();
+                    const TypeRef    argTy  = sema.viewType(argRef).typeRef();
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
@@ -950,7 +950,7 @@ namespace
         if (!memberAccess)
             return AstNodeRef::invalid();
 
-        const SemaNodeView receiverView = sema.nodeViewNodeType(memberAccess->nodeLeftRef);
+        const SemaNodeView receiverView = sema.viewNodeType(memberAccess->nodeLeftRef);
         if (receiverView.type() && receiverView.type()->isInterface() && sema.isValue(*receiverView.node()))
             return receiverView.nodeRef();
 
@@ -1007,7 +1007,7 @@ namespace
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
-                const SemaNodeView argView = sema.nodeViewType(finalArgRef);
+                const SemaNodeView argView = sema.viewType(finalArgRef);
                 if (argView.type() && argView.type()->isInterface())
                     passKind = CallArgumentPassKind::InterfaceObject;
             }
@@ -1029,7 +1029,7 @@ namespace
 
 AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
 {
-    AstNodeRef finalRef = sema.nodeViewZero(argRef).nodeRef();
+    AstNodeRef finalRef = sema.viewZero(argRef).nodeRef();
     if (finalRef.isInvalid())
         finalRef = argRef;
     return finalRef;

@@ -74,7 +74,7 @@ namespace
         for (const auto argValueRef : args)
         {
             RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
-            const SemaNodeView argView = sema.nodeViewConstant(argValueRef);
+            const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
         }
 
@@ -86,7 +86,7 @@ namespace
         const AstNodeRef argValueRef = args[0];
         RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
 
-        const SemaNodeView argView = sema.nodeViewConstant(argValueRef);
+        const SemaNodeView argView = sema.viewConstant(argValueRef);
         SWC_ASSERT(argView.cst() != nullptr);
         SWC_ASSERT(argView.cst()->isEnumValue());
 
@@ -104,7 +104,7 @@ namespace
 
         const AstNodeRef moduleValueRef = args[0];
         RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
-        const SemaNodeView moduleView = sema.nodeViewConstant(moduleValueRef);
+        const SemaNodeView moduleView = sema.viewConstant(moduleValueRef);
         SWC_ASSERT(moduleView.cst() != nullptr);
         if (!moduleView.cst()->isString())
             return SemaError::raiseInvalidType(sema, moduleValueRef, moduleView.cst()->typeRef(), sema.typeMgr().typeString());
@@ -114,7 +114,7 @@ namespace
         {
             const AstNodeRef functionValueRef = args[1];
             RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
-            const SemaNodeView functionView = sema.nodeViewConstant(functionValueRef);
+            const SemaNodeView functionView = sema.viewConstant(functionValueRef);
             SWC_ASSERT(functionView.cst() != nullptr);
             if (!functionView.cst()->isString())
                 return SemaError::raiseInvalidType(sema, functionValueRef, functionView.cst()->typeRef(), sema.typeMgr().typeString());
@@ -208,7 +208,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeParamsRef)
         return Result::Continue;
 
-    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
@@ -216,7 +216,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
     sym.setTypeRef(typeRef);
@@ -247,7 +247,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const AstCallExpr* callNode = sema.node(nodeCallRef).safeCast<AstCallExpr>();
     SWC_ASSERT(callNode != nullptr);
 
-    const SemaNodeView callView = sema.nodeViewSymbol(nodeCallRef);
+    const SemaNodeView callView = sema.viewSymbol(nodeCallRef);
     SWC_ASSERT(callView.sym());
 
     AstNodeRef errorRef = nodeCallRef;

@@ -74,11 +74,11 @@ namespace SemaHelpers
     void declareSymbol(Sema& sema, const T& node)
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
-        if (!sema.nodeViewSymbol(curNodeRef).hasSymbol())
+        if (!sema.viewSymbol(curNodeRef).hasSymbol())
             node.semaPreDecl(sema);
-        SemaNodeView nodeView = sema.nodeViewSymbol(curNodeRef);
-        SWC_ASSERT(nodeView.hasSymbol());
-        Symbol& sym = *nodeView.sym();
+        SemaNodeView view = sema.viewSymbol(curNodeRef);
+        SWC_ASSERT(view.hasSymbol());
+        Symbol& sym = *view.sym();
         sym.registerAttributes(sema);
         sym.setDeclared(sema.ctx());
     }

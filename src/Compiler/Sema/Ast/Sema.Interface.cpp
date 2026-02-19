@@ -20,7 +20,7 @@ Result AstInterfaceDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curNodeViewSymbol().sym();
+    const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -32,7 +32,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     TaskContext& ctx = sema.ctx();
 
     // Creates symbol with type
-    SymbolInterface& symItf     = sema.curNodeViewSymbol().sym()->cast<SymbolInterface>();
+    SymbolInterface& symItf     = sema.curViewSymbol().sym()->cast<SymbolInterface>();
     const TypeInfo   itfType    = TypeInfo::makeInterface(&symItf);
     const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
     symItf.setTypeRef(itfTypeRef);
@@ -49,7 +49,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstInterfaceDecl::semaPostNode(Sema& sema)
 {
-    auto& sym = sema.curNodeViewSymbol().sym()->cast<SymbolInterface>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolInterface>();
     RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;

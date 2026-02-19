@@ -319,7 +319,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 {
     if (childRef == nodeLeftRef)
     {
-        const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
+        const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
@@ -330,8 +330,8 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstRelationalExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
-    SemaNodeView nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
+    SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
     const Token& tok           = sema.token({srcViewRef(), tokRef()});
 
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));

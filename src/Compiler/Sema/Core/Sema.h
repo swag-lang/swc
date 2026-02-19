@@ -73,36 +73,36 @@ public:
     SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
     void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
 
-    SemaNodeView nodeView(AstNodeRef nodeRef);
-    SemaNodeView nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView nodeViewZero(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Zero); }
-    SemaNodeView nodeViewNode(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node); }
-    SemaNodeView nodeViewType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type); }
-    SemaNodeView nodeViewConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Constant); }
-    SemaNodeView nodeViewSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
-    SemaNodeView nodeViewSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
-    SemaNodeView nodeViewTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView nodeViewTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView nodeViewNodeType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
-    SemaNodeView nodeViewNodeTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView nodeViewNodeTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView nodeViewNodeTypeConstantSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
-    SemaNodeView nodeViewNodeSymbolSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol); }
+    SemaNodeView view(AstNodeRef nodeRef);
+    SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
+    SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
+    SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
+    SemaNodeView viewConstant(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Constant); }
+    SemaNodeView viewSymbol(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Symbol); }
+    SemaNodeView viewSymbolList(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Symbol); }
+    SemaNodeView viewTypeConstant(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView viewTypeSymbol(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView viewNodeType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView viewNodeTypeConstant(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView viewNodeTypeSymbol(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView viewNodeTypeConstantSymbol(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
+    SemaNodeView viewNodeSymbolList(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol); }
 
-    SemaNodeView curNodeView();
-    SemaNodeView curNodeView(EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView curNodeViewZero() { return curNodeView(SemaNodeViewPartE::Zero); }
-    SemaNodeView curNodeViewNode() { return curNodeView(SemaNodeViewPartE::Node); }
-    SemaNodeView curNodeViewType() { return curNodeView(SemaNodeViewPartE::Type); }
-    SemaNodeView curNodeViewConstant() { return curNodeView(SemaNodeViewPartE::Constant); }
-    SemaNodeView curNodeViewSymbol() { return curNodeView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView curNodeViewSymbolList() { return curNodeView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView curNodeViewTypeConstant() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curNodeViewTypeSymbol() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curNodeViewNodeType() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
-    SemaNodeView curNodeViewNodeTypeConstant() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView curNodeViewNodeTypeSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView curNodeViewNodeTypeConstantSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
+    SemaNodeView curView();
+    SemaNodeView curView(EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView curViewZero() { return curView(SemaNodeViewPartE::Zero); }
+    SemaNodeView curViewNode() { return curView(SemaNodeViewPartE::Node); }
+    SemaNodeView curViewType() { return curView(SemaNodeViewPartE::Type); }
+    SemaNodeView curViewConstant() { return curView(SemaNodeViewPartE::Constant); }
+    SemaNodeView curViewSymbol() { return curView(SemaNodeViewPartE::Symbol); }
+    SemaNodeView curViewSymbolList() { return curView(SemaNodeViewPartE::Symbol); }
+    SemaNodeView curViewTypeConstant() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView curViewTypeSymbol() { return curView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView curViewNodeType() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView curViewNodeTypeConstant() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView curViewNodeTypeSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
     void setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
     void setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }

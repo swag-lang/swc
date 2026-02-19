@@ -24,7 +24,7 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curNodeViewSymbol().sym();
+    const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -35,7 +35,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
-        SymbolStruct&  sym           = sema.curNodeViewSymbol().sym()->cast<SymbolStruct>();
+        SymbolStruct&  sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
@@ -50,7 +50,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
 Result AstStructDecl::semaPostNode(Sema& sema)
 {
-    SymbolStruct& sym = sema.curNodeViewSymbol().sym()->cast<SymbolStruct>();
+    SymbolStruct& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -80,7 +80,7 @@ Result AstAnonymousStructDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curNodeViewSymbol().sym();
+    const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -91,7 +91,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
         TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
-        SymbolStruct&  sym           = sema.curNodeViewSymbol().sym()->cast<SymbolStruct>();
+        SymbolStruct&  sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
@@ -106,7 +106,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 
 Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 {
-    SymbolStruct& sym = sema.curNodeViewSymbol().sym()->cast<SymbolStruct>();
+    SymbolStruct& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -128,8 +128,8 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 
     RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
 
-    const SemaNodeView nodeWhatView = sema.nodeViewType(nodeWhatRef);
-    SemaNodeView       initView     = sema.curNodeViewNodeTypeConstant();
+    const SemaNodeView nodeWhatView = sema.viewType(nodeWhatRef);
+    SemaNodeView       initView     = sema.curViewNodeTypeConstant();
     RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
 
     return Result::Continue;

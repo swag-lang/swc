@@ -11,10 +11,10 @@ SWC_BEGIN_NAMESPACE();
 Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const TaskContext& ctx        = sema.ctx();
-    const SemaNodeView suffixView = sema.nodeViewType(nodeSuffixRef);
+    const SemaNodeView suffixView = sema.viewType(nodeSuffixRef);
     const TypeRef      typeRef    = suffixView.typeRef();
 
-    SemaNodeView nodeLiteralView = sema.nodeViewNodeTypeConstant(nodeLiteralRef);
+    SemaNodeView nodeLiteralView = sema.viewNodeTypeConstant(nodeLiteralRef);
     SWC_ASSERT(nodeLiteralView.cstRef().isValid());
 
     ConstantRef cstRef = nodeLiteralView.cstRef();
@@ -61,8 +61,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (!hasFlag(AstCastExprFlagsE::Explicit))
         return Result::Continue;
 
-    const SemaNodeView nodeTypeView = sema.nodeViewType(nodeTypeRef);
-    const SemaNodeView nodeExprView = sema.nodeViewZero(nodeExprRef);
+    const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
+    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
@@ -79,16 +79,16 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     castFlags.add(CastFlagsE::FromExplicitNode);
 
     sema.inheritPayload(*this, nodeExprView.nodeRef());
-    SemaNodeView nodeView = sema.curNodeViewNodeTypeConstant();
-    nodeView.typeRef()      = nodeView.type()->unwrap(sema.ctx(), nodeView.typeRef(), TypeExpandE::Function);
-    RESULT_VERIFY(Cast::cast(sema, nodeView, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
+    SemaNodeView view = sema.curViewNodeTypeConstant();
+    view.typeRef()      = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Function);
+    RESULT_VERIFY(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
     return Result::Continue;
 }
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView = sema.nodeViewZero(nodeExprRef);
+    const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));

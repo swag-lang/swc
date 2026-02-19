@@ -20,7 +20,7 @@ struct Cast
     static Result concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign, bool force32BitInts = false);
 
     static AstNodeRef createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
-    static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView);
+    static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

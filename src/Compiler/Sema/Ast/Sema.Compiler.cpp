@@ -81,7 +81,7 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeConditionRef)
         return Result::Continue;
 
-    const SemaNodeView condView = sema.nodeViewConstant(nodeConditionRef);
+    const SemaNodeView condView = sema.viewConstant(nodeConditionRef);
     SWC_ASSERT(condView.cst());
     if (!condView.cst()->isBool())
         return SemaError::raiseInvalidType(sema, nodeConditionRef, condView.cst()->typeRef(), sema.typeMgr().typeBool());
@@ -97,7 +97,7 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 Result AstCompilerIf::semaPostNode(Sema& sema) const
 {
     // Condition must already be a constant at this point
-    const SemaNodeView condView = sema.nodeViewConstant(nodeConditionRef);
+    const SemaNodeView condView = sema.viewConstant(nodeConditionRef);
     SWC_ASSERT(condView.hasConstant());
     SWC_ASSERT(condView.cst());
     const bool takenIfBranch = condView.cst()->getBool();
@@ -124,7 +124,7 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
     const Token&         tok      = sema.token(codeRef());
-    const SemaNodeView   argView  = sema.nodeViewConstant(nodeArgRef);
+    const SemaNodeView   argView  = sema.viewConstant(nodeArgRef);
     SWC_ASSERT(argView.hasConstant());
     const ConstantValue& constant = *SWC_CHECK_NOT_NULL(argView.cst());
     switch (tok.id)
@@ -342,7 +342,7 @@ namespace
     Result semaCompilerGlobalIf(Sema& sema, const AstCompilerGlobal& node)
     {
         RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeModeRef));
-        const SemaNodeView condView = sema.nodeViewConstant(node.nodeModeRef);
+        const SemaNodeView condView = sema.viewConstant(node.nodeModeRef);
 
         SWC_ASSERT(condView.cst());
         if (!condView.cst()->isBool())
@@ -383,18 +383,18 @@ namespace
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     nodeView = sema.nodeViewTypeConstant(childRef);
-        SWC_ASSERT(nodeView.typeRef().isValid());
+        SemaNodeView     view = sema.viewTypeConstant(childRef);
+        SWC_ASSERT(view.typeRef().isValid());
 
-        if (nodeView.cstRef().isValid())
+        if (view.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef(), nodeView.cstRef(), TypeInfo::Sign::Unknown));
-            sema.setConstant(nodeView.nodeRef(), newCstRef);
-            nodeView.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(view.nodeRef(), newCstRef);
+            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
 
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef()));
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
@@ -402,12 +402,12 @@ namespace
     Result semaCompilerKindOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     nodeView = sema.nodeViewType(childRef);
-        SWC_ASSERT(nodeView.typeRef().isValid());
+        SemaNodeView     view = sema.viewType(childRef);
+        SWC_ASSERT(view.typeRef().isValid());
 
-        if (nodeView.type()->isEnum())
+        if (view.type()->isEnum())
         {
-            const TypeRef     typeRef = nodeView.type()->payloadSymEnum().underlyingTypeRef();
+            const TypeRef     typeRef = view.type()->payloadSymEnum().underlyingTypeRef();
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
             sema.setConstant(sema.curNodeRef(), cstRef);
             return Result::Continue;
@@ -419,23 +419,23 @@ namespace
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewType(childRef);
-        if (!nodeView.type())
+        const SemaNodeView view = sema.viewType(childRef);
+        if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), childRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type()->sizeOf(sema.ctx())));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->sizeOf(sema.ctx())));
         return Result::Continue;
     }
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewSymbol(childRef);
-        if (!nodeView.sym() || !nodeView.sym()->isVariable())
+        const SemaNodeView view = sema.viewSymbol(childRef);
+        if (!view.sym() || !view.sym()->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 
-        const SymbolVariable& symVar = nodeView.sym()->cast<SymbolVariable>();
+        const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return Result::Continue;
     }
@@ -443,12 +443,12 @@ namespace
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewType(childRef);
-        if (!nodeView.type())
+        const SemaNodeView view = sema.viewType(childRef);
+        if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), childRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), nodeView.type()->alignOf(sema.ctx())));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->alignOf(sema.ctx())));
         return Result::Continue;
     }
 
@@ -456,20 +456,20 @@ namespace
     {
         TaskContext&     ctx      = sema.ctx();
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     nodeView = sema.nodeViewTypeSymbol(childRef);
+        SemaNodeView     view = sema.viewTypeSymbol(childRef);
 
-        if (nodeView.sym())
+        if (view.sym())
         {
-            const std::string_view name  = nodeView.sym()->name(ctx);
+            const std::string_view name  = view.sym()->name(ctx);
             const ConstantValue    value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
 
-        RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeView));
-        if (nodeView.type() && nodeView.type()->isTypeValue())
+        RESULT_VERIFY(SemaCheck::isValueOrType(sema, view));
+        if (view.type() && view.type()->isTypeValue())
         {
-            const Utf8          name  = sema.typeMgr().get(nodeView.type()->payloadTypeRef()).toName(ctx);
+            const Utf8          name  = sema.typeMgr().get(view.type()->payloadTypeRef()).toName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
@@ -482,11 +482,11 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewSymbol(childRef);
+        const SemaNodeView view = sema.viewSymbol(childRef);
 
-        if (nodeView.sym())
+        if (view.sym())
         {
-            const Utf8          name  = nodeView.sym()->getFullScopedName(ctx);
+            const Utf8          name  = view.sym()->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
@@ -499,11 +499,11 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewConstant(childRef);
+        const SemaNodeView view = sema.viewConstant(childRef);
 
-        if (nodeView.cst())
+        if (view.cst())
         {
-            const Utf8          name  = nodeView.cst()->toString(ctx);
+            const Utf8          name  = view.cst()->toString(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
@@ -516,9 +516,9 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewSymbol(childRef);
+        const SemaNodeView view = sema.viewSymbol(childRef);
 
-        const bool          isDefined = nodeView.sym() != nullptr;
+        const bool          isDefined = view.sym() != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
@@ -530,11 +530,11 @@ namespace
         RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, node.codeRef()));
 
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView nodeView = sema.nodeViewSymbol(childRef);
-        if (!nodeView.sym())
+        const SemaNodeView view = sema.viewSymbol(childRef);
+        if (!view.sym())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
 
-        const SourceCodeRange codeRange = nodeView.sym()->codeRange(sema.ctx());
+        const SourceCodeRange codeRange = view.sym()->codeRange(sema.ctx());
         sema.setConstant(sema.curNodeRef(), ConstantHelpers::makeSourceCodeLocation(sema, codeRange));
         return Result::Continue;
     }
@@ -544,12 +544,12 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         RESULT_VERIFY(SemaCheck::isConstant(sema, childRef));
 
-        const SemaNodeView nodeView = sema.nodeViewConstant(childRef);
-        SWC_ASSERT(nodeView.cst());
-        if (!nodeView.cst()->isString())
-            return SemaError::raiseInvalidType(sema, childRef, nodeView.cst()->typeRef(), sema.typeMgr().typeString());
+        const SemaNodeView view = sema.viewConstant(childRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
 
-        sema.compiler().registerForeignLib(nodeView.cst()->getString());
+        sema.compiler().registerForeignLib(view.cst()->getString());
         return Result::Continue;
     }
 }
@@ -668,7 +668,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
+    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     auto frame                = sema.frame();
@@ -683,7 +683,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 {
     const AstNodeRef nodeRef = sema.curNodeRef();
-    if (!sema.nodeViewSymbol(nodeRef).hasSymbol())
+    if (!sema.viewSymbol(nodeRef).hasSymbol())
     {
         TaskContext&        ctx   = sema.ctx();
         const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
@@ -701,7 +701,7 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
     }
 
     SemaFrame frame           = sema.frame();
-    auto&     symFn           = sema.nodeViewSymbol(nodeRef).sym()->cast<SymbolFunction>();
+    auto&     symFn           = sema.viewSymbol(nodeRef).sym()->cast<SymbolFunction>();
     frame.currentAttributes() = symFn.attributes();
     frame.setCurrentFunction(&symFn);
     sema.pushFramePopOnPostNode(frame);
@@ -710,12 +710,12 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
 
 Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeViewType(nodeExprRef);
-    SWC_ASSERT(nodeView.type() != nullptr);
-    if (nodeView.type()->isVoid())
+    const SemaNodeView view = sema.viewType(nodeExprRef);
+    SWC_ASSERT(view.type() != nullptr);
+    if (view.type()->isVoid())
         return SemaError::raise(sema, DiagnosticId::sema_err_run_expr_void, nodeExprRef);
 
-    auto& runExprSymFn = sema.curNodeViewSymbol().sym()->cast<SymbolFunction>();
+    auto& runExprSymFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     RESULT_VERIFY(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
 

@@ -426,7 +426,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeLeftRef)
     {
-        const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
+        const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         auto               frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
@@ -437,8 +437,8 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
-    SemaNodeView nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
+    SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));

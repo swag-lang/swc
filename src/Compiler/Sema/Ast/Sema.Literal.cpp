@@ -477,11 +477,11 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 
     for (const auto& child : elements)
     {
-        SemaNodeView nodeView = sema.nodeViewTypeConstant(child);
-        SWC_ASSERT(nodeView.typeRef().isValid());
-        values.push_back(nodeView.cstRef());
-        elemTypes.push_back(nodeView.typeRef());
-        allConstant = allConstant && nodeView.cstRef().isValid();
+        SemaNodeView view = sema.viewTypeConstant(child);
+        SWC_ASSERT(view.typeRef().isValid());
+        values.push_back(view.cstRef());
+        elemTypes.push_back(view.typeRef());
+        allConstant = allConstant && view.cstRef().isValid();
     }
 
     const TypeRef aggregateTypeRef = sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));

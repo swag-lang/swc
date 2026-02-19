@@ -66,17 +66,17 @@ namespace
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
-    const SemaNodeView nodeView = codeGen.sema().nodeViewSymbol(codeGen.curNodeRef());
-    SWC_ASSERT(nodeView.sym());
-    codeGenIdentifierFromSymbol(codeGen, *nodeView.sym());
+    const SemaNodeView view = codeGen.sema().viewSymbol(codeGen.curNodeRef());
+    SWC_ASSERT(view.sym());
+    codeGenIdentifierFromSymbol(codeGen, *view.sym());
     return Result::Continue;
 }
 
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView nodeView = codeGen.sema().nodeViewSymbol(codeGen.curNodeRef());
-    SWC_ASSERT(nodeView.sym());
-    const SymbolVariable& symVar = nodeView.sym()->cast<SymbolVariable>();
+    const SemaNodeView view = codeGen.sema().viewSymbol(codeGen.curNodeRef());
+    SWC_ASSERT(view.sym());
+    const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
@@ -93,13 +93,13 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView nodeView = codeGen.sema().nodeViewSymbolList(codeGen.curNodeRef());
-    SWC_ASSERT(!nodeView.symList().empty());
+    const SemaNodeView view = codeGen.sema().viewSymbolList(codeGen.curNodeRef());
+    SWC_ASSERT(!view.symList().empty());
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-        for (Symbol* sym : nodeView.symList())
+        for (Symbol* sym : view.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
@@ -107,7 +107,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        for (Symbol* sym : nodeView.symList())
+        for (Symbol* sym : view.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);

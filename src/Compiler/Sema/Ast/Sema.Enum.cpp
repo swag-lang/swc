@@ -26,7 +26,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
 
         // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
         // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
-        Symbol& sym = *sema.curNodeViewSymbol().sym();
+        Symbol& sym = *sema.curViewSymbol().sym();
         if (sym.inSwagNamespace(sema.ctx()))
         {
             if (sym.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::AttributeUsage))
@@ -34,7 +34,7 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const Symbol& sym = *sema.curNodeViewSymbol().sym();
+    const Symbol& sym = *sema.curViewSymbol().sym();
     return Match::ghosting(sema, sym);
 }
 
@@ -85,8 +85,8 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    SymbolEnum&  sym      = sema.curNodeViewSymbol().sym()->cast<SymbolEnum>();
-    SemaNodeView typeView = sema.nodeViewType(nodeTypeRef);
+    SymbolEnum&  sym      = sema.curViewSymbol().sym()->cast<SymbolEnum>();
+    SemaNodeView typeView = sema.viewType(nodeTypeRef);
 
     if (nodeTypeRef.isValid())
     {
@@ -110,7 +110,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstEnumDecl::semaPostNode(Sema& sema) const
 {
-    SymbolEnum& sym = sema.curNodeViewSymbol().sym()->cast<SymbolEnum>();
+    SymbolEnum& sym = sema.curViewSymbol().sym()->cast<SymbolEnum>();
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
@@ -125,7 +125,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
     TaskContext& ctx          = sema.ctx();
-    SemaNodeView nodeInitView = sema.nodeViewNodeTypeConstant(nodeInitRef);
+    SemaNodeView nodeInitView = sema.viewNodeTypeConstant(nodeInitRef);
 
     SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
     const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();

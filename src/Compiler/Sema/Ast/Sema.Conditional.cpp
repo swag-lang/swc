@@ -11,9 +11,9 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView       nodeCondView  = sema.nodeViewNodeTypeConstant(nodeCondRef);
-    const SemaNodeView nodeTrueView  = sema.nodeViewNodeTypeConstant(nodeTrueRef);
-    const SemaNodeView nodeFalseView = sema.nodeViewNodeTypeConstant(nodeFalseRef);
+    SemaNodeView       nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);
+    const SemaNodeView nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
+    const SemaNodeView nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondView.nodeRef()));
@@ -47,7 +47,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     if (nodeCondView.cstRef().isValid())
     {
         AstNodeRef   selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
-        SemaNodeView selectedBranchView = sema.nodeViewNodeTypeConstant(selectedBranchRef);
+        SemaNodeView selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);
         RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
         sema.setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef());
         if (selectedBranchView.cstRef().isValid())
@@ -55,8 +55,8 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     }
     else
     {
-        SemaNodeView mutableTrueView  = sema.nodeViewNodeTypeConstant(nodeTrueRef);
-        SemaNodeView mutableFalseView = sema.nodeViewNodeTypeConstant(nodeFalseRef);
+        SemaNodeView mutableTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
+        SemaNodeView mutableFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
         RESULT_VERIFY(Cast::cast(sema, mutableTrueView, typeRef, CastKind::Implicit));
         RESULT_VERIFY(Cast::cast(sema, mutableFalseView, typeRef, CastKind::Implicit));
     }
@@ -66,8 +66,8 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
 Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
-    SemaNodeView       nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
+    const SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView       nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
@@ -83,7 +83,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeLeftView.cstRef().isValid())
     {
-        SemaNodeView nodeBoolView = sema.nodeViewNodeTypeConstant(nodeLeftRef);
+        SemaNodeView nodeBoolView = sema.viewNodeTypeConstant(nodeLeftRef);
         RESULT_VERIFY(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
 
         const bool        leftIsFalse = nodeBoolView.cstRef() == sema.cstMgr().cstFalse();

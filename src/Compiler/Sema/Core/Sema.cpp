@@ -240,7 +240,7 @@ namespace
 {
     const Symbol* guessCurrentSymbol(Sema& sema)
     {
-        const AstNodeRef n = sema.visit().root();
+        const AstNodeRef   n    = sema.visit().root();
         const SemaNodeView view = sema.viewSymbol(n);
         if (view.hasSymbol())
             return view.sym();

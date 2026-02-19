@@ -150,9 +150,9 @@ namespace
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         // Constant struct member access
-        const SemaNodeView    nodeRightView = sema.viewSymbolList(node->nodeRightRef);
-        const std::span<Symbol*> symbols      = nodeRightView.symList();
-        const size_t            finalSymCount = symbols.size();
+        const SemaNodeView       nodeRightView = sema.viewSymbolList(node->nodeRightRef);
+        const std::span<Symbol*> symbols       = nodeRightView.symList();
+        const size_t             finalSymCount = symbols.size();
         if (nodeLeftView.cst() && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
@@ -283,5 +283,3 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 }
 
 SWC_END_NAMESPACE();
-
-

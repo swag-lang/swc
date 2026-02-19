@@ -1103,7 +1103,3 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 }
 
 SWC_END_NAMESPACE();
-
-
-
-

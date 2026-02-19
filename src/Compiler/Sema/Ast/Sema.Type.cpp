@@ -92,45 +92,45 @@ Result AstVariadicType::semaPostNode(Sema& sema)
 
 Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodeTypeRef);
-    const TypeInfo     ty       = TypeInfo::makeTypedVariadic(view.typeRef());
-    const TypeRef      typeRef  = sema.typeMgr().addType(ty);
+    const SemaNodeView view    = sema.viewType(nodeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeTypedVariadic(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
 
 Result AstValuePointerType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    const TypeInfo     ty       = TypeInfo::makeValuePointer(view.typeRef());
-    const TypeRef      typeRef  = sema.typeMgr().addType(ty);
+    const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeValuePointer(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
 
 Result AstBlockPointerType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    const TypeInfo     ty       = TypeInfo::makeBlockPointer(view.typeRef());
-    const TypeRef      typeRef  = sema.typeMgr().addType(ty);
+    const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeBlockPointer(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
 
 Result AstReferenceType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    const TypeInfo     ty       = TypeInfo::makeReference(view.typeRef());
-    const TypeRef      typeRef  = sema.typeMgr().addType(ty);
+    const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeReference(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
 
 Result AstMoveRefType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    const TypeInfo     ty       = TypeInfo::makeMoveReference(view.typeRef());
-    const TypeRef      typeRef  = sema.typeMgr().addType(ty);
+    const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
+    const TypeInfo     ty      = TypeInfo::makeMoveReference(view.typeRef());
+    const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -269,7 +269,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
-    TaskContext&       ctx      = sema.ctx();
+    TaskContext&       ctx  = sema.ctx();
     const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
 
     // Unknown dimension [?]
@@ -424,5 +424,3 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

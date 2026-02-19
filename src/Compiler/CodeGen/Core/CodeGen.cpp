@@ -297,4 +297,3 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 }
 
 SWC_END_NAMESPACE();
-

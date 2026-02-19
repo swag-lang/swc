@@ -339,5 +339,3 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -80,7 +80,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
     sema.inheritPayload(*this, nodeExprView.nodeRef());
     SemaNodeView view = sema.curViewNodeTypeConstant();
-    view.typeRef()      = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Function);
+    view.typeRef()    = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Function);
     RESULT_VERIFY(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
     return Result::Continue;
@@ -105,5 +105,3 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-
-

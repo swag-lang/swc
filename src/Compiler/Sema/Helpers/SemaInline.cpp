@@ -195,4 +195,3 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 }
 
 SWC_END_NAMESPACE();
-

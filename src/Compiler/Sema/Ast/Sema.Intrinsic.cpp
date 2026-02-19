@@ -97,8 +97,8 @@ namespace
 
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeViewPtr  = sema.viewType(children[0]);
-        SemaNodeView       viewType = sema.viewTypeConstant(children[1]);
+        const SemaNodeView nodeViewPtr = sema.viewType(children[0]);
+        SemaNodeView       viewType    = sema.viewTypeConstant(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, viewType));
@@ -210,5 +210,3 @@ Result AstCountOfExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -59,7 +59,7 @@ namespace
         if (typeView.nodeRef().isValid())
             return typeView.typeRef();
 
-        const auto sign  = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
+        const auto sign    = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
         typeView.typeRef() = sema.typeMgr().typeInt(32, sign);
         typeView.type()    = &sema.typeMgr().get(typeView.typeRef());
         return typeView.typeRef();
@@ -186,5 +186,3 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

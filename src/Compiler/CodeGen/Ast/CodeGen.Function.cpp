@@ -51,9 +51,9 @@ namespace
 
     void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const AstNodeRef& calleeRef, const ABICall::PreparedCall& preparedCall)
     {
-        MicroBuilder&                builder       = codeGen.builder();
-        const CallConvKind           callConvKind  = calledFunction.callConvKind();
-        const CodeGenNodePayload*    calleePayload = codeGen.payload(calleeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        const CallConvKind        callConvKind  = calledFunction.callConvKind();
+        const CodeGenNodePayload* calleePayload = codeGen.payload(calleeRef);
 
         if (calleePayload)
         {
@@ -237,8 +237,8 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     buildPreparedABIArguments(codeGen, callConvKind, args, preparedArgs);
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
-    const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
-    CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
+    CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
     emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef(), preparedCall);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
@@ -248,5 +248,3 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -440,4 +440,3 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
 }
 
 SWC_END_NAMESPACE();
-

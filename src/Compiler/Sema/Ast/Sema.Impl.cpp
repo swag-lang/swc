@@ -113,5 +113,3 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
-
-

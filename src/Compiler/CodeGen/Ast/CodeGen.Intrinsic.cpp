@@ -54,7 +54,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicCompiler:
         {
             const uint64_t            compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
-            const SemaNodeView        view          = codeGen.sema().viewType(codeGen.curNodeRef());
+            const SemaNodeView        view              = codeGen.sema().viewType(codeGen.curNodeRef());
             const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
             codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress);
             return Result::Continue;
@@ -67,6 +67,3 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
-
-
-

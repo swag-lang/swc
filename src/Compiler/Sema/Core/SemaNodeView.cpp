@@ -52,17 +52,17 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 
     if (sema.hasSymbolList(nodeRef_))
     {
-        hasSymList_ = true;
+        hasSymList_                      = true;
         const std::span<Symbol*> symbols = sema.getSymbolList(nodeRef_);
-        hasSymbol_ = !symbols.empty();
-        symList_   = symbols;
+        hasSymbol_                       = !symbols.empty();
+        symList_                         = symbols;
         if (hasSymbol_)
             sym_ = symbols.front();
     }
     else if (sema.hasSymbol(nodeRef_))
     {
         hasSymbol_ = true;
-        sym_ = &sema.symbolOf(nodeRef_);
+        sym_       = &sema.symbolOf(nodeRef_);
     }
 }
 

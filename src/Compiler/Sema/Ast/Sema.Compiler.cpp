@@ -123,8 +123,8 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
 
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    const Token&         tok      = sema.token(codeRef());
-    const SemaNodeView   argView  = sema.viewConstant(nodeArgRef);
+    const Token&       tok     = sema.token(codeRef());
+    const SemaNodeView argView = sema.viewConstant(nodeArgRef);
     SWC_ASSERT(argView.hasConstant());
     const ConstantValue& constant = *SWC_CHECK_NOT_NULL(argView.cst());
     switch (tok.id)
@@ -383,7 +383,7 @@ namespace
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view = sema.viewTypeConstant(childRef);
+        SemaNodeView     view     = sema.viewTypeConstant(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
         if (view.cstRef().isValid())
@@ -402,7 +402,7 @@ namespace
     Result semaCompilerKindOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view = sema.viewType(childRef);
+        SemaNodeView     view     = sema.viewType(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
         if (view.type()->isEnum())
@@ -419,7 +419,7 @@ namespace
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewType(childRef);
+        const SemaNodeView view     = sema.viewType(childRef);
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
         RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
@@ -431,7 +431,7 @@ namespace
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewSymbol(childRef);
+        const SemaNodeView view     = sema.viewSymbol(childRef);
         if (!view.sym() || !view.sym()->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 
@@ -443,7 +443,7 @@ namespace
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewType(childRef);
+        const SemaNodeView view     = sema.viewType(childRef);
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
         RESULT_VERIFY(sema.waitSemaCompleted(view.type(), childRef));
@@ -456,7 +456,7 @@ namespace
     {
         TaskContext&     ctx      = sema.ctx();
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view = sema.viewTypeSymbol(childRef);
+        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
 
         if (view.sym())
         {
@@ -482,7 +482,7 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewSymbol(childRef);
+        const SemaNodeView view     = sema.viewSymbol(childRef);
 
         if (view.sym())
         {
@@ -499,7 +499,7 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewConstant(childRef);
+        const SemaNodeView view     = sema.viewConstant(childRef);
 
         if (view.cst())
         {
@@ -516,7 +516,7 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewSymbol(childRef);
+        const SemaNodeView view     = sema.viewSymbol(childRef);
 
         const bool          isDefined = view.sym() != nullptr;
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
@@ -530,7 +530,7 @@ namespace
         RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, node.codeRef()));
 
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view = sema.viewSymbol(childRef);
+        const SemaNodeView view     = sema.viewSymbol(childRef);
         if (!view.sym())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_location, childRef);
 
@@ -723,5 +723,3 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

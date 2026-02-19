@@ -85,5 +85,3 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-
-

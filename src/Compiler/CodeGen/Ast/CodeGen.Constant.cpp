@@ -152,5 +152,3 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
-
-

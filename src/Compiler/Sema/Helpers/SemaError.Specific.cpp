@@ -200,4 +200,3 @@ Result SemaError::raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t
 }
 
 SWC_END_NAMESPACE();
-

@@ -150,7 +150,7 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
 
 Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
 {
-    auto               ctx = sema.ctx();
+    auto               ctx  = sema.ctx();
     const SemaNodeView view = sema.viewTypeConstant(exprRef);
 
     if (!view.type())
@@ -274,4 +274,3 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
 }
 
 SWC_END_NAMESPACE();
-

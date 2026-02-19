@@ -40,8 +40,8 @@ namespace
             return;
 
         const TypeRef valueTypeRef = rightView.type()->payloadTypeRef();
-        rightView.typeRef()          = valueTypeRef;
-        rightView.type()             = &sema.typeMgr().get(valueTypeRef);
+        rightView.typeRef()        = valueTypeRef;
+        rightView.type()           = &sema.typeMgr().get(valueTypeRef);
     }
 
     Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
@@ -270,5 +270,3 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

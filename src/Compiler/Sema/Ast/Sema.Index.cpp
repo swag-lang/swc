@@ -245,5 +245,3 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-
-

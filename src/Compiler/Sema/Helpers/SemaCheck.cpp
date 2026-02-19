@@ -192,4 +192,3 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
 }
 
 SWC_END_NAMESPACE();
-

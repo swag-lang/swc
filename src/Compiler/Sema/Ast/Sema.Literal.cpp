@@ -501,5 +501,3 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-
-

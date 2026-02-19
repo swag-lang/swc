@@ -265,5 +265,3 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -891,4 +891,3 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 }
 
 SWC_END_NAMESPACE();
-

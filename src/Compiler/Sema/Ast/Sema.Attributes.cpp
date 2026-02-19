@@ -281,5 +281,3 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
-
-

@@ -129,4 +129,3 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
 }
 
 SWC_END_NAMESPACE();
-

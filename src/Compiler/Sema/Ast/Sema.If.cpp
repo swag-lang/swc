@@ -25,7 +25,7 @@ namespace
         }
 
         SmallVector<Symbol*> symbols;
-        const SemaNodeView declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
+        const SemaNodeView   declView = sema.view(declRef, SemaNodeViewPartE::Symbol);
         if (declView.hasSymbolList())
         {
             const std::span<Symbol*> list = declView.symList();
@@ -118,4 +118,3 @@ Result AstElseIfStmt::semaPreNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
-

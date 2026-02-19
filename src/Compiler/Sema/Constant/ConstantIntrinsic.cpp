@@ -295,4 +295,3 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 }
 
 SWC_END_NAMESPACE();
-

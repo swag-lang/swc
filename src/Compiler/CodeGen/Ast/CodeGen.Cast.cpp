@@ -44,11 +44,11 @@ namespace
             return Result::Continue;
         }
 
-        const TypeInfo& srcType = codeGen.typeMgr().get(srcPayload->typeRef);
-        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
-        const bool      srcFloatType = srcType.isFloat();
+        const TypeInfo& srcType        = codeGen.typeMgr().get(srcPayload->typeRef);
+        const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);
+        const bool      srcFloatType   = srcType.isFloat();
         const bool      srcIntLikeType = srcType.isIntLike();
-        const bool      dstFloatType = dstType.isFloat();
+        const bool      dstFloatType   = dstType.isFloat();
         const bool      dstIntLikeType = dstType.isIntLike();
 
         if (srcPayload->typeRef == dstTypeRef)

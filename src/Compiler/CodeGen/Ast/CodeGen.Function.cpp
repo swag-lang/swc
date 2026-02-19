@@ -52,7 +52,7 @@ namespace
                     continue;
 
                 const ABITypeNormalize::NormalizedType normalizedLater = ABITypeNormalize::normalize(codeGen.ctx(), callConv, laterSymVar->typeRef(), ABITypeNormalize::Usage::Argument);
-                const uint32_t                         laterSlotIndex   = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(j));
+                const uint32_t                         laterSlotIndex  = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), static_cast<uint32_t>(j));
                 if (laterSlotIndex >= numRegArgs)
                     continue;
 

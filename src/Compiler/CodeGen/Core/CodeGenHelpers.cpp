@@ -135,4 +135,3 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 }
 
 SWC_END_NAMESPACE();
-

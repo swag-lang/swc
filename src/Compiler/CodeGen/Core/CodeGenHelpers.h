@@ -11,4 +11,3 @@ namespace CodeGenHelpers
 }
 
 SWC_END_NAMESPACE();
-

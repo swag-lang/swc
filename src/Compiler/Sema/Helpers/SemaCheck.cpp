@@ -89,7 +89,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
 
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 {
-    const SemaNodeView nodeView(sema, nodeRef, SemaNodeViewPartE::Constant);
+    const SemaNodeView nodeView = sema.nodeViewConstant(nodeRef);
     if (nodeView.cstRef.isInvalid())
     {
         SemaError::raiseExprNotConst(sema, nodeRef);

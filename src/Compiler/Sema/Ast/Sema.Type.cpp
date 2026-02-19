@@ -92,7 +92,7 @@ Result AstVariadicType::semaPostNode(Sema& sema)
 
 Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodeTypeRef);
     const TypeInfo     ty       = TypeInfo::makeTypedVariadic(nodeView.typeRef);
     const TypeRef      typeRef  = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
@@ -101,7 +101,7 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 
 Result AstValuePointerType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
     const TypeInfo     ty       = TypeInfo::makeValuePointer(nodeView.typeRef);
     const TypeRef      typeRef  = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
@@ -110,7 +110,7 @@ Result AstValuePointerType::semaPostNode(Sema& sema) const
 
 Result AstBlockPointerType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
     const TypeInfo     ty       = TypeInfo::makeBlockPointer(nodeView.typeRef);
     const TypeRef      typeRef  = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
@@ -119,7 +119,7 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
 
 Result AstReferenceType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
     const TypeInfo     ty       = TypeInfo::makeReference(nodeView.typeRef);
     const TypeRef      typeRef  = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
@@ -128,7 +128,7 @@ Result AstReferenceType::semaPostNode(Sema& sema) const
 
 Result AstMoveRefType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
     const TypeInfo     ty       = TypeInfo::makeMoveReference(nodeView.typeRef);
     const TypeRef      typeRef  = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
@@ -137,7 +137,7 @@ Result AstMoveRefType::semaPostNode(Sema& sema) const
 
 Result AstSliceType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
 
     if (nodeView.typeRef == sema.typeMgr().typeVoid())
     {
@@ -155,7 +155,7 @@ Result AstSliceType::semaPostNode(Sema& sema) const
 
 Result AstQualifiedType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodeTypeRef);
     SWC_ASSERT(nodeView.type);
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
@@ -242,7 +242,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
 Result AstNamedType::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeView = sema.nodeView(nodeIdentRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    SemaNodeView nodeView = sema.nodeViewNodeTypeSymbol(nodeIdentRef);
     SWC_ASSERT(nodeView.sym);
 
     // If we matched against the interface implementation block in a struct,
@@ -270,7 +270,7 @@ Result AstNamedType::semaPostNode(Sema& sema)
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
     TaskContext&       ctx      = sema.ctx();
-    const SemaNodeView nodeView = sema.nodeView(nodePointeeTypeRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeView = sema.nodeViewType(nodePointeeTypeRef);
 
     // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())
@@ -288,7 +288,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     SmallVector<uint64_t> dims;
     for (const auto& dimRef : out)
     {
-        SemaNodeView dimView = sema.nodeView(dimRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView dimView = sema.nodeViewTypeConstant(dimRef);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, dimView.nodeRef));
         RESULT_VERIFY(SemaCheck::isConstant(sema, dimView.nodeRef));
@@ -350,7 +350,7 @@ Result AstAliasDecl::semaPreNode(Sema& sema) const
 
 Result AstAliasDecl::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    const SemaNodeView nodeView = sema.nodeViewTypeSymbol(nodeExprRef);
     if (!nodeView.type && !nodeView.sym)
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alias, nodeExprRef);
 
@@ -424,3 +424,4 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

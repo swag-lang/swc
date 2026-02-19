@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Thread/Job.h"
@@ -11,8 +12,6 @@
 SWC_BEGIN_NAMESPACE();
 
 struct CastRequest;
-struct SemaNodeView;
-enum class SemaNodeViewPartE;
 class SymbolNamespace;
 class MatchContext;
 class IdentifierManager;
@@ -128,8 +127,33 @@ public:
     const AstNode&   curNode() const { return node(curNodeRef()); }
     SemaNodeView     nodeView(AstNodeRef nodeRef);
     SemaNodeView     nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView     nodeViewZero(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Zero); }
+    SemaNodeView     nodeViewNode(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node); }
+    SemaNodeView     nodeViewType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type); }
+    SemaNodeView     nodeViewConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Constant); }
+    SemaNodeView     nodeViewSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
+    SemaNodeView     nodeViewSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::SymbolList); }
+    SemaNodeView     nodeViewTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView     nodeViewTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView     nodeViewNodeType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView     nodeViewNodeTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView     nodeViewNodeTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView     nodeViewNodeTypeConstantSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
+    SemaNodeView     nodeViewNodeSymbolSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol | SemaNodeViewPartE::SymbolList); }
     SemaNodeView     curNodeView();
     SemaNodeView     curNodeView(EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView     curNodeViewZero() { return curNodeView(SemaNodeViewPartE::Zero); }
+    SemaNodeView     curNodeViewNode() { return curNodeView(SemaNodeViewPartE::Node); }
+    SemaNodeView     curNodeViewType() { return curNodeView(SemaNodeViewPartE::Type); }
+    SemaNodeView     curNodeViewConstant() { return curNodeView(SemaNodeViewPartE::Constant); }
+    SemaNodeView     curNodeViewSymbol() { return curNodeView(SemaNodeViewPartE::Symbol); }
+    SemaNodeView     curNodeViewSymbolList() { return curNodeView(SemaNodeViewPartE::SymbolList); }
+    SemaNodeView     curNodeViewTypeConstant() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView     curNodeViewTypeSymbol() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView     curNodeViewNodeType() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView     curNodeViewNodeTypeConstant() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView     curNodeViewNodeTypeSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView     curNodeViewNodeTypeConstantSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }

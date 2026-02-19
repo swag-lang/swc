@@ -69,7 +69,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 {
     if (childRef == nodeConditionRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeConditionRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
@@ -97,7 +97,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeWhereRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeWhereRef);
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
@@ -117,3 +117,4 @@ Result AstElseIfStmt::semaPreNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

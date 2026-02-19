@@ -13,7 +13,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView  identView = sema.nodeView(nodeIdentRef, SemaNodeViewPartE::Node);
+        const SemaNodeView  identView = sema.nodeViewNode(nodeIdentRef);
         const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node->codeRef());
         SymbolImpl*         sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
@@ -37,7 +37,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the first name
     if (childRef == nodeIdentRef)
     {
-        const SemaNodeView identView = sema.nodeView(nodeIdentRef, SemaNodeViewPartE::Symbol);
+        const SemaNodeView identView = sema.nodeViewSymbol(nodeIdentRef);
         Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym);
         if (hasFlag(AstImplFlagsE::Enum))
         {
@@ -64,8 +64,8 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
-        const SemaNodeView identView = sema.nodeView(nodeIdentRef, SemaNodeViewPartE::Type);
-        const SemaNodeView forView   = sema.nodeView(nodeForRef, SemaNodeViewPartE::Symbol);
+        const SemaNodeView identView = sema.nodeViewType(nodeIdentRef);
+        const SemaNodeView forView   = sema.nodeViewSymbol(nodeForRef);
         SWC_ASSERT(forView.sym);
         if (!forView.sym->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
@@ -112,3 +112,4 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
+

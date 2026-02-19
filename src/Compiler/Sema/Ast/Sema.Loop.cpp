@@ -67,7 +67,7 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeExprRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
@@ -102,7 +102,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
             if (tokNames.size() > 2)
                 return SemaError::raise(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{srcViewRef(), tokNames[2]});
 
-            const SemaNodeView exprView     = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Type);
+            const SemaNodeView exprView     = sema.nodeViewType(nodeExprRef);
             TypeRef            valueTypeRef = TypeRef::invalid();
             TypeRef            indexTypeRef = TypeRef::invalid();
             RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
@@ -141,7 +141,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView exprView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Type);
+        const SemaNodeView exprView = sema.nodeViewType(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, exprView.nodeRef));
 
         TypeRef valueTypeRef = TypeRef::invalid();
@@ -151,7 +151,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeWhereRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeWhereRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
@@ -177,7 +177,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
             symVar.setDeclared(sema.ctx());
             RESULT_VERIFY(Match::ghosting(sema, symVar));
 
-            const SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Type);
+            const SemaNodeView nodeView = sema.nodeViewType(nodeExprRef);
             symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             symVar.setTypeRef(nodeView.typeRef);
             symVar.setTyped(sema.ctx());
@@ -192,7 +192,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 {
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type);
+        const SemaNodeView nodeView = sema.nodeViewNodeType(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         if (nodeView.node->isNot(AstNodeId::RangeExpr))
         {
@@ -213,7 +213,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     if (childRef == nodeWhereRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeWhereRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeWhereRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
@@ -254,7 +254,7 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     // Ensure while condition is `bool` (or castable to it).
     if (childRef == nodeExprRef)
     {
-        SemaNodeView nodeView = sema.nodeView(nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstant(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
         RESULT_VERIFY(Cast::cast(sema, nodeView, sema.typeMgr().typeBool(), CastKind::Condition));
     }
@@ -279,3 +279,4 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

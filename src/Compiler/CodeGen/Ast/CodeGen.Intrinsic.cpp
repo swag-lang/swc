@@ -17,8 +17,8 @@ namespace
 
         const AstNodeRef          exprRef     = children[0];
         const CodeGenNodePayload* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
-        const SemaNodeView        exprView    = codeGen.nodeView(exprRef, SemaNodeViewPartE::Type);
-        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
+        const SemaNodeView        exprView    = codeGen.nodeViewType(exprRef);
+        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
         MicroBuilder&             builder     = codeGen.builder();
 
         if (exprView.type && (exprView.type->isString() || exprView.type->isSlice() || exprView.type->isAny()))
@@ -54,7 +54,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicCompiler:
         {
             const uint64_t            compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
-            const SemaNodeView        nodeView          = codeGen.curNodeView(SemaNodeViewPartE::Type);
+            const SemaNodeView        nodeView          = codeGen.curNodeViewType();
             const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), nodeView.typeRef);
             codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress);
             return Result::Continue;
@@ -67,3 +67,4 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

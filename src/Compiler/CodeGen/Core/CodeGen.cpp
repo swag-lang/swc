@@ -284,7 +284,7 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
-    if (curNodeView(SemaNodeViewPartE::Constant).cst)
+    if (curNodeViewConstant().cst)
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -293,7 +293,7 @@ Result CodeGen::preNode(AstNode& node)
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
-    if (curNodeView(SemaNodeViewPartE::Constant).cst)
+    if (curNodeViewConstant().cst)
         return emitConstant(curNodeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());

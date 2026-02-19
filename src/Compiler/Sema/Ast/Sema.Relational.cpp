@@ -319,7 +319,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 {
     if (childRef == nodeLeftRef)
     {
-        const SemaNodeView nodeLeftView = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Type);
+        const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
@@ -330,8 +330,8 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstRelationalExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView  = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-    SemaNodeView nodeRightView = sema.nodeView(nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
     const Token& tok           = sema.token({srcViewRef(), tokRef()});
 
     RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
@@ -362,3 +362,4 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

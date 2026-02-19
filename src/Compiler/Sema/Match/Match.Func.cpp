@@ -680,7 +680,7 @@ namespace
                 for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = SemaNodeView(sema, argRef, SemaNodeViewPartE::Type).typeRef;
+                    const TypeRef    argTy  = sema.nodeViewType(argRef).typeRef;
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
@@ -950,7 +950,7 @@ namespace
         if (!memberAccess)
             return AstNodeRef::invalid();
 
-        const SemaNodeView receiverView = sema.nodeView(memberAccess->nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type);
+        const SemaNodeView receiverView = sema.nodeViewNodeType(memberAccess->nodeLeftRef);
         if (receiverView.type && receiverView.type->isInterface() && sema.isValue(*receiverView.node))
             return receiverView.nodeRef;
 
@@ -1007,7 +1007,7 @@ namespace
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
-                const SemaNodeView argView = sema.nodeView(finalArgRef, SemaNodeViewPartE::Type);
+                const SemaNodeView argView = sema.nodeViewType(finalArgRef);
                 if (argView.type && argView.type->isInterface())
                     passKind = CallArgumentPassKind::InterfaceObject;
             }
@@ -1103,3 +1103,5 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 }
 
 SWC_END_NAMESPACE();
+
+

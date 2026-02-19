@@ -86,7 +86,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
         return Result::Continue;
 
     SymbolEnum&  sym      = sema.symbolOf(sema.curNodeRef()).cast<SymbolEnum>();
-    SemaNodeView typeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+    SemaNodeView typeView = sema.nodeViewType(nodeTypeRef);
 
     if (nodeTypeRef.isValid())
     {
@@ -125,7 +125,7 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
 Result AstEnumValue::semaPostNode(Sema& sema) const
 {
     TaskContext& ctx          = sema.ctx();
-    SemaNodeView nodeInitView = sema.nodeView(nodeInitRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SemaNodeView nodeInitView = sema.nodeViewNodeTypeConstant(nodeInitRef);
 
     SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
     const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
@@ -186,3 +186,4 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

@@ -222,8 +222,8 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     // Parser tags the callee expression when building a call: `a.foo()`.
     const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
 
-    SemaNodeView        nodeLeftView  = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-    const SemaNodeView  nodeRightView = sema.nodeView(nodeRightRef, SemaNodeViewPartE::Node);
+    SemaNodeView        nodeLeftView  = sema.nodeViewNodeTypeConstantSymbol(nodeLeftRef);
+    const SemaNodeView  nodeRightView = sema.nodeViewNode(nodeRightRef);
     const TokenRef      tokNameRef    = nodeRightView.node->tokRef();
     const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
     SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
@@ -281,3 +281,4 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 }
 
 SWC_END_NAMESPACE();
+

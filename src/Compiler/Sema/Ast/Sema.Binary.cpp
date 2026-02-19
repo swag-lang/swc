@@ -426,7 +426,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeLeftRef)
     {
-        const SemaNodeView nodeLeftView = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Type);
+        const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
         auto               frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
@@ -437,8 +437,8 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
 Result AstBinaryExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeLeftView  = sema.nodeView(nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-    SemaNodeView nodeRightView = sema.nodeView(nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SemaNodeView nodeLeftView  = sema.nodeViewNodeTypeConstant(nodeLeftRef);
+    SemaNodeView nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
 
     // Value-check
     RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
@@ -455,3 +455,4 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

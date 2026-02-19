@@ -151,7 +151,7 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
 Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef)
 {
     auto               ctx = sema.ctx();
-    const SemaNodeView nodeView(sema, exprRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    const SemaNodeView nodeView = sema.nodeViewTypeConstant(exprRef);
 
     if (!nodeView.type)
         return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
@@ -251,7 +251,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
-        SemaNodeView nodeView(sema, child, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeView = sema.nodeViewTypeConstant(child);
         SWC_ASSERT(nodeView.typeRef.isValid());
         memberTypes.push_back(nodeView.typeRef);
         allConstant = allConstant && nodeView.cstRef.isValid();

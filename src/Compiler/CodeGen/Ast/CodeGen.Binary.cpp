@@ -60,7 +60,7 @@ namespace
         const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
         if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
@@ -88,7 +88,7 @@ namespace
         const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeView(SemaNodeViewPartE::Type).typeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
 
         MicroReg rightReg = MicroReg::invalid();
         if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
@@ -107,8 +107,8 @@ namespace
 
     Result codeGenBinaryPlus(CodeGen& codeGen, const AstBinaryExpr& node)
     {
-        const SemaNodeView leftView  = codeGen.nodeView(node.nodeLeftRef, SemaNodeViewPartE::Type);
-        const SemaNodeView rightView = codeGen.nodeView(node.nodeRightRef, SemaNodeViewPartE::Type);
+        const SemaNodeView leftView  = codeGen.nodeViewType(node.nodeLeftRef);
+        const SemaNodeView rightView = codeGen.nodeViewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type && rightView.type);
 
         if (leftView.type->isIntLike() && rightView.type->isIntLike())
@@ -135,3 +135,4 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

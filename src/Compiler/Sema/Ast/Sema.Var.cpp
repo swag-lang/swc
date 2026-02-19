@@ -242,11 +242,11 @@ namespace
 
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
-        SemaNodeView nodeInitView = sema.nodeView(context.nodeInitRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView nodeInitView = sema.nodeViewNodeTypeConstant(context.nodeInitRef);
         if (context.nodeInitRef.isValid())
             RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
-        const SemaNodeView nodeTypeView    = sema.nodeView(context.nodeTypeRef, SemaNodeViewPartE::Type);
+        const SemaNodeView nodeTypeView    = sema.nodeViewType(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef;
 
         if (nodeInitView.typeRef.isValid())
@@ -403,7 +403,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+        const SemaNodeView nodeTypeView = sema.nodeViewType(nodeTypeRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -476,7 +476,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 {
     if (childRef == nodeTypeRef && nodeInitRef.isValid())
     {
-        const SemaNodeView nodeTypeView = sema.nodeView(nodeTypeRef, SemaNodeViewPartE::Type);
+        const SemaNodeView nodeTypeView = sema.nodeViewType(nodeTypeRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeTypeView.typeRef);
         sema.pushFramePopOnPostChild(frame, nodeInitRef);
@@ -494,7 +494,7 @@ Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 
 Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView nodeInitView = sema.nodeView(nodeInitRef, SemaNodeViewPartE::Type);
+    const SemaNodeView nodeInitView = sema.nodeViewType(nodeInitRef);
     if (!nodeInitView.type->isStruct())
     {
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeInitView.nodeRef);
@@ -566,3 +566,4 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

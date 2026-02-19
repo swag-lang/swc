@@ -141,7 +141,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (payload(nodeRef))
         return Result::Continue;
 
-    const SemaNodeView nodeView = this->nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    const SemaNodeView nodeView = this->nodeViewTypeConstant(nodeRef);
     if (nodeView.cstRef.isInvalid())
         return Result::Continue;
 
@@ -152,3 +152,4 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
+

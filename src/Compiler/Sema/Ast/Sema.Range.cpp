@@ -10,8 +10,8 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstRangeExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView nodeDownView = sema.nodeView(nodeExprDownRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-    SemaNodeView nodeUpView   = sema.nodeView(nodeExprUpRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SemaNodeView nodeDownView = sema.nodeViewNodeTypeConstant(nodeExprDownRef);
+    SemaNodeView nodeUpView   = sema.nodeViewNodeTypeConstant(nodeExprUpRef);
 
     if (nodeDownView.nodeRef.isValid())
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef));
@@ -64,3 +64,4 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+

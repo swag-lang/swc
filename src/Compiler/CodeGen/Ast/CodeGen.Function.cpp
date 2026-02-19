@@ -128,7 +128,7 @@ namespace
             ABICall::PreparedArg preparedArg;
             preparedArg.srcReg = argPayload->reg;
 
-            const SemaNodeView argView = codeGen.nodeView(argRef, SemaNodeViewPartE::Type);
+            const SemaNodeView argView = codeGen.nodeViewType(argRef);
             if (argView.type)
             {
                 const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argView.typeRef, ABITypeNormalize::Usage::Argument);
@@ -224,8 +224,8 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     calleeView     = codeGen.nodeView(nodeExprRef, SemaNodeViewPartE::Zero);
-    const SemaNodeView                     currentView    = codeGen.curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    const SemaNodeView                     calleeView     = codeGen.nodeViewZero(nodeExprRef);
+    const SemaNodeView                     currentView    = codeGen.curNodeViewTypeSymbol();
     SymbolFunction&                        calledFunction = currentView.sym->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
     const CallConv&                        callConv       = CallConv::get(callConvKind);
@@ -248,3 +248,4 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

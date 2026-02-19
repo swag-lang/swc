@@ -41,7 +41,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const CallConv& callConv     = CallConv::host();
     constexpr auto  callConvKind = CallConvKind::Host;
     MicroBuilder&   builder      = codeGen.builder();
-    const auto      exprView     = codeGen.nodeView(nodeExprRef, SemaNodeViewPartE::Type);
+    const auto      exprView     = codeGen.nodeViewType(nodeExprRef);
     SWC_ASSERT(exprView.type);
 
     const CodeGenNodePayload* payload = codeGen.payload(nodeExprRef);
@@ -87,3 +87,4 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

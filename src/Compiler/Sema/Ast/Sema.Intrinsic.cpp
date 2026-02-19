@@ -31,7 +31,7 @@ namespace
 {
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        SemaNodeView nodeView = sema.nodeView(children[0], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        SemaNodeView nodeView = sema.nodeViewNodeTypeConstantSymbol(children[0]);
         if (nodeView.sym && nodeView.sym->isConstant() && nodeView.cstRef.isInvalid())
         {
             RESULT_VERIFY(sema.waitSemaCompleted(nodeView.sym, sema.node(nodeView.nodeRef).codeRef()));
@@ -77,7 +77,7 @@ namespace
 
     Result semaIntrinsicKindOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeView = sema.nodeView(children[0], SemaNodeViewPartE::Type);
+        const SemaNodeView nodeView = sema.nodeViewType(children[0]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
 
@@ -97,8 +97,8 @@ namespace
 
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
-        const SemaNodeView nodeViewPtr  = sema.nodeView(children[0], SemaNodeViewPartE::Type);
-        SemaNodeView       nodeViewType = sema.nodeView(children[1], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
+        SemaNodeView       nodeViewType = sema.nodeViewTypeConstant(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeViewType));
@@ -136,8 +136,8 @@ namespace
 
     Result semaIntrinsicMakeSlice(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children, bool forString)
     {
-        const SemaNodeView nodeViewPtr  = sema.nodeView(children[0], SemaNodeViewPartE::Type);
-        SemaNodeView       nodeViewSize = sema.nodeView(children[1], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
+        SemaNodeView       nodeViewSize = sema.nodeViewNodeTypeConstant(children[1]);
 
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
         RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));
@@ -210,3 +210,4 @@ Result AstCountOfExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+

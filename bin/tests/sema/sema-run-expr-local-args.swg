@@ -21,6 +21,13 @@ struct AbiPayload
     #assert(V == "abi-string")
 }
 
+/*#test
+{
+    func passString(text: string)->rune { return text[1] }
+    const V = #run passString("abi-string")
+    #assert(V == 'b')
+}*/
+
 #test
 {
     func passArray(values: [4] s32)->[4] s32 { return values }

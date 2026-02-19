@@ -110,15 +110,18 @@ namespace
         }
     }
 
-    void buildPreparedABIArguments(CodeGen& codeGen, CallConvKind callConvKind, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
+    void buildPreparedABIArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
         outArgs.reserve(args.size());
-        const CallConv& callConv = CallConv::get(callConvKind);
+        const CallConvKind                  callConvKind = calledFunction.callConvKind();
+        const CallConv&                     callConv     = CallConv::get(callConvKind);
+        const std::vector<SymbolVariable*>& params       = calledFunction.parameters();
 
-        for (const auto& arg : args)
+        for (size_t i = 0; i < args.size(); ++i)
         {
+            const auto&      arg    = args[i];
             const AstNodeRef argRef = arg.argRef;
             if (argRef.isInvalid())
                 continue;
@@ -128,10 +131,19 @@ namespace
             ABICall::PreparedArg preparedArg;
             preparedArg.srcReg = argPayload->reg;
 
-            const SemaNodeView argView = codeGen.sema().viewType(argRef);
-            if (argView.type())
+            TypeRef normalizedTypeRef = TypeRef::invalid();
+            if (i < params.size() && params[i])
+                normalizedTypeRef = params[i]->typeRef();
+
+            if (normalizedTypeRef.isInvalid())
             {
-                const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argView.typeRef(), ABITypeNormalize::Usage::Argument);
+                const SemaNodeView argView = codeGen.sema().viewType(argRef);
+                normalizedTypeRef          = argView.typeRef();
+            }
+
+            if (normalizedTypeRef.isValid())
+            {
+                const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
                 preparedArg.isFloat                                  = normalizedArg.isFloat;
                 preparedArg.numBits                                  = normalizedArg.numBits;
                 preparedArg.isAddressed                              = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
@@ -234,7 +246,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    buildPreparedABIArguments(codeGen, callConvKind, args, preparedArgs);
+    buildPreparedABIArguments(codeGen, calledFunction, args, preparedArgs);
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);

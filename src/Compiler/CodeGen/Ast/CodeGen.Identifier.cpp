@@ -66,6 +66,14 @@ namespace
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
+    const AstNode* parentNode = codeGen.visit().parentNode();
+    if (parentNode && parentNode->is(AstNodeId::MemberAccessExpr))
+    {
+        const AstMemberAccessExpr* memberAccess = parentNode->safeCast<AstMemberAccessExpr>();
+        if (memberAccess && memberAccess->nodeRightRef == codeGen.curNodeRef())
+            return Result::Continue;
+    }
+
     const SemaNodeView view = codeGen.sema().viewSymbol(codeGen.curNodeRef());
     SWC_ASSERT(view.sym());
     codeGenIdentifierFromSymbol(codeGen, *view.sym());

@@ -69,30 +69,32 @@ namespace
         lowerParameterPayload(codeGen, symbolFunc, symVar, outPayload);
     }
 
-    bool resolveIdentifierVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolVariable& symVar)
+    void resolveIdentifierVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
-        if (!symbolPayload && symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        if (symbolPayload)
+        {
+            outPayload = *symbolPayload;
+            return;
+        }
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
             CodeGenNodePayload    paramPayload;
             materializeParameterVariablePayload(paramPayload, codeGen, symbolFunc, symVar);
             codeGen.setVariablePayload(symVar, paramPayload);
-            symbolPayload = codeGen.variablePayload(symVar);
+            outPayload = *codeGen.variablePayload(symVar);
+            return;
         }
 
-        if (!symbolPayload)
-            return false;
-
-        outPayload = *symbolPayload;
-        return true;
+        SWC_UNREACHABLE();
     }
 
     Result codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         CodeGenNodePayload symbolPayload;
-        if (!resolveIdentifierVariablePayload(symbolPayload, codeGen, symVar))
-            return Result::Continue;
+        resolveIdentifierVariablePayload(symbolPayload, codeGen, symVar);
 
         CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef(), symVar.typeRef());
         payload.reg                 = symbolPayload.reg;

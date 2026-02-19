@@ -14,6 +14,60 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenHelpers::FunctionParameterInfo& paramInfo)
+    {
+        if (paramInfo.isFloat)
+        {
+            SWC_ASSERT(paramInfo.slotIndex < callConv.floatArgRegs.size());
+            return callConv.floatArgRegs[paramInfo.slotIndex];
+        }
+
+        SWC_ASSERT(paramInfo.slotIndex < callConv.intArgRegs.size());
+        return callConv.intArgRegs[paramInfo.slotIndex];
+    }
+
+    ABICall::PreparedArgKind abiPreparedArgKind(CallArgumentPassKind passKind)
+    {
+        switch (passKind)
+        {
+            case CallArgumentPassKind::Direct:
+                return ABICall::PreparedArgKind::Direct;
+
+            case CallArgumentPassKind::InterfaceObject:
+                return ABICall::PreparedArgKind::InterfaceObject;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    void setPayloadStorageKind(CodeGenNodePayload& payload, bool isIndirect)
+    {
+        if (isIndirect)
+            CodeGen::setPayloadAddress(payload);
+        else
+            CodeGen::setPayloadValue(payload);
+    }
+
+    void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const AstNodeRef& calleeRef, const ABICall::PreparedCall& preparedCall)
+    {
+        MicroBuilder&                builder       = codeGen.builder();
+        const CallConvKind           callConvKind  = calledFunction.callConvKind();
+        const CodeGenNodePayload*    calleePayload = codeGen.payload(calleeRef);
+
+        if (calleePayload)
+        {
+            ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
+            return;
+        }
+
+        const MicroReg callTargetReg = codeGen.nextVirtualIntRegister();
+        if (calledFunction.isForeign())
+            ABICall::callExtern(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+        else
+            ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+    }
+
     void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
@@ -45,24 +99,12 @@ namespace
                 if (!laterParamInfo.isRegisterArg)
                     continue;
 
-                if (laterParamInfo.isFloat)
-                {
-                    SWC_ASSERT(laterParamInfo.slotIndex < callConv.floatArgRegs.size());
-                    futureSourceRegs.push_back(callConv.floatArgRegs[laterParamInfo.slotIndex]);
-                }
-                else
-                {
-                    SWC_ASSERT(laterParamInfo.slotIndex < callConv.intArgRegs.size());
-                    futureSourceRegs.push_back(callConv.intArgRegs[laterParamInfo.slotIndex]);
-                }
+                futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
             CodeGenHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
-            if (paramInfo.isIndirect)
-                CodeGen::setPayloadAddress(symbolPayload);
-            else
-                CodeGen::setPayloadValue(symbolPayload);
+            setPayloadStorageKind(symbolPayload, paramInfo.isIndirect);
 
             codeGen.setVariablePayload(*symVar, symbolPayload);
         }
@@ -95,19 +137,7 @@ namespace
                 preparedArg.isAddressed                              = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
             }
 
-            switch (arg.passKind)
-            {
-                case CallArgumentPassKind::Direct:
-                    preparedArg.kind = ABICall::PreparedArgKind::Direct;
-                    break;
-
-                case CallArgumentPassKind::InterfaceObject:
-                    preparedArg.kind = ABICall::PreparedArgKind::InterfaceObject;
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
+            preparedArg.kind = abiPreparedArgKind(arg.passKind);
 
             outArgs.push_back(preparedArg);
         }
@@ -208,25 +238,10 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
-    const CodeGenNodePayload*   calleePayload = codeGen.payload(calleeView.nodeRef);
-
-    // Function value call: target already computed in a register.
-    if (calleePayload)
-        ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
-    else
-    {
-        const MicroReg callTargetReg = codeGen.nextVirtualIntRegister();
-        if (calledFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
-    }
+    emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef, preparedCall);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
-    if (normalizedRet.isIndirect)
-        CodeGen::setPayloadAddress(nodePayload);
-    else
-        CodeGen::setPayloadValue(nodePayload);
+    setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
 
     return Result::Continue;
 }

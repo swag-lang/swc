@@ -25,21 +25,12 @@ public:
     JobResult exec();
     Result    execResult();
 
-    TaskContext&               ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
-    const TaskContext&         ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
-    bool                       isDeclPass() const { return declPass_; }
-    SemaFrame&                 frame() { return frames_.back(); }
-    const SemaFrame&           frame() const { return frames_.back(); }
-    std::span<const SemaFrame> frames() const { return frames_; }
-    AstVisit&                  visit() { return visit_; }
-    const AstVisit&            visit() const { return visit_; }
-    AstNode&                   node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&             node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    CompilerInstance&          compiler() { return ctx().compiler(); }
-    const CompilerInstance&    compiler() const { return ctx().compiler(); }
-    const Token&               token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
-    SourceCodeRange            tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
-    std::string_view           tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
+    TaskContext&            ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
+    const TaskContext&      ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
+    CompilerInstance&       compiler() { return ctx().compiler(); }
+    const CompilerInstance& compiler() const { return ctx().compiler(); }
+    bool                    isDeclPass() const { return declPass_; }
+    bool                    enteringState() const { return visit_.enteringState(); }
 
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
@@ -52,9 +43,28 @@ public:
     SourceView&              srcView(SourceViewRef srcViewRef);
     const SourceView&        srcView(SourceViewRef srcViewRef) const;
     Ast&                     ast();
+    const Ast&               ast() const;
+    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    const Token&             token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
+    SourceCodeRange          tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
+    std::string_view         tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
     Utf8                     fileName() const;
     const SourceFile*        file() const;
-    const Ast&               ast() const;
+
+    SemaFrame&                 frame() { return frames_.back(); }
+    const SemaFrame&           frame() const { return frames_.back(); }
+    std::span<const SemaFrame> frames() const { return frames_; }
+    SemaScope&                 curScope() { return *SWC_CHECK_NOT_NULL(curScope_); }
+    const SemaScope&           curScope() const { return *SWC_CHECK_NOT_NULL(curScope_); }
+    AstVisit&                  visit() { return visit_; }
+    const AstVisit&            visit() const { return visit_; }
+    AstNodeRef                 curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&                   curNode() { return node(curNodeRef()); }
+    const AstNode&             curNode() const { return node(curNodeRef()); }
+    SymbolMap*                 curSymMap() { return curScope_->symMap(); }
+    const SymbolMap*           curSymMap() const { return curScope_->symMap(); }
+    const SymbolMap*           topSymMap() const { return startSymMap_; }
 
     const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
     SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }
@@ -62,6 +72,105 @@ public:
     const SymbolNamespace& fileNamespace() const { return nodePayloadContext().fileNamespace(); }
     SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
     void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
+
+    SemaNodeView nodeView(AstNodeRef nodeRef);
+    SemaNodeView nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView nodeViewZero(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Zero); }
+    SemaNodeView nodeViewNode(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node); }
+    SemaNodeView nodeViewType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type); }
+    SemaNodeView nodeViewConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Constant); }
+    SemaNodeView nodeViewSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
+    SemaNodeView nodeViewSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::SymbolList); }
+    SemaNodeView nodeViewTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView nodeViewTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView nodeViewNodeType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView nodeViewNodeTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView nodeViewNodeTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView nodeViewNodeTypeConstantSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
+    SemaNodeView nodeViewNodeSymbolSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol | SemaNodeViewPartE::SymbolList); }
+
+    SemaNodeView curNodeView();
+    SemaNodeView curNodeView(EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView curNodeViewZero() { return curNodeView(SemaNodeViewPartE::Zero); }
+    SemaNodeView curNodeViewNode() { return curNodeView(SemaNodeViewPartE::Node); }
+    SemaNodeView curNodeViewType() { return curNodeView(SemaNodeViewPartE::Type); }
+    SemaNodeView curNodeViewConstant() { return curNodeView(SemaNodeViewPartE::Constant); }
+    SemaNodeView curNodeViewSymbol() { return curNodeView(SemaNodeViewPartE::Symbol); }
+    SemaNodeView curNodeViewSymbolList() { return curNodeView(SemaNodeViewPartE::SymbolList); }
+    SemaNodeView curNodeViewTypeConstant() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView curNodeViewTypeSymbol() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView curNodeViewNodeType() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
+    SemaNodeView curNodeViewNodeTypeConstant() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
+    SemaNodeView curNodeViewNodeTypeSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
+    SemaNodeView curNodeViewNodeTypeConstantSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
+
+    void setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
+    void setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }
+    void setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
+    void setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
+    bool hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
+    void setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
+    void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
+    void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
+
+    bool hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
+    void setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
+
+    template<typename T>
+    T* payload(AstNodeRef n) const
+    {
+        return static_cast<T*>(nodePayloadContext().getPayload(n));
+    }
+
+    bool hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
+    void setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
+
+    template<typename T>
+    T* codeGenPayload(AstNodeRef n) const
+    {
+        return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
+    }
+
+    void setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
+    void appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
+
+    bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
+    bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
+    void setIsLValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::LValue); }
+    void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
+    void unsetIsLValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::LValue); }
+    void unsetIsLValue(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::LValue); }
+
+    bool isValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::Value); }
+    bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::Value); }
+    void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
+    void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
+
+    bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
+    void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+
+    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
+    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }
+    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
+
+    void       pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
+    void       pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
+    SemaScope* pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
+    SemaScope* pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
+    void       deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
+
+    Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
+    Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
+    Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
+    static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:
     friend struct SemaNodeView;
@@ -80,110 +189,6 @@ private:
     std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
 
-public:
-    void                     setType(AstNodeRef n, TypeRef ref) { nodePayloadContext().setType(n, ref); }
-    void                     setConstant(AstNodeRef n, ConstantRef ref) { nodePayloadContext().setConstant(n, ref); }
-    void                     setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
-    void                     setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
-    bool                     hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
-    void                     setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
-    void                     setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
-    void                     setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
-    bool                     hasPayload(AstNodeRef n) const { return nodePayloadContext().hasPayload(n); }
-    void                     setPayload(AstNodeRef n, void* payload) { nodePayloadContext().setPayload(n, payload); }
-    void                     setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
-    void                     appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
-    bool                     hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
-    void                     setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
-
-    bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
-    bool isValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::LValue); }
-    void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void unsetIsLValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::LValue); }
-    bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
-    bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::Value); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
-    void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
-    void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
-    void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    void unsetIsLValue(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::LValue); }
-
-    void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
-    void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }
-    void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
-
-    template<typename T>
-    T* payload(AstNodeRef n) const
-    {
-        return static_cast<T*>(nodePayloadContext().getPayload(n));
-    }
-
-    template<typename T>
-    T* codeGenPayload(AstNodeRef n) const
-    {
-        return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
-    }
-
-    AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&         curNode() { return node(curNodeRef()); }
-    const AstNode&   curNode() const { return node(curNodeRef()); }
-    SemaNodeView     nodeView(AstNodeRef nodeRef);
-    SemaNodeView     nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView     nodeViewZero(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Zero); }
-    SemaNodeView     nodeViewNode(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node); }
-    SemaNodeView     nodeViewType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type); }
-    SemaNodeView     nodeViewConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Constant); }
-    SemaNodeView     nodeViewSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
-    SemaNodeView     nodeViewSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::SymbolList); }
-    SemaNodeView     nodeViewTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView     nodeViewTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView     nodeViewNodeType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
-    SemaNodeView     nodeViewNodeTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView     nodeViewNodeTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView     nodeViewNodeTypeConstantSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
-    SemaNodeView     nodeViewNodeSymbolSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol | SemaNodeViewPartE::SymbolList); }
-    SemaNodeView     curNodeView();
-    SemaNodeView     curNodeView(EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView     curNodeViewZero() { return curNodeView(SemaNodeViewPartE::Zero); }
-    SemaNodeView     curNodeViewNode() { return curNodeView(SemaNodeViewPartE::Node); }
-    SemaNodeView     curNodeViewType() { return curNodeView(SemaNodeViewPartE::Type); }
-    SemaNodeView     curNodeViewConstant() { return curNodeView(SemaNodeViewPartE::Constant); }
-    SemaNodeView     curNodeViewSymbol() { return curNodeView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView     curNodeViewSymbolList() { return curNodeView(SemaNodeViewPartE::SymbolList); }
-    SemaNodeView     curNodeViewTypeConstant() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView     curNodeViewTypeSymbol() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView     curNodeViewNodeType() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type); }
-    SemaNodeView     curNodeViewNodeTypeConstant() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView     curNodeViewNodeTypeSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView     curNodeViewNodeTypeConstantSymbol() { return curNodeView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
-    SymbolMap*       curSymMap() { return curScope_->symMap(); }
-    const SymbolMap* curSymMap() const { return curScope_->symMap(); }
-    const SymbolMap* topSymMap() const { return startSymMap_; }
-
-    SemaScope&       curScope() { return *SWC_CHECK_NOT_NULL(curScope_); }
-    const SemaScope& curScope() const { return *SWC_CHECK_NOT_NULL(curScope_); }
-    void             pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
-    void             pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
-    SemaScope*       pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
-    SemaScope*       pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
-    bool             enteringState() const { return visit_.enteringState(); }
-    void             deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
-
-    Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);
-    Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
-    Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
-    Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
-    static void waitDone(TaskContext& ctx, JobClientId clientId);
-
-private:
     SemaScope*         pushScope(SemaScopeFlags flags);
     void               popScope();
     void               pushFrame(const SemaFrame& frame);

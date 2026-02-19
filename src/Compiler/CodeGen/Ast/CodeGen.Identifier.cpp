@@ -109,16 +109,7 @@ namespace
             case SymbolKind::Variable:
                 return codeGenIdentifierVariable(codeGen, symbol.cast<SymbolVariable>());
 
-            case SymbolKind::Module:
-            case SymbolKind::Namespace:
-            case SymbolKind::Constant:
-            case SymbolKind::Enum:
-            case SymbolKind::EnumValue:
-            case SymbolKind::Struct:
-            case SymbolKind::Interface:
-            case SymbolKind::Alias:
             case SymbolKind::Function:
-            case SymbolKind::Impl:
                 return Result::Continue;
 
             default:

@@ -81,68 +81,63 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
     }
 }
 
-void SemaNodeView::assertComputed(SemaNodeViewPartE part) const
-{
-    SWC_ASSERT(computedPart_.has(part));
-}
-
 const AstNode* SemaNodeView::node() const
 {
-    assertComputed(SemaNodeViewPartE::Node);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Node));
     return node_;
 }
 
 const AstNode*& SemaNodeView::node()
 {
-    assertComputed(SemaNodeViewPartE::Node);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Node));
     return node_;
 }
 
 const ConstantValue* SemaNodeView::cst() const
 {
-    assertComputed(SemaNodeViewPartE::Constant);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Constant));
     return cst_;
 }
 
 const ConstantValue*& SemaNodeView::cst()
 {
-    assertComputed(SemaNodeViewPartE::Constant);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Constant));
     return cst_;
 }
 
 const TypeInfo* SemaNodeView::type() const
 {
-    assertComputed(SemaNodeViewPartE::Type);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
     return type_;
 }
 
 const TypeInfo*& SemaNodeView::type()
 {
-    assertComputed(SemaNodeViewPartE::Type);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
     return type_;
 }
 
 Symbol* SemaNodeView::sym() const
 {
-    assertComputed(SemaNodeViewPartE::Symbol);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return sym_;
 }
 
 Symbol*& SemaNodeView::sym()
 {
-    assertComputed(SemaNodeViewPartE::Symbol);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return sym_;
 }
 
 std::span<Symbol*> SemaNodeView::symList() const
 {
-    assertComputed(SemaNodeViewPartE::SymbolList);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::SymbolList));
     return symList_;
 }
 
 std::span<Symbol*>& SemaNodeView::symList()
 {
-    assertComputed(SemaNodeViewPartE::SymbolList);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::SymbolList));
     return symList_;
 }
 
@@ -158,25 +153,25 @@ AstNodeRef& SemaNodeView::nodeRef()
 
 ConstantRef SemaNodeView::cstRef() const
 {
-    assertComputed(SemaNodeViewPartE::Constant);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Constant));
     return cstRef_;
 }
 
 ConstantRef& SemaNodeView::cstRef()
 {
-    assertComputed(SemaNodeViewPartE::Constant);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Constant));
     return cstRef_;
 }
 
 TypeRef SemaNodeView::typeRef() const
 {
-    assertComputed(SemaNodeViewPartE::Type);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
     return typeRef_;
 }
 
 TypeRef& SemaNodeView::typeRef()
 {
-    assertComputed(SemaNodeViewPartE::Type);
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Type));
     return typeRef_;
 }
 

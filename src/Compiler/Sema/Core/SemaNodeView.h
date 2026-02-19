@@ -46,8 +46,6 @@ struct SemaNodeView
     TypeRef&     typeRef();
 
 private:
-    void assertComputed(SemaNodeViewPartE part) const;
-
     const AstNode*       node_         = nullptr;
     const ConstantValue* cst_          = nullptr;
     const TypeInfo*      type_         = nullptr;

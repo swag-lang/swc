@@ -22,10 +22,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
-            CodeGenNodePayload    paramPayload;
-            CodeGenHelpers::materializeFunctionParameterPayload(paramPayload, codeGen, symbolFunc, symVar);
-            codeGen.setVariablePayload(symVar, paramPayload);
-            outPayload = *codeGen.variablePayload(symVar);
+            outPayload                       = CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
             return;
         }
 
@@ -58,7 +55,7 @@ namespace
         }
     }
 
-    void bindSingleVariableFromInitializer(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
+    void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         if (initRef.isInvalid())
             return;
@@ -89,13 +86,13 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-        CodeGenNodePayload    symbolPayload;
-        CodeGenHelpers::materializeFunctionParameterPayload(symbolPayload, codeGen, symbolFunc, symVar);
-        codeGen.setVariablePayload(symVar, symbolPayload);
-        return Result::Continue;
+        CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+    }
+    else
+    {
+        materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
     }
 
-    bindSingleVariableFromInitializer(codeGen, symVar, nodeInitRef);
     return Result::Continue;
 }
 
@@ -107,23 +104,19 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-
         for (Symbol* sym : nodeView.symList)
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
-
-            CodeGenNodePayload symbolPayload;
-            CodeGenHelpers::materializeFunctionParameterPayload(symbolPayload, codeGen, symbolFunc, symVar);
-            codeGen.setVariablePayload(symVar, symbolPayload);
+            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
-
-        return Result::Continue;
     }
-
-    for (Symbol* sym : nodeView.symList)
+    else
     {
-        const SymbolVariable& symVar = sym->cast<SymbolVariable>();
-        bindSingleVariableFromInitializer(codeGen, symVar, nodeInitRef);
+        for (Symbol* sym : nodeView.symList)
+        {
+            const SymbolVariable& symVar = sym->cast<SymbolVariable>();
+            materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+        }
     }
 
     return Result::Continue;

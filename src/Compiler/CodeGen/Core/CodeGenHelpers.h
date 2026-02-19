@@ -22,7 +22,7 @@ namespace CodeGenHelpers
 
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
-    void                  materializeFunctionParameterPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
 
     void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
 }

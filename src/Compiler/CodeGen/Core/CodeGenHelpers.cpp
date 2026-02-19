@@ -148,9 +148,10 @@ void CodeGenHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const Symb
     }
 }
 
-void CodeGenHelpers::materializeFunctionParameterPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
 {
     const FunctionParameterInfo paramInfo = functionParameterInfo(codeGen, symbolFunc, symVar);
+    CodeGenNodePayload          outPayload;
 
     outPayload.typeRef = symVar.typeRef();
     outPayload.reg     = codeGen.nextVirtualRegisterForType(symVar.typeRef());
@@ -160,6 +161,9 @@ void CodeGenHelpers::materializeFunctionParameterPayload(CodeGenNodePayload& out
         CodeGen::setPayloadAddress(outPayload);
     else
         CodeGen::setPayloadValue(outPayload);
+
+    codeGen.setVariablePayload(symVar, outPayload);
+    return outPayload;
 }
 
 void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes)

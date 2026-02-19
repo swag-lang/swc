@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
@@ -136,26 +135,6 @@ const SourceView& CodeGen::srcView(SourceViewRef srcViewRef) const
     return sema().srcView(srcViewRef);
 }
 
-SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef)
-{
-    return nodeView(nodeRef, SemaNodeViewPartE::All);
-}
-
-SemaNodeView CodeGen::nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
-{
-    return {sema(), nodeRef, part};
-}
-
-SemaNodeView CodeGen::curNodeView()
-{
-    return curNodeView(SemaNodeViewPartE::All);
-}
-
-SemaNodeView CodeGen::curNodeView(EnumFlags<SemaNodeViewPartE> part)
-{
-    return nodeView(curNodeRef(), part);
-}
-
 const Token& CodeGen::token(const SourceCodeRef& codeRef) const
 {
     return sema().token(codeRef);
@@ -284,7 +263,7 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
-    if (curNodeViewConstant().cst())
+    if (sema().nodeViewConstant(curNodeRef()).hasConstant())
         return Result::SkipChildren;
 
     return Result::Continue;
@@ -293,7 +272,7 @@ Result CodeGen::preNode(AstNode& node)
 Result CodeGen::postNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
-    if (curNodeViewConstant().cst())
+    if (sema().nodeViewConstant(curNodeRef()).hasConstant())
         return emitConstant(curNodeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());

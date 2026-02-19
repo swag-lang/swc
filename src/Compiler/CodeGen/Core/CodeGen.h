@@ -2,11 +2,10 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
-#include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class Sema;
 class SymbolFunction;
 class MicroBuilder;
 class CompilerInstance;
@@ -61,22 +60,6 @@ public:
     AstVisit&                 visit() { return visit_; }
     const AstVisit&           visit() const { return visit_; }
     AstNodeRef                curNodeRef() const { return visit_.currentNodeRef(); }
-    SemaNodeView              nodeView(AstNodeRef nodeRef);
-    SemaNodeView              nodeView(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView              nodeViewZero(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Zero); }
-    SemaNodeView              nodeViewType(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type); }
-    SemaNodeView              nodeViewConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Constant); }
-    SemaNodeView              nodeViewSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Symbol); }
-    SemaNodeView              nodeViewSymbolList(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::SymbolList); }
-    SemaNodeView              nodeViewTypeConstant(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant); }
-    SemaNodeView              nodeViewTypeSymbol(AstNodeRef nodeRef) { return nodeView(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
-    SemaNodeView              curNodeView();
-    SemaNodeView              curNodeView(EnumFlags<SemaNodeViewPartE> part);
-    SemaNodeView              curNodeViewType() { return curNodeView(SemaNodeViewPartE::Type); }
-    SemaNodeView              curNodeViewConstant() { return curNodeView(SemaNodeViewPartE::Constant); }
-    SemaNodeView              curNodeViewSymbol() { return curNodeView(SemaNodeViewPartE::Symbol); }
-    SemaNodeView              curNodeViewSymbolList() { return curNodeView(SemaNodeViewPartE::SymbolList); }
-    SemaNodeView              curNodeViewTypeSymbol() { return curNodeView(SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
     const Token&              token(const SourceCodeRef& codeRef) const;
     void                      appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     SymbolFunction&           function() { return *SWC_CHECK_NOT_NULL(function_); }

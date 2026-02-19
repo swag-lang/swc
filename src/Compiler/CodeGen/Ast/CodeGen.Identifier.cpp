@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -63,10 +64,8 @@ namespace
 
     void materializeParameterVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
     {
-        const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
-        outPayload.reg                                         = normalizedParam.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-        outPayload.typeRef                                     = symVar.typeRef();
+        outPayload.typeRef = symVar.typeRef();
+        outPayload.reg     = codeGen.nextVirtualRegisterForType(symVar.typeRef());
         lowerParameterPayload(codeGen, symbolFunc, symVar, outPayload);
     }
 

@@ -68,27 +68,6 @@ namespace
         }
     }
 
-    bool shouldDeferCallResultMaterializationToCompilerRun(CodeGen& codeGen, const ABITypeNormalize::NormalizedType& normalizedRet)
-    {
-        // Compiler-run wrappers consume return registers directly, so avoid extra moves.
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-
-        const AstNodeRef parentNodeRef = codeGen.visit().parentNodeRef(0);
-        if (parentNodeRef.isInvalid())
-            return false;
-
-        const AstNode* parentNode = codeGen.visit().parentNode(0);
-        if (!parentNode || parentNode->isNot(AstNodeId::CompilerRunExpr))
-            return false;
-
-        const AstCompilerRunExpr* runExpr = parentNode->safeCast<AstCompilerRunExpr>();
-        if (!runExpr)
-            return false;
-
-        return runExpr->nodeExprRef == codeGen.curNodeRef();
-    }
-
     void buildPreparedABIArguments(CodeGen& codeGen, CallConvKind callConvKind, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
@@ -225,14 +204,14 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     buildPreparedABIArguments(codeGen, callConvKind, args, preparedArgs);
+
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall  = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload   = codeGen.setPayload(codeGen.curNodeRef(), codeGen.curNodeView().typeRef);
     const CodeGenNodePayload*   calleePayload = codeGen.payload(calleeView.nodeRef);
-    const MicroReg              resultReg     = nodePayload.reg;
 
+    // Function value call: target already computed in a register.
     if (calleePayload)
-        // Function value call: target already computed in a register.
         ABICall::callReg(builder, callConvKind, calleePayload->reg, preparedCall);
     else
     {
@@ -243,24 +222,12 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
             ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
     }
 
-    const bool deferMaterializationToRunExpr = shouldDeferCallResultMaterializationToCompilerRun(codeGen, normalizedRet);
-    if (deferMaterializationToRunExpr)
-    {
-        // Compiler-run call wrapper reads raw ABI return regs itself.
-        if (normalizedRet.isFloat)
-            nodePayload.reg = callConv.floatReturn;
-        else
-            nodePayload.reg = callConv.intReturn;
-    }
-    else
-    {
-        ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
-    }
-
+    ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     if (normalizedRet.isIndirect)
         CodeGen::setPayloadAddress(nodePayload);
     else
         CodeGen::setPayloadValue(nodePayload);
+
     return Result::Continue;
 }
 

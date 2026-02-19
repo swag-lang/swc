@@ -10,45 +10,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void resolveIdentifierVariablePayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, const SymbolVariable& symVar)
+    CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
         if (symbolPayload)
-        {
-            outPayload = *symbolPayload;
-            return;
-        }
+            return *symbolPayload;
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
-            outPayload                       = CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
-            return;
+            return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
         SWC_UNREACHABLE();
     }
 
-    Result codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)
+    void codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        CodeGenNodePayload symbolPayload;
-        resolveIdentifierVariablePayload(symbolPayload, codeGen, symVar);
-
-        CodeGenNodePayload& payload = codeGen.setPayload(codeGen.curNodeRef(), symVar.typeRef());
-        payload.reg                 = symbolPayload.reg;
-        payload.storageKind         = symbolPayload.storageKind;
-        return Result::Continue;
+        const CodeGenNodePayload symbolPayload = resolveIdentifierVariablePayload(codeGen, symVar);
+        CodeGenNodePayload&      payload       = codeGen.setPayload(codeGen.curNodeRef(), symVar.typeRef());
+        payload.reg                            = symbolPayload.reg;
+        payload.storageKind                    = symbolPayload.storageKind;
     }
 
-    Result codeGenIdentifierFromSymbol(CodeGen& codeGen, const Symbol& symbol)
+    void codeGenIdentifierFromSymbol(CodeGen& codeGen, const Symbol& symbol)
     {
         switch (symbol.kind())
         {
             case SymbolKind::Variable:
-                return codeGenIdentifierVariable(codeGen, symbol.cast<SymbolVariable>());
+                codeGenIdentifierVariable(codeGen, symbol.cast<SymbolVariable>());
+                return;
 
             case SymbolKind::Function:
-                return Result::Continue;
+                return;
 
             default:
                 SWC_UNREACHABLE();
@@ -74,7 +68,8 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView nodeView = codeGen.curNodeView();
     SWC_ASSERT(nodeView.sym);
-    return codeGenIdentifierFromSymbol(codeGen, *nodeView.sym);
+    codeGenIdentifierFromSymbol(codeGen, *nodeView.sym);
+    return Result::Continue;
 }
 
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const

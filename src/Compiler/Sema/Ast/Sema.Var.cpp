@@ -456,7 +456,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         SemaNodeView nodeSymbolsView = sema.curNodeViewSymbolList();
         if (!nodeSymbolsView.hasSymbolList())
             semaPreDecl(sema);
-        nodeSymbolsView.recompute(sema, SemaNodeViewPartE::SymbolList);
+        nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
         const std::span<Symbol*> symbols = nodeSymbolsView.symList();
         for (Symbol* sym : symbols)
         {

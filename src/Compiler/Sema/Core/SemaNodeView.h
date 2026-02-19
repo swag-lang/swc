@@ -10,13 +10,12 @@ class TypeInfo;
 
 enum class SemaNodeViewPartE
 {
-    Zero       = 0,
-    Node       = 1 << 0,
-    Type       = 1 << 1,
-    Constant   = 1 << 2,
-    Symbol     = 1 << 3,
-    SymbolList = 1 << 4,
-    All        = Node | Type | Constant | Symbol | SymbolList,
+    Zero     = 0,
+    Node     = 1 << 0,
+    Type     = 1 << 1,
+    Constant = 1 << 2,
+    Symbol   = 1 << 3,
+    All      = Node | Type | Constant | Symbol,
 };
 using SemaNodeViewPart = EnumFlags<SemaNodeViewPartE>;
 

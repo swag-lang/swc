@@ -25,7 +25,7 @@ namespace
         }
 
         SmallVector<Symbol*> symbols;
-        const SemaNodeView declView = sema.nodeView(declRef, SemaNodeViewPartE::Symbol | SemaNodeViewPartE::SymbolList);
+        const SemaNodeView declView = sema.nodeView(declRef, SemaNodeViewPartE::Symbol);
         if (declView.hasSymbolList())
         {
             const std::span<Symbol*> list = declView.symList();

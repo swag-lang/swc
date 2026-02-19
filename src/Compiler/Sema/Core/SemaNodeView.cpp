@@ -47,26 +47,22 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
             cst_ = &sema.cstMgr().get(cstRef_);
     }
 
-    if (!part.has(SemaNodeViewPartE::Symbol) && !part.has(SemaNodeViewPartE::SymbolList))
+    if (!part.has(SemaNodeViewPartE::Symbol))
         return;
 
     if (sema.hasSymbolList(nodeRef_))
     {
         hasSymList_ = true;
         const std::span<Symbol*> symbols = sema.getSymbolList(nodeRef_);
-        if (part.has(SemaNodeViewPartE::SymbolList))
-            symList_ = symbols;
-        if (part.has(SemaNodeViewPartE::Symbol) && !symbols.empty())
+        hasSymbol_ = !symbols.empty();
+        symList_   = symbols;
+        if (hasSymbol_)
             sym_ = symbols.front();
     }
-    else if (part.has(SemaNodeViewPartE::Symbol) && sema.hasSymbol(nodeRef_))
+    else if (sema.hasSymbol(nodeRef_))
     {
         hasSymbol_ = true;
         sym_ = &sema.symbolOf(nodeRef_);
-    }
-    else if (part.has(SemaNodeViewPartE::SymbolList) && sema.hasSymbol(nodeRef_))
-    {
-        hasSymbol_ = true;
     }
 }
 
@@ -139,13 +135,13 @@ Symbol*& SemaNodeView::sym()
 
 std::span<Symbol*> SemaNodeView::symList() const
 {
-    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::SymbolList));
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return symList_;
 }
 
 std::span<Symbol*>& SemaNodeView::symList()
 {
-    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::SymbolList));
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return symList_;
 }
 
@@ -197,13 +193,13 @@ bool SemaNodeView::hasConstant() const
 
 bool SemaNodeView::hasSymbol() const
 {
-    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol) || computedPart_.has(SemaNodeViewPartE::SymbolList));
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return hasSymbol_;
 }
 
 bool SemaNodeView::hasSymbolList() const
 {
-    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol) || computedPart_.has(SemaNodeViewPartE::SymbolList));
+    SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
     return hasSymList_;
 }
 

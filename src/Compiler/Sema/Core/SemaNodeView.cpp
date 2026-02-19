@@ -61,6 +61,12 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     }
 }
 
+void SemaNodeView::recompute(Sema& sema, SemaNodeViewPart part)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    compute(sema, nodeRef, part);
+}
+
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 {
     if (!symList.empty())

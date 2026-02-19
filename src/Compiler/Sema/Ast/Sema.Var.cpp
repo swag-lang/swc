@@ -293,7 +293,7 @@ namespace
             ConstantRef newCstRef;
             RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef, nodeInitView.cstRef, TypeInfo::Sign::Unknown));
             sema.setConstant(nodeInitView.nodeRef, newCstRef);
-            nodeInitView.compute(sema, nodeInitView.nodeRef);
+            nodeInitView.recompute(sema);
 
             if (nodeInitView.type->isInt())
             {

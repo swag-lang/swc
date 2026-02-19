@@ -49,7 +49,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
     }
 
     sema.setConstant(nodeLiteralView.nodeRef, cstRef);
-    nodeLiteralView.compute(sema, nodeLiteralView.nodeRef);
+    nodeLiteralView.recompute(sema);
     RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
     sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef);
 

@@ -14,13 +14,13 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
     if (nodeView.cstRef.isValid())
     {
         sema.setConstant(nodeView.nodeRef, nodeView.cst->getEnumValue());
-        nodeView.compute(sema, nodeView.nodeRef);
+        nodeView.recompute(sema);
         return;
     }
 
     const SymbolEnum& symEnum = nodeView.type->payloadSymEnum();
     createCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
-    nodeView.compute(sema, nodeView.nodeRef);
+    nodeView.recompute(sema);
 }
 
 SWC_END_NAMESPACE();

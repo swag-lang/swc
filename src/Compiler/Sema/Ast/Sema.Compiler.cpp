@@ -393,7 +393,7 @@ namespace
             ConstantRef newCstRef;
             RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeView.nodeRef, nodeView.cstRef, TypeInfo::Sign::Unknown));
             sema.setConstant(nodeView.nodeRef, newCstRef);
-            nodeView.compute(sema, nodeView.nodeRef);
+            nodeView.recompute(sema);
         }
 
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));

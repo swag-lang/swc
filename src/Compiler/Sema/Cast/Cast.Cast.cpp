@@ -875,7 +875,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         else
             sema.setConstant(view.nodeRef, castRequest.constantFoldingResult());
 
-        view.compute(sema, view.nodeRef);
+        view.recompute(sema);
         return Result::Continue;
     }
 

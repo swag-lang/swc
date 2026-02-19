@@ -34,6 +34,7 @@ struct SemaNodeView
 
     SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
+    void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void getSymbols(SmallVector<Symbol*>& symbols) const;
 };
 

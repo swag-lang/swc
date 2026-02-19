@@ -137,7 +137,7 @@ namespace
 
             if (normalizedTypeRef.isInvalid())
             {
-                const SemaNodeView argView = codeGen.sema().viewType(argRef);
+                const SemaNodeView argView = codeGen.viewType(argRef);
                 normalizedTypeRef          = argView.typeRef();
             }
 
@@ -236,8 +236,8 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     calleeView     = codeGen.sema().viewZero(nodeExprRef);
-    const SemaNodeView                     currentView    = codeGen.sema().viewTypeSymbol(codeGen.curNodeRef());
+    const SemaNodeView                     calleeView     = codeGen.viewZero(nodeExprRef);
+    const SemaNodeView                     currentView    = codeGen.curViewTypeSymbol();
     SymbolFunction&                        calledFunction = currentView.sym()->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
     const CallConv&                        callConv       = CallConv::get(callConvKind);

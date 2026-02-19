@@ -66,7 +66,7 @@ namespace
 
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
-    const SemaNodeView view = codeGen.sema().viewSymbol(codeGen.curNodeRef());
+    const SemaNodeView view = codeGen.curViewSymbol();
     SWC_ASSERT(view.sym());
     codeGenIdentifierFromSymbol(codeGen, *view.sym());
     return Result::Continue;
@@ -74,7 +74,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView view = codeGen.sema().viewSymbol(codeGen.curNodeRef());
+    const SemaNodeView view = codeGen.curViewSymbol();
     SWC_ASSERT(view.sym());
     const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
 
@@ -93,7 +93,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView view = codeGen.sema().viewSymbolList(codeGen.curNodeRef());
+    const SemaNodeView view = codeGen.curViewSymbolList();
     SWC_ASSERT(!view.symList().empty());
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))

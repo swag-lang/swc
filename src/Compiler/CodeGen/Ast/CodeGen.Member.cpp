@@ -17,7 +17,7 @@ namespace
         if (leftPayload.storageKind == CodeGenNodePayload::StorageKind::Value)
             return true;
 
-        const SemaNodeView leftSymbolView = codeGen.sema().viewSymbol(leftRef);
+        const SemaNodeView leftSymbolView = codeGen.viewSymbol(leftRef);
         if (!leftSymbolView.sym() || !leftSymbolView.sym()->isVariable())
             return false;
 
@@ -34,12 +34,12 @@ namespace
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
-        const SemaNodeView        rightView   = codeGen.sema().viewSymbol(node.nodeRightRef);
+        const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym    = SWC_CHECK_NOT_NULL(rightView.sym());
         const SymbolVariable*     symVar      = rightSym->safeCast<SymbolVariable>();
         SWC_ASSERT(symVar != nullptr);
 
-        const TypeRef       memberTypeRef = codeGen.sema().viewType(codeGen.curNodeRef()).typeRef();
+        const TypeRef       memberTypeRef = codeGen.curViewType().typeRef();
         CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&       builder       = codeGen.builder();
 
@@ -49,7 +49,7 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView leftView = codeGen.sema().viewType(node.nodeLeftRef);
+        const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
         SWC_ASSERT(leftView.type());
 
         const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
@@ -70,7 +70,7 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
-        const SemaNodeView rightView  = codeGen.sema().viewSymbol(node.nodeRightRef);
+        const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
         const auto&        methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
@@ -94,23 +94,23 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView leftView = codeGen.sema().viewType(nodeLeftRef);
+    const SemaNodeView leftView = codeGen.viewType(nodeLeftRef);
     SWC_ASSERT(leftView.type());
 
     if (leftView.type()->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
 
-    const SemaNodeView rightView = codeGen.sema().viewSymbol(nodeRightRef);
+    const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
     if (rightView.sym() && rightView.sym()->isVariable())
         return codeGenStructMemberAccess(codeGen, *this);
 
     if (codeGen.payload(nodeRightRef))
     {
-        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.sema().viewType(codeGen.curNodeRef()).typeRef());
+        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
         return Result::Continue;
     }
 
-    if (codeGen.sema().viewConstant(codeGen.curNodeRef()).hasConstant())
+    if (codeGen.curViewConstant().hasConstant())
         return Result::Continue;
 
     // TODO

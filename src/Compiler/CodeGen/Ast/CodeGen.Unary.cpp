@@ -15,7 +15,7 @@ namespace
         const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
 
-        const SemaNodeView        view    = codeGen.sema().viewType(codeGen.curNodeRef());
+        const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), view.typeRef());
         builder.emitLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
         return Result::Continue;

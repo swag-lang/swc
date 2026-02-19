@@ -22,7 +22,7 @@ namespace
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
         const CodeGenNodePayload* indexPayload = SWC_CHECK_NOT_NULL(codeGen.payload(indexRef));
-        const SemaNodeView        indexView    = codeGen.sema().viewType(indexRef);
+        const SemaNodeView        indexView    = codeGen.viewType(indexRef);
         SWC_ASSERT(indexView.type());
 
         outIndexBits           = indexOpBits(*indexView.type());
@@ -136,9 +136,9 @@ namespace
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const CodeGenNodePayload* indexedPayload = SWC_CHECK_NOT_NULL(codeGen.payload(nodeExprRef));
-    const TypeRef             resultTypeRef  = codeGen.sema().viewType(codeGen.curNodeRef()).typeRef();
-    const SemaNodeView        indexedView    = codeGen.sema().viewType(nodeExprRef);
-    const SemaNodeView        resultView     = codeGen.sema().viewType(codeGen.curNodeRef());
+    const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
+    const SemaNodeView        indexedView    = codeGen.viewType(nodeExprRef);
+    const SemaNodeView        resultView     = codeGen.curViewType();
 
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());

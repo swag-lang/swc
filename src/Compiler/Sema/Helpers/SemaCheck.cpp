@@ -62,27 +62,27 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
 
 Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& nodeView)
 {
-    if (sema.isValue(nodeView.nodeRef))
+    if (sema.isValue(nodeView.nodeRef()))
         return Result::Continue;
-    if (nodeView.typeRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
+    if (nodeView.typeRef().isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef());
 
-    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef));
-    sema.setConstant(nodeView.nodeRef, cstRef);
+    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), nodeView.typeRef()));
+    sema.setConstant(nodeView.nodeRef(), cstRef);
     nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
 
 Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
 {
-    if (sema.isValue(nodeView.nodeRef))
+    if (sema.isValue(nodeView.nodeRef()))
         return Result::Continue;
-    if (nodeView.typeRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef);
+    if (nodeView.typeRef().isInvalid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeView.nodeRef());
 
     ConstantRef cstRef;
-    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef, nodeView.nodeRef));
-    sema.setConstant(nodeView.nodeRef, cstRef);
+    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, cstRef, nodeView.typeRef(), nodeView.nodeRef()));
+    sema.setConstant(nodeView.nodeRef(), cstRef);
     nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     return Result::Continue;
 }
@@ -90,7 +90,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& nodeView)
 Result SemaCheck::isConstant(Sema& sema, AstNodeRef nodeRef)
 {
     const SemaNodeView nodeView = sema.nodeViewConstant(nodeRef);
-    if (nodeView.cstRef.isInvalid())
+    if (nodeView.cstRef().isInvalid())
     {
         SemaError::raiseExprNotConst(sema, nodeRef);
         return Result::Error;
@@ -160,9 +160,9 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
 Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& leftView)
 {
     // Disallow assignment to immutable lvalues:
-    if (leftView.sym)
+    if (leftView.sym())
     {
-        if (const SymbolVariable* symVar = leftView.sym->safeCast<SymbolVariable>())
+        if (const SymbolVariable* symVar = leftView.sym()->safeCast<SymbolVariable>())
         {
             if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
             {
@@ -172,7 +172,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
             }
         }
 
-        if (leftView.sym->isConstant())
+        if (leftView.sym()->isConstant())
         {
             const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
             diag.report(sema.ctx());
@@ -181,7 +181,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     }
 
     // Left must be a l-value
-    if (!sema.isLValue(leftView.nodeRef))
+    if (!sema.isLValue(leftView.nodeRef()))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
         diag.report(sema.ctx());
@@ -192,3 +192,4 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
 }
 
 SWC_END_NAMESPACE();
+

@@ -142,14 +142,15 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
         return Result::Continue;
 
     const SemaNodeView nodeView = this->nodeViewTypeConstant(nodeRef);
-    if (nodeView.cstRef.isInvalid())
+    if (nodeView.cstRef().isInvalid())
         return Result::Continue;
 
-    const ConstantValue& cst     = cstMgr().get(nodeView.cstRef);
-    CodeGenNodePayload&  payload = setPayload(nodeRef, nodeView.typeRef);
-    emitConstantToPayload(*this, payload, nodeView.cstRef, cst, nodeView.typeRef);
+    const ConstantValue& cst     = cstMgr().get(nodeView.cstRef());
+    CodeGenNodePayload&  payload = setPayload(nodeRef, nodeView.typeRef());
+    emitConstantToPayload(*this, payload, nodeView.cstRef(), cst, nodeView.typeRef());
     return Result::SkipChildren;
 }
 
 SWC_END_NAMESPACE();
+
 

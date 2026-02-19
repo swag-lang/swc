@@ -8,19 +8,20 @@ SWC_BEGIN_NAMESPACE();
 
 void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& nodeView)
 {
-    if (!nodeView.type->isEnum())
+    if (!nodeView.type()->isEnum())
         return;
 
-    if (nodeView.cstRef.isValid())
+    if (nodeView.cstRef().isValid())
     {
-        sema.setConstant(nodeView.nodeRef, nodeView.cst->getEnumValue());
+        sema.setConstant(nodeView.nodeRef(), nodeView.cst()->getEnumValue());
         nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         return;
     }
 
-    const SymbolEnum& symEnum = nodeView.type->payloadSymEnum();
-    createCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef);
+    const SymbolEnum& symEnum = nodeView.type()->payloadSymEnum();
+    createCast(sema, symEnum.underlyingTypeRef(), nodeView.nodeRef());
     nodeView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 }
 
 SWC_END_NAMESPACE();
+

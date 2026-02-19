@@ -17,15 +17,15 @@ namespace
     {
         const TaskContext& ctx = sema.ctx();
 
-        if (nodeView.type->isInt())
+        if (nodeView.type()->isInt())
         {
-            ApsInt value = nodeView.cst->getInt();
+            ApsInt value = nodeView.cst()->getInt();
             value.setUnsigned(true);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Unsigned));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type()->payloadIntBits(), TypeInfo::Sign::Unsigned));
             return Result::Continue;
         }
 
-        result = nodeView.cstRef;
+        result = nodeView.cstRef();
         return Result::Continue;
     }
 
@@ -33,32 +33,32 @@ namespace
     {
         // In the case of a literal with a suffix, it has already been done
         // @MinusLiteralSuffix
-        if (nodeView.node->is(AstNodeId::SuffixLiteral))
+        if (nodeView.node()->is(AstNodeId::SuffixLiteral))
         {
-            result = nodeView.cstRef;
+            result = nodeView.cstRef();
             return Result::Continue;
         }
 
         const TaskContext& ctx = sema.ctx();
-        if (nodeView.type->isInt())
+        if (nodeView.type()->isInt())
         {
-            ApsInt value = nodeView.cst->getInt();
+            ApsInt value = nodeView.cst()->getInt();
 
             bool overflow = false;
             value.negate(overflow);
             if (overflow)
-                return SemaError::raiseLiteralOverflow(sema, nodeView.nodeRef, *nodeView.cst, nodeView.typeRef);
+                return SemaError::raiseLiteralOverflow(sema, nodeView.nodeRef(), *nodeView.cst(), nodeView.typeRef());
 
             value.setUnsigned(false);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), TypeInfo::Sign::Signed));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type()->payloadIntBits(), TypeInfo::Sign::Signed));
             return Result::Continue;
         }
 
-        if (nodeView.type->isFloat())
+        if (nodeView.type()->isFloat())
         {
-            ApFloat value = nodeView.cst->getFloat();
+            ApFloat value = nodeView.cst()->getFloat();
             value.negate();
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, nodeView.type->payloadFloatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, nodeView.type()->payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -69,31 +69,31 @@ namespace
     {
         const ConstantManager& cstMgr = sema.cstMgr();
 
-        if (nodeView.cst->isBool())
+        if (nodeView.cst()->isBool())
         {
-            result = cstMgr.cstNegBool(nodeView.cstRef);
+            result = cstMgr.cstNegBool(nodeView.cstRef());
             return Result::Continue;
         }
 
-        if (nodeView.cst->isInt())
+        if (nodeView.cst()->isInt())
         {
-            result = cstMgr.cstBool(nodeView.cst->getInt().isZero());
+            result = cstMgr.cstBool(nodeView.cst()->getInt().isZero());
             return Result::Continue;
         }
 
-        if (nodeView.cst->isChar())
+        if (nodeView.cst()->isChar())
         {
-            result = cstMgr.cstBool(nodeView.cst->getChar());
+            result = cstMgr.cstBool(nodeView.cst()->getChar());
             return Result::Continue;
         }
 
-        if (nodeView.cst->isRune())
+        if (nodeView.cst()->isRune())
         {
-            result = cstMgr.cstBool(nodeView.cst->getRune());
+            result = cstMgr.cstBool(nodeView.cst()->getRune());
             return Result::Continue;
         }
 
-        if (nodeView.cst->isString())
+        if (nodeView.cst()->isString())
         {
             result = cstMgr.cstFalse();
             return Result::Continue;
@@ -106,9 +106,9 @@ namespace
     {
         SWC_UNUSED(expr);
         const TaskContext& ctx   = sema.ctx();
-        ApsInt             value = nodeView.cst->getInt();
+        ApsInt             value = nodeView.cst()->getInt();
         value.invertAllBits();
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type->payloadIntBits(), nodeView.type->payloadIntSign()));
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, nodeView.type()->payloadIntBits(), nodeView.type()->payloadIntSign()));
         return Result::Continue;
     }
 
@@ -134,20 +134,20 @@ namespace
     Result reportInvalidType(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.codeRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (nodeView.type->isFloat() || nodeView.type->isIntSigned() || nodeView.type->isIntUnsized())
+        if (nodeView.type()->isFloat() || nodeView.type()->isIntSigned() || nodeView.type()->isIntUnsized())
             return Result::Continue;
 
-        if (nodeView.type->isIntUnsigned())
+        if (nodeView.type()->isIntUnsigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -157,13 +157,13 @@ namespace
 
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (nodeView.type->isFloat() || nodeView.type->isIntUnsigned() || nodeView.type->isIntUnsized())
+        if (nodeView.type()->isFloat() || nodeView.type()->isIntUnsigned() || nodeView.type()->isIntUnsized())
             return Result::Continue;
 
-        if (nodeView.type->isIntSigned())
+        if (nodeView.type()->isIntSigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeView.typeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -173,33 +173,33 @@ namespace
 
     Result checkBang(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (nodeView.type->isConvertibleToBool())
+        if (nodeView.type()->isConvertibleToBool())
             return Result::Continue;
         return reportInvalidType(sema, expr, nodeView);
     }
 
     Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& nodeView)
     {
-        if (nodeView.type->isInt())
+        if (nodeView.type()->isInt())
             return Result::Continue;
         return reportInvalidType(sema, expr, nodeView);
     }
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        if (nodeView.cstRef.isValid())
+        if (nodeView.cstRef().isValid())
         {
             const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
-            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
             diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        if (!sema.isLValue(*nodeView.node))
+        if (!sema.isLValue(*nodeView.node()))
         {
             const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_not_lvalue, node.codeRef());
-            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+            const SourceCodeRange codeRange = sema.node(nodeView.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
             diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
             diag.report(sema.ctx());
             return Result::Error;
@@ -212,30 +212,30 @@ namespace
     {
         SWC_UNUSED(node);
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (nodeView.type->isConst())
+        if (nodeView.type()->isConst())
         {
             flags.add(TypeInfoFlagsE::Const);
         }
-        else if (nodeView.sym && nodeView.sym->isVariable())
+        else if (nodeView.sym() && nodeView.sym()->isVariable())
         {
-            const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
+            const SymbolVariable& symVar = nodeView.sym()->cast<SymbolVariable>();
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
                 flags.add(TypeInfoFlagsE::Const);
         }
 
         bool blockPointer = false;
-        if (nodeView.type->isArray())
+        if (nodeView.type()->isArray())
             blockPointer = true;
 
         // TODO @legacy &arr[0] should be a value pointer, not a block pointer
-        if (const AstIndexExpr* idxExpr = nodeView.node->safeCast<AstIndexExpr>())
+        if (const AstIndexExpr* idxExpr = nodeView.node()->safeCast<AstIndexExpr>())
         {
             const SemaNodeView baseView = sema.nodeViewType(idxExpr->nodeExprRef);
-            if (baseView.type && baseView.type->isArray())
+            if (baseView.type() && baseView.type()->isArray())
                 blockPointer = true;
         }
 
-        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(nodeView.typeRef, flags) : TypeInfo::makeValuePointer(nodeView.typeRef, flags);
+        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(nodeView.typeRef(), flags) : TypeInfo::makeValuePointer(nodeView.typeRef(), flags);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
 
@@ -252,15 +252,15 @@ namespace
 
     Result checkDRef(Sema& sema, const SemaNodeView& nodeView)
     {
-        if (!nodeView.type->isAnyPointer())
-            return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
+        if (!nodeView.type()->isAnyPointer())
+            return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef(), nodeView.typeRef());
         return Result::Continue;
     }
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
-        TypeRef resultTypeRef = nodeView.type->payloadTypeRef();
-        if (nodeView.type->isConst())
+        TypeRef resultTypeRef = nodeView.type()->payloadTypeRef();
+        if (nodeView.type()->isConst())
         {
             const TypeInfo ty = sema.typeMgr().get(resultTypeRef);
             ty.flags().add(TypeInfoFlagsE::Const);
@@ -276,20 +276,20 @@ namespace
     Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& nodeView)
     {
         SWC_UNUSED(node);
-        if (nodeView.type->isAnyPointer() || nodeView.type->isReference())
+        if (nodeView.type()->isAnyPointer() || nodeView.type()->isReference())
             return Result::Continue;
-        return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
+        return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), nodeView.nodeRef(), nodeView.typeRef());
     }
 
     Result semaMoveRef(Sema& sema, const SemaNodeView& nodeView)
     {
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (nodeView.type->isConst())
+        if (nodeView.type()->isConst())
             flags.add(TypeInfoFlagsE::Const);
 
         TypeRef pointeeTypeRef = TypeRef::invalid();
-        if (nodeView.type->isReference() || nodeView.type->isAnyPointer())
-            pointeeTypeRef = nodeView.type->payloadTypeRef();
+        if (nodeView.type()->isReference() || nodeView.type()->isAnyPointer())
+            pointeeTypeRef = nodeView.type()->payloadTypeRef();
 
         SWC_ASSERT(pointeeTypeRef.isValid());
         const TypeInfo ty      = TypeInfo::makeMoveReference(pointeeTypeRef, flags);
@@ -302,10 +302,10 @@ namespace
     {
         if (op == TokenId::SymTilde)
         {
-            if (nodeView.type->isEnum())
+            if (nodeView.type()->isEnum())
             {
-                if (!nodeView.type->isEnumFlags())
-                    return SemaError::raiseInvalidOpEnum(sema, sema.curNodeRef(), nodeView.nodeRef, nodeView.typeRef);
+                if (!nodeView.type()->isEnumFlags())
+                    return SemaError::raiseInvalidOpEnum(sema, sema.curNodeRef(), nodeView.nodeRef(), nodeView.typeRef());
                 Cast::convertEnumToUnderlying(sema, nodeView);
             }
         }
@@ -342,7 +342,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeView = sema.nodeViewNodeTypeConstantSymbol(nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef()));
     sema.setIsValue(*this);
 
     // Force types
@@ -353,7 +353,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     RESULT_VERIFY(check(sema, tok.id, *this, nodeView));
 
     // Constant folding
-    if (nodeView.cstRef.isValid())
+    if (nodeView.cstRef().isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, *this, nodeView));
@@ -374,7 +374,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymTilde:
-            sema.setType(sema.curNodeRef(), nodeView.typeRef);
+            sema.setType(sema.curNodeRef(), nodeView.typeRef());
             break;
 
         default:
@@ -385,4 +385,5 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

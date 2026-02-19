@@ -14,7 +14,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView  identView = sema.nodeViewNode(nodeIdentRef);
-        const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node->codeRef());
+        const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
         SymbolImpl*         sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
@@ -38,7 +38,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView = sema.nodeViewSymbol(nodeIdentRef);
-        Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym);
+        Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym());
         if (hasFlag(AstImplFlagsE::Enum))
         {
             if (!sym.isEnum())
@@ -66,14 +66,14 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView identView = sema.nodeViewType(nodeIdentRef);
         const SemaNodeView forView   = sema.nodeViewSymbol(nodeForRef);
-        SWC_ASSERT(forView.sym);
-        if (!forView.sym->isStruct())
+        SWC_ASSERT(forView.sym());
+        if (!forView.sym()->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
 
-        RESULT_VERIFY(forView.sym->cast<SymbolStruct>().addInterface(sema, symImpl));
+        RESULT_VERIFY(forView.sym()->cast<SymbolStruct>().addInterface(sema, symImpl));
 
         symImpl.addExtraFlag(SymbolImplFlagsE::ForInterface);
-        symImpl.setTypeRef(identView.typeRef);
+        symImpl.setTypeRef(identView.typeRef());
         symImpl.setDeclared(sema.ctx());
         symImpl.setTyped(sema.ctx());
     }
@@ -112,4 +112,5 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 }
 
 SWC_END_NAMESPACE();
+
 

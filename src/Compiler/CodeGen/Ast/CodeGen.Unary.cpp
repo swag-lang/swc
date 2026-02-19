@@ -16,7 +16,7 @@ namespace
         SWC_ASSERT(childPayload != nullptr);
 
         const SemaNodeView        nodeView = codeGen.curNodeViewType();
-        const CodeGenNodePayload& payload  = codeGen.setPayloadAddress(codeGen.curNodeRef(), nodeView.typeRef);
+        const CodeGenNodePayload& payload  = codeGen.setPayloadAddress(codeGen.curNodeRef(), nodeView.typeRef());
         builder.emitLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -37,4 +37,5 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
 

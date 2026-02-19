@@ -87,11 +87,11 @@ namespace
         nodeCallee.getSymbols(symbols);
 
         AstNodeRef ufcsArg = AstNodeRef::invalid();
-        if (const auto memberAccess = nodeCallee.node->safeCast<AstMemberAccessExpr>())
+        if (const auto memberAccess = nodeCallee.node()->safeCast<AstMemberAccessExpr>())
         {
             const SemaNodeView nodeLeftView = sema.nodeViewZero(memberAccess->nodeLeftRef);
-            if (sema.isValue(nodeLeftView.nodeRef))
-                ufcsArg = nodeLeftView.nodeRef;
+            if (sema.isValue(nodeLeftView.nodeRef()))
+                ufcsArg = nodeLeftView.nodeRef();
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -262,4 +262,5 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

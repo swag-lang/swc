@@ -84,7 +84,7 @@ namespace
 {
     Result memberNamespace(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolNamespace& namespaceSym = nodeLeftView.sym->cast<SymbolNamespace>();
+        const SymbolNamespace& namespaceSym = nodeLeftView.sym()->cast<SymbolNamespace>();
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -100,7 +100,7 @@ namespace
 
     Result memberEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolEnum& enumSym = nodeLeftView.type->payloadSymEnum();
+        const SymbolEnum& enumSym = nodeLeftView.type()->payloadSymEnum();
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
@@ -116,14 +116,14 @@ namespace
 
     Result memberInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolInterface& symInterface = nodeLeftView.type->payloadSymInterface();
+        const SymbolInterface& symInterface = nodeLeftView.type()->payloadSymInterface();
         RESULT_VERIFY(sema.waitSemaCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
 
-        if (nodeLeftView.sym && nodeLeftView.sym->isImpl())
-            lookUpCxt.symMapHint = nodeLeftView.sym->asSymMap();
+        if (nodeLeftView.sym() && nodeLeftView.sym()->isImpl())
+            lookUpCxt.symMapHint = nodeLeftView.sym()->asSymMap();
         else
             lookUpCxt.symMapHint = &symInterface;
 
@@ -151,14 +151,14 @@ namespace
 
         // Constant struct member access
         const auto finalSymCount = sema.getSymbolList(node->nodeRightRef).size();
-        if (nodeLeftView.cst && finalSymCount == 1 && sema.getSymbolList(node->nodeRightRef)[0]->isVariable())
+        if (nodeLeftView.cst() && finalSymCount == 1 && sema.getSymbolList(node->nodeRightRef)[0]->isVariable())
         {
             const SymbolVariable& symVar = sema.getSymbolList(node->nodeRightRef)[0]->cast<SymbolVariable>();
-            RESULT_VERIFY(ConstantExtract::structMember(sema, *nodeLeftView.cst, symVar, sema.curNodeRef(), node->nodeRightRef));
+            RESULT_VERIFY(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, sema.curNodeRef(), node->nodeRightRef));
             return Result::SkipChildren;
         }
 
-        if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference() || sema.isLValue(node->nodeLeftRef))
+        if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference() || sema.isLValue(node->nodeLeftRef))
             sema.setIsLValue(*node);
         return Result::SkipChildren;
     }
@@ -207,7 +207,7 @@ namespace
         sema.setIsValue(*node);
         sema.setIsValue(node->nodeRightRef);
 
-        const auto& values = nodeLeftView.cst->getAggregateStruct();
+        const auto& values = nodeLeftView.cst()->getAggregateStruct();
         SWC_ASSERT(memberIndex < values.size());
         sema.setConstant(sema.curNodeRef(), values[memberIndex]);
         return Result::SkipChildren;
@@ -224,30 +224,30 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 
     SemaNodeView        nodeLeftView  = sema.nodeViewNodeTypeConstantSymbol(nodeLeftRef);
     const SemaNodeView  nodeRightView = sema.nodeViewNode(nodeRightRef);
-    const TokenRef      tokNameRef    = nodeRightView.node->tokRef();
-    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
-    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
+    const TokenRef      tokNameRef    = nodeRightView.node()->tokRef();
+    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
+    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
 
     // Namespace
-    if (nodeLeftView.sym && nodeLeftView.sym->isNamespace())
+    if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
         return memberNamespace(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
-    SWC_ASSERT(nodeLeftView.type);
+    SWC_ASSERT(nodeLeftView.type());
 
     // Enum
-    if (nodeLeftView.type->isEnum())
+    if (nodeLeftView.type()->isEnum())
         return memberEnum(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Interface
-    if (nodeLeftView.type->isInterface())
+    if (nodeLeftView.type()->isInterface())
         return memberInterface(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
     // Aggregate struct
-    if (nodeLeftView.type->isAggregateStruct())
-        return memberAggregateStruct(sema, this, nodeLeftView, idRef, tokNameRef, nodeLeftView.type);
+    if (nodeLeftView.type()->isAggregateStruct())
+        return memberAggregateStruct(sema, this, nodeLeftView, idRef, tokNameRef, nodeLeftView.type());
 
     // Dereference pointer
-    const TypeInfo* typeInfo = nodeLeftView.type;
+    const TypeInfo* typeInfo = nodeLeftView.type();
     if (typeInfo->isTypeValue())
     {
         const TypeRef typeInfoRef = sema.typeMgr().typeTypeInfo();
@@ -270,9 +270,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         return memberStruct(sema, this, nodeLeftView, idRef, tokNameRef, allowOverloadSet, typeInfo);
 
     // Pointer/Reference
-    if (nodeLeftView.type->isAnyPointer() || nodeLeftView.type->isReference())
+    if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference())
     {
-        sema.setType(sema.curNodeRef(), nodeLeftView.type->payloadTypeRef());
+        sema.setType(sema.curNodeRef(), nodeLeftView.type()->payloadTypeRef());
         sema.setIsValue(*this);
         return Result::SkipChildren;
     }
@@ -281,4 +281,5 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
 }
 
 SWC_END_NAMESPACE();
+
 

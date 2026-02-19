@@ -13,8 +13,8 @@ namespace
 {
     Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        const ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        const ConstantRef rightCstRef = nodeRightView.cstRef;
+        const ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        const ConstantRef rightCstRef = nodeRightView.cstRef();
         const ConstantRef cstFalseRef = sema.cstMgr().cstFalse();
         const ConstantRef cstTrueRef  = sema.cstMgr().cstTrue();
 
@@ -45,10 +45,10 @@ namespace
 
     Result check(Sema& sema, AstNodeRef nodeRef, const AstLogicalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (!nodeLeftView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef, nodeRightView.typeRef);
-        if (!nodeRightView.type->isConvertibleToBool())
-            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef, nodeRightView.typeRef);
+        if (!nodeLeftView.type()->isConvertibleToBool())
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
+        if (!nodeRightView.type()->isConvertibleToBool())
+            return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
         return Result::Continue;
     }
 }
@@ -60,8 +60,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     SemaNodeView     nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
     // Type-check
@@ -74,7 +74,7 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding
-    if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
+    if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
@@ -85,4 +85,5 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

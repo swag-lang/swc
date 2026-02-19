@@ -51,27 +51,27 @@ namespace
 
     Result emitPlusIntLikeIntLike(CodeGen& codeGen, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
-        SWC_ASSERT(leftView.type && rightView.type);
+        SWC_ASSERT(leftView.type() && rightView.type());
         const CodeGenNodePayload* leftPayload  = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload* rightPayload = codeGen.payload(node.nodeRightRef);
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
+        const MicroOpBits opBits = arithmeticOpBits(*leftView.type());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef());
 
         MicroReg rightReg = MicroReg::invalid();
         if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
             nodePayload.reg = leftPayload->reg;
         else
-            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef(), opBits);
 
         if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else
-            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
+            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef(), opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Add, opBits);
         return Result::Continue;
@@ -79,27 +79,27 @@ namespace
 
     Result emitPlusFloatFloat(CodeGen& codeGen, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
-        SWC_ASSERT(leftView.type && rightView.type);
+        SWC_ASSERT(leftView.type() && rightView.type());
         const CodeGenNodePayload* leftPayload  = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload* rightPayload = codeGen.payload(node.nodeRightRef);
         SWC_ASSERT(leftPayload != nullptr);
         SWC_ASSERT(rightPayload != nullptr);
 
-        const MicroOpBits opBits = arithmeticOpBits(*leftView.type);
+        const MicroOpBits opBits = arithmeticOpBits(*leftView.type());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef());
 
         MicroReg rightReg = MicroReg::invalid();
         if (shouldReuseLeftOperandAsDestination(codeGen, node.nodeLeftRef, *leftPayload))
             nodePayload.reg = leftPayload->reg;
         else
-            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef, opBits);
+            materializeBinaryOperand(nodePayload.reg, codeGen, *leftPayload, leftView.typeRef(), opBits);
 
         if (codeGen.canUseOperandRegDirect(*rightPayload))
             rightReg = rightPayload->reg;
         else
-            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef, opBits);
+            materializeBinaryOperand(rightReg, codeGen, *rightPayload, rightView.typeRef(), opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::FloatAdd, opBits);
         return Result::Continue;
@@ -109,11 +109,11 @@ namespace
     {
         const SemaNodeView leftView  = codeGen.nodeViewType(node.nodeLeftRef);
         const SemaNodeView rightView = codeGen.nodeViewType(node.nodeRightRef);
-        SWC_ASSERT(leftView.type && rightView.type);
+        SWC_ASSERT(leftView.type() && rightView.type());
 
-        if (leftView.type->isIntLike() && rightView.type->isIntLike())
+        if (leftView.type()->isIntLike() && rightView.type()->isIntLike())
             return emitPlusIntLikeIntLike(codeGen, node, leftView, rightView);
-        if (leftView.type->isFloat() && rightView.type->isFloat())
+        if (leftView.type()->isFloat() && rightView.type()->isFloat())
             return emitPlusFloatFloat(codeGen, node, leftView, rightView);
 
         return Result::Continue;
@@ -135,4 +135,6 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
+
 

@@ -13,28 +13,28 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeDownView = sema.nodeViewNodeTypeConstant(nodeExprDownRef);
     SemaNodeView nodeUpView   = sema.nodeViewNodeTypeConstant(nodeExprUpRef);
 
-    if (nodeDownView.nodeRef.isValid())
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef));
-    if (nodeUpView.nodeRef.isValid())
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeUpView.nodeRef));
+    if (nodeDownView.nodeRef().isValid())
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeDownView.nodeRef()));
+    if (nodeUpView.nodeRef().isValid())
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeUpView.nodeRef()));
 
     TypeRef typeRef = TypeRef::invalid();
-    if (nodeDownView.typeRef.isValid())
+    if (nodeDownView.typeRef().isValid())
     {
-        if (!nodeDownView.type->isScalarNumeric())
-            return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef);
-        typeRef = nodeDownView.typeRef;
+        if (!nodeDownView.type()->isScalarNumeric())
+            return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef());
+        typeRef = nodeDownView.typeRef();
     }
-    else if (nodeUpView.typeRef.isValid())
+    else if (nodeUpView.typeRef().isValid())
     {
-        if (!nodeUpView.type->isScalarNumeric())
-            return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef);
-        typeRef = nodeUpView.typeRef;
+        if (!nodeUpView.type()->isScalarNumeric())
+            return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef());
+        typeRef = nodeUpView.typeRef();
     }
 
-    if (nodeDownView.typeRef.isValid() && nodeUpView.typeRef.isValid())
+    if (nodeDownView.typeRef().isValid() && nodeUpView.typeRef().isValid())
     {
-        typeRef = sema.typeMgr().promote(nodeDownView.typeRef, nodeUpView.typeRef, false);
+        typeRef = sema.typeMgr().promote(nodeDownView.typeRef(), nodeUpView.typeRef(), false);
         RESULT_VERIFY(Cast::cast(sema, nodeDownView, typeRef, CastKind::Implicit));
         RESULT_VERIFY(Cast::cast(sema, nodeUpView, typeRef, CastKind::Implicit));
     }
@@ -43,10 +43,10 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), typeRef);
     sema.setIsValue(*this);
 
-    if (nodeDownView.cstRef.isValid() && nodeUpView.cstRef.isValid())
+    if (nodeDownView.cstRef().isValid() && nodeUpView.cstRef().isValid())
     {
-        ConstantRef          downCstRef = nodeDownView.cstRef;
-        ConstantRef          upCstRef   = nodeUpView.cstRef;
+        ConstantRef          downCstRef = nodeDownView.cstRef();
+        ConstantRef          upCstRef   = nodeUpView.cstRef();
         const ConstantValue& downCst    = sema.cstMgr().get(downCstRef);
         const ConstantValue& upCst      = sema.cstMgr().get(upCstRef);
         const bool           ok         = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
@@ -64,4 +64,5 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

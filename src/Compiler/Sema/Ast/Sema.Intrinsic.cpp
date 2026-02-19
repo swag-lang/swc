@@ -32,15 +32,15 @@ namespace
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SemaNodeView nodeView = sema.nodeViewNodeTypeConstantSymbol(children[0]);
-        if (nodeView.sym && nodeView.sym->isConstant() && nodeView.cstRef.isInvalid())
+        if (nodeView.sym() && nodeView.sym()->isConstant() && nodeView.cstRef().isInvalid())
         {
-            RESULT_VERIFY(sema.waitSemaCompleted(nodeView.sym, sema.node(nodeView.nodeRef).codeRef()));
+            RESULT_VERIFY(sema.waitSemaCompleted(nodeView.sym(), sema.node(nodeView.nodeRef()).codeRef()));
             nodeView.compute(sema, children[0], SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         }
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef()));
 
-        const TypeInfo* type = nodeView.type;
+        const TypeInfo* type = nodeView.type();
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -63,11 +63,11 @@ namespace
         }
         else if (type->isAnyPointer())
         {
-            resultTypeRef = nodeView.typeRef;
+            resultTypeRef = nodeView.typeRef();
         }
 
         if (!resultTypeRef.isValid())
-            return SemaError::raiseInvalidType(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeBlockPtrVoid());
+            return SemaError::raiseInvalidType(sema, nodeView.nodeRef(), nodeView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, nodeView);
@@ -79,10 +79,10 @@ namespace
     {
         const SemaNodeView nodeView = sema.nodeViewType(children[0]);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeView.nodeRef()));
 
-        if (!nodeView.type || !nodeView.type->isAny())
-            return SemaError::raiseRequestedTypeFam(sema, nodeView.nodeRef, nodeView.typeRef, sema.typeMgr().typeAny());
+        if (!nodeView.type() || !nodeView.type()->isAny())
+            return SemaError::raiseRequestedTypeFam(sema, nodeView.nodeRef(), nodeView.typeRef(), sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
         sema.setIsValue(node);
@@ -100,23 +100,23 @@ namespace
         const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
         SemaNodeView       nodeViewType = sema.nodeViewTypeConstant(children[1]);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeViewType));
 
-        if (!nodeViewPtr.type->isValuePointer())
-            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeValuePtrVoid());
-        if (!nodeViewType.type->isAnyTypeInfo(sema.ctx()))
-            return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef, nodeViewType.typeRef, sema.typeMgr().typeTypeInfo());
+        if (!nodeViewPtr.type()->isValuePointer())
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
+        if (!nodeViewType.type()->isAnyTypeInfo(sema.ctx()))
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewType.nodeRef(), nodeViewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void* or a pointer to the type defined in the right expression
-        const TypeRef typeRefPointee = nodeViewPtr.type->payloadTypeRef();
-        if (!sema.typeMgr().get(typeRefPointee).isVoid() && nodeViewType.cstRef.isValid())
+        const TypeRef typeRefPointee = nodeViewPtr.type()->payloadTypeRef();
+        if (!sema.typeMgr().get(typeRefPointee).isVoid() && nodeViewType.cstRef().isValid())
         {
-            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, nodeViewType.cstRef);
+            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, nodeViewType.cstRef());
             if (typeRefPointee != typeRefTypeInfo)
             {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef);
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeViewPtr.typeRef);
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeViewPtr.typeRef());
                 diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeRefTypeInfo);
                 diag.report(sema.ctx());
                 return Result::Error;
@@ -124,7 +124,7 @@ namespace
         }
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (nodeViewPtr.type->isConst())
+        if (nodeViewPtr.type()->isConst())
             flags.add(TypeInfoFlagsE::Const);
 
         const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAny(flags));
@@ -139,11 +139,11 @@ namespace
         const SemaNodeView nodeViewPtr  = sema.nodeViewType(children[0]);
         SemaNodeView       nodeViewSize = sema.nodeViewNodeTypeConstant(children[1]);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef));
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));
 
-        if (!nodeViewPtr.type->isAnyPointer())
-            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef, nodeViewPtr.typeRef, sema.typeMgr().typeBlockPtrVoid());
+        if (!nodeViewPtr.type()->isAnyPointer())
+            return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
         RESULT_VERIFY(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
 
@@ -155,8 +155,8 @@ namespace
         }
         else
         {
-            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type->payloadTypeRef());
-            if (nodeViewPtr.type->isConst())
+            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type()->payloadTypeRef());
+            if (nodeViewPtr.type()->isConst())
                 ty.addFlag(TypeInfoFlagsE::Const);
             typeRef = sema.typeMgr().addType(ty);
         }
@@ -210,4 +210,5 @@ Result AstCountOfExpr::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

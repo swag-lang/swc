@@ -14,34 +14,34 @@ namespace
 {
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef == nodeRightView.cstRef)
+        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
         {
             result = sema.cstMgr().cstTrue();
             return Result::Continue;
         }
 
-        if (nodeLeftView.type->isTypeValue() && nodeRightView.type->isTypeValue())
+        if (nodeLeftView.type()->isTypeValue() && nodeRightView.type()->isTypeValue())
         {
-            result = sema.cstMgr().cstBool(*SWC_CHECK_NOT_NULL(nodeLeftView.type) == *SWC_CHECK_NOT_NULL(nodeRightView.type));
+            result = sema.cstMgr().cstBool(*SWC_CHECK_NOT_NULL(nodeLeftView.type()) == *SWC_CHECK_NOT_NULL(nodeRightView.type()));
             return Result::Continue;
         }
 
-        if (nodeLeftView.type->isAnyTypeInfo(sema.ctx()) && nodeRightView.type->isAnyTypeInfo(sema.ctx()))
+        if (nodeLeftView.type()->isAnyTypeInfo(sema.ctx()) && nodeRightView.type()->isAnyTypeInfo(sema.ctx()))
         {
-            const ConstantValue& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef);
-            const ConstantValue& rightCst = sema.cstMgr().get(nodeRightView.cstRef);
+            const ConstantValue& leftCst  = sema.cstMgr().get(nodeLeftView.cstRef());
+            const ConstantValue& rightCst = sema.cstMgr().get(nodeRightView.cstRef());
             result                        = sema.cstMgr().cstBool(leftCst.getValuePointer() == rightCst.getValuePointer());
             return Result::Continue;
         }
 
-        if (nodeLeftView.cst->isNull() || nodeRightView.cst->isNull())
+        if (nodeLeftView.cst()->isNull() || nodeRightView.cst()->isNull())
         {
-            result = sema.cstMgr().cstBool(nodeLeftView.cst->isNull() && nodeRightView.cst->isNull());
+            result = sema.cstMgr().cstBool(nodeLeftView.cst()->isNull() && nodeRightView.cst()->isNull());
             return Result::Continue;
         }
 
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
@@ -61,14 +61,14 @@ namespace
 
     Result constantFoldLess(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef == nodeRightView.cstRef)
+        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
         {
             result = sema.cstMgr().cstFalse();
             return Result::Continue;
         }
 
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
 
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
@@ -86,14 +86,14 @@ namespace
 
     Result constantFoldLessEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef == nodeRightView.cstRef)
+        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
         {
             result = sema.cstMgr().cstTrue();
             return Result::Continue;
         }
 
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
 
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
@@ -111,8 +111,8 @@ namespace
 
     Result constantFoldGreater(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
 
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
@@ -130,14 +130,14 @@ namespace
 
     Result constantFoldGreaterEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.cstRef == nodeRightView.cstRef)
+        if (nodeLeftView.cstRef() == nodeRightView.cstRef())
         {
             result = sema.cstMgr().cstTrue();
             return Result::Continue;
         }
 
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
 
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
@@ -155,8 +155,8 @@ namespace
 
     Result constantFoldCompareEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        ConstantRef leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef rightCstRef = nodeRightView.cstRef;
+        ConstantRef leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef rightCstRef = nodeRightView.cstRef();
 
         RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         const ConstantValue& left  = sema.cstMgr().get(leftCstRef);
@@ -210,38 +210,38 @@ namespace
 
     Result checkEqualEqual(Sema& sema, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.typeRef == nodeRightView.typeRef)
+        if (nodeLeftView.typeRef() == nodeRightView.typeRef())
             return Result::Continue;
-        if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
+        if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isScalarNumeric())
             return Result::Continue;
-        if (nodeLeftView.type->isType() && nodeRightView.type->isType())
+        if (nodeLeftView.type()->isType() && nodeRightView.type()->isType())
             return Result::Continue;
-        if (nodeLeftView.type->isNull() && nodeRightView.type->isPointerLike())
+        if (nodeLeftView.type()->isNull() && nodeRightView.type()->isPointerLike())
             return Result::Continue;
-        if (nodeLeftView.type->isPointerLike() && nodeRightView.type->isNull())
+        if (nodeLeftView.type()->isPointerLike() && nodeRightView.type()->isNull())
             return Result::Continue;
-        if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
+        if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isAnyPointer())
             return Result::Continue;
-        if (nodeLeftView.type->isAnyTypeInfo(sema.ctx()) && nodeRightView.type->isAnyTypeInfo(sema.ctx()))
+        if (nodeLeftView.type()->isAnyTypeInfo(sema.ctx()) && nodeRightView.type()->isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
-        diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
-        diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
+        diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
+        diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }
 
     Result checkCompareEqual(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isScalarNumeric())
+        if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isScalarNumeric())
             return Result::Continue;
-        if (nodeLeftView.type->isAnyPointer() && nodeRightView.type->isAnyPointer())
+        if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isAnyPointer())
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
-        diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef);
-        diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef);
+        diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
+        diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -250,25 +250,25 @@ namespace
     {
         void enumForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
         {
-            if (!self.type || !other.type)
+            if (!self.type() || !other.type())
                 return;
-            if (self.type->isEnum() && !other.type->isEnum())
+            if (self.type()->isEnum() && !other.type()->isEnum())
                 Cast::convertEnumToUnderlying(sema, self);
         }
 
         void nullForEquality(Sema& sema, const SemaNodeView& self, const SemaNodeView& other)
         {
-            if (!self.type || !other.type)
+            if (!self.type() || !other.type())
                 return;
-            if (self.type->isNull() && other.type->isPointerLike())
-                Cast::createCast(sema, other.typeRef, self.nodeRef);
+            if (self.type()->isNull() && other.type()->isPointerLike())
+                Cast::createCast(sema, other.typeRef(), self.nodeRef());
         }
 
         Result typeInfoForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
         {
-            if (!self.type || !other.type)
+            if (!self.type() || !other.type())
                 return Result::Continue;
-            if (self.type->isTypeValue() && other.type->isAnyTypeInfo(sema.ctx()))
+            if (self.type()->isTypeValue() && other.type()->isAnyTypeInfo(sema.ctx()))
             {
                 RESULT_VERIFY(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
                 return Result::Continue;
@@ -321,7 +321,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     {
         const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
         SemaFrame          frame        = sema.frame();
-        frame.pushBindingType(nodeLeftView.typeRef);
+        frame.pushBindingType(nodeLeftView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
     }
 
@@ -351,7 +351,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding
-    if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
+    if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
     {
         ConstantRef result;
         RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
@@ -362,4 +362,5 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

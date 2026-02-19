@@ -42,13 +42,13 @@ namespace
 {
     Result validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
     {
-        if (sym.isEnumFlags() && !typeView.type->isIntUnsigned())
+        if (sym.isEnumFlags() && !typeView.type()->isIntUnsigned())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
 
-        if (!typeView.type->isScalarNumeric() &&
-            !typeView.type->isBool() &&
-            !typeView.type->isRune() &&
-            !typeView.type->isString())
+        if (!typeView.type()->isScalarNumeric() &&
+            !typeView.type()->isBool() &&
+            !typeView.type()->isRune() &&
+            !typeView.type()->isString())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
 
         return Result::Continue;
@@ -56,13 +56,13 @@ namespace
 
     TypeRef resolveEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, SemaNodeView& typeView)
     {
-        if (typeView.nodeRef.isValid())
-            return typeView.typeRef;
+        if (typeView.nodeRef().isValid())
+            return typeView.typeRef();
 
         const auto sign  = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
-        typeView.typeRef = sema.typeMgr().typeInt(32, sign);
-        typeView.type    = &sema.typeMgr().get(typeView.typeRef);
-        return typeView.typeRef;
+        typeView.typeRef() = sema.typeMgr().typeInt(32, sign);
+        typeView.type()    = &sema.typeMgr().get(typeView.typeRef());
+        return typeView.typeRef();
     }
 
     void initEnumNextValue(SymbolEnum& sym, const TypeInfo& underlyingType)
@@ -100,7 +100,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     sym.setUnderlyingTypeRef(underlyingTypeRef);
     sym.setTyped(sema.ctx());
 
-    initEnumNextValue(sym, *typeView.type);
+    initEnumNextValue(sym, *typeView.type());
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
@@ -132,15 +132,15 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
 
     ConstantRef valueCst;
-    if (nodeInitView.nodeRef.isValid())
+    if (nodeInitView.nodeRef().isValid())
     {
         // Must be constant
-        if (nodeInitView.cstRef.isInvalid())
+        if (nodeInitView.cstRef().isInvalid())
             return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         // Cast initializer constant to the underlying type
         RESULT_VERIFY(Cast::cast(sema, nodeInitView, underlyingTypeRef, CastKind::Initialization));
-        valueCst = nodeInitView.cstRef;
+        valueCst = nodeInitView.cstRef();
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
@@ -186,4 +186,5 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

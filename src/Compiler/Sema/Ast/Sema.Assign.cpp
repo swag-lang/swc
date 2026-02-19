@@ -15,19 +15,19 @@ namespace
 {
     TypeRef assignmentTargetTypeRef(const SemaNodeView& leftView)
     {
-        if (leftView.type && leftView.type->isReference())
-            return leftView.type->payloadTypeRef();
-        return leftView.typeRef;
+        if (leftView.type() && leftView.type()->isReference())
+            return leftView.type()->payloadTypeRef();
+        return leftView.typeRef();
     }
 
     SemaNodeView assignmentTargetView(Sema& sema, const SemaNodeView& leftView)
     {
         SemaNodeView  targetView    = leftView;
         const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
-        if (targetTypeRef != leftView.typeRef)
+        if (targetTypeRef != leftView.typeRef())
         {
-            targetView.typeRef = targetTypeRef;
-            targetView.type    = &sema.typeMgr().get(targetTypeRef);
+            targetView.typeRef() = targetTypeRef;
+            targetView.type()    = &sema.typeMgr().get(targetTypeRef);
         }
         return targetView;
     }
@@ -36,12 +36,12 @@ namespace
     {
         if (!modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::MoveRaw}))
             return;
-        if (!rightView.type || !rightView.type->isMoveReference())
+        if (!rightView.type() || !rightView.type()->isMoveReference())
             return;
 
-        const TypeRef valueTypeRef = rightView.type->payloadTypeRef();
-        rightView.typeRef          = valueTypeRef;
-        rightView.type             = &sema.typeMgr().get(valueTypeRef);
+        const TypeRef valueTypeRef = rightView.type()->payloadTypeRef();
+        rightView.typeRef()          = valueTypeRef;
+        rightView.type()             = &sema.typeMgr().get(valueTypeRef);
     }
 
     Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
@@ -50,10 +50,10 @@ namespace
         {
             case TokenId::SymSlashEqual:
             case TokenId::SymPercentEqual:
-                if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
-                if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
+                if (nodeRightView.type()->isFloat() && nodeRightView.cst()->getFloat().isZero())
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+                if (nodeRightView.type()->isInt() && nodeRightView.cst()->getInt().isZero())
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
                 break;
 
             default:
@@ -73,7 +73,7 @@ namespace
 
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
-        if (nodeRightView.cstRef.isValid())
+        if (nodeRightView.cstRef().isValid())
             RESULT_VERIFY(checkRightConstant(sema, op, nodeRef, nodeRightView));
 
         switch (op)
@@ -108,19 +108,19 @@ namespace
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
 
-        if (!nodeRightView.type->isStruct())
+        if (!nodeRightView.type()->isStruct())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef);
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef());
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        RESULT_VERIFY(sema.waitSemaCompleted(nodeRightView.type, nodeRightView.nodeRef));
+        RESULT_VERIFY(sema.waitSemaCompleted(nodeRightView.type(), nodeRightView.nodeRef()));
 
-        const SymbolStruct& symStruct = nodeRightView.type->payloadSymStruct();
+        const SymbolStruct& symStruct = nodeRightView.type()->payloadSymStruct();
         const auto&         fields    = symStruct.fields();
 
         if (leftRefs.size() > fields.size())
@@ -167,7 +167,7 @@ namespace
 
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
 
-        if (nodeRightView.cstRef.isValid())
+        if (nodeRightView.cstRef().isValid())
             RESULT_VERIFY(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
         if (tok.id == TokenId::SymEqual)
@@ -176,7 +176,7 @@ namespace
         }
         else
         {
-            RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+            RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
         }
 
         for (const auto leftRef : leftRefs)
@@ -191,13 +191,13 @@ namespace
             {
                 const TokenId binOp          = Token::assignToBinary(tok.id);
                 const auto    targetLeftView = assignmentTargetView(sema, leftView);
-                RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef, targetLeftView, nodeRightView));
+                RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, leftRef, nodeRightView.nodeRef(), targetLeftView, nodeRightView));
             }
 
             CastRequest castRequest(CastKind::Assignment);
             castRequest.errorNodeRef    = leftRef;
             const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
-            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef, targetTypeRef) != Result::Continue)
+            if (Cast::castAllowed(sema, castRequest, nodeRightView.typeRef(), targetTypeRef) != Result::Continue)
                 return Cast::emitCastFailure(sema, castRequest.failure);
         }
 
@@ -223,10 +223,10 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         // Provide a type hint to the RHS: `a = expr` should type `expr` as `typeof(a)` when possible.
         const SemaNodeView leftView = sema.nodeViewType(nodeLeftRef);
-        if (leftView.typeRef.isValid())
+        if (leftView.typeRef().isValid())
         {
             auto frame = sema.frame();
-            frame.pushBindingType(leftView.typeRef);
+            frame.pushBindingType(leftView.typeRef());
             sema.pushFramePopOnPostChild(frame, nodeRightRef);
         }
     }
@@ -240,9 +240,9 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     SemaNodeView       nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
 
     const Token& tok = sema.token(codeRef());
-    if (nodeLeftView.node->is(AstNodeId::AssignList))
+    if (nodeLeftView.node()->is(AstNodeId::AssignList))
     {
-        const AstAssignList* assignList = nodeLeftView.node->cast<AstAssignList>();
+        const AstAssignList* assignList = nodeLeftView.node()->cast<AstAssignList>();
         if (assignList->hasFlag(AstAssignListFlagsE::Destructuring))
             return assignDecomposition(sema, tok, *assignList, modifierFlags, nodeRightView);
         return assignMulti(sema, tok, *assignList, modifierFlags, nodeRightView);
@@ -259,7 +259,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     }
     else
     {
-        RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+        RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
         const TokenId binOp          = Token::assignToBinary(tok.id);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
         RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
@@ -270,4 +270,5 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

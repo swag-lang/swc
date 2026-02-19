@@ -99,18 +99,18 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SemaNodeView exprView = sema.nodeViewTypeConstant(nodeExprRef);
         RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
-        const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef);
-        const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
+        const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& finalType = sema.typeMgr().get(ultimate);
         if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
-        sema.payload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef;
+        sema.payload<SwitchPayload>(sema.curNodeRef())->exprTypeRef = exprView.typeRef();
 
         if (type.isEnum())
         {
             SemaFrame frame = sema.frame();
-            frame.pushBindingType(exprView.typeRef);
+            frame.pushBindingType(exprView.typeRef());
             sema.pushFramePopOnPostNode(frame);
         }
     }
@@ -149,7 +149,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
         if (!isUnconditionalDefault)
         {
             const SemaNodeView whereView = sema.nodeViewConstant(nodeWhereRef);
-            isUnconditionalDefault       = whereView.cstRef == sema.cstMgr().cstTrue();
+            isUnconditionalDefault       = whereView.cstRef() == sema.cstMgr().cstTrue();
         }
         if (!isUnconditionalDefault)
             return Result::Continue;
@@ -205,7 +205,7 @@ namespace
     Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)
     {
         const SemaNodeView exprView = sema.nodeViewConstant(exprRef);
-        if (exprView.cstRef.isInvalid())
+        if (exprView.cstRef().isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, exprRef);
         return Result::Continue;
     }
@@ -233,7 +233,7 @@ namespace
         if (whereRef.isValid())
         {
             const SemaNodeView whereView = sema.nodeViewConstant(whereRef);
-            if (whereView.cstRef.isInvalid() || whereView.cstRef != sema.cstMgr().cstTrue())
+            if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
                 return Result::Continue;
         }
 
@@ -242,15 +242,15 @@ namespace
 
         const SemaNodeView exprView = sema.nodeViewConstant(caseExprRef);
 
-        const auto it = seenSet->seen.find(exprView.cstRef);
+        const auto it = seenSet->seen.find(exprView.cstRef());
         if (it == seenSet->seen.end())
         {
-            seenSet->seen.emplace(exprView.cstRef, caseExprRef);
+            seenSet->seen.emplace(exprView.cstRef(), caseExprRef);
             return Result::Continue;
         }
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef).toString(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(exprView.cstRef()).toString(sema.ctx()));
         diag.addNote(DiagnosticId::sema_note_previous_case_value);
         diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
@@ -339,4 +339,5 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

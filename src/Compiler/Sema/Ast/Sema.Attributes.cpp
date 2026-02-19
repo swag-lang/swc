@@ -75,7 +75,7 @@ namespace
         {
             RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.nodeViewConstant(argValueRef);
-            outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst->getString()});
+            outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
         }
 
         return Result::Continue;
@@ -87,10 +87,10 @@ namespace
         RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
 
         const SemaNodeView argView = sema.nodeViewConstant(argValueRef);
-        SWC_ASSERT(argView.cst != nullptr);
-        SWC_ASSERT(argView.cst->isEnumValue());
+        SWC_ASSERT(argView.cst() != nullptr);
+        SWC_ASSERT(argView.cst()->isEnumValue());
 
-        const ConstantValue& levelValue = sema.ctx().cstMgr().get(argView.cst->getEnumValue());
+        const ConstantValue& levelValue = sema.ctx().cstMgr().get(argView.cst()->getEnumValue());
         SWC_ASSERT(levelValue.isInt());
         const int64_t levelI64 = levelValue.getInt().asI64();
         outAttributes.setBackendOptimize(static_cast<Runtime::BuildCfgBackendOptim>(levelI64));
@@ -105,9 +105,9 @@ namespace
         const AstNodeRef moduleValueRef = args[0];
         RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
         const SemaNodeView moduleView = sema.nodeViewConstant(moduleValueRef);
-        SWC_ASSERT(moduleView.cst != nullptr);
-        if (!moduleView.cst->isString())
-            return SemaError::raiseInvalidType(sema, moduleValueRef, moduleView.cst->typeRef(), sema.typeMgr().typeString());
+        SWC_ASSERT(moduleView.cst() != nullptr);
+        if (!moduleView.cst()->isString())
+            return SemaError::raiseInvalidType(sema, moduleValueRef, moduleView.cst()->typeRef(), sema.typeMgr().typeString());
 
         std::string_view functionName;
         if (args.size() > 1)
@@ -115,13 +115,13 @@ namespace
             const AstNodeRef functionValueRef = args[1];
             RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
             const SemaNodeView functionView = sema.nodeViewConstant(functionValueRef);
-            SWC_ASSERT(functionView.cst != nullptr);
-            if (!functionView.cst->isString())
-                return SemaError::raiseInvalidType(sema, functionValueRef, functionView.cst->typeRef(), sema.typeMgr().typeString());
-            functionName = functionView.cst->getString();
+            SWC_ASSERT(functionView.cst() != nullptr);
+            if (!functionView.cst()->isString())
+                return SemaError::raiseInvalidType(sema, functionValueRef, functionView.cst()->typeRef(), sema.typeMgr().typeString());
+            functionName = functionView.cst()->getString();
         }
 
-        outAttributes.setForeign(moduleView.cst->getString(), functionName);
+        outAttributes.setForeign(moduleView.cst()->getString(), functionName);
         return Result::Continue;
     }
 
@@ -248,16 +248,16 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     SWC_ASSERT(callNode != nullptr);
 
     const SemaNodeView callView = sema.nodeViewSymbol(nodeCallRef);
-    SWC_ASSERT(callView.sym);
+    SWC_ASSERT(callView.sym());
 
     AstNodeRef errorRef = nodeCallRef;
     if (callNode->nodeExprRef.isValid())
         errorRef = callNode->nodeExprRef;
 
-    if (!callView.sym->isAttribute())
+    if (!callView.sym()->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, errorRef);
 
-    const SymbolFunction* attrSym = callView.sym->safeCast<SymbolFunction>();
+    const SymbolFunction* attrSym = callView.sym()->safeCast<SymbolFunction>();
     SWC_ASSERT(attrSym != nullptr);
 
     SmallVector<AstNodeRef> args;
@@ -281,4 +281,5 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

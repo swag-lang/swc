@@ -267,7 +267,7 @@ namespace
 
     Result errorNotCallable(Sema& sema, const SemaNodeView& nodeCallee)
     {
-        const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef);
+        const Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_not_callable, nodeCallee.nodeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -344,7 +344,7 @@ namespace
                 break;
         }
 
-        Diagnostic diag = SemaError::report(sema, id, nodeCallee.nodeRef);
+        Diagnostic diag = SemaError::report(sema, id, nodeCallee.nodeRef());
         fillMatchDiagnostic(sema, diag.last(), diag, fn, fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
@@ -396,7 +396,7 @@ namespace
 
         std::ranges::sort(sorted, SortedAttemptByRankDesc{});
 
-        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef);
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef());
 
         // One note per overload attempt describing why it failed (and where when possible).
         int count = 0;
@@ -434,7 +434,7 @@ namespace
         const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant);
         auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
-        if (const AstAutoCastExpr* autoCast = argNodeView.node->safeCast<AstAutoCastExpr>())
+        if (const AstAutoCastExpr* autoCast = argNodeView.node()->safeCast<AstAutoCastExpr>())
         {
             castKind = CastKind::Explicit;
             if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
@@ -442,12 +442,12 @@ namespace
             if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
                 castFlags.add(CastFlagsE::UnConst);
         }
-        if (argNodeView.cstRef.isValid() && sema.isFoldedTypedConst(argRef))
+        if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
 
         CastRequest castRequest(castKind);
         castRequest.flags = castFlags;
-        castRequest.setConstantFoldingSrc(argNodeView.cstRef);
+        castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
         const Result castResult = Cast::castAllowed(sema, castRequest, from, to);
@@ -483,8 +483,8 @@ namespace
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
-        const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
+        const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef       = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
@@ -526,8 +526,8 @@ namespace
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
-        const TokenRef      tokNameRef = nodeRightView.node->tokRef();
-        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node->codeRef());
+        const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
+        const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
@@ -623,7 +623,7 @@ namespace
 
             CastFailure        cf{};
             const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Type);
-            TypeRef            argTy = argNodeView.typeRef;
+            TypeRef            argTy = argNodeView.typeRef();
 
             if (argTy.isInvalid())
             {
@@ -680,7 +680,7 @@ namespace
                 for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
                     const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = sema.nodeViewType(argRef).typeRef;
+                    const TypeRef    argTy  = sema.nodeViewType(argRef).typeRef();
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
                     RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
@@ -891,7 +891,7 @@ namespace
         }
 
         if (ambiguous)
-            return raiseAmbiguousBest(sema, nodeCallee.nodeRef, viable, outSelected->candidate);
+            return raiseAmbiguousBest(sema, nodeCallee.nodeRef(), viable, outSelected->candidate);
 
         return Result::Continue;
     }
@@ -946,13 +946,13 @@ namespace
 
     AstNodeRef findInterfaceReceiverArg(Sema& sema, const SemaNodeView& nodeCallee)
     {
-        const AstMemberAccessExpr* memberAccess = nodeCallee.node ? nodeCallee.node->safeCast<AstMemberAccessExpr>() : nullptr;
+        const AstMemberAccessExpr* memberAccess = nodeCallee.node() ? nodeCallee.node()->safeCast<AstMemberAccessExpr>() : nullptr;
         if (!memberAccess)
             return AstNodeRef::invalid();
 
         const SemaNodeView receiverView = sema.nodeViewNodeType(memberAccess->nodeLeftRef);
-        if (receiverView.type && receiverView.type->isInterface() && sema.isValue(*receiverView.node))
-            return receiverView.nodeRef;
+        if (receiverView.type() && receiverView.type()->isInterface() && sema.isValue(*receiverView.node()))
+            return receiverView.nodeRef();
 
         return AstNodeRef::invalid();
     }
@@ -1008,7 +1008,7 @@ namespace
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
             {
                 const SemaNodeView argView = sema.nodeViewType(finalArgRef);
-                if (argView.type && argView.type->isInterface())
+                if (argView.type() && argView.type()->isInterface())
                     passKind = CallArgumentPassKind::InterfaceObject;
             }
 
@@ -1066,7 +1066,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     }
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
-        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef);
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
@@ -1103,5 +1103,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 }
 
 SWC_END_NAMESPACE();
+
+
 
 

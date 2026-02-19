@@ -182,9 +182,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     }
 
     const SemaNodeView  nodeRightView = sema.nodeViewNode(nodeIdentRef);
-    const SourceCodeRef codeRef       = nodeRightView.node->codeRef();
+    const SourceCodeRef codeRef       = nodeRightView.node()->codeRef();
     const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
-    SWC_ASSERT(nodeRightView.node->is(AstNodeId::Identifier));
+    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
 
     // Probe candidates without pausing on empty results.
     SmallVector2<AutoMemberMatch> matches;
@@ -264,4 +264,5 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 }
 
 SWC_END_NAMESPACE();
+
 

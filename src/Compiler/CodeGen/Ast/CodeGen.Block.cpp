@@ -7,15 +7,16 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeViewType().typeRef);
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curNodeViewType().typeRef());
     return Result::Continue;
 }
 
 Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.curNodeViewType().typeRef);
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.curNodeViewType().typeRef());
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
+
 

@@ -16,7 +16,7 @@ namespace
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
         const SemaNodeView rightView  = codeGen.nodeViewSymbol(node.nodeRightRef);
-        const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym);
+        const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
         const auto&        methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
@@ -32,18 +32,18 @@ namespace
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView leftView = codeGen.nodeViewType(nodeLeftRef);
-    SWC_ASSERT(leftView.type);
+    SWC_ASSERT(leftView.type());
 
-    if (leftView.type->isInterface())
+    if (leftView.type()->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
 
     if (codeGen.payload(nodeRightRef))
     {
-        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curNodeViewType().typeRef);
+        codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curNodeViewType().typeRef());
         return Result::Continue;
     }
 
-    if (codeGen.curNodeViewConstant().cst)
+    if (codeGen.curNodeViewConstant().cst())
         return Result::Continue;
 
     // TODO
@@ -51,4 +51,6 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
+
 

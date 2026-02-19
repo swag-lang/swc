@@ -67,16 +67,16 @@ namespace
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView nodeView = codeGen.curNodeViewSymbol();
-    SWC_ASSERT(nodeView.sym);
-    codeGenIdentifierFromSymbol(codeGen, *nodeView.sym);
+    SWC_ASSERT(nodeView.sym());
+    codeGenIdentifierFromSymbol(codeGen, *nodeView.sym());
     return Result::Continue;
 }
 
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView nodeView = codeGen.curNodeViewSymbol();
-    SWC_ASSERT(nodeView.sym);
-    const SymbolVariable& symVar = nodeView.sym->cast<SymbolVariable>();
+    SWC_ASSERT(nodeView.sym());
+    const SymbolVariable& symVar = nodeView.sym()->cast<SymbolVariable>();
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
@@ -94,12 +94,12 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView nodeView = codeGen.curNodeViewSymbolList();
-    SWC_ASSERT(!nodeView.symList.empty());
+    SWC_ASSERT(!nodeView.symList().empty());
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-        for (Symbol* sym : nodeView.symList)
+        for (Symbol* sym : nodeView.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
@@ -107,7 +107,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        for (Symbol* sym : nodeView.symList)
+        for (Symbol* sym : nodeView.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
@@ -118,4 +118,5 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
 

@@ -12,12 +12,12 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 {
     const TaskContext& ctx        = sema.ctx();
     const SemaNodeView suffixView = sema.nodeViewType(nodeSuffixRef);
-    const TypeRef      typeRef    = suffixView.typeRef;
+    const TypeRef      typeRef    = suffixView.typeRef();
 
     SemaNodeView nodeLiteralView = sema.nodeViewNodeTypeConstant(nodeLiteralRef);
-    SWC_ASSERT(nodeLiteralView.cstRef.isValid());
+    SWC_ASSERT(nodeLiteralView.cstRef().isValid());
 
-    ConstantRef cstRef = nodeLiteralView.cstRef;
+    ConstantRef cstRef = nodeLiteralView.cstRef();
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
@@ -48,10 +48,10 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
         }
     }
 
-    sema.setConstant(nodeLiteralView.nodeRef, cstRef);
+    sema.setConstant(nodeLiteralView.nodeRef(), cstRef);
     nodeLiteralView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
-    sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef);
+    sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef());
 
     return Result::Continue;
 }
@@ -65,7 +65,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView = sema.nodeViewZero(nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
@@ -78,10 +78,10 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         castFlags.add(CastFlagsE::UnConst);
     castFlags.add(CastFlagsE::FromExplicitNode);
 
-    sema.inheritPayload(*this, nodeExprView.nodeRef);
+    sema.inheritPayload(*this, nodeExprView.nodeRef());
     SemaNodeView nodeView = sema.curNodeViewNodeTypeConstant();
-    nodeView.typeRef      = nodeView.type->unwrap(sema.ctx(), nodeView.typeRef, TypeExpandE::Function);
-    RESULT_VERIFY(Cast::cast(sema, nodeView, nodeTypeView.typeRef, CastKind::Explicit, castFlags));
+    nodeView.typeRef()      = nodeView.type()->unwrap(sema.ctx(), nodeView.typeRef(), TypeExpandE::Function);
+    RESULT_VERIFY(Cast::cast(sema, nodeView, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
     return Result::Continue;
 }
@@ -91,18 +91,19 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView = sema.nodeViewZero(nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
     RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
     // We do not know the destination type here (it comes from context).
     // Keep the node and inherit the child payload; the cast will be applied later.
-    sema.inheritPayload(*this, nodeExprView.nodeRef);
+    sema.inheritPayload(*this, nodeExprView.nodeRef());
     sema.setIsValue(*this);
 
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
+
 

@@ -34,15 +34,15 @@ namespace
 
     uint64_t materializeConstantAndGetAddress(Sema& sema, const SemaNodeView& nodeView)
     {
-        SWC_ASSERT(nodeView.type);
-        const uint64_t sizeOf = nodeView.type->sizeOf(sema.ctx());
+        SWC_ASSERT(nodeView.type());
+        const uint64_t sizeOf = nodeView.type()->sizeOf(sema.ctx());
         if (!sizeOf)
             return 0;
 
         SmallVector<std::byte> storage(sizeOf);
         ByteSpanRW             storageSpan{storage.data(), storage.size()};
         std::memset(storageSpan.data(), 0, storageSpan.size());
-        ConstantLower::lowerToBytes(sema, storageSpan, nodeView.cstRef, nodeView.typeRef);
+        ConstantLower::lowerToBytes(sema, storageSpan, nodeView.cstRef(), nodeView.typeRef());
 
         const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
         return reinterpret_cast<uint64_t>(persistentStorage.data());
@@ -51,11 +51,11 @@ namespace
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
     {
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        if (!argView.cstRef.isValid())
+        if (!argView.cstRef().isValid())
             return false;
-        if (!argView.type || !argView.type->isFloat())
+        if (!argView.type() || !argView.type()->isFloat())
             return false;
-        out = sema.cstMgr().get(argView.cstRef).getFloat().asDouble();
+        out = sema.cstMgr().get(argView.cstRef()).getFloat().asDouble();
         return true;
     }
 
@@ -92,11 +92,11 @@ namespace
 
 void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef, const SemaNodeView& nodeView)
 {
-    if (!nodeView.cstRef.isValid())
+    if (!nodeView.cstRef().isValid())
         return;
 
-    const ConstantValue& cst  = sema.cstMgr().get(nodeView.cstRef);
-    const TypeInfo*      type = nodeView.type;
+    const ConstantValue& cst  = sema.cstMgr().get(nodeView.cstRef());
+    const TypeInfo*      type = nodeView.type();
     SWC_ASSERT(type);
 
     uint64_t ptrValue = 0;
@@ -162,11 +162,11 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 
             const SemaNodeView aView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             const SemaNodeView bView(sema, args[1], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            if (!aView.cstRef.isValid() || !bView.cstRef.isValid())
+            if (!aView.cstRef().isValid() || !bView.cstRef().isValid())
                 return Result::Continue;
 
-            auto aCstRef = aView.cstRef;
-            auto bCstRef = bView.cstRef;
+            auto aCstRef = aView.cstRef();
+            auto bCstRef = bView.cstRef();
             RESULT_VERIFY(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
 
             const ConstantValue& aCst  = sema.cstMgr().get(aCstRef);
@@ -295,3 +295,4 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 }
 
 SWC_END_NAMESPACE();
+

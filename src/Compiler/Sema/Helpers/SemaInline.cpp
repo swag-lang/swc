@@ -18,10 +18,10 @@ namespace
         if (returnTypeRef != sema.typeMgr().typeVoid())
             RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
 
-        if (inlineView.cstRef.isValid())
+        if (inlineView.cstRef().isValid())
         {
             sema.setFoldedTypedConst(callRef);
-            sema.setConstant(callRef, inlineView.cstRef);
+            sema.setConstant(callRef, inlineView.cstRef());
         }
 
         return Result::Continue;
@@ -195,3 +195,4 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 }
 
 SWC_END_NAMESPACE();
+

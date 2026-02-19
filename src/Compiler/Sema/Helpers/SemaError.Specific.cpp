@@ -85,7 +85,7 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
             return Ast::VisitResult::Continue;
 
         const SemaNodeView nodeView{sema, childRef, SemaNodeViewPartE::Constant};
-        if (nodeView.cstRef.isInvalid())
+        if (nodeView.cstRef().isInvalid())
         {
             lowest = childRef;
             return Ast::VisitResult::Continue;
@@ -200,3 +200,4 @@ Result SemaError::raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t
 }
 
 SWC_END_NAMESPACE();
+

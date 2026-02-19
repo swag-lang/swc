@@ -130,10 +130,11 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 
     const SemaNodeView nodeWhatView = sema.nodeViewType(nodeWhatRef);
     SemaNodeView       initView     = sema.curNodeViewNodeTypeConstant();
-    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef, CastKind::Initialization));
+    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
 
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
+
 

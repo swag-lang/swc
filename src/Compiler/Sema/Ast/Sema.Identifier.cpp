@@ -65,7 +65,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     // Can be forced to false in case of an identifier inside a #defined
     // @CompilerNotDefined
     const SemaNodeView nodeView = sema.curNodeViewConstant();
-    if (nodeView.cstRef.isValid())
+    if (nodeView.cstRef().isValid())
         return Result::Continue;
 
     const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef());
@@ -86,4 +86,5 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 }
 
 SWC_END_NAMESPACE();
+
 

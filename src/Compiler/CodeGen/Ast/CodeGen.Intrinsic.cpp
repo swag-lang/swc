@@ -18,12 +18,12 @@ namespace
         const AstNodeRef          exprRef     = children[0];
         const CodeGenNodePayload* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
         const SemaNodeView        exprView    = codeGen.nodeViewType(exprRef);
-        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef);
+        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curNodeViewType().typeRef());
         MicroBuilder&             builder     = codeGen.builder();
 
-        if (exprView.type && (exprView.type->isString() || exprView.type->isSlice() || exprView.type->isAny()))
+        if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
             builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
-        else if (exprView.type && exprView.type->isArray())
+        else if (exprView.type() && exprView.type()->isArray())
             builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
         else if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
             builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
@@ -55,7 +55,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         {
             const uint64_t            compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
             const SemaNodeView        nodeView          = codeGen.curNodeViewType();
-            const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), nodeView.typeRef);
+            const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), nodeView.typeRef());
             codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress);
             return Result::Continue;
         }
@@ -67,4 +67,6 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
+
 

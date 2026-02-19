@@ -113,9 +113,9 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     for (const auto& nodeRef : nodeRefs)
     {
         const SemaNodeView nodeView = sema.nodeViewSymbol(nodeRef);
-        SWC_ASSERT(nodeView.sym);
-        SWC_ASSERT(nodeView.sym->isNamespace());
-        sema.curScope().addUsingSymMap(nodeView.sym->asSymMap());
+        SWC_ASSERT(nodeView.sym());
+        SWC_ASSERT(nodeView.sym()->isNamespace());
+        sema.curScope().addUsingSymMap(nodeView.sym()->asSymMap());
     }
 
     return Result::Continue;
@@ -134,4 +134,5 @@ Result AstNamedArgument::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

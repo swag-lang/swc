@@ -20,16 +20,16 @@ namespace
     {
         if (op != TokenId::SymPipe && op != TokenId::SymAmpersand && op != TokenId::SymCircumflex)
             return false;
-        if (!nodeLeftView.type->isEnumFlags() || !nodeRightView.type->isEnumFlags())
+        if (!nodeLeftView.type()->isEnumFlags() || !nodeRightView.type()->isEnumFlags())
             return false;
-        return nodeLeftView.typeRef == nodeRightView.typeRef;
+        return nodeLeftView.typeRef() == nodeRightView.typeRef();
     }
 
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         TaskContext& ctx         = sema.ctx();
-        ConstantRef  leftCstRef  = nodeLeftView.cstRef;
-        ConstantRef  rightCstRef = nodeRightView.cstRef;
+        ConstantRef  leftCstRef  = nodeLeftView.cstRef();
+        ConstantRef  rightCstRef = nodeRightView.cstRef();
         const bool   keepEnumRes = keepEnumFlagsResult(nodeLeftView, nodeRightView, op);
 
         if (keepEnumRes)
@@ -181,7 +181,7 @@ namespace
             ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
             if (keepEnumRes)
             {
-                const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef);
+                const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef());
                 result                         = sema.cstMgr().addConstant(ctx, enumResult);
             }
             else
@@ -198,8 +198,8 @@ namespace
     {
         SWC_UNUSED(node);
         const TaskContext& ctx = sema.ctx();
-        Utf8               str = nodeLeftView.cst->toString(ctx);
-        str += nodeRightView.cst->toString(ctx);
+        Utf8               str = nodeLeftView.cst()->toString(ctx);
+        str += nodeRightView.cst()->toString(ctx);
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, str));
         return Result::Continue;
     }
@@ -276,27 +276,27 @@ namespace
     {
         if (op == TokenId::SymPipe || op == TokenId::SymAmpersand || op == TokenId::SymCircumflex)
         {
-            const bool leftEnumFlags  = nodeLeftView.type->isEnumFlags();
-            const bool rightEnumFlags = nodeRightView.type->isEnumFlags();
+            const bool leftEnumFlags  = nodeLeftView.type()->isEnumFlags();
+            const bool rightEnumFlags = nodeRightView.type()->isEnumFlags();
 
-            if (nodeLeftView.type->isEnum())
+            if (nodeLeftView.type()->isEnum())
             {
                 if (!leftEnumFlags)
-                    return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef);
+                    return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef());
             }
 
-            if (nodeRightView.type->isEnum())
+            if (nodeRightView.type()->isEnum())
             {
                 if (!rightEnumFlags)
-                    return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef);
+                    return SemaError::raiseInvalidOpEnum(sema, nodeRef, node.nodeRightRef, nodeRightView.typeRef());
             }
 
-            if (leftEnumFlags && rightEnumFlags && nodeLeftView.typeRef == nodeRightView.typeRef)
+            if (leftEnumFlags && rightEnumFlags && nodeLeftView.typeRef() == nodeRightView.typeRef())
                 return Result::Continue;
 
-            if (nodeLeftView.type->isEnum())
+            if (nodeLeftView.type()->isEnum())
                 Cast::convertEnumToUnderlying(sema, nodeLeftView);
-            if (nodeRightView.type->isEnum())
+            if (nodeRightView.type()->isEnum())
                 Cast::convertEnumToUnderlying(sema, nodeRightView);
         }
 
@@ -306,7 +306,7 @@ namespace
     Result castAndResultType(Sema& sema, TokenId op, const AstBinaryExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
     {
         // Constant folding
-        if (nodeLeftView.cstRef.isValid() && nodeRightView.cstRef.isValid())
+        if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
         {
             ConstantRef result;
             RESULT_VERIFY(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
@@ -314,32 +314,32 @@ namespace
             return Result::Continue;
         }
 
-        TypeRef resultTypeRef = nodeLeftView.typeRef;
+        TypeRef resultTypeRef = nodeLeftView.typeRef();
         switch (op)
         {
             case TokenId::SymPlus:
-                if (nodeLeftView.type->isScalarNumeric() && nodeRightView.type->isBlockPointer())
+                if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isBlockPointer())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-                    resultTypeRef = nodeRightView.typeRef;
+                    resultTypeRef = nodeRightView.typeRef();
                 }
-                else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                else if (nodeLeftView.type()->isBlockPointer() && nodeRightView.type()->isScalarNumeric())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-                    resultTypeRef = nodeLeftView.typeRef;
+                    resultTypeRef = nodeLeftView.typeRef();
                 }
                 break;
 
             case TokenId::SymMinus:
-                if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isScalarNumeric())
+                if (nodeLeftView.type()->isBlockPointer() && nodeRightView.type()->isScalarNumeric())
                 {
                     RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-                    resultTypeRef = nodeLeftView.typeRef;
+                    resultTypeRef = nodeLeftView.typeRef();
                 }
-                else if (nodeLeftView.type->isBlockPointer() && nodeRightView.type->isBlockPointer())
+                else if (nodeLeftView.type()->isBlockPointer() && nodeRightView.type()->isBlockPointer())
                 {
                     resultTypeRef = sema.typeMgr().typeS64();
                 }
@@ -381,10 +381,10 @@ namespace
         {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
-                if (nodeRightView.type->isFloat() && nodeRightView.cst->getFloat().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
-                if (nodeRightView.type->isInt() && nodeRightView.cst->getInt().isZero())
-                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef);
+                if (nodeRightView.type()->isFloat() && nodeRightView.cst()->getFloat().isZero())
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
+                if (nodeRightView.type()->isInt() && nodeRightView.cst()->getInt().isZero())
+                    return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
                 break;
 
             default:
@@ -396,7 +396,7 @@ namespace
 
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        if (nodeRightView.cstRef.isValid())
+        if (nodeRightView.cstRef().isValid())
             RESULT_VERIFY(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
         switch (op)
@@ -428,7 +428,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         const SemaNodeView nodeLeftView = sema.nodeViewType(nodeLeftRef);
         auto               frame        = sema.frame();
-        frame.pushBindingType(nodeLeftView.typeRef);
+        frame.pushBindingType(nodeLeftView.typeRef());
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
     }
 
@@ -441,8 +441,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView = sema.nodeViewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
+    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
     const Token& tok = sema.token(codeRef());
@@ -455,4 +455,5 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
 }
 
 SWC_END_NAMESPACE();
+
 

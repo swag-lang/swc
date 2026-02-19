@@ -22,20 +22,41 @@ using SemaNodeViewPart = EnumFlags<SemaNodeViewPartE>;
 
 struct SemaNodeView
 {
-    const AstNode*       node    = nullptr;
-    const ConstantValue* cst     = nullptr;
-    const TypeInfo*      type    = nullptr;
-    Symbol*              sym     = nullptr;
-    std::span<Symbol*>   symList = {};
-
-    AstNodeRef  nodeRef = AstNodeRef::invalid();
-    ConstantRef cstRef  = ConstantRef::invalid();
-    TypeRef     typeRef = TypeRef::invalid();
-
     SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void getSymbols(SmallVector<Symbol*>& symbols) const;
+
+    const AstNode*       node() const;
+    const AstNode*&      node();
+    const ConstantValue* cst() const;
+    const ConstantValue*& cst();
+    const TypeInfo*      type() const;
+    const TypeInfo*&     type();
+    Symbol*              sym() const;
+    Symbol*&             sym();
+    std::span<Symbol*>   symList() const;
+    std::span<Symbol*>&  symList();
+
+    AstNodeRef   nodeRef() const;
+    AstNodeRef&  nodeRef();
+    ConstantRef  cstRef() const;
+    ConstantRef& cstRef();
+    TypeRef      typeRef() const;
+    TypeRef&     typeRef();
+
+private:
+    void assertComputed(SemaNodeViewPartE part) const;
+
+    const AstNode*       node_         = nullptr;
+    const ConstantValue* cst_          = nullptr;
+    const TypeInfo*      type_         = nullptr;
+    Symbol*              sym_          = nullptr;
+    std::span<Symbol*>   symList_      = {};
+    AstNodeRef           nodeRef_      = AstNodeRef::invalid();
+    ConstantRef          cstRef_       = ConstantRef::invalid();
+    TypeRef              typeRef_      = TypeRef::invalid();
+    SemaNodeViewPart     computedPart_ = SemaNodeViewPartE::Zero;
 };
 
 SWC_END_NAMESPACE();

@@ -838,7 +838,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
     // and apply its modifiers.
-    if (const AstAutoCastExpr* autoCast = view.node->safeCast<AstAutoCastExpr>())
+    if (const AstAutoCastExpr* autoCast = view.node()->safeCast<AstAutoCastExpr>())
     {
         effectiveKind = CastKind::Explicit;
         if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
@@ -847,18 +847,18 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             effectiveFlags.add(CastFlagsE::UnConst);
     }
 
-    if (view.cstRef.isValid() && sema.isFoldedTypedConst(view.nodeRef))
+    if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))
         effectiveFlags.add(CastFlagsE::FoldedTypedConst);
 
-    if (view.typeRef == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
+    if (view.typeRef() == dstTypeRef && effectiveFlags == CastFlagsE::Zero)
         return Result::Continue;
 
     CastRequest castRequest(effectiveKind);
     castRequest.flags        = effectiveFlags;
-    castRequest.errorNodeRef = view.nodeRef;
-    castRequest.setConstantFoldingSrc(view.cstRef);
+    castRequest.errorNodeRef = view.nodeRef();
+    castRequest.setConstantFoldingSrc(view.cstRef());
 
-    const Result result = castAllowed(sema, castRequest, view.typeRef, dstTypeRef);
+    const Result result = castAllowed(sema, castRequest, view.typeRef(), dstTypeRef);
     if (result == Result::Pause)
         return result;
 
@@ -868,12 +868,12 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         if (castRequest.constantFoldingResult().isInvalid())
         {
             if (castFlags.has(CastFlagsE::FromExplicitNode))
-                sema.setType(view.nodeRef, dstTypeRef);
+                sema.setType(view.nodeRef(), dstTypeRef);
             else
-                view.nodeRef = createCast(sema, dstTypeRef, view.nodeRef);
+                view.nodeRef() = createCast(sema, dstTypeRef, view.nodeRef());
         }
         else
-            sema.setConstant(view.nodeRef, castRequest.constantFoldingResult());
+            sema.setConstant(view.nodeRef(), castRequest.constantFoldingResult());
 
         view.recompute(sema);
         return Result::Continue;
@@ -882,8 +882,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     if (effectiveKind != CastKind::Explicit)
     {
         CastRequest explicitCtx(CastKind::Explicit);
-        explicitCtx.errorNodeRef = view.nodeRef;
-        if (castAllowed(sema, explicitCtx, view.typeRef, dstTypeRef) == Result::Continue)
+        explicitCtx.errorNodeRef = view.nodeRef();
+        if (castAllowed(sema, explicitCtx, view.typeRef(), dstTypeRef) == Result::Continue)
             castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
@@ -891,3 +891,4 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 }
 
 SWC_END_NAMESPACE();
+

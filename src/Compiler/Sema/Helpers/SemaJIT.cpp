@@ -29,20 +29,20 @@ namespace
 
     TypeRef computeRunExprStorageTypeRef(Sema& sema, const SemaNodeView& nodeView)
     {
-        SWC_ASSERT(nodeView.type);
-        return nodeView.type->unwrap(sema.ctx(), nodeView.typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        SWC_ASSERT(nodeView.type());
+        return nodeView.type()->unwrap(sema.ctx(), nodeView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
     }
 
     ConstantValue makeRunExprConstant(Sema& sema, const SemaNodeView& nodeView, TypeRef storageTypeRef, const std::byte* storagePtr)
     {
         TaskContext& ctx = sema.ctx();
-        SWC_ASSERT(nodeView.type);
+        SWC_ASSERT(nodeView.type());
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        if (nodeView.type->isEnum())
+        if (nodeView.type()->isEnum())
         {
             const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
             const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
-            return ConstantValue::makeEnumValue(ctx, storageRef, nodeView.typeRef);
+            return ConstantValue::makeEnumValue(ctx, storageRef, nodeView.typeRef());
         }
 
         if (storageType.isValuePointer() || storageType.isBlockPointer())
@@ -51,8 +51,8 @@ namespace
             if (!ptrValue)
             {
                 ConstantValue nullValue = ConstantValue::makeNull(ctx);
-                if (nodeView.type->isAlias())
-                    nullValue.setTypeRef(nodeView.typeRef);
+                if (nodeView.type()->isAlias())
+                    nullValue.setTypeRef(nodeView.typeRef());
                 else
                     nullValue.setTypeRef(storageTypeRef);
                 return nullValue;
@@ -60,8 +60,8 @@ namespace
         }
 
         ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
-        if (nodeView.type->isAlias())
-            result.setTypeRef(nodeView.typeRef);
+        if (nodeView.type()->isAlias())
+            result.setTypeRef(nodeView.typeRef());
         return result;
     }
 
@@ -86,7 +86,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     if (sema.hasConstant(nodeExprRef))
         return Result::Continue;
     const SemaNodeView nodeView = sema.nodeViewType(nodeExprRef);
-    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type, nodeExprRef));
+    RESULT_VERIFY(sema.waitSemaCompleted(nodeView.type(), nodeExprRef));
 
     scheduleCodeGen(sema, symFn);
     RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
@@ -94,7 +94,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     TaskContext&                           ctx            = sema.ctx();
     const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, nodeView);
     const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
-    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), nodeView.typeRef(), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!storageType.isVoid());
 
     // Storage, to store the call result of the expression
@@ -117,7 +117,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
     ConstantValue resultConstant;
-    if (!normalizedRet.isIndirect && nodeView.type->isString())
+    if (!normalizedRet.isIndirect && nodeView.type()->isString())
         resultConstant = makeRunExprPointerStringConstant(sema, resultStorage.data());
     else
         resultConstant = makeRunExprConstant(sema, nodeView, storageTypeRef, resultStorage.data());
@@ -126,3 +126,4 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 }
 
 SWC_END_NAMESPACE();
+

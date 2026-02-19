@@ -42,7 +42,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     constexpr auto  callConvKind = CallConvKind::Host;
     MicroBuilder&   builder      = codeGen.builder();
     const auto      exprView     = codeGen.nodeViewType(nodeExprRef);
-    SWC_ASSERT(exprView.type);
+    SWC_ASSERT(exprView.type());
 
     const CodeGenNodePayload* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
@@ -53,7 +53,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(outputStorageReg.isValid());
     const AstNode& exprNode = codeGen.node(nodeExprRef);
 
-    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef, ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
 
     if (normalizedRet.isIndirect)
     {

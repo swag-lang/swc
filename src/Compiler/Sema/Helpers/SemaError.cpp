@@ -59,9 +59,9 @@ void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo*
 void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef)
 {
     const SemaNodeView nodeView = sema.nodeViewNodeTypeSymbol(nodeRef);
-    setReportArguments(sema, diag, nodeView.node->codeRef());
-    setReportArguments(sema, diag, nodeView.sym);
-    setReportArguments(sema, diag, nodeView.type);
+    setReportArguments(sema, diag, nodeView.node()->codeRef());
+    setReportArguments(sema, diag, nodeView.sym());
+    setReportArguments(sema, diag, nodeView.type());
 }
 
 void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message, DiagnosticSeverity severity)
@@ -129,3 +129,4 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol)
 }
 
 SWC_END_NAMESPACE();
+

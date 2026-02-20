@@ -78,14 +78,14 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
         }
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
-        for (MicroReg reg : useDef.defs)
+        for (const MicroReg reg : useDef.defs)
             killAliasForDefinition(aliases, reg);
 
         if (inst.op == MicroInstrOpcode::LoadRegReg)
         {
-            MicroInstrOperand* instOps = inst.ops(operands);
-            const MicroReg     dstReg  = instOps[0].reg;
-            const MicroReg     srcReg  = resolveAlias(aliases, instOps[1].reg);
+            const MicroInstrOperand* instOps = inst.ops(operands);
+            const MicroReg           dstReg  = instOps[0].reg;
+            const MicroReg           srcReg  = resolveAlias(aliases, instOps[1].reg);
             if (dstReg != srcReg && MicroOptimization::isSameRegisterClass(dstReg, srcReg) && instOps[2].opBits == MicroOpBits::B64)
                 aliases[dstReg.packed] = srcReg;
         }

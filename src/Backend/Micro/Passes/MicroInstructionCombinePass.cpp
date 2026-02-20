@@ -131,8 +131,8 @@ bool MicroInstructionCombinePass::run(MicroPassContext& context)
             continue;
         }
 
-        MicroInstrOperand* firstOps  = first.ops(operands);
-        MicroInstrOperand* secondOps = second.ops(operands);
+        MicroInstrOperand*       firstOps  = first.ops(operands);
+        const MicroInstrOperand* secondOps = second.ops(operands);
         if (firstOps[0].reg != secondOps[0].reg || firstOps[1].opBits != secondOps[1].opBits)
         {
             ++it;

@@ -46,8 +46,8 @@ bool MicroLoadStoreForwardingPass::run(MicroPassContext& context)
         if (second.op != MicroInstrOpcode::LoadRegMem)
             continue;
 
-        MicroInstrOperand* firstOps  = first.ops(operands);
-        MicroInstrOperand* secondOps = second.ops(operands);
+        const MicroInstrOperand* firstOps  = first.ops(operands);
+        MicroInstrOperand*       secondOps = second.ops(operands);
         if (first.op == MicroInstrOpcode::LoadMemReg && isSameMemoryAddress(firstOps, secondOps))
         {
             second.op           = MicroInstrOpcode::LoadRegReg;

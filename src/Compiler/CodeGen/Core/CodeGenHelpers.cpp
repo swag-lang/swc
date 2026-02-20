@@ -158,9 +158,9 @@ CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen
     emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, outPayload.reg);
 
     if (paramInfo.isIndirect)
-        CodeGen::setPayloadAddress(outPayload);
+        outPayload.setAddress();
     else
-        CodeGen::setPayloadValue(outPayload);
+        outPayload.setValue();
 
     codeGen.setVariablePayload(symVar, outPayload);
     return outPayload;

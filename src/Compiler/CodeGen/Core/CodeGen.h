@@ -29,6 +29,16 @@ struct CodeGenNodePayload
     MicroReg    reg         = MicroReg::invalid();
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
+
+    void setValue()
+    {
+        storageKind = StorageKind::Value;
+    }
+
+    void setAddress()
+    {
+        storageKind = StorageKind::Address;
+    }
 };
 
 class CodeGen
@@ -109,8 +119,6 @@ public:
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    static void               setPayloadValue(CodeGenNodePayload& payload);
-    static void               setPayloadAddress(CodeGenNodePayload& payload);
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }

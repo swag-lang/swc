@@ -16,6 +16,13 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_NATURAL_COLUMN_WIDTH = 56U;
+    constexpr char     K_NATURAL_TAG_BEGIN    = '\x1E';
+    constexpr char     K_NATURAL_TAG_END      = '\x1F';
+
+    enum class NaturalTagKind : char
+    {
+        Instruction = 'I',
+    };
 
     uint32_t opcodeColumnWidth()
     {
@@ -321,21 +328,14 @@ namespace
         return true;
     }
 
-    bool isInstructionToken(std::string_view token)
+    Utf8 tagInstructionToken(std::string_view token)
     {
-        return token == "if" ||
-               token == "call" ||
-               token == "ret" ||
-               token == "push" ||
-               token == "pop" ||
-               token == "jump" ||
-               token == "cmp" ||
-               token == "jumptable";
-    }
-
-    bool isStrongInstructionToken(std::string_view token)
-    {
-        return token == "jump";
+        Utf8 out;
+        out += K_NATURAL_TAG_BEGIN;
+        out += static_cast<char>(NaturalTagKind::Instruction);
+        out += token;
+        out += K_NATURAL_TAG_END;
+        return out;
     }
 
     bool isNaturalLogicToken(std::string_view token)
@@ -593,45 +593,45 @@ namespace
             }
 
             case MicroInstrOpcode::CmpRegReg:
-                return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+                return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpRegImm:
-                return std::format("cmp({}, {})", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
+                return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::CmpMemReg:
-                return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+                return std::format("{}({}, {})", tagInstructionToken("cmp"), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpMemImm:
-                return std::format("cmp({}, {})", memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
+                return std::format("{}({}, {})", tagInstructionToken("cmp"), memBaseOffsetString(ops[0].reg, ops[2].valueU64, regPrintMode, encoder), hexU64(ops[3].valueU64));
 
             case MicroInstrOpcode::SetCondReg:
-                return std::format("{} = set{}", regName(ops[0].reg, regPrintMode, encoder), condName(ops[1].cpuCond));
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(std::format("set{}", condName(ops[1].cpuCond))));
             case MicroInstrOpcode::LoadCondRegReg:
-                return std::format("{} = {} if {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), condName(ops[2].cpuCond));
+                return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), tagInstructionToken("if"), condName(ops[2].cpuCond));
 
             case MicroInstrOpcode::CallIndirect:
-                return std::format("call {}", regName(ops[0].reg, regPrintMode, encoder));
+                return std::format("{} {}", tagInstructionToken("call"), regName(ops[0].reg, regPrintMode, encoder));
 
             case MicroInstrOpcode::JumpReg:
-                return std::format("jump {}", regName(ops[0].reg, regPrintMode, encoder));
+                return std::format("{} {}", tagInstructionToken("jump"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::JumpCond:
                 if (isUnconditionalJump(ops[0].cpuCond))
                 {
                     if (inst.numOperands >= 3)
-                        return std::format("jump L{}", static_cast<Ref>(ops[2].valueU64));
-                    return "jump";
+                        return std::format("{} L{}", tagInstructionToken("jump"), static_cast<Ref>(ops[2].valueU64));
+                    return tagInstructionToken("jump");
                 }
                 if (inst.numOperands >= 3)
-                    return std::format("if {} jump L{}", condName(ops[0].cpuCond), static_cast<Ref>(ops[2].valueU64));
-                return std::format("if {} jump", condName(ops[0].cpuCond));
+                    return std::format("{} {} {} L{}", tagInstructionToken("if"), condName(ops[0].cpuCond), tagInstructionToken("jump"), static_cast<Ref>(ops[2].valueU64));
+                return std::format("{} {} {}", tagInstructionToken("if"), condName(ops[0].cpuCond), tagInstructionToken("jump"));
             case MicroInstrOpcode::JumpCondImm:
                 if (isUnconditionalJump(ops[0].cpuCond))
-                    return std::format("jump {}", ops[2].valueU64);
-                return std::format("if {} jump {}", condName(ops[0].cpuCond), ops[2].valueU64);
+                    return std::format("{} {}", tagInstructionToken("jump"), ops[2].valueU64);
+                return std::format("{} {} {} {}", tagInstructionToken("if"), condName(ops[0].cpuCond), tagInstructionToken("jump"), ops[2].valueU64);
 
             case MicroInstrOpcode::Ret:
-                return "ret";
+                return tagInstructionToken("ret");
             case MicroInstrOpcode::Push:
-                return std::format("push {}", regName(ops[0].reg, regPrintMode, encoder));
+                return std::format("{} {}", tagInstructionToken("push"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Pop:
-                return std::format("pop {}", regName(ops[0].reg, regPrintMode, encoder));
+                return std::format("{} {}", tagInstructionToken("pop"), regName(ops[0].reg, regPrintMode, encoder));
             default:
                 return opcodeName(inst.op);
         }
@@ -659,8 +659,6 @@ namespace
             value += *jumpTargetInstIndex;
         }
 
-        if (value.size() > K_NATURAL_COLUMN_WIDTH)
-            value = std::format("{}...", value.substr(0, K_NATURAL_COLUMN_WIDTH - 3));
         auto appendNaturalToken = [&](std::string_view token, size_t tokenStart) {
             if (tokenStart == jumpTargetIndexStart && jumpTargetInstIndex && token == *jumpTargetInstIndex)
             {
@@ -691,11 +689,6 @@ namespace
             {
                 appendColored(out, ctx, SyntaxColor::Register, token);
             }
-            else if (isInstructionToken(token))
-            {
-                appendColored(out, ctx, isStrongInstructionToken(token) ? SyntaxColor::Function : SyntaxColor::MicroInstruction, token);
-                expectCallTarget = token == "call";
-            }
             else if (Utf8Helper::isHexToken(token))
             {
                 appendColored(out, ctx, SyntaxColor::Number, token);
@@ -717,6 +710,24 @@ namespace
         size_t pos = 0;
         while (pos < value.size())
         {
+            if (value[pos] == K_NATURAL_TAG_BEGIN && pos + 2 < value.size())
+            {
+                const char kind = value[pos + 1];
+                size_t     end  = pos + 2;
+                while (end < value.size() && value[end] != K_NATURAL_TAG_END)
+                    ++end;
+
+                if (end < value.size())
+                {
+                    const std::string_view token = value.subView(pos + 2, end - (pos + 2));
+                    SWC_UNUSED(kind);
+                    appendColored(out, ctx, SyntaxColor::MicroInstruction, token);
+                    expectCallTarget = token == "call";
+                    pos              = end + 1;
+                    continue;
+                }
+            }
+
             if (std::isspace(static_cast<unsigned char>(value[pos])))
             {
                 const size_t start = pos;

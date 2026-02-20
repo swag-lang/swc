@@ -21,10 +21,10 @@ namespace
                 rgb = {.r = 0xCC, .g = 0xCC, .b = 0xCC};
                 break;
             case SyntaxColor::InstructionIndex:
-                rgb = {.r = 0x56, .g = 0xD4, .b = 0xFF};
+                rgb = {.r = 0x00, .g = 0xE6, .b = 0xFF};
                 break;
             case SyntaxColor::MicroInstruction:
-                rgb = {.r = 0xD4, .g = 0xB1, .b = 0x93};
+                rgb = {.r = 0xFF, .g = 0xA5, .b = 0x00};
                 break;
             case SyntaxColor::Comment:
                 rgb = {.r = 0x6A, .g = 0x99, .b = 0x55};

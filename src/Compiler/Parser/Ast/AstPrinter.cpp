@@ -102,10 +102,10 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
                 continue;
 
             AstPrintStackEntry childEntry;
-            childEntry.nodeRef      = childRef;
-            childEntry.prefix       = entry.prefix;
-            childEntry.prefix      += entry.isLastChild ? "   " : "|  ";
-            childEntry.isLastChild  = (i == children.size());
+            childEntry.nodeRef = childRef;
+            childEntry.prefix  = entry.prefix;
+            childEntry.prefix += entry.isLastChild ? "   " : "|  ";
+            childEntry.isLastChild = (i == children.size());
             stack.push_back(childEntry);
         }
     }

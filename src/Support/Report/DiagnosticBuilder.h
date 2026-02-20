@@ -15,7 +15,6 @@ private:
     {
         FileLocationArrow,
         FileLocationPath,
-        FileLocationSep,
         GutterBar,
         LineNumber,
         CodeText,

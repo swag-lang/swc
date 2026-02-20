@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
@@ -36,11 +37,11 @@ namespace
 
     void printAstStage(const Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
     {
-        const AstNode&       node     = sema.node(nodeRef);
-        const SourceCodeRange codeLoc = node.codeRange(sema.ctx());
-        const SourceView&     srcView = sema.srcView(node.srcViewRef());
-        const SourceFile*     srcFile = srcView.file();
-        const Utf8            filePath = srcFile ? Utf8(srcFile->path().string()) : Utf8("<unknown-file>");
+        const AstNode&        node     = sema.node(nodeRef);
+        const SourceCodeRange codeLoc  = node.codeRange(sema.ctx());
+        const SourceView&     srcView  = sema.srcView(node.srcViewRef());
+        const SourceFile*     srcFile  = srcView.file();
+        const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&sema.ctx(), srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
 
         Logger::ScopedLock lock(sema.ctx().global().logger());
         Logger::print(sema.ctx(), "\n");
@@ -73,7 +74,7 @@ namespace
         Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
         Logger::print(sema.ctx(), " : ");
         Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::String));
-        Logger::print(sema.ctx(), std::format("{}:{}", filePath, codeLoc.line));
+        Logger::print(sema.ctx(), filePath);
         Logger::print(sema.ctx(), "\n");
 
         Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Default));

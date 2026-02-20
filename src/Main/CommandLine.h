@@ -38,20 +38,20 @@ struct CommandLine
     Utf8 buildCfg       = "fast-debug";
     Utf8 targetArchName = "x86_64";
 
-    bool logColor                 = true;
-    bool logAscii                 = false;
-    bool syntaxColor              = true;
-    bool diagAbsolute             = false;
-    bool diagOneLine              = false;
-    bool errorId                  = false;
-    bool silent                   = false;
-    bool stats                    = false;
-    bool verboseVerify            = false;
-    bool verify                   = true;
-    bool debugInfo                = false;
-    bool internalUnittest         = true;
-    bool verboseInternalUnittest  = false;
-    bool runtime                  = false;
+    bool logColor                = true;
+    bool logAscii                = false;
+    bool syntaxColor             = true;
+    bool diagAbsolute            = false;
+    bool diagOneLine             = false;
+    bool errorId                 = false;
+    bool silent                  = false;
+    bool stats                   = false;
+    bool verboseVerify           = false;
+    bool verify                  = true;
+    bool debugInfo               = false;
+    bool internalUnittest        = true;
+    bool verboseInternalUnittest = false;
+    bool runtime                 = false;
 
     static inline bool dbgDevMode = false;
 

@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "Support/Report/HardwareException.h"
-#include "Main/CommandLine.h"
-#include "Main/CompilerInstance.h"
-#include "Main/Global.h"
-#include "Main/TaskContext.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/CommandLine.h"
+#include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
+#include "Main/Global.h"
+#include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -46,7 +47,7 @@ namespace
             const SourceFile*     sourceFile = srcView.file();
             if (sourceFile)
             {
-                HardwareException::appendField(outMsg, "source", std::format("{}:{}:{}", sourceFile->path().string(), codeRange.line, codeRange.column));
+                HardwareException::appendField(outMsg, "source", FileSystem::formatFileLocation(&ctx, sourceFile->path(), codeRange.line, codeRange.column));
             }
         }
 
@@ -70,7 +71,7 @@ namespace
         HardwareException::appendField(outMsg, "cmd randomize", std::format("{} (seed {})", ctx.cmdLine().randomize, ctx.cmdLine().randSeed));
 #endif
         outMsg += "\n";
-        Os::appendHostExceptionSummary(outMsg, args);
+        Os::appendHostExceptionSummary(ctx, outMsg, args);
     }
 
     void appendContextGroup(Utf8& outMsg, std::string_view extraInfo)
@@ -82,12 +83,12 @@ namespace
         }
     }
 
-    void appendHostTraceGroup(Utf8& outMsg, SWC_LP_EXCEPTION_POINTERS args)
+    void appendHostTraceGroup(Utf8& outMsg, const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::appendSectionHeader(outMsg, "cpu context");
         Os::appendHostCpuContext(outMsg, args);
         HardwareException::appendSectionHeader(outMsg, "trace");
-        Os::appendHostHandlerStack(outMsg);
+        Os::appendHostHandlerStack(ctx, outMsg);
     }
 }
 
@@ -129,7 +130,7 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     appendContextGroup(msg, extraInfo);
     appendTaskStateGroup(msg, ctx);
     appendCrashGroup(msg, ctx, args);
-    appendHostTraceGroup(msg, args);
+    appendHostTraceGroup(msg, ctx, args);
     Logger::print(ctx, msg);
 }
 

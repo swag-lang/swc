@@ -23,6 +23,7 @@ namespace
             uint32_t result = 0;
 #define SWC_MICRO_INSTR_DEF(__enum, ...) result = std::max<uint32_t>(result, static_cast<uint32_t>(Utf8Helper::toLowerSnake(#__enum).size()));
 #include "Backend/Micro/MicroInstr.Def.inc"
+
 #undef SWC_MICRO_INSTR_DEF
             return result;
         }();

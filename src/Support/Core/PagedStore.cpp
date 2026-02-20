@@ -221,8 +221,8 @@ uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hd
     decodeRef(st, hdrRef, pageIndex, off);
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
     SWC_ASSERT(dataOffset <= st->pageSize());
-    const uint32_t capBytes   = st->pageSize() - dataOffset;
-    const uint32_t cap        = capBytes / elemSize;
+    const uint32_t capBytes = st->pageSize() - dataOffset;
+    const uint32_t cap      = capBytes / elemSize;
     return std::min<uint32_t>(cap, remaining);
 }
 

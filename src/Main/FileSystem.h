@@ -6,8 +6,17 @@ class TaskContext;
 
 namespace FileSystem
 {
+    enum class FileNameDisplayMode : uint8_t
+    {
+        AsIs,
+        BaseName,
+        Absolute,
+    };
+
     Result resolveFile(TaskContext& ctx, fs::path& file);
     Result resolveFolder(TaskContext& ctx, fs::path& folder);
+    Utf8   formatFileName(const TaskContext* ctx, const fs::path& filePath, FileNameDisplayMode mode = FileNameDisplayMode::AsIs);
+    Utf8   formatFileLocation(const TaskContext* ctx, const fs::path& filePath, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0, FileNameDisplayMode mode = FileNameDisplayMode::AsIs);
     Utf8   normalizeSystemMessage(const Utf8& msg);
     Utf8   normalizeSystemMessage(std::error_code ec);
     void   collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true);

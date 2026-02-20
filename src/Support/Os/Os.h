@@ -8,6 +8,7 @@
 SWC_BEGIN_NAMESPACE();
 
 enum class ExitCode;
+class TaskContext;
 
 namespace Os
 {
@@ -37,9 +38,9 @@ namespace Os
     const char* hostExceptionBackendName();
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
-    void        appendHostExceptionSummary(Utf8& outMsg, const void* platformExceptionPointers);
+    void        appendHostExceptionSummary(const TaskContext& ctx, Utf8& outMsg, const void* platformExceptionPointers);
     void        appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);
-    void        appendHostHandlerStack(Utf8& outMsg);
+    void        appendHostHandlerStack(const TaskContext& ctx, Utf8& outMsg);
 }
 
 #ifdef _WIN32

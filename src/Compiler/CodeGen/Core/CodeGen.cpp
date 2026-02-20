@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -41,11 +42,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
     const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
     const SourceFile*     file      = srcView.file();
-    builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), file ? Utf8(file->path().string()) : Utf8{}, codeRange.line);
+    const Utf8            fileName  = file ? FileSystem::formatFileName(&ctx(), file->path()) : Utf8{};
+    builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
 
     while (true)
     {
-        const AstNodeRef currentNodeRef  = visit_.currentNodeRef();
+        const AstNodeRef    currentNodeRef = visit_.currentNodeRef();
         const SourceCodeRef currentCodeRef = currentNodeRef.isValid() ? node(currentNodeRef).codeRef() : symbolFunc.codeRef();
         ctx().state().setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
 

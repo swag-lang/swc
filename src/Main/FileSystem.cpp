@@ -6,6 +6,19 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    fs::path toAbsolutePathNoThrow(const fs::path& filePath)
+    {
+        std::error_code ec;
+        const fs::path  absolutePath = fs::absolute(filePath, ec);
+        if (ec)
+            return filePath;
+
+        return absolutePath;
+    }
+}
+
 Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
 {
     std::error_code ec;
@@ -15,7 +28,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     if (ec)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
@@ -31,7 +44,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     if (!fs::exists(resolved, ec))
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -43,7 +56,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
     if (!fs::is_regular_file(resolved, ec))
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, file.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -63,7 +76,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     if (ec)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, folder.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
         diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
         return Result::Error;
@@ -79,7 +92,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     if (!fs::exists(resolved, ec))
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, folder.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         else
@@ -93,7 +106,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     if (!fs::is_directory(resolved, ec))
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, folder.string());
+        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
         if (ec)
             diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
         diag.report(ctx);
@@ -102,6 +115,50 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
     folder = resolved;
     return Result::Continue;
+}
+
+Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath, const FileNameDisplayMode mode)
+{
+    SWC_UNUSED(ctx);
+
+    switch (mode)
+    {
+        case FileNameDisplayMode::AsIs:
+            return filePath.string();
+
+        case FileNameDisplayMode::BaseName:
+            return filePath.filename().string();
+
+        case FileNameDisplayMode::Absolute:
+            return toAbsolutePathNoThrow(filePath).string();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd, const FileNameDisplayMode mode)
+{
+    Utf8 out = formatFileName(ctx, filePath, mode);
+    if (line)
+    {
+        out += ":";
+        out += std::to_string(line);
+    }
+
+    if (column)
+    {
+        out += ":";
+        out += std::to_string(column);
+    }
+
+    if (columnEnd)
+    {
+        out += "-";
+        out += std::to_string(columnEnd);
+    }
+
+    return out;
 }
 
 Utf8 FileSystem::normalizeSystemMessage(const Utf8& msg)

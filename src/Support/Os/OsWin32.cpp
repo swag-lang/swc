@@ -180,7 +180,7 @@ namespace
         }
     }
 
-    bool appendWindowsAddressSymbol(Utf8& outMsg, const uint64_t address, const uint32_t leftPadding = 0)
+    bool appendWindowsAddressSymbol(Utf8& outMsg, const TaskContext* ctx, const uint64_t address, const uint32_t leftPadding = 0)
     {
         if (!address)
             return false;
@@ -210,14 +210,15 @@ namespace
         DWORD lineDisp        = 0;
         if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
         {
-            appendOsField(outMsg, "source", std::format("{}:{} (+{})", lineInfo.FileName, lineInfo.LineNumber, lineDisp), leftPadding);
+            const Utf8 fileLoc = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
+            appendOsField(outMsg, "source", std::format("{} (+{})", fileLoc, lineDisp), leftPadding);
             hasInfo = true;
         }
 
         return hasInfo;
     }
 
-    void appendWindowsAddress(Utf8& outMsg, const uint64_t address)
+    void appendWindowsAddress(Utf8& outMsg, const TaskContext* ctx, const uint64_t address)
     {
         outMsg += std::format("0x{:016X}", address);
         if (!address)
@@ -234,8 +235,8 @@ namespace
             const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
             if (len)
             {
-                modulePath[len]              = 0;
-                const std::string moduleName = fs::path(modulePath).filename().string();
+                modulePath[len]       = 0;
+                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath), FileSystem::FileNameDisplayMode::BaseName);
                 outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
             }
         }
@@ -252,7 +253,7 @@ namespace
             }
         }
 
-        appendWindowsAddressSymbol(outMsg, address);
+        appendWindowsAddressSymbol(outMsg, ctx, address);
         appendOsField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
     }
 }
@@ -459,7 +460,7 @@ namespace Os
         return true;
     }
 
-    void appendHostExceptionSummary(Utf8& outMsg, const void* platformExceptionPointers)
+    void appendHostExceptionSummary(const TaskContext& ctx, Utf8& outMsg, const void* platformExceptionPointers)
     {
         const auto* args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
         const auto* record = args ? args->ExceptionRecord : nullptr;
@@ -471,7 +472,7 @@ namespace Os
 
         appendOsField(outMsg, "code", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
         Utf8 addressMsg;
-        appendWindowsAddress(addressMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
+        appendWindowsAddress(addressMsg, &ctx, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
         while (!addressMsg.empty() && addressMsg.back() == '\n')
             addressMsg.pop_back();
         appendOsField(outMsg, "address", addressMsg);
@@ -483,7 +484,7 @@ namespace Os
         {
             Utf8 accessMsg;
             accessMsg += std::format("{} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
-            appendWindowsAddress(accessMsg, record->ExceptionInformation[1]);
+            appendWindowsAddress(accessMsg, &ctx, record->ExceptionInformation[1]);
             while (!accessMsg.empty() && accessMsg.back() == '\n')
                 accessMsg.pop_back();
             appendOsField(outMsg, "access", accessMsg);
@@ -511,7 +512,7 @@ namespace Os
 #endif
     }
 
-    void appendHostHandlerStack(Utf8& outMsg)
+    void appendHostHandlerStack(const TaskContext& ctx, Utf8& outMsg)
     {
         void*        frames[64]{};
         const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
@@ -531,15 +532,15 @@ namespace Os
                     const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
                     if (len)
                     {
-                        modulePath[len]              = 0;
-                        const std::string moduleName = fs::path(modulePath).filename().string();
+                        modulePath[len]       = 0;
+                        const Utf8 moduleName = FileSystem::formatFileName(&ctx, fs::path(modulePath), FileSystem::FileNameDisplayMode::BaseName);
                         outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }
                 }
             }
 
             outMsg += "\n";
-            if (!appendWindowsAddressSymbol(outMsg, address, 4))
+            if (!appendWindowsAddressSymbol(outMsg, &ctx, address, 4))
                 appendOsField(outMsg, "symbol", "<unresolved>", 4);
         }
     }

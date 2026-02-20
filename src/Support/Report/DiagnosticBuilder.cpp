@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
@@ -362,33 +363,21 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     const SourceCodeRange codeRange = el.codeRange(0, *ctx_);
 
     SWC_ASSERT(el.srcView());
+    Utf8 fileLocation;
     if (el.srcView()->fileRef().isValid())
     {
-        const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        Utf8              fileName;
-        if (ctx_->cmdLine().diagAbsolute)
-            fileName = file.path().string();
-        else
-            fileName = file.path().filename().string();
-        out_ += partStyle(DiagPart::FileLocationPath);
-        out_ += fileName;
-        out_ += partStyle(DiagPart::Reset);
+        const SourceFile&                     file = ctx_->compiler().file(el.srcView()->fileRef());
+        const FileSystem::FileNameDisplayMode mode = ctx_->cmdLine().diagAbsolute ? FileSystem::FileNameDisplayMode::Absolute : FileSystem::FileNameDisplayMode::BaseName;
+        fileLocation                               = FileSystem::formatFileLocation(ctx_, file.path(), codeRange.line, codeRange.column, codeRange.column + codeRange.len, mode);
+    }
+    else
+    {
+        fileLocation = FileSystem::formatFileLocation(ctx_, fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
 
-    out_ += partStyle(DiagPart::FileLocationSep);
-    out_ += ":";
+    out_ += partStyle(DiagPart::FileLocationPath);
+    out_ += fileLocation;
     out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(codeRange.line);
-
-    out_ += partStyle(DiagPart::FileLocationSep);
-    out_ += ":";
-    out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(codeRange.column);
-
-    out_ += partStyle(DiagPart::FileLocationSep);
-    out_ += "-";
-    out_ += partStyle(DiagPart::Reset);
-    out_ += std::to_string(codeRange.column + codeRange.len);
 }
 
 void DiagnosticBuilder::writeGutter(uint32_t gutter)

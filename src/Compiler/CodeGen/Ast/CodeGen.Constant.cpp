@@ -125,6 +125,25 @@ namespace
                 const ByteSpan arrayBytes  = cst.getArray();
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(arrayBytes.size() == storageSize);
+                if (targetTypeRef.isValid())
+                {
+                    const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+                    if (targetType.isSlice())
+                    {
+                        const TypeInfo&      elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());
+                        const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
+                        const Runtime::Slice runtimeSlice{
+                            .ptr   = const_cast<std::byte*>(arrayBytes.data()),
+                            .count = elementSize ? arrayBytes.size() / elementSize : 0,
+                        };
+                        const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
+                        const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
+                        codeGen.builder().emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                        codeGen.setPayloadValue(payload);
+                        return;
+                    }
+                }
+
                 codeGen.builder().emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
                 codeGen.setPayloadAddress(payload);
                 return;

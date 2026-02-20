@@ -7,8 +7,10 @@
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
 
-// Maps virtual registers to concrete machine registers and inserts
-// spill/reload moves when pressure exceeds available physical registers.
+// Assigns physical registers to virtual registers and handles spills.
+// Example: v3 -> rax when a free compatible register exists.
+// Example: under pressure, v7 lives on stack: store v7 before conflict, reload before use.
+// This pass converts virtual micro code into concrete register form.
 
 SWC_BEGIN_NAMESPACE();
 

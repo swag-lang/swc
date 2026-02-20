@@ -2,8 +2,10 @@
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/Micro/MicroInstr.h"
 
-// Rewrites non-conformant micro instructions into encoder-supported forms
-// before final machine-code emission.
+// Rewrites non-encodable instruction forms into legal encoder forms.
+// Example: unsupported mem+imm pattern -> sequence using a temporary register.
+// Example: oversized immediate form    -> split/rewrite to legal width.
+// This pass preserves semantics while enforcing backend encoding constraints.
 
 SWC_BEGIN_NAMESPACE();
 

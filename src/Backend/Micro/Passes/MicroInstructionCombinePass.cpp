@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroInstructionCombinePass.h"
 
-// Combines adjacent immediate arithmetic/logical operations on the same register
-// into a single equivalent instruction when it is safe.
+// Combines consecutive immediate ops on the same destination into one op.
+// Example: add r1, 2; add r1, 3  ->  add r1, 5.
+// Example: xor r1, 7; xor r1, 7  ->  <remove both or replace with no-op>.
+// This reduces instruction count and pressure on later passes.
 
 SWC_BEGIN_NAMESPACE();
 

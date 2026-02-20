@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
 
-// Tracks known integer constants in registers and folds dependent operations
-// into immediate forms when results can be computed at compile time.
+// Propagates known integer constants through register operations.
+// Example: load r1, 5; add r2, r1  ->  add r2, 5.
+// Example: load r1, 5; shl r1, 1    ->  load r1, 10.
+// This removes dynamic work and creates simpler instruction forms.
 
 SWC_BEGIN_NAMESPACE();
 

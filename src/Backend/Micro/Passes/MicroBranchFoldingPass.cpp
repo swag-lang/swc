@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroBranchFoldingPass.h"
 
-// Evaluates compare and condition state when operands are known constants,
-// then folds conditional branches into unconditional or removed jumps.
+// Folds branch decisions when compare inputs are compile-time constants.
+// Example: cmp r1, 42; jz L1  ->  jmp L1 (if r1 is known 42).
+// Example: cmp r1, 42; jz L1  ->  <remove jump> (if r1 is known != 42).
+// This reduces control-flow overhead and unlocks later CFG cleanup.
 
 SWC_BEGIN_NAMESPACE();
 

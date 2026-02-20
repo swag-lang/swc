@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroCopyPropagationPass.h"
 
-// Tracks register-to-register copies and replaces later uses with the original
-// source register to remove redundant move chains.
+// Propagates register aliases created by copy/move instructions.
+// Example: mov r2, r1; add r3, r2  ->  add r3, r1.
+// Example: mov r2, r1; mov r4, r2  ->  mov r4, r1.
+// This shortens copy chains and enables dead-copy elimination.
 
 SWC_BEGIN_NAMESPACE();
 

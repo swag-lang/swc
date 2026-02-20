@@ -3,8 +3,10 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Support/Math/Helpers.h"
 
-// Inserts function prologue/epilogue save-restore sequences for ABI-preserved
-// registers that are used by the generated function body.
+// Inserts ABI-mandated save/restore code around the function body.
+// Example: if callee-saved rbx is used, emit push rbx in prolog and pop rbx in epilog.
+// Example: reserve stack slots for preserved state when required by calling convention.
+// This pass enforces ABI correctness, not optimization.
 
 SWC_BEGIN_NAMESPACE();
 

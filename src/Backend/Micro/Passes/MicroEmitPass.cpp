@@ -3,8 +3,10 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 
-// Encodes finalized micro instructions to machine code, resolves label jumps,
-// and updates relocation offsets bound to emitted instructions.
+// Final emission pass: converts legalized micro instructions to machine code.
+// Example: branch placeholders are patched to concrete displacements.
+// Example: relocation-bearing immediates receive final code offsets.
+// This pass does not optimize semantics; it materializes final bytes.
 
 SWC_BEGIN_NAMESPACE();
 

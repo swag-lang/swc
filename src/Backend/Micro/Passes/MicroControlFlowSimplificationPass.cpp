@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroControlFlowSimplificationPass.h"
 
-// Removes trivially redundant control-flow patterns:
-// unreachable blocks, no-op jumps, and labels that are no longer referenced.
+// Simplifies the micro CFG by removing structurally redundant control flow.
+// Example: jmp L1; L1:          ->  <remove jump>.
+// Example: dead block after ret ->  <remove unreachable instructions>.
+// Example: unreferenced label   ->  <remove label>.
 
 SWC_BEGIN_NAMESPACE();
 

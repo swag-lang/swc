@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroStrengthReductionPass.h"
 
-// Rewrites expensive integer arithmetic patterns into cheaper equivalents,
-// such as shift-based forms for power-of-two multipliers/divisors.
+// Replaces expensive arithmetic with cheaper equivalent forms.
+// Example: mul r1, 8 -> shl r1, 3.
+// Example: div r1, 4 -> shr/sar r1, 2 (when semantics allow).
+// This reduces latency and often improves code size.
 
 SWC_BEGIN_NAMESPACE();
 

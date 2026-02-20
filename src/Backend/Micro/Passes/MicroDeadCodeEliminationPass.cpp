@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroDeadCodeEliminationPass.h"
 
-// Performs backward liveness over registers and removes side-effect-free
-// instructions whose produced values are never used.
+// Eliminates side-effect-free instructions whose results are not live.
+// Example: add r1, 4; ... (r1 never used) -> <remove add>.
+// Example: mov r2, r3; ... (r2 never used) -> <remove mov>.
+// This pass keeps memory/branch/call side effects intact.
 
 SWC_BEGIN_NAMESPACE();
 

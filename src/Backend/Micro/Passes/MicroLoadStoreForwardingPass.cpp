@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroLoadStoreForwardingPass.h"
 
-// Forwards a nearby store value directly into a following load from the same
-// address, avoiding an unnecessary memory read.
+// Forwards recent store values into matching following loads.
+// Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.
+// Example: store [rbp+8], 5;  load r2, [rbp+8] -> load r2, 5.
+// This removes redundant memory traffic when aliasing is provably safe.
 
 SWC_BEGIN_NAMESPACE();
 

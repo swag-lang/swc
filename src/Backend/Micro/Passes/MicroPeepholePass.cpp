@@ -5,8 +5,11 @@
 #include "Backend/Micro/Passes/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.h"
 
-// Performs late local cleanups after allocation/legalization by removing
-// instruction forms that are guaranteed to be semantic no-ops.
+// Runs local late cleanups after regalloc/legalize.
+// Example: mov r1, r1           -> <remove>.
+// Example: add r1, 0 / or r1, 0 -> <remove>.
+// Example: and r1, all_ones     -> <remove>.
+// This strips leftover no-ops before final emission.
 
 SWC_BEGIN_NAMESPACE();
 

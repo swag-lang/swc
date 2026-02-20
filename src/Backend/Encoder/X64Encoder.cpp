@@ -645,7 +645,8 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     if (!ops)
         return;
 
-    auto microOp = MicroOp::Add;
+    auto microOp             = MicroOp::Add;
+    bool shiftUsesFixedCount = false;
     switch (inst.op)
     {
         case MicroInstrOpcode::OpBinaryRegReg:
@@ -661,6 +662,20 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             return;
     }
 
+    if (microOp == MicroOp::RotateLeft ||
+        microOp == MicroOp::RotateRight ||
+        microOp == MicroOp::ShiftArithmeticLeft ||
+        microOp == MicroOp::ShiftArithmeticRight ||
+        microOp == MicroOp::ShiftLeft ||
+        microOp == MicroOp::ShiftRight)
+    {
+        const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+            shiftUsesFixedCount = ops[1].reg == rcxReg;
+        else if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
+            shiftUsesFixedCount = ops[1].reg == rcxReg;
+    }
+
     switch (microOp)
     {
         case MicroOp::RotateLeft:
@@ -669,7 +684,8 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         case MicroOp::ShiftArithmeticRight:
         case MicroOp::ShiftLeft:
         case MicroOp::ShiftRight:
-            info.addUse(x64RegToMicroReg(X64Reg::Rcx));
+            if (shiftUsesFixedCount)
+                info.addUse(x64RegToMicroReg(X64Reg::Rcx));
             break;
         case MicroOp::MultiplyUnsigned:
         case MicroOp::DivideUnsigned:

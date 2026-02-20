@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimization.h"
+#include "Support/Math/Helpers.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
 // Example: unsupported mem+imm pattern -> sequence using a temporary register.
@@ -11,13 +13,125 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t U32_MASK            = 0xFFFFFFFFu;
-    constexpr uint64_t FLOAT_STACK_SCRATCH = 8;
-    constexpr uint64_t REG_STACK_SLOT_SIZE = 8;
+    constexpr uint64_t U32_MASK             = 0xFFFFFFFFu;
+    constexpr uint64_t FLOAT_STACK_SCRATCH  = 8;
+    constexpr uint64_t REG_STACK_SLOT_SIZE  = 8;
+    constexpr uint64_t LEGALIZE_STACK_ALIGN = 16;
 
     bool hasOperand(const MicroInstr& inst, const MicroInstrOperand* ops, uint8_t operandIndex)
     {
         return ops && operandIndex < inst.numOperands;
+    }
+
+    bool containsReg(std::span<const MicroReg> regs, MicroReg reg)
+    {
+        for (const MicroReg value : regs)
+        {
+            if (value == reg)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool mustPreserveRegAfterInstruction(const MicroPassContext& context, Ref instRef, MicroReg reg)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (!reg.isValid())
+            return false;
+
+        const MicroStorage::View view = context.instructions->view();
+        auto                     it   = view.begin();
+        while (it != view.end() && it.current != instRef)
+            ++it;
+        if (it == view.end())
+            return true;
+
+        ++it;
+        for (; it != view.end(); ++it)
+        {
+            const MicroInstr&      scanInst = *it;
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                return true;
+
+            if (containsReg(useDef.uses, reg))
+                return true;
+            if (containsReg(useDef.defs, reg))
+                return false;
+        }
+
+        return false;
+    }
+
+    uint64_t requiredScratchForIssue(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    {
+        if (!ops)
+            return 0;
+
+        switch (issue.kind)
+        {
+            case MicroConformanceIssueKind::RewriteLoadFloatRegImm:
+                return FLOAT_STACK_SCRATCH;
+
+            case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
+                return mustPreserveRegAfterInstruction(context, instRef, issue.scratchReg) ? REG_STACK_SLOT_SIZE : 0;
+
+            case MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg:
+            {
+                SWC_ASSERT(issue.operandIndex <= 1);
+                const bool operandIsDst = issue.operandIndex == 0;
+                const bool conflict     = operandIsDst ? ops[1].reg == issue.requiredReg : ops[0].reg == issue.requiredReg;
+                uint64_t   required     = 0;
+                if (mustPreserveRegAfterInstruction(context, instRef, issue.requiredReg))
+                    required += REG_STACK_SLOT_SIZE;
+                if (conflict)
+                    required += REG_STACK_SLOT_SIZE;
+                return required;
+            }
+
+            default:
+                return 0;
+        }
+    }
+
+    void insertScratchFrame(const MicroPassContext& context, const Encoder& encoder, uint64_t frameSize)
+    {
+        if (!frameSize)
+            return;
+
+        const auto beginIt = context.instructions->view().begin();
+        if (beginIt == context.instructions->view().end())
+            return;
+
+        const MicroReg stackPointerReg = encoder.stackPointerReg();
+        const Ref      firstRef         = beginIt.current;
+
+        std::array<MicroInstrOperand, 4> subOps;
+        subOps[0].reg      = stackPointerReg;
+        subOps[1].opBits   = MicroOpBits::B64;
+        subOps[2].microOp  = MicroOp::Subtract;
+        subOps[3].valueU64 = frameSize;
+        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
+
+        std::vector<Ref> retRefs;
+        for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+        {
+            if (it->op == MicroInstrOpcode::Ret)
+                retRefs.push_back(it.current);
+        }
+
+        for (const Ref retRef : retRefs)
+        {
+            std::array<MicroInstrOperand, 4> addOps;
+            addOps[0].reg      = stackPointerReg;
+            addOps[1].opBits   = MicroOpBits::B64;
+            addOps[2].microOp  = MicroOp::Add;
+            addOps[3].valueU64 = frameSize;
+            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+        }
     }
 
     void removeInstruction(const MicroPassContext& context, Ref instRef)
@@ -107,7 +221,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
+    void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm);
@@ -120,19 +234,10 @@ namespace
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
             opBits = MicroOpBits::B64;
 
-        // Generic fallback for float-immediate loads:
-        // spill scratch bytes on stack, store immediate as integer bits, then reload as float reg.
-        std::array<MicroInstrOperand, 4> subOps;
-        subOps[0].reg      = rspReg;
-        subOps[1].opBits   = MicroOpBits::B64;
-        subOps[2].microOp  = MicroOp::Subtract;
-        subOps[3].valueU64 = FLOAT_STACK_SCRATCH;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, subOps);
-
         std::array<MicroInstrOperand, 4> storeOps;
         storeOps[0].reg      = rspReg;
         storeOps[1].opBits   = opBits;
-        storeOps[2].valueU64 = 0;
+        storeOps[2].valueU64 = stackScratchBaseOffset;
         storeOps[3].valueU64 = immValue;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, storeOps);
 
@@ -140,26 +245,9 @@ namespace
         loadOps[0].reg      = dstReg;
         loadOps[1].reg      = rspReg;
         loadOps[2].opBits   = opBits;
-        loadOps[3].valueU64 = 0;
+        loadOps[3].valueU64 = stackScratchBaseOffset;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, loadOps);
-
-        std::array<MicroInstrOperand, 4> addOps;
-        addOps[0].reg      = rspReg;
-        addOps[1].opBits   = MicroOpBits::B64;
-        addOps[2].microOp  = MicroOp::Add;
-        addOps[3].valueU64 = FLOAT_STACK_SCRATCH;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
         removeInstruction(context, instRef);
-    }
-
-    void insertStackAdjust(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t amount, bool allocate)
-    {
-        std::array<MicroInstrOperand, 4> ops;
-        ops[0].reg      = stackPointerReg;
-        ops[1].opBits   = MicroOpBits::B64;
-        ops[2].microOp  = allocate ? MicroOp::Subtract : MicroOp::Add;
-        ops[3].valueU64 = amount;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, ops);
     }
 
     void insertStoreRegToStack(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t offset, MicroReg reg)
@@ -201,7 +289,7 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
     }
 
-    void applyRewriteRegRegOperandToFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    void applyRewriteRegRegOperandToFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
@@ -221,16 +309,17 @@ namespace
         if (conflict)
             SWC_ASSERT(helperReg.isValid());
 
-        uint64_t stackFrameSize = REG_STACK_SLOT_SIZE;
-        if (conflict)
-            stackFrameSize += REG_STACK_SLOT_SIZE;
-
-        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
-        insertStoreRegToStack(context, instRef, stackPointerReg, 0, requiredReg);
+        const bool mustPreserveRequiredReg = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
+        uint64_t   helperStackOffset       = stackScratchBaseOffset;
+        if (mustPreserveRequiredReg)
+        {
+            insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, requiredReg);
+            helperStackOffset += REG_STACK_SLOT_SIZE;
+        }
 
         if (conflict)
         {
-            insertStoreRegToStack(context, instRef, stackPointerReg, REG_STACK_SLOT_SIZE, helperReg);
+            insertStoreRegToStack(context, instRef, stackPointerReg, helperStackOffset, helperReg);
             insertMoveRegReg(context, instRef, helperReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -258,16 +347,14 @@ namespace
         if (rewrittenDstReg != originalDstReg)
             insertMoveRegReg(context, instRef, originalDstReg, rewrittenDstReg, opBits);
 
-        if (requiredReg != originalDstReg)
-            insertLoadRegFromStack(context, instRef, requiredReg, stackPointerReg, 0);
+        if (mustPreserveRequiredReg && requiredReg != originalDstReg)
+            insertLoadRegFromStack(context, instRef, requiredReg, stackPointerReg, stackScratchBaseOffset);
         if (conflict && helperReg != originalDstReg)
-            insertLoadRegFromStack(context, instRef, helperReg, stackPointerReg, REG_STACK_SLOT_SIZE);
-
-        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+            insertLoadRegFromStack(context, instRef, helperReg, stackPointerReg, helperStackOffset);
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
@@ -283,10 +370,10 @@ namespace
         SWC_ASSERT(scratchReg.isValid());
 
         const MicroReg stackPointerReg = encoder.stackPointerReg();
-        constexpr uint64_t stackFrameSize = REG_STACK_SLOT_SIZE;
+        const bool mustPreserveScratchReg = mustPreserveRegAfterInstruction(context, instRef, scratchReg);
 
-        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
-        insertStoreRegToStack(context, instRef, stackPointerReg, 0, scratchReg);
+        if (mustPreserveScratchReg)
+            insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, scratchReg);
         if (issue.operandIndex == 0)
             insertMoveRegReg(context, instRef, scratchReg, originalDstReg, MicroOpBits::B64);
         else
@@ -304,14 +391,12 @@ namespace
         if (rewrittenDstReg != originalDstReg)
             insertMoveRegReg(context, instRef, originalDstReg, rewrittenDstReg, opBits);
 
-        if (scratchReg != originalDstReg)
-            insertLoadRegFromStack(context, instRef, scratchReg, stackPointerReg, 0);
-
-        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+        if (mustPreserveScratchReg && scratchReg != originalDstReg)
+            insertLoadRegFromStack(context, instRef, scratchReg, stackPointerReg, stackScratchBaseOffset);
         removeInstruction(context, instRef);
     }
 
-    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
         switch (issue.kind)
@@ -329,13 +414,13 @@ namespace
                 applySplitLoadAmcMemImm64(context, instRef, inst, ops);
                 return;
             case MicroConformanceIssueKind::RewriteLoadFloatRegImm:
-                applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops);
+                applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops, stackScratchBaseOffset);
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg:
-                applyRewriteRegRegOperandToFixedReg(context, encoder, instRef, inst, ops, issue);
+                applyRewriteRegRegOperandToFixedReg(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset);
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
-                applyRewriteRegRegOperandAwayFromFixedReg(context, encoder, instRef, inst, ops, issue);
+                applyRewriteRegRegOperandAwayFromFixedReg(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset);
                 return;
             default:
                 SWC_ASSERT(false);
@@ -349,6 +434,26 @@ bool MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
     const auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
+    uint64_t    stackScratchFrameSize = 0;
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    {
+        const Ref                instRef = it.current;
+        const MicroInstr&        inst    = *it;
+        const MicroInstrOperand* ops     = inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+
+        MicroConformanceIssue issue;
+        if (!encoder.queryConformanceIssue(issue, inst, ops))
+            continue;
+
+        stackScratchFrameSize = std::max(stackScratchFrameSize, requiredScratchForIssue(context, instRef, ops, issue));
+    }
+
+    if (stackScratchFrameSize)
+        stackScratchFrameSize = Math::alignUpU64(stackScratchFrameSize, LEGALIZE_STACK_ALIGN);
+
+    if (stackScratchFrameSize)
+        insertScratchFrame(context, encoder, stackScratchFrameSize);
+
     bool        changed = false;
 
     // Iterate once over instructions, but keep fixing a given instruction
@@ -371,7 +476,7 @@ bool MicroLegalizePass::run(MicroPassContext& context)
         for (;;)
         {
             changed = true;
-            applyLegalizeIssue(context, encoder, instRef, inst, ops, issue);
+            applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, 0);
 
             MicroInstr* const currentInst = context.instructions->ptr(instRef);
             if (!currentInst)

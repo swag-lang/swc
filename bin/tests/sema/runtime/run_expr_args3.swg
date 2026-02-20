@@ -40,8 +40,8 @@
 
 #test
 {
-    func variadicTyped(values: s32...)->s32 { return values[0] }
+    func variadicTyped(values: s32...)->s32 { return values[0] + values[1] + values[2] + values[3] }
     #[Swag.PrintMicro]
     const V0 = #run variadicTyped(1, 2, 3, 4)
-    #assert(V0 == 1)
+    #assert(V0 == 10)
 }

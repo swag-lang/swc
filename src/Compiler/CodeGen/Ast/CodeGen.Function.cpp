@@ -130,7 +130,7 @@ namespace
         codeGen.builder().emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, microOpBitsFromChunkSize(elemSize));
     }
 
-    void packTypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, std::span<const ResolvedCallArgument> args, TypeRef variadicElemTypeRef, const ABITypeNormalize::NormalizedType& normalizedVariadic)
+    void packTypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, TypeRef variadicElemTypeRef, const ABITypeNormalize::NormalizedType& normalizedVariadic)
     {
         SWC_ASSERT(normalizedVariadic.numBits == 64);
         SWC_ASSERT(!normalizedVariadic.isIndirect);
@@ -150,14 +150,19 @@ namespace
             totalStorageSize = alignUpU64(totalStorageSize, elemAlign);
             totalStorageSize += elemSize;
         }
+        constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
+        const uint64_t     sliceOffset    = alignUpU64(totalStorageSize, static_cast<uint32_t>(sliceAlign));
+        const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
+        SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        std::byte* elementsStorage = nullptr;
-        if (totalStorageSize)
-            elementsStorage = codeGen.compiler().allocateArray<std::byte>(totalStorageSize);
+        outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
+        if (outTransientStackSize)
+            codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, outTransientStackSize, MicroOp::Subtract, MicroOpBits::B64);
 
-        Runtime::Slice<std::byte>* const sliceStorage = codeGen.compiler().allocate<Runtime::Slice<std::byte>>();
-        sliceStorage->ptr                             = elementsStorage;
-        sliceStorage->count                           = variadicCount;
+        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+        const MicroReg elementsPtrReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegReg(elementsPtrReg, frameBaseReg, MicroOpBits::B64);
 
         uint64_t offset = 0;
         for (uint64_t i = 0; i < variadicCount; ++i)
@@ -168,28 +173,38 @@ namespace
 
             const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
-            SWC_ASSERT(elementsStorage != nullptr);
-
             offset                       = alignUpU64(offset, elemAlign);
             const MicroReg dstAddressReg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegPtrImm(dstAddressReg, reinterpret_cast<uint64_t>(elementsStorage + offset));
+            codeGen.builder().emitLoadRegReg(dstAddressReg, elementsPtrReg, MicroOpBits::B64);
+            if (offset)
+                codeGen.builder().emitOpBinaryRegImm(dstAddressReg, offset, MicroOp::Add, MicroOpBits::B64);
             storeTypedVariadicElement(codeGen, dstAddressReg, *argPayload, elemSize);
             offset += elemSize;
         }
 
-        outPreparedArg.srcReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrImm(outPreparedArg.srcReg, reinterpret_cast<uint64_t>(sliceStorage));
+        const MicroReg sliceAddrReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
+        if (sliceOffset)
+            codeGen.builder().emitOpBinaryRegImm(sliceAddrReg, sliceOffset, MicroOp::Add, MicroOpBits::B64);
+
+        codeGen.builder().emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), elementsPtrReg, MicroOpBits::B64);
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegImm(countReg, variadicCount, MicroOpBits::B64);
+        codeGen.builder().emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
+
+        outPreparedArg.srcReg      = sliceAddrReg;
         outPreparedArg.kind        = ABICall::PreparedArgKind::Direct;
         outPreparedArg.isFloat     = normalizedVariadic.isFloat;
         outPreparedArg.numBits     = normalizedVariadic.numBits;
         outPreparedArg.isAddressed = false;
     }
 
-    void buildPreparedABIArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs)
+    void buildPreparedABIArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
         outArgs.clear();
         outArgs.reserve(args.size());
+        outTransientStackSize                            = 0;
         const CallConvKind                  callConvKind = calledFunction.callConvKind();
         const CallConv&                     callConv     = CallConv::get(callConvKind);
         const std::vector<SymbolVariable*>& params       = calledFunction.parameters();
@@ -304,7 +319,7 @@ namespace
         const TypeRef                               variadicParamTypeRef = params[typedVariadicParamIdx]->typeRef();
         const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, variadicParamTypeRef, ABITypeNormalize::Usage::Argument);
         const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(numFixedArgs);
-        packTypedVariadicArgument(variadicPreparedArg, codeGen, variadicArgs, typedVariadicElemType, normalizedVariadic);
+        packTypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, typedVariadicElemType, normalizedVariadic);
         outArgs.push_back(variadicPreparedArg);
     }
 
@@ -399,12 +414,15 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
-    buildPreparedABIArguments(codeGen, calledFunction, args, preparedArgs);
+    uint32_t transientStackSize = 0;
+    buildPreparedABIArguments(codeGen, calledFunction, args, preparedArgs, transientStackSize);
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet);
     CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
     emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef(), preparedCall);
+    if (transientStackSize)
+        builder.emitOpBinaryRegImm(callConv.stackPointer, transientStackSize, MicroOp::Add, MicroOpBits::B64);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);

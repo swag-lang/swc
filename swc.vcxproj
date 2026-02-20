@@ -222,6 +222,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>

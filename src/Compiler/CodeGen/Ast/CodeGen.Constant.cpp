@@ -170,4 +170,11 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     return Result::SkipChildren;
 }
 
+Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
+{
+    const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+    codeGen.builder().emitLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

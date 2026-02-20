@@ -549,6 +549,7 @@ struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -661,6 +662,7 @@ struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 {
     static Result semaPreNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------

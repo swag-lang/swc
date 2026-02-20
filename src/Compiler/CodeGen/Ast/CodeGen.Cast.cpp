@@ -51,6 +51,48 @@ namespace
         const bool      dstFloatType   = dstType.isFloat();
         const bool      dstIntLikeType = dstType.isIntLike();
 
+        if (srcIntLikeType && dstIntLikeType)
+        {
+            const MicroOpBits srcOpBits = castPayloadBits(srcType);
+            const MicroOpBits dstOpBits = castPayloadBits(dstType);
+            SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
+            SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
+
+            MicroReg srcReg = srcPayload->reg;
+            if (srcPayload->isAddress())
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+
+            const uint32_t srcWidth = static_cast<uint32_t>(srcOpBits);
+            const uint32_t dstWidth = static_cast<uint32_t>(dstOpBits);
+            if (srcWidth == dstWidth)
+            {
+                codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                return Result::Continue;
+            }
+
+            if (srcWidth > dstWidth)
+            {
+                codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                return Result::Continue;
+            }
+
+            if (srcType.isIntSigned())
+            {
+                codeGen.builder().emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+                return Result::Continue;
+            }
+
+            codeGen.builder().emitLoadRegImm(dstPayload.reg, 0, dstOpBits);
+            codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, srcOpBits);
+            return Result::Continue;
+        }
+
         if (srcPayload->typeRef == dstTypeRef)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);

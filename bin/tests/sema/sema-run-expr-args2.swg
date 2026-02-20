@@ -177,15 +177,15 @@ enum AbiEnum: u16
     #assert(V2 == -1)
 }
 
-//#test
-//{
-//    func passAggregatePositions(a: *void, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
-//    {
-//        return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
-//    }
-//
-//    const V = #run passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
-//    #assert(V == 114'u64)
-//    const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
-//    #assert(V1 == 235'u64)
-//}
+#test
+{
+    func passAggregatePositions(a: *void, b: [2] s32, c: string, d: AbiPair, e: AbiPayload)->u64
+    {
+        return cast(u64) b[1] + cast(u64) d.a + e.a3 + cast(u64) c[0] + cast(u64) (a != null)
+    }
+
+    const V = #run passAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
+    #assert(V == 115'u64)
+    const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
+    #assert(V1 == 235'u64)
+}

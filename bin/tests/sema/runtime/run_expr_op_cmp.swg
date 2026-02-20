@@ -112,6 +112,11 @@ enum CmpEnum: u16
     #assert(V2 == 0)
 }
 
+#test
+{
+    func cmpBad(a: bool, b: s32)->bool { return a < b } // swc-expected-error {{sema_err_compare_operand_type}}
+}
+
 //#test
 //{
 //    func cmpAbiMix(

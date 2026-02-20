@@ -149,3 +149,9 @@
     #assert(#typeof(V) == f64)
     #assert(V == 42.0'f64)
 }
+
+#test
+{
+    func addStrict(a: s32, b: s32)->s32 { return a + b }
+    const V = #run addStrict(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
+}

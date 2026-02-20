@@ -26,3 +26,5 @@ var K: func(s32...) = null
 
 var A0: func(a: s32)
 #assert(#nameof(#typeof(A0)) == "func(a: s32)")
+
+var BAD: func(s32) = true // swc-expected-error {{sema_err_cannot_cast}}

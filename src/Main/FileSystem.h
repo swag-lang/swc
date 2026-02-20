@@ -6,6 +6,13 @@ class TaskContext;
 
 namespace FileSystem
 {
+    enum class FilePathDisplayMode : uint8_t
+    {
+        AsIs,
+        BaseName,
+        Absolute,
+    };
+
     Result resolveFile(TaskContext& ctx, fs::path& file);
     Result resolveFolder(TaskContext& ctx, fs::path& folder);
     Utf8   formatFileName(const TaskContext* ctx, const fs::path& filePath);

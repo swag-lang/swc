@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Main/FileSystem.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -18,13 +19,6 @@ enum class CommandKind
     Syntax,
     Sema,
     Invalid = -1,
-};
-
-enum class FilePathDisplayMode : uint8_t
-{
-    AsIs,
-    BaseName,
-    Absolute,
 };
 
 struct CommandLine
@@ -66,11 +60,11 @@ struct CommandLine
     uint32_t randSeed  = 0;
 #endif
 
-    uint32_t syntaxColorLum  = 0;
-    uint32_t numCores        = 0;
-    uint32_t tabSize         = 4;
-    uint32_t diagMaxColumn   = 120;
-    int      filePathDisplay = static_cast<int>(FilePathDisplayMode::BaseName);
+    uint32_t            syntaxColorLum  = 0;
+    uint32_t            numCores        = 0;
+    uint32_t            tabSize         = 4;
+    uint32_t            diagMaxColumn   = 120;
+    FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
     Utf8           verboseVerifyFilter;
     std::set<Utf8> fileFilter;
@@ -79,21 +73,6 @@ struct CommandLine
     std::set<fs::path> files;
 
     fs::path modulePath;
-
-    FilePathDisplayMode filePathDisplayMode() const
-    {
-        switch (filePathDisplay)
-        {
-            case static_cast<int>(FilePathDisplayMode::AsIs):
-                return FilePathDisplayMode::AsIs;
-            case static_cast<int>(FilePathDisplayMode::BaseName):
-                return FilePathDisplayMode::BaseName;
-            case static_cast<int>(FilePathDisplayMode::Absolute):
-                return FilePathDisplayMode::Absolute;
-            default:
-                return FilePathDisplayMode::BaseName;
-        }
-    }
 };
 
 SWC_END_NAMESPACE();

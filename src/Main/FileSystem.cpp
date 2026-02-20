@@ -8,21 +8,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    FilePathDisplayMode resolveDisplayMode(const TaskContext* ctx)
+    FileSystem::FilePathDisplayMode resolveDisplayMode(const TaskContext* ctx)
     {
         if (!ctx)
-            return FilePathDisplayMode::AsIs;
-
-        return ctx->cmdLine().filePathDisplayMode();
+            return FileSystem::FilePathDisplayMode::AsIs;
+        return ctx->cmdLine().filePathDisplay;
     }
 
     fs::path toAbsolutePathNoThrow(const fs::path& filePath)
     {
         std::error_code ec;
-        const fs::path  absolutePath = fs::absolute(filePath, ec);
+        fs::path        absolutePath = fs::absolute(filePath, ec);
         if (ec)
             return filePath;
-
         return absolutePath;
     }
 }
@@ -127,17 +125,17 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
 {
-    const FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
+    const FileSystem::FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
 
     switch (resolvedMode)
     {
-        case FilePathDisplayMode::AsIs:
+        case FileSystem::FilePathDisplayMode::AsIs:
             return filePath.string();
 
-        case FilePathDisplayMode::BaseName:
+        case FileSystem::FilePathDisplayMode::BaseName:
             return filePath.filename().string();
 
-        case FilePathDisplayMode::Absolute:
+        case FileSystem::FilePathDisplayMode::Absolute:
             return toAbsolutePathNoThrow(filePath).string();
 
         default:

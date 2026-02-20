@@ -45,6 +45,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     while (true)
     {
+        const AstNodeRef currentNodeRef  = visit_.currentNodeRef();
+        const SourceCodeRef currentCodeRef = currentNodeRef.isValid() ? node(currentNodeRef).codeRef() : symbolFunc.codeRef();
+        ctx().state().setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
+
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
             return Result::Pause;

@@ -246,6 +246,13 @@ namespace
             return view.sym();
         return sema.topSymMap();
     }
+
+    SourceCodeRef currentCodeRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return SourceCodeRef::invalid();
+        return sema.node(nodeRef).codeRef();
+    }
 }
 
 Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
@@ -543,6 +550,9 @@ Result Sema::execResult()
     auto semaResult = Result::Continue;
     while (true)
     {
+        const AstNodeRef nodeRef = visit_.currentNodeRef();
+        ctx().state().setSemaParsing(nodeRef, currentCodeRef(*this, nodeRef));
+
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
         {

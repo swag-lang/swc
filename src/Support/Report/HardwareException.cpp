@@ -4,6 +4,8 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -12,6 +14,84 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const char* taskStateName(const TaskStateKind kind)
+    {
+        switch (kind)
+        {
+            case TaskStateKind::None:
+                return "None";
+            case TaskStateKind::RunJit:
+                return "Run JIT";
+            case TaskStateKind::SemaParsing:
+                return "Semantic parsing";
+            case TaskStateKind::CodeGenParsing:
+                return "Codegen parsing";
+            case TaskStateKind::SemaWaitIdentifier:
+                return "Wait identifier";
+            case TaskStateKind::SemaWaitCompilerDefined:
+                return "Wait compiler-defined";
+            case TaskStateKind::SemaWaitImplRegistrations:
+                return "Wait impl registrations";
+            case TaskStateKind::SemaWaitSymDeclared:
+                return "Wait symbol declared";
+            case TaskStateKind::SemaWaitSymTyped:
+                return "Wait symbol typed";
+            case TaskStateKind::SemaWaitSymSemaCompleted:
+                return "Wait symbol sema completed";
+            case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+                return "Wait symbol codegen pre-solved";
+            case TaskStateKind::SemaWaitSymCodeGenCompleted:
+                return "Wait symbol codegen completed";
+            case TaskStateKind::SemaWaitTypeCompleted:
+                return "Wait type completed";
+            default:
+                return "Unknown";
+        }
+    }
+
+    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function)
+    {
+        if (!function)
+            return;
+        HardwareException::appendField(outMsg, label, function->name(ctx));
+        const Utf8 fullName = function->getFullScopedName(ctx);
+        if (!fullName.empty())
+            HardwareException::appendField(outMsg, "function scope", fullName);
+    }
+
+    void appendTaskStateGroup(Utf8& outMsg, const TaskContext& ctx)
+    {
+        const TaskState& state = ctx.state();
+        HardwareException::appendSectionHeader(outMsg, "task");
+        HardwareException::appendField(outMsg, "state", taskStateName(state.kind));
+
+        if (state.nodeRef.isValid())
+            HardwareException::appendField(outMsg, "node ref", std::format("{}", state.nodeRef.get()));
+
+        if (state.codeRef.isValid())
+        {
+            HardwareException::appendField(outMsg, "src view ref", std::format("{}", state.codeRef.srcViewRef.get()));
+            HardwareException::appendField(outMsg, "token ref", std::format("{}", state.codeRef.tokRef.get()));
+
+            const SourceView&     srcView    = ctx.compiler().srcView(state.codeRef.srcViewRef);
+            const Token&          token      = srcView.token(state.codeRef.tokRef);
+            const SourceCodeRange codeRange  = token.codeRange(ctx, srcView);
+            const SourceFile*     sourceFile = srcView.file();
+            if (sourceFile)
+            {
+                HardwareException::appendField(outMsg, "source", std::format("{}:{}:{}", sourceFile->path().string(), codeRange.line, codeRange.column));
+            }
+        }
+
+        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction);
+        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction);
+
+        if (state.symbol)
+            HardwareException::appendField(outMsg, "symbol", state.symbol->name(ctx));
+        if (state.waiterSymbol)
+            HardwareException::appendField(outMsg, "waiter symbol", state.waiterSymbol->name(ctx));
+    }
+
     void appendCrashGroup(Utf8& outMsg, const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::appendSectionHeader(outMsg, "infos");
@@ -79,6 +159,7 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
 
     appendContextGroup(msg, extraInfo);
+    appendTaskStateGroup(msg, ctx);
     appendCrashGroup(msg, ctx, args);
     appendHostTraceGroup(msg, args);
     Logger::print(ctx, msg);

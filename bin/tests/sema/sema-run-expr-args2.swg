@@ -163,7 +163,7 @@ enum AbiEnum: u16
     #assert(V2 == -3)
 }
 
-/*#test
+#test
 {
     func passSlice(values: [..] s32, idx: s32)->s32 { return values[idx] }
     const values0: [4] s32 = [11, 22, 33, 44]
@@ -175,7 +175,7 @@ enum AbiEnum: u16
     #assert(V1 == 404)
     const V2 = #run passSlice(values2, 0)
     #assert(V2 == -1)
-}*/
+}
 
 //#test
 //{

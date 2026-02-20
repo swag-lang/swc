@@ -12,11 +12,15 @@ class SourceFile;
 class TypeManager;
 class TypeGen;
 class Symbol;
+class SymbolFunction;
 struct CommandLine;
 
 enum class TaskStateKind : uint8_t
 {
     None,
+    RunJit,
+    SemaParsing,
+    CodeGenParsing,
     SemaWaitIdentifier,
     SemaWaitCompilerDefined,
     SemaWaitImplRegistrations,
@@ -30,21 +34,66 @@ enum class TaskStateKind : uint8_t
 
 struct TaskState
 {
-    TaskStateKind kind         = TaskStateKind::None;
+    TaskStateKind        kind             = TaskStateKind::None;
+    const SymbolFunction* runJitFunction  = nullptr;
+    const SymbolFunction* codeGenFunction = nullptr;
     AstNodeRef    nodeRef      = AstNodeRef::invalid();
     SourceCodeRef codeRef      = SourceCodeRef::invalid();
     IdentifierRef idRef        = IdentifierRef::invalid();
     const Symbol* symbol       = nullptr;
     const Symbol* waiterSymbol = nullptr;
 
+    void setNone()
+    {
+        kind             = TaskStateKind::None;
+        runJitFunction   = nullptr;
+        codeGenFunction  = nullptr;
+        nodeRef          = AstNodeRef::invalid();
+        codeRef          = SourceCodeRef::invalid();
+        idRef            = IdentifierRef::invalid();
+        symbol           = nullptr;
+        waiterSymbol     = nullptr;
+    }
+
+    void setRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+    {
+        kind             = TaskStateKind::RunJit;
+        runJitFunction   = function;
+        codeGenFunction  = nullptr;
+        nodeRef          = currentNodeRef;
+        codeRef          = currentCodeRef;
+        idRef            = IdentifierRef::invalid();
+        symbol           = nullptr;
+        waiterSymbol     = nullptr;
+    }
+
+    void setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+    {
+        kind             = TaskStateKind::SemaParsing;
+        runJitFunction   = nullptr;
+        codeGenFunction  = nullptr;
+        nodeRef          = currentNodeRef;
+        codeRef          = currentCodeRef;
+        idRef            = IdentifierRef::invalid();
+        symbol           = nullptr;
+        waiterSymbol     = nullptr;
+    }
+
+    void setCodeGenParsing(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+    {
+        kind             = TaskStateKind::CodeGenParsing;
+        runJitFunction   = nullptr;
+        codeGenFunction  = function;
+        nodeRef          = currentNodeRef;
+        codeRef          = currentCodeRef;
+        idRef            = IdentifierRef::invalid();
+        symbol           = nullptr;
+        waiterSymbol     = nullptr;
+    }
+
     void reset()
     {
-        kind         = TaskStateKind::None;
-        nodeRef      = AstNodeRef::invalid();
-        codeRef      = SourceCodeRef::invalid();
-        idRef        = IdentifierRef::invalid();
-        symbol       = nullptr;
-        waiterSymbol = nullptr;
+        setNone();
     }
 };
 

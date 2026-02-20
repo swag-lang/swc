@@ -10,6 +10,7 @@
 
 #test
 {
+        #[Swag.PrintMicro]
     func bitAndChain(a: u32, b: u32, c: u32)->u32 { return a & b & c }
     const V = #run bitAndChain(0x3E'u32, 0x2F'u32, 0x2A'u32)
     #assert(#typeof(V) == u32)

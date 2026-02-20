@@ -14,6 +14,70 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isCopyDeadAfterInstruction(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg)
+    {
+        for (; scanIt != endIt; ++scanIt)
+        {
+            const MicroInstr&                    scanInst = *scanIt;
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            SmallVector<MicroInstrRegOperandRef> refs;
+            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+            bool hasUse = false;
+            bool hasDef = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                    continue;
+
+                hasUse |= ref.use;
+                hasDef |= ref.def;
+            }
+
+            if (hasUse)
+                return false;
+
+            if (hasDef)
+                return true;
+
+            if (scanInst.op == MicroInstrOpcode::Ret)
+                return true;
+
+            if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool tryForwardCopyIntoNextBinarySource(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        const MicroInstr&  nextInst = *nextIt;
+        MicroInstrOperand* nextOps  = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (nextInst.op != MicroInstrOpcode::OpBinaryRegReg || !nextOps)
+            return false;
+
+        const MicroReg copyDstReg = ops[0].reg;
+        const MicroReg copySrcReg = ops[1].reg;
+        if (nextOps[1].reg != copyDstReg)
+            return false;
+        if (nextOps[0].reg == copyDstReg)
+            return false;
+        if (ops[2].opBits != nextOps[2].opBits)
+            return false;
+        if (!MicroOptimization::isSameRegisterClass(copyDstReg, copySrcReg))
+            return false;
+        if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, copyDstReg))
+            return false;
+
+        nextOps[1].reg = copySrcReg;
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
     bool analyzeCopyCoalescing(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg dstReg, MicroReg srcReg, bool& outSawMutation)
     {
         bool canCoalesce       = true;
@@ -174,6 +238,12 @@ bool MicroPeepholePass::run(MicroPassContext& context)
 
         if (inst.op == MicroInstrOpcode::LoadRegReg)
         {
+            if (tryForwardCopyIntoNextBinarySource(context, instRef, ops, it, view.end()))
+            {
+                changed = true;
+                continue;
+            }
+
             if (tryCoalesceCopyInstruction(context, instRef, ops, it, view.end()))
             {
                 changed = true;

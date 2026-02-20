@@ -5,6 +5,9 @@
 #include "Backend/Micro/Passes/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.h"
 
+// Performs late local cleanups after allocation/legalization by removing
+// instruction forms that are guaranteed to be semantic no-ops.
+
 SWC_BEGIN_NAMESPACE();
 
 bool MicroPeepholePass::run(MicroPassContext& context)

@@ -7,6 +7,9 @@
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
 
+// Maps virtual registers to concrete machine registers and inserts
+// spill/reload moves when pressure exceeds available physical registers.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroDeadCodeEliminationPass.h"
 
+// Performs backward liveness over registers and removes side-effect-free
+// instructions whose produced values are never used.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

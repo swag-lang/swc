@@ -6,7 +6,6 @@ SWC_BEGIN_NAMESPACE();
 class MicroPeepholePass final : public MicroPass
 {
 public:
-    // Removes instruction forms that are guaranteed no-op after regalloc/legalize.
     std::string_view name() const override { return "peephole"; }
     bool          run(MicroPassContext& context) override;
 };

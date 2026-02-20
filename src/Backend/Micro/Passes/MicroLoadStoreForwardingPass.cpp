@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroLoadStoreForwardingPass.h"
 
+// Forwards a nearby store value directly into a following load from the same
+// address, avoiding an unnecessary memory read.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

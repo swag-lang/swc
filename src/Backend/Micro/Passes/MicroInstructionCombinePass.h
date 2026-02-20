@@ -6,7 +6,6 @@ SWC_BEGIN_NAMESPACE();
 class MicroInstructionCombinePass final : public MicroPass
 {
 public:
-    // Merge adjacent immediate operations on the same destination register.
     std::string_view name() const override { return "inst-combine"; }
     bool          run(MicroPassContext& context) override;
 };

@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroStrengthReductionPass.h"
 
+// Rewrites expensive integer arithmetic patterns into cheaper equivalents,
+// such as shift-based forms for power-of-two multipliers/divisors.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

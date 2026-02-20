@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
 
+// Tracks known integer constants in registers and folds dependent operations
+// into immediate forms when results can be computed at compile time.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

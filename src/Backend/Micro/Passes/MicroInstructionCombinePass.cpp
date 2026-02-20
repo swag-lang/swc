@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroInstructionCombinePass.h"
 
+// Combines adjacent immediate arithmetic/logical operations on the same register
+// into a single equivalent instruction when it is safe.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

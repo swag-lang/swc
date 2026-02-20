@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroCopyPropagationPass.h"
 
+// Tracks register-to-register copies and replaces later uses with the original
+// source register to remove redundant move chains.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

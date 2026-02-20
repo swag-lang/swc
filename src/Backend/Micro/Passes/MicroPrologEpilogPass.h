@@ -6,7 +6,6 @@ SWC_BEGIN_NAMESPACE();
 class MicroPrologEpilogPass final : public MicroPass
 {
 public:
-    // Injects prologue/epilogue saves for persistent ABI registers touched in the body.
     std::string_view name() const override { return "prolog-epilog"; }
     bool          run(MicroPassContext& context) override;
 

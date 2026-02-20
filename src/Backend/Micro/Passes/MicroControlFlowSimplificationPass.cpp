@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroControlFlowSimplificationPass.h"
 
+// Removes trivially redundant control-flow patterns:
+// unreachable blocks, no-op jumps, and labels that are no longer referenced.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

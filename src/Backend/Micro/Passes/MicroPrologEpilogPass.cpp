@@ -3,6 +3,9 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Support/Math/Helpers.h"
 
+// Inserts function prologue/epilogue save-restore sequences for ABI-preserved
+// registers that are used by the generated function body.
+
 SWC_BEGIN_NAMESPACE();
 
 bool MicroPrologEpilogPass::run(MicroPassContext& context)

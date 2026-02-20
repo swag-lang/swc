@@ -3,6 +3,9 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 
+// Encodes finalized micro instructions to machine code, resolves label jumps,
+// and updates relocation offsets bound to emitted instructions.
+
 SWC_BEGIN_NAMESPACE();
 
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const

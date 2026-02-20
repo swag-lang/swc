@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroBranchFoldingPass.h"
 
+// Evaluates compare and condition state when operands are known constants,
+// then folds conditional branches into unconditional or removed jumps.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

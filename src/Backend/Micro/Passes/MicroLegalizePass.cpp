@@ -2,6 +2,9 @@
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/Micro/MicroInstr.h"
 
+// Rewrites non-conformant micro instructions into encoder-supported forms
+// before final machine-code emission.
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

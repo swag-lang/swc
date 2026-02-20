@@ -115,7 +115,7 @@ namespace
             return pointerReg;
         }
 
-        if (indexedType.isSlice())
+        if (indexedType.isSlice() || indexedType.isTypedVariadic())
         {
             MicroReg sliceReg = indexedPayload.reg;
             if (indexedPayload.isAddress())

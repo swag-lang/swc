@@ -28,7 +28,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     // Convert semantic types into one ABI transfer model: register value or indirect pointer.
     SWC_ASSERT(typeRef.isValid());
 
-    const TypeRef expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum | TypeExpandE::Variadic);
+    const TypeRef expanded = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     SWC_ASSERT(expanded.isValid());
 
     const TypeInfo& ty = ctx.typeMgr().get(expanded);
@@ -51,6 +51,9 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         return makeNormalizedType(false, false, 64);
 
     if (ty.isVariadic())
+        return makeNormalizedType(false, false, 64);
+
+    if (ty.isTypedVariadic())
         return makeNormalizedType(false, false, 64);
 
     if (ty.isStruct() || ty.isArray() || ty.isAggregate())

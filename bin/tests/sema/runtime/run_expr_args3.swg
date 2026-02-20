@@ -38,20 +38,10 @@
     #assert(V1 == 79)
 }
 
-// #test
-// {
-//     func variadicHeadTypeErr(a: s32, values: ...)->s32 { return a }
-//     const V = #run variadicHeadTypeErr("bad")
-// }
-//
-// #test
-// {
-//     func variadicTypedArgTypeErr(values: s32...)->s32 { return 0 }
-//     const V = #run variadicTypedArgTypeErr(1, "bad", 3)
-// }
-//
-// #test
-// {
-//     func variadicHeadMissing(a: s32, values: ...)->s32 { return a }
-//     const V = #run variadicHeadMissing()
-// }
+#test
+{
+    func variadicTyped(values: s32...)->s32 { return values[0] }
+    #[Swag.PrintMicro]
+    const V0 = #run variadicTyped(1, 2, 3, 4)
+    #assert(V0 == 1)
+}

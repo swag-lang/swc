@@ -29,3 +29,8 @@ func tutu(a: s32, b: s32...) {}
     tutu("1", 2) // swc-expected-error {{sema_err_cannot_cast}}
     @print("a", "b")
 }
+
+#test
+{
+    func variadicTypedIndexType(values: s32...)->s32 { return values["a"] } // swc-expected-error {{sema_err_index_not_int}}
+}

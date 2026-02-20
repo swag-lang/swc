@@ -676,8 +676,7 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         case MicroOp::ModuloUnsigned:
         case MicroOp::DivideSigned:
         case MicroOp::ModuloSigned:
-            info.addUse(x64RegToMicroReg(X64Reg::Rdx));
-            info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+            info.addUseDef(x64RegToMicroReg(X64Reg::Rdx));
             break;
         default:
             break;

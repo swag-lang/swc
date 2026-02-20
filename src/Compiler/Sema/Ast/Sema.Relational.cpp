@@ -282,14 +282,7 @@ namespace
     {
         SWC_UNUSED(node);
 
-        if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isScalarNumeric())
-        {
-            const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), false);
-            if (nodeLeftView.typeRef() != promotedTypeRef)
-                RESULT_VERIFY(Cast::cast(sema, nodeLeftView, promotedTypeRef, CastKind::Promotion));
-            if (nodeRightView.typeRef() != promotedTypeRef)
-                RESULT_VERIFY(Cast::cast(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
-        }
+        RESULT_VERIFY(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
 
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {

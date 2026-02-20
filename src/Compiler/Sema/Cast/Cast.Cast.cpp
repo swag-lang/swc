@@ -900,4 +900,26 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     return emitCastFailure(sema, castRequest.failure);
 }
 
+Result Cast::castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
+{
+    if (view.typeRef() == dstTypeRef)
+        return Result::Continue;
+
+    return cast(sema, view, dstTypeRef, castKind, castFlags);
+}
+
+Result Cast::castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind)
+{
+    if (!nodeLeftView.type() || !nodeRightView.type())
+        return Result::Continue;
+
+    if (!nodeLeftView.type()->isScalarNumeric() || !nodeRightView.type()->isScalarNumeric())
+        return Result::Continue;
+
+    const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), false);
+    RESULT_VERIFY(castIfNeeded(sema, nodeLeftView, promotedTypeRef, castKind));
+    RESULT_VERIFY(castIfNeeded(sema, nodeRightView, promotedTypeRef, castKind));
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

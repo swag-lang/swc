@@ -13,18 +13,16 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct ExceptionInfo
+    int exceptionHandlerNoLog(SWC_LP_EXCEPTION_POINTERS args)
     {
-        void*            invoker        = nullptr;
-        std::string_view triggerContext = {};
-        std::string_view targetFunction = {};
-    };
+        (void) args;
+        return SWC_EXCEPTION_EXECUTE_HANDLER;
+    }
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
     {
@@ -73,12 +71,6 @@ namespace
                 SWC_ASSERT(false);
                 return outArg;
         }
-    }
-
-    int exceptionHandler(const TaskContext& ctx, const ExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
-    {
-        HardwareException::log(ctx, "hardware exception during jit call", args, info.triggerContext);
-        return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
     bool resolveLocalFunctionTargetAddress(uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr)
@@ -311,11 +303,12 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     (void) call(ctx, invoker);
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const std::string_view triggerContext, const std::string_view targetFunction)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const SymbolFunction* symFn)
 {
     SWC_ASSERT(invoker != nullptr);
-    const ExceptionInfo info{.invoker = invoker, .triggerContext = triggerContext, .targetFunction = targetFunction};
-    bool                hasException = false;
+    (void) ctx;
+    (void) symFn;
+    bool hasException = false;
 
     SWC_TRY
     {
@@ -332,7 +325,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const st
             typedInvoker();
         }
     }
-    SWC_EXCEPT(exceptionHandler(ctx, info, SWC_GET_EXCEPTION_INFOS()))
+    SWC_EXCEPT(exceptionHandlerNoLog(SWC_GET_EXCEPTION_INFOS()))
     {
         hasException = true;
     }

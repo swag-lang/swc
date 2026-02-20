@@ -182,7 +182,11 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
 
 void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
 {
+    SWC_ASSERT(st != nullptr);
+    SWC_ASSERT(ref != INVALID_REF);
     PagedStore::decodeRef(st->pageSize(), ref, pageIndex, off);
+    SWC_ASSERT(pageIndex < st->publishedPageCount());
+    SWC_ASSERT(off < st->pageSize());
 }
 
 uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
@@ -196,6 +200,8 @@ const void* PagedStore::SpanView::dataPtr(const PagedStore* st, Ref hdrRef, uint
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
+    SWC_ASSERT(dataOffset <= st->pageSize());
+    SWC_ASSERT(dataOffset <= st->publishedPageUsed(pageIndex));
     return st->publishedPageBytes(pageIndex) + dataOffset;
 }
 
@@ -206,9 +212,15 @@ uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)
 
 uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
 {
+    SWC_ASSERT(st != nullptr);
+    SWC_ASSERT(hdrRef != INVALID_REF);
+    SWC_ASSERT(elemSize > 0);
+    SWC_ASSERT((elemAlign & (elemAlign - 1)) == 0);
+    SWC_ASSERT(elemAlign != 0);
     uint32_t pageIndex, off;
     decodeRef(st, hdrRef, pageIndex, off);
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
+    SWC_ASSERT(dataOffset <= st->pageSize());
     const uint32_t capBytes   = st->pageSize() - dataOffset;
     const uint32_t cap        = capBytes / elemSize;
     return std::min<uint32_t>(cap, remaining);
@@ -236,6 +248,8 @@ bool PagedStore::SpanView::ChunkIterator::operator!=(const ChunkIterator& o) con
 
 PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operator++()
 {
+    SWC_ASSERT(store != nullptr);
+    SWC_ASSERT(hdrRef != INVALID_REF);
     done += current.count;
     if (done >= total)
     {
@@ -247,6 +261,7 @@ PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operat
     uint32_t  pageIndex, off;
     const Ref cur = hdrRef;
     decodeRef(store, cur, pageIndex, off);
+    SWC_ASSERT(pageIndex + 1 < store->publishedPageCount());
     const Ref nextHdr = makeRef(store->pageSize(), pageIndex + 1, 0);
 
     hdrRef                   = nextHdr;

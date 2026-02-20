@@ -151,11 +151,16 @@ private:
     template<class T>
     static T* ptrImpl(const std::shared_ptr<const std::vector<Page*>>& pages, uint32_t pageSize, Ref ref)
     {
+        SWC_ASSERT(ref != INVALID_REF);
         uint32_t pageIndex = 0, offset = 0;
         decodeRef(pageSize, ref, pageIndex, offset);
 
         SWC_ASSERT(pages);
         SWC_ASSERT(pageIndex < pages->size());
+        SWC_ASSERT((*pages)[pageIndex] != nullptr);
+        const uint32_t pageUsed = (*pages)[pageIndex]->used.load(std::memory_order_relaxed);
+        SWC_ASSERT(offset <= pageUsed);
+        SWC_ASSERT(offset + sizeof(T) <= pageUsed);
         SWC_ASSERT(offset + sizeof(T) <= pageSize);
 
         return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);

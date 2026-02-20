@@ -34,6 +34,7 @@ namespace
 
     bool isNoOpLoadAddrRegMem(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
+        SWC_UNUSED(inst);
         if (ops[1].reg.isInstructionPointer())
             return false;
         return ops[3].valueU64 == 0 && ops[0].reg == ops[1].reg;
@@ -46,11 +47,13 @@ namespace
 
     bool isNoOpOpBinaryRegReg(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
+        SWC_UNUSED(inst);
         return ops[3].microOp == MicroOp::Exchange && ops[0].reg == ops[1].reg;
     }
 
     bool isNoOpOpBinaryRegImm(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
+        SWC_UNUSED(inst);
         return isIdentityBinaryImm(ops[2].microOp, ops[3].valueU64, ops[1].opBits);
     }
 }

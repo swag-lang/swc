@@ -128,13 +128,13 @@ Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath
     const FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
     switch (resolvedMode)
     {
-        case FileSystem::FilePathDisplayMode::AsIs:
+        case FilePathDisplayMode::AsIs:
             return filePath.string();
 
-        case FileSystem::FilePathDisplayMode::BaseName:
+        case FilePathDisplayMode::BaseName:
             return filePath.filename().string();
 
-        case FileSystem::FilePathDisplayMode::Absolute:
+        case FilePathDisplayMode::Absolute:
             return toAbsolutePathNoThrow(filePath).string();
 
         default:

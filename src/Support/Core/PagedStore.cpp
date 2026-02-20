@@ -32,8 +32,8 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
     if (this != &other)
     {
         std::swap(pagesStorage_, other.pagesStorage_);
-        auto leftSnapshot  = publishedPages_.load(std::memory_order_acquire);
-        auto rightSnapshot = other.publishedPages_.load(std::memory_order_acquire);
+        const auto leftSnapshot  = publishedPages_.load(std::memory_order_acquire);
+        const auto rightSnapshot = other.publishedPages_.load(std::memory_order_acquire);
         publishedPages_.store(rightSnapshot, std::memory_order_release);
         other.publishedPages_.store(leftSnapshot, std::memory_order_release);
         std::swap(totalBytes_, other.totalBytes_);

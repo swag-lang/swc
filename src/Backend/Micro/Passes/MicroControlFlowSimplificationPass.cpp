@@ -107,7 +107,7 @@ bool MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             continue;
 
         auto scanIt = it;
-        for (; scanIt != storage.view().end();)
+        while (scanIt != storage.view().end())
         {
             if (scanIt->op == MicroInstrOpcode::Label)
                 break;

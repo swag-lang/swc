@@ -411,38 +411,6 @@ void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 
 namespace
 {
-    const char* jobKindName(const JobKind kind)
-    {
-        switch (kind)
-        {
-            case JobKind::Invalid:
-                return "Invalid";
-            case JobKind::Parser:
-                return "Parser";
-            case JobKind::Sema:
-                return "Sema";
-            case JobKind::CodeGen:
-                return "CodeGen";
-            default:
-                return "Unknown";
-        }
-    }
-
-    const char* jobPriorityName(const JobPriority priority)
-    {
-        switch (priority)
-        {
-            case JobPriority::High:
-                return "High";
-            case JobPriority::Normal:
-                return "Normal";
-            case JobPriority::Low:
-                return "Low";
-            default:
-                return "Unknown";
-        }
-    }
-
     void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
         HardwareException::log(job.ctx(), "hardware exception during job execution", args);

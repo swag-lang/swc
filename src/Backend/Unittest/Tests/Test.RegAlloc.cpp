@@ -546,25 +546,25 @@ SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg R8  = MicroReg::intReg(8);
-    constexpr MicroReg R9  = MicroReg::intReg(9);
-    constexpr MicroReg R10 = MicroReg::intReg(10);
-    constexpr MicroReg R11 = MicroReg::intReg(11);
-    constexpr MicroReg R12 = MicroReg::intReg(12);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+    constexpr MicroReg r12 = MicroReg::intReg(12);
 
     builder.emitNop();
-    builder.emitLoadRegReg(R8, R8, MicroOpBits::B64);
-    builder.emitLoadAddressRegMem(R9, R9, 0, MicroOpBits::B64);
-    builder.emitLoadCondRegReg(R10, R10, MicroCond::Greater, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(R11, R11, MicroOp::Exchange, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Or, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::Xor, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0xFFFFFFFFFFFFFFFF, MicroOp::And, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftRight, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R12, 0, MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
+    builder.emitLoadRegReg(r8, r8, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(r9, r9, 0, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(r10, r10, MicroCond::Greater, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r11, r11, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Or, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Xor, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0xFFFFFFFFFFFFFFFF, MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
     builder.emitRet();
 
     runPeepholePass(builder);
@@ -582,22 +582,22 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg R8  = MicroReg::intReg(8);
-    constexpr MicroReg R9  = MicroReg::intReg(9);
-    constexpr MicroReg R10 = MicroReg::intReg(10);
-    constexpr MicroReg R11 = MicroReg::intReg(11);
-    constexpr MicroReg R12 = MicroReg::intReg(12);
-    constexpr MicroReg R13 = MicroReg::intReg(13);
-    constexpr MicroReg R14 = MicroReg::intReg(14);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+    constexpr MicroReg r11 = MicroReg::intReg(11);
+    constexpr MicroReg r12 = MicroReg::intReg(12);
+    constexpr MicroReg r13 = MicroReg::intReg(13);
+    constexpr MicroReg r14 = MicroReg::intReg(14);
 
     builder.emitNop();
-    builder.emitLoadRegReg(R8, R9, MicroOpBits::B64);
-    builder.emitLoadAddressRegMem(R9, R9, 1, MicroOpBits::B64);
-    builder.emitLoadCondRegReg(R10, R11, MicroCond::Greater, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(R12, R13, MicroOp::Exchange, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R14, 1, MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R14, 1, MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(R14, 0x7F, MicroOp::And, MicroOpBits::B64);
+    builder.emitLoadRegReg(r8, r9, MicroOpBits::B64);
+    builder.emitLoadAddressRegMem(r9, r9, 1, MicroOpBits::B64);
+    builder.emitLoadCondRegReg(r10, r11, MicroCond::Greater, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r12, r13, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, 1, MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, 1, MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, 0x7F, MicroOp::And, MicroOpBits::B64);
     builder.emitRet();
 
     runPeepholePass(builder);

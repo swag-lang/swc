@@ -20,7 +20,7 @@ namespace
         HardwareException::appendField(outMsg, label, std::format("0x{:016X}", reinterpret_cast<uint64_t>(ptr)));
     }
 
-    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function)
+    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const SymbolFunction* function)
     {
         if (!function)
             return;
@@ -51,8 +51,8 @@ namespace
             }
         }
 
-        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction);
-        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction);
+        appendTaskFunction(outMsg, ctx, state.runJitFunction);
+        appendTaskFunction(outMsg, ctx, state.codeGenFunction);
 
         if (state.symbol)
             appendPointerField(outMsg, "symbol ptr", state.symbol);

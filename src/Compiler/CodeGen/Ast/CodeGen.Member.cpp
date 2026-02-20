@@ -39,9 +39,9 @@ namespace
         const SymbolVariable*     symVar      = rightSym->safeCast<SymbolVariable>();
         SWC_ASSERT(symVar != nullptr);
 
-        const TypeRef       memberTypeRef = codeGen.curViewType().typeRef();
-        CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
-        MicroBuilder&       builder       = codeGen.builder();
+        const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
+        const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
 
         if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, *leftPayload))
         {
@@ -55,8 +55,8 @@ namespace
         const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
         SWC_ASSERT(leftSize > 0 && leftSize <= 8);
 
-        std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(static_cast<size_t>(leftSize));
-        std::memset(spillData, 0, static_cast<size_t>(leftSize));
+        std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(leftSize);
+        std::memset(spillData, 0, leftSize);
 
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));

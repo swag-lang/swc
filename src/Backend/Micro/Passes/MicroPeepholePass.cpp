@@ -108,7 +108,7 @@ namespace
         return changed;
     }
 
-    bool tryCoalesceCopyInstruction(MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, MicroStorage::Iterator scanBegin, const MicroStorage::Iterator& endIt)
+    bool tryCoalesceCopyInstruction(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, MicroStorage::Iterator scanBegin, const MicroStorage::Iterator& endIt)
     {
         if (!ops)
             return false;

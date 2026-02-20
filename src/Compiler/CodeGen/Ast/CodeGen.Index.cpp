@@ -71,8 +71,8 @@ namespace
         const uint64_t sizeOfValue = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOfValue > 0 && sizeOfValue <= 8);
 
-        std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(static_cast<size_t>(sizeOfValue));
-        std::memset(spillData, 0, static_cast<size_t>(sizeOfValue));
+        std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(sizeOfValue);
+        std::memset(spillData, 0, sizeOfValue);
 
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
         codeGen.builder().emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));

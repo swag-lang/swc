@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t kOsFieldWidth = 24;
+    constexpr uint32_t K_OS_FIELD_WIDTH = 24;
 
     void appendOsField(Utf8& outMsg, const std::string_view label, const std::string_view value, const uint32_t leftPadding = 0)
     {
@@ -22,7 +22,7 @@ namespace
         outMsg += label;
         outMsg += ":";
         uint32_t used = static_cast<uint32_t>(label.size()) + 1;
-        while (used < kOsFieldWidth)
+        while (used < K_OS_FIELD_WIDTH)
         {
             outMsg += " ";
             ++used;

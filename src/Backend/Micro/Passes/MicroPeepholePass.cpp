@@ -438,6 +438,91 @@ namespace
         return true;
     }
 
+    bool tryCanonicalizeCmpRegImmZero(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        if (!cursor.ops)
+            return false;
+
+        if (cursor.inst->op != MicroInstrOpcode::CmpRegImm)
+            return false;
+        if (cursor.ops[2].valueU64 != 0)
+            return false;
+
+        cursor.inst->op = MicroInstrOpcode::CmpRegZero;
+        return true;
+    }
+
+    bool tryFoldSetCondZeroExtCopy(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        const MicroStorage::Iterator zeroExtIt = nextIt;
+        const MicroStorage::Iterator copyIt    = std::next(zeroExtIt);
+        if (copyIt == endIt)
+            return false;
+
+        const MicroInstr& zeroExtInst = *zeroExtIt;
+        if (zeroExtInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+
+        MicroInstrOperand* zeroExtOps = zeroExtInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!zeroExtOps)
+            return false;
+
+        const MicroInstr& copyInst = *copyIt;
+        if (copyInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+
+        const MicroInstrOperand* copyOps = copyInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!copyOps)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+        if (zeroExtOps[0].reg != tmpReg || zeroExtOps[1].reg != tmpReg)
+            return false;
+        if (zeroExtOps[2].opBits != MicroOpBits::B32 || zeroExtOps[3].opBits != MicroOpBits::B8)
+            return false;
+        if (copyOps[1].reg != tmpReg)
+            return false;
+        if (!MicroOptimization::isSameRegisterClass(copyOps[0].reg, tmpReg))
+            return false;
+
+        if (!isCopyDeadAfterInstruction(context, std::next(copyIt), endIt, tmpReg))
+            return false;
+
+        const MicroReg dstReg = copyOps[0].reg;
+
+        MicroInstr*        setCondInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+        MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+        if (!setCondOps)
+            return false;
+
+        const MicroReg originalSetCondReg = setCondOps[0].reg;
+        setCondOps[0].reg                 = dstReg;
+        if (MicroOptimization::violatesEncoderConformance(context, *setCondInst, setCondOps))
+        {
+            setCondOps[0].reg = originalSetCondReg;
+            return false;
+        }
+
+        const MicroReg originalZeroExtDst = zeroExtOps[0].reg;
+        const MicroReg originalZeroExtSrc = zeroExtOps[1].reg;
+        zeroExtOps[0].reg                 = dstReg;
+        zeroExtOps[1].reg                 = dstReg;
+        if (MicroOptimization::violatesEncoderConformance(context, zeroExtInst, zeroExtOps))
+        {
+            setCondOps[0].reg = originalSetCondReg;
+            zeroExtOps[0].reg = originalZeroExtDst;
+            zeroExtOps[1].reg = originalZeroExtSrc;
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(copyIt.current);
+        return true;
+    }
+
     // Rule: forward_copy_into_next_binary_source
     // Purpose: remove a copy when the very next binary op only reads the copied temp.
     // Example:
@@ -746,6 +831,55 @@ namespace
         return tryRemoveNoOpInstruction(context, cursor.instRef, *SWC_CHECK_NOT_NULL(cursor.inst), cursor.ops);
     }
 
+    // Rule: canonicalize_cmp_reg_imm_zero
+    // Purpose: canonicalize compare-against-zero to dedicated opcode.
+    // Example:
+    //   cmp r11, 0
+    // becomes:
+    //   cmp_zero r11
+    bool matchCanonicalizeCmpRegImmZero(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.inst->op == MicroInstrOpcode::CmpRegImm && cursor.ops && cursor.ops[2].valueU64 == 0;
+    }
+
+    bool rewriteCanonicalizeCmpRegImmZero(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryCanonicalizeCmpRegImmZero(context, cursor);
+    }
+
+    // Rule: fold_setcond_zeroext_copy
+    // Purpose: route setcc and its zero-extend directly to the final destination register.
+    // Example:
+    //   setcc r10
+    //   zero_extend r10
+    //   mov rax, r10
+    // becomes:
+    //   setcc rax
+    //   zero_extend rax
+    bool matchFoldSetCondZeroExtCopy(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        if (cursor.inst->op != MicroInstrOpcode::SetCondReg || !cursor.ops || cursor.nextIt == cursor.endIt)
+            return false;
+
+        const MicroStorage::Iterator zeroExtIt = cursor.nextIt;
+        const MicroStorage::Iterator copyIt    = std::next(zeroExtIt);
+        if (copyIt == cursor.endIt)
+            return false;
+
+        const MicroInstr& zeroExtInst = *zeroExtIt;
+        if (zeroExtInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
+            return false;
+
+        const MicroInstr& copyInst = *copyIt;
+        return copyInst.op == MicroInstrOpcode::LoadRegReg;
+    }
+
+    bool rewriteFoldSetCondZeroExtCopy(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldSetCondZeroExtCopy(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
     bool isRuleApplicable(const PeepholeRule& rule, const PeepholeCursor& cursor)
     {
         switch (rule.target)
@@ -759,9 +893,9 @@ namespace
         }
     }
 
-    const std::array<PeepholeRule, 8>& peepholeRules()
+    const std::array<PeepholeRule, 10>& peepholeRules()
     {
-        static constexpr std::array<PeepholeRule, 8> RULES = {{
+        static constexpr std::array<PeepholeRule, 10> RULES = {{
             {"forward_copy_into_next_binary_source", PeepholeRuleTarget::LoadRegReg, matchForwardCopyIntoNextBinarySource, rewriteForwardCopyIntoNextBinarySource},
             {"forward_copy_into_next_compare_source", PeepholeRuleTarget::LoadRegReg, matchForwardCopyIntoNextCompareSource, rewriteForwardCopyIntoNextCompareSource},
             {"fold_copy_op_copy_back", PeepholeRuleTarget::LoadRegReg, matchFoldCopyOpCopyBack, rewriteFoldCopyOpCopyBack},
@@ -769,6 +903,8 @@ namespace
             {"fold_copy_back_with_previous_op", PeepholeRuleTarget::LoadRegReg, matchFoldCopyBackWithPreviousOp, rewriteFoldCopyBackWithPreviousOp},
             {"coalesce_copy_instruction", PeepholeRuleTarget::LoadRegReg, matchCoalesceCopyInstruction, rewriteCoalesceCopyInstruction},
             {"remove_overwritten_copy", PeepholeRuleTarget::LoadRegReg, matchRemoveOverwrittenCopy, rewriteRemoveOverwrittenCopy},
+            {"canonicalize_cmp_reg_imm_zero", PeepholeRuleTarget::AnyInstruction, matchCanonicalizeCmpRegImmZero, rewriteCanonicalizeCmpRegImmZero},
+            {"fold_setcond_zeroext_copy", PeepholeRuleTarget::AnyInstruction, matchFoldSetCondZeroExtCopy, rewriteFoldSetCondZeroExtCopy},
             {"remove_no_op_instruction", PeepholeRuleTarget::AnyInstruction, matchRemoveNoOpInstruction, rewriteRemoveNoOpInstruction},
         }};
 

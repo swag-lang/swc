@@ -13,8 +13,7 @@ namespace
 {
     struct KnownConstant
     {
-        uint64_t    value  = 0;
-        MicroOpBits opBits = MicroOpBits::B64;
+        uint64_t value = 0;
     };
 
     uint64_t normalizeToOpBits(uint64_t value, MicroOpBits opBits)
@@ -143,8 +142,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
         if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isInt())
         {
             known[ops[0].reg.packed] = {
-                .value  = normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
-                .opBits = ops[1].opBits,
+                .value = normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
             };
         }
         else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
@@ -153,16 +151,14 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 known[ops[0].reg.packed] = {
-                    .value  = normalizeToOpBits(itKnown->second.value, ops[2].opBits),
-                    .opBits = ops[2].opBits,
+                    .value = normalizeToOpBits(itKnown->second.value, ops[2].opBits),
                 };
             }
         }
         else if (inst.op == MicroInstrOpcode::ClearReg && ops[0].reg.isInt())
         {
             known[ops[0].reg.packed] = {
-                .value  = 0,
-                .opBits = ops[1].opBits,
+                .value = 0,
             };
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg.isInt())
@@ -174,8 +170,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                 {
                     known[ops[0].reg.packed] = {
-                        .value  = foldedValue,
-                        .opBits = ops[1].opBits,
+                        .value = foldedValue,
                     };
                 }
             }

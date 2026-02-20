@@ -4,7 +4,6 @@
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
-#include "Support/Report/HardwareException.h"
 #include <dbghelp.h>
 
 #pragma comment(lib, "Dbghelp.lib")
@@ -13,6 +12,26 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t kOsFieldWidth = 24;
+
+    void appendOsField(Utf8& outMsg, const std::string_view label, const std::string_view value, const uint32_t leftPadding = 0)
+    {
+        for (uint32_t i = 0; i < leftPadding; ++i)
+            outMsg += " ";
+
+        outMsg += label;
+        outMsg += ":";
+        uint32_t used = static_cast<uint32_t>(label.size()) + 1;
+        while (used < kOsFieldWidth)
+        {
+            outMsg += " ";
+            ++used;
+        }
+
+        outMsg += value;
+        outMsg += "\n";
+    }
+
     struct SymbolEngineState
     {
         std::mutex mutex;
@@ -161,31 +180,41 @@ namespace
         }
     }
 
-    void appendWindowsAddressSymbol(Utf8& outMsg, const uint64_t address)
+    bool appendWindowsAddressSymbol(Utf8& outMsg, const uint64_t address, const uint32_t leftPadding = 0)
     {
         if (!address)
-            return;
+            return false;
         if (!ensureSymbolEngineInitialized())
-            return;
+            return false;
 
         SymbolEngineState& state = symbolEngineState();
         std::scoped_lock   lock(state.mutex);
+        bool               hasInfo = false;
 
         const HANDLE                                            process = GetCurrentProcess();
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-        const auto                                              symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct                                           = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen                                             = MAX_SYM_NAME;
+
+        const auto symbol    = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen   = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol))
-            HardwareException::appendField(outMsg, "symbol", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)));
+        {
+            appendOsField(outMsg, "symbol", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)), leftPadding);
+            hasInfo = true;
+        }
 
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
         DWORD lineDisp        = 0;
         if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
-            HardwareException::appendField(outMsg, "source", std::format("{}:{} (+{})", lineInfo.FileName, lineInfo.LineNumber, lineDisp));
+        {
+            appendOsField(outMsg, "source", std::format("{}:{} (+{})", lineInfo.FileName, lineInfo.LineNumber, lineDisp), leftPadding);
+            hasInfo = true;
+        }
+
+        return hasInfo;
     }
 
     void appendWindowsAddress(Utf8& outMsg, const uint64_t address)
@@ -219,12 +248,12 @@ namespace
             if (len)
             {
                 modulePath[len] = 0;
-                HardwareException::appendField(outMsg, "module path", modulePath);
+                appendOsField(outMsg, "module path", modulePath);
             }
         }
 
         appendWindowsAddressSymbol(outMsg, address);
-        HardwareException::appendField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
+        appendOsField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
     }
 }
 
@@ -436,24 +465,28 @@ namespace Os
         const auto* record = args ? args->ExceptionRecord : nullptr;
         if (!record)
         {
-            HardwareException::appendField(outMsg, "record", "none");
+            appendOsField(outMsg, "record", "none");
             return;
         }
 
-        HardwareException::appendField(outMsg, "code", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
-        HardwareException::appendFieldPrefix(outMsg, "address");
-        appendWindowsAddress(outMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
-        outMsg += "\n";
+        appendOsField(outMsg, "code", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
+        Utf8 addressMsg;
+        appendWindowsAddress(addressMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
+        while (!addressMsg.empty() && addressMsg.back() == '\n')
+            addressMsg.pop_back();
+        appendOsField(outMsg, "address", addressMsg);
 
         if (record->NumberParameters)
-            HardwareException::appendField(outMsg, "parameters", std::format("{}", record->NumberParameters));
+            appendOsField(outMsg, "parameters", std::format("{}", record->NumberParameters));
 
         if ((record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION || record->ExceptionCode == EXCEPTION_IN_PAGE_ERROR) && record->NumberParameters >= 2)
         {
-            HardwareException::appendFieldPrefix(outMsg, "access");
-            outMsg += std::format("{} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
-            appendWindowsAddress(outMsg, record->ExceptionInformation[1]);
-            outMsg += "\n";
+            Utf8 accessMsg;
+            accessMsg += std::format("{} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
+            appendWindowsAddress(accessMsg, record->ExceptionInformation[1]);
+            while (!accessMsg.empty() && accessMsg.back() == '\n')
+                accessMsg.pop_back();
+            appendOsField(outMsg, "access", accessMsg);
         }
     }
 
@@ -482,12 +515,12 @@ namespace Os
     {
         void*        frames[64]{};
         const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
-        HardwareException::appendField(outMsg, "frames", std::format("{}", numFrames));
+        appendOsField(outMsg, "frames", std::format("{}", numFrames));
 
         for (uint32_t i = 0; i < numFrames; ++i)
         {
             const uintptr_t address = reinterpret_cast<uintptr_t>(frames[i]);
-            outMsg += std::format("[{}] 0x{:016X}", i, address);
+            outMsg += std::format("[{:02}] 0x{:016X}", i, address);
 
             MEMORY_BASIC_INFORMATION mbi{};
             if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
@@ -501,13 +534,14 @@ namespace Os
                     {
                         modulePath[len]              = 0;
                         const std::string moduleName = fs::path(modulePath).filename().string();
-                        outMsg += std::format(" {} + 0x{:X}", moduleName, address - modBase);
+                        outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }
                 }
             }
 
             outMsg += "\n";
-            appendWindowsAddressSymbol(outMsg, address);
+            if (!appendWindowsAddressSymbol(outMsg, address, 4))
+                appendOsField(outMsg, "symbol", "<unresolved>", 4);
         }
     }
 

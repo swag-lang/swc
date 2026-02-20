@@ -8,7 +8,6 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/TaskContext.h"

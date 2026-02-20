@@ -102,7 +102,6 @@ enum CmpEnum: u16
 
 #test
 {
-    #[Swag.PrintMicro]
     func cmpFloat3Way(a: f64, b: f64)->s32 { return a <=> b }
     const V0 = #run cmpFloat3Way(1.5'f64, 2.5'f64)
     const V1 = #run cmpFloat3Way(2.5'f64, 1.5'f64)

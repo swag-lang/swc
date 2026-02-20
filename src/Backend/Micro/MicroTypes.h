@@ -73,6 +73,7 @@ enum class MicroOp : uint8_t
     BitScanReverse,
     BitwiseNot,
     ByteSwap,
+    Compare,
     CompareExchange,
     ConvertFloatToFloat,
     ConvertFloatToInt,
@@ -108,6 +109,7 @@ enum class MicroOp : uint8_t
     ShiftLeft,
     ShiftRight,
     Subtract,
+    Test,
     Xor,
 };
 

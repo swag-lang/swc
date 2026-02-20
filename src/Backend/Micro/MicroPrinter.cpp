@@ -113,6 +113,8 @@ namespace
                 return "not";
             case MicroOp::ByteSwap:
                 return "bswap";
+            case MicroOp::Compare:
+                return "cmp";
             case MicroOp::CompareExchange:
                 return "cmpxchg";
             case MicroOp::ConvertFloatToFloat:
@@ -183,6 +185,8 @@ namespace
                 return "shr";
             case MicroOp::Subtract:
                 return "sub";
+            case MicroOp::Test:
+                return "test";
             case MicroOp::Xor:
                 return "xor";
             default:
@@ -627,6 +631,8 @@ namespace
 
             case MicroInstrOpcode::CmpRegReg:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
+            case MicroInstrOpcode::CmpRegZero:
+                return std::format("{}({}, 0)", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpRegImm:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::CmpMemReg:
@@ -636,6 +642,8 @@ namespace
 
             case MicroInstrOpcode::SetCondReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(std::format("set{}", condName(ops[1].cpuCond))));
+            case MicroInstrOpcode::SetCondRegZeroExtend:
+                return std::format("{} = {}.zext", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(std::format("set{}", condName(ops[1].cpuCond))));
             case MicroInstrOpcode::LoadCondRegReg:
                 return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), tagInstructionToken("if"), condName(ops[2].cpuCond));
 
@@ -1382,6 +1390,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
                 break;
 
+            case MicroInstrOpcode::CmpRegZero:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[1].opBits);
+                break;
+
             case MicroInstrOpcode::CmpRegImm:
                 appendRegNumberBits(out, ctx, ops, 0, 2, 1, regPrintMode, encoder, false);
                 break;
@@ -1398,6 +1412,14 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendColored(out, ctx, SyntaxColor::Type, condName(ops[1].cpuCond));
+                break;
+
+            case MicroInstrOpcode::SetCondRegZeroExtend:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendColored(out, ctx, SyntaxColor::Type, condName(ops[1].cpuCond));
+                appendSep(out);
+                appendTypeBits(out, ctx, MicroOpBits::B32);
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:

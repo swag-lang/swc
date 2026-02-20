@@ -95,10 +95,12 @@ protected:
     virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                              = 0;
     virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                            = 0;
     virtual void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                    = 0;
+    virtual void encodeCmpRegZero(MicroReg reg, MicroOpBits opBits)                                                                                                                    = 0;
     virtual void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                               = 0;
     virtual void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                             = 0;
     virtual void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)                                                                                                    = 0;
     virtual void encodeSetCondReg(MicroReg reg, MicroCond cpuCond)                                                                                                                    = 0;
+    virtual void encodeSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond)                                                                                                          = 0;
     virtual void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)                                                                        = 0;
     virtual void encodeClearReg(MicroReg reg, MicroOpBits opBits)                                                                                                                     = 0;
     virtual void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits)                                                                                = 0;

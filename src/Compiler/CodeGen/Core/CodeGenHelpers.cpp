@@ -98,7 +98,7 @@ namespace
         builder.emitOpBinaryRegImm(srcReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(dstReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, 0, MicroOpBits::B64);
+        builder.emitCmpRegZero(countReg, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)

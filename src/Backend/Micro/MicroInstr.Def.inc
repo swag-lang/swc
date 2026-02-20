@@ -34,11 +34,13 @@ SWC_MICRO_INSTR_DEF(LoadAmcMemImm, MicroInstrInfo{{MicroInstrRegMode::Use, Micro
 SWC_MICRO_INSTR_DEF(LoadAddrAmcRegMem, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use}, MicroInstrRegSpecial::None, 0, false, 0})
 
 SWC_MICRO_INSTR_DEF(CmpRegReg, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
+SWC_MICRO_INSTR_DEF(CmpRegZero, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(CmpRegImm, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(CmpMemReg, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(CmpMemImm, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
 SWC_MICRO_INSTR_DEF(SetCondReg, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
+SWC_MICRO_INSTR_DEF(SetCondRegZeroExtend, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(ClearReg, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
 SWC_MICRO_INSTR_DEF(OpUnaryMem, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})

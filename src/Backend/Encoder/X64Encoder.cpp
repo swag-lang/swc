@@ -494,6 +494,8 @@ namespace
                 return 0x2C;
             case MicroOp::Xor:
                 return 0x31;
+            case MicroOp::Compare:
+                return 0x39;
             case MicroOp::FloatSqrt:
                 return 0x51;
             case MicroOp::FloatAnd:
@@ -516,6 +518,8 @@ namespace
                 return 0x5F;
             case MicroOp::MoveSignExtend:
                 return 0x63;
+            case MicroOp::Test:
+                return 0x85;
             case MicroOp::Exchange:
                 return 0x87;
             case MicroOp::Move:
@@ -562,6 +566,25 @@ namespace
                 return 0xFB;
             case MicroOp::MultiplyAdd:
                 return 0xFC;
+            default:
+                SWC_ASSERT(false);
+                return 0;
+        }
+    }
+
+    uint8_t getX64RegMemOpCode(MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Subtract:
+            case MicroOp::Xor:
+            case MicroOp::Compare:
+                return getX64OpCode(op) + 2;
+            case MicroOp::Move:
+                return getX64OpCode(op) - 2;
             default:
                 SWC_ASSERT(false);
                 return 0;
@@ -883,7 +906,7 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
     else
     {
         emitRex(store_, opBits, regSrc, regDst);
-        emitSpecCpuOp(store_, 0x89, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
         emitModRm(store_, regSrc, regDst);
     }
 
@@ -926,7 +949,7 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     else
     {
         emitRex(store_, opBits, reg, memReg);
-        emitSpecCpuOp(store_, 0x8B, opBits);
+        emitSpecCpuOp(store_, MicroOp::Move, opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
@@ -1020,7 +1043,7 @@ void X64Encoder::encodeLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uin
     {
         SWC_ASSERT(numBitsDst == MicroOpBits::B64);
         emitRex(store_, MicroOpBits::B64, reg, memReg);
-        emitCpuOp(store_, 0x63);
+        emitCpuOp(store_, MicroOp::MoveSignExtend);
         emitModRm(store_, memOffset, reg, memReg);
     }
     else
@@ -1053,7 +1076,7 @@ void X64Encoder::encodeLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, 
     else if (numBitsSrc == MicroOpBits::B32 && numBitsDst == MicroOpBits::B64)
     {
         emitRex(store_, numBitsDst, regDst, regSrc);
-        emitCpuOp(store_, 0x63);
+        emitCpuOp(store_, MicroOp::MoveSignExtend);
         emitModRm(store_, regDst, regSrc);
     }
     else
@@ -1075,7 +1098,7 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
     {
         SWC_ASSERT(memOffset == 0);
         emitRex(store_, MicroOpBits::B64, reg, memReg);
-        emitCpuOp(store_, 0x8D);
+        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
     }
     else if (memOffset == 0)
@@ -1085,7 +1108,7 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
     else
     {
         emitRex(store_, MicroOpBits::B64, reg, memReg);
-        emitCpuOp(store_, 0x8D);
+        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
@@ -1191,10 +1214,10 @@ namespace
         switch (op)
         {
             case MicroOp::LoadEffectiveAddress:
-                emitSpecCpuOp(store, 0x8D, opBitsReg);
+                emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
                 break;
             case MicroOp::MoveSignExtend:
-                emitSpecCpuOp(store, 0x63, opBitsReg);
+                emitSpecCpuOp(store, MicroOp::MoveSignExtend, opBitsReg);
                 break;
             case MicroOp::Move:
                 if (reg.isFloat())
@@ -1204,7 +1227,7 @@ namespace
                 }
                 else
                 {
-                    emitSpecCpuOp(store, mr ? 0x89 : 0x8B, opBitsReg);
+                    emitSpecCpuOp(store, mr ? getX64RegMemOpCode(MicroOp::Move) : getX64OpCode(MicroOp::Move), opBitsReg);
                 }
                 break;
             default:
@@ -1277,7 +1300,7 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
     else
     {
         emitRex(store_, opBits, reg, memReg);
-        emitSpecCpuOp(store_, 0x89, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
         emitModRm(store_, memOffset, reg, memReg);
     }
 
@@ -1398,6 +1421,14 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
     return;
 }
 
+void X64Encoder::encodeSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond)
+{
+    SWC_ASSERT(reg.isInt());
+    encodeSetCondReg(reg, cpuCond);
+    encodeLoadZeroExtendRegReg(reg, reg, MicroOpBits::B32, MicroOpBits::B8);
+    return;
+}
+
 void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
 {
     opBits = std::max(opBits, MicroOpBits::B32);
@@ -1449,16 +1480,28 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
     else
     {
         emitRex(store_, opBits, reg1, reg0);
-        emitSpecCpuOp(store_, 0x39, opBits);
+        emitSpecCpuOp(store_, MicroOp::Compare, opBits);
         emitModRm(store_, reg1, reg0);
     }
 
     return;
 }
 
+void X64Encoder::encodeCmpRegZero(MicroReg reg, MicroOpBits opBits)
+{
+    SWC_ASSERT(reg.isInt());
+    emitRex(store_, opBits, reg, reg);
+    emitSpecCpuOp(store_, MicroOp::Test, opBits);
+    emitModRm(store_, reg, reg);
+    return;
+}
+
 void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
 {
     SWC_ASSERT(!reg.isFloat());
+
+    if (value == 0)
+        return encodeCmpRegZero(reg, opBits);
 
     if (opBits == MicroOpBits::B8)
     {
@@ -1496,7 +1539,7 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
     SWC_ASSERT(!reg.isFloat());
 
     emitRex(store_, opBits, reg, memReg);
-    emitSpecCpuOp(store_, 0x39, opBits);
+    emitSpecCpuOp(store_, MicroOp::Compare, opBits);
     emitModRm(store_, memOffset, reg, memReg);
 
     return;
@@ -1547,7 +1590,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     if (op == MicroOp::BitwiseNot)
     {
         emitRex(store_, opBits);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitModRm(store_, memOffset, MODRM_REG_2, memReg);
     }
 
@@ -1556,7 +1599,7 @@ void X64Encoder::encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp o
     else if (op == MicroOp::Negate)
     {
         emitRex(store_, opBits);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitModRm(store_, memOffset, MODRM_REG_3, memReg);
     }
 
@@ -1577,7 +1620,7 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
     if (op == MicroOp::BitwiseNot)
     {
         emitRex(store_, opBits, MicroReg{}, reg);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitModRm(store_, MODRM_REG_2, reg);
     }
 
@@ -1588,7 +1631,7 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
         SWC_ASSERT(!reg.isFloat());
 
         emitRex(store_, opBits, MicroReg{}, reg);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitModRm(store_, MODRM_REG_3, reg);
     }
 
@@ -1632,7 +1675,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     if (op == MicroOp::Add)
     {
         emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, 0x03, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
 
@@ -1641,7 +1684,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     else if (op == MicroOp::Subtract)
     {
         emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, 0x2B, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
 
@@ -1650,7 +1693,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     else if (op == MicroOp::And)
     {
         emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, 0x23, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
 
@@ -1659,7 +1702,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     else if (op == MicroOp::Or)
     {
         emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, 0x0B, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
 
@@ -1668,7 +1711,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
     else if (op == MicroOp::Xor)
     {
         emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, 0x33, opBits);
+        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
         emitModRm(store_, memOffset, regDst, memReg);
     }
 
@@ -1757,7 +1800,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         }
 
         emitRex(store_, opBits, rax, regSrc);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         if (op == MicroOp::DivideUnsigned || op == MicroOp::ModuloUnsigned)
             emitModRm(store_, MODRM_REG_6, regSrc);
         else if (op == MicroOp::DivideSigned || op == MicroOp::ModuloSigned)
@@ -1775,7 +1818,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         const auto rax = x64RegToMicroReg(X64Reg::Rax);
         emitRex(store_, opBits, rax, regSrc);
-        emitSpecCpuOp(store_, 0xF7, opBits);
+        emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
         emitModRm(store_, MODRM_REG_4, regSrc);
     }
 
@@ -1837,7 +1880,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     else if (op == MicroOp::Exchange)
     {
         emitRex(store_, opBits, regSrc, regDst);
-        emitSpecCpuOp(store_, 0x87, opBits);
+        emitSpecCpuOp(store_, MicroOp::Exchange, opBits);
         emitModRm(store_, regSrc, regDst);
     }
 
@@ -1847,7 +1890,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     {
         emitRex(store_, opBits, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, op == MicroOp::BitScanForward ? 0xBC : 0xBD);
+        emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
     }
 
@@ -1858,7 +1901,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         emitCpuOp(store_, 0xF3);
         emitRex(store_, opBits, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, 0xB8);
+        emitCpuOp(store_, MicroOp::PopCount);
         emitModRm(store_, regDst, regSrc);
     }
 
@@ -2473,7 +2516,7 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
     const auto [offsetTableConstant, addrConstant] = compiler.constantSegment().reserveSpan<uint32_t>(numEntries);
     auto emitRelocAddressLoad                      = [&](MicroReg reg, uint32_t symbolIndex, uint32_t offset) {
         emitRex(store_, MicroOpBits::B64, reg);
-        emitCpuOp(store_, 0x8D);
+        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
         emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
         addSymbolRelocation(store_.size() - textSectionOffset_, symbolIndex, IMAGE_REL_AMD64_REL32);
         store_.pushU32(offset);

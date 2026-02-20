@@ -323,7 +323,14 @@ namespace
 
     bool isInstructionToken(std::string_view token)
     {
-        return token == "if" || token == "call" || token == "ret" || token == "push" || token == "pop" || token == "jump" || token == "cmp" || token == "jumptable";
+        return token == "if" ||
+               token == "call" ||
+               token == "ret" ||
+               token == "push" ||
+               token == "pop" ||
+               token == "jump" ||
+               token == "cmp" ||
+               token == "jumptable";
     }
 
     bool isStrongInstructionToken(std::string_view token)
@@ -333,7 +340,27 @@ namespace
 
     bool isNaturalLogicToken(std::string_view token)
     {
-        return token == "=" || token == "+=" || token == "-=" || token == "*=" || token == "/=" || token == "%=" || token == "&=" || token == "|=" || token == "^=" || token == "<<=" || token == ">>=" || token == "+" || token == "-" || token == "*" || token == "/" || token == "%" || token == "&" || token == "|" || token == "^" || token == "<<" || token == ">>";
+        return token == "=" ||
+               token == "+=" ||
+               token == "-=" ||
+               token == "*=" ||
+               token == "/=" ||
+               token == "%=" ||
+               token == "&=" ||
+               token == "|=" ||
+               token == "^=" ||
+               token == "<<=" ||
+               token == ">>=" ||
+               token == "+" ||
+               token == "-" ||
+               token == "*" ||
+               token == "/" ||
+               token == "%" ||
+               token == "&" ||
+               token == "|" ||
+               token == "^" ||
+               token == "<<" ||
+               token == ">>";
     }
 
     bool isRelocationImmediateToken(std::string_view token)
@@ -499,9 +526,7 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
-                return std::format("{} = {}",
-                                   regName(ops[0].reg, regPrintMode, encoder),
-                                   hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAddrRegMem:
@@ -564,12 +589,7 @@ namespace
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
                 if (!infixOp.empty())
                     return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
-                return std::format("{} = {}({}, {}, {})",
-                                   regName(ops[0].reg, regPrintMode, encoder),
-                                   microOpName(ops[4].microOp),
-                                   regName(ops[1].reg, regPrintMode, encoder),
-                                   regName(ops[2].reg, regPrintMode, encoder),
-                                   std::format("b{}", opBitsName(ops[3].opBits)));
+                return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[4].microOp), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), std::format("b{}", opBitsName(ops[3].opBits)));
             }
 
             case MicroInstrOpcode::CmpRegReg:

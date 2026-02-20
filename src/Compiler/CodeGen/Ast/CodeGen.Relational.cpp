@@ -143,6 +143,17 @@ namespace
         outReg = boolReg;
     }
 
+    void materializeScalarOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
+    {
+        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
+
+        MicroBuilder& builder = codeGen.builder();
+        if (operandPayload.isAddress())
+            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
+        else
+            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
+    }
+
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
     {
         switch (tokId)
@@ -304,6 +315,53 @@ Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen) const
         builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Or, MicroOpBits::B8);
     else
         SWC_UNREACHABLE();
+
+    return Result::Continue;
+}
+
+Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    const SemaNodeView condView   = codeGen.viewType(nodeCondRef);
+    const SemaNodeView trueView   = codeGen.viewType(nodeTrueRef);
+    const SemaNodeView falseView  = codeGen.viewType(nodeFalseRef);
+    const SemaNodeView resultView = codeGen.curViewType();
+    SWC_ASSERT(condView.type() && trueView.type() && falseView.type() && resultView.type());
+
+    const CodeGenNodePayload* condPayload  = codeGen.payload(nodeCondRef);
+    const CodeGenNodePayload* truePayload  = codeGen.payload(nodeTrueRef);
+    const CodeGenNodePayload* falsePayload = codeGen.payload(nodeFalseRef);
+    SWC_ASSERT(condPayload && truePayload && falsePayload);
+
+    const TypeRef condTypeRef   = condPayload->typeRef.isValid() ? condPayload->typeRef : condView.typeRef();
+    const TypeRef resultTypeRef = resultView.typeRef();
+    const TypeRef trueTypeRef   = truePayload->typeRef.isValid() ? truePayload->typeRef : trueView.typeRef();
+    const TypeRef falseTypeRef  = falsePayload->typeRef.isValid() ? falsePayload->typeRef : falseView.typeRef();
+
+    const MicroOpBits condBits   = compareOpBits(codeGen.typeMgr().get(condTypeRef));
+    const MicroOpBits resultBits = compareOpBits(codeGen.typeMgr().get(resultTypeRef));
+    SWC_ASSERT(condBits != MicroOpBits::Zero && resultBits != MicroOpBits::Zero);
+
+    MicroReg condReg  = MicroReg::invalid();
+    MicroReg trueReg  = MicroReg::invalid();
+    MicroReg falseReg = MicroReg::invalid();
+    materializeScalarOperand(condReg, codeGen, *condPayload, condTypeRef, condBits);
+    materializeScalarOperand(trueReg, codeGen, *truePayload, trueTypeRef, resultBits);
+    materializeScalarOperand(falseReg, codeGen, *falsePayload, falseTypeRef, resultBits);
+
+    CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+    resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+
+    MicroBuilder& builder      = codeGen.builder();
+    const Ref      falseLabel  = builder.createLabel();
+    const Ref      doneLabel   = builder.createLabel();
+
+    builder.emitCmpRegZero(condReg, condBits);
+    builder.emitJumpToLabel(MicroCond::Equal, condBits, falseLabel);
+    builder.emitLoadRegReg(resultPayload.reg, trueReg, resultBits);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    builder.placeLabel(falseLabel);
+    builder.emitLoadRegReg(resultPayload.reg, falseReg, resultBits);
+    builder.placeLabel(doneLabel);
 
     return Result::Continue;
 }

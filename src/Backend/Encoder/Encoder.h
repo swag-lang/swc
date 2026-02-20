@@ -124,6 +124,7 @@ protected:
         SWC_UNUSED(info);
     }
 
+public:
     virtual bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const
     {
         SWC_UNUSED(outIssue);
@@ -132,6 +133,7 @@ protected:
         return false;
     }
 
+protected:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
     TaskContext*             ctx_ = nullptr;

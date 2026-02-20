@@ -14,6 +14,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!context.encoder || !ops)
+            return false;
+
+        MicroConformanceIssue issue;
+        return context.encoder->queryConformanceIssue(issue, inst, ops);
+    }
+
     struct PeepholeCursor
     {
         Ref                      instRef;
@@ -99,8 +108,62 @@ namespace
         if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, copyDstReg))
             return false;
 
+        const MicroReg originalSrcReg = nextOps[1].reg;
         nextOps[1].reg = copySrcReg;
+        if (violatesEncoderConformance(context, nextInst, nextOps))
+        {
+            nextOps[1].reg = originalSrcReg;
+            return false;
+        }
+
         SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
+    bool tryFoldCopyOpCopyBack(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        const MicroStorage::Iterator opIt       = nextIt;
+        const MicroStorage::Iterator copyBackIt = std::next(opIt);
+        if (copyBackIt == endIt)
+            return false;
+
+        const MicroInstr&        opInst = *opIt;
+        const MicroInstrOperand* opOps  = opInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (opInst.op != MicroInstrOpcode::OpBinaryRegReg || !opOps)
+            return false;
+
+        const MicroInstr&        copyBackInst = *copyBackIt;
+        const MicroInstrOperand* copyBackOps  = copyBackInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (copyBackInst.op != MicroInstrOpcode::LoadRegReg || !copyBackOps)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+        const MicroReg srcReg = ops[1].reg;
+        if (!MicroOptimization::isSameRegisterClass(tmpReg, srcReg))
+            return false;
+        if (opOps[0].reg != tmpReg)
+            return false;
+        if (copyBackOps[0].reg != srcReg || copyBackOps[1].reg != tmpReg)
+            return false;
+        if (ops[2].opBits != opOps[2].opBits || ops[2].opBits != copyBackOps[2].opBits)
+            return false;
+        if (opOps[1].reg == srcReg)
+            return false;
+
+        MicroInstrOperand* mutableOpOps = opInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        const MicroReg     originalDstReg = mutableOpOps[0].reg;
+        mutableOpOps[0].reg                = srcReg;
+        if (violatesEncoderConformance(context, opInst, mutableOpOps))
+        {
+            mutableOpOps[0].reg = originalDstReg;
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(copyBackIt.current);
         return true;
     }
 
@@ -116,6 +179,13 @@ namespace
             const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
             if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
                 break;
+
+            const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (scanInst.op == MicroInstrOpcode::LoadRegReg && scanOps && scanOps[0].reg == srcReg && scanOps[1].reg == dstReg)
+            {
+                canCoalesce = false;
+                break;
+            }
 
             SmallVector<MicroInstrRegOperandRef> refs;
             scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
@@ -144,19 +214,26 @@ namespace
 
                     if (ref.use && ref.def)
                     {
-                        if (seenMutation)
-                        {
-                            canCoalesce = false;
-                            break;
-                        }
-
-                        seenMutation      = true;
+                        seenMutation = true;
                         sawReplaceableUse = true;
                         continue;
                     }
 
                     if (ref.use)
+                    {
+                        MicroReg&      mutableReg  = *SWC_CHECK_NOT_NULL(ref.reg);
+                        const MicroReg originalReg = mutableReg;
+                        mutableReg                  = srcReg;
+                        if (violatesEncoderConformance(context, scanInst, scanOps))
+                        {
+                            mutableReg  = originalReg;
+                            canCoalesce = false;
+                            break;
+                        }
+
+                        mutableReg      = originalReg;
                         sawReplaceableUse = true;
+                    }
                 }
             }
 
@@ -165,7 +242,7 @@ namespace
         }
 
         outSawMutation = seenMutation;
-        return canCoalesce && seenMutation && sawReplaceableUse;
+        return canCoalesce && sawReplaceableUse;
     }
 
     bool applyCopyCoalescing(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg dstReg, MicroReg srcReg)
@@ -215,8 +292,8 @@ namespace
         if (!applyCopyCoalescing(context, scanBegin, endIt, dstReg, srcReg))
             return false;
 
-        if (sawMutation)
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        SWC_UNUSED(sawMutation);
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
 
         return true;
     }
@@ -260,6 +337,132 @@ namespace
     bool rewriteForwardCopyIntoNextBinarySource(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         return tryForwardCopyIntoNextBinarySource(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    bool matchFoldCopyOpCopyBack(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        if (!cursor.ops || cursor.nextIt == cursor.endIt)
+            return false;
+
+        const MicroStorage::Iterator opIt       = cursor.nextIt;
+        const MicroStorage::Iterator copyBackIt = std::next(opIt);
+        if (copyBackIt == cursor.endIt)
+            return false;
+
+        const MicroInstr&        opInst = *opIt;
+        const MicroInstrOperand* opOps  = opInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (opInst.op != MicroInstrOpcode::OpBinaryRegReg || !opOps)
+            return false;
+
+        const MicroInstr&        copyBackInst = *copyBackIt;
+        const MicroInstrOperand* copyBackOps  = copyBackInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (copyBackInst.op != MicroInstrOpcode::LoadRegReg || !copyBackOps)
+            return false;
+
+        const MicroReg tmpReg = cursor.ops[0].reg;
+        const MicroReg srcReg = cursor.ops[1].reg;
+        if (opOps[0].reg != tmpReg)
+            return false;
+        if (copyBackOps[0].reg != srcReg || copyBackOps[1].reg != tmpReg)
+            return false;
+        if (opOps[1].reg == srcReg)
+            return false;
+        if (cursor.ops[2].opBits != opOps[2].opBits || cursor.ops[2].opBits != copyBackOps[2].opBits)
+            return false;
+
+        return MicroOptimization::isSameRegisterClass(tmpReg, srcReg);
+    }
+
+    bool rewriteFoldCopyOpCopyBack(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldCopyOpCopyBack(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    bool matchFoldCopyBackWithPreviousOp(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        if (!cursor.ops)
+            return false;
+
+        MicroStorage::Iterator currentIt = cursor.nextIt;
+        --currentIt;
+        if (currentIt.current == INVALID_REF)
+            return false;
+
+        MicroStorage::Iterator prevOpIt = currentIt;
+        --prevOpIt;
+        if (prevOpIt.current == INVALID_REF)
+            return false;
+
+        MicroStorage::Iterator prevCopyIt = prevOpIt;
+        --prevCopyIt;
+        if (prevCopyIt.current == INVALID_REF)
+            return false;
+
+        const MicroInstr&        prevOpInst = *prevOpIt;
+        const MicroInstrOperand* prevOpOps  = prevOpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (prevOpInst.op != MicroInstrOpcode::OpBinaryRegReg || !prevOpOps)
+            return false;
+
+        const MicroInstr&        prevCopyInst = *prevCopyIt;
+        const MicroInstrOperand* prevCopyOps  = prevCopyInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (prevCopyInst.op != MicroInstrOpcode::LoadRegReg || !prevCopyOps)
+            return false;
+
+        const MicroReg origReg = cursor.ops[0].reg;
+        const MicroReg tmpReg  = cursor.ops[1].reg;
+        if (!MicroOptimization::isSameRegisterClass(origReg, tmpReg))
+            return false;
+
+        if (prevOpOps[0].reg != tmpReg)
+            return false;
+        if (prevCopyOps[0].reg != tmpReg || prevCopyOps[1].reg != origReg)
+            return false;
+        if (prevOpOps[1].reg == origReg)
+            return false;
+        if (cursor.ops[2].opBits != prevOpOps[2].opBits || cursor.ops[2].opBits != prevCopyOps[2].opBits)
+            return false;
+
+        return true;
+    }
+
+    bool rewriteFoldCopyBackWithPreviousOp(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        if (!cursor.ops)
+            return false;
+
+        MicroStorage::Iterator currentIt = cursor.nextIt;
+        --currentIt;
+        if (currentIt.current == INVALID_REF)
+            return false;
+
+        MicroStorage::Iterator prevOpIt = currentIt;
+        --prevOpIt;
+        if (prevOpIt.current == INVALID_REF)
+            return false;
+
+        MicroStorage::Iterator prevCopyIt = prevOpIt;
+        --prevCopyIt;
+        if (prevCopyIt.current == INVALID_REF)
+            return false;
+
+        MicroInstr&        prevOpInst = *prevOpIt;
+        MicroInstrOperand* prevOpOps  = prevOpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!prevOpOps)
+            return false;
+
+        const MicroReg origReg = cursor.ops[0].reg;
+        const MicroReg originalReg = prevOpOps[0].reg;
+        prevOpOps[0].reg           = origReg;
+        if (violatesEncoderConformance(context, prevOpInst, prevOpOps))
+        {
+            prevOpOps[0].reg = originalReg;
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(prevCopyIt.current);
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(cursor.instRef);
+        return true;
     }
 
     bool matchCoalesceCopyInstruction(const MicroPassContext& context, const PeepholeCursor& cursor)
@@ -312,10 +515,12 @@ namespace
         }
     }
 
-    const std::array<PeepholeRule, 4>& peepholeRules()
+    const std::array<PeepholeRule, 6>& peepholeRules()
     {
-        static constexpr std::array<PeepholeRule, 4> RULES = {{
+        static constexpr std::array<PeepholeRule, 6> RULES = {{
             {"forward_copy_into_next_binary_source", PeepholeRuleTarget::LoadRegReg, matchForwardCopyIntoNextBinarySource, rewriteForwardCopyIntoNextBinarySource},
+            {"fold_copy_op_copy_back", PeepholeRuleTarget::LoadRegReg, matchFoldCopyOpCopyBack, rewriteFoldCopyOpCopyBack},
+            {"fold_copy_back_with_previous_op", PeepholeRuleTarget::LoadRegReg, matchFoldCopyBackWithPreviousOp, rewriteFoldCopyBackWithPreviousOp},
             {"coalesce_copy_instruction", PeepholeRuleTarget::LoadRegReg, matchCoalesceCopyInstruction, rewriteCoalesceCopyInstruction},
             {"remove_overwritten_copy", PeepholeRuleTarget::LoadRegReg, matchRemoveOverwrittenCopy, rewriteRemoveOverwrittenCopy},
             {"remove_no_op_instruction", PeepholeRuleTarget::AnyInstruction, matchRemoveNoOpInstruction, rewriteRemoveNoOpInstruction},

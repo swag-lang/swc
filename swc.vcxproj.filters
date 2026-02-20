@@ -165,7 +165,7 @@
     <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPass.cpp">
+    <ClCompile Include="src\\Backend\\Micro\\MicroPass.cpp">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.cpp">
@@ -689,7 +689,7 @@
     <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.h">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPass.h">
+    <ClInclude Include="src\\Backend\\Micro\\MicroPass.h">
       <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.h">
@@ -1089,6 +1089,7 @@
     </Content>
   </ItemGroup>
 </Project>
+
 
 
 

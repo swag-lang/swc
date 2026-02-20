@@ -2,7 +2,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPrinter.h"
-#include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/MicroPass.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 

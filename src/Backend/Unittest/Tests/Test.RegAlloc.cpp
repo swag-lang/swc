@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.h"
 #include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"

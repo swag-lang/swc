@@ -2,7 +2,7 @@
 #include "Backend/Micro/Passes/MicroPeepholePass.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/Passes/MicroOptimization.h"
+#include "Backend/Micro/MicroOptimization.h"
 
 // Runs local late cleanups after regalloc/legalize.
 // Example: mov r1, r1           -> <remove>.

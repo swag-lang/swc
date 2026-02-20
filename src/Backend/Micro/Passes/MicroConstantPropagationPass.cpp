@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
-#include "Backend/Micro/Passes/MicroOptimization.h"
+#include "Backend/Micro/MicroOptimization.h"
 
 // Propagates known integer constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.

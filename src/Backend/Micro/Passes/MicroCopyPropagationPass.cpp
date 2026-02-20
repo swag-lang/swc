@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroCopyPropagationPass.h"
-#include "Backend/Micro/Passes/MicroOptimization.h"
+#include "Backend/Micro/MicroOptimization.h"
 
 // Propagates register aliases created by copy/move instructions.
 // Example: mov r2, r1; add r3, r2  ->  add r3, r1.

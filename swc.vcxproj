@@ -213,13 +213,13 @@
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLegalizePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLoadStoreForwardingPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroInstructionCombinePass.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\MicroOptimization.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroEmitPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroStrengthReductionPass.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\MicroPass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPass.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp"/>
@@ -382,7 +382,7 @@
     </ItemGroup>
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
-        <ClInclude Include="src\Backend\Micro\Passes\MicroOptimization.h"/>
+        <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
         <ClInclude Include="src\Support\Unittest\Unittest.h"/>
@@ -409,7 +409,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\MicroStrengthReductionPass.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\MicroPass.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
@@ -556,6 +556,8 @@
     <ImportGroup Label="ExtensionTargets">
     </ImportGroup>
 </Project>
+
+
 
 
 

@@ -3,7 +3,7 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/Passes/MicroEmitPass.h"
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
-#include "Backend/Micro/Passes/MicroPass.h"
+#include "Backend/Micro/MicroPass.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

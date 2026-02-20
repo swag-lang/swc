@@ -27,7 +27,7 @@ class JIT final
 public:
     static void   emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linearCode, std::span<const MicroRelocation> relocations);
     static void   emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret);
-    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, const SymbolFunction* symFn = nullptr);
+    static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr);
 };
 
 SWC_END_NAMESPACE();

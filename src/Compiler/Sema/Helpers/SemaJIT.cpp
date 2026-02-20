@@ -114,7 +114,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     // Call !
     symFn.emit(ctx);
     symFn.jit(ctx);
-    RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, &symFn));
+    RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
 
     ConstantValue resultConstant;
     if (!normalizedRet.isIndirect && view.type()->isString())

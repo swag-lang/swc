@@ -13,14 +13,15 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    int exceptionHandlerNoLog(SWC_LP_EXCEPTION_POINTERS args)
+    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
     {
-        (void) args;
+        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
@@ -303,11 +304,9 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     (void) call(ctx, invoker);
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const SymbolFunction* symFn)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
 {
     SWC_ASSERT(invoker != nullptr);
-    (void) ctx;
-    (void) symFn;
     bool hasException = false;
 
     SWC_TRY
@@ -325,7 +324,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const Sy
             typedInvoker();
         }
     }
-    SWC_EXCEPT(exceptionHandlerNoLog(SWC_GET_EXCEPTION_INFOS()))
+    SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS()))
     {
         hasException = true;
     }

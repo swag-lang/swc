@@ -218,15 +218,18 @@ namespace
 
         const MicroReg lessReg  = codeGen.nextVirtualIntRegister();
         const MicroReg greatReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(lessReg, 0, MicroOpBits::B64);
-        builder.emitLoadRegImm(greatReg, 0, MicroOpBits::B64);
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
         builder.emitSetCondReg(lessReg, lessCond);
         builder.emitSetCondReg(greatReg, greatCond);
 
+        const MicroReg lessValueReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg greatValueReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadZeroExtendRegReg(lessValueReg, lessReg, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitLoadZeroExtendRegReg(greatValueReg, greatReg, MicroOpBits::B32, MicroOpBits::B8);
+
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);
-        builder.emitOpBinaryRegReg(resultPayload.reg, lessReg, MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitLoadRegReg(resultPayload.reg, greatValueReg, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(resultPayload.reg, lessValueReg, MicroOp::Subtract, MicroOpBits::B32);
         return Result::Continue;
     }
 }

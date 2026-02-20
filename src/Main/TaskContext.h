@@ -56,25 +56,10 @@ public:
     explicit TaskContext(const Global& global, const CommandLine& cmdLine);
     explicit TaskContext(CompilerInstance& compInst);
 
-    const Global& global() const
-    {
-        return *SWC_CHECK_NOT_NULL(global_);
-    }
-
-    const CommandLine& cmdLine() const
-    {
-        return *SWC_CHECK_NOT_NULL(cmdLine_);
-    }
-
-    CompilerInstance& compiler()
-    {
-        return *SWC_CHECK_NOT_NULL(compilerInstance_);
-    }
-
-    const CompilerInstance& compiler() const
-    {
-        return *SWC_CHECK_NOT_NULL(compilerInstance_);
-    }
+    const Global&           global() const { return *SWC_CHECK_NOT_NULL(global_); }
+    const CommandLine&      cmdLine() const { return *SWC_CHECK_NOT_NULL(cmdLine_); }
+    CompilerInstance&       compiler() { return *SWC_CHECK_NOT_NULL(compilerInstance_); }
+    const CompilerInstance& compiler() const { return *SWC_CHECK_NOT_NULL(compilerInstance_); }
 
     TaskState&               state() { return state_; }
     const TaskState&         state() const { return state_; }

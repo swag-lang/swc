@@ -14,15 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        if (!context.encoder || !ops)
-            return false;
-
-        MicroConformanceIssue issue;
-        return context.encoder->queryConformanceIssue(issue, inst, ops);
-    }
-
     struct PeepholeCursor
     {
         Ref                      instRef;
@@ -110,7 +101,7 @@ namespace
 
         const MicroReg originalSrcReg = nextOps[1].reg;
         nextOps[1].reg = copySrcReg;
-        if (violatesEncoderConformance(context, nextInst, nextOps))
+        if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
         {
             nextOps[1].reg = originalSrcReg;
             return false;
@@ -156,7 +147,7 @@ namespace
         MicroInstrOperand* mutableOpOps = opInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
         const MicroReg     originalDstReg = mutableOpOps[0].reg;
         mutableOpOps[0].reg                = srcReg;
-        if (violatesEncoderConformance(context, opInst, mutableOpOps))
+        if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps))
         {
             mutableOpOps[0].reg = originalDstReg;
             return false;
@@ -224,7 +215,7 @@ namespace
                         MicroReg&      mutableReg  = *SWC_CHECK_NOT_NULL(ref.reg);
                         const MicroReg originalReg = mutableReg;
                         mutableReg                  = srcReg;
-                        if (violatesEncoderConformance(context, scanInst, scanOps))
+                        if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
                         {
                             mutableReg  = originalReg;
                             canCoalesce = false;
@@ -324,6 +315,13 @@ namespace
         return true;
     }
 
+    // Rule: forward_copy_into_next_binary_source
+    // Purpose: remove a copy when the very next binary op only reads the copied temp.
+    // Example:
+    //   mov r8, r11
+    //   and r5, r8
+    // becomes:
+    //   and r5, r11
     bool matchForwardCopyIntoNextBinarySource(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         if (!cursor.ops || cursor.nextIt == cursor.endIt)
@@ -339,6 +337,14 @@ namespace
         return tryForwardCopyIntoNextBinarySource(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
     }
 
+    // Rule: fold_copy_op_copy_back
+    // Purpose: fold "copy to tmp + mutate tmp + copy back" into a direct mutation.
+    // Example:
+    //   mov r8, r11
+    //   and r8, rdx
+    //   mov r11, r8
+    // becomes:
+    //   and r11, rdx
     bool matchFoldCopyOpCopyBack(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         SWC_UNUSED(context);
@@ -379,6 +385,14 @@ namespace
         return tryFoldCopyOpCopyBack(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
     }
 
+    // Rule: fold_copy_back_with_previous_op
+    // Purpose: the same fold as above, but anchored from the trailing copy-back instruction.
+    // Example:
+    //   mov r8, r11
+    //   xor r8, rdx
+    //   mov r11, r8
+    // becomes:
+    //   xor r11, rdx
     bool matchFoldCopyBackWithPreviousOp(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         if (!cursor.ops)
@@ -454,7 +468,7 @@ namespace
         const MicroReg origReg = cursor.ops[0].reg;
         const MicroReg originalReg = prevOpOps[0].reg;
         prevOpOps[0].reg           = origReg;
-        if (violatesEncoderConformance(context, prevOpInst, prevOpOps))
+        if (MicroOptimization::violatesEncoderConformance(context, prevOpInst, prevOpOps))
         {
             prevOpOps[0].reg = originalReg;
             return false;
@@ -465,6 +479,15 @@ namespace
         return true;
     }
 
+    // Rule: coalesce_copy_instruction
+    // Purpose: replace downstream uses of copy destination by source, then erase the copy.
+    // Example:
+    //   mov r8, r11
+    //   add r9, r8
+    //   or  r10, r8
+    // becomes:
+    //   add r9, r11
+    //   or  r10, r11
     bool matchCoalesceCopyInstruction(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         SWC_UNUSED(context);
@@ -476,6 +499,13 @@ namespace
         return tryCoalesceCopyInstruction(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
     }
 
+    // Rule: remove_overwritten_copy
+    // Purpose: delete a copy when the same destination is immediately overwritten.
+    // Example:
+    //   mov r8, r11
+    //   mov r8, rdx
+    // becomes:
+    //   mov r8, rdx
     bool matchRemoveOverwrittenCopy(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         if (!cursor.ops || cursor.nextIt == cursor.endIt)
@@ -491,6 +521,14 @@ namespace
         return tryRemoveOverwrittenCopy(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
     }
 
+    // Rule: remove_no_op_instruction
+    // Purpose: erase encoder-level no-op instructions.
+    // Example:
+    //   mov r8, r8
+    // or:
+    //   add r8, 0
+    // becomes:
+    //   <removed>
     bool matchRemoveNoOpInstruction(const MicroPassContext& context, const PeepholeCursor& cursor)
     {
         SWC_UNUSED(context);

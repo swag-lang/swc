@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroPass.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -155,6 +157,15 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
     }
 
     return false;
+}
+
+bool MicroOptimization::violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    if (!context.encoder || !ops)
+        return false;
+
+    MicroConformanceIssue issue;
+    return context.encoder->queryConformanceIssue(issue, inst, ops);
 }
 
 SWC_END_NAMESPACE();

@@ -454,7 +454,6 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
 
     addArg(HelpOptionGroup::Development, "all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, "Open a message box in case of errors.");
-    addArg(HelpOptionGroup::Development, "all", "--verbose-hardware-exception", "-vhe", CommandLineType::Bool, &cmdLine_->verboseHardwareException, nullptr, "Show rich hardware-exception diagnostics (symbols, stack trace, memory layout).");
 #if SWC_DEV_MODE
     addArg(HelpOptionGroup::Development, "all", "--randomize", nullptr, CommandLineType::Bool, &cmdLine_->randomize, nullptr, "Randomize behavior. Forces --num-cores=1.");
     addArg(HelpOptionGroup::Development, "all", "--seed", nullptr, CommandLineType::UnsignedInt, &cmdLine_->randSeed, nullptr, "Set seed for randomize behavior. Forces --randomize and --num-cores=1.");

@@ -446,15 +446,12 @@ namespace
     void appendJobExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
         const Job& job = *static_cast<const Job*>(userData);
-        outMsg += std::format("  thread index: {}\n", JobManager::threadIndex());
-        outMsg += std::format("  kind: {}\n", jobKindName(job.kind()));
-        outMsg += std::format("  client id: {}\n", job.clientId());
-        outMsg += std::format("  priority: {}\n", jobPriorityName(job.priority()));
-        if (ctx.cmdLine().verboseHardwareException)
-        {
-            outMsg += std::format("  owner: 0x{:016X}\n", reinterpret_cast<uintptr_t>(job.owner()));
-            outMsg += std::format("  record: 0x{:016X}\n", reinterpret_cast<uintptr_t>(job.rec()));
-        }
+        HardwareException::appendField(outMsg, "thread index:", std::format("{}", JobManager::threadIndex()));
+        HardwareException::appendField(outMsg, "kind:", jobKindName(job.kind()));
+        HardwareException::appendField(outMsg, "client id:", std::format("{}", job.clientId()));
+        HardwareException::appendField(outMsg, "priority:", jobPriorityName(job.priority()));
+        HardwareException::appendField(outMsg, "owner:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(job.owner())));
+        HardwareException::appendField(outMsg, "record:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(job.rec())));
     }
 
     void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)

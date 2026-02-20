@@ -31,6 +31,15 @@ namespace Os
     void     freeExecutableMemory(void* ptr);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
+
+    const char* hostOsName();
+    const char* hostCpuName();
+    const char* hostExceptionBackendName();
+    uint32_t    currentProcessId();
+    uint32_t    currentThreadId();
+    void        appendHostExceptionSummary(Utf8& outMsg, const void* platformExceptionPointers);
+    void        appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);
+    void        appendHostHandlerStack(Utf8& outMsg);
 }
 
 #ifdef _WIN32

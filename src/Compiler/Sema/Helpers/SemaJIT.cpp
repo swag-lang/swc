@@ -4,6 +4,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -18,6 +19,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t KFieldWidth = 24;
+
     void scheduleCodeGen(Sema& sema, SymbolFunction& symFn)
     {
         if (symFn.tryMarkCodeGenJobScheduled())
@@ -78,6 +81,30 @@ namespace
 
         return ConstantValue::makeString(ctx, std::string_view(str->ptr, str->length));
     }
+
+    Utf8 makeJitTriggerContext(const TaskContext& ctx, const AstNode& node)
+    {
+        const SourceCodeRef codeRef = node.codeRef();
+        if (!codeRef.isValid())
+            return {};
+
+        const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
+        if (codeRef.tokRef.get() >= srcView.numTokens())
+            return {};
+
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, codeRef.tokRef);
+        const SourceFile*     file      = srcView.file();
+        const std::string     path      = file ? file->path().string() : "<no-file>";
+        Utf8                  line      = srcView.codeLine(ctx, codeRange.line);
+        line.trim_end();
+        if (line.length() > 220)
+            line = line.substr(0, 220) + " ...";
+
+        Utf8 result = std::format("{:<{}}{}:{}:{}", "jit trigger:", KFieldWidth, path, codeRange.line, codeRange.column);
+        if (!line.empty())
+            result += std::format("\n{:<{}}{}", "code:", KFieldWidth, line);
+        return result;
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
@@ -114,7 +141,10 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     // Call !
     symFn.emit(ctx);
     symFn.jit(ctx);
-    RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
+    const AstNode& nodeExpr          = sema.node(nodeExprRef);
+    const Utf8     jitTriggerContext = makeJitTriggerContext(ctx, nodeExpr);
+    const Utf8     jitTarget         = symFn.getFullScopedName(ctx);
+    RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, jitTriggerContext, jitTarget));
 
     ConstantValue resultConstant;
     if (!normalizedRet.isIndirect && view.type()->isString())

@@ -22,7 +22,9 @@ namespace
 {
     struct ExceptionInfo
     {
-        void* invoker = nullptr;
+        void*            invoker          = nullptr;
+        std::string_view triggerContext   = {};
+        std::string_view targetFunction   = {};
     };
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
@@ -77,9 +79,12 @@ namespace
     void appendExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
     {
         const ExceptionInfo& info = *static_cast<const ExceptionInfo*>(userData);
-        outMsg += "  call site: jit invoker\n";
-        if (ctx.cmdLine().verboseHardwareException)
-            outMsg += std::format("  invoker: 0x{:016X}\n", reinterpret_cast<uintptr_t>(info.invoker));
+        HardwareException::appendField(outMsg, "call site:", "jit");
+        if (!info.targetFunction.empty())
+            HardwareException::appendField(outMsg, "jit target:", info.targetFunction);
+        if (!info.triggerContext.empty())
+            outMsg += std::format("{}\n", info.triggerContext);
+        HardwareException::appendField(outMsg, "invoker:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(info.invoker)));
     }
 
     int exceptionHandler(const TaskContext& ctx, const ExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
@@ -318,10 +323,10 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     (void) call(ctx, invoker);
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, const std::string_view triggerContext, const std::string_view targetFunction)
 {
     SWC_ASSERT(invoker != nullptr);
-    const ExceptionInfo info{.invoker = invoker};
+    const ExceptionInfo info{.invoker = invoker, .triggerContext = triggerContext, .targetFunction = targetFunction};
     bool                hasException = false;
 
     SWC_TRY

@@ -23,8 +23,6 @@ namespace
     {
         if (!function)
             return;
-
-        appendPointerField(outMsg, label, function);
         HardwareException::appendField(outMsg, "function name", function->name(ctx));
     }
 

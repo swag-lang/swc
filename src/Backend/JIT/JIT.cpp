@@ -22,9 +22,9 @@ namespace
 {
     struct ExceptionInfo
     {
-        void*            invoker          = nullptr;
-        std::string_view triggerContext   = {};
-        std::string_view targetFunction   = {};
+        void*            invoker        = nullptr;
+        std::string_view triggerContext = {};
+        std::string_view targetFunction = {};
     };
 
     ABICall::Arg packArgValue(const ABITypeNormalize::NormalizedType& argType, const void* valuePtr)
@@ -76,20 +76,9 @@ namespace
         }
     }
 
-    void appendExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
-    {
-        const ExceptionInfo& info = *static_cast<const ExceptionInfo*>(userData);
-        HardwareException::appendField(outMsg, "call site:", "jit");
-        if (!info.targetFunction.empty())
-            HardwareException::appendField(outMsg, "jit target:", info.targetFunction);
-        if (!info.triggerContext.empty())
-            outMsg += std::format("{}\n", info.triggerContext);
-        HardwareException::appendField(outMsg, "invoker:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(info.invoker)));
-    }
-
     int exceptionHandler(const TaskContext& ctx, const ExceptionInfo& info, SWC_LP_EXCEPTION_POINTERS args)
     {
-        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args, appendExtraInfo, &info);
+        HardwareException::log(ctx, "hardware exception during jit call", args, info.triggerContext);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 

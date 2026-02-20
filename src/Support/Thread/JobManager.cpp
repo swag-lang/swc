@@ -443,20 +443,9 @@ namespace
         }
     }
 
-    void appendJobExtraInfo(Utf8& outMsg, const TaskContext& ctx, const void* userData)
-    {
-        const Job& job = *static_cast<const Job*>(userData);
-        HardwareException::appendField(outMsg, "thread index:", std::format("{}", JobManager::threadIndex()));
-        HardwareException::appendField(outMsg, "kind:", jobKindName(job.kind()));
-        HardwareException::appendField(outMsg, "client id:", std::format("{}", job.clientId()));
-        HardwareException::appendField(outMsg, "priority:", jobPriorityName(job.priority()));
-        HardwareException::appendField(outMsg, "owner:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(job.owner())));
-        HardwareException::appendField(outMsg, "record:", std::format("0x{:016X}", reinterpret_cast<uintptr_t>(job.rec())));
-    }
-
     void exceptionMessage(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        HardwareException::log(job.ctx(), "fatal error: hardware exception during job execution!", args, appendJobExtraInfo, &job);
+        HardwareException::log(job.ctx(), "hardware exception during job execution", args);
     }
 
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)

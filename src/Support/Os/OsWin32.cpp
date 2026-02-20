@@ -179,13 +179,13 @@ namespace
 
         DWORD64 displacement = 0;
         if (SymFromAddr(process, address, &displacement, symbol))
-            HardwareException::appendField(outMsg, "symbol:", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)));
+            HardwareException::appendField(outMsg, "symbol", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)));
 
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
         DWORD lineDisp        = 0;
         if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
-            HardwareException::appendField(outMsg, "source:", std::format("{}:{} (+{})", lineInfo.FileName, lineInfo.LineNumber, lineDisp));
+            HardwareException::appendField(outMsg, "source", std::format("{}:{} (+{})", lineInfo.FileName, lineInfo.LineNumber, lineDisp));
     }
 
     void appendWindowsAddress(Utf8& outMsg, const uint64_t address)
@@ -219,12 +219,12 @@ namespace
             if (len)
             {
                 modulePath[len] = 0;
-                HardwareException::appendField(outMsg, "module path:", modulePath);
+                HardwareException::appendField(outMsg, "module path", modulePath);
             }
         }
 
         appendWindowsAddressSymbol(outMsg, address);
-        HardwareException::appendField(outMsg, "memory:", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
+        HardwareException::appendField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
     }
 }
 
@@ -436,21 +436,21 @@ namespace Os
         const auto* record = args ? args->ExceptionRecord : nullptr;
         if (!record)
         {
-            HardwareException::appendField(outMsg, "record:", "none");
+            HardwareException::appendField(outMsg, "record", "none");
             return;
         }
 
-        HardwareException::appendField(outMsg, "code:", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
-        HardwareException::appendFieldPrefix(outMsg, "address:");
+        HardwareException::appendField(outMsg, "code", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
+        HardwareException::appendFieldPrefix(outMsg, "address");
         appendWindowsAddress(outMsg, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
         outMsg += "\n";
 
         if (record->NumberParameters)
-            HardwareException::appendField(outMsg, "parameters:", std::format("{}", record->NumberParameters));
+            HardwareException::appendField(outMsg, "parameters", std::format("{}", record->NumberParameters));
 
         if ((record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION || record->ExceptionCode == EXCEPTION_IN_PAGE_ERROR) && record->NumberParameters >= 2)
         {
-            HardwareException::appendFieldPrefix(outMsg, "access:");
+            HardwareException::appendFieldPrefix(outMsg, "access");
             outMsg += std::format("{} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
             appendWindowsAddress(outMsg, record->ExceptionInformation[1]);
             outMsg += "\n";
@@ -482,7 +482,7 @@ namespace Os
     {
         void*        frames[64]{};
         const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
-        HardwareException::appendField(outMsg, "frames:", std::format("{}", numFrames));
+        HardwareException::appendField(outMsg, "frames", std::format("{}", numFrames));
 
         for (uint32_t i = 0; i < numFrames; ++i)
         {

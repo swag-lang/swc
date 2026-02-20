@@ -31,7 +31,8 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     passManager.add(regAllocPass);
     passManager.add(persistentRegsPass);
     passManager.add(legalizePass);
-    passManager.add(peepholePass);
+    if (builder.backendBuildCfg().optimizeLevel >= Runtime::BuildCfgBackendOptim::O1)
+        passManager.add(peepholePass);
     passManager.add(encodePass);
     builder.runPasses(passManager, &encoder, passContext);
 

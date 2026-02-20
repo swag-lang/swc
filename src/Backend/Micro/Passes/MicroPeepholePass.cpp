@@ -9,9 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 void MicroPeepholePass::run(MicroPassContext& context)
 {
-    if (context.builder->backendBuildCfg().optimizeLevel == Runtime::BuildCfgBackendOptim::O0)
-        return;
-
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
 

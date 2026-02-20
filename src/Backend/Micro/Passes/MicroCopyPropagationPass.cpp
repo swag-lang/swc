@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroCopyPropagationPass.h"
+#include "Backend/Micro/Passes/MicroOptimization.h"
 
 // Propagates register aliases created by copy/move instructions.
 // Example: mov r2, r1; add r3, r2  ->  add r3, r1.
@@ -40,33 +41,6 @@ namespace
         }
     }
 
-    bool isTerminator(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
-            case MicroInstrOpcode::Ret:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    bool isSameRegisterClass(MicroReg leftReg, MicroReg rightReg)
-    {
-        if (leftReg.isInt() && rightReg.isInt())
-            return true;
-        if (leftReg.isFloat() && rightReg.isFloat())
-            return true;
-        if (leftReg.isVirtualInt() && rightReg.isVirtualInt())
-            return true;
-        if (leftReg.isVirtualFloat() && rightReg.isVirtualFloat())
-            return true;
-        return false;
-    }
 }
 
 bool MicroCopyPropagationPass::run(MicroPassContext& context)
@@ -96,7 +70,7 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
 
             MicroReg& reg         = *SWC_CHECK_NOT_NULL(ref.reg);
             MicroReg  resolvedReg = resolveAlias(aliases, reg);
-            if (resolvedReg != reg && isSameRegisterClass(reg, resolvedReg))
+            if (resolvedReg != reg && MicroOptimization::isSameRegisterClass(reg, resolvedReg))
             {
                 reg     = resolvedReg;
                 changed = true;
@@ -112,12 +86,11 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
             MicroInstrOperand* instOps = inst.ops(operands);
             const MicroReg     dstReg  = instOps[0].reg;
             const MicroReg     srcReg  = resolveAlias(aliases, instOps[1].reg);
-            const bool isIntCopy = (dstReg.isInt() && srcReg.isInt()) || (dstReg.isVirtualInt() && srcReg.isVirtualInt());
-            if (dstReg != srcReg && isIntCopy && instOps[2].opBits == MicroOpBits::B64)
+            if (dstReg != srcReg && MicroOptimization::isSameRegisterClass(dstReg, srcReg) && instOps[2].opBits == MicroOpBits::B64)
                 aliases[dstReg.packed] = srcReg;
         }
 
-        if (useDef.isCall || isTerminator(inst))
+        if (MicroOptimization::isLocalDataflowBarrier(inst, useDef))
             aliases.clear();
     }
 

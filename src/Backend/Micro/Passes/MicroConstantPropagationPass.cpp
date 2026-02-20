@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
+#include "Backend/Micro/Passes/MicroOptimization.h"
 
 // Propagates known integer constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -76,21 +77,6 @@ namespace
                 outValue = normalizeToOpBits(outValue, opBits);
                 return true;
             }
-            default:
-                return false;
-        }
-    }
-
-    bool isTerminator(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
-            case MicroInstrOpcode::Ret:
-                return true;
             default:
                 return false;
         }
@@ -195,7 +181,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             }
         }
 
-        if (inst.op == MicroInstrOpcode::Label || isTerminator(inst))
+        if (inst.op == MicroInstrOpcode::Label || MicroOptimization::isTerminatorInstruction(inst))
             known.clear();
     }
 

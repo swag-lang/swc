@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroBranchFoldingPass.h"
+#include "Backend/Micro/Passes/MicroOptimization.h"
 
 // Folds branch decisions when compare inputs are compile-time constants.
 // Example: cmp r1, 42; jz L1  ->  jmp L1 (if r1 is known 42).
@@ -80,21 +81,6 @@ namespace
                 outValue = normalizeToOpBits(outValue, opBits);
                 return true;
             }
-            default:
-                return false;
-        }
-    }
-
-    bool isTerminator(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
-            case MicroInstrOpcode::Ret:
-                return true;
             default:
                 return false;
         }
@@ -307,7 +293,7 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
             }
         }
 
-        if (inst.op == MicroInstrOpcode::Label || isTerminator(inst))
+        if (inst.op == MicroInstrOpcode::Label || MicroOptimization::isTerminatorInstruction(inst))
         {
             known.clear();
             compareState.valid = false;

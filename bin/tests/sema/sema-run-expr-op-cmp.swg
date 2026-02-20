@@ -73,7 +73,6 @@ enum CmpEnum: u16
 
 #test
 {
-    #[Swag.PrintMicro]
     func cmpEnum(a: CmpEnum, b: CmpEnum)->bool { return a == b }
     const V0 = #run cmpEnum(CmpEnum.A, CmpEnum.A)
     const V1 = #run cmpEnum(CmpEnum.A, CmpEnum.B)

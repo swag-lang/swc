@@ -26,7 +26,7 @@ namespace
 
     uint32_t opcodeColumnWidth()
     {
-        static const uint32_t width = [] {
+        static const uint32_t WIDTH = [] {
             uint32_t result = 0;
 #define SWC_MICRO_INSTR_DEF(__enum, ...) result = std::max<uint32_t>(result, static_cast<uint32_t>(Utf8Helper::toLowerSnake(#__enum).size()));
 #include "Backend/Micro/MicroInstr.Def.inc"
@@ -35,7 +35,7 @@ namespace
             return result;
         }();
 
-        return width;
+        return WIDTH;
     }
 
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t& outSourceLine)

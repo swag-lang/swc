@@ -60,10 +60,10 @@ struct CommandLine
     uint32_t randSeed  = 0;
 #endif
 
-    uint32_t            syntaxColorLum  = 0;
-    uint32_t            numCores        = 0;
-    uint32_t            tabSize         = 4;
-    uint32_t            diagMaxColumn   = 120;
+    uint32_t                        syntaxColorLum  = 0;
+    uint32_t                        numCores        = 0;
+    uint32_t                        tabSize         = 4;
+    uint32_t                        diagMaxColumn   = 120;
     FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
     Utf8           verboseVerifyFilter;

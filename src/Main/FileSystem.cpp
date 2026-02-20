@@ -125,8 +125,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
 {
-    const FileSystem::FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
-
+    const FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
     switch (resolvedMode)
     {
         case FileSystem::FilePathDisplayMode::AsIs:

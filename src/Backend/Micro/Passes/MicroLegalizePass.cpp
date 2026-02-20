@@ -4,7 +4,7 @@
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
 // Example: unsupported mem+imm pattern -> sequence using a temporary register.
-// Example: oversized immediate form    -> split/rewrite to legal width.
+// Example: oversized immediate form -> split/rewrite to legal width.
 // This pass preserves semantics while enforcing backend encoding constraints.
 
 SWC_BEGIN_NAMESPACE();
@@ -28,7 +28,7 @@ namespace
 
     void invalidateInstruction(MicroInstr& inst)
     {
-        // Mark instruction as removed; replacement instructions are inserted before it.
+        // Mark the instruction as removed; replacement instructions are inserted before it.
         inst.op          = MicroInstrOpcode::Debug;
         inst.opsRef      = INVALID_REF;
         inst.numOperands = 0;
@@ -227,12 +227,12 @@ namespace
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
 
-        const MicroReg dstReg   = ops[0].reg;
-        const MicroReg srcReg   = ops[1].reg;
+        const MicroReg    dstReg = ops[0].reg;
+        const MicroReg    srcReg = ops[1].reg;
         const MicroOpBits opBits = ops[2].opBits;
-        const MicroOp    op      = ops[3].microOp;
-        const MicroReg   reqReg  = issue.requiredReg;
-        const MicroReg   tmpReg  = issue.helperReg;
+        const MicroOp     op     = ops[3].microOp;
+        const MicroReg    reqReg = issue.requiredReg;
+        const MicroReg    tmpReg = issue.helperReg;
         SWC_ASSERT(reqReg.isValid());
         SWC_ASSERT(tmpReg.isValid());
         SWC_ASSERT(srcReg != reqReg);
@@ -269,13 +269,13 @@ namespace
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
 
-        const MicroReg dstReg     = ops[0].reg;
-        const MicroReg srcReg     = ops[1].reg;
-        const MicroOpBits opBits  = ops[2].opBits;
-        const MicroOp op          = ops[3].microOp;
-        const MicroReg requiredReg = issue.requiredReg;
-        const MicroReg helperReg   = issue.helperReg;
-        const MicroReg scratchReg  = issue.scratchReg;
+        const MicroReg    dstReg      = ops[0].reg;
+        const MicroReg    srcReg      = ops[1].reg;
+        const MicroOpBits opBits      = ops[2].opBits;
+        const MicroOp     op          = ops[3].microOp;
+        const MicroReg    requiredReg = issue.requiredReg;
+        const MicroReg    helperReg   = issue.helperReg;
+        const MicroReg    scratchReg  = issue.scratchReg;
         SWC_ASSERT(requiredReg.isValid());
         SWC_ASSERT(helperReg.isValid());
         SWC_ASSERT(scratchReg.isValid());
@@ -286,8 +286,8 @@ namespace
             {scratchReg, REG_STACK_SLOT_SIZE * 2},
         }};
 
-        const MicroReg stackPointerReg = encoder.stackPointerReg();
-        const uint64_t stackFrameSize  = REG_STACK_SLOT_SIZE * slots.size();
+        const MicroReg     stackPointerReg = encoder.stackPointerReg();
+        constexpr uint64_t stackFrameSize  = REG_STACK_SLOT_SIZE * slots.size();
 
         invalidateInstruction(inst);
         insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);

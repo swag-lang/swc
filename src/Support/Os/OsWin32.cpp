@@ -515,7 +515,6 @@ namespace Os
     {
         void*        frames[64]{};
         const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
-        appendOsField(outMsg, "frames", std::format("{}", numFrames));
 
         for (uint32_t i = 0; i < numFrames; ++i)
         {

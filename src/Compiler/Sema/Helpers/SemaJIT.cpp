@@ -4,8 +4,8 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -96,13 +96,12 @@ namespace
         const SourceFile*     file      = srcView.file();
         const std::string     path      = file ? file->path().string() : "<no-file>";
         Utf8                  line      = srcView.codeLine(ctx, codeRange.line);
-        line.trim_end();
+        line.trim();
         if (line.length() > 220)
             line = line.substr(0, 220) + " ...";
 
         Utf8 result = std::format("{:<{}}{}:{}:{}", "jit trigger:", KFieldWidth, path, codeRange.line, codeRange.column);
-        if (!line.empty())
-            result += std::format("\n{:<{}}{}", "code:", KFieldWidth, line);
+        result += std::format("\n{:<{}}{}", "code:", KFieldWidth, line);
         return result;
     }
 }

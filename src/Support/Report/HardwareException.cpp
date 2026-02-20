@@ -1,7 +1,5 @@
 #include "pch.h"
 #include "Support/Report/HardwareException.h"
-#include "Compiler/Parser/Ast/Ast.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -21,7 +19,7 @@ namespace
         HardwareException::appendField(outMsg, "process id", std::format("{}", Os::currentProcessId()));
         HardwareException::appendField(outMsg, "thread id", std::format("{}", Os::currentThreadId()));
 #if SWC_DEV_MODE
-        HardwareException::appendField(outMsg, "cmd randomize", std::format("{}, seed: {}", ctx.cmdLine().randomize, ctx.cmdLine().randSeed));
+        HardwareException::appendField(outMsg, "cmd randomize", std::format("{} (seed {})", ctx.cmdLine().randomize, ctx.cmdLine().randSeed));
 #endif
         outMsg += "\n";
         Os::appendHostExceptionSummary(outMsg, args);
@@ -31,7 +29,7 @@ namespace
     {
         if (!extraInfo.empty())
         {
-            HardwareException::appendSectionHeader(outMsg, "Context");
+            HardwareException::appendSectionHeader(outMsg, "context");
             outMsg += std::format("{}\n", extraInfo);
         }
     }
@@ -49,7 +47,9 @@ void HardwareException::appendSectionHeader(Utf8& outMsg, const std::string_view
 {
     outMsg += "\n";
     outMsg += title;
-    outMsg += "\n\n";
+    outMsg += ":";
+    outMsg += "\n";
+    outMsg += "---------------------------------\n";
 }
 
 void HardwareException::appendField(Utf8& outMsg, const std::string_view label, const std::string_view value)
@@ -78,8 +78,8 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
     msg += title;
     msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
 
-    appendCrashGroup(msg, ctx, args);
     appendContextGroup(msg, extraInfo);
+    appendCrashGroup(msg, ctx, args);
     appendHostTraceGroup(msg, args);
     Logger::print(ctx, msg);
 }

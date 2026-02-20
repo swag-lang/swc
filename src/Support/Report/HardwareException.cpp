@@ -19,18 +19,13 @@ namespace
         HardwareException::appendField(outMsg, label, std::format("0x{:016X}", reinterpret_cast<uint64_t>(ptr)));
     }
 
-    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function, IdentifierRef functionIdRef)
+    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function)
     {
-        if (!function && functionIdRef.isInvalid())
+        if (!function)
             return;
 
-        if (function)
-            appendPointerField(outMsg, label, function);
-        if (functionIdRef.isValid())
-        {
-            const Identifier& id = ctx.idMgr().get(functionIdRef);
-            HardwareException::appendField(outMsg, "function name", id.name);
-        }
+        appendPointerField(outMsg, label, function);
+        HardwareException::appendField(outMsg, "function name", function->name(ctx));
     }
 
     void appendTaskStateGroup(Utf8& outMsg, const TaskContext& ctx)
@@ -57,8 +52,8 @@ namespace
             }
         }
 
-        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction, state.runJitFunctionIdRef);
-        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction, state.codeGenFunctionIdRef);
+        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction);
+        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction);
 
         if (state.symbol)
             appendPointerField(outMsg, "symbol ptr", state.symbol);

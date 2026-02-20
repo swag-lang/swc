@@ -117,7 +117,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 
     {
         TaskScopedState scopedState(ctx);
-        ctx.state().setRunJit(&symFn, symFn.idRef(), nodeExprRef, sema.node(nodeExprRef).codeRef());
+        ctx.state().setRunJit(&symFn, nodeExprRef, sema.node(nodeExprRef).codeRef());
         RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
     }
 

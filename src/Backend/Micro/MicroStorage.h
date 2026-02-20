@@ -7,6 +7,7 @@ class MicroOperandStorage
 {
 public:
     uint32_t                           count() const noexcept;
+    size_t                             allocatedBytes() const noexcept;
     void                               clear() noexcept;
     std::pair<Ref, MicroInstrOperand*> emplaceUninitArray(uint32_t count);
     MicroInstrOperand*                 ptr(Ref ref) noexcept;
@@ -86,6 +87,7 @@ public:
     };
 
     uint32_t                    count() const noexcept;
+    size_t                      allocatedBytes() const noexcept;
     void                        clear() noexcept;
     MicroInstr*                 ptr(Ref ref) noexcept;
     const MicroInstr*           ptr(Ref ref) const noexcept;

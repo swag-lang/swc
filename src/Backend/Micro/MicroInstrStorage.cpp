@@ -8,6 +8,11 @@ uint32_t MicroOperandStorage::count() const noexcept
     return static_cast<uint32_t>(operands_.size());
 }
 
+size_t MicroOperandStorage::allocatedBytes() const noexcept
+{
+    return operands_.capacity() * sizeof(MicroInstrOperand);
+}
+
 void MicroOperandStorage::clear() noexcept
 {
     operands_.clear();
@@ -174,6 +179,11 @@ MicroStorage::ConstIterator MicroStorage::ConstView::end() const
 uint32_t MicroStorage::count() const noexcept
 {
     return count_;
+}
+
+size_t MicroStorage::allocatedBytes() const noexcept
+{
+    return nodes_.capacity() * sizeof(Node);
 }
 
 void MicroStorage::clear() noexcept

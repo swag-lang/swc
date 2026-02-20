@@ -700,7 +700,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
             {
-                outIssue.kind       = MicroConformanceIssueKind::RewriteBinaryShiftRegReg;
+                outIssue.kind        = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 1;
                 outIssue.requiredReg = rcxReg;
                 outIssue.helperReg   = x64RegToMicroReg(X64Reg::Rax);
                 return true;
@@ -714,12 +715,21 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         {
             const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
             const MicroReg rdxReg = x64RegToMicroReg(X64Reg::Rdx);
-            if (ops[0].reg != raxReg || ops[1].reg == rdxReg)
+            if (ops[0].reg != raxReg)
             {
-                outIssue.kind        = MicroConformanceIssueKind::RewriteBinaryDivModRegReg;
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 0;
                 outIssue.requiredReg = raxReg;
-                outIssue.helperReg   = rdxReg;
-                outIssue.scratchReg  = x64RegToMicroReg(X64Reg::Rcx);
+                outIssue.helperReg   = x64RegToMicroReg(X64Reg::Rcx);
+                return true;
+            }
+
+            if (ops[1].reg == rdxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
+                outIssue.operandIndex = 1;
+                outIssue.forbiddenReg = rdxReg;
+                outIssue.scratchReg   = x64RegToMicroReg(X64Reg::Rcx);
                 return true;
             }
         }

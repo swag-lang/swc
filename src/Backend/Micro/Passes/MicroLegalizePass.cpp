@@ -153,7 +153,7 @@ namespace
         ops[issue.operandIndex].opBits = issue.normalizedOpBits;
     }
 
-    void applySplitLoadMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
+    void applySplitLoadMemImm64(const MicroPassContext& context, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadMemImm);
@@ -183,7 +183,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applySplitLoadAmcMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
+    void applySplitLoadAmcMemImm64(const MicroPassContext& context, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadAmcMemImm);
@@ -221,7 +221,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, uint64_t stackScratchBaseOffset)
+    void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm);
@@ -289,7 +289,7 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
     }
 
-    void applyRewriteRegRegOperandToFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
+    void applyRewriteRegRegOperandToFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
@@ -354,7 +354,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
+    void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);

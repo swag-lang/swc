@@ -121,6 +121,7 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<Sema&>(sema()).viewZero(nodeRef).nodeRef(); }
     void   setVisitors();
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);

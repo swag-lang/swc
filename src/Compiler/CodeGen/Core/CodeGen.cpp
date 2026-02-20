@@ -153,6 +153,9 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
 
 CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
 {
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return nullptr;
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
 }
 
@@ -171,6 +174,8 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)
 {
+    srcNodeRef = resolvedNodeRef(srcNodeRef);
+
     const CodeGenNodePayload* srcPayload = payload(srcNodeRef);
     SWC_ASSERT(srcPayload != nullptr);
 
@@ -185,6 +190,9 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
+    nodeRef = resolvedNodeRef(nodeRef);
+    SWC_ASSERT(nodeRef.isValid());
+
     CodeGenNodePayload* nodePayload = payload(nodeRef);
     if (!nodePayload)
     {
@@ -226,6 +234,8 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 
 void CodeGen::setVisitors()
 {
+    visit_.setMode(AstVisitMode::ResolveBeforeCallbacks);
+    visit_.setNodeRefResolver([this](const AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); });
     visit_.setPreNodeVisitor([this](AstNode& node) { return preNode(node); });
     visit_.setPreChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return preNodeChild(node, childRef); });
     visit_.setPostChildVisitor([this](AstNode& node, AstNodeRef& childRef) { return postNodeChild(node, childRef); });

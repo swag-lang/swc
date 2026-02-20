@@ -16,11 +16,19 @@ enum class AstVisitResult
     Stop,
 };
 
+enum class AstVisitMode : uint8_t
+{
+    Default,
+    ResolveBeforeCallbacks,
+};
+
 class AstVisit
 {
 public:
     void           start(Ast& ast, AstNodeRef root);
     void           restartCurrentNode(AstNodeRef nodeRef);
+    void           setMode(AstVisitMode mode) { mode_ = mode; }
+    void           setNodeRefResolver(const std::function<AstNodeRef(AstNodeRef)>& resolver) { nodeRefResolver_ = resolver; }
     void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
     void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
     void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
@@ -83,6 +91,8 @@ private:
     std::function<Result(AstNode&)>              postNodeVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> preChildVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> postChildVisitor_;
+    AstVisitMode                                 mode_ = AstVisitMode::Default;
+    std::function<AstNodeRef(AstNodeRef)>        nodeRefResolver_;
 
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;

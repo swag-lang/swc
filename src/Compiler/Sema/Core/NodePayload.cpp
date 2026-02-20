@@ -137,6 +137,7 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
+    SWC_ASSERT(ast().node(substNodeRef).isNot(AstNodeId::Invalid));
     AstNode& node = ast().node(nodeRef);
     setPayloadKind(node, NodePayloadKind::Substitute);
     node.setPayloadRef(substNodeRef.get());

@@ -130,10 +130,13 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                     if (postChildVisitor_ && fr.postChildState != Frame::CallState::Done)
                     {
                         SWC_ASSERT(fr.nextChildIx > 0);
-                        AstNodeRef lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
+                        const AstNodeRef lastChildRef = children_[fr.firstChildIx + fr.nextChildIx - 1];
+                        AstNodeRef       callbackRef  = lastChildRef;
+                        if (mode_ == AstVisitMode::ResolveBeforeCallbacks && nodeRefResolver_ && callbackRef.isValid())
+                            callbackRef = nodeRefResolver_(callbackRef);
 
                         fr.firstPass        = (fr.postChildState == Frame::CallState::NotCalled);
-                        const Result result = postChildVisitor_(*fr.node, lastChildRef);
+                        const Result result = postChildVisitor_(*fr.node, callbackRef);
 
                         if (result == Result::Error)
                             return AstVisitResult::Error;
@@ -161,13 +164,20 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 const uint32_t localIdx = fr.nextChildIx;
                 const uint32_t globalIx = fr.firstChildIx + localIdx;
 
-                AstNodeRef childRef = children_[globalIx];
+                AstNodeRef childRef         = children_[globalIx];
+                AstNodeRef callbackChildRef = childRef;
+                if (mode_ == AstVisitMode::ResolveBeforeCallbacks && nodeRefResolver_ && callbackChildRef.isValid())
+                    callbackChildRef = nodeRefResolver_(callbackChildRef);
 
                 // preChild callback for THIS child index (may be called multiple times on Pause)
                 if (preChildVisitor_ && fr.preChildState != Frame::CallState::Done)
                 {
                     fr.firstPass        = (fr.preChildState == Frame::CallState::NotCalled);
-                    const Result result = preChildVisitor_(*fr.node, childRef);
+                    Result       result = Result::Continue;
+                    if (mode_ == AstVisitMode::ResolveBeforeCallbacks)
+                        result = preChildVisitor_(*fr.node, callbackChildRef);
+                    else
+                        result = preChildVisitor_(*fr.node, childRef);
 
                     if (result == Result::Error)
                         return AstVisitResult::Error;

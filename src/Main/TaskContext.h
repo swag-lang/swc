@@ -188,4 +188,50 @@ private:
     TaskState          state_;
 };
 
+class TaskScopedState final
+{
+public:
+    TaskScopedState() = delete;
+
+    explicit TaskScopedState(TaskContext& ctx) :
+        ctx_(&ctx),
+        saved_(ctx.state())
+    {
+    }
+
+    ~TaskScopedState()
+    {
+        if (ctx_)
+            ctx_->state() = saved_;
+    }
+
+    TaskScopedState(const TaskScopedState&)            = delete;
+    TaskScopedState& operator=(const TaskScopedState&) = delete;
+
+    TaskScopedState(TaskScopedState&& other) noexcept :
+        ctx_(other.ctx_),
+        saved_(other.saved_)
+    {
+        other.ctx_ = nullptr;
+    }
+
+    TaskScopedState& operator=(TaskScopedState&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        if (ctx_)
+            ctx_->state() = saved_;
+
+        ctx_       = other.ctx_;
+        saved_     = other.saved_;
+        other.ctx_ = nullptr;
+        return *this;
+    }
+
+private:
+    TaskContext* ctx_ = nullptr;
+    TaskState    saved_;
+};
+
 SWC_END_NAMESPACE();

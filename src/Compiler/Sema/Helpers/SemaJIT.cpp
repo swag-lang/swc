@@ -114,11 +114,12 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     // Call !
     symFn.emit(ctx);
     symFn.jit(ctx);
-    const TaskState savedTaskState = ctx.state();
-    ctx.state().setRunJit(&symFn, symFn.idRef(), nodeExprRef, sema.node(nodeExprRef).codeRef());
-    const Result callResult = JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress);
-    ctx.state()             = savedTaskState;
-    RESULT_VERIFY(callResult);
+
+    {
+        TaskScopedState scopedState(ctx);
+        ctx.state().setRunJit(&symFn, symFn.idRef(), nodeExprRef, sema.node(nodeExprRef).codeRef());
+        RESULT_VERIFY(JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress));
+    }
 
     ConstantValue resultConstant;
     if (!normalizedRet.isIndirect && view.type()->isString())

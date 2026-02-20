@@ -7,7 +7,7 @@ class MicroStrengthReductionPass final : public MicroPass
 {
 public:
     // Replace expensive integer arithmetic forms by cheaper equivalent instructions.
-    MicroPassKind kind() const override { return MicroPassKind::StrengthReduction; }
+    std::string_view name() const override { return "strength-reduction"; }
     bool          run(MicroPassContext& context) override;
 };
 

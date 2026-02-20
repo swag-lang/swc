@@ -31,54 +31,17 @@ namespace
         }
     }
 
-    std::string_view passStageName(MicroPassKind passKind, bool before)
+    std::string passStageName(const MicroPass& pass, bool before)
     {
-        switch (passKind)
-        {
-            case MicroPassKind::ControlFlowSimplification:
-                return before ? "pre-cfg-simplify" : "post-cfg-simplify";
-            case MicroPassKind::InstructionCombine:
-                return before ? "pre-inst-combine" : "post-inst-combine";
-            case MicroPassKind::StrengthReduction:
-                return before ? "pre-strength-reduction" : "post-strength-reduction";
-            case MicroPassKind::CopyPropagation:
-                return before ? "pre-copy-prop" : "post-copy-prop";
-            case MicroPassKind::ConstantPropagation:
-                return before ? "pre-const-prop" : "post-const-prop";
-            case MicroPassKind::DeadCodeElimination:
-                return before ? "pre-dce" : "post-dce";
-            case MicroPassKind::BranchFolding:
-                return before ? "pre-branch-fold" : "post-branch-fold";
-            case MicroPassKind::LoadStoreForwarding:
-                return before ? "pre-load-store-forward" : "post-load-store-forward";
-            case MicroPassKind::RegisterAllocation:
-                return before ? "pre-regalloc" : "post-regalloc";
-            case MicroPassKind::PrologEpilog:
-                return before ? "pre-prolog-epilog" : "post-prolog-epilog";
-            case MicroPassKind::Legalize:
-                return before ? "pre-legalize" : "post-legalize";
-            case MicroPassKind::Peephole:
-                return before ? "pre-peephole" : "post-peephole";
-            case MicroPassKind::Emit:
-                return before ? "pre-emit" : "post-emit";
-            default:
-                SWC_UNREACHABLE();
-        }
+        return std::format("{}-{}", before ? "pre" : "post", pass.name());
     }
 
-    MicroRegPrintMode passPrintMode(MicroPassKind passKind, bool before)
-    {
-        if (passKind == MicroPassKind::RegisterAllocation && before)
-            return MicroRegPrintMode::Virtual;
-        return MicroRegPrintMode::Concrete;
-    }
-
-    bool shouldPrintPass(const MicroPassContext& context, MicroPassKind passKind, bool before)
+    bool shouldPrintPass(const MicroPassContext& context, const MicroPass& pass, bool before)
     {
         if (context.passPrintOptions.empty())
             return false;
 
-        const std::string_view stageName = passStageName(passKind, before);
+        const std::string stageName = passStageName(pass, before);
         for (const Utf8& options : context.passPrintOptions)
         {
             if (std::string_view{options} == stageName)
@@ -134,7 +97,7 @@ namespace
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
     }
 
-    void printPassInstructions(const MicroPassContext& context, MicroPassKind passKind, bool before)
+    void printPassInstructions(const MicroPassContext& context, const MicroPass& pass, bool before)
     {
         if (!context.taskContext || !context.builder)
             return;
@@ -143,12 +106,12 @@ namespace
         const MicroBuilder& builder = *context.builder;
         Logger::ScopedLock  loggerLock(ctx.global().logger());
 
-        const std::string_view stageName = passStageName(passKind, before);
+        const std::string stageName = passStageName(pass, before);
 
         Logger::print(ctx, "\n");
         printPassHeader(ctx, builder, stageName);
 
-        const MicroRegPrintMode printMode = passPrintMode(passKind, before);
+        const MicroRegPrintMode printMode = before ? pass.printModeBefore() : pass.printModeAfter();
         const Encoder*          encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
     }
@@ -187,14 +150,13 @@ namespace
 
     bool runPass(MicroPassContext& context, MicroPass& pass)
     {
-        const MicroPassKind passKind = pass.kind();
-        if (shouldPrintPass(context, passKind, true))
-            printPassInstructions(context, passKind, true);
+        if (shouldPrintPass(context, pass, true))
+            printPassInstructions(context, pass, true);
 
         const bool changed = pass.run(context);
 
-        if (shouldPrintPass(context, passKind, false))
-            printPassInstructions(context, passKind, false);
+        if (shouldPrintPass(context, pass, false))
+            printPassInstructions(context, pass, false);
 
         return changed;
     }

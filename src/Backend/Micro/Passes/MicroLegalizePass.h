@@ -7,7 +7,7 @@ class MicroLegalizePass final : public MicroPass
 {
 public:
     // Enforces encoder constraints by rewriting unsupported operand forms.
-    MicroPassKind kind() const override { return MicroPassKind::Legalize; }
+    std::string_view name() const override { return "legalize"; }
     bool          run(MicroPassContext& context) override;
 };
 

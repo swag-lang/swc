@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -9,36 +10,6 @@ class MicroBuilder;
 class TaskContext;
 struct MicroInstr;
 struct MicroInstrOperand;
-
-enum class MicroPassKind : uint8_t
-{
-    // Simplify labels/jumps and remove unreachable regions in the micro CFG.
-    ControlFlowSimplification,
-    // Combine adjacent arithmetic/logical immediate operations on the same register.
-    InstructionCombine,
-    // Replace expensive arithmetic patterns with cheaper equivalent forms.
-    StrengthReduction,
-    // Replace register uses by already-known equivalent sources.
-    CopyPropagation,
-    // Track/register known constants and rewrite dependent instructions.
-    ConstantPropagation,
-    // Remove side-effect-free instructions whose results are not used.
-    DeadCodeElimination,
-    // Fold conditional branches when compare inputs are compile-time constants.
-    BranchFolding,
-    // Forward nearby stores into following loads when safe.
-    LoadStoreForwarding,
-    // Map virtual registers to concrete machine registers and insert spill code.
-    RegisterAllocation,
-    // Save/restore ABI persistent registers used by the function body.
-    PrologEpilog,
-    // Rewrite micro instructions so every instruction is encoder-conformant.
-    Legalize,
-    // Last-minute cleanup after register allocation and legalization.
-    Peephole,
-    // Encode legalized instructions to machine code and patch jumps/relocations.
-    Emit,
-};
 
 struct MicroPassContext
 {
@@ -60,8 +31,10 @@ struct MicroPassContext
 class MicroPass
 {
 public:
-    virtual ~MicroPass()                                      = default;
-    virtual MicroPassKind kind() const                        = 0;
+    virtual ~MicroPass()                                 = default;
+    virtual std::string_view name() const                = 0;
+    virtual MicroRegPrintMode printModeBefore() const    { return MicroRegPrintMode::Concrete; }
+    virtual MicroRegPrintMode printModeAfter() const     { return MicroRegPrintMode::Concrete; }
     virtual bool          run(MicroPassContext& context) = 0;
 };
 

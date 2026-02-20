@@ -7,7 +7,7 @@ class MicroPrologEpilogPass final : public MicroPass
 {
 public:
     // Injects prologue/epilogue saves for persistent ABI registers touched in the body.
-    MicroPassKind kind() const override { return MicroPassKind::PrologEpilog; }
+    std::string_view name() const override { return "prolog-epilog"; }
     bool          run(MicroPassContext& context) override;
 
 private:

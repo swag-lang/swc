@@ -9,7 +9,7 @@ class MicroEmitPass final : public MicroPass
 {
 public:
     // Final lowering step: emit encoder bytes and resolve label/relocation metadata.
-    MicroPassKind kind() const override { return MicroPassKind::Emit; }
+    std::string_view name() const override { return "emit"; }
     bool          run(MicroPassContext& context) override;
 
 private:

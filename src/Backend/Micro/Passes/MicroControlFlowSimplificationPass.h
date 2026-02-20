@@ -7,7 +7,7 @@ class MicroControlFlowSimplificationPass final : public MicroPass
 {
 public:
     // Simplify redundant labels/jumps and remove trivially unreachable code ranges.
-    MicroPassKind kind() const override { return MicroPassKind::ControlFlowSimplification; }
+    std::string_view name() const override { return "cfg-simplify"; }
     bool          run(MicroPassContext& context) override;
 };
 

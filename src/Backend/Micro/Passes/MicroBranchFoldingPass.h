@@ -7,7 +7,7 @@ class MicroBranchFoldingPass final : public MicroPass
 {
 public:
     // Fold conditional branches when compare inputs are known at compile time.
-    MicroPassKind kind() const override { return MicroPassKind::BranchFolding; }
+    std::string_view name() const override { return "branch-fold"; }
     bool          run(MicroPassContext& context) override;
 };
 

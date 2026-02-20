@@ -7,7 +7,7 @@ class MicroDeadCodeEliminationPass final : public MicroPass
 {
 public:
     // Remove dead side-effect-free instructions using backward register liveness.
-    MicroPassKind kind() const override { return MicroPassKind::DeadCodeElimination; }
+    std::string_view name() const override { return "dce"; }
     bool          run(MicroPassContext& context) override;
 };
 

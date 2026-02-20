@@ -7,7 +7,7 @@ class MicroInstructionCombinePass final : public MicroPass
 {
 public:
     // Merge adjacent immediate operations on the same destination register.
-    MicroPassKind kind() const override { return MicroPassKind::InstructionCombine; }
+    std::string_view name() const override { return "inst-combine"; }
     bool          run(MicroPassContext& context) override;
 };
 

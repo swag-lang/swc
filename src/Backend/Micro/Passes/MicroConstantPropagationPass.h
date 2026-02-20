@@ -7,7 +7,7 @@ class MicroConstantPropagationPass final : public MicroPass
 {
 public:
     // Propagate integer constants through register-only computations.
-    MicroPassKind kind() const override { return MicroPassKind::ConstantPropagation; }
+    std::string_view name() const override { return "const-prop"; }
     bool          run(MicroPassContext& context) override;
 };
 

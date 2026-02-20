@@ -539,6 +539,7 @@ struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 // -----------------------------------------------------------------------------
 struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

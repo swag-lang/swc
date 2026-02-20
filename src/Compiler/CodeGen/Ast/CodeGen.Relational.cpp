@@ -119,6 +119,17 @@ namespace
         return typeInfo.isFloat() || typeInfo.isIntLikeUnsigned() || typeInfo.isPointerLike() || typeInfo.isBool();
     }
 
+    void materializeLogicalOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
+    {
+        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
+
+        MicroBuilder& builder = codeGen.builder();
+        if (operandPayload.isAddress())
+            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, MicroOpBits::B8);
+        else
+            builder.emitLoadRegReg(outReg, operandPayload.reg, MicroOpBits::B8);
+    }
+
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
     {
         switch (tokId)
@@ -250,6 +261,38 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
         default:
             SWC_UNREACHABLE();
     }
+}
+
+Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    const CodeGenNodePayload* leftPayload  = codeGen.payload(nodeLeftRef);
+    const CodeGenNodePayload* rightPayload = codeGen.payload(nodeRightRef);
+    SWC_ASSERT(leftPayload != nullptr);
+    SWC_ASSERT(rightPayload != nullptr);
+
+    const SemaNodeView leftView  = codeGen.viewType(nodeLeftRef);
+    const SemaNodeView rightView = codeGen.viewType(nodeRightRef);
+    const TypeRef      leftType  = leftPayload->typeRef.isValid() ? leftPayload->typeRef : leftView.typeRef();
+    const TypeRef      rightType = rightPayload->typeRef.isValid() ? rightPayload->typeRef : rightView.typeRef();
+
+    MicroReg leftReg  = MicroReg::invalid();
+    MicroReg rightReg = MicroReg::invalid();
+    materializeLogicalOperand(leftReg, codeGen, *leftPayload, leftType);
+    materializeLogicalOperand(rightReg, codeGen, *rightPayload, rightType);
+
+    const CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+    MicroBuilder&             builder     = codeGen.builder();
+    builder.emitLoadRegReg(nodePayload.reg, leftReg, MicroOpBits::B8);
+
+    const Token& tok = codeGen.token(codeRef());
+    if (tok.id == TokenId::KwdAnd)
+        builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::And, MicroOpBits::B8);
+    else if (tok.id == TokenId::KwdOr)
+        builder.emitOpBinaryRegReg(nodePayload.reg, rightReg, MicroOp::Or, MicroOpBits::B8);
+    else
+        SWC_UNREACHABLE();
+
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -102,7 +102,6 @@ enum CmpEnum: u16
 
 #test
 {
-    #[Swag.PrintMicro("post-emit")]
     func cmpFloat3Way(a: f64, b: f64)->s32 { return a <=> b }
     const V0 = #run cmpFloat3Way(1.5'f64, 2.5'f64)
     const V1 = #run cmpFloat3Way(2.5'f64, 1.5'f64)
@@ -117,32 +116,33 @@ enum CmpEnum: u16
     func cmpBad(a: bool, b: s32)->bool { return a < b } // swc-expected-error {{sema_err_compare_operand_type}}
 }
 
-//#test
-//{
-//    func cmpAbiMix(
-//        a0: s8, a1: u16, a2: rune, a3: bool,
-//        a4: f32, a5: f64, a6: s64, a7: u64,
-//        a8: *void, a9: CmpEnum)->bool
-//    {
-//        return cast(s32) a0 < cast(s32) a1 and
-//               cast(s32) a2 >= 65 and
-//               a3 == true and
-//               a4 <= cast(f32) a5 and
-//               a6 < cast(s64) a7 and
-//               a8 != null and
-//               a9 == CmpEnum.B
-//    }
-//
-//    const V0 = #run cmpAbiMix(
-//        -3's8, 10'u16, 'A', true,
-//        2.5'f32, 3.0'f64, 20's64, 30'u64,
-//        cast(*void) 0x1111'u64, CmpEnum.B)
-//
-//    const V1 = #run cmpAbiMix(
-//        10's8, 10'u16, 'A', true,
-//        2.5'f32, 3.0'f64, 20's64, 30'u64,
-//        cast(*void) 0x1111'u64, CmpEnum.B)
-//
-//    #assert(V0)
-//    #assert(!V1)
-//}
+#test
+{
+    #[Swag.PrintMicro("post-emit")]
+    func cmpAbiMix(
+        a0: s8, a1: u16, a2: rune, a3: bool,
+        a4: f32, a5: f64, a6: s64, a7: u64,
+        a8: *void, a9: CmpEnum)->bool
+    {
+        return cast(s32) a0 < cast(s32) a1 and
+               cast(s32) a2 >= 65 and
+               a3 == true and
+               a4 <= cast(f32) a5 and
+               a6 < cast(s64) a7 and
+               a8 != null and
+               a9 == CmpEnum.B
+    }
+
+    const V0 = #run cmpAbiMix(
+        -3's8, 10'u16, 'A', true,
+        2.5'f32, 3.0'f64, 20's64, 30'u64,
+        cast(*void) 0x1111'u64, CmpEnum.B)
+
+    const V1 = #run cmpAbiMix(
+        10's8, 10'u16, 'A', true,
+        2.5'f32, 3.0'f64, 20's64, 30'u64,
+        cast(*void) 0x1111'u64, CmpEnum.B)
+
+    #assert(V0)
+    #assert(!V1)
+}

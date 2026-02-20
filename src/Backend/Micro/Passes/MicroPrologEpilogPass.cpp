@@ -5,7 +5,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroPrologEpilogPass::run(MicroPassContext& context)
+bool MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
@@ -15,13 +15,13 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
         pushedRegs_.clear();
         savedRegSlots_.clear();
         savedRegsStackSubSize_ = 0;
-        return;
+        return false;
     }
 
     const CallConv& conv = CallConv::get(context.callConvKind);
     buildSavedRegsPlan(context, conv);
     if (pushedRegs_.empty() && !savedRegsStackSubSize_)
-        return;
+        return false;
 
     Ref              firstRef = INVALID_REF;
     SmallVector<Ref> retRefs;
@@ -37,6 +37,8 @@ void MicroPrologEpilogPass::run(MicroPassContext& context)
         insertSavedRegsPrologue(context, conv, firstRef);
     for (const Ref retRef : retRefs)
         insertSavedRegsEpilogue(context, conv, retRef);
+
+    return firstRef != INVALID_REF;
 }
 
 bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const

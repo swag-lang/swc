@@ -38,6 +38,7 @@ struct CommandLine
 
     Utf8 buildCfg       = "fast-debug";
     Utf8 targetArchName = "x86_64";
+    Utf8 backendOptimizeLevelOverride;
 
     bool logColor                = true;
     bool logAscii                = false;

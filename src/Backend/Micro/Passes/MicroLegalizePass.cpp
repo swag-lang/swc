@@ -176,12 +176,13 @@ namespace
     }
 }
 
-void MicroLegalizePass::run(MicroPassContext& context)
+bool MicroLegalizePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
     const auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
+    bool        changed = false;
 
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.
@@ -196,11 +197,14 @@ void MicroLegalizePass::run(MicroPassContext& context)
 
         for (;;)
         {
+            changed = true;
             applyLegalizeIssue(context, encoder, it.current, inst, ops, issue);
             if (!encoder.queryConformanceIssue(issue, inst, ops))
                 break;
         }
     }
+
+    return changed;
 }
 
 SWC_END_NAMESPACE();

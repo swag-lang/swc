@@ -10,7 +10,7 @@ class MicroEmitPass final : public MicroPass
 public:
     // Final lowering step: emit encoder bytes and resolve label/relocation metadata.
     MicroPassKind kind() const override { return MicroPassKind::Emit; }
-    void          run(MicroPassContext& context) override;
+    bool          run(MicroPassContext& context) override;
 
 private:
     struct PendingLabelJump

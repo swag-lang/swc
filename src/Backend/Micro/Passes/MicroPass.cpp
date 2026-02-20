@@ -33,9 +33,24 @@ namespace
 
     std::string_view passStageName(MicroPassKind passKind, bool before)
     {
-        // Stage names are user-facing and used by --pass print filters.
         switch (passKind)
         {
+            case MicroPassKind::ControlFlowSimplification:
+                return before ? "pre-cfg-simplify" : "post-cfg-simplify";
+            case MicroPassKind::InstructionCombine:
+                return before ? "pre-inst-combine" : "post-inst-combine";
+            case MicroPassKind::StrengthReduction:
+                return before ? "pre-strength-reduction" : "post-strength-reduction";
+            case MicroPassKind::CopyPropagation:
+                return before ? "pre-copy-prop" : "post-copy-prop";
+            case MicroPassKind::ConstantPropagation:
+                return before ? "pre-const-prop" : "post-const-prop";
+            case MicroPassKind::DeadCodeElimination:
+                return before ? "pre-dce" : "post-dce";
+            case MicroPassKind::BranchFolding:
+                return before ? "pre-branch-fold" : "post-branch-fold";
+            case MicroPassKind::LoadStoreForwarding:
+                return before ? "pre-load-store-forward" : "post-load-store-forward";
             case MicroPassKind::RegisterAllocation:
                 return before ? "pre-regalloc" : "post-regalloc";
             case MicroPassKind::PrologEpilog:
@@ -60,12 +75,11 @@ namespace
 
     bool shouldPrintPass(const MicroPassContext& context, MicroPassKind passKind, bool before)
     {
-        // Printing is opt-in to keep non-debug runs quiet and fast.
         if (context.passPrintOptions.empty())
             return false;
 
-        const auto stageName = passStageName(passKind, before);
-        for (const auto& options : context.passPrintOptions)
+        const std::string_view stageName = passStageName(passKind, before);
+        for (const Utf8& options : context.passPrintOptions)
         {
             if (std::string_view{options} == stageName)
                 return true;
@@ -125,41 +139,128 @@ namespace
         if (!context.taskContext || !context.builder)
             return;
 
-        const auto&        ctx     = *context.taskContext;
-        const auto&        builder = *context.builder;
-        Logger::ScopedLock loggerLock(ctx.global().logger());
+        const TaskContext&  ctx     = *context.taskContext;
+        const MicroBuilder& builder = *context.builder;
+        Logger::ScopedLock  loggerLock(ctx.global().logger());
 
-        const auto stageName = passStageName(passKind, before);
+        const std::string_view stageName = passStageName(passKind, before);
 
         Logger::print(ctx, "\n");
         printPassHeader(ctx, builder, stageName);
 
-        const auto     printMode = passPrintMode(passKind, before);
-        const Encoder* encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
+        const MicroRegPrintMode printMode = passPrintMode(passKind, before);
+        const Encoder*          encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
         builder.printInstructions(printMode, encoder);
+    }
+
+    uint32_t optimizationIterationLimit(Runtime::BuildCfgBackendOptim optimizeLevel)
+    {
+        switch (optimizeLevel)
+        {
+            case Runtime::BuildCfgBackendOptim::O0:
+                return 1;
+            case Runtime::BuildCfgBackendOptim::O1:
+                return 2;
+            case Runtime::BuildCfgBackendOptim::O2:
+                return 4;
+            case Runtime::BuildCfgBackendOptim::O3:
+                return 8;
+            case Runtime::BuildCfgBackendOptim::Os:
+                return 4;
+            case Runtime::BuildCfgBackendOptim::Oz:
+                return 6;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    uint32_t optimizationIterationLimit(const MicroPassContext& context)
+    {
+        if (context.optimizationIterationLimit)
+            return context.optimizationIterationLimit;
+
+        if (context.builder)
+            return optimizationIterationLimit(context.builder->backendBuildCfg().optimizeLevel);
+
+        return optimizationIterationLimit(Runtime::BuildCfgBackendOptim::O0);
+    }
+
+    bool runPass(MicroPassContext& context, MicroPass& pass)
+    {
+        const MicroPassKind passKind = pass.kind();
+        if (shouldPrintPass(context, passKind, true))
+            printPassInstructions(context, passKind, true);
+
+        const bool changed = pass.run(context);
+
+        if (shouldPrintPass(context, passKind, false))
+            printPassInstructions(context, passKind, false);
+
+        return changed;
+    }
+
+    void runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
+    {
+        for (MicroPass* pass : passes)
+        {
+            SWC_ASSERT(pass != nullptr);
+            runPass(context, *SWC_CHECK_NOT_NULL(pass));
+        }
+    }
+
+    void runOptimizationPasses(MicroPassContext& context, std::span<MicroPass* const> optimizationPasses)
+    {
+        if (optimizationPasses.empty())
+            return;
+
+        const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
+        for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
+        {
+            bool changed = false;
+            for (MicroPass* pass : optimizationPasses)
+            {
+                SWC_ASSERT(pass != nullptr);
+                if (runPass(context, *SWC_CHECK_NOT_NULL(pass)))
+                    changed = true;
+            }
+
+            if (!changed)
+                return;
+        }
     }
 }
 
 void MicroPassManager::add(MicroPass& pass)
 {
-    passes_.push_back(&pass);
+    addMandatory(pass);
+}
+
+void MicroPassManager::addMandatory(MicroPass& pass)
+{
+    mandatoryPasses_.push_back(&pass);
+}
+
+void MicroPassManager::addPreOptimization(MicroPass& pass)
+{
+    preOptimizationPasses_.push_back(&pass);
+}
+
+void MicroPassManager::addPostOptimization(MicroPass& pass)
+{
+    postOptimizationPasses_.push_back(&pass);
+}
+
+void MicroPassManager::addFinal(MicroPass& pass)
+{
+    finalPasses_.push_back(&pass);
 }
 
 void MicroPassManager::run(MicroPassContext& context) const
 {
-    // Keep one linear pipeline: each pass observes outputs from previous passes.
-    for (MicroPass* pass : passes_)
-    {
-        SWC_ASSERT(pass);
-        const auto passKind = pass->kind();
-        if (shouldPrintPass(context, passKind, true))
-            printPassInstructions(context, passKind, true);
-
-        pass->run(context);
-
-        if (shouldPrintPass(context, passKind, false))
-            printPassInstructions(context, passKind, false);
-    }
+    runOptimizationPasses(context, preOptimizationPasses_);
+    runLinearPasses(context, mandatoryPasses_);
+    runOptimizationPasses(context, postOptimizationPasses_);
+    runLinearPasses(context, finalPasses_);
 }
 
 SWC_END_NAMESPACE();

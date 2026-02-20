@@ -7,10 +7,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroPeepholePass::run(MicroPassContext& context)
+bool MicroPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
+    bool changed = false;
 
     const MicroStorage::View view = context.instructions->view();
     for (auto it = view.begin(); it != view.end();)
@@ -24,7 +25,10 @@ void MicroPeepholePass::run(MicroPassContext& context)
             continue;
 
         context.instructions->erase(instRef);
+        changed = true;
     }
+
+    return changed;
 }
 
 SWC_END_NAMESPACE();

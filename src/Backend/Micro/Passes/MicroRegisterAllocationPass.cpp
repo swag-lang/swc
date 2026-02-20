@@ -11,6 +11,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasVirtualRegisters(const MicroPassContext& context)
+    {
+        SWC_ASSERT(context.instructions != nullptr);
+        SWC_ASSERT(context.operands != nullptr);
+
+        MicroOperandStorage& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const MicroInstr& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(storeOps, refs, context.encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+                if (ref.reg->isVirtual())
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     struct VRegState
     {
         MicroReg    phys        = MicroReg::invalid();
@@ -713,7 +735,7 @@ namespace
     }
 }
 
-void MicroRegisterAllocationPass::run(MicroPassContext& context)
+bool MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
@@ -722,13 +744,17 @@ void MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(state, context);
 
     if (!state.instructionCount)
-        return;
+        return false;
+
+    const bool hadVirtualRegisters = hasVirtualRegisters(context);
 
     analyzeLiveness(state);
     buildUsePositions(state);
     setupPools(state);
     rewriteInstructions(state);
     insertSpillFrame(state);
+
+    return hadVirtualRegisters || state.spillFrameUsed != 0;
 }
 
 SWC_END_NAMESPACE();

@@ -26,6 +26,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Runtime::BuildCfgBackendOptim backendOptimizeLevelFromString(std::string_view value)
+    {
+        if (value == "O0")
+            return Runtime::BuildCfgBackendOptim::O0;
+        if (value == "O1")
+            return Runtime::BuildCfgBackendOptim::O1;
+        if (value == "O2")
+            return Runtime::BuildCfgBackendOptim::O2;
+        if (value == "O3")
+            return Runtime::BuildCfgBackendOptim::O3;
+        if (value == "Os")
+            return Runtime::BuildCfgBackendOptim::Os;
+        if (value == "Oz")
+            return Runtime::BuildCfgBackendOptim::Oz;
+
+        SWC_UNREACHABLE();
+    }
+
     void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
     {
         const std::string_view cfgName = cmdLine.buildCfg;
@@ -81,6 +99,9 @@ namespace
             buildCfg.backend.optimizeLevel    = Runtime::BuildCfgBackendOptim::O1;
             buildCfg.backendDebugInformations = true;
         }
+
+        if (!cmdLine.backendOptimizeLevelOverride.empty())
+            buildCfg.backend.optimizeLevel = backendOptimizeLevelFromString(cmdLine.backendOptimizeLevelOverride);
 
         if (cmdLine.debugInfo)
             buildCfg.backendDebugInformations = true;

@@ -201,14 +201,14 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 CodeGenNodePayload& CodeGen::setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef)
 {
     CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
-    nodePayload.setValue();
+    nodePayload.setIsValue();
     return nodePayload;
 }
 
 CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef)
 {
     CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
-    nodePayload.setAddress();
+    nodePayload.setIsAddress();
     return nodePayload;
 }
 

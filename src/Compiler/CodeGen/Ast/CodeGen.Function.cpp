@@ -44,9 +44,9 @@ namespace
     void setPayloadStorageKind(CodeGenNodePayload& payload, bool isIndirect)
     {
         if (isIndirect)
-            payload.setAddress();
+            payload.setIsAddress();
         else
-            payload.setValue();
+            payload.setIsValue();
     }
 
     void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const AstNodeRef& calleeRef, const ABICall::PreparedCall& preparedCall)

@@ -30,15 +30,8 @@ struct CodeGenNodePayload
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
 
-    void setValue()
-    {
-        storageKind = StorageKind::Value;
-    }
-
-    void setAddress()
-    {
-        storageKind = StorageKind::Address;
-    }
+    void setIsValue() { storageKind = StorageKind::Value; }
+    void setIsAddress() { storageKind = StorageKind::Address; }
 };
 
 class CodeGen

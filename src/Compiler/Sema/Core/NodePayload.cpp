@@ -130,7 +130,7 @@ bool NodePayload::hasSubstitute(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return false;
     const AstNode& node = ast().node(nodeRef);
-    return payloadInfo(node).kind == NodePayloadKind::Substitute;
+    return payloadKind(node) == NodePayloadKind::Substitute;
 }
 
 void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
@@ -138,9 +138,23 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(substNodeRef.isValid());
     SWC_ASSERT(ast().node(substNodeRef).isNot(AstNodeId::Invalid));
-    AstNode& node = ast().node(nodeRef);
+
+    AstNode&       node     = ast().node(nodeRef);
+    const auto     info     = payloadInfo(node);
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&          shard    = shards_[shardIdx];
+    std::unique_lock lock(shard.mutex);
+
+    const Ref value = shard.store.pushBack(SubstituteStorage{
+        .substNodeRef  = substNodeRef,
+        .originalKind  = info.kind,
+        .originalRef   = info.ref,
+        .originalShard = info.shardIdx,
+    });
+
     setPayloadKind(node, NodePayloadKind::Substitute);
-    node.setPayloadRef(substNodeRef.get());
+    setPayloadShard(node, shardIdx);
+    node.setPayloadRef(value);
 }
 
 AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
@@ -149,9 +163,11 @@ AstNodeRef NodePayload::getSubstituteRef(AstNodeRef nodeRef) const
         return nodeRef;
 
     const AstNode* node = &ast().node(nodeRef);
-    while (payloadInfo(*node).kind == NodePayloadKind::Substitute)
+    while (payloadKind(*node) == NodePayloadKind::Substitute)
     {
-        nodeRef = AstNodeRef{payloadInfo(*node).ref};
+        const SubstituteStorage* storage = substituteStorage(*node);
+        SWC_ASSERT(storage);
+        nodeRef = storage->substNodeRef;
         node    = &ast().node(nodeRef);
     }
 
@@ -593,6 +609,19 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
             continue;
         }
 
+        if (info.kind == NodePayloadKind::Substitute)
+        {
+            auto&                    shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const SubstituteStorage* storage = shard.store.ptr<SubstituteStorage>(info.ref);
+            SWC_ASSERT(storage);
+            info = {
+                .kind     = storage->originalKind,
+                .ref      = storage->originalRef,
+                .shardIdx = storage->originalShard,
+            };
+            continue;
+        }
+
         return info;
     }
 }
@@ -611,6 +640,14 @@ NodePayload::ResolvedCallArgsStorage* NodePayload::resolvedCallArgsStorage(const
     const uint32_t shardIdx = payloadShard(node);
     auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
     return shard.store.ptr<ResolvedCallArgsStorage>(node.payloadRef());
+}
+
+NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node) const
+{
+    SWC_ASSERT(payloadKind(node) == NodePayloadKind::Substitute);
+    const uint32_t shardIdx = payloadShard(node);
+    auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
+    return shard.store.ptr<SubstituteStorage>(node.payloadRef());
 }
 
 SWC_END_NAMESPACE();

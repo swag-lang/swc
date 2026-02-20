@@ -127,6 +127,14 @@ private:
         uint32_t        originalShard = 0;
     };
 
+    struct SubstituteStorage
+    {
+        AstNodeRef      substNodeRef  = AstNodeRef::invalid();
+        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
+        uint32_t        originalRef   = 0;
+        uint32_t        originalShard = 0;
+    };
+
     struct PayloadInfo
     {
         NodePayloadKind kind     = NodePayloadKind::Invalid;
@@ -141,6 +149,7 @@ private:
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     CodeGenPayloadStorage*         codeGenPayloadStorage(const AstNode& node) const;
     ResolvedCallArgsStorage*       resolvedCallArgsStorage(const AstNode& node) const;
+    SubstituteStorage*             substituteStorage(const AstNode& node) const;
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;

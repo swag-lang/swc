@@ -188,6 +188,11 @@ private:
     bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
     std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    bool                     hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    const Symbol&            symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&                  symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    bool                     hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<Symbol*>       getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
 
     SemaScope*         pushScope(SemaScopeFlags flags);
     void               popScope();

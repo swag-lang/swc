@@ -145,6 +145,8 @@ namespace
 
         const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const TypeRef leftOperandTypeRef       = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef rightOperandTypeRef      = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
         const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
@@ -153,8 +155,8 @@ namespace
 
         MicroReg leftReg  = MicroReg::invalid();
         MicroReg rightReg = MicroReg::invalid();
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), compareTypeRef);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), compareTypeRef);
+        materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -195,6 +197,8 @@ namespace
 
         const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const TypeRef leftOperandTypeRef       = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef rightOperandTypeRef      = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
         const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
@@ -203,8 +207,8 @@ namespace
 
         MicroReg leftReg  = MicroReg::invalid();
         MicroReg rightReg = MicroReg::invalid();
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), compareTypeRef);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), compareTypeRef);
+        materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
         MicroBuilder& builder = codeGen.builder();
 

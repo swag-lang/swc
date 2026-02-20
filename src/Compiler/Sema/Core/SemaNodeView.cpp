@@ -26,7 +26,8 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     typeRef_      = TypeRef::invalid();
     computedPart_ = part;
 
-    nodeRef_ = sema.getSubstituteRef(ref);
+    const AstNodeRef sourceNodeRef = ref;
+    nodeRef_                       = sema.getSubstituteRef(ref);
     if (!nodeRef_.isValid())
         return;
 
@@ -63,6 +64,24 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     {
         hasSymbol_ = true;
         sym_       = &sema.symbolOf(nodeRef_);
+    }
+
+    if (!hasSymList_ && !hasSymbol_ && sourceNodeRef.isValid() && sourceNodeRef != nodeRef_)
+    {
+        if (sema.hasSymbolListRaw(sourceNodeRef))
+        {
+            hasSymList_                      = true;
+            const std::span<Symbol*> symbols = sema.getSymbolListRaw(sourceNodeRef);
+            hasSymbol_                       = !symbols.empty();
+            symList_                         = symbols;
+            if (hasSymbol_)
+                sym_ = symbols.front();
+        }
+        else if (sema.hasSymbolRaw(sourceNodeRef))
+        {
+            hasSymbol_ = true;
+            sym_       = &sema.symbolOfRaw(sourceNodeRef);
+        }
     }
 }
 

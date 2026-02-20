@@ -20,12 +20,11 @@ namespace
         return ops && operandIndex < inst.numOperands;
     }
 
-    void invalidateInstruction(MicroInstr& inst)
+    void removeInstruction(const MicroPassContext& context, Ref instRef)
     {
-        // Mark the instruction as removed; replacement instructions are inserted before it.
-        inst.op          = MicroInstrOpcode::Debug;
-        inst.opsRef      = INVALID_REF;
-        inst.numOperands = 0;
+        // Remove instruction after replacements have been inserted before its position.
+        const bool erased = SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        SWC_ASSERT(erased);
     }
 
     void applyClampImmediate(const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
@@ -54,8 +53,6 @@ namespace
 
         // Some encoders cannot store a 64-bit immediate to memory directly.
         // Rewrite as two 32-bit stores at [offset] and [offset + 4].
-        invalidateInstruction(inst);
-
         std::array<MicroInstrOperand, 4> lowOps;
         lowOps[0].reg      = memReg;
         lowOps[1].opBits   = MicroOpBits::B32;
@@ -69,6 +66,7 @@ namespace
         highOps[2].valueU64 = memOffset + 4;
         highOps[3].valueU64 = highU32;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, highOps);
+        removeInstruction(context, instRef);
     }
 
     void applySplitLoadAmcMemImm64(const MicroPassContext& context, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
@@ -87,8 +85,6 @@ namespace
         const uint32_t    highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
         // Same split strategy for address-mode-combined memory stores.
-        invalidateInstruction(inst);
-
         std::array<MicroInstrOperand, 8> lowOps;
         lowOps[0].reg      = regBase;
         lowOps[1].reg      = regMul;
@@ -108,6 +104,7 @@ namespace
         highOps[6].valueU64 = addValue + 4;
         highOps[7].valueU64 = highU32;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, highOps);
+        removeInstruction(context, instRef);
     }
 
     void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops)
@@ -125,8 +122,6 @@ namespace
 
         // Generic fallback for float-immediate loads:
         // spill scratch bytes on stack, store immediate as integer bits, then reload as float reg.
-        invalidateInstruction(inst);
-
         std::array<MicroInstrOperand, 4> subOps;
         subOps[0].reg      = rspReg;
         subOps[1].opBits   = MicroOpBits::B64;
@@ -154,6 +149,7 @@ namespace
         addOps[2].microOp  = MicroOp::Add;
         addOps[3].valueU64 = FLOAT_STACK_SCRATCH;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+        removeInstruction(context, instRef);
     }
 
     void insertStackAdjust(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t amount, bool allocate)
@@ -229,7 +225,6 @@ namespace
         if (conflict)
             stackFrameSize += REG_STACK_SLOT_SIZE;
 
-        invalidateInstruction(inst);
         insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
         insertStoreRegToStack(context, instRef, stackPointerReg, 0, requiredReg);
 
@@ -269,6 +264,7 @@ namespace
             insertLoadRegFromStack(context, instRef, helperReg, stackPointerReg, REG_STACK_SLOT_SIZE);
 
         insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+        removeInstruction(context, instRef);
     }
 
     void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
@@ -289,7 +285,6 @@ namespace
         const MicroReg stackPointerReg = encoder.stackPointerReg();
         constexpr uint64_t stackFrameSize = REG_STACK_SLOT_SIZE;
 
-        invalidateInstruction(inst);
         insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
         insertStoreRegToStack(context, instRef, stackPointerReg, 0, scratchReg);
         if (issue.operandIndex == 0)
@@ -313,6 +308,7 @@ namespace
             insertLoadRegFromStack(context, instRef, scratchReg, stackPointerReg, 0);
 
         insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+        removeInstruction(context, instRef);
     }
 
     void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
@@ -357,9 +353,15 @@ bool MicroLegalizePass::run(MicroPassContext& context)
 
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
     {
-        auto&                    inst = *it;
+        const Ref instRef = it.current;
+        ++it;
+
+        MicroInstr* const instPtr = context.instructions->ptr(instRef);
+        if (!instPtr)
+            continue;
+        MicroInstr&              inst = *instPtr;
         MicroInstrOperand* const ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;
@@ -369,8 +371,14 @@ bool MicroLegalizePass::run(MicroPassContext& context)
         for (;;)
         {
             changed = true;
-            applyLegalizeIssue(context, encoder, it.current, inst, ops, issue);
-            if (!encoder.queryConformanceIssue(issue, inst, ops))
+            applyLegalizeIssue(context, encoder, instRef, inst, ops, issue);
+
+            MicroInstr* const currentInst = context.instructions->ptr(instRef);
+            if (!currentInst)
+                break;
+
+            MicroInstrOperand* const currentOps = currentInst->ops(*context.operands);
+            if (!encoder.queryConformanceIssue(issue, *currentInst, currentOps))
                 break;
         }
     }

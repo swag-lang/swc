@@ -135,7 +135,7 @@
 #assert(40000'u16 == 40000's32)
 #assert(200'u8 == 200's16)
 
-#assert(-1 != 0'u8)
+#assert(-1 != 0'u8) // swc-expected-error {{sema_err_literal_overflow}}
 #assert(-1's8 != 0'u8)
 #assert(-1's16 != 0'u16)
 #assert(-1's32 != 0'u32)

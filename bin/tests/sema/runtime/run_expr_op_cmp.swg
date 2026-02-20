@@ -118,7 +118,6 @@ enum CmpEnum: u16
 
 #test
 {
-    #[Swag.PrintMicro("post-emit")]
     func cmpAbiMix(
         a0: s8, a1: u16, a2: rune, a3: bool,
         a4: f32, a5: f64, a6: s64, a7: u64,
@@ -145,4 +144,79 @@ enum CmpEnum: u16
 
     #assert(V0)
     #assert(!V1)
+}
+
+#test
+{
+    func cmpOrChain(a: s32, b: s32, c: s32)->bool
+    {
+        return a < b or b < c
+    }
+
+    const V0 = #run cmpOrChain(1, 2, 1)
+    const V1 = #run cmpOrChain(3, 2, 1)
+    const V2 = #run cmpOrChain(3, 2, 4)
+    #assert(V0)
+    #assert(!V1)
+    #assert(V2)
+}
+
+#test
+{
+    func cmpAndOrPrecedence(a: s32, b: s32, c: s32)->bool
+    {
+        return a < b or b < c and c == 4
+    }
+
+    const V0 = #run cmpAndOrPrecedence(1, 2, 0)
+    const V1 = #run cmpAndOrPrecedence(5, 2, 4)
+    const V2 = #run cmpAndOrPrecedence(5, 2, 3)
+    #assert(V0)
+    #assert(V1)
+    #assert(!V2)
+}
+
+#test
+{
+    func cmpLogicalInt(a: s32, b: s32)->bool
+    {
+        return a and b
+    }
+
+    const V0 = #run cmpLogicalInt(1, 2)
+    const V1 = #run cmpLogicalInt(1, 0)
+    const V2 = #run cmpLogicalInt(0, 2)
+    #assert(V0)
+    #assert(!V1)
+    #assert(!V2)
+}
+
+#test
+{
+    func cmpLogicalPointer(p: *void, flag: bool)->bool
+    {
+        return p and flag
+    }
+
+    const V0 = #run cmpLogicalPointer(cast(*void) 0x1'u64, true)
+    const V1 = #run cmpLogicalPointer(null, true)
+    const V2 = #run cmpLogicalPointer(cast(*void) 0x1'u64, false)
+    #assert(V0)
+    #assert(!V1)
+    #assert(!V2)
+}
+
+#test
+{
+    struct LogicalBad
+    {
+        value: s32
+    }
+
+    func cmpLogicalBadLeft(a: LogicalBad, b: bool)->bool { return a and b } // swc-expected-error {{sema_err_binary_operand_type}}
+}
+
+#test
+{
+    func cmpLogicalBadRight(a: bool, b: [2] s32)->bool { return a or b } // swc-expected-error {{sema_err_binary_operand_type}}
 }

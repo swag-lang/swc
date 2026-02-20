@@ -121,13 +121,26 @@ namespace
 
     void materializeLogicalOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
+        const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
+        const MicroOpBits operandBits = compareOpBits(operandType);
+        outReg                        = codeGen.nextVirtualRegisterForType(operandTypeRef);
 
         MicroBuilder& builder = codeGen.builder();
         if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, MicroOpBits::B8);
+            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, operandBits);
         else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, MicroOpBits::B8);
+            builder.emitLoadRegReg(outReg, operandPayload.reg, operandBits);
+
+        if (operandType.isBool())
+            return;
+
+        const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
+        builder.emitClearReg(zeroReg, operandBits);
+        builder.emitCmpRegReg(outReg, zeroReg, operandBits);
+
+        const MicroReg boolReg = codeGen.nextVirtualIntRegister();
+        builder.emitSetCondReg(boolReg, MicroCond::NotEqual);
+        outReg = boolReg;
     }
 
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)

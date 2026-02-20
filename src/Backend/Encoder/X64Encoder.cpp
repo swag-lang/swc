@@ -691,6 +691,41 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         return false;
 
     ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+    {
+        const MicroOp op = ops[3].microOp;
+
+        if (isShiftImmediateOp(op))
+        {
+            const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
+            if (ops[1].reg != rcxReg)
+            {
+                outIssue.kind       = MicroConformanceIssueKind::RewriteBinaryShiftRegReg;
+                outIssue.requiredReg = rcxReg;
+                outIssue.helperReg   = x64RegToMicroReg(X64Reg::Rax);
+                return true;
+            }
+        }
+
+        if (op == MicroOp::DivideUnsigned ||
+            op == MicroOp::DivideSigned ||
+            op == MicroOp::ModuloUnsigned ||
+            op == MicroOp::ModuloSigned)
+        {
+            const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
+            const MicroReg rdxReg = x64RegToMicroReg(X64Reg::Rdx);
+            if (ops[0].reg != raxReg || ops[1].reg == rdxReg)
+            {
+                outIssue.kind        = MicroConformanceIssueKind::RewriteBinaryDivModRegReg;
+                outIssue.requiredReg = raxReg;
+                outIssue.helperReg   = rdxReg;
+                outIssue.scratchReg  = x64RegToMicroReg(X64Reg::Rcx);
+                return true;
+            }
+        }
+    }
+
+    ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm)
     {
         if (ops[0].reg.isFloat())

@@ -9,10 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t X64_RAX = 0;
-    constexpr uint32_t X64_RCX = 2;
-    constexpr uint32_t X64_RDX = 3;
-
     const CodeGenNodePayload& ensureOperandPayload(const CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
@@ -46,15 +42,6 @@ namespace
     {
         MicroBuilder& builder = codeGen.builder();
         outReg                = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        if (operandPayload.isAddress())
-            builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
-        else
-            builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
-    }
-
-    void materializeBinaryOperandInReg(MicroReg outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, MicroOpBits opBits)
-    {
-        MicroBuilder& builder = codeGen.builder();
         if (operandPayload.isAddress())
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
@@ -132,58 +119,6 @@ namespace
         return Result::Continue;
     }
 
-    Result emitIntBinaryShift(CodeGen&                  codeGen,
-                              TokenId                   tokId,
-                              const CodeGenNodePayload& leftPayload,
-                              const CodeGenNodePayload& rightPayload,
-                              TypeRef                   leftOperandTypeRef,
-                              TypeRef                   resultTypeRef)
-    {
-        const TypeInfo&   leftType = codeGen.typeMgr().get(leftOperandTypeRef);
-        const MicroOpBits opBits   = arithmeticOpBits(leftType);
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        constexpr MicroReg  rcxReg      = MicroReg::intReg(X64_RCX);
-        codeGen.builder().addVirtualRegForbiddenPhysReg(nodePayload.reg, rcxReg);
-
-        materializeBinaryOperand(nodePayload.reg, codeGen, leftPayload, leftOperandTypeRef, opBits);
-        materializeBinaryOperandInReg(rcxReg, codeGen, rightPayload, opBits);
-
-        const MicroOp op = intBinaryMicroOp(tokId, !leftType.isIntLikeUnsigned());
-        codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rcxReg, op, opBits);
-        return Result::Continue;
-    }
-
-    Result emitIntBinaryDivMod(CodeGen&                  codeGen,
-                               TokenId                   tokId,
-                               const CodeGenNodePayload& leftPayload,
-                               const CodeGenNodePayload& rightPayload,
-                               TypeRef                   leftOperandTypeRef,
-                               TypeRef                   rightOperandTypeRef,
-                               TypeRef                   resultTypeRef)
-    {
-        const TypeInfo&   leftType = codeGen.typeMgr().get(leftOperandTypeRef);
-        const MicroOp     op       = intBinaryMicroOp(tokId, !leftType.isIntLikeUnsigned());
-        const MicroOpBits opBits   = arithmeticOpBits(leftType);
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        constexpr MicroReg raxReg = MicroReg::intReg(X64_RAX);
-        constexpr MicroReg rdxReg = MicroReg::intReg(X64_RDX);
-
-        materializeBinaryOperandInReg(raxReg, codeGen, leftPayload, opBits);
-        MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, opBits);
-        codeGen.builder().addVirtualRegForbiddenPhysReg(rightReg, raxReg);
-        codeGen.builder().addVirtualRegForbiddenPhysReg(rightReg, rdxReg);
-
-        codeGen.builder().emitOpBinaryRegReg(raxReg, rightReg, op, opBits);
-
-        const CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        codeGen.builder().emitLoadRegReg(nodePayload.reg, raxReg, opBits);
-        return Result::Continue;
-    }
-
     Result emitFloatBinary(CodeGen&                  codeGen,
                            TokenId                   tokId,
                            const CodeGenNodePayload& leftPayload,
@@ -220,14 +155,7 @@ namespace
         const TypeRef             resultTypeRef       = codeGen.curViewType().typeRef();
 
         if (leftView.type()->isIntLike() && rightView.type()->isIntLike())
-        {
-            if (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent)
-                return emitIntBinaryDivMod(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);
-            if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
-                return emitIntBinaryShift(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, resultTypeRef);
-
             return emitIntBinaryGeneral(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);
-        }
 
         if (leftView.type()->isFloat() && rightView.type()->isFloat())
             return emitFloatBinary(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);

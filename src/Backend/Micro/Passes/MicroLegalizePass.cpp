@@ -13,6 +13,13 @@ namespace
 {
     constexpr uint64_t U32_MASK            = 0xFFFFFFFFu;
     constexpr uint64_t FLOAT_STACK_SCRATCH = 8;
+    constexpr uint64_t REG_STACK_SLOT_SIZE = 8;
+
+    struct RegSpillSlot
+    {
+        MicroReg reg    = MicroReg::invalid();
+        uint64_t offset = 0;
+    };
 
     bool hasOperand(const MicroInstr& inst, const MicroInstrOperand* ops, uint8_t operandIndex)
     {
@@ -155,6 +162,160 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
     }
 
+    void insertStackAdjust(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t amount, bool allocate)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = stackPointerReg;
+        ops[1].opBits   = MicroOpBits::B64;
+        ops[2].microOp  = allocate ? MicroOp::Subtract : MicroOp::Add;
+        ops[3].valueU64 = amount;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+    }
+
+    void insertStoreRegToStack(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t offset, MicroReg reg)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = stackPointerReg;
+        ops[1].reg      = reg;
+        ops[2].opBits   = MicroOpBits::B64;
+        ops[3].valueU64 = offset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemReg, ops);
+    }
+
+    void insertLoadRegFromStack(const MicroPassContext& context, Ref instRef, MicroReg reg, MicroReg stackPointerReg, uint64_t offset)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = reg;
+        ops[1].reg      = stackPointerReg;
+        ops[2].opBits   = MicroOpBits::B64;
+        ops[3].valueU64 = offset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ops);
+    }
+
+    void insertMoveRegReg(const MicroPassContext& context, Ref instRef, MicroReg dstReg, MicroReg srcReg, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 3> ops;
+        ops[0].reg    = dstReg;
+        ops[1].reg    = srcReg;
+        ops[2].opBits = opBits;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, ops);
+    }
+
+    void insertBinaryRegReg(const MicroPassContext& context, Ref instRef, MicroReg dstReg, MicroReg srcReg, MicroOp op, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg     = dstReg;
+        ops[1].reg     = srcReg;
+        ops[2].opBits  = opBits;
+        ops[3].microOp = op;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
+    }
+
+    std::optional<uint64_t> findSpillOffset(std::span<const RegSpillSlot> slots, MicroReg reg)
+    {
+        for (const auto& slot : slots)
+        {
+            if (slot.reg == reg)
+                return slot.offset;
+        }
+
+        return std::nullopt;
+    }
+
+    void applyRewriteBinaryShiftRegReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
+
+        const MicroReg dstReg   = ops[0].reg;
+        const MicroReg srcReg   = ops[1].reg;
+        const MicroOpBits opBits = ops[2].opBits;
+        const MicroOp    op      = ops[3].microOp;
+        const MicroReg   reqReg  = issue.requiredReg;
+        const MicroReg   tmpReg  = issue.helperReg;
+        SWC_ASSERT(reqReg.isValid());
+        SWC_ASSERT(tmpReg.isValid());
+        SWC_ASSERT(srcReg != reqReg);
+
+        const MicroReg stackPointerReg = encoder.stackPointerReg();
+        const bool     dstIsRequired   = dstReg == reqReg;
+        const uint64_t stackFrameSize  = dstIsRequired ? 2 * REG_STACK_SLOT_SIZE : REG_STACK_SLOT_SIZE;
+
+        invalidateInstruction(inst);
+        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
+        insertStoreRegToStack(context, instRef, stackPointerReg, 0, reqReg);
+
+        if (dstIsRequired)
+        {
+            insertStoreRegToStack(context, instRef, stackPointerReg, REG_STACK_SLOT_SIZE, tmpReg);
+            insertMoveRegReg(context, instRef, reqReg, srcReg, MicroOpBits::B64);
+            insertLoadRegFromStack(context, instRef, tmpReg, stackPointerReg, 0);
+            insertBinaryRegReg(context, instRef, tmpReg, reqReg, op, opBits);
+            insertMoveRegReg(context, instRef, dstReg, tmpReg, opBits);
+            insertLoadRegFromStack(context, instRef, tmpReg, stackPointerReg, REG_STACK_SLOT_SIZE);
+        }
+        else
+        {
+            insertMoveRegReg(context, instRef, reqReg, srcReg, MicroOpBits::B64);
+            insertBinaryRegReg(context, instRef, dstReg, reqReg, op, opBits);
+            insertLoadRegFromStack(context, instRef, reqReg, stackPointerReg, 0);
+        }
+
+        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+    }
+
+    void applyRewriteBinaryDivModRegReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegReg);
+
+        const MicroReg dstReg     = ops[0].reg;
+        const MicroReg srcReg     = ops[1].reg;
+        const MicroOpBits opBits  = ops[2].opBits;
+        const MicroOp op          = ops[3].microOp;
+        const MicroReg requiredReg = issue.requiredReg;
+        const MicroReg helperReg   = issue.helperReg;
+        const MicroReg scratchReg  = issue.scratchReg;
+        SWC_ASSERT(requiredReg.isValid());
+        SWC_ASSERT(helperReg.isValid());
+        SWC_ASSERT(scratchReg.isValid());
+
+        std::array<RegSpillSlot, 3> slots = {{
+            {requiredReg, 0},
+            {helperReg, REG_STACK_SLOT_SIZE},
+            {scratchReg, REG_STACK_SLOT_SIZE * 2},
+        }};
+
+        const MicroReg stackPointerReg = encoder.stackPointerReg();
+        const uint64_t stackFrameSize  = REG_STACK_SLOT_SIZE * slots.size();
+
+        invalidateInstruction(inst);
+        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, true);
+        for (const auto& slot : slots)
+            insertStoreRegToStack(context, instRef, stackPointerReg, slot.offset, slot.reg);
+
+        auto loadOriginalRegValueTo = [&](MicroReg outReg, MicroReg originalReg) {
+            if (const auto offset = findSpillOffset(slots, originalReg))
+                insertLoadRegFromStack(context, instRef, outReg, stackPointerReg, *offset);
+            else
+                insertMoveRegReg(context, instRef, outReg, originalReg, MicroOpBits::B64);
+        };
+
+        loadOriginalRegValueTo(requiredReg, dstReg);
+        loadOriginalRegValueTo(scratchReg, srcReg);
+        insertBinaryRegReg(context, instRef, requiredReg, scratchReg, op, opBits);
+        insertMoveRegReg(context, instRef, dstReg, requiredReg, opBits);
+
+        for (const auto& slot : slots)
+        {
+            if (slot.reg == dstReg)
+                continue;
+            insertLoadRegFromStack(context, instRef, slot.reg, stackPointerReg, slot.offset);
+        }
+
+        insertStackAdjust(context, instRef, stackPointerReg, stackFrameSize, false);
+    }
+
     void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
@@ -174,6 +335,12 @@ namespace
                 return;
             case MicroConformanceIssueKind::RewriteLoadFloatRegImm:
                 applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops);
+                return;
+            case MicroConformanceIssueKind::RewriteBinaryShiftRegReg:
+                applyRewriteBinaryShiftRegReg(context, encoder, instRef, inst, ops, issue);
+                return;
+            case MicroConformanceIssueKind::RewriteBinaryDivModRegReg:
+                applyRewriteBinaryDivModRegReg(context, encoder, instRef, inst, ops, issue);
                 return;
             default:
                 SWC_ASSERT(false);

@@ -33,6 +33,8 @@ enum class MicroConformanceIssueKind : uint8_t
     SplitLoadMemImm64,
     SplitLoadAmcMemImm64,
     RewriteLoadFloatRegImm,
+    RewriteBinaryShiftRegReg,
+    RewriteBinaryDivModRegReg,
 };
 
 struct MicroConformanceIssue
@@ -41,6 +43,9 @@ struct MicroConformanceIssue
     uint8_t                   operandIndex     = 0;
     uint64_t                  valueLimitU64    = 0;
     MicroOpBits               normalizedOpBits = MicroOpBits::Zero;
+    MicroReg                  requiredReg      = MicroReg::invalid();
+    MicroReg                  helperReg        = MicroReg::invalid();
+    MicroReg                  scratchReg       = MicroReg::invalid();
 };
 
 class Encoder

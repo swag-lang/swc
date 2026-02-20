@@ -34,9 +34,8 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 
     if (nodeDownView.typeRef().isValid() && nodeUpView.typeRef().isValid())
     {
-        typeRef = sema.typeMgr().promote(nodeDownView.typeRef(), nodeUpView.typeRef(), false);
-        RESULT_VERIFY(Cast::cast(sema, nodeDownView, typeRef, CastKind::Implicit));
-        RESULT_VERIFY(Cast::cast(sema, nodeUpView, typeRef, CastKind::Implicit));
+        RESULT_VERIFY(Cast::castPromote(sema, nodeDownView, nodeUpView, CastKind::Implicit));
+        typeRef = nodeDownView.typeRef();
     }
 
     SWC_ASSERT(typeRef.isValid());

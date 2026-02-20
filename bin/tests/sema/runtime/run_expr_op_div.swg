@@ -10,6 +10,7 @@
 
 #test
 {
+    #[Swag.PrintMicro]
     func div(a: u32, b: u32)->u32 { return a / b }
     const V = #run div(126'u32, 3'u32)
     #assert(#typeof(V) == u32)

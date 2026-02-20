@@ -146,7 +146,7 @@ namespace
                 const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
                 preparedArg.isFloat                                  = normalizedArg.isFloat;
                 preparedArg.numBits                                  = normalizedArg.numBits;
-                preparedArg.isAddressed                              = argPayload->storageKind == CodeGenNodePayload::StorageKind::Address && !normalizedArg.isIndirect;
+                preparedArg.isAddressed                              = argPayload->isAddress() && !normalizedArg.isIndirect;
             }
 
             preparedArg.kind = abiPreparedArgKind(arg.passKind);
@@ -179,17 +179,17 @@ namespace
 
             const CodeGenNodePayload* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
             SWC_ASSERT(fnPayload);
-            SWC_ASSERT(fnPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
+            SWC_ASSERT(fnPayload->isAddress());
 
             const MicroReg outputStorageReg = fnPayload->reg;
-            SWC_ASSERT(exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address);
+            SWC_ASSERT(exprPayload->isAddress());
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
             codeGen.builder().emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
-            const bool isAddressed = exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address;
+            const bool isAddressed = exprPayload->isAddress();
             ABICall::materializeValueToReturnRegs(codeGen.builder(), callConvKind, exprPayload->reg, isAddressed, normalizedRet);
         }
 

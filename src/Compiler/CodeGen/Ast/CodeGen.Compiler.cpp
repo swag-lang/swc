@@ -21,7 +21,7 @@ namespace
         if (exprNode.isNot(AstNodeId::CallExpr))
             return false;
 
-        return payload.storageKind == CodeGenNodePayload::StorageKind::Value;
+        return payload.isValue();
     }
 }
 
@@ -47,7 +47,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const CodeGenNodePayload* payload = codeGen.payload(nodeExprRef);
     SWC_ASSERT(payload != nullptr);
     const MicroReg            payloadReg       = payload->reg;
-    const bool                payloadLValue    = payload->storageKind == CodeGenNodePayload::StorageKind::Address;
+    const bool                payloadLValue    = payload->isAddress();
     const CodeGenNodePayload* runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg            outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
     SWC_ASSERT(outputStorageReg.isValid());
@@ -58,7 +58,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (payload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        if (payload->isAddress())
         {
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
         }

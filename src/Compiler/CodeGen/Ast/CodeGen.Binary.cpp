@@ -30,7 +30,7 @@ namespace
     {
         MicroBuilder& builder = codeGen.builder();
         outReg                = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        if (operandPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
+        if (operandPayload.isAddress())
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);

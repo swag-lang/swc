@@ -31,7 +31,9 @@ struct CodeGenNodePayload
     StorageKind storageKind = StorageKind::Value;
 
     void setIsValue() { storageKind = StorageKind::Value; }
+    bool isValue() const { return storageKind == StorageKind::Value; }
     void setIsAddress() { storageKind = StorageKind::Address; }
+    bool isAddress() const { return storageKind == StorageKind::Address; }
 };
 
 class CodeGen

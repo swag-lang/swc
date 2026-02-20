@@ -72,7 +72,7 @@ namespace
         }
 
         MicroReg srcReg = srcPayload->reg;
-        if (srcPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        if (srcPayload->isAddress())
         {
             srcReg = codeGen.nextVirtualRegisterForType(srcPayload->typeRef);
             codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);

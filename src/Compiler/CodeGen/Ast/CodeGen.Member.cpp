@@ -14,7 +14,7 @@ namespace
 {
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
-        if (leftPayload.storageKind == CodeGenNodePayload::StorageKind::Value)
+        if (leftPayload.isValue())
             return true;
 
         const SemaNodeView leftSymbolView = codeGen.viewSymbol(leftRef);

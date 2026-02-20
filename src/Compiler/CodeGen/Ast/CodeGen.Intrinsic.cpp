@@ -25,7 +25,7 @@ namespace
             builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
         else if (exprView.type() && exprView.type()->isArray())
             builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
-        else if (exprPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        else if (exprPayload->isAddress())
             builder.emitLoadRegMem(payload.reg, exprPayload->reg, 0, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);

@@ -28,12 +28,12 @@ namespace
         outIndexBits           = indexOpBits(*indexView.type());
         const bool indexSigned = indexView.type()->isIntSigned();
 
-        if (outIndexBits == MicroOpBits::B64 && indexPayload->storageKind == CodeGenNodePayload::StorageKind::Value)
+        if (outIndexBits == MicroOpBits::B64 && indexPayload->isValue())
             return indexPayload->reg;
 
         const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
         MicroBuilder&  microBuilder = codeGen.builder();
-        if (indexPayload->storageKind == CodeGenNodePayload::StorageKind::Address)
+        if (indexPayload->isAddress())
         {
             if (outIndexBits == MicroOpBits::B64)
             {
@@ -86,14 +86,14 @@ namespace
 
         if (indexedType.isArray())
         {
-            if (indexedPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
+            if (indexedPayload.isAddress())
                 return indexedPayload.reg;
             return materializeAddressFromValue(codeGen, indexedPayload, indexedType);
         }
 
         if (indexedType.isValuePointer() || indexedType.isBlockPointer() || indexedType.isCString())
         {
-            if (indexedPayload.storageKind == CodeGenNodePayload::StorageKind::Value)
+            if (indexedPayload.isValue())
                 return indexedPayload.reg;
 
             const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
@@ -104,7 +104,7 @@ namespace
         if (indexedType.isString())
         {
             MicroReg stringReg = indexedPayload.reg;
-            if (indexedPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
+            if (indexedPayload.isAddress())
             {
                 stringReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(stringReg, indexedPayload.reg, 0, MicroOpBits::B64);
@@ -118,7 +118,7 @@ namespace
         if (indexedType.isSlice())
         {
             MicroReg sliceReg = indexedPayload.reg;
-            if (indexedPayload.storageKind == CodeGenNodePayload::StorageKind::Address)
+            if (indexedPayload.isAddress())
             {
                 sliceReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(sliceReg, indexedPayload.reg, 0, MicroOpBits::B64);

@@ -115,6 +115,99 @@ namespace
                 return false;
         }
     }
+
+    bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder)
+    {
+        return isRemovableInstruction(inst) &&
+               !definesSpecialRegister(useDef.defs, encoder) &&
+               useDef.defs.size() == 1 &&
+               !useDef.isCall;
+    }
+
+    bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void addLiveReg(std::unordered_set<uint32_t>& liveRegs, MicroReg reg)
+    {
+        if (!reg.isValid() || reg.isNoBase())
+            return;
+        liveRegs.insert(reg.packed);
+    }
+
+    bool eliminateDeadPureDefsByBackwardLiveness(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    {
+        bool                         changed = false;
+        std::unordered_set<uint32_t> liveRegs;
+        liveRegs.reserve(64);
+
+        std::vector<Ref> eraseList;
+        eraseList.reserve(64);
+
+        const CallConv& conv = CallConv::get(callConvKind);
+
+        bool startedSuffix = false;
+        const MicroStorage::View view = storage.view();
+        for (auto it = view.end(); it != view.begin();)
+        {
+            --it;
+            const Ref              instRef = it.current;
+            const MicroInstr&      inst    = *it;
+
+            const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+            if (isControlFlowBarrier(inst, useDef))
+            {
+                if (!startedSuffix)
+                {
+                    if (inst.op == MicroInstrOpcode::Ret)
+                    {
+                        addLiveReg(liveRegs, conv.intReturn);
+                        addLiveReg(liveRegs, conv.floatReturn);
+                    }
+
+                    continue;
+                }
+
+                break;
+            }
+
+            startedSuffix = true;
+
+            if (!isBackwardDeadDefRemovableInstruction(inst) || !isPureDefCandidate(inst, useDef, encoder))
+            {
+                for (const MicroReg defReg : useDef.defs)
+                    liveRegs.erase(defReg.packed);
+                for (const MicroReg useReg : useDef.uses)
+                    liveRegs.insert(useReg.packed);
+                continue;
+            }
+
+            const uint32_t defKey = useDef.defs.front().packed;
+            if (liveRegs.find(defKey) == liveRegs.end())
+            {
+                eraseList.push_back(instRef);
+                changed = true;
+                continue;
+            }
+
+            for (const MicroReg defReg : useDef.defs)
+                liveRegs.erase(defReg.packed);
+            for (const MicroReg useReg : useDef.uses)
+                liveRegs.insert(useReg.packed);
+        }
+
+        for (const Ref ref : eraseList)
+            storage.erase(ref);
+
+        return changed;
+    }
 }
 
 bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
@@ -158,15 +251,14 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             }
         }
 
-        const bool trackAsPureDef =
-            isRemovableInstruction(inst) &&
-            !definesSpecialRegister(useDef.defs, context.encoder) &&
-            useDef.defs.size() == 1 &&
-            !useDef.isCall;
+        const bool trackAsPureDef = isPureDefCandidate(inst, useDef, context.encoder);
 
         if (trackAsPureDef)
             lastPureDefByReg[useDef.defs.front().packed] = currentRef;
     }
+
+    if (eliminateDeadPureDefsByBackwardLiveness(storage, operands, context.encoder, context.callConvKind))
+        changed = true;
 
     return changed;
 }

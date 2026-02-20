@@ -900,10 +900,16 @@ namespace
     // The cast value is then stored back in the argument node.
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
-        const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        const auto&     params         = selectedFn.parameters();
-        const uint32_t  numParams      = static_cast<uint32_t>(params.size());
-        const uint32_t  numCommon      = selectedFnType.isAnyVariadic() ? (numParams - 1) : numParams;
+        const auto&    params    = selectedFn.parameters();
+        const uint32_t numParams = static_cast<uint32_t>(params.size());
+        uint32_t       numCommon = numParams;
+        if (numParams > 0)
+        {
+            const SymbolVariable* const lastParam = params.back();
+            SWC_ASSERT(lastParam != nullptr);
+            if (lastParam->type(sema.ctx()).isAnyVariadic())
+                numCommon = numParams - 1;
+        }
 
         for (uint32_t i = 0; i < numCommon; ++i)
         {
@@ -925,15 +931,23 @@ namespace
     // must be cast to the underlying variadic type.
     Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
-        const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
-        if (!selectedFnType.isTypedVariadic())
-            return Result::Continue;
-
         const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
             return Result::Continue;
 
-        const TypeRef variadicTy = selectedFnType.payloadTypeRef();
+        const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+        SWC_ASSERT(variadicParam != nullptr);
+        const TypeInfo& variadicType = variadicParam->type(sema.ctx());
+        if (!variadicType.isTypedVariadic())
+            return Result::Continue;
+
+        const TypeRef variadicTy = variadicType.payloadTypeRef();
+        const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
+        if (fixedVariadicArg.argRef.isValid())
+        {
+            SemaNodeView argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+        }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {

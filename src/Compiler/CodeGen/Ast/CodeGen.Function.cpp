@@ -127,6 +127,7 @@ namespace
                 continue;
             const CodeGenNodePayload* argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
+            const SemaNodeView argView = codeGen.viewType(argRef);
 
             ABICall::PreparedArg preparedArg;
             preparedArg.srcReg = argPayload->reg;
@@ -136,9 +137,12 @@ namespace
                 normalizedTypeRef = params[i]->typeRef();
 
             if (normalizedTypeRef.isInvalid())
+                normalizedTypeRef = argView.typeRef();
+            else
             {
-                const SemaNodeView argView = codeGen.viewType(argRef);
-                normalizedTypeRef          = argView.typeRef();
+                const TypeInfo& paramType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+                if (paramType.isAnyVariadic())
+                    normalizedTypeRef = argView.typeRef();
             }
 
             if (normalizedTypeRef.isValid())

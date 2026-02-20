@@ -19,25 +19,25 @@
 //     #assert(V0 == 42)
 //     #assert(V1 == 42)
 // }
-//
-// #test
-// {
-//     func variadicTyped(values: s32...)->s32 { return 78 }
-//     const V0 = #run variadicTyped()
-//     const V1 = #run variadicTyped(1, 2, 3, 4)
-//     #assert(V0 == 78)
-//     #assert(V1 == 78)
-// }
-//
-// #test
-// {
-//     func variadicTypedWithHead(a: s32, values: s32...)->s32 { return a }
-//     const V0 = #run variadicTypedWithHead(79)
-//     const V1 = #run variadicTypedWithHead(79, 10, 20, 30)
-//     #assert(V0 == 79)
-//     #assert(V1 == 79)
-// }
-//
+
+#test
+{
+    func variadicTyped(values: s32...)->s32 { return 78 }
+    const V0 = #run variadicTyped()
+    const V1 = #run variadicTyped(1, 2, 3, 4)
+    #assert(V0 == 78)
+    #assert(V1 == 78)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: s32, values: s32...)->s32 { return a }
+    const V0 = #run variadicTypedWithHead(79)
+    const V1 = #run variadicTypedWithHead(79, 10, 20, 30)
+    #assert(V0 == 79)
+    #assert(V1 == 79)
+}
+
 // #test
 // {
 //     func variadicHeadTypeErr(a: s32, values: ...)->s32 { return a }

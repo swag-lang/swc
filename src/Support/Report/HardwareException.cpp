@@ -14,56 +14,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const char* taskStateName(const TaskStateKind kind)
+    void appendPointerField(Utf8& outMsg, std::string_view label, const void* ptr)
     {
-        switch (kind)
-        {
-            case TaskStateKind::None:
-                return "None";
-            case TaskStateKind::RunJit:
-                return "Run JIT";
-            case TaskStateKind::SemaParsing:
-                return "Semantic parsing";
-            case TaskStateKind::CodeGenParsing:
-                return "Codegen parsing";
-            case TaskStateKind::SemaWaitIdentifier:
-                return "Wait identifier";
-            case TaskStateKind::SemaWaitCompilerDefined:
-                return "Wait compiler-defined";
-            case TaskStateKind::SemaWaitImplRegistrations:
-                return "Wait impl registrations";
-            case TaskStateKind::SemaWaitSymDeclared:
-                return "Wait symbol declared";
-            case TaskStateKind::SemaWaitSymTyped:
-                return "Wait symbol typed";
-            case TaskStateKind::SemaWaitSymSemaCompleted:
-                return "Wait symbol sema completed";
-            case TaskStateKind::SemaWaitSymCodeGenPreSolved:
-                return "Wait symbol codegen pre-solved";
-            case TaskStateKind::SemaWaitSymCodeGenCompleted:
-                return "Wait symbol codegen completed";
-            case TaskStateKind::SemaWaitTypeCompleted:
-                return "Wait type completed";
-            default:
-                return "Unknown";
-        }
+        HardwareException::appendField(outMsg, label, std::format("0x{:016X}", reinterpret_cast<uint64_t>(ptr)));
     }
 
-    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function)
+    void appendTaskFunction(Utf8& outMsg, const TaskContext& ctx, const char* label, const SymbolFunction* function, IdentifierRef functionIdRef)
     {
-        if (!function)
+        if (!function && functionIdRef.isInvalid())
             return;
-        HardwareException::appendField(outMsg, label, function->name(ctx));
-        const Utf8 fullName = function->getFullScopedName(ctx);
-        if (!fullName.empty())
-            HardwareException::appendField(outMsg, "function scope", fullName);
+
+        if (function)
+            appendPointerField(outMsg, label, function);
+        if (functionIdRef.isValid())
+        {
+            const Identifier& id = ctx.idMgr().get(functionIdRef);
+            HardwareException::appendField(outMsg, "function name", id.name);
+        }
     }
 
     void appendTaskStateGroup(Utf8& outMsg, const TaskContext& ctx)
     {
         const TaskState& state = ctx.state();
         HardwareException::appendSectionHeader(outMsg, "task");
-        HardwareException::appendField(outMsg, "state", taskStateName(state.kind));
+        HardwareException::appendField(outMsg, "state", state.kindName());
 
         if (state.nodeRef.isValid())
             HardwareException::appendField(outMsg, "node ref", std::format("{}", state.nodeRef.get()));
@@ -83,13 +57,14 @@ namespace
             }
         }
 
-        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction);
-        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction);
+        appendTaskFunction(outMsg, ctx, "jit function", state.runJitFunction, state.runJitFunctionIdRef);
+        appendTaskFunction(outMsg, ctx, "codegen function", state.codeGenFunction, state.codeGenFunctionIdRef);
 
         if (state.symbol)
-            HardwareException::appendField(outMsg, "symbol", state.symbol->name(ctx));
+            appendPointerField(outMsg, "symbol ptr", state.symbol);
+
         if (state.waiterSymbol)
-            HardwareException::appendField(outMsg, "waiter symbol", state.waiterSymbol->name(ctx));
+            appendPointerField(outMsg, "waiter symbol ptr", state.waiterSymbol);
     }
 
     void appendCrashGroup(Utf8& outMsg, const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)

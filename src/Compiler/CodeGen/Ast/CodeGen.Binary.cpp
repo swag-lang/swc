@@ -179,7 +179,7 @@ namespace
 
         codeGen.builder().emitOpBinaryRegReg(raxReg, rightReg, op, opBits);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        const CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         codeGen.builder().emitLoadRegReg(nodePayload.reg, raxReg, opBits);
         return Result::Continue;
     }
@@ -254,7 +254,6 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenBinaryNumeric(codeGen, *this, tok.id);
 
         default:
-            // TODO
             SWC_UNREACHABLE();
     }
 }

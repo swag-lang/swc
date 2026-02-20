@@ -135,7 +135,6 @@ public:
     void emitCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits);
     void emitCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
     void emitSetCondReg(MicroReg reg, MicroCond cpuCond);
-    void emitSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond);
     void emitLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits);
     void emitClearReg(MicroReg reg, MicroOpBits opBits);
     void emitOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits);

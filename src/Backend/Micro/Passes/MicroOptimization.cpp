@@ -92,7 +92,6 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
         case MicroInstrOpcode::CmpMemReg:
         case MicroInstrOpcode::CmpMemImm:
         case MicroInstrOpcode::SetCondReg:
-        case MicroInstrOpcode::SetCondRegZeroExtend:
         case MicroInstrOpcode::ClearReg:
         case MicroInstrOpcode::OpUnaryMem:
         case MicroInstrOpcode::OpUnaryReg:

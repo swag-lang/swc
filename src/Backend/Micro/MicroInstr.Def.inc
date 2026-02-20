@@ -40,7 +40,6 @@ SWC_MICRO_INSTR_DEF(CmpMemReg, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInst
 SWC_MICRO_INSTR_DEF(CmpMemImm, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
 SWC_MICRO_INSTR_DEF(SetCondReg, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
-SWC_MICRO_INSTR_DEF(SetCondRegZeroExtend, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 SWC_MICRO_INSTR_DEF(ClearReg, MicroInstrInfo{{MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})
 
 SWC_MICRO_INSTR_DEF(OpUnaryMem, MicroInstrInfo{{MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None}, MicroInstrRegSpecial::None, 0, false, 0})

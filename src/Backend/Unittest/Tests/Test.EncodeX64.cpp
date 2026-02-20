@@ -176,7 +176,7 @@ namespace
         ENCODE_CASE("cmp_mem_imm_r12_12345678_b8", "41 80 BC 24 78 56 34 12 12", b.emitCmpMemImm(R12, 0x12345678, 0x12, MicroOpBits::B8););
         ENCODE_CASE("cmp_mem_imm_r13_b8", "41 80 7D 44 55", b.emitCmpMemImm(R13, 0x44, 0x55, MicroOpBits::B8););
         ENCODE_CASE("set_cond_above_r8", "41 0F 97 C0", b.emitSetCondReg(R8, MicroCond::Above););
-        ENCODE_CASE("set_cond_above_r8_zext", "41 0F 97 C0 45 0F B6 C0", b.emitSetCondRegZeroExtend(R8, MicroCond::Above););
+        ENCODE_CASE("set_cond_above_r8_zext", "41 0F 97 C0 45 0F B6 C0", b.emitSetCondReg(R8, MicroCond::Above); b.emitLoadZeroExtendRegReg(R8, R8, MicroOpBits::B32, MicroOpBits::B8););
         ENCODE_CASE("load_cond_reg_reg_gt", "4D 0F 4F CA", b.emitLoadCondRegReg(R9, R10, MicroCond::Greater, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_r9_b32", "45 31 C9", b.emitClearReg(R9, MicroOpBits::B32););
         ENCODE_CASE("clear_reg_r11_b64", "4D 31 DB", b.emitClearReg(R11, MicroOpBits::B64););

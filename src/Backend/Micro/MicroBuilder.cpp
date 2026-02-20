@@ -481,15 +481,6 @@ void MicroBuilder::emitSetCondReg(MicroReg reg, MicroCond cpuCond)
     return;
 }
 
-void MicroBuilder::emitSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond)
-{
-    const auto&        inst = addInstruction(MicroInstrOpcode::SetCondRegZeroExtend, 2);
-    MicroInstrOperand* ops  = inst.ops(operands_);
-    ops[0].reg              = reg;
-    ops[1].cpuCond          = cpuCond;
-    return;
-}
-
 void MicroBuilder::emitLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadCondRegReg, 4);

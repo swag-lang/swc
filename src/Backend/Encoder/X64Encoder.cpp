@@ -1421,14 +1421,6 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
     return;
 }
 
-void X64Encoder::encodeSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond)
-{
-    SWC_ASSERT(reg.isInt());
-    encodeSetCondReg(reg, cpuCond);
-    encodeLoadZeroExtendRegReg(reg, reg, MicroOpBits::B32, MicroOpBits::B8);
-    return;
-}
-
 void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits)
 {
     opBits = std::max(opBits, MicroOpBits::B32);

@@ -145,9 +145,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::SetCondReg:
             encoder.encodeSetCondReg(ops[0].reg, ops[1].cpuCond);
             break;
-        case MicroInstrOpcode::SetCondRegZeroExtend:
-            encoder.encodeSetCondRegZeroExtend(ops[0].reg, ops[1].cpuCond);
-            break;
         case MicroInstrOpcode::LoadCondRegReg:
             encoder.encodeLoadCondRegReg(ops[0].reg, ops[1].reg, ops[2].cpuCond, ops[3].opBits);
             break;

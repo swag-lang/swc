@@ -642,8 +642,6 @@ namespace
 
             case MicroInstrOpcode::SetCondReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(std::format("set{}", condName(ops[1].cpuCond))));
-            case MicroInstrOpcode::SetCondRegZeroExtend:
-                return std::format("{} = {}.zext", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(std::format("set{}", condName(ops[1].cpuCond))));
             case MicroInstrOpcode::LoadCondRegReg:
                 return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), tagInstructionToken("if"), condName(ops[2].cpuCond));
 
@@ -1412,14 +1410,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendColored(out, ctx, SyntaxColor::Type, condName(ops[1].cpuCond));
-                break;
-
-            case MicroInstrOpcode::SetCondRegZeroExtend:
-                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
-                appendSep(out);
-                appendColored(out, ctx, SyntaxColor::Type, condName(ops[1].cpuCond));
-                appendSep(out);
-                appendTypeBits(out, ctx, MicroOpBits::B32);
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:

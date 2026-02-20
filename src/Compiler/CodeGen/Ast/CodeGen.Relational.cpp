@@ -184,7 +184,8 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        builder.emitSetCondRegZeroExtend(resultPayload.reg, cond);
+        builder.emitSetCondReg(resultPayload.reg, cond);
+        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
         return Result::Continue;
     }
 
@@ -218,8 +219,10 @@ namespace
         const MicroReg lessReg  = codeGen.nextVirtualIntRegister();
         const MicroReg greatReg = codeGen.nextVirtualIntRegister();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
-        builder.emitSetCondRegZeroExtend(lessReg, lessCond);
-        builder.emitSetCondRegZeroExtend(greatReg, greatCond);
+        builder.emitSetCondReg(lessReg, lessCond);
+        builder.emitLoadZeroExtendRegReg(lessReg, lessReg, MicroOpBits::B32, MicroOpBits::B8);
+        builder.emitSetCondReg(greatReg, greatCond);
+        builder.emitLoadZeroExtendRegReg(greatReg, greatReg, MicroOpBits::B32, MicroOpBits::B8);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);

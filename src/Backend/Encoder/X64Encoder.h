@@ -60,7 +60,6 @@ private:
     void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits) override;
     void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits) override;
     void encodeSetCondReg(MicroReg reg, MicroCond cpuCond) override;
-    void encodeSetCondRegZeroExtend(MicroReg reg, MicroCond cpuCond) override;
     void encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCond setType, MicroOpBits opBits) override;
     void encodeClearReg(MicroReg reg, MicroOpBits opBits) override;
     void encodeOpUnaryMem(MicroReg memReg, uint64_t memOffset, MicroOp op, MicroOpBits opBits) override;

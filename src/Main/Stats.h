@@ -10,17 +10,17 @@ struct Stats
     std::atomic<size_t>   numWarnings = 0;
 
 #if SWC_HAS_STATS
-    std::atomic<uint64_t> timeLoadFile = 0;
-    std::atomic<uint64_t> timeLexer    = 0;
-    std::atomic<uint64_t> timeParser   = 0;
-    std::atomic<uint64_t> timeCodeGen  = 0;
+    std::atomic<uint64_t> timeLoadFile   = 0;
+    std::atomic<uint64_t> timeLexer      = 0;
+    std::atomic<uint64_t> timeParser     = 0;
+    std::atomic<uint64_t> timeCodeGen    = 0;
     std::atomic<uint64_t> timeMicroLower = 0;
 
-    std::atomic<size_t> memAllocated    = 0;
-    std::atomic<size_t> memMaxAllocated = 0;
-    std::atomic<size_t> memConstants    = 0;
-    std::atomic<size_t> memTypes        = 0;
-    std::atomic<size_t> memSymbols      = 0;
+    std::atomic<size_t> memAllocated           = 0;
+    std::atomic<size_t> memMaxAllocated        = 0;
+    std::atomic<size_t> memConstants           = 0;
+    std::atomic<size_t> memTypes               = 0;
+    std::atomic<size_t> memSymbols             = 0;
     std::atomic<size_t> memMicroStorageNoOptim = 0;
     std::atomic<size_t> memMicroStorageFinal   = 0;
 

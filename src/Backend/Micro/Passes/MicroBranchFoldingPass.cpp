@@ -19,9 +19,9 @@ namespace
 
     struct CompareState
     {
-        bool       valid  = false;
-        uint64_t   lhs    = 0;
-        uint64_t   rhs    = 0;
+        bool        valid  = false;
+        uint64_t    lhs    = 0;
+        uint64_t    rhs    = 0;
         MicroOpBits opBits = MicroOpBits::B64;
     };
 
@@ -149,7 +149,7 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                                         changed = false;
+    bool                                        changed = false;
     std::unordered_map<uint32_t, KnownConstant> known;
     known.reserve(64);
     CompareState compareState{};
@@ -181,7 +181,7 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
                     else
                     {
                         storage.erase(instRef);
-                        changed = true;
+                        changed            = true;
                         compareState.valid = false;
                         continue;
                     }

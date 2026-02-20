@@ -96,7 +96,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                                         changed = false;
+    bool                                        changed = false;
     std::unordered_map<uint32_t, KnownConstant> known;
     known.reserve(64);
 
@@ -109,10 +109,10 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             const auto itKnown = known.find(ops[1].reg.packed);
             if (itKnown != known.end() && ops[0].reg.isInt())
             {
-                inst.op          = MicroInstrOpcode::LoadRegImm;
-                ops[1].opBits    = ops[2].opBits;
-                ops[2].valueU64  = normalizeToOpBits(itKnown->second.value, ops[2].opBits);
-                changed          = true;
+                inst.op         = MicroInstrOpcode::LoadRegImm;
+                ops[1].opBits   = ops[2].opBits;
+                ops[2].valueU64 = normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                changed         = true;
             }
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg.isInt())

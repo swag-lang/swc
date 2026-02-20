@@ -27,9 +27,9 @@ namespace
             return false;
 
         uint64_t combined = 0;
-        combined = firstOp == MicroOp::Add ? combined + firstValue : combined - firstValue;
-        combined = secondOp == MicroOp::Add ? combined + secondValue : combined - secondValue;
-        combined = normalizeToOpBits(combined, opBits);
+        combined          = firstOp == MicroOp::Add ? combined + firstValue : combined - firstValue;
+        combined          = secondOp == MicroOp::Add ? combined + secondValue : combined - secondValue;
+        combined          = normalizeToOpBits(combined, opBits);
 
         outOp    = MicroOp::Add;
         outValue = combined;

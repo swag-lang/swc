@@ -139,10 +139,10 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     SWC_ASSERT(substNodeRef.isValid());
     SWC_ASSERT(ast().node(substNodeRef).isNot(AstNodeId::Invalid));
 
-    AstNode&       node     = ast().node(nodeRef);
-    const auto     info     = payloadInfo(node);
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    auto&          shard    = shards_[shardIdx];
+    AstNode&         node     = ast().node(nodeRef);
+    const auto       info     = payloadInfo(node);
+    const uint32_t   shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    auto&            shard    = shards_[shardIdx];
     std::unique_lock lock(shard.mutex);
 
     const Ref value = shard.store.pushBack(SubstituteStorage{

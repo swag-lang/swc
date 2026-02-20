@@ -26,16 +26,20 @@ struct MicroPassContext
     bool                  preservePersistentRegs = false;
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;
+#if SWC_HAS_STATS
+    size_t optimizationInstrRemoved = 0;
+    size_t optimizationInstrAdded   = 0;
+#endif
 };
 
 class MicroPass
 {
 public:
-    virtual ~MicroPass()                                 = default;
-    virtual std::string_view name() const                = 0;
-    virtual MicroRegPrintMode printModeBefore() const    { return MicroRegPrintMode::Concrete; }
-    virtual MicroRegPrintMode printModeAfter() const     { return MicroRegPrintMode::Concrete; }
-    virtual bool          run(MicroPassContext& context) = 0;
+    virtual ~MicroPass()                   = default;
+    virtual std::string_view  name() const = 0;
+    virtual MicroRegPrintMode printModeBefore() const { return MicroRegPrintMode::Concrete; }
+    virtual MicroRegPrintMode printModeAfter() const { return MicroRegPrintMode::Concrete; }
+    virtual bool              run(MicroPassContext& context) = 0;
 };
 
 class MicroPassManager

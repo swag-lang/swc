@@ -50,19 +50,19 @@ bool MicroLoadStoreForwardingPass::run(MicroPassContext& context)
         MicroInstrOperand* secondOps = second.ops(operands);
         if (first.op == MicroInstrOpcode::LoadMemReg && isSameMemoryAddress(firstOps, secondOps))
         {
-            second.op          = MicroInstrOpcode::LoadRegReg;
-            second.numOperands = 3;
-            secondOps[1].reg   = firstOps[1].reg;
+            second.op           = MicroInstrOpcode::LoadRegReg;
+            second.numOperands  = 3;
+            secondOps[1].reg    = firstOps[1].reg;
             secondOps[2].opBits = firstOps[2].opBits;
-            changed            = true;
+            changed             = true;
         }
         else if (first.op == MicroInstrOpcode::LoadMemImm && isSameMemoryAddressForImmediateStore(firstOps, secondOps))
         {
-            second.op           = MicroInstrOpcode::LoadRegImm;
-            second.numOperands  = 3;
-            secondOps[1].opBits = firstOps[1].opBits;
+            second.op             = MicroInstrOpcode::LoadRegImm;
+            second.numOperands    = 3;
+            secondOps[1].opBits   = firstOps[1].opBits;
             secondOps[2].valueU64 = firstOps[3].valueU64;
-            changed             = true;
+            changed               = true;
         }
     }
 

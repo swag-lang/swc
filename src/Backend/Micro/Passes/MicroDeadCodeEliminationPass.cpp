@@ -78,7 +78,7 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                                 changed = false;
+    bool                              changed = false;
     std::unordered_map<uint32_t, Ref> lastPureDefByReg;
     lastPureDefByReg.reserve(64);
 

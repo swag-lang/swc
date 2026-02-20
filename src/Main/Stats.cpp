@@ -31,6 +31,34 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
     Logger::printHeaderDot(ctx, colorHeader, "numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));
 
+    Logger::print(ctx, "\n");
+    const size_t numMicroNoOptim      = numMicroInstrNoOptim.load();
+    const size_t numMicroFinal        = numMicroInstrFinal.load();
+    const size_t numMicroOptimRemoved = numMicroInstrOptimRemoved.load();
+    const size_t numMicroOptimAdded   = numMicroInstrOptimAdded.load();
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
+
+    const int64_t numMicroPipelineDelta     = static_cast<int64_t>(numMicroNoOptim) - static_cast<int64_t>(numMicroFinal);
+    const char    numMicroPipelineDeltaSign = numMicroPipelineDelta >= 0 ? '+' : '-';
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrPipelineDelta", colorMsg, std::format("{}{}", numMicroPipelineDeltaSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroPipelineDelta)))));
+
+    double pipelineRemovedPct = 0.0;
+    if (numMicroNoOptim != 0)
+        pipelineRemovedPct = 100.0 * static_cast<double>(numMicroPipelineDelta) / static_cast<double>(numMicroNoOptim);
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrPipelineRemovedPct", colorMsg, std::format("{:.2f}%", pipelineRemovedPct));
+
+    const int64_t numMicroOptimNet     = static_cast<int64_t>(numMicroOptimRemoved) - static_cast<int64_t>(numMicroOptimAdded);
+    const char    numMicroOptimNetSign = numMicroOptimNet >= 0 ? '+' : '-';
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrOptimRemoved", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOptimRemoved));
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrOptimAdded", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOptimAdded));
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrOptimNet", colorMsg, std::format("{}{}", numMicroOptimNetSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroOptimNet)))));
+
+    double optimRemovedPct = 0.0;
+    if (numMicroNoOptim != 0)
+        optimRemovedPct = 100.0 * static_cast<double>(numMicroOptimNet) / static_cast<double>(numMicroNoOptim);
+    Logger::printHeaderDot(ctx, colorHeader, "numMicroInstrOptimRemovedPct", colorMsg, std::format("{:.2f}%", optimRemovedPct));
+
     // Time
     Logger::print(ctx, "\n");
     Logger::printHeaderDot(ctx, colorHeader, "timeLoadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));

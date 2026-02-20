@@ -122,12 +122,12 @@ public:
 
 private:
     AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<Sema&>(sema()).viewZero(nodeRef).nodeRef(); }
-    void   setVisitors();
-    Result preNode(AstNode& node);
-    Result postNode(AstNode& node);
-    Result preNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result emitConstant(AstNodeRef nodeRef);
+    void       setVisitors();
+    Result     preNode(AstNode& node);
+    Result     postNode(AstNode& node);
+    Result     preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result     postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result     emitConstant(AstNodeRef nodeRef);
 
     Sema*                                                         sema_ = nullptr;
     AstVisit                                                      visit_;

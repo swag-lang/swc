@@ -95,7 +95,7 @@ protected:
     virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                              = 0;
     virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                            = 0;
     virtual void encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                    = 0;
-    virtual void encodeCmpRegZero(MicroReg reg, MicroOpBits opBits)                                                                                                                    = 0;
+    virtual void encodeCmpRegZero(MicroReg reg, MicroOpBits opBits)                                                                                                                   = 0;
     virtual void encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                               = 0;
     virtual void encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)                                                                             = 0;
     virtual void encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)                                                                                                    = 0;

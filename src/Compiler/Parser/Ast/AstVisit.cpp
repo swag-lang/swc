@@ -172,8 +172,8 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
                 // preChild callback for THIS child index (may be called multiple times on Pause)
                 if (preChildVisitor_ && fr.preChildState != Frame::CallState::Done)
                 {
-                    fr.firstPass        = (fr.preChildState == Frame::CallState::NotCalled);
-                    Result       result = Result::Continue;
+                    fr.firstPass = (fr.preChildState == Frame::CallState::NotCalled);
+                    auto result  = Result::Continue;
                     if (mode_ == AstVisitMode::ResolveBeforeCallbacks)
                         result = preChildVisitor_(*fr.node, callbackChildRef);
                     else

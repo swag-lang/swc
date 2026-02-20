@@ -15,6 +15,7 @@
 #include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
 #include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
 #include "Backend/Micro/Passes/MicroStrengthReductionPass.h"
+#include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -22,15 +23,15 @@ namespace
 {
     struct MicroOptimizationPasses
     {
-        MicroControlFlowSimplificationPass* cfgSimplifyPass      = nullptr;
-        MicroInstructionCombinePass*        instructionCombinePass = nullptr;
-        MicroStrengthReductionPass*         strengthReductionPass  = nullptr;
-        MicroCopyPropagationPass*           copyPropagationPass    = nullptr;
+        MicroControlFlowSimplificationPass* cfgSimplifyPass         = nullptr;
+        MicroInstructionCombinePass*        instructionCombinePass  = nullptr;
+        MicroStrengthReductionPass*         strengthReductionPass   = nullptr;
+        MicroCopyPropagationPass*           copyPropagationPass     = nullptr;
         MicroConstantPropagationPass*       constantPropagationPass = nullptr;
-        MicroDeadCodeEliminationPass*       deadCodePass           = nullptr;
-        MicroBranchFoldingPass*             branchFoldingPass      = nullptr;
-        MicroLoadStoreForwardingPass*       loadStoreForwardPass   = nullptr;
-        MicroPeepholePass*                  peepholePass           = nullptr;
+        MicroDeadCodeEliminationPass*       deadCodePass            = nullptr;
+        MicroBranchFoldingPass*             branchFoldingPass       = nullptr;
+        MicroLoadStoreForwardingPass*       loadStoreForwardPass    = nullptr;
+        MicroPeepholePass*                  peepholePass            = nullptr;
     };
 
     void registerMandatoryPasses(MicroPassManager& passManager, MicroRegisterAllocationPass& regAllocPass, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroEmitPass& emitPass)
@@ -147,20 +148,32 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 #endif
 
     MicroOptimizationPasses optimizationPasses;
-    optimizationPasses.cfgSimplifyPass       = &cfgSimplifyPass;
-    optimizationPasses.instructionCombinePass = &instructionCombinePass;
-    optimizationPasses.strengthReductionPass  = &strengthReductionPass;
-    optimizationPasses.copyPropagationPass    = &copyPropagationPass;
+    optimizationPasses.cfgSimplifyPass         = &cfgSimplifyPass;
+    optimizationPasses.instructionCombinePass  = &instructionCombinePass;
+    optimizationPasses.strengthReductionPass   = &strengthReductionPass;
+    optimizationPasses.copyPropagationPass     = &copyPropagationPass;
     optimizationPasses.constantPropagationPass = &constantPropagationPass;
-    optimizationPasses.deadCodePass           = &deadCodePass;
-    optimizationPasses.branchFoldingPass      = &branchFoldingPass;
-    optimizationPasses.loadStoreForwardPass   = &loadStoreForwardPass;
-    optimizationPasses.peepholePass           = &peepholePass;
+    optimizationPasses.deadCodePass            = &deadCodePass;
+    optimizationPasses.branchFoldingPass       = &branchFoldingPass;
+    optimizationPasses.loadStoreForwardPass    = &loadStoreForwardPass;
+    optimizationPasses.peepholePass            = &peepholePass;
 
     MicroPassManager passManager;
     registerOptimizationPasses(passManager, builder.backendBuildCfg().optimizeLevel, optimizationPasses);
     registerMandatoryPasses(passManager, regAllocPass, prologEpilogPass, legalizePass, emitPass);
+
+#if SWC_HAS_STATS
+    const size_t numMicroInstrNoOptim = builder.instructions().count();
+#endif
     builder.runPasses(passManager, &encoder, passContext);
+
+#if SWC_HAS_STATS
+    const size_t numMicroInstrFinal = builder.instructions().count();
+    Stats::get().numMicroInstrNoOptim.fetch_add(numMicroInstrNoOptim, std::memory_order_relaxed);
+    Stats::get().numMicroInstrFinal.fetch_add(numMicroInstrFinal, std::memory_order_relaxed);
+    Stats::get().numMicroInstrOptimRemoved.fetch_add(passContext.optimizationInstrRemoved, std::memory_order_relaxed);
+    Stats::get().numMicroInstrOptimAdded.fetch_add(passContext.optimizationInstrAdded, std::memory_order_relaxed);
+#endif
 
     const auto codeSize = encoder.size();
     SWC_FORCE_ASSERT(codeSize != 0);

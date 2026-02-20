@@ -44,9 +44,9 @@ namespace
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits opBits    = compareOpBits(operandType);
+        outReg                        = codeGen.nextVirtualRegisterForType(operandTypeRef);
+        const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
+        const MicroOpBits opBits      = compareOpBits(operandType);
 
         MicroBuilder& builder = codeGen.builder();
         if (operandPayload.isAddress())
@@ -60,8 +60,8 @@ namespace
         if (srcTypeRef == dstTypeRef)
             return;
 
-        const TypeInfo& srcType   = codeGen.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType   = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
+        const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
         const MicroOpBits srcBits = compareOpBits(srcType);
         const MicroOpBits dstBits = compareOpBits(dstType);
 
@@ -143,14 +143,14 @@ namespace
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
-        const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
-        const TypeRef leftOperandTypeRef       = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeRef rightOperandTypeRef      = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        const CodeGenNodePayload& leftPayload         = ensureOperandPayload(codeGen, node.nodeLeftRef);
+        const CodeGenNodePayload& rightPayload        = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
-        const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits     = compareOpBits(compareType);
+        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg  = MicroReg::invalid();
@@ -195,14 +195,14 @@ namespace
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
-        const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
-        const TypeRef leftOperandTypeRef       = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeRef rightOperandTypeRef      = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        const CodeGenNodePayload& leftPayload         = ensureOperandPayload(codeGen, node.nodeLeftRef);
+        const CodeGenNodePayload& rightPayload        = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+        const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
-        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
-        const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits     = compareOpBits(compareType);
+        const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg  = MicroReg::invalid();

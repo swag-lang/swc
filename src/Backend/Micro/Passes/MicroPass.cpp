@@ -175,6 +175,9 @@ namespace
         if (optimizationPasses.empty())
             return;
 
+#if SWC_HAS_STATS
+        const size_t countBefore = context.instructions ? context.instructions->count() : 0;
+#endif
         const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
@@ -187,8 +190,16 @@ namespace
             }
 
             if (!changed)
-                return;
+                break;
         }
+
+#if SWC_HAS_STATS
+        const size_t countAfter = context.instructions ? context.instructions->count() : 0;
+        if (countAfter <= countBefore)
+            context.optimizationInstrRemoved += countBefore - countAfter;
+        else
+            context.optimizationInstrAdded += countAfter - countBefore;
+#endif
     }
 }
 

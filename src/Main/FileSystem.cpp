@@ -8,6 +8,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    FilePathDisplayMode resolveDisplayMode(const TaskContext* ctx)
+    {
+        if (!ctx)
+            return FilePathDisplayMode::AsIs;
+
+        return ctx->cmdLine().filePathDisplayMode();
+    }
+
     fs::path toAbsolutePathNoThrow(const fs::path& filePath)
     {
         std::error_code ec;
@@ -117,19 +125,19 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
     return Result::Continue;
 }
 
-Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath, const FileNameDisplayMode mode)
+Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
 {
-    SWC_UNUSED(ctx);
+    const FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
 
-    switch (mode)
+    switch (resolvedMode)
     {
-        case FileNameDisplayMode::AsIs:
+        case FilePathDisplayMode::AsIs:
             return filePath.string();
 
-        case FileNameDisplayMode::BaseName:
+        case FilePathDisplayMode::BaseName:
             return filePath.filename().string();
 
-        case FileNameDisplayMode::Absolute:
+        case FilePathDisplayMode::Absolute:
             return toAbsolutePathNoThrow(filePath).string();
 
         default:
@@ -137,9 +145,9 @@ Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath
     }
 }
 
-Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd, const FileNameDisplayMode mode)
+Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
 {
-    Utf8 out = formatFileName(ctx, filePath, mode);
+    Utf8 out = formatFileName(ctx, filePath);
     if (line)
     {
         out += ":";

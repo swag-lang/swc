@@ -199,7 +199,6 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
     {
         case DiagPart::FileLocationArrow:
         case DiagPart::FileLocationPath:
-        case DiagPart::FileLocationSep:
             return {Gray};
         case DiagPart::GutterBar:
             return {BrightCyan};
@@ -366,9 +365,8 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     Utf8 fileLocation;
     if (el.srcView()->fileRef().isValid())
     {
-        const SourceFile&                     file = ctx_->compiler().file(el.srcView()->fileRef());
-        const FileSystem::FileNameDisplayMode mode = ctx_->cmdLine().diagAbsolute ? FileSystem::FileNameDisplayMode::Absolute : FileSystem::FileNameDisplayMode::BaseName;
-        fileLocation                               = FileSystem::formatFileLocation(ctx_, file.path(), codeRange.line, codeRange.column, codeRange.column + codeRange.len, mode);
+        const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
+        fileLocation           = FileSystem::formatFileLocation(ctx_, file.path(), codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
     else
     {

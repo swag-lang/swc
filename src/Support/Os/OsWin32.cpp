@@ -236,7 +236,7 @@ namespace
             if (len)
             {
                 modulePath[len]       = 0;
-                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath), FileSystem::FileNameDisplayMode::BaseName);
+                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
                 outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
             }
         }
@@ -533,7 +533,7 @@ namespace Os
                     if (len)
                     {
                         modulePath[len]       = 0;
-                        const Utf8 moduleName = FileSystem::formatFileName(&ctx, fs::path(modulePath), FileSystem::FileNameDisplayMode::BaseName);
+                        const Utf8 moduleName = FileSystem::formatFileName(&ctx, fs::path(modulePath));
                         outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
                     }
                 }

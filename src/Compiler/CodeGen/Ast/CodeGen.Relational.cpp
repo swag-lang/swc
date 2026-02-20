@@ -34,15 +34,84 @@ namespace
         return MicroOpBits::B64;
     }
 
-    void materializeCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
+    TypeRef resolveCompareTypeRef(CodeGen& codeGen, const SemaNodeView& leftView, const SemaNodeView& rightView)
+    {
+        if (leftView.type()->isScalarNumeric() && rightView.type()->isScalarNumeric())
+            return codeGen.typeMgr().promote(leftView.typeRef(), rightView.typeRef(), false);
+
+        return leftView.typeRef();
+    }
+
+    void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         outReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
+        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
+        const MicroOpBits opBits    = compareOpBits(operandType);
 
         MicroBuilder& builder = codeGen.builder();
         if (operandPayload.isAddress())
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
+    }
+
+    void convertCompareOperand(MicroReg& outReg, CodeGen& codeGen, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (srcTypeRef == dstTypeRef)
+            return;
+
+        const TypeInfo& srcType   = codeGen.typeMgr().get(srcTypeRef);
+        const TypeInfo& dstType   = codeGen.typeMgr().get(dstTypeRef);
+        const MicroOpBits srcBits = compareOpBits(srcType);
+        const MicroOpBits dstBits = compareOpBits(dstType);
+
+        MicroBuilder& builder = codeGen.builder();
+
+        if (srcType.isIntLike() && dstType.isIntLike())
+        {
+            const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+            if (srcBits == dstBits)
+            {
+                builder.emitLoadRegReg(dstReg, outReg, dstBits);
+                outReg = dstReg;
+                return;
+            }
+
+            if (static_cast<uint32_t>(srcBits) > static_cast<uint32_t>(dstBits))
+            {
+                builder.emitLoadRegReg(dstReg, outReg, dstBits);
+                outReg = dstReg;
+                return;
+            }
+
+            if (srcType.isIntSigned())
+                builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
+            else
+                builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
+            outReg = dstReg;
+            return;
+        }
+
+        if (srcType.isIntLike() && dstType.isFloat())
+        {
+            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstReg, dstBits);
+            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertIntToFloat, dstBits);
+            outReg = dstReg;
+            return;
+        }
+
+        if (srcType.isFloat() && dstType.isFloat())
+        {
+            builder.emitOpBinaryRegReg(outReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
+            return;
+        }
+    }
+
+    void materializeCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef compareTypeRef)
+    {
+        loadCompareOperand(outReg, codeGen, operandPayload, operandTypeRef);
+        convertCompareOperand(outReg, codeGen, operandTypeRef, compareTypeRef);
     }
 
     bool usesUnsignedConditions(const TypeInfo& typeInfo)
@@ -77,13 +146,15 @@ namespace
         const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
 
-        const MicroOpBits opBits = compareOpBits(*leftView.type());
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits     = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg  = MicroReg::invalid();
         MicroReg rightReg = MicroReg::invalid();
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), opBits);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), opBits);
+        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), compareTypeRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -105,7 +176,7 @@ namespace
             case TokenId::SymLessEqual:
             case TokenId::SymGreater:
             case TokenId::SymGreaterEqual:
-                cond = relationalCondition(tokId, usesUnsignedConditions(*leftView.type()));
+                cond = relationalCondition(tokId, usesUnsignedConditions(compareType));
                 break;
 
             default:
@@ -125,17 +196,19 @@ namespace
         const CodeGenNodePayload& leftPayload  = ensureOperandPayload(codeGen, node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
 
-        const MicroOpBits opBits = compareOpBits(*leftView.type());
+        const TypeRef compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
+        const TypeInfo& compareType  = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits     = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg  = MicroReg::invalid();
         MicroReg rightReg = MicroReg::invalid();
-        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), opBits);
-        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), opBits);
+        materializeCompareOperand(leftReg, codeGen, leftPayload, leftView.typeRef(), compareTypeRef);
+        materializeCompareOperand(rightReg, codeGen, rightPayload, rightView.typeRef(), compareTypeRef);
 
         MicroBuilder& builder = codeGen.builder();
 
-        const bool      unsignedOrFloat = usesUnsignedConditions(*leftView.type());
+        const bool      unsignedOrFloat = usesUnsignedConditions(compareType);
         const MicroCond lessCond        = unsignedOrFloat ? MicroCond::Below : MicroCond::Less;
         const MicroCond greatCond       = unsignedOrFloat ? MicroCond::Above : MicroCond::Greater;
 

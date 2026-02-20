@@ -91,14 +91,15 @@ enum CmpEnum: u16
     #assert(V2)
 }
 
-//#test
-//{
-//    func cmpMixedFloat(a: f32, b: f64)->bool { return a < b }
-//    const V0 = #run cmpMixedFloat(1.25'f32, 2.0'f64)
-//    const V1 = #run cmpMixedFloat(3.5'f32, 2.0'f64)
-//    #assert(V0)
-//    #assert(!V1)
-//}
+#test
+{
+    #[Swag.PrintMicro]
+    func cmpMixedFloat(a: f32, b: f64)->bool { return a < b }
+    const V0 = #run cmpMixedFloat(1.25'f32, 2.0'f64)
+    const V1 = #run cmpMixedFloat(3.5'f32, 2.0'f64)
+    #assert(V0)
+    #assert(!V1)
+}
 
 //#test
 //{

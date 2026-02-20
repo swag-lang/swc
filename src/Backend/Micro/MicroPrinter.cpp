@@ -363,6 +363,25 @@ namespace
                token == ">>";
     }
 
+    bool isNaturalTypeBitsToken(std::string_view token)
+    {
+        if (token.size() < 2 || token[0] != 'b')
+            return false;
+
+        for (size_t i = 1; i < token.size(); ++i)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(token[i])))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool isNaturalTypeCastArrowToken(std::string_view token)
+    {
+        return token == "<-";
+    }
+
     bool isRelocationImmediateToken(std::string_view token)
     {
         if (token.size() < 3 || token.front() != '<' || token.back() != '>')
@@ -516,6 +535,12 @@ namespace
         return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
     }
 
+    Utf8 naturalExtendInstruction(std::string_view dst, std::string_view src, bool isSigned, MicroOpBits dstBits, MicroOpBits srcBits)
+    {
+        const Utf8 op = tagInstructionToken(isSigned ? "sign_extend" : "zero_extend");
+        return std::format("{} = {}({}, b{} <- b{})", dst, op, src, opBitsName(dstBits), opBitsName(srcBits));
+    }
+
     Utf8 naturalInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation)
     {
         switch (inst.op)
@@ -529,6 +554,14 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+                return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), false, ops[2].opBits, ops[3].opBits);
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+                return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), false, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadAddrRegMem:
                 return std::format("{} = &{}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadMemReg:
@@ -697,6 +730,14 @@ namespace
             {
                 appendColored(out, ctx, SyntaxColor::Function, token);
             }
+            else if (isNaturalTypeBitsToken(token))
+            {
+                appendColored(out, ctx, SyntaxColor::Type, token);
+            }
+            else if (isNaturalTypeCastArrowToken(token))
+            {
+                appendColored(out, ctx, SyntaxColor::Type, token);
+            }
             else if (isNaturalLogicToken(token))
             {
                 appendColored(out, ctx, SyntaxColor::Logic, token);
@@ -768,7 +809,7 @@ namespace
                 if (pos + 1 < value.size())
                 {
                     const auto two = value.subView(pos, 2);
-                    if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>")
+                    if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>" || two == "<-")
                     {
                         appendNaturalToken(two, pos);
                         pos += 2;
@@ -897,7 +938,7 @@ namespace
 
     void appendTypeBitsCast(Utf8& out, const TaskContext& ctx, MicroOpBits dstBits, MicroOpBits srcBits)
     {
-        appendColored(out, ctx, SyntaxColor::Type, std::format("b{}<-b{}", opBitsName(dstBits), opBitsName(srcBits)));
+        appendColored(out, ctx, SyntaxColor::Type, std::format("b{} <- b{}", opBitsName(dstBits), opBitsName(srcBits)));
     }
 
     void appendImmediate(Utf8& out, const TaskContext& ctx, std::string_view value, bool hasImmediateRelocation)

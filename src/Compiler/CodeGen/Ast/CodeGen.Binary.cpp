@@ -232,7 +232,8 @@ namespace
         if (leftView.type()->isFloat() && rightView.type()->isFloat())
             return emitFloatBinary(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);
 
-        return Result::Continue;
+        // TODO
+        SWC_UNREACHABLE();
     }
 }
 

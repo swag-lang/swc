@@ -10,6 +10,50 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isFullWidthIntegerWrite(MicroOpBits opBits)
+    {
+        return opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64;
+    }
+
+    bool canCurrentDefKillPreviousPureDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg defReg)
+    {
+        if (!ops)
+            return false;
+
+        if (!defReg.isInt())
+            return false;
+
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadRegImm:
+                return isFullWidthIntegerWrite(ops[1].opBits);
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadAddrRegMem:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                return isFullWidthIntegerWrite(ops[3].opBits);
+            case MicroInstrOpcode::SetCondReg:
+                return false;
+            case MicroInstrOpcode::ClearReg:
+                return isFullWidthIntegerWrite(ops[1].opBits);
+            case MicroInstrOpcode::OpUnaryReg:
+                return isFullWidthIntegerWrite(ops[1].opBits);
+            case MicroInstrOpcode::LoadCondRegReg:
+                return isFullWidthIntegerWrite(ops[3].opBits);
+            case MicroInstrOpcode::OpBinaryRegReg:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::OpBinaryRegImm:
+                return isFullWidthIntegerWrite(ops[1].opBits);
+            default:
+                return false;
+        }
+    }
+
     bool isRemovableInstruction(const MicroInstr& inst)
     {
         switch (inst.op)
@@ -88,6 +132,7 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     {
         const Ref   currentRef = it.current;
         MicroInstr& inst       = *it;
+        const auto* ops        = inst.ops(operands);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         if (isControlFlowBarrier(inst, useDef))
@@ -101,6 +146,9 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 
         for (const MicroReg defReg : useDef.defs)
         {
+            if (!canCurrentDefKillPreviousPureDef(inst, ops, defReg))
+                continue;
+
             const auto previousDefIt = lastPureDefByReg.find(defReg.packed);
             if (previousDefIt != lastPureDefByReg.end())
             {

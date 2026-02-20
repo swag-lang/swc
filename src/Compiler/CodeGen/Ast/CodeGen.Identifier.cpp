@@ -1,15 +1,38 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return MicroOpBits::B64;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isFloat())
+        {
+            const uint32_t floatBits = typeInfo.payloadFloatBits() ? typeInfo.payloadFloatBits() : 64;
+            return microOpBitsFromBitWidth(floatBits);
+        }
+
+        if (typeInfo.isIntLike())
+        {
+            const uint32_t intBits = typeInfo.payloadIntLikeBits() ? typeInfo.payloadIntLikeBits() : 64;
+            return microOpBitsFromBitWidth(intBits);
+        }
+
+        return MicroOpBits::B64;
+    }
+
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
@@ -58,8 +81,22 @@ namespace
         if (!initPayload)
             return;
 
-        CodeGenNodePayload symbolPayload = *initPayload;
-        symbolPayload.typeRef            = symVar.typeRef();
+        CodeGenNodePayload symbolPayload;
+        symbolPayload.typeRef     = symVar.typeRef();
+        symbolPayload.storageKind = initPayload->storageKind;
+
+        if (initPayload->isAddress())
+        {
+            symbolPayload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegReg(symbolPayload.reg, initPayload->reg, MicroOpBits::B64);
+        }
+        else
+        {
+            const MicroOpBits copyBits = identifierPayloadCopyBits(codeGen, symVar.typeRef());
+            symbolPayload.reg          = codeGen.nextVirtualRegisterForType(symVar.typeRef());
+            codeGen.builder().emitLoadRegReg(symbolPayload.reg, initPayload->reg, copyBits);
+        }
+
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
 }

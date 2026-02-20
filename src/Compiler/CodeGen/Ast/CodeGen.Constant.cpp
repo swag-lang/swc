@@ -132,7 +132,7 @@ namespace
                     {
                         const TypeInfo&      elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());
                         const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
-                        const Runtime::Slice<std::byte> runtimeSlice{
+                        const Runtime::Slice runtimeSlice{
                             .ptr   = const_cast<std::byte*>(arrayBytes.data()),
                             .count = elementSize ? arrayBytes.size() / elementSize : 0,
                         };

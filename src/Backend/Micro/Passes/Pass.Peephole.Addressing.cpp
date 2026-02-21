@@ -9,8 +9,12 @@ namespace PeepholePass
 {
     namespace
     {
-        bool tryFoldCopyAddIntoLoadAddress(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+        bool foldCopyAddIntoLoadAddress(const MicroPassContext& context, const Cursor& cursor)
         {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
             if (!ops || nextIt == endIt)
                 return false;
 
@@ -60,8 +64,12 @@ namespace PeepholePass
             return true;
         }
 
-        bool tryFoldLoadAddrIntoNextMemOffset(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+        bool foldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)
         {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
             if (!ops || nextIt == endIt)
                 return false;
 
@@ -102,43 +110,6 @@ namespace PeepholePass
             return true;
         }
 
-        bool matchFoldCopyAddIntoLoadAddress(const MicroPassContext& context, const Cursor& cursor)
-        {
-            if (!cursor.ops || cursor.nextIt == cursor.endIt)
-                return false;
-
-            const MicroInstr& nextInst = *cursor.nextIt;
-            if (nextInst.op != MicroInstrOpcode::OpBinaryRegImm)
-                return false;
-
-            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            if (!nextOps)
-                return false;
-
-            return nextOps[2].microOp == MicroOp::Add;
-        }
-
-        bool rewriteFoldCopyAddIntoLoadAddress(const MicroPassContext& context, const Cursor& cursor)
-        {
-            return tryFoldCopyAddIntoLoadAddress(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
-        }
-
-        bool matchFoldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)
-        {
-            if (!cursor.ops || cursor.nextIt == cursor.endIt)
-                return false;
-
-            uint8_t           baseIndex   = 0;
-            uint8_t           offsetIndex = 0;
-            const MicroInstr& nextInst    = *cursor.nextIt;
-            SWC_UNUSED(context);
-            return MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, nextInst);
-        }
-
-        bool rewriteFoldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)
-        {
-            return tryFoldLoadAddrIntoNextMemOffset(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
-        }
     }
 
     void appendAddressingRules(RuleList& outRules)
@@ -146,12 +117,12 @@ namespace PeepholePass
         // Rule: fold_copy_add_into_load_address
         // Purpose: fold copy + add-immediate into one address load.
         // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]
-        outRules.push_back({"fold_copy_add_into_load_address", RuleTarget::LoadRegReg, matchFoldCopyAddIntoLoadAddress, rewriteFoldCopyAddIntoLoadAddress});
+        outRules.push_back({RuleTarget::LoadRegReg, foldCopyAddIntoLoadAddress});
 
         // Rule: fold_loadaddr_into_next_mem_offset
         // Purpose: consume temporary address register in next memory instruction.
         // Example: lea r11, [rdx + 8]; mov [r11], rax -> mov [rdx + 8], rax
-        outRules.push_back({"fold_loadaddr_into_next_mem_offset", RuleTarget::LoadAddrRegMem, matchFoldLoadAddrIntoNextMemOffset, rewriteFoldLoadAddrIntoNextMemOffset});
+        outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextMemOffset});
     }
 }
 

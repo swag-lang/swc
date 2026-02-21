@@ -8,8 +8,11 @@ namespace PeepholePass
 {
     namespace
     {
-        bool tryRemoveNoOpInstruction(const MicroPassContext& context, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
+        bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
+            const Ref                instRef = cursor.instRef;
+            const MicroInstr&        inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
+            const MicroInstrOperand* ops     = cursor.ops;
             if (!MicroOptimization::isNoOpEncoderInstruction(inst, ops))
                 return false;
 
@@ -17,7 +20,7 @@ namespace PeepholePass
             return true;
         }
 
-        bool tryCanonicalizeCmpRegImmZero(const MicroPassContext& context, const Cursor& cursor)
+        bool canonicalizeCmpRegImmZero(const MicroPassContext& context, const Cursor& cursor)
         {
             SWC_UNUSED(context);
             if (!cursor.ops)
@@ -32,8 +35,14 @@ namespace PeepholePass
             return true;
         }
 
-        bool tryFoldSetCondZeroExtCopy(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+        bool foldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
         {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (SWC_CHECK_NOT_NULL(cursor.inst)->op != MicroInstrOpcode::SetCondReg)
+                return false;
             if (!ops || nextIt == endIt)
                 return false;
 
@@ -102,51 +111,6 @@ namespace PeepholePass
             return true;
         }
 
-        bool matchRemoveNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
-        {
-            SWC_UNUSED(context);
-            return MicroOptimization::isNoOpEncoderInstruction(*SWC_CHECK_NOT_NULL(cursor.inst), cursor.ops);
-        }
-
-        bool rewriteRemoveNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
-        {
-            return tryRemoveNoOpInstruction(context, cursor.instRef, *SWC_CHECK_NOT_NULL(cursor.inst), cursor.ops);
-        }
-
-        bool matchCanonicalizeCmpRegImmZero(const MicroPassContext& context, const Cursor& cursor)
-        {
-            SWC_UNUSED(context);
-            return cursor.inst->op == MicroInstrOpcode::CmpRegImm && cursor.ops && cursor.ops[2].valueU64 == 0;
-        }
-
-        bool rewriteCanonicalizeCmpRegImmZero(const MicroPassContext& context, const Cursor& cursor)
-        {
-            return tryCanonicalizeCmpRegImmZero(context, cursor);
-        }
-
-        bool matchFoldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
-        {
-            if (cursor.inst->op != MicroInstrOpcode::SetCondReg || !cursor.ops || cursor.nextIt == cursor.endIt)
-                return false;
-
-            const MicroStorage::Iterator zeroExtIt = cursor.nextIt;
-            const MicroStorage::Iterator copyIt    = std::next(zeroExtIt);
-            if (copyIt == cursor.endIt)
-                return false;
-
-            const MicroInstr& zeroExtInst = *zeroExtIt;
-            if (zeroExtInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
-                return false;
-
-            const MicroInstr& copyInst = *copyIt;
-            SWC_UNUSED(context);
-            return copyInst.op == MicroInstrOpcode::LoadRegReg;
-        }
-
-        bool rewriteFoldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
-        {
-            return tryFoldSetCondZeroExtCopy(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
-        }
     }
 
     void appendCleanupRules(RuleList& outRules)
@@ -154,17 +118,17 @@ namespace PeepholePass
         // Rule: canonicalize_cmp_reg_imm_zero
         // Purpose: normalize compare-against-zero into dedicated zero-compare opcode.
         // Example: cmp r11, 0 -> cmp_zero r11
-        outRules.push_back({"canonicalize_cmp_reg_imm_zero", RuleTarget::AnyInstruction, matchCanonicalizeCmpRegImmZero, rewriteCanonicalizeCmpRegImmZero});
+        outRules.push_back({RuleTarget::AnyInstruction, canonicalizeCmpRegImmZero});
 
         // Rule: fold_setcond_zeroext_copy
         // Purpose: route setcc and zero-extend directly to final destination register.
         // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
-        outRules.push_back({"fold_setcond_zeroext_copy", RuleTarget::AnyInstruction, matchFoldSetCondZeroExtCopy, rewriteFoldSetCondZeroExtCopy});
+        outRules.push_back({RuleTarget::AnyInstruction, foldSetCondZeroExtCopy});
 
         // Rule: remove_no_op_instruction
         // Purpose: remove encoder-level no-op instructions.
         // Example: mov r8, r8 -> <removed>
-        outRules.push_back({"remove_no_op_instruction", RuleTarget::AnyInstruction, matchRemoveNoOpInstruction, rewriteRemoveNoOpInstruction});
+        outRules.push_back({RuleTarget::AnyInstruction, removeNoOpInstruction});
     }
 }
 

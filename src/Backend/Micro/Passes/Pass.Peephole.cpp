@@ -46,16 +46,12 @@ namespace
         return rules;
     }
 
-    bool tryApplyRule(const MicroPassContext& context, const PeepholePass::Rule& rule, const PeepholePass::Cursor& cursor)
+    bool applyRule(const MicroPassContext& context, const PeepholePass::Rule& rule, const PeepholePass::Cursor& cursor)
     {
-        SWC_UNUSED(rule.name);
         if (!isRuleApplicable(rule, cursor))
             return false;
 
-        if (!SWC_CHECK_NOT_NULL(rule.match)(context, cursor))
-            return false;
-
-        return SWC_CHECK_NOT_NULL(rule.rewrite)(context, cursor);
+        return SWC_CHECK_NOT_NULL(rule.apply)(context, cursor);
     }
 }
 
@@ -84,7 +80,7 @@ bool MicroPeepholePass::run(MicroPassContext& context)
         bool appliedRule = false;
         for (const PeepholePass::Rule& rule : peepholeRules())
         {
-            if (!tryApplyRule(context, rule, cursor))
+            if (!applyRule(context, rule, cursor))
                 continue;
 
             changed     = true;

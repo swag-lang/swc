@@ -25,15 +25,12 @@ namespace PeepholePass
         LoadMemImm,
     };
 
-    using RuleMatchFn   = bool (*)(const MicroPassContext& context, const Cursor& cursor);
-    using RuleRewriteFn = bool (*)(const MicroPassContext& context, const Cursor& cursor);
+    using RuleApplyFn = bool (*)(const MicroPassContext& context, const Cursor& cursor);
 
     struct Rule
     {
-        std::string_view name;
         RuleTarget       target;
-        RuleMatchFn      match;
-        RuleRewriteFn    rewrite;
+        RuleApplyFn      apply;
     };
 
     using RuleList = std::vector<Rule>;

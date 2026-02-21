@@ -47,19 +47,23 @@ namespace
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
+        TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            sourceTypeRef = srcPayload->typeRef;
+
         if (dstTypeRef.isInvalid())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef);
             return Result::Continue;
         }
 
-        if (!srcPayload->typeRef.isValid())
+        if (!sourceTypeRef.isValid())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
         }
 
-        const TypeInfo& srcType        = codeGen.typeMgr().get(srcPayload->typeRef);
+        const TypeInfo& srcType        = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);
         const bool      srcFloatType   = srcType.isFloat();
         const bool      srcIntLikeType = isNumericIntLike(srcType);
@@ -116,7 +120,7 @@ namespace
             return Result::Continue;
         }
 
-        if (srcPayload->typeRef == dstTypeRef)
+        if (sourceTypeRef == dstTypeRef)
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
@@ -139,7 +143,7 @@ namespace
         MicroReg srcReg = srcPayload->reg;
         if (srcPayload->isAddress())
         {
-            srcReg = codeGen.nextVirtualRegisterForType(srcPayload->typeRef);
+            srcReg = codeGen.nextVirtualRegisterForType(sourceTypeRef);
             codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
         }
 

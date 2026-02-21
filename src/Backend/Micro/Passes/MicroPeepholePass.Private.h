@@ -20,6 +20,7 @@ namespace PeepholePass
         AnyInstruction,
         LoadRegReg,
         LoadRegImm,
+        OpBinaryRegImm,
         LoadAddrRegMem,
         LoadMemImm,
     };

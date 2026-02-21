@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.h"
+#include "Backend/Micro/Passes/Pass.Peephole.h"
 
 SWC_BEGIN_NAMESPACE();
 

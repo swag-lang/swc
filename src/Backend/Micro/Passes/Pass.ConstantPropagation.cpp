@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
+#include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 

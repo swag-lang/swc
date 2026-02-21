@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroLegalizePass.h"
+#include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Support/Math/Helpers.h"

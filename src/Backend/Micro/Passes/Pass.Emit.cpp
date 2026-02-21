@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroEmitPass.h"
+#include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 

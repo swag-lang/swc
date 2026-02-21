@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroDeadCodeEliminationPass.h"
+#include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 
 // Eliminates side-effect-free instructions whose results are not live.
 // Example: add r1, 4; ... (r1 never used) -> <remove add>.

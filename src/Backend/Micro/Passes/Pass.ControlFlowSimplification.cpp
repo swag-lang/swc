@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroControlFlowSimplificationPass.h"
+#include "Backend/Micro/Passes/Pass.ControlFlowSimplification.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 
 // Simplifies the micro CFG by removing structurally redundant control flow.

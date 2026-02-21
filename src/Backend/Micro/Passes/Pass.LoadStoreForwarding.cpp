@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroLoadStoreForwardingPass.h"
+#include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
 
 // Forwards recent store values into matching following loads.
 // Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.

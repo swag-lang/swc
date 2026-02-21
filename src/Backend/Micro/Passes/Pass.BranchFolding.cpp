@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroBranchFoldingPass.h"
+#include "Backend/Micro/Passes/Pass.BranchFolding.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 

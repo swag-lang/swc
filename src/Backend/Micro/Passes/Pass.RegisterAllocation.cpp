@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
+#include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"

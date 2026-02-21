@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPass.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.h"
-#include "Backend/Micro/Passes/MicroPrologEpilogPass.h"
-#include "Backend/Micro/Passes/MicroRegisterAllocationPass.h"
+#include "Backend/Micro/Passes/Pass.Peephole.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilog.h"
+#include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Unittest/BackendUnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
 

@@ -52,7 +52,7 @@ struct CommandLine
     bool debugInfo               = false;
     bool internalUnittest        = true;
     bool verboseInternalUnittest = false;
-    bool runtime                 = false;
+    bool runtime                 = true;
 
     static inline bool dbgDevMode = false;
 

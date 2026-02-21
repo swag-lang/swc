@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroStrengthReductionPass.h"
+#include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 
 // Replaces expensive arithmetic with cheaper equivalent forms.
 // Example: mul r1, 8 -> shl r1, 3.

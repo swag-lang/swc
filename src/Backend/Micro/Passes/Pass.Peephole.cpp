@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
+#include "Backend/Micro/Passes/Pass.Peephole.h"
+#include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 

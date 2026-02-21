@@ -9,6 +9,117 @@ namespace PeepholePass
 {
     namespace
     {
+        bool foldZeroIndexAmcFromImmediate(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            if (ops[2].valueU64 != 0)
+                return false;
+            if (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64)
+                return false;
+
+            const MicroReg indexReg = ops[0].reg;
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                MicroInstr&        scanInst = *scanIt;
+                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != indexReg)
+                        continue;
+
+                    hasUse |= ref.use;
+                    hasDef |= ref.def;
+                }
+
+                if (hasDef)
+                    return false;
+
+                if (!hasUse)
+                {
+                    if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                        return false;
+                    continue;
+                }
+
+                if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, indexReg))
+                    return false;
+
+                const MicroInstrOpcode                 originalOp  = scanInst.op;
+                const std::array<MicroInstrOperand, 8> originalOps = {scanOps[0], scanOps[1], scanOps[2], scanOps[3], scanOps[4], scanOps[5], scanOps[6], scanOps[7]};
+
+                if (scanInst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                {
+                    if (scanOps[2].reg != indexReg)
+                        return false;
+
+                    scanInst.op         = MicroInstrOpcode::LoadAddrRegMem;
+                    scanOps[2].opBits   = scanOps[3].opBits;
+                    scanOps[3].valueU64 = scanOps[6].valueU64;
+                }
+                else if (scanInst.op == MicroInstrOpcode::LoadAmcRegMem)
+                {
+                    if (scanOps[2].reg != indexReg)
+                        return false;
+
+                    scanInst.op         = MicroInstrOpcode::LoadRegMem;
+                    scanOps[2].opBits   = scanOps[3].opBits;
+                    scanOps[3].valueU64 = scanOps[6].valueU64;
+                }
+                else if (scanInst.op == MicroInstrOpcode::LoadAmcMemReg)
+                {
+                    if (scanOps[1].reg != indexReg)
+                        return false;
+
+                    scanInst.op         = MicroInstrOpcode::LoadMemReg;
+                    scanOps[1].reg      = scanOps[2].reg;
+                    scanOps[2].opBits   = scanOps[4].opBits;
+                    scanOps[3].valueU64 = scanOps[6].valueU64;
+                }
+                else if (scanInst.op == MicroInstrOpcode::LoadAmcMemImm)
+                {
+                    if (scanOps[1].reg != indexReg)
+                        return false;
+
+                    scanInst.op         = MicroInstrOpcode::LoadMemImm;
+                    scanOps[1].opBits   = scanOps[4].opBits;
+                    scanOps[2].valueU64 = scanOps[6].valueU64;
+                    scanOps[3].valueU64 = scanOps[7].valueU64;
+                }
+                else
+                {
+                    return false;
+                }
+
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanInst.op = originalOp;
+                    for (uint32_t i = 0; i < 8; ++i)
+                        scanOps[i] = originalOps[i];
+                    return false;
+                }
+
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                return true;
+            }
+
+            return false;
+        }
+
         bool foldCopyAddIntoLoadAddress(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -224,6 +335,8 @@ namespace PeepholePass
 
     void appendAddressingRules(RuleList& outRules)
     {
+        outRules.push_back({RuleTarget::LoadRegImm, foldZeroIndexAmcFromImmediate});
+
         // Rule: fold_copy_add_into_load_address
         // Purpose: fold copy + add-immediate into one address load.
         // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]

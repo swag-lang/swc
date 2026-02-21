@@ -38,47 +38,48 @@ namespace
     void printAstStage(const Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
     {
         const AstNode&        node     = sema.node(nodeRef);
-        const SourceCodeRange codeLoc  = node.codeRange(sema.ctx());
+        const TaskContext&    ctx      = sema.ctx();
+        const SourceCodeRange codeLoc  = node.codeRange(ctx);
         const SourceView&     srcView  = sema.srcView(node.srcViewRef());
         const SourceFile*     srcFile  = srcView.file();
-        const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&sema.ctx(), srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
+        const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&ctx, srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
 
-        Logger::ScopedLock lock(sema.ctx().global().logger());
-        Logger::print(sema.ctx(), "\n");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Compiler));
-        Logger::print(sema.ctx(), "[ast]");
-        Logger::print(sema.ctx(), "\n");
+        Logger::ScopedLock lock(ctx.global().logger());
+        Logger::print(ctx, "\n");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
+        Logger::print(ctx, "[ast]");
+        Logger::print(ctx, "\n");
 
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
-        Logger::print(sema.ctx(), "  stage");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
-        Logger::print(sema.ctx(), "    : ");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Attribute));
-        Logger::print(sema.ctx(), stageName);
-        Logger::print(sema.ctx(), "\n");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  stage");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, "    : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Attribute));
+        Logger::print(ctx, stageName);
+        Logger::print(ctx, "\n");
 
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
-        Logger::print(sema.ctx(), "  node");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
-        Logger::print(sema.ctx(), "     : ");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Type));
-        Logger::print(sema.ctx(), Ast::nodeIdName(node.id()));
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
-        Logger::print(sema.ctx(), " #");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::InstructionIndex));
-        Logger::print(sema.ctx(), std::format("{}", nodeRef.get()));
-        Logger::print(sema.ctx(), "\n");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  node");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, "     : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Type));
+        Logger::print(ctx, Ast::nodeIdName(node.id()));
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, " #");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::InstructionIndex));
+        Logger::print(ctx, std::format("{}", nodeRef.get()));
+        Logger::print(ctx, "\n");
 
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Keyword));
-        Logger::print(sema.ctx(), "  location");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Code));
-        Logger::print(sema.ctx(), " : ");
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::String));
-        Logger::print(sema.ctx(), filePath);
-        Logger::print(sema.ctx(), "\n");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
+        Logger::print(ctx, "  location");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
+        Logger::print(ctx, " : ");
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::String));
+        Logger::print(ctx, filePath);
+        Logger::print(ctx, "\n");
 
-        Logger::print(sema.ctx(), SyntaxColorHelper::toAnsi(sema.ctx(), SyntaxColor::Default));
-        AstPrinter::print(sema.ctx(), sema.ast(), nodeRef);
+        Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
+        AstPrinter::print(ctx, sema.ast(), nodeRef);
     }
 
     RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)

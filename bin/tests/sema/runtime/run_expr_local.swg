@@ -272,6 +272,22 @@ struct BigCopy
     #assert(V == 18)
 }
 
+#[Swag.Optimize(Swag.Optimization.O0)]
+#test
+{
+    //#[Swag.PrintMicro]
+    #[Swag.PrintAst]
+    func sumPairLetOverflow()->s32
+    {
+        let a, b = 120
+        return a + b
+    }
+
+    const V = #run sumPairLetOverflow()
+    #assert(#typeof(V) == s32)
+    #assert(V == 240)
+}
+
 #test
 {
     func add(a, b: s32)->s32

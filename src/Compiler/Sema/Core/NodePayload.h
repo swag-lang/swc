@@ -52,6 +52,9 @@ class NodePayload
     friend class SourceFile;
     friend class SemaJob;
 
+public:
+    AstNodeRef resolveSubstituteRef(AstNodeRef nodeRef) const { return getSubstituteRef(nodeRef); }
+
 protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }

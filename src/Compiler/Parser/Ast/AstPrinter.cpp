@@ -1,20 +1,22 @@
 #include "pch.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstVisit.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
+#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct AstPrintStackEntry
+    struct AstPrintNodeEntry
     {
-        AstNodeRef nodeRef;
-        Utf8       prefix;
-        bool       isLastChild = false;
+        Utf8 prefix;
+        bool isLastChild = false;
     };
 
     constexpr uint32_t K_MAX_TOKEN_TEXT = 48;
@@ -49,9 +51,9 @@ namespace
         return out;
     }
 
-    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, const AstPrintStackEntry& entry)
+    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, const AstPrintNodeEntry& entry)
     {
-        const AstNode&      node     = ast.node(entry.nodeRef);
+        const AstNode&      node     = ast.node(nodeRef);
         const AstNodeIdInfo nodeInfo = Ast::nodeIdInfos(node.id());
 
         out += entry.prefix;
@@ -75,6 +77,17 @@ namespace
 
         out += "\n";
     }
+
+    AstVisitResult runVisit(AstVisit& visit, const TaskContext& ctx)
+    {
+        while (true)
+        {
+            const AstVisitResult result = visit.step(ctx);
+            if (result == AstVisitResult::Continue)
+                continue;
+            return result;
+        }
+    }
 }
 
 Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
@@ -83,32 +96,77 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
     if (root.isInvalid())
         return out;
 
-    SmallVector<AstPrintStackEntry> stack;
-    stack.push_back({.nodeRef = root, .prefix = Utf8{}, .isLastChild = true});
+    std::unordered_map<AstNodeRef, uint32_t>          totalChildrenByParent;
+    std::unordered_map<AstNodeRef, uint32_t>          visitedChildrenByParent;
+    std::unordered_map<AstNodeRef, AstPrintNodeEntry> nodeEntries;
+    nodeEntries.reserve(256);
 
-    while (!stack.empty())
-    {
-        const AstPrintStackEntry entry = stack.back();
-        stack.pop_back();
+    const SourceFile* sourceFile = ast.srcView().file();
 
-        appendNodeLine(out, ctx, ast, entry);
+    auto resolveNodeRef = [sourceFile](AstNodeRef nodeRef) -> AstNodeRef {
+        return sourceFile->nodePayloadContext().resolveSubstituteRef(nodeRef);
+    };
+    root = resolveNodeRef(root);
 
-        SmallVector<AstNodeRef> children;
-        ast.node(entry.nodeRef).collectChildrenFromAst(children, ast);
-        for (size_t i = children.size(); i > 0; --i)
+    // Count children per node
+    AstVisit orderingVisit;
+    orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
+    orderingVisit.setNodeRefResolver(resolveNodeRef);
+
+    orderingVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
+        const AstNodeRef parentRef = orderingVisit.currentNodeRef();
+        uint32_t&        numChild  = totalChildrenByParent[parentRef];
+        numChild++;
+        return Result::Continue;
+    });
+
+    auto& mutableAst = const_cast<Ast&>(ast);
+    orderingVisit.start(mutableAst, root);
+    if (runVisit(orderingVisit, ctx) == AstVisitResult::Error)
+        return out;
+
+    // Print
+    AstVisit printVisit;
+    printVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
+    printVisit.setNodeRefResolver(resolveNodeRef);
+    printVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
+        const AstNodeRef parentRef = printVisit.currentNodeRef();
+        uint32_t&        numChild  = visitedChildrenByParent[parentRef];
+        numChild++;
+        return Result::Continue;
+    });
+
+    printVisit.setPreNodeVisitor([&](AstNode&) -> Result {
+        const AstNodeRef nodeRef         = printVisit.currentNodeRef();
+        const AstNodeRef printNodeRef    = resolveNodeRef(nodeRef);
+        const AstNodeRef parentRef       = printVisit.parentNodeRef();
+
+        AstPrintNodeEntry entry;
+        if (parentRef.isInvalid())
         {
-            const AstNodeRef childRef = children[i - 1];
-            if (childRef.isInvalid())
-                continue;
-
-            AstPrintStackEntry childEntry;
-            childEntry.nodeRef = childRef;
-            childEntry.prefix  = entry.prefix;
-            childEntry.prefix += entry.isLastChild ? "   " : "|  ";
-            childEntry.isLastChild = (i == children.size());
-            stack.push_back(childEntry);
+            entry.prefix.clear();
+            entry.isLastChild = true;
         }
-    }
+        else
+        {
+            const auto parentIt = nodeEntries.find(parentRef);
+            SWC_ASSERT(parentIt != nodeEntries.end());
+            entry.prefix = parentIt->second.prefix;
+            entry.prefix += parentIt->second.isLastChild ? "   " : "|  ";
+
+            const uint32_t totalChildren = totalChildrenByParent[parentRef];
+            const uint32_t childOrder    = visitedChildrenByParent[parentRef];
+            entry.isLastChild            = childOrder == totalChildren;
+        }
+
+        appendNodeLine(out, ctx, ast, printNodeRef, entry);
+        nodeEntries[nodeRef] = entry;
+        return Result::Continue;
+    });
+
+    printVisit.start(mutableAst, root);
+    if (runVisit(printVisit, ctx) == AstVisitResult::Error)
+        return {};
 
     return out;
 }

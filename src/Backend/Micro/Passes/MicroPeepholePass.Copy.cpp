@@ -603,7 +603,7 @@ namespace PeepholePass
     void appendCopyRules(RuleList& outRules)
     {
         // Rule: forward_copy_into_next_binary_source
-        // Purpose: forward copied source register into next binary operation source.
+        // Purpose: forward copied source register into the next binary operation source.
         // Example: mov r8, r11; and r5, r8 -> and r5, r11
         outRules.push_back({"forward_copy_into_next_binary_source", RuleTarget::LoadRegReg, matchForwardCopyIntoNextBinarySource, rewriteForwardCopyIntoNextBinarySource});
 
@@ -613,7 +613,7 @@ namespace PeepholePass
         outRules.push_back({"forward_copy_into_next_compare_source", RuleTarget::LoadRegReg, matchForwardCopyIntoNextCompareSource, rewriteForwardCopyIntoNextCompareSource});
 
         // Rule: fold_copy_op_copy_back
-        // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on source.
+        // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.
         // Example: mov r8, r11; and r8, rdx; mov r11, r8 -> and r11, rdx
         outRules.push_back({"fold_copy_op_copy_back", RuleTarget::LoadRegReg, matchFoldCopyOpCopyBack, rewriteFoldCopyOpCopyBack});
 
@@ -633,7 +633,7 @@ namespace PeepholePass
         outRules.push_back({"coalesce_copy_instruction", RuleTarget::LoadRegReg, matchCoalesceCopyInstruction, rewriteCoalesceCopyInstruction});
 
         // Rule: remove_overwritten_copy
-        // Purpose: remove copy when destination is immediately overwritten by another copy.
+        // Purpose: remove a copy when the destination is immediately overwritten by another copy.
         // Example: mov r8, r11; mov r8, rdx -> mov r8, rdx
         outRules.push_back({"remove_overwritten_copy", RuleTarget::LoadRegReg, matchRemoveOverwrittenCopy, rewriteRemoveOverwrittenCopy});
     }

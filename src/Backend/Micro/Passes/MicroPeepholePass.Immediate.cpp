@@ -483,7 +483,7 @@ namespace PeepholePass
         outRules.push_back({"merge_regimm_arithmetic_with_next", RuleTarget::OpBinaryRegImm, matchMergeRegImmArithmeticWithNext, rewriteMergeRegImmArithmeticWithNext});
 
         // Rule: fold_loadimm_into_next_copy
-        // Purpose: fold immediate load through a copy and remove temporary register.
+        // Purpose: fold an immediate load through a copy and remove temporary register.
         // Example: mov r11, 42; mov rax, r11 -> mov rax, 42
         outRules.push_back({"fold_loadimm_into_next_copy", RuleTarget::LoadRegImm, matchFoldLoadImmIntoNextCopy, rewriteFoldLoadImmIntoNextCopy});
 

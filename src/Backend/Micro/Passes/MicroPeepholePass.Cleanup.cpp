@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 

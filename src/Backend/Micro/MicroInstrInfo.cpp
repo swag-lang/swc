@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Backend/Micro/MicroInstructionInfo.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
-bool MicroInstructionInfo::isTerminatorInstruction(const MicroInstr& inst)
+bool MicroInstrInfo::isTerminatorInstruction(const MicroInstr& inst)
 {
     switch (inst.op)
     {
@@ -18,7 +18,7 @@ bool MicroInstructionInfo::isTerminatorInstruction(const MicroInstr& inst)
     }
 }
 
-bool MicroInstructionInfo::isSameRegisterClass(MicroReg leftReg, MicroReg rightReg)
+bool MicroInstrInfo::isSameRegisterClass(MicroReg leftReg, MicroReg rightReg)
 {
     if (leftReg.isInt() && rightReg.isInt())
         return true;
@@ -31,7 +31,7 @@ bool MicroInstructionInfo::isSameRegisterClass(MicroReg leftReg, MicroReg rightR
     return false;
 }
 
-bool MicroInstructionInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
+bool MicroInstrInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
 {
     if (inst.op == MicroInstrOpcode::Label)
         return true;

@@ -213,7 +213,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLegalizePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLoadStoreForwardingPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroInstructionCombinePass.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroInstructionInfo.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Addressing.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Cleanup.cpp"/>
@@ -389,7 +389,7 @@
     <ItemGroup>
         <ClInclude Include="src\Backend\Backend.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\MicroPeepholePass.Private.h" />
-        <ClInclude Include="src\\Backend\\Micro\\MicroInstructionInfo.h"/>
+        <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
         <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>

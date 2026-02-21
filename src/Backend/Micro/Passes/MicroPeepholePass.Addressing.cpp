@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/MicroInstructionInfo.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
@@ -28,7 +28,7 @@ namespace PeepholePass
                 return false;
             if (nextOps[2].microOp != MicroOp::Add)
                 return false;
-            if (!MicroInstructionInfo::isSameRegisterClass(ops[0].reg, ops[1].reg))
+            if (!MicroInstrInfo::isSameRegisterClass(ops[0].reg, ops[1].reg))
                 return false;
             if (!areFlagsDeadAfterInstruction(context, nextIt, endIt))
                 return false;

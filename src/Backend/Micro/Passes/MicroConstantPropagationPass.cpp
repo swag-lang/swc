@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
-#include "Backend/Micro/MicroInstructionInfo.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 
 // Propagates known integer constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -176,7 +176,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             }
         }
 
-        if (inst.op == MicroInstrOpcode::Label || MicroInstructionInfo::isTerminatorInstruction(inst))
+        if (inst.op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(inst))
             known.clear();
     }
 

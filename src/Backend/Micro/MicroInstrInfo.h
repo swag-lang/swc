@@ -3,7 +3,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace MicroInstructionInfo
+namespace MicroInstrInfo
 {
     bool isTerminatorInstruction(const MicroInstr& inst);
     bool isSameRegisterClass(MicroReg leftReg, MicroReg rightReg);

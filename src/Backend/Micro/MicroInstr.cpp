@@ -25,7 +25,7 @@ void MicroInstrUseDef::addUseDef(MicroReg reg)
 
 namespace
 {
-    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrInfo& info, const MicroInstrOperand* ops)
+    std::array<MicroInstrRegMode, 3> resolveRegModes(const MicroInstrDef& info, const MicroInstrOperand* ops)
     {
         auto modes = info.regModes;
 
@@ -125,7 +125,7 @@ const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& operands) co
 
 MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
 {
-    const MicroInstrInfo&    opcodeInfo = info(op);
+    const MicroInstrDef&     opcodeInfo = info(op);
     const MicroInstrOperand* ops        = this->ops(operands);
 
     MicroInstrUseDef useDef;
@@ -146,9 +146,9 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 
 void MicroInstr::collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder*) const
 {
-    const MicroInstrInfo& opcodeInfo = info(op);
-    MicroInstrOperand*    ops        = this->ops(operands);
-    const auto            modes      = resolveRegModes(opcodeInfo, ops);
+    const MicroInstrDef& opcodeInfo = info(op);
+    MicroInstrOperand*   ops        = this->ops(operands);
+    const auto           modes      = resolveRegModes(opcodeInfo, ops);
     collectRegOperandsFromModes(out, ops, modes);
 }
 

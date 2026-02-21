@@ -26,7 +26,7 @@ enum class MicroInstrRegSpecial : uint8_t
     OpTernaryRegRegReg,
 };
 
-struct MicroInstrInfo
+struct MicroInstrDef
 {
     std::array<MicroInstrRegMode, 3> regModes;
     MicroInstrRegSpecial             special       = MicroInstrRegSpecial::None;
@@ -116,7 +116,7 @@ struct MicroInstr
     MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
     void                     collectRegOperands(MicroOperandStorage& operands, SmallVector<MicroInstrRegOperandRef>& out, const Encoder* encoder) const;
 
-    static constexpr const MicroInstrInfo& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
+    static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
 };
 
 SWC_END_NAMESPACE();

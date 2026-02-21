@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroLegalizePass.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroInstructionInfo.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Support/Math/Helpers.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.
@@ -54,7 +54,7 @@ namespace
         {
             const MicroInstr&      scanInst = *it;
             const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
-            if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
+            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return true;
 
             if (containsReg(useDef.uses, reg))

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroCopyPropagationPass.h"
-#include "Backend/Micro/MicroInstructionInfo.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 
 // Propagates register aliases created by copy/move instructions.
 // Example: mov r2, r1; add r3, r2 -> add r3, r1.
@@ -70,7 +70,7 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
 
             MicroReg& reg         = *SWC_CHECK_NOT_NULL(ref.reg);
             MicroReg  resolvedReg = resolveAlias(aliases, reg);
-            if (resolvedReg != reg && MicroInstructionInfo::isSameRegisterClass(reg, resolvedReg))
+            if (resolvedReg != reg && MicroInstrInfo::isSameRegisterClass(reg, resolvedReg))
             {
                 reg     = resolvedReg;
                 changed = true;
@@ -86,11 +86,11 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
             const MicroInstrOperand* instOps = inst.ops(operands);
             const MicroReg           dstReg  = instOps[0].reg;
             const MicroReg           srcReg  = resolveAlias(aliases, instOps[1].reg);
-            if (dstReg != srcReg && MicroInstructionInfo::isSameRegisterClass(dstReg, srcReg) && instOps[2].opBits == MicroOpBits::B64)
+            if (dstReg != srcReg && MicroInstrInfo::isSameRegisterClass(dstReg, srcReg) && instOps[2].opBits == MicroOpBits::B64)
                 aliases[dstReg.packed] = srcReg;
         }
 
-        if (MicroInstructionInfo::isLocalDataflowBarrier(inst, useDef))
+        if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
             aliases.clear();
     }
 

@@ -464,8 +464,7 @@ namespace PeepholePass
         bool isMergeableRegImmArithmeticInstruction(const MicroInstr&        inst,
                                                     const MicroInstrOperand* ops,
                                                     MicroReg                 expectedReg,
-                                                    MicroOpBits              expectedBits,
-                                                    MicroOp                  expectedOp)
+                                                    MicroOpBits              expectedBits)
         {
             if (!ops)
                 return false;
@@ -476,7 +475,7 @@ namespace PeepholePass
                 return false;
             if (ops[1].opBits != expectedBits)
                 return false;
-            if (ops[2].microOp != expectedOp)
+            if (ops[2].microOp != MicroOp::Add && ops[2].microOp != MicroOp::Subtract)
                 return false;
             return true;
         }
@@ -526,10 +525,10 @@ namespace PeepholePass
 
             const MicroReg    mergedReg = ops[0].reg;
             const MicroOpBits opBits    = ops[1].opBits;
-            const MicroOp     microOp   = ops[2].microOp;
+            const MicroOp     firstOp   = ops[2].microOp;
             if (!mergedReg.isValid() || mergedReg.isNoBase())
                 return false;
-            if (microOp != MicroOp::Add && microOp != MicroOp::Subtract)
+            if (firstOp != MicroOp::Add && firstOp != MicroOp::Subtract)
                 return false;
 
             const MicroInstr&        firstNextInst = *nextIt;
@@ -537,7 +536,7 @@ namespace PeepholePass
 
             MicroStorage::Iterator   secondAdjustIt;
             const MicroInstrOperand* secondAdjustOps = nullptr;
-            if (isMergeableRegImmArithmeticInstruction(firstNextInst, firstNextOps, mergedReg, opBits, microOp))
+            if (isMergeableRegImmArithmeticInstruction(firstNextInst, firstNextOps, mergedReg, opBits))
             {
                 secondAdjustIt  = nextIt;
                 secondAdjustOps = firstNextOps;
@@ -553,7 +552,7 @@ namespace PeepholePass
 
                 const MicroInstr&        secondInst = *secondAdjustIt;
                 const MicroInstrOperand* secondOps  = secondInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-                if (!isMergeableRegImmArithmeticInstruction(secondInst, secondOps, mergedReg, opBits, microOp))
+                if (!isMergeableRegImmArithmeticInstruction(secondInst, secondOps, mergedReg, opBits))
                     return false;
 
                 secondAdjustOps = secondOps;
@@ -573,16 +572,60 @@ namespace PeepholePass
             if (!firstOps)
                 return false;
 
-            const uint64_t originalImm = firstOps[3].valueU64;
-            const uint64_t firstImm    = originalImm;
-            const uint64_t secondImm   = secondAdjustOps[3].valueU64;
-            uint64_t       combinedImm = firstImm + secondImm;
+            const MicroOp   originalFirstOp  = firstOps[2].microOp;
+            const uint64_t  originalFirstImm = firstOps[3].valueU64;
+            const uint64_t  opBitsMask       = opBits == MicroOpBits::B64 ? std::numeric_limits<uint64_t>::max() : getOpBitsMask(opBits);
+            const uint64_t  firstImm         = originalFirstImm & opBitsMask;
+            const uint64_t  secondImm        = secondAdjustOps[3].valueU64 & opBitsMask;
+            const MicroOp   secondOp         = secondAdjustOps[2].microOp;
+            MicroOp         combinedOp       = MicroOp::Add;
+            uint64_t        combinedImm      = 0;
+
+            if (firstOp == MicroOp::Add && secondOp == MicroOp::Add)
+            {
+                combinedOp  = MicroOp::Add;
+                combinedImm = firstImm + secondImm;
+            }
+            else if (firstOp == MicroOp::Subtract && secondOp == MicroOp::Subtract)
+            {
+                combinedOp  = MicroOp::Subtract;
+                combinedImm = firstImm + secondImm;
+            }
+            else if (firstOp == MicroOp::Add && secondOp == MicroOp::Subtract)
+            {
+                if (firstImm >= secondImm)
+                {
+                    combinedOp  = MicroOp::Add;
+                    combinedImm = firstImm - secondImm;
+                }
+                else
+                {
+                    combinedOp  = MicroOp::Subtract;
+                    combinedImm = secondImm - firstImm;
+                }
+            }
+            else
+            {
+                if (firstImm >= secondImm)
+                {
+                    combinedOp  = MicroOp::Subtract;
+                    combinedImm = firstImm - secondImm;
+                }
+                else
+                {
+                    combinedOp  = MicroOp::Add;
+                    combinedImm = secondImm - firstImm;
+                }
+            }
+
             if (opBits != MicroOpBits::B64)
-                combinedImm &= getOpBitsMask(opBits);
+                combinedImm &= opBitsMask;
+            firstOps[2].microOp  = combinedOp;
             firstOps[3].valueU64 = combinedImm;
             if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
             {
-                firstOps[3].valueU64 = originalImm;
+                firstOps[2].microOp  = originalFirstOp;
+                firstOps[3].valueU64 = originalFirstImm;
                 return false;
             }
 
@@ -596,7 +639,7 @@ namespace PeepholePass
     {
         // Rule: merge_regimm_arithmetic_with_next
         // Purpose: merge two same-register immediate add/sub operations into one, anywhere in the block.
-        // Example: add rax, 4; mov r9, rcx; add rax, 8 -> add rax, 12; mov r9, rcx
+        // Example: add rax, 12; mov r9, rcx; sub rax, 4 -> add rax, 8; mov r9, rcx
         outRules.push_back({RuleTarget::OpBinaryRegImm, mergeRegImmArithmeticWithNext});
 
         // Rule: fold_loadimm_into_next_copy

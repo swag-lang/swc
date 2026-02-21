@@ -74,6 +74,7 @@ namespace
 
         uint32_t instructionCount = 0;
         uint64_t spillFrameUsed   = 0;
+        bool     hasControlFlow   = false;
 
         std::vector<std::vector<uint32_t>>                  liveOut;
         std::unordered_set<uint32_t>                        vregsLiveAcrossCall;
@@ -101,6 +102,16 @@ namespace
         state.instructions     = SWC_CHECK_NOT_NULL(context.instructions);
         state.operands         = SWC_CHECK_NOT_NULL(context.operands);
         state.instructionCount = state.instructions->count();
+        state.hasControlFlow   = false;
+
+        for (const auto& inst : state.instructions->view())
+        {
+            if (inst.op == MicroInstrOpcode::Label || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::JumpInstruction))
+            {
+                state.hasControlFlow = true;
+                break;
+            }
+        }
     }
 
     bool isLiveOut(const PassState& state, uint32_t key, uint32_t stamp)
@@ -502,19 +513,15 @@ namespace
             }
         }
 
-        auto& victimState = state.states[victimKey];
-        if (isLiveOut(state, victimKey, stamp))
+        auto& victimState          = state.states[victimKey];
+        const bool hadSpillSlot    = victimState.hasSpill;
+        ensureSpillSlot(state, victimState, victimReg.isFloat());
+        if (victimState.dirty || !hadSpillSlot)
         {
-            const bool hadSpillSlot = victimState.hasSpill;
-            ensureSpillSlot(state, victimState, victimReg.isFloat());
-
-            if (victimState.dirty || !hadSpillSlot)
-            {
-                PendingInsert spillPending;
-                queueSpillStore(spillPending, victimReg, victimState, *state.conv);
-                pending.push_back(spillPending);
-                victimState.dirty = false;
-            }
+            PendingInsert spillPending;
+            queueSpillStore(spillPending, victimReg, victimState, *state.conv);
+            pending.push_back(spillPending);
+            victimState.dirty = false;
         }
 
         unmapVirtReg(state, victimKey);
@@ -582,6 +589,10 @@ namespace
 
     void expireDeadMappings(PassState& state, uint32_t stamp)
     {
+        // Linear dead-expiry is only safe when the instruction stream has no control-flow joins.
+        if (state.hasControlFlow)
+            return;
+
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
         {
             if (isLiveOut(state, it->first, stamp))

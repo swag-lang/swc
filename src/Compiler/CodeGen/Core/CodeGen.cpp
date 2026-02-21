@@ -178,13 +178,14 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
     const CodeGenNodePayload* srcPayload = payload(srcNodeRef);
     SWC_ASSERT(srcPayload != nullptr);
+    const CodeGenNodePayload srcPayloadCopy = *srcPayload;
 
     if (typeRef.isInvalid())
-        typeRef = srcPayload->typeRef;
+        typeRef = srcPayloadCopy.typeRef;
 
     auto& dstPayload       = setPayload(dstNodeRef, typeRef);
-    dstPayload.reg         = srcPayload->reg;
-    dstPayload.storageKind = srcPayload->storageKind;
+    dstPayload.reg         = srcPayloadCopy.reg;
+    dstPayload.storageKind = srcPayloadCopy.storageKind;
     return dstPayload;
 }
 

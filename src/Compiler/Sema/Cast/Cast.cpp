@@ -28,6 +28,7 @@ AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, 
     const AstNode& node               = sema.node(nodeRef);
     auto [substNodeRef, substNodePtr] = sema.ast().makeNode<AstNodeId::CastExpr>(node.tokRef());
     substNodePtr->addFlag(castFlags);
+    substNodePtr->nodeTypeRef = AstNodeRef::invalid();
     substNodePtr->nodeExprRef = nodeRef;
     sema.setSubstitute(nodeRef, substNodeRef);
     sema.setType(substNodeRef, dstTypeRef);

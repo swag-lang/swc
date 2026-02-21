@@ -56,14 +56,15 @@ struct AstNode
         payloadBits_ = 0;
     }
 
+    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
+    static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
+    void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;
+
     static void collectChildren(const SmallVector<AstNodeRef>& out, const Ast& ast)
     {
         SWC_UNUSED(out);
         SWC_UNUSED(ast);
     }
-    static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
-    static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
-    void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;
 
     static Result semaPreDecl(const Sema& sema)
     {

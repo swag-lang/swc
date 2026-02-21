@@ -58,7 +58,9 @@ namespace
 
         out += entry.prefix;
         appendColored(out, ctx, SyntaxColor::Code, entry.isLastChild ? "+- " : "|- ");
-        appendColored(out, ctx, SyntaxColor::Type, nodeInfo.name);
+
+        const SyntaxColor nodeColor = ast.isAdditionalNode(nodeRef) ? SyntaxColor::Intrinsic : SyntaxColor::Function;
+        appendColored(out, ctx, nodeColor, nodeInfo.name);
         if (node.tokRef().isValid())
         {
             out += " ";
@@ -137,9 +139,9 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
     });
 
     printVisit.setPreNodeVisitor([&](AstNode&) -> Result {
-        const AstNodeRef nodeRef         = printVisit.currentNodeRef();
-        const AstNodeRef printNodeRef    = resolveNodeRef(nodeRef);
-        const AstNodeRef parentRef       = printVisit.parentNodeRef();
+        const AstNodeRef nodeRef      = printVisit.currentNodeRef();
+        const AstNodeRef printNodeRef = resolveNodeRef(nodeRef);
+        const AstNodeRef parentRef    = printVisit.parentNodeRef();
 
         AstPrintNodeEntry entry;
         if (parentRef.isInvalid())
@@ -160,7 +162,20 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
         }
 
         appendNodeLine(out, ctx, ast, printNodeRef, entry);
-        nodeEntries[nodeRef] = entry;
+        if (printNodeRef != nodeRef)
+        {
+            AstPrintNodeEntry substitutedEntry;
+            substitutedEntry.prefix = entry.prefix;
+            substitutedEntry.prefix += entry.isLastChild ? "   " : "|  ";
+            substitutedEntry.isLastChild = true;
+            appendNodeLine(out, ctx, ast, nodeRef, substitutedEntry);
+            nodeEntries[nodeRef] = substitutedEntry;
+        }
+        else
+        {
+            nodeEntries[nodeRef] = entry;
+        }
+
         return Result::Continue;
     });
 

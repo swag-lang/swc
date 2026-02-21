@@ -578,6 +578,8 @@ namespace
                 return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadAmcMemImm:
                 return std::format("{} = {}", memAmcString(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), hexU64(ops[7].valueU64));
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+                return std::format("{} = &{}", regName(ops[0].reg, regPrintMode, encoder), memAmcString(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::ClearReg:
                 return std::format("{} = 0", regName(ops[0].reg, regPrintMode, encoder));
 

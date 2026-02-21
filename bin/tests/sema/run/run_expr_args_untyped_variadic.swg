@@ -239,6 +239,7 @@
 
 #test
 {
+    #[Swag.PrintMicro]
     func variadicAnyWithHead(a: string, values: ...)->u8
     {
         let s0 = cast(string) values[0]

@@ -129,7 +129,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
     const MicroInstrOperand* ops        = this->ops(operands);
 
     MicroInstrUseDef useDef;
-    if (opcodeInfo.isCall)
+    if (opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
     {
         useDef.isCall   = true;
         useDef.callConv = ops[opcodeInfo.callConvIndex].callConv;

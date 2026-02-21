@@ -273,7 +273,7 @@ namespace PeepholePass
             return true;
         }
 
-        bool isMergeableRegImmArithmeticInstruction(const MicroInstr& inst,
+        bool isMergeableRegImmArithmeticInstruction(const MicroInstr&        inst,
                                                     const MicroInstrOperand* ops,
                                                     MicroReg                 expectedReg,
                                                     MicroOpBits              expectedBits,
@@ -387,7 +387,7 @@ namespace PeepholePass
             uint64_t       combinedImm = firstImm + secondImm;
             if (opBits != MicroOpBits::B64)
                 combinedImm &= getOpBitsMask(opBits);
-            firstOps[3].valueU64       = combinedImm;
+            firstOps[3].valueU64 = combinedImm;
             if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
             {
                 firstOps[3].valueU64 = originalImm;
@@ -510,4 +510,3 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
-

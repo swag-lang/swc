@@ -5,29 +5,20 @@ SWC_BEGIN_NAMESPACE();
 
 bool MicroInstrInfo::isTerminatorInstruction(const MicroInstr& inst)
 {
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::JumpCond:
-        case MicroInstrOpcode::JumpCondImm:
-        case MicroInstrOpcode::JumpReg:
-        case MicroInstrOpcode::JumpTable:
-        case MicroInstrOpcode::Ret:
-            return true;
-        default:
-            return false;
-    }
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    return info.flags.has(MicroInstrFlagsE::TerminatorInstruction);
 }
 
 bool MicroInstrInfo::isUnconditionalJumpInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
 {
-    if (!ops)
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    if (!info.flags.has(MicroInstrFlagsE::JumpInstruction))
         return false;
 
-    if (inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm)
-        return ops[0].cpuCond == MicroCond::Unconditional;
-    if (inst.op == MicroInstrOpcode::JumpReg || inst.op == MicroInstrOpcode::JumpTable)
-        return true;
-    return false;
+    if (info.flags.has(MicroInstrFlagsE::ConditionalJump))
+        return ops && ops[0].cpuCond == MicroCond::Unconditional;
+
+    return true;
 }
 
 bool MicroInstrInfo::isSameRegisterClass(MicroReg leftReg, MicroReg rightReg)
@@ -54,96 +45,25 @@ bool MicroInstrInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroI
 
 bool MicroInstrInfo::usesCpuFlags(const MicroInstr& inst)
 {
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::JumpCond:
-        case MicroInstrOpcode::JumpCondImm:
-        case MicroInstrOpcode::SetCondReg:
-        case MicroInstrOpcode::LoadCondRegReg:
-            return true;
-        default:
-            return false;
-    }
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    return info.flags.has(MicroInstrFlagsE::UsesCpuFlags);
 }
 
 bool MicroInstrInfo::definesCpuFlags(const MicroInstr& inst)
 {
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::CmpRegReg:
-        case MicroInstrOpcode::CmpRegZero:
-        case MicroInstrOpcode::CmpRegImm:
-        case MicroInstrOpcode::CmpMemReg:
-        case MicroInstrOpcode::CmpMemImm:
-        case MicroInstrOpcode::ClearReg:
-        case MicroInstrOpcode::OpUnaryMem:
-        case MicroInstrOpcode::OpUnaryReg:
-        case MicroInstrOpcode::OpBinaryRegReg:
-        case MicroInstrOpcode::OpBinaryRegImm:
-        case MicroInstrOpcode::OpBinaryRegMem:
-        case MicroInstrOpcode::OpBinaryMemReg:
-        case MicroInstrOpcode::OpBinaryMemImm:
-            return true;
-        default:
-            return false;
-    }
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    return info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
 }
 
 bool MicroInstrInfo::getMemBaseOffsetOperandIndices(uint8_t& outBaseIndex, uint8_t& outOffsetIndex, const MicroInstr& inst)
 {
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::LoadRegMem:
-            outBaseIndex   = 1;
-            outOffsetIndex = 3;
-            return true;
-        case MicroInstrOpcode::LoadMemReg:
-            outBaseIndex   = 0;
-            outOffsetIndex = 3;
-            return true;
-        case MicroInstrOpcode::LoadMemImm:
-            outBaseIndex   = 0;
-            outOffsetIndex = 2;
-            return true;
-        case MicroInstrOpcode::LoadSignedExtRegMem:
-            outBaseIndex   = 1;
-            outOffsetIndex = 4;
-            return true;
-        case MicroInstrOpcode::LoadZeroExtRegMem:
-            outBaseIndex   = 1;
-            outOffsetIndex = 4;
-            return true;
-        case MicroInstrOpcode::LoadAddrRegMem:
-            outBaseIndex   = 1;
-            outOffsetIndex = 3;
-            return true;
-        case MicroInstrOpcode::CmpMemReg:
-            outBaseIndex   = 0;
-            outOffsetIndex = 3;
-            return true;
-        case MicroInstrOpcode::CmpMemImm:
-            outBaseIndex   = 0;
-            outOffsetIndex = 2;
-            return true;
-        case MicroInstrOpcode::OpUnaryMem:
-            outBaseIndex   = 0;
-            outOffsetIndex = 3;
-            return true;
-        case MicroInstrOpcode::OpBinaryRegMem:
-            outBaseIndex   = 1;
-            outOffsetIndex = 4;
-            return true;
-        case MicroInstrOpcode::OpBinaryMemReg:
-            outBaseIndex   = 0;
-            outOffsetIndex = 4;
-            return true;
-        case MicroInstrOpcode::OpBinaryMemImm:
-            outBaseIndex   = 0;
-            outOffsetIndex = 3;
-            return true;
-        default:
-            return false;
-    }
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+        return false;
+
+    outBaseIndex   = info.memBaseOperandIndex;
+    outOffsetIndex = info.memOffsetOperandIndex;
+    return true;
 }
 
 SWC_END_NAMESPACE();

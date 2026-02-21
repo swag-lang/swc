@@ -239,4 +239,3 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-

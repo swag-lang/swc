@@ -2,6 +2,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroTypes.h"
+#include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
 
@@ -26,13 +27,28 @@ enum class MicroInstrRegSpecial : uint8_t
     OpTernaryRegRegReg,
 };
 
+enum class MicroInstrFlagsE : uint16_t
+{
+    Zero                     = 0,
+    TerminatorInstruction    = 1 << 0,
+    JumpInstruction          = 1 << 1,
+    ConditionalJump          = 1 << 2,
+    UsesCpuFlags             = 1 << 3,
+    DefinesCpuFlags          = 1 << 4,
+    HasMemBaseOffsetOperands = 1 << 5,
+    IsCallInstruction        = 1 << 6,
+};
+using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
+
 struct MicroInstrDef
 {
     std::array<MicroInstrRegMode, 3> regModes;
-    MicroInstrRegSpecial             special       = MicroInstrRegSpecial::None;
-    uint8_t                          microOpIndex  = 0;
-    bool                             isCall        = false;
-    uint8_t                          callConvIndex = 0;
+    MicroInstrRegSpecial             special               = MicroInstrRegSpecial::None;
+    uint8_t                          microOpIndex          = 0;
+    uint8_t                          callConvIndex         = 0;
+    MicroInstrFlags                  flags                 = MicroInstrFlagsE::Zero;
+    uint8_t                          memBaseOperandIndex   = 0;
+    uint8_t                          memOffsetOperandIndex = 0;
 };
 
 enum class MicroInstrOpcode : uint8_t

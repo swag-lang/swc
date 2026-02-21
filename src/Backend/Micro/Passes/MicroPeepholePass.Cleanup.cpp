@@ -170,4 +170,3 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
-

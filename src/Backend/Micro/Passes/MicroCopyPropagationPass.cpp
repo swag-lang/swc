@@ -98,4 +98,3 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-

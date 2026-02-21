@@ -3,7 +3,8 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
-- Once everything is working, run 'all_dm.bat' script to ensure no regression.
+- Once everything is working, run 'tools/all_dm.bat' script to ensure no regression. Run it 40x times in a row, to
+  detect non deterministic behavior.
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.

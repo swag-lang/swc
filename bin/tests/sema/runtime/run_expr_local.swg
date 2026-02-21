@@ -276,7 +276,7 @@ struct BigCopy
 #test
 {
     //#[Swag.PrintMicro]
-    #[Swag.PrintAst]
+    #[Swag.PrintAst("post-sema")]
     func sumPairLetOverflow()->s32
     {
         let a, b = 120

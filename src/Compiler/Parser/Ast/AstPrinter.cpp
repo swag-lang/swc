@@ -2,12 +2,11 @@
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
-#include "Compiler/Sema/Core/NodePayload.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
-#include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -92,7 +91,7 @@ namespace
     }
 }
 
-Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
+Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root, Sema* sema)
 {
     Utf8 out;
     if (root.isInvalid())
@@ -103,10 +102,10 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
     std::unordered_map<AstNodeRef, AstPrintNodeEntry> nodeEntries;
     nodeEntries.reserve(256);
 
-    const SourceFile* sourceFile = ast.srcView().file();
-
-    auto resolveNodeRef = [sourceFile](AstNodeRef nodeRef) -> AstNodeRef {
-        return sourceFile->nodePayloadContext().resolveSubstituteRef(nodeRef);
+    auto resolveNodeRef = [sema](AstNodeRef nodeRef) -> AstNodeRef {
+        if (!sema)
+            return nodeRef;
+        return sema->viewZero(nodeRef).nodeRef();
     };
     root = resolveNodeRef(root);
 
@@ -186,9 +185,9 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
     return out;
 }
 
-void AstPrinter::print(const TaskContext& ctx, const Ast& ast, AstNodeRef root)
+void AstPrinter::print(const TaskContext& ctx, const Ast& ast, AstNodeRef root, Sema* sema)
 {
-    Logger::print(ctx, format(ctx, ast, root));
+    Logger::print(ctx, format(ctx, ast, root, sema));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
 }
 

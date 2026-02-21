@@ -79,7 +79,7 @@ namespace
         Logger::print(ctx, "\n");
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
-        AstPrinter::print(ctx, sema.ast(), nodeRef);
+        AstPrinter::print(ctx, sema.ast(), nodeRef, const_cast<Sema*>(&sema));
     }
 
     RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)

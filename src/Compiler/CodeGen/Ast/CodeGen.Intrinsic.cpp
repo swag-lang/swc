@@ -22,7 +22,7 @@ namespace
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        MicroBuilder&                    builder       = codeGen.builder();
+        MicroBuilder&                   builder       = codeGen.builder();
         const SemaNodeView              exprView      = codeGen.viewType(exprRef);
         const CodeGenNodePayload* const exprPayload   = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
         const TypeInfo* const           exprType      = exprView.type();

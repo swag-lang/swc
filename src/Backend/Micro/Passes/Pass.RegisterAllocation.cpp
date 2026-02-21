@@ -513,8 +513,8 @@ namespace
             }
         }
 
-        auto& victimState          = state.states[victimKey];
-        const bool hadSpillSlot    = victimState.hasSpill;
+        auto&      victimState  = state.states[victimKey];
+        const bool hadSpillSlot = victimState.hasSpill;
         ensureSpillSlot(state, victimState, victimReg.isFloat());
         if (victimState.dirty || !hadSpillSlot)
         {

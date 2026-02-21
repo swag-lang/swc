@@ -327,7 +327,7 @@ namespace
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
-        MicroBuilder&                        builder       = codeGen.builder();
+        MicroBuilder&                          builder       = codeGen.builder();
         const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
         const CallConv&                        callConv      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();

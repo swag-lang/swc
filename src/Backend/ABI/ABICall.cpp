@@ -132,6 +132,12 @@ uint64_t ABICall::incomingArgStackOffset(const CallConv& conv, uint32_t argIndex
     return sizeof(void*) + callArgStackOffset(conv, argIndex);
 }
 
+uint64_t ABICall::incomingArgFrameOffset(const CallConv& conv, uint32_t argIndex)
+{
+    // With a frame pointer prolog (`push rbp; mov rbp, rsp`), incoming args are above saved rbp + return address.
+    return sizeof(void*) + incomingArgStackOffset(conv, argIndex);
+}
+
 uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t numArgs)
 {
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.

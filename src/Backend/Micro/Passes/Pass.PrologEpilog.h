@@ -24,6 +24,7 @@ private:
     bool containsSavedSlot(MicroReg reg) const;
 
     uint64_t                  savedRegsStackSubSize_ = 0;
+    bool                      useFramePointer_       = false;
     SmallVector<MicroReg>     pushedRegs_;
     std::vector<SavedRegSlot> savedRegSlots_;
 };

@@ -142,8 +142,8 @@ void CodeGenHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const Symb
     }
     else
     {
-        const uint64_t stackOffset = ABICall::incomingArgStackOffset(callConv, paramInfo.slotIndex);
-        builder.emitLoadRegMem(dstReg, callConv.stackPointer, stackOffset, paramInfo.opBits);
+        const uint64_t frameOffset = ABICall::incomingArgFrameOffset(callConv, paramInfo.slotIndex);
+        builder.emitLoadRegMem(dstReg, callConv.framePointer, frameOffset, paramInfo.opBits);
     }
 }
 

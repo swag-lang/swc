@@ -294,6 +294,9 @@ namespace
 
         for (const auto reg : state.conv->intRegs)
         {
+            if (reg == state.conv->framePointer)
+                continue;
+
             if (state.intPersistentSet.contains(reg.packed))
                 state.freeIntPersistent.push_back(reg);
             else

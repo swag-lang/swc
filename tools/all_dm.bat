@@ -1,9 +1,11 @@
 @echo off
 
-call syntax_dm.bat %1 %2 %3 %4 %5 %6 %7 %8 %9
+call "%~dp0_suite.bat" syntax swc_devmode %*
+if errorlevel 1 exit /b %errorlevel%
 
-call sema_dm.bat --backend-optimize O0 %1 %2 %3 %4 %5 %6 %7 %8 %9
-call sema_dm.bat --backend-optimize O1 %1 %2 %3 %4 %5 %6 %7 %8 %9
-call sema_dm.bat --backend-optimize O2 %1 %2 %3 %4 %5 %6 %7 %8 %9
-call sema_dm.bat --backend-optimize Os %1 %2 %3 %4 %5 %6 %7 %8 %9
-call sema_dm.bat --backend-optimize Oz %1 %2 %3 %4 %5 %6 %7 %8 %9
+for %%O in (O0 O1 O2 Os Oz) do (
+    call "%~dp0_suite.bat" sema swc_devmode --backend-optimize %%O %*
+    if errorlevel 1 exit /b %errorlevel%
+)
+
+exit /b 0

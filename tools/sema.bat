@@ -1,1 +1,3 @@
-swc sema --verify -d ../bin/tests/sema %1 %2 %3 %4 %5 %6 %7 %8 %9
+@echo off
+call "%~dp0_suite.bat" sema swc %*
+exit /b %errorlevel%

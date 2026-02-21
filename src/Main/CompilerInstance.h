@@ -80,8 +80,8 @@ public:
 
     SourceView&       addSourceView();
     SourceView&       addSourceView(FileRef fileRef);
-    SourceView&       srcView(SourceViewRef ref) { return *SWC_CHECK_NOT_NULL(srcViews_[ref.get()].get()); }
-    const SourceView& srcView(SourceViewRef ref) const { return *SWC_CHECK_NOT_NULL(srcViews_[ref.get()].get()); }
+    SourceView&       srcView(SourceViewRef ref);
+    const SourceView& srcView(SourceViewRef ref) const;
 
     Result                   collectFiles(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
@@ -131,7 +131,7 @@ private:
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     void*                                    runtimeCompilerITable_[3]{};
-    std::mutex                               mutex_;
+    mutable std::mutex                       mutex_;
     bool                                     changed_ = true;
 
     struct PerThreadData

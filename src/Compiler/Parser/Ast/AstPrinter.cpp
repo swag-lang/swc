@@ -66,7 +66,9 @@ namespace
 
     void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)
     {
-        const SemaNodeView view = sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const bool         isSubstitute = sema.hasSubstitute(nodeRef);
+        const SemaNodeView view         = isSubstitute ? sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol)
+                                                       : sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
 
         out += " ";
         appendColored(out, ctx, SyntaxColor::Code, "[");
@@ -97,7 +99,7 @@ namespace
             first = false;
         }
 
-        const bool isValue = sema.isValue(nodeRef);
+        const bool isValue = isSubstitute ? sema.isValueStored(nodeRef) : sema.isValue(nodeRef);
         if (isValue)
         {
             if (!first)
@@ -106,7 +108,7 @@ namespace
             first = false;
         }
 
-        const bool isLValue = sema.isLValue(nodeRef);
+        const bool isLValue = isSubstitute ? sema.isLValueStored(nodeRef) : sema.isLValue(nodeRef);
         if (isLValue)
         {
             if (!first)
@@ -115,7 +117,7 @@ namespace
             first = false;
         }
 
-        const bool isFolded = sema.isFoldedTypedConst(nodeRef);
+        const bool isFolded = isSubstitute ? sema.isFoldedTypedConstStored(nodeRef) : sema.isFoldedTypedConst(nodeRef);
         if (isFolded)
         {
             if (!first)
@@ -186,8 +188,6 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
             return nodeRef;
         return sema->viewZero(nodeRef).nodeRef();
     };
-    root = resolveNodeRef(root);
-
     // Count children per node
     AstVisit orderingVisit;
     orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);

@@ -263,6 +263,7 @@ struct BigCopy
 #[Swag.Optimize(Swag.Optimization.O0)]
 #test
 {
+    //#[Swag.PrintAst]
     func sumPairLet()->s32
     {
         let a, b = 9

@@ -292,15 +292,38 @@ namespace PeepholePass
             return true;
         }
 
-        bool isRegImmMergeNeutralInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg mergedReg)
+        bool isRegImmMergeNeutralInstruction(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg mergedReg)
         {
             if (!ops)
                 return false;
 
-            if (inst.op != MicroInstrOpcode::LoadRegReg)
+            const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            if (useDef.isCall || MicroOptimization::isLocalDataflowBarrier(inst, useDef))
                 return false;
 
-            return ops[0].reg != mergedReg && ops[1].reg != mergedReg;
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::JumpCond:
+                case MicroInstrOpcode::JumpCondImm:
+                case MicroInstrOpcode::SetCondReg:
+                case MicroInstrOpcode::LoadCondRegReg:
+                    return false;
+                default:
+                    break;
+            }
+
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                if (*SWC_CHECK_NOT_NULL(ref.reg) == mergedReg)
+                    return false;
+            }
+
+            return true;
         }
 
         bool tryMergeRegImmArithmeticWithNext(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
@@ -328,7 +351,7 @@ namespace PeepholePass
             }
             else
             {
-                if (!isRegImmMergeNeutralInstruction(firstNextInst, firstNextOps, mergedReg))
+                if (!isRegImmMergeNeutralInstruction(context, firstNextInst, firstNextOps, mergedReg))
                     return false;
 
                 secondAdjustIt = std::next(nextIt);

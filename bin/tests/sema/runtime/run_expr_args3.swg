@@ -41,7 +41,144 @@
 #test
 {
     func variadicTyped(values: s32...)->s32 { return values[0] + values[1] + values[2] + values[3] }
-    #[Swag.PrintMicro]
     const V0 = #run variadicTyped(1, 2, 3, 4)
     #assert(V0 == 10)
+}
+
+#test
+{
+    func variadicTyped(values: s64...)->s64 { return values[0] + values[1] + values[2] + values[3] }
+    const V0 = #run variadicTyped(10's64, 20's64, 30's64, 40's64)
+    #assert(#typeof(V0) == s64)
+    #assert(V0 == 100's64)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: s64, values: s64...)->s64 { return a + values[0] + values[1] }
+    const V0 = #run variadicTypedWithHead(100's64, 7's64, 8's64)
+    #assert(#typeof(V0) == s64)
+    #assert(V0 == 115's64)
+}
+
+#test
+{
+    func variadicTyped(values: u32...)->u32 { return values[0] + values[1] + values[2] + values[3] }
+    const V0 = #run variadicTyped(1'u32, 2'u32, 3'u32, 4'u32)
+    #assert(#typeof(V0) == u32)
+    #assert(V0 == 10'u32)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: u32, values: u32...)->u32 { return a + values[0] + values[1] }
+    const V0 = #run variadicTypedWithHead(50'u32, 60'u32, 70'u32)
+    #assert(#typeof(V0) == u32)
+    #assert(V0 == 180'u32)
+}
+
+#test
+{
+    func variadicTyped(values: f32...)->f32 { return values[0] + values[1] + values[2] }
+    const V0 = #run variadicTyped(1.5'f32, 2.0'f32, 3.25'f32)
+    #assert(#typeof(V0) == f32)
+    #assert(V0 == 6.75'f32)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: f32, values: f32...)->f32 { return a + values[0] + values[1] }
+    const V0 = #run variadicTypedWithHead(4.0'f32, 0.25'f32, 1.75'f32)
+    #assert(#typeof(V0) == f32)
+    #assert(V0 == 6.0'f32)
+}
+
+#test
+{
+    func variadicTyped(values: f64...)->f64 { return values[0] + values[1] + values[2] + values[3] }
+    const V0 = #run variadicTyped(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64)
+    #assert(#typeof(V0) == f64)
+    #assert(V0 == 10.0'f64)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: f64, values: f64...)->f64 { return a + values[0] + values[1] }
+    const V0 = #run variadicTypedWithHead(10.0'f64, 0.5'f64, 1.25'f64)
+    #assert(#typeof(V0) == f64)
+    #assert(V0 == 11.75'f64)
+}
+
+// #test
+// {
+//     func variadicTyped(values: bool...)->s32 { return cast(s32) values[0] + cast(s32) values[1] + cast(s32) values[2] + cast(s32) values[3] }
+//     const V0 = #run variadicTyped(true, false, true, true)
+//     #assert(V0 == 3)
+// }
+//
+// #test
+// {
+//     func variadicTypedWithHead(a: bool, values: bool...)->s32 { return cast(s32) a + cast(s32) values[0] + cast(s32) values[1] }
+//     const V0 = #run variadicTypedWithHead(false, true, true)
+//     #assert(V0 == 2)
+// }
+
+#test
+{
+    func variadicTyped(values: rune...)->s32 { return cast(s32) values[0] + cast(s32) values[1] + cast(s32) values[2] }
+    const V0 = #run variadicTyped('A', 'B', 'C')
+    #assert(V0 == 198)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: rune, values: rune...)->s32 { return cast(s32) a + cast(s32) values[0] + cast(s32) values[1] }
+    const V0 = #run variadicTypedWithHead('a', 'b', 'c')
+    #assert(V0 == 294)
+}
+
+// #test
+// {
+//     func variadicTyped(values: string...)->u8 { return values[0][0] + values[1][0] + values[2][0] }
+//     const V0 = #run variadicTyped("ab", "cd", "ef")
+//     #assert(#typeof(V0) == u8)
+//     #assert(V0 == 38'u8)
+// }
+//
+// #test
+// {
+//     func variadicTypedWithHead(a: string, values: string...)->u8 { return a[0] + values[0][0] + values[1][0] }
+//     const V0 = #run variadicTypedWithHead("Az", "By", "Cx")
+//     #assert(#typeof(V0) == u8)
+//     #assert(V0 == 198'u8)
+// }
+
+#test
+{
+    func variadicTyped(values: u64...)->u64 { return values[0] + values[1] + values[2] + values[3] }
+    var a: [4] s32
+    const V0 = #run variadicTyped(@countof(a), @countof("abc"), @countof(7), @countof(1))
+    #assert(#typeof(V0) == u64)
+    #assert(V0 == 15'u64)
+}
+
+#test
+{
+    func variadicTypedWithHead(a: u64, values: u64...)->u64 { return a + values[0] + values[1] + values[2] }
+    var b: [2, 3] u8
+    const V0 = #run variadicTypedWithHead(@countof("abcd"), @countof(b), @countof(5), @countof(3))
+    #assert(#typeof(V0) == u64)
+    #assert(V0 == 18'u64)
+}
+
+#test
+{
+    func variadicTyped(values: s64...)->s64 { return 1's64 }
+    const V0 = #run variadicTyped(1's64, "bad", 3's64) // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    func variadicTypedWithHead(a: s32, values: s32...)->s32 { return a }
+    const V0 = #run variadicTypedWithHead() // swc-expected-error {{sema_err_too_few_arguments}}
 }

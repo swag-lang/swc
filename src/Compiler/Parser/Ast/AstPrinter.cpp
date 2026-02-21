@@ -19,6 +19,7 @@ namespace
     };
 
     constexpr uint32_t K_MAX_TOKEN_TEXT = 48;
+    constexpr uint32_t K_MAX_SEMA_TEXT  = 64;
 
     void appendColored(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
     {
@@ -50,7 +51,79 @@ namespace
         return out;
     }
 
-    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, const AstPrintNodeEntry& entry)
+    Utf8 sanitizeSemaText(const Utf8& text)
+    {
+        Utf8 out = text;
+        out.trim();
+        if (out.length() > K_MAX_SEMA_TEXT)
+        {
+            out.resize(K_MAX_SEMA_TEXT);
+            out += "...";
+        }
+
+        return out;
+    }
+
+    void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)
+    {
+        const SemaNodeView view = sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+
+        out += " ";
+        appendColored(out, ctx, SyntaxColor::Code, "[");
+
+        bool first = true;
+        if (view.hasType())
+        {
+            appendColored(out, ctx, SyntaxColor::Attribute, "type = ");
+            appendColored(out, ctx, SyntaxColor::Type, sanitizeSemaText(view.type()->toName(ctx)));
+            first = false;
+        }
+
+        if (view.hasConstant())
+        {
+            if (!first)
+                appendColored(out, ctx, SyntaxColor::Code, ", ");
+            appendColored(out, ctx, SyntaxColor::Attribute, "const = ");
+            appendColored(out, ctx, SyntaxColor::Constant, sanitizeSemaText(view.cst()->toString(ctx)));
+            first = false;
+        }
+
+        if (view.hasSymbol())
+        {
+            if (!first)
+                appendColored(out, ctx, SyntaxColor::Code, ", ");
+            appendColored(out, ctx, SyntaxColor::Attribute, "sym = ");
+            appendColored(out, ctx, SyntaxColor::Function, view.sym()->name(ctx));
+            first = false;
+        }
+
+        if (sema.isValue(nodeRef))
+        {
+            if (!first)
+                appendColored(out, ctx, SyntaxColor::Code, ", ");
+            appendColored(out, ctx, SyntaxColor::Attribute, "value");
+            first = false;
+        }
+
+        if (sema.isLValue(nodeRef))
+        {
+            if (!first)
+                appendColored(out, ctx, SyntaxColor::Code, ", ");
+            appendColored(out, ctx, SyntaxColor::Attribute, "lvalue");
+            first = false;
+        }
+
+        if (sema.isFoldedTypedConst(nodeRef))
+        {
+            if (!first)
+                appendColored(out, ctx, SyntaxColor::Code, ", ");
+            appendColored(out, ctx, SyntaxColor::Attribute, "folded");
+        }
+
+        appendColored(out, ctx, SyntaxColor::Code, "]");
+    }
+
+    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, const AstPrintNodeEntry& entry, Sema* sema)
     {
         const AstNode&      node     = ast.node(nodeRef);
         const AstNodeIdInfo nodeInfo = Ast::nodeIdInfos(node.id());
@@ -75,6 +148,9 @@ namespace
                 appendColored(out, ctx, SyntaxColor::String, std::format("\"{}\"", tokenText));
             }
         }
+
+        if (sema)
+            appendSemaPayload(out, ctx, *sema, nodeRef);
 
         out += "\n";
     }
@@ -160,14 +236,14 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
             entry.isLastChild            = childOrder == totalChildren;
         }
 
-        appendNodeLine(out, ctx, ast, printNodeRef, entry);
+        appendNodeLine(out, ctx, ast, printNodeRef, entry, sema);
         if (printNodeRef != nodeRef)
         {
             AstPrintNodeEntry substitutedEntry;
             substitutedEntry.prefix = entry.prefix;
             substitutedEntry.prefix += entry.isLastChild ? "   " : "|  ";
             substitutedEntry.isLastChild = true;
-            appendNodeLine(out, ctx, ast, nodeRef, substitutedEntry);
+            appendNodeLine(out, ctx, ast, nodeRef, substitutedEntry, sema);
             nodeEntries[nodeRef] = substitutedEntry;
         }
         else

@@ -123,8 +123,6 @@ namespace
             case ConstantKind::Array:
             {
                 const ByteSpan arrayBytes  = cst.getArray();
-                const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
-                SWC_ASSERT(arrayBytes.size() == storageSize);
                 if (targetTypeRef.isValid())
                 {
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
@@ -144,6 +142,8 @@ namespace
                     }
                 }
 
+                const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
+                SWC_ASSERT(arrayBytes.size() == storageSize);
                 codeGen.builder().emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
                 payload.setIsAddress();
                 return;

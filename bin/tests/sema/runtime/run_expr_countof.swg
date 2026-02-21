@@ -24,6 +24,15 @@ enum Color
 
 #test
 {
+    func countSlice(value: [..] u8)->u64 { return @countof(value) }
+
+    const data: [6] u8 = [0, 0, 0, 0, 0, 0]
+    const V0 = #run countSlice(cast([..] u8) data)
+    #assert(V0 == 6'u64)
+}
+
+#test
+{
     func countTypedVariadic(values: s32...)->u64 { return @countof(values) }
     const V0 = #run countTypedVariadic(1, 2, 3, 4, 5)
     #assert(V0 == 5'u64)

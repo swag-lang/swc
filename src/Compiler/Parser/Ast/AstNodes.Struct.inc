@@ -1492,6 +1492,7 @@ struct AstCountOfExpr : AstNodeT<AstNodeId::CountOfExpr>
     AstNodeRef nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

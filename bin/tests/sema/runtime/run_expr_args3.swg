@@ -121,7 +121,7 @@
 {
     func variadicTypedWithHead(a: rune, values: rune...)->u64 { return @countof(values) }
     const V0 = #run variadicTypedWithHead('a', 'b', 'c')
-    #assert(V0 == 3)
+    #assert(V0 == 2)
 }
 
 // #test

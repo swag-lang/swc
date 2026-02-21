@@ -10,6 +10,18 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isNumericIntLike(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isIntLike() || typeInfo.isBool();
+    }
+
+    bool isNumericSigned(const TypeInfo& typeInfo)
+    {
+        if (typeInfo.isBool())
+            return false;
+        return typeInfo.isIntSigned();
+    }
+
     MicroOpBits castPayloadBits(const TypeInfo& typeInfo)
     {
         if (typeInfo.isFloat())
@@ -17,6 +29,9 @@ namespace
             const uint32_t floatBits = typeInfo.payloadFloatBits() ? typeInfo.payloadFloatBits() : 64;
             return microOpBitsFromBitWidth(floatBits);
         }
+
+        if (typeInfo.isBool())
+            return MicroOpBits::B8;
 
         if (typeInfo.isIntLike())
         {
@@ -47,9 +62,9 @@ namespace
         const TypeInfo& srcType        = codeGen.typeMgr().get(srcPayload->typeRef);
         const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);
         const bool      srcFloatType   = srcType.isFloat();
-        const bool      srcIntLikeType = srcType.isIntLike();
+        const bool      srcIntLikeType = isNumericIntLike(srcType);
         const bool      dstFloatType   = dstType.isFloat();
-        const bool      dstIntLikeType = dstType.isIntLike();
+        const bool      dstIntLikeType = isNumericIntLike(dstType);
 
         if (srcIntLikeType && dstIntLikeType)
         {
@@ -68,6 +83,15 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
 
+            if (dstType.isBool())
+            {
+                const MicroReg zeroReg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitClearReg(zeroReg, srcOpBits);
+                codeGen.builder().emitCmpRegReg(srcReg, zeroReg, srcOpBits);
+                codeGen.builder().emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+                return Result::Continue;
+            }
+
             const uint32_t srcWidth = static_cast<uint32_t>(srcOpBits);
             const uint32_t dstWidth = static_cast<uint32_t>(dstOpBits);
             if (srcWidth == dstWidth)
@@ -82,14 +106,13 @@ namespace
                 return Result::Continue;
             }
 
-            if (srcType.isIntSigned())
+            if (isNumericSigned(srcType))
             {
                 codeGen.builder().emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;
             }
 
-            codeGen.builder().emitLoadRegImm(dstPayload.reg, 0, dstOpBits);
-            codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, srcOpBits);
+            codeGen.builder().emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
             return Result::Continue;
         }
 

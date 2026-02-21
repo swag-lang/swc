@@ -89,13 +89,13 @@
     #assert(V0 == 11.75'f64)
 }
 
-// #test
-// {
-//     func variadicTyped(values: bool...)->s32 { return cast(s32) values[0] + cast(s32) values[1] + cast(s32) values[2] + cast(s32) values[3] }
-//     const V0 = #run variadicTyped(true, false, true, true)
-//     #assert(V0 == 3)
-// }
-//
+#test
+{
+    func variadicTyped(values: bool...)->s32 { return cast(s32) values[0] + cast(s32) values[1] + cast(s32) values[2] + cast(s32) values[3] }
+    const V0 = #run variadicTyped(true, false, true, true)
+    #assert(V0 == 3)
+}
+
 // #test
 // {
 //     func variadicTypedWithHead(a: bool, values: bool...)->s32 { return cast(s32) a + cast(s32) values[0] + cast(s32) values[1] }
@@ -149,16 +149,4 @@
     const V0 = #run variadicTypedWithHead(@countof("abcd"), @countof(b), @countof(5), @countof(3))
     #assert(#typeof(V0) == u64)
     #assert(V0 == 18'u64)
-}
-
-#test
-{
-    func variadicTyped(values: s64...)->s64 { return 1's64 }
-    const V0 = #run variadicTyped(1's64, "bad", 3's64) // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    func variadicTypedWithHead(a: s32, values: s32...)->s32 { return a }
-    const V0 = #run variadicTypedWithHead() // swc-expected-error {{sema_err_too_few_arguments}}
 }

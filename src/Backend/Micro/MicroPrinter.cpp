@@ -1125,8 +1125,6 @@ namespace
             return false;
         seenDebugLines.insert(debugKey);
 
-        if (!out.empty())
-            out += '\n';
         appendColored(out, ctx, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
         out += "  ";
         Utf8 codeLine = srcView.codeLine(ctx, sourceLine);

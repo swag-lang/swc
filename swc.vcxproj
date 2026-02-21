@@ -214,7 +214,12 @@
         <ClCompile Include="src\Backend\\Micro\Passes\MicroLoadStoreForwardingPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroInstructionCombinePass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Addressing.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Cleanup.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Common.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Copy.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\MicroPeepholePass.Immediate.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroEmitPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroPrologEpilogPass.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroRegisterAllocationPass.cpp"/>

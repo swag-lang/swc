@@ -130,6 +130,11 @@ SemaNodeView Sema::view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
     return {*this, nodeRef, part};
 }
 
+SemaNodeView Sema::viewStored(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part)
+{
+    return {*this, nodeRef, part, SemaNodeViewResolveE::Stored};
+}
+
 SemaNodeView Sema::curView()
 {
     return curView(SemaNodeViewPartE::All);

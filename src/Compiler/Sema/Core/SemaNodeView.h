@@ -19,10 +19,16 @@ enum class SemaNodeViewPartE
 };
 using SemaNodeViewPart = EnumFlags<SemaNodeViewPartE>;
 
+enum class SemaNodeViewResolveE : uint8_t
+{
+    Resolved,
+    Stored,
+};
+
 struct SemaNodeView
 {
-    SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
-    void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All);
+    SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
+    void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
     void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
     void getSymbols(SmallVector<Symbol*>& symbols) const;
 
@@ -60,6 +66,7 @@ private:
     ConstantRef          cstRef_       = ConstantRef::invalid();
     TypeRef              typeRef_      = TypeRef::invalid();
     SemaNodeViewPart     computedPart_ = SemaNodeViewPartE::Zero;
+    SemaNodeViewResolveE mode_         = SemaNodeViewResolveE::Resolved;
 };
 
 SWC_END_NAMESPACE();

@@ -75,6 +75,8 @@ public:
 
     SemaNodeView view(AstNodeRef nodeRef);
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
+    SemaNodeView viewStored(AstNodeRef nodeRef) { return viewStored(nodeRef, SemaNodeViewPartE::All); }
+    SemaNodeView viewStored(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
     SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
@@ -136,6 +138,13 @@ public:
 
     bool isLValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::LValue); }
     bool isLValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::LValue); }
+    bool isLValueStored(AstNodeRef ref) const
+    {
+        if (ref.isInvalid())
+            return false;
+        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::LValue)) != 0;
+    }
     void setIsLValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::LValue); }
     void setIsLValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::LValue); }
     void unsetIsLValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::LValue); }
@@ -143,11 +152,25 @@ public:
 
     bool isValue(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::Value); }
     bool isValue(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::Value); }
+    bool isValueStored(AstNodeRef ref) const
+    {
+        if (ref.isInvalid())
+            return false;
+        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::Value)) != 0;
+    }
     void setIsValue(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::Value); }
     void setIsValue(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::Value); }
 
     bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
+    bool isFoldedTypedConstStored(AstNodeRef ref) const
+    {
+        if (ref.isInvalid())
+            return false;
+        const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+        return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst)) != 0;
+    }
     void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
 
@@ -178,16 +201,24 @@ private:
     AstNodeRef               resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
     TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
     ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
+    TypeRef                  typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
+    ConstantRef              constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
     const ConstantValue&     constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
     const Symbol&            symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
     Symbol&                  symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    const Symbol&            symbolOfStored(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&                  symbolOfStored(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
     bool                     hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
     bool                     hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
     bool                     hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
+    bool                     hasSymbolStored(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
     AstNodeRef               getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
     bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
     std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
     std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    bool                     hasSymbolListStored(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<const Symbol*> getSymbolListStored(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
+    std::span<Symbol*>       getSymbolListStored(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
     bool                     hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
     const Symbol&            symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
     Symbol&                  symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }

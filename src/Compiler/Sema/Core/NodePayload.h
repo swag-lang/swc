@@ -133,6 +133,7 @@ private:
         NodePayloadKind originalKind  = NodePayloadKind::Invalid;
         uint32_t        originalRef   = 0;
         uint32_t        originalShard = 0;
+        NodePayloadFlags originalFlags = static_cast<NodePayloadFlags>(0);
     };
 
     struct PayloadInfo
@@ -147,6 +148,7 @@ private:
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
+    NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
     CodeGenPayloadStorage*         codeGenPayloadStorage(const AstNode& node) const;
     ResolvedCallArgsStorage*       resolvedCallArgsStorage(const AstNode& node) const;
     SubstituteStorage*             substituteStorage(const AstNode& node) const;

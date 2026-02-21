@@ -6,12 +6,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
+SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
-    compute(sema, ref, part);
+    compute(sema, ref, part, mode);
 }
 
-void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
+void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
     // Reset everything first, as compute() can be called multiple times on the same view.
     node_         = nullptr;
@@ -25,9 +25,13 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     cstRef_       = ConstantRef::invalid();
     typeRef_      = TypeRef::invalid();
     computedPart_ = part;
+    mode_         = mode;
 
     const AstNodeRef sourceNodeRef = ref;
-    nodeRef_                       = sema.getSubstituteRef(ref);
+    if (mode == SemaNodeViewResolveE::Stored)
+        nodeRef_ = ref;
+    else
+        nodeRef_ = sema.getSubstituteRef(ref);
     if (!nodeRef_.isValid())
         return;
 
@@ -36,14 +40,20 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 
     if (part.has(SemaNodeViewPartE::Type))
     {
-        typeRef_ = sema.typeRefOf(nodeRef_);
+        if (mode == SemaNodeViewResolveE::Stored)
+            typeRef_ = sema.typeRefOfStored(nodeRef_);
+        else
+            typeRef_ = sema.typeRefOf(nodeRef_);
         if (typeRef_.isValid())
             type_ = &sema.typeMgr().get(typeRef_);
     }
 
     if (part.has(SemaNodeViewPartE::Constant))
     {
-        cstRef_ = sema.constantRefOf(nodeRef_);
+        if (mode == SemaNodeViewResolveE::Stored)
+            cstRef_ = sema.constantRefOfStored(nodeRef_);
+        else
+            cstRef_ = sema.constantRefOf(nodeRef_);
         if (cstRef_.isValid())
             cst_ = &sema.cstMgr().get(cstRef_);
     }
@@ -51,20 +61,23 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
     if (!part.has(SemaNodeViewPartE::Symbol))
         return;
 
-    if (sema.hasSymbolList(nodeRef_))
+    if (mode == SemaNodeViewResolveE::Stored ? sema.hasSymbolListStored(nodeRef_) : sema.hasSymbolList(nodeRef_))
     {
         hasSymList_                      = true;
-        const std::span<Symbol*> symbols = sema.getSymbolList(nodeRef_);
+        const std::span<Symbol*> symbols = mode == SemaNodeViewResolveE::Stored ? sema.getSymbolListStored(nodeRef_) : sema.getSymbolList(nodeRef_);
         hasSymbol_                       = !symbols.empty();
         symList_                         = symbols;
         if (hasSymbol_)
             sym_ = symbols.front();
     }
-    else if (sema.hasSymbol(nodeRef_))
+    else if (mode == SemaNodeViewResolveE::Stored ? sema.hasSymbolStored(nodeRef_) : sema.hasSymbol(nodeRef_))
     {
         hasSymbol_ = true;
-        sym_       = &sema.symbolOf(nodeRef_);
+        sym_       = mode == SemaNodeViewResolveE::Stored ? &sema.symbolOfStored(nodeRef_) : &sema.symbolOf(nodeRef_);
     }
+
+    if (mode == SemaNodeViewResolveE::Stored)
+        return;
 
     if (!hasSymList_ && !hasSymbol_ && sourceNodeRef.isValid() && sourceNodeRef != nodeRef_)
     {
@@ -88,7 +101,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part)
 void SemaNodeView::recompute(Sema& sema, SemaNodeViewPart part)
 {
     SWC_ASSERT(nodeRef_.isValid());
-    compute(sema, nodeRef_, part);
+    compute(sema, nodeRef_, part, mode_);
 }
 
 void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const

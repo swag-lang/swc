@@ -433,7 +433,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Target, "all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
     addArg(HelpOptionGroup::Target, "all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
     addArg(HelpOptionGroup::Target, "all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, "Enable backend micro-instruction debug information.");
-    addArg(HelpOptionGroup::Target, "all", "--backend-optimize", "o", CommandLineType::EnumString, &cmdLine_->backendOptimizeLevelOverride, "O0|O1|O2|O3|Os|Oz", "Override default backend optimization level.");
+    addArg(HelpOptionGroup::Target, "all", "--backend-optimize", "-o", CommandLineType::EnumString, &cmdLine_->backendOptimizeLevelOverride, "O0|O1|O2|O3|Os|Oz", "Override default backend optimization level.");
 
     addArg(HelpOptionGroup::Compiler, "all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg(HelpOptionGroup::Compiler, "all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");

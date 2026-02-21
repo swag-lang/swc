@@ -142,7 +142,14 @@ namespace PeepholePass
 
     void appendAddressingRules(RuleList& outRules)
     {
+        // Rule: fold_copy_add_into_load_address
+        // Purpose: fold copy + add-immediate into one address load.
+        // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]
         outRules.push_back({"fold_copy_add_into_load_address", RuleTarget::LoadRegReg, matchFoldCopyAddIntoLoadAddress, rewriteFoldCopyAddIntoLoadAddress});
+
+        // Rule: fold_loadaddr_into_next_mem_offset
+        // Purpose: consume temporary address register in next memory instruction.
+        // Example: lea r11, [rdx + 8]; mov [r11], rax -> mov [rdx + 8], rax
         outRules.push_back({"fold_loadaddr_into_next_mem_offset", RuleTarget::LoadAddrRegMem, matchFoldLoadAddrIntoNextMemOffset, rewriteFoldLoadAddrIntoNextMemOffset});
     }
 }

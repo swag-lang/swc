@@ -601,12 +601,39 @@ namespace PeepholePass
 
     void appendCopyRules(RuleList& outRules)
     {
+        // Rule: forward_copy_into_next_binary_source
+        // Purpose: forward copied source register into next binary operation source.
+        // Example: mov r8, r11; and r5, r8 -> and r5, r11
         outRules.push_back({"forward_copy_into_next_binary_source", RuleTarget::LoadRegReg, matchForwardCopyIntoNextBinarySource, rewriteForwardCopyIntoNextBinarySource});
+
+        // Rule: forward_copy_into_next_compare_source
+        // Purpose: forward copied source register into next compare.
+        // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
         outRules.push_back({"forward_copy_into_next_compare_source", RuleTarget::LoadRegReg, matchForwardCopyIntoNextCompareSource, rewriteForwardCopyIntoNextCompareSource});
+
+        // Rule: fold_copy_op_copy_back
+        // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on source.
+        // Example: mov r8, r11; and r8, rdx; mov r11, r8 -> and r11, rdx
         outRules.push_back({"fold_copy_op_copy_back", RuleTarget::LoadRegReg, matchFoldCopyOpCopyBack, rewriteFoldCopyOpCopyBack});
+
+        // Rule: fold_copy_unary_copy_back
+        // Purpose: fold copy-to-temp + unary-op + copy-back into direct unary-op on source.
+        // Example: mov r8, r11; neg r8; mov r11, r8 -> neg r11
         outRules.push_back({"fold_copy_unary_copy_back", RuleTarget::LoadRegReg, matchFoldCopyUnaryCopyBack, rewriteFoldCopyUnaryCopyBack});
+
+        // Rule: fold_copy_back_with_previous_op
+        // Purpose: same fold as above, detected from trailing copy-back instruction.
+        // Example: mov r8, r11; xor r8, rdx; mov r11, r8 -> xor r11, rdx
         outRules.push_back({"fold_copy_back_with_previous_op", RuleTarget::LoadRegReg, matchFoldCopyBackWithPreviousOp, rewriteFoldCopyBackWithPreviousOp});
+
+        // Rule: coalesce_copy_instruction
+        // Purpose: rewrite downstream uses of copy destination to copy source and remove copy.
+        // Example: mov r8, r11; add r9, r8; or r10, r8 -> add r9, r11; or r10, r11
         outRules.push_back({"coalesce_copy_instruction", RuleTarget::LoadRegReg, matchCoalesceCopyInstruction, rewriteCoalesceCopyInstruction});
+
+        // Rule: remove_overwritten_copy
+        // Purpose: remove copy when destination is immediately overwritten by another copy.
+        // Example: mov r8, r11; mov r8, rdx -> mov r8, rdx
         outRules.push_back({"remove_overwritten_copy", RuleTarget::LoadRegReg, matchRemoveOverwrittenCopy, rewriteRemoveOverwrittenCopy});
     }
 }

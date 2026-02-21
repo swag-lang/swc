@@ -151,8 +151,19 @@ namespace PeepholePass
 
     void appendCleanupRules(RuleList& outRules)
     {
+        // Rule: canonicalize_cmp_reg_imm_zero
+        // Purpose: normalize compare-against-zero into dedicated zero-compare opcode.
+        // Example: cmp r11, 0 -> cmp_zero r11
         outRules.push_back({"canonicalize_cmp_reg_imm_zero", RuleTarget::AnyInstruction, matchCanonicalizeCmpRegImmZero, rewriteCanonicalizeCmpRegImmZero});
+
+        // Rule: fold_setcond_zeroext_copy
+        // Purpose: route setcc and zero-extend directly to final destination register.
+        // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
         outRules.push_back({"fold_setcond_zeroext_copy", RuleTarget::AnyInstruction, matchFoldSetCondZeroExtCopy, rewriteFoldSetCondZeroExtCopy});
+
+        // Rule: remove_no_op_instruction
+        // Purpose: remove encoder-level no-op instructions.
+        // Example: mov r8, r8 -> <removed>
         outRules.push_back({"remove_no_op_instruction", RuleTarget::AnyInstruction, matchRemoveNoOpInstruction, rewriteRemoveNoOpInstruction});
     }
 }

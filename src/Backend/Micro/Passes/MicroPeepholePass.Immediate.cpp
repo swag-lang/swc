@@ -464,11 +464,34 @@ namespace PeepholePass
 
     void appendImmediateRules(RuleList& outRules)
     {
+        // Rule: merge_rsp_adjustments_at_start
+        // Purpose: merge split stack pointer add/sub adjustments into one instruction.
+        // Example: sub rsp, 8; mov r15, rcx; sub rsp, 0x20 -> sub rsp, 0x28; mov r15, rcx
         outRules.push_back({"merge_rsp_adjustments_at_start", RuleTarget::OpBinaryRegImm, matchMergeRspAdjustmentsAtStart, rewriteMergeRspAdjustmentsAtStart});
+
+        // Rule: fold_loadimm_into_next_copy
+        // Purpose: fold immediate load through a copy and remove temporary register.
+        // Example: mov r11, 42; mov rax, r11 -> mov rax, 42
         outRules.push_back({"fold_loadimm_into_next_copy", RuleTarget::LoadRegImm, matchFoldLoadImmIntoNextCopy, rewriteFoldLoadImmIntoNextCopy});
+
+        // Rule: fold_loadimm_into_next_binary
+        // Purpose: fold reg-reg binary operation with temp immediate into reg-immediate form.
+        // Example: mov r11, 42; add rax, r11 -> add rax, 42
         outRules.push_back({"fold_loadimm_into_next_binary", RuleTarget::LoadRegImm, matchFoldLoadImmIntoNextBinary, rewriteFoldLoadImmIntoNextBinary});
+
+        // Rule: fold_loadimm_into_next_compare
+        // Purpose: fold reg-reg compare with temp immediate into reg-immediate compare.
+        // Example: mov r11, 7; cmp rax, r11 -> cmp rax, 7
         outRules.push_back({"fold_loadimm_into_next_compare", RuleTarget::LoadRegImm, matchFoldLoadImmIntoNextCompare, rewriteFoldLoadImmIntoNextCompare});
+
+        // Rule: fold_loadimm_into_next_mem_store
+        // Purpose: store immediate directly to memory instead of via temporary register.
+        // Example: mov r11, 1; mov [rdx], r11 -> mov [rdx], 1
         outRules.push_back({"fold_loadimm_into_next_mem_store", RuleTarget::LoadRegImm, matchFoldLoadImmIntoNextMemStore, rewriteFoldLoadImmIntoNextMemStore});
+
+        // Rule: fold_adjacent_memimm32_stores
+        // Purpose: merge two contiguous 32-bit immediate stores into one 64-bit store.
+        // Example: mov [rdx], 1; mov [rdx + 4], 2 -> mov [rdx], 0x0000000200000001
         outRules.push_back({"fold_adjacent_memimm32_stores", RuleTarget::LoadMemImm, matchFoldAdjacentMemImm32Stores, rewriteFoldAdjacentMemImm32Stores});
     }
 }

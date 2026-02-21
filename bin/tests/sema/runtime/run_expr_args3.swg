@@ -96,12 +96,12 @@
     #assert(V0 == 3)
 }
 
-// #test
-// {
-//     func variadicTypedWithHead(a: bool, values: bool...)->s32 { return cast(s32) a + cast(s32) values[0] + cast(s32) values[1] }
-//     const V0 = #run variadicTypedWithHead(false, true, true)
-//     #assert(V0 == 2)
-// }
+#test
+{
+    func variadicTypedWithHead(a: bool, values: bool...)->s32 { return cast(s32) a + cast(s32) values[0] + cast(s32) values[1] }
+    const V0 = #run variadicTypedWithHead(false, true, true)
+    #assert(V0 == 2)
+}
 
 #test
 {

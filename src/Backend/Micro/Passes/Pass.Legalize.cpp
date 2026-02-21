@@ -250,6 +250,57 @@ namespace
         removeInstruction(context, instRef);
     }
 
+    void applyRewriteLoadAddrAmcScale(const MicroPassContext& context, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadAddrAmcRegMem);
+        SWC_ASSERT(inst.numOperands >= 8);
+
+        const MicroReg dstReg   = ops[0].reg;
+        const MicroReg baseReg  = ops[1].reg;
+        const MicroReg indexReg = ops[2].reg;
+        const uint64_t mulValue = ops[5].valueU64;
+        const uint64_t addValue = ops[6].valueU64;
+
+        SWC_ASSERT(dstReg != baseReg);
+        SWC_ASSERT(dstReg != indexReg);
+
+        std::array<MicroInstrOperand, 3> moveOps;
+        moveOps[0].reg    = dstReg;
+        moveOps[1].reg    = indexReg;
+        moveOps[2].opBits = MicroOpBits::B64;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+
+        if (mulValue != 1)
+        {
+            std::array<MicroInstrOperand, 4> mulOps;
+            mulOps[0].reg      = dstReg;
+            mulOps[1].opBits   = MicroOpBits::B64;
+            mulOps[2].microOp  = MicroOp::MultiplySigned;
+            mulOps[3].valueU64 = mulValue;
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, mulOps);
+        }
+
+        std::array<MicroInstrOperand, 4> addBaseOps;
+        addBaseOps[0].reg     = dstReg;
+        addBaseOps[1].reg     = baseReg;
+        addBaseOps[2].opBits  = MicroOpBits::B64;
+        addBaseOps[3].microOp = MicroOp::Add;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, addBaseOps);
+
+        if (addValue)
+        {
+            std::array<MicroInstrOperand, 4> addImmOps;
+            addImmOps[0].reg      = dstReg;
+            addImmOps[1].opBits   = MicroOpBits::B64;
+            addImmOps[2].microOp  = MicroOp::Add;
+            addImmOps[3].valueU64 = addValue;
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addImmOps);
+        }
+
+        removeInstruction(context, instRef);
+    }
+
     void insertStoreRegToStack(const MicroPassContext& context, Ref instRef, MicroReg stackPointerReg, uint64_t offset, MicroReg reg)
     {
         std::array<MicroInstrOperand, 4> ops;
@@ -412,6 +463,9 @@ namespace
                 return;
             case MicroConformanceIssueKind::SplitLoadAmcMemImm64:
                 applySplitLoadAmcMemImm64(context, instRef, inst, ops);
+                return;
+            case MicroConformanceIssueKind::RewriteLoadAddrAmcScale:
+                applyRewriteLoadAddrAmcScale(context, instRef, inst, ops);
                 return;
             case MicroConformanceIssueKind::RewriteLoadFloatRegImm:
                 applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops, stackScratchBaseOffset);

@@ -32,6 +32,7 @@ enum class MicroConformanceIssueKind : uint8_t
     NormalizeOpBits,
     SplitLoadMemImm64,
     SplitLoadAmcMemImm64,
+    RewriteLoadAddrAmcScale,
     RewriteLoadFloatRegImm,
     RewriteRegRegOperandToFixedReg,
     RewriteRegRegOperandAwayFromFixedReg,

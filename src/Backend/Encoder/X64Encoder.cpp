@@ -913,6 +913,17 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         }
     }
 
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+    {
+        const uint64_t mulValue = ops[5].valueU64;
+        if (mulValue != 1 && mulValue != 2 && mulValue != 4 && mulValue != 8)
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteLoadAddrAmcScale;
+            return true;
+        }
+    }
+
     return false;
 }
 

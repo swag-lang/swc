@@ -41,7 +41,7 @@ public:
 #endif
 
 private:
-    uint32_t value_;
+    uint32_t value_ = std::numeric_limits<uint32_t>::max();
 };
 
 SWC_END_NAMESPACE();

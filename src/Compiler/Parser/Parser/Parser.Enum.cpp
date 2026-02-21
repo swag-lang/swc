@@ -68,6 +68,7 @@ AstNodeRef Parser::parseEnumDecl()
     {
         if (is(TokenId::SymLeftCurly))
         {
+            nodePtr->nodeTypeRef.setInvalid();
             Diagnostic diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
             diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(TokenId::TypeBool)));
             diag.report(*ctx_);

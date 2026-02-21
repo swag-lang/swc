@@ -22,6 +22,7 @@ namespace
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
+        MicroBuilder&                    builder       = codeGen.builder();
         const SemaNodeView              exprView      = codeGen.viewType(exprRef);
         const CodeGenNodePayload* const exprPayload   = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
         const TypeInfo* const           exprType      = exprView.type();
@@ -34,9 +35,9 @@ namespace
             const uint32_t            intBits       = exprType->payloadIntBits() ? exprType->payloadIntBits() : 64;
             const MicroOpBits         opBits        = microOpBitsFromBitWidth(intBits);
             if (exprPayload->isAddress())
-                codeGen.builder().emitLoadRegMem(resultPayload.reg, exprPayload->reg, 0, opBits);
+                builder.emitLoadRegMem(resultPayload.reg, exprPayload->reg, 0, opBits);
             else
-                codeGen.builder().emitLoadRegReg(resultPayload.reg, exprPayload->reg, opBits);
+                builder.emitLoadRegReg(resultPayload.reg, exprPayload->reg, opBits);
             return Result::Continue;
         }
 
@@ -44,13 +45,13 @@ namespace
         const MicroReg            baseReg       = materializeCountLikeBaseReg(codeGen, *exprPayload);
         if (exprType->isString())
         {
-            codeGen.builder().emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::String, length), MicroOpBits::B64);
+            builder.emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::String, length), MicroOpBits::B64);
             return Result::Continue;
         }
 
         if (exprType->isSlice() || exprType->isAnyVariadic())
         {
-            codeGen.builder().emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
+            builder.emitLoadRegMem(resultPayload.reg, baseReg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
             return Result::Continue;
         }
 

@@ -170,14 +170,13 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     if (!sizeInBytes)
         return;
 
-    const auto&    buildCfg        = codeGen.builder().backendBuildCfg();
+    MicroBuilder&  builder         = codeGen.builder();
+    const auto&    buildCfg        = builder.backendBuildCfg();
     const auto     optimizeLevel   = buildCfg.optimizeLevel;
     const bool     optimize        = optimizeLevel >= Runtime::BuildCfgBackendOptim::O1;
     const bool     optimizeForSize = optimizeLevel == Runtime::BuildCfgBackendOptim::Os || optimizeLevel == Runtime::BuildCfgBackendOptim::Oz;
     const bool     allow128        = optimize && !optimizeForSize && sizeInBytes >= 16;
     const uint32_t unrollLimit     = getUnrollMemLimit(buildCfg);
-
-    auto& builder = codeGen.builder();
 
     const auto dstRegTmp   = codeGen.nextVirtualIntRegister();
     const auto srcReg      = codeGen.nextVirtualIntRegister();

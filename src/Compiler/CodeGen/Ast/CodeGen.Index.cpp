@@ -68,6 +68,7 @@ namespace
 
     MicroReg materializeAddressFromValue(CodeGen& codeGen, const CodeGenNodePayload& payload, const TypeInfo& typeInfo)
     {
+        MicroBuilder&  builder     = codeGen.builder();
         const uint64_t sizeOfValue = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOfValue > 0 && sizeOfValue <= 8);
 
@@ -75,8 +76,8 @@ namespace
         std::memset(spillData, 0, sizeOfValue);
 
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
-        codeGen.builder().emitLoadMemReg(spillAddrReg, 0, payload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
+        builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
+        builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
         return spillAddrReg;
     }
 

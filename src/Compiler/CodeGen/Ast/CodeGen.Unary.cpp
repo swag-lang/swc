@@ -66,6 +66,7 @@ namespace
 
     Result codeGenUnaryMinus(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
+        MicroBuilder&             builder      = codeGen.builder();
         const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
         SWC_ASSERT(childPayload != nullptr);
 
@@ -81,7 +82,6 @@ namespace
 
         if (operandTypeInfo.isFloat())
         {
-            MicroBuilder&  builder  = codeGen.builder();
             const MicroReg valueReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
             builder.emitLoadRegReg(valueReg, resultPayload.reg, opBits);
             const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
@@ -91,7 +91,7 @@ namespace
             return Result::Continue;
         }
 
-        codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
+        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
         return Result::Continue;
     }
 

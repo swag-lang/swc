@@ -44,6 +44,7 @@ namespace
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
+        MicroBuilder&             builder    = codeGen.builder();
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
@@ -81,7 +82,7 @@ namespace
             if (srcPayload->isAddress())
             {
                 srcReg = codeGen.nextVirtualIntRegister();
-                codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+                builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
             }
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -90,9 +91,9 @@ namespace
             if (dstType.isBool())
             {
                 const MicroReg zeroReg = codeGen.nextVirtualIntRegister();
-                codeGen.builder().emitClearReg(zeroReg, srcOpBits);
-                codeGen.builder().emitCmpRegReg(srcReg, zeroReg, srcOpBits);
-                codeGen.builder().emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+                builder.emitClearReg(zeroReg, srcOpBits);
+                builder.emitCmpRegReg(srcReg, zeroReg, srcOpBits);
+                builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
                 return Result::Continue;
             }
 
@@ -100,23 +101,23 @@ namespace
             const uint32_t dstWidth = static_cast<uint32_t>(dstOpBits);
             if (srcWidth == dstWidth)
             {
-                codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
                 return Result::Continue;
             }
 
             if (srcWidth > dstWidth)
             {
-                codeGen.builder().emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
                 return Result::Continue;
             }
 
             if (isNumericSigned(srcType))
             {
-                codeGen.builder().emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+                builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;
             }
 
-            codeGen.builder().emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+            builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
             return Result::Continue;
         }
 
@@ -144,15 +145,15 @@ namespace
         if (srcPayload->isAddress())
         {
             srcReg = codeGen.nextVirtualRegisterForType(sourceTypeRef);
-            codeGen.builder().emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+            builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
         }
 
         if (srcIntLikeType && dstFloatType)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
-            codeGen.builder().emitClearReg(dstPayload.reg, dstOpBits);
-            codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+            builder.emitClearReg(dstPayload.reg, dstOpBits);
+            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
             return Result::Continue;
         }
 
@@ -160,14 +161,14 @@ namespace
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = srcReg;
-            codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
+            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
             return Result::Continue;
         }
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
-        codeGen.builder().emitClearReg(dstPayload.reg, dstOpBits);
-        codeGen.builder().emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+        builder.emitClearReg(dstPayload.reg, dstOpBits);
+        builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
 
         return Result::Continue;
     }

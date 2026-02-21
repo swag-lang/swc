@@ -115,7 +115,7 @@ namespace
                 const ByteSpan structBytes = cst.getStruct();
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(structBytes.size() == storageSize);
-                codeGen.builder().emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+                builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
                 payload.setIsAddress();
                 return;
             }
@@ -136,7 +136,7 @@ namespace
                         };
                         const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
                         const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
-                        codeGen.builder().emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                        builder.emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
                         payload.setIsValue();
                         return;
                     }
@@ -144,7 +144,7 @@ namespace
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(arrayBytes.size() == storageSize);
-                codeGen.builder().emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
+                builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
                 payload.setIsAddress();
                 return;
             }

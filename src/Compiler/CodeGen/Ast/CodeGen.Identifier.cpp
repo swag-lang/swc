@@ -74,6 +74,7 @@ namespace
 
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
+        MicroBuilder& builder = codeGen.builder();
         if (initRef.isInvalid())
             return;
 
@@ -88,13 +89,13 @@ namespace
         if (initPayload->isAddress())
         {
             symbolPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegReg(symbolPayload.reg, initPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload->reg, MicroOpBits::B64);
         }
         else
         {
             const MicroOpBits copyBits = identifierPayloadCopyBits(codeGen, symVar.typeRef());
             symbolPayload.reg          = codeGen.nextVirtualRegisterForType(symVar.typeRef());
-            codeGen.builder().emitLoadRegReg(symbolPayload.reg, initPayload->reg, copyBits);
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload->reg, copyBits);
         }
 
         codeGen.setVariablePayload(symVar, symbolPayload);

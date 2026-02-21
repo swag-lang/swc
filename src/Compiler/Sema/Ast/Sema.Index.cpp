@@ -104,6 +104,10 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type()->payloadTypeRef());
     }
+    else if (nodeExprView.type()->isVariadic())
+    {
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeAny());
+    }
     else if (nodeExprView.type()->isTypedVariadic())
     {
         sema.setType(sema.curNodeRef(), nodeExprView.type()->payloadTypeRef());
@@ -215,7 +219,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         if (sema.isLValue(nodeExprRef))
             sema.setIsLValue(*this);
     }
-    else if (nodeExprView.type()->isSlice() || nodeExprView.type()->isTypedVariadic())
+    else if (nodeExprView.type()->isSlice() || nodeExprView.type()->isAnyVariadic())
     {
         const size_t numGot = children.size();
         if (numGot > 1)
@@ -235,7 +239,10 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
         }
 
-        sema.setType(sema.curNodeRef(), nodeExprView.type()->payloadTypeRef());
+        if (nodeExprView.type()->isVariadic())
+            sema.setType(sema.curNodeRef(), sema.typeMgr().typeAny());
+        else
+            sema.setType(sema.curNodeRef(), nodeExprView.type()->payloadTypeRef());
         if (sema.isLValue(nodeExprRef))
             sema.setIsLValue(*this);
     }

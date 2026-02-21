@@ -6,6 +6,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -114,6 +115,8 @@ namespace
     uint64_t alignUpU64(uint64_t value, uint32_t align)
     {
         SWC_ASSERT(align != 0);
+        if (align == 0)
+            return value;
         const uint64_t alignValue = align;
         return ((value + alignValue - 1) / alignValue) * alignValue;
     }
@@ -206,6 +209,141 @@ namespace
         outPreparedArg.isAddressed = false;
     }
 
+    struct UntypedVariadicArgInfo
+    {
+        AstNodeRef                argRef         = AstNodeRef::invalid();
+        const CodeGenNodePayload* argPayload     = nullptr;
+        TypeRef                   argTypeRef     = TypeRef::invalid();
+        ConstantRef               typeInfoCstRef = ConstantRef::invalid();
+        uint32_t                  valueSize      = 0;
+        uint32_t                  valueAlign     = 1;
+        bool                      needsSpill     = false;
+        uint64_t                  spillOffset    = 0;
+    };
+
+    void packUntypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, const ABITypeNormalize::NormalizedType& normalizedVariadic)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        SWC_ASSERT(normalizedVariadic.numBits == 64);
+        SWC_ASSERT(!normalizedVariadic.isIndirect);
+
+        TaskContext&                        ctx = codeGen.ctx();
+        SmallVector<UntypedVariadicArgInfo> variadicInfos;
+        variadicInfos.reserve(args.size());
+
+        uint64_t spillStorageSize = 0;
+        for (const ResolvedCallArgument& resolvedArg : args)
+        {
+            if (resolvedArg.argRef.isInvalid())
+                continue;
+
+            const CodeGenNodePayload* const argPayload = codeGen.payload(resolvedArg.argRef);
+            SWC_ASSERT(argPayload != nullptr);
+
+            const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
+            SWC_ASSERT(argView.type());
+
+            const TypeInfo& argType    = ctx.typeMgr().get(argView.typeRef());
+            const uint64_t  rawArgSize = argType.sizeOf(ctx);
+            SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
+
+            UntypedVariadicArgInfo info;
+            info.argRef         = resolvedArg.argRef;
+            info.argPayload     = argPayload;
+            info.argTypeRef     = argView.typeRef();
+            info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
+            info.valueSize      = static_cast<uint32_t>(rawArgSize);
+            info.valueAlign     = std::max<uint32_t>(argType.alignOf(ctx), 1);
+            info.needsSpill     = argPayload->isValue() && info.valueSize <= 8;
+            SWC_ASSERT(info.typeInfoCstRef.isValid());
+
+            if (info.needsSpill)
+            {
+                spillStorageSize = alignUpU64(spillStorageSize, info.valueAlign);
+                info.spillOffset = spillStorageSize;
+                spillStorageSize += info.valueSize;
+            }
+
+            variadicInfos.push_back(info);
+        }
+
+        const uint64_t     variadicCount = variadicInfos.size();
+        constexpr uint64_t anyAlign      = alignof(Runtime::Any);
+        const uint64_t     anyOffset     = alignUpU64(spillStorageSize, static_cast<uint32_t>(anyAlign));
+        const uint64_t     anyStorage    = variadicCount * sizeof(Runtime::Any);
+
+        constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
+        const uint64_t     sliceOffset    = alignUpU64(anyOffset + anyStorage, static_cast<uint32_t>(sliceAlign));
+        const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
+        SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
+
+        outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
+        if (outTransientStackSize)
+            builder.emitOpBinaryRegImm(callConv.stackPointer, outTransientStackSize, MicroOp::Subtract, MicroOpBits::B64);
+
+        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+
+        const MicroReg anyBaseReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(anyBaseReg, frameBaseReg, MicroOpBits::B64);
+        if (anyOffset)
+            builder.emitOpBinaryRegImm(anyBaseReg, anyOffset, MicroOp::Add, MicroOpBits::B64);
+
+        for (uint64_t i = 0; i < variadicCount; ++i)
+        {
+            const UntypedVariadicArgInfo& info = variadicInfos[i];
+
+            const MicroReg anyEntryReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(anyEntryReg, anyBaseReg, MicroOpBits::B64);
+            if (i)
+                builder.emitOpBinaryRegImm(anyEntryReg, i * sizeof(Runtime::Any), MicroOp::Add, MicroOpBits::B64);
+
+            MicroReg valuePtrReg = MicroReg::invalid();
+            if (info.needsSpill)
+            {
+                valuePtrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(valuePtrReg, frameBaseReg, MicroOpBits::B64);
+                if (info.spillOffset)
+                    builder.emitOpBinaryRegImm(valuePtrReg, info.spillOffset, MicroOp::Add, MicroOpBits::B64);
+                storeTypedVariadicElement(codeGen, valuePtrReg, *info.argPayload, info.valueSize);
+            }
+            else if (info.argPayload->isAddress())
+            {
+                valuePtrReg = info.argPayload->reg;
+            }
+            else
+            {
+                valuePtrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(valuePtrReg, info.argPayload->reg, MicroOpBits::B64);
+            }
+
+            builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);
+
+            const ConstantValue& typeInfoCst = codeGen.cstMgr().get(info.typeInfoCstRef);
+            SWC_ASSERT(typeInfoCst.isValuePointer());
+
+            const MicroReg typeInfoReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrImm(typeInfoReg, typeInfoCst.getValuePointer(), info.typeInfoCstRef);
+            builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
+        }
+
+        const MicroReg sliceAddrReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
+        if (sliceOffset)
+            builder.emitOpBinaryRegImm(sliceAddrReg, sliceOffset, MicroOp::Add, MicroOpBits::B64);
+
+        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), anyBaseReg, MicroOpBits::B64);
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(countReg, variadicCount, MicroOpBits::B64);
+        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
+
+        outPreparedArg.srcReg      = sliceAddrReg;
+        outPreparedArg.kind        = ABICall::PreparedArgKind::Direct;
+        outPreparedArg.isFloat     = normalizedVariadic.isFloat;
+        outPreparedArg.numBits     = normalizedVariadic.numBits;
+        outPreparedArg.isAddressed = false;
+    }
+
     void buildPreparedABIArguments(CodeGen& codeGen, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, SmallVector<ABICall::PreparedArg>& outArgs, uint32_t& outTransientStackSize)
     {
         // Convert resolved semantic arguments into ABI-prepared argument descriptors.
@@ -217,8 +355,9 @@ namespace
         const std::vector<SymbolVariable*>& params       = calledFunction.parameters();
         const size_t                        numParams    = params.size();
 
+        bool    hasVariadic           = false;
         bool    hasTypedVariadic      = false;
-        size_t  typedVariadicParamIdx = 0;
+        size_t  variadicParamIdx      = 0;
         TypeRef typedVariadicElemType = TypeRef::invalid();
 
         if (!params.empty())
@@ -229,16 +368,23 @@ namespace
                 const TypeInfo& lastParamType = codeGen.ctx().typeMgr().get(lastParam->typeRef());
                 if (lastParamType.isTypedVariadic())
                 {
+                    hasVariadic           = true;
                     hasTypedVariadic      = true;
-                    typedVariadicParamIdx = numParams - 1;
+                    variadicParamIdx      = numParams - 1;
                     typedVariadicElemType = lastParamType.payloadTypeRef();
+                }
+                else if (lastParamType.isVariadic())
+                {
+                    hasVariadic      = true;
+                    hasTypedVariadic = false;
+                    variadicParamIdx = numParams - 1;
                 }
             }
         }
 
         size_t numFixedArgs = args.size();
-        if (hasTypedVariadic)
-            numFixedArgs = std::min(args.size(), typedVariadicParamIdx);
+        if (hasVariadic)
+            numFixedArgs = std::min(args.size(), variadicParamIdx);
 
         for (size_t i = 0; i < numFixedArgs; ++i)
         {
@@ -279,7 +425,7 @@ namespace
             outArgs.push_back(preparedArg);
         }
 
-        if (!hasTypedVariadic)
+        if (!hasVariadic)
         {
             for (size_t i = numFixedArgs; i < args.size(); ++i)
             {
@@ -323,10 +469,13 @@ namespace
         }
 
         ABICall::PreparedArg                        variadicPreparedArg;
-        const TypeRef                               variadicParamTypeRef = params[typedVariadicParamIdx]->typeRef();
+        const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();
         const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, variadicParamTypeRef, ABITypeNormalize::Usage::Argument);
         const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(numFixedArgs);
-        packTypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, typedVariadicElemType, normalizedVariadic);
+        if (hasTypedVariadic)
+            packTypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, typedVariadicElemType, normalizedVariadic);
+        else
+            packUntypedVariadicArgument(variadicPreparedArg, outTransientStackSize, codeGen, callConv, variadicArgs, normalizedVariadic);
         outArgs.push_back(variadicPreparedArg);
     }
 

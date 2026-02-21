@@ -116,17 +116,10 @@ namespace
             return pointerReg;
         }
 
-        if (indexedType.isSlice() || indexedType.isTypedVariadic())
+        if (indexedType.isSlice() || indexedType.isVariadic() || indexedType.isTypedVariadic())
         {
-            MicroReg sliceReg = indexedPayload.reg;
-            if (indexedPayload.isAddress())
-            {
-                sliceReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(sliceReg, indexedPayload.reg, 0, MicroOpBits::B64);
-            }
-
             const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(pointerReg, sliceReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
+            builder.emitLoadRegMem(pointerReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
             return pointerReg;
         }
 

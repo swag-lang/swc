@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -958,6 +959,44 @@ namespace
         return Result::Continue;
     }
 
+    Result concretizeUntypedVariadicArg(Sema& sema, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return Result::Continue;
+
+        SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (!argView.type() || !argView.cst())
+            return Result::Continue;
+        if (!argView.type()->isScalarUnsized())
+            return Result::Continue;
+
+        ConstantRef newCstRef = ConstantRef::invalid();
+        RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
+        sema.setConstant(argView.nodeRef(), newCstRef);
+        return Result::Continue;
+    }
+
+    Result concretizeUntypedVariadicArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
+    {
+        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
+        if (numParams == 0)
+            return Result::Continue;
+
+        const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+        SWC_ASSERT(variadicParam != nullptr);
+        const TypeInfo& variadicType = variadicParam->type(sema.ctx());
+        if (!variadicType.isVariadic())
+            return Result::Continue;
+
+        const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
+        RESULT_VERIFY(concretizeUntypedVariadicArg(sema, fixedVariadicArg.argRef));
+
+        for (const CallArgEntry& entry : mapping.variadicArgs)
+            RESULT_VERIFY(concretizeUntypedVariadicArg(sema, entry.argRef));
+
+        return Result::Continue;
+    }
+
     AstNodeRef findInterfaceReceiverArg(Sema& sema, const SemaNodeView& nodeCallee)
     {
         const AstMemberAccessExpr* memberAccess = nodeCallee.node() ? nodeCallee.node()->safeCast<AstMemberAccessExpr>() : nullptr;
@@ -1003,10 +1042,36 @@ namespace
         return true;
     }
 
-    void buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
+    Result assignUntypedVariadicTypeInfo(Sema& sema, ResolvedCallArgument& outResolvedArg)
+    {
+        if (outResolvedArg.argRef.isInvalid())
+            return Result::Continue;
+
+        const SemaNodeView argView = sema.viewType(outResolvedArg.argRef);
+        SWC_ASSERT(argView.typeRef().isValid());
+
+        ConstantRef typeInfoCstRef = ConstantRef::invalid();
+        RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
+        outResolvedArg.typeInfoCstRef = typeInfoCstRef;
+        return Result::Continue;
+    }
+
+    Result buildResolvedCallArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
         outResolvedArgs.clear();
         appendImplicitInterfaceReceiverArg(sema, outResolvedArgs, nodeCallee, selectedFn, mapping);
+
+        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
+        bool           hasUntypedVariadic = false;
+        uint32_t       variadicParamIdx   = 0;
+        if (numParams)
+        {
+            const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+            SWC_ASSERT(variadicParam != nullptr);
+            const TypeInfo& variadicType = variadicParam->type(sema.ctx());
+            hasUntypedVariadic           = variadicType.isVariadic();
+            variadicParamIdx             = numParams - 1;
+        }
 
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
@@ -1026,7 +1091,15 @@ namespace
                     passKind = CallArgumentPassKind::InterfaceObject;
             }
 
-            outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = passKind});
+            ResolvedCallArgument resolvedArg{
+                .argRef   = finalArgRef,
+                .passKind = passKind,
+            };
+
+            if (hasUntypedVariadic && i == variadicParamIdx)
+                RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
+
+            outResolvedArgs.push_back(resolvedArg);
         }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
@@ -1036,8 +1109,18 @@ namespace
             AstNodeRef finalArgRef = entry.argRef;
             if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
                 finalArgRef = namedArg->nodeArgRef;
-            outResolvedArgs.push_back({.argRef = finalArgRef, .passKind = CallArgumentPassKind::Direct});
+            ResolvedCallArgument resolvedArg{
+                .argRef   = finalArgRef,
+                .passKind = CallArgumentPassKind::Direct,
+            };
+
+            if (hasUntypedVariadic)
+                RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
+
+            outResolvedArgs.push_back(resolvedArg);
         }
+
+        return Result::Continue;
     }
 }
 
@@ -1107,8 +1190,9 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
     RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
     RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
+    RESULT_VERIFY(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
     if (outResolvedArgs)
-        buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg);
+        RESULT_VERIFY(buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg));
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.curNode());

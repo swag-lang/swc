@@ -124,14 +124,22 @@
     #assert(V0 == 2)
 }
 
-// #test
-// {
-//     func variadicTyped(values: string...)->u8 { return values[0][0] + values[1][0] + values[2][0] }
-//     const V0 = #run variadicTyped("ab", "cd", "ef")
-//     #assert(#typeof(V0) == u8)
-//     #assert(V0 == 38'u8)
-// }
-//
+#[Swag.PrintMicro]
+#test
+{
+    func variadicTyped(values: string...)->string { return values[0] }
+    const V0 = #run variadicTyped("ab")
+    #assert(V0 == "ab")
+}
+
+/*#test
+{
+    func variadicTyped(values: string...)->u8 { return values[0][0] + values[1][0] + values[2][0] }
+    const V0 = #run variadicTyped("ab", "cd", "ef")
+    #assert(#typeof(V0) == u8)
+    #assert(V0 == 38'u8)
+}*/
+
 // #test
 // {
 //     func variadicTypedWithHead(a: string, values: string...)->u8 { return a[0] + values[0][0] + values[1][0] }

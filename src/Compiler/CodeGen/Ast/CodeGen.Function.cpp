@@ -127,8 +127,13 @@ namespace
             return;
         }
 
-        SWC_ASSERT(elemSize == 1 || elemSize == 2 || elemSize == 4 || elemSize == 8);
-        builder.emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, microOpBitsFromChunkSize(elemSize));
+        if (elemSize == 1 || elemSize == 2 || elemSize == 4 || elemSize == 8)
+        {
+            builder.emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, microOpBitsFromChunkSize(elemSize));
+            return;
+        }
+
+        builder.emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, MicroOpBits::B64);
     }
 
     void packTypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, TypeRef variadicElemTypeRef, const ABITypeNormalize::NormalizedType& normalizedVariadic)

@@ -126,6 +126,19 @@ namespace
                 if (targetTypeRef.isValid())
                 {
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+                    if (targetType.isString())
+                    {
+                        const Runtime::String runtimeString{
+                            .ptr    = reinterpret_cast<const char*>(arrayBytes.data()),
+                            .length = arrayBytes.size(),
+                        };
+                        const ByteSpan runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
+                        const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
+                        builder.emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                        payload.setIsValue();
+                        return;
+                    }
+
                     if (targetType.isSlice())
                     {
                         const TypeInfo&      elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());

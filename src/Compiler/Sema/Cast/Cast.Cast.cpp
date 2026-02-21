@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -708,6 +710,63 @@ Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcType
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
+Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (!castRequest.isConstantFolding())
+        return Result::Continue;
+
+    TaskContext&       ctx      = sema.ctx();
+    const TypeManager& typeMgr  = sema.typeMgr();
+    ConstantRef        srcCstRef = castRequest.srcConstRef;
+    TypeRef            anyTypeRef = srcTypeRef;
+    const TypeInfo*    srcType   = &typeMgr.get(anyTypeRef);
+
+    if (srcType->isIntUnsized() || srcType->isFloatUnsized())
+    {
+        ConstantRef concreteCstRef;
+        if (!concretizeConstant(sema, concreteCstRef, srcCstRef, TypeInfo::Sign::Unknown))
+        {
+            castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(srcCstRef).typeRef(), TypeRef::invalid());
+            return Result::Error;
+        }
+
+        srcCstRef  = concreteCstRef;
+        anyTypeRef = sema.cstMgr().get(concreteCstRef).typeRef();
+        srcType    = &typeMgr.get(anyTypeRef);
+        castRequest.setConstantFoldingSrc(concreteCstRef);
+    }
+
+    const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
+    Runtime::Any         anyValue{};
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
+    const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
+    SWC_ASSERT(typeInfoCst.isValuePointer());
+    anyValue.type = reinterpret_cast<const Runtime::TypeInfo*>(typeInfoCst.getValuePointer());
+
+    if (!srcCst.isNull())
+    {
+        const uint64_t valueSize = srcType->sizeOf(ctx);
+        SWC_ASSERT(valueSize <= std::numeric_limits<size_t>::max());
+
+        if (valueSize)
+        {
+            std::vector<std::byte> valueBytes(static_cast<size_t>(valueSize), std::byte{0});
+            ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef);
+
+            const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
+            const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(rawValueView);
+            anyValue.value                      = const_cast<char*>(rawValueData.data());
+        }
+    }
+
+    const ByteSpan      anyBytes(reinterpret_cast<const std::byte*>(&anyValue), sizeof(anyValue));
+    const ConstantValue anyCst = ConstantValue::makeStruct(ctx, dstTypeRef, anyBytes);
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, anyCst));
+    return Result::Continue;
+}
+
 Result Cast::castToVariadic(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TypeManager& typeMgr = sema.typeMgr();
@@ -795,6 +854,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castToSlice(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
         res = castToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (dstType.isAny())
+        res = castToAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isReference())
         res = castToReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isInterface())

@@ -282,7 +282,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 
 SourceView& CompilerInstance::srcView(SourceViewRef ref)
 {
-    std::unique_lock lock(mutex_);
+    std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     SourceView* const view = srcViews_[ref.get()].get();
@@ -291,7 +291,7 @@ SourceView& CompilerInstance::srcView(SourceViewRef ref)
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 {
-    std::unique_lock lock(mutex_);
+    std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     const SourceView* const view = srcViews_[ref.get()].get();

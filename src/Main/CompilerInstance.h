@@ -131,7 +131,7 @@ private:
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     void*                                    runtimeCompilerITable_[3]{};
-    mutable std::mutex                       mutex_;
+    mutable std::shared_mutex                mutex_;
     bool                                     changed_ = true;
 
     struct PerThreadData

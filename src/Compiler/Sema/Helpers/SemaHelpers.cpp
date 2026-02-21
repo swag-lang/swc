@@ -212,7 +212,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
         return Result::Continue;
     }
 
-    if (view.type()->isSlice())
+    if (view.type()->isSlice() || view.type()->isAnyVariadic())
     {
         sema.setType(targetRef, sema.typeMgr().typeU64());
         sema.setIsValue(targetRef);

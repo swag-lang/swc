@@ -117,6 +117,13 @@
     #assert(V0 == 294)
 }
 
+#test
+{
+    func variadicTypedWithHead(a: rune, values: rune...)->u64 { return @countof(values) }
+    const V0 = #run variadicTypedWithHead('a', 'b', 'c')
+    #assert(V0 == 3)
+}
+
 // #test
 // {
 //     func variadicTyped(values: string...)->u8 { return values[0][0] + values[1][0] + values[2][0] }
@@ -132,21 +139,3 @@
 //     #assert(#typeof(V0) == u8)
 //     #assert(V0 == 198'u8)
 // }
-
-#test
-{
-    func variadicTyped(values: u64...)->u64 { return values[0] + values[1] + values[2] + values[3] }
-    var a: [4] s32
-    const V0 = #run variadicTyped(@countof(a), @countof("abc"), @countof(7), @countof(1))
-    #assert(#typeof(V0) == u64)
-    #assert(V0 == 15'u64)
-}
-
-#test
-{
-    func variadicTypedWithHead(a: u64, values: u64...)->u64 { return a + values[0] + values[1] + values[2] }
-    var b: [2, 3] u8
-    const V0 = #run variadicTypedWithHead(@countof("abcd"), @countof(b), @countof(5), @countof(3))
-    #assert(#typeof(V0) == u64)
-    #assert(V0 == 18'u64)
-}

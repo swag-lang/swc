@@ -272,37 +272,27 @@ namespace PeepholePass
             return true;
         }
 
-        bool isStackPointerReg(const MicroPassContext& context, MicroReg reg)
-        {
-            if (!reg.isValid() || reg.isNoBase())
-                return false;
-
-            if (context.encoder)
-            {
-                const MicroReg stackPointerReg = context.encoder->stackPointerReg();
-                if (stackPointerReg.isValid())
-                    return reg == stackPointerReg;
-            }
-
-            return reg.isInt() && reg.index() == 4;
-        }
-
-        bool isMergeableRspAdjustInstruction(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops, MicroOp expectedOp)
+        bool isMergeableRegImmArithmeticInstruction(const MicroInstr& inst,
+                                                    const MicroInstrOperand* ops,
+                                                    MicroReg                 expectedReg,
+                                                    MicroOpBits              expectedBits,
+                                                    MicroOp                  expectedOp)
         {
             if (!ops)
                 return false;
 
             if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
-            if (ops[1].opBits != MicroOpBits::B64)
+            if (ops[0].reg != expectedReg)
+                return false;
+            if (ops[1].opBits != expectedBits)
                 return false;
             if (ops[2].microOp != expectedOp)
                 return false;
-
-            return isStackPointerReg(context, ops[0].reg);
+            return true;
         }
 
-        bool isRspMergeNeutralInstruction(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
+        bool isRegImmMergeNeutralInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg mergedReg)
         {
             if (!ops)
                 return false;
@@ -310,22 +300,20 @@ namespace PeepholePass
             if (inst.op != MicroInstrOpcode::LoadRegReg)
                 return false;
 
-            return !isStackPointerReg(context, ops[0].reg) && !isStackPointerReg(context, ops[1].reg);
+            return ops[0].reg != mergedReg && ops[1].reg != mergedReg;
         }
 
-        bool tryMergeRspAdjustmentsAtStart(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+        bool tryMergeRegImmArithmeticWithNext(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
         {
             if (!ops || nextIt == endIt)
                 return false;
 
-            if (ops[1].opBits != MicroOpBits::B64)
+            const MicroReg    mergedReg = ops[0].reg;
+            const MicroOpBits opBits    = ops[1].opBits;
+            const MicroOp     microOp   = ops[2].microOp;
+            if (!mergedReg.isValid() || mergedReg.isNoBase())
                 return false;
-
-            const MicroOp firstOp = ops[2].microOp;
-            if (firstOp != MicroOp::Add && firstOp != MicroOp::Subtract)
-                return false;
-
-            if (!isStackPointerReg(context, ops[0].reg))
+            if (microOp != MicroOp::Add && microOp != MicroOp::Subtract)
                 return false;
 
             const MicroInstr&        firstNextInst = *nextIt;
@@ -333,14 +321,14 @@ namespace PeepholePass
 
             MicroStorage::Iterator   secondAdjustIt;
             const MicroInstrOperand* secondAdjustOps = nullptr;
-            if (isMergeableRspAdjustInstruction(context, firstNextInst, firstNextOps, firstOp))
+            if (isMergeableRegImmArithmeticInstruction(firstNextInst, firstNextOps, mergedReg, opBits, microOp))
             {
                 secondAdjustIt  = nextIt;
                 secondAdjustOps = firstNextOps;
             }
             else
             {
-                if (!isRspMergeNeutralInstruction(context, firstNextInst, firstNextOps))
+                if (!isRegImmMergeNeutralInstruction(firstNextInst, firstNextOps, mergedReg))
                     return false;
 
                 secondAdjustIt = std::next(nextIt);
@@ -349,7 +337,7 @@ namespace PeepholePass
 
                 const MicroInstr&        secondInst = *secondAdjustIt;
                 const MicroInstrOperand* secondOps  = secondInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-                if (!isMergeableRspAdjustInstruction(context, secondInst, secondOps, firstOp))
+                if (!isMergeableRegImmArithmeticInstruction(secondInst, secondOps, mergedReg, opBits, microOp))
                     return false;
 
                 secondAdjustOps = secondOps;
@@ -361,12 +349,7 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, secondAdjustIt, endIt))
                 return false;
 
-            const uint64_t firstImm  = ops[3].valueU64;
-            const uint64_t secondImm = secondAdjustOps[3].valueU64;
-            if (firstImm > std::numeric_limits<uint64_t>::max() - secondImm)
-                return false;
-
-            const MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
             if (!firstInst)
                 return false;
 
@@ -375,7 +358,12 @@ namespace PeepholePass
                 return false;
 
             const uint64_t originalImm = firstOps[3].valueU64;
-            firstOps[3].valueU64       = firstImm + secondImm;
+            const uint64_t firstImm    = originalImm;
+            const uint64_t secondImm   = secondAdjustOps[3].valueU64;
+            uint64_t       combinedImm = firstImm + secondImm;
+            if (opBits != MicroOpBits::B64)
+                combinedImm &= getOpBitsMask(opBits);
+            firstOps[3].valueU64       = combinedImm;
             if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
             {
                 firstOps[3].valueU64 = originalImm;
@@ -386,24 +374,25 @@ namespace PeepholePass
             return true;
         }
 
-        bool matchMergeRspAdjustmentsAtStart(const MicroPassContext& context, const Cursor& cursor)
+        bool matchMergeRegImmArithmeticWithNext(const MicroPassContext& context, const Cursor& cursor)
         {
+            SWC_UNUSED(context);
             if (!cursor.ops || cursor.nextIt == cursor.endIt)
                 return false;
 
             if (cursor.inst->op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
-            if (cursor.ops[1].opBits != MicroOpBits::B64)
-                return false;
-            if (cursor.ops[2].microOp != MicroOp::Add && cursor.ops[2].microOp != MicroOp::Subtract)
+
+            const MicroReg mergedReg = cursor.ops[0].reg;
+            if (!mergedReg.isValid() || mergedReg.isNoBase())
                 return false;
 
-            return isStackPointerReg(context, cursor.ops[0].reg);
+            return cursor.ops[2].microOp == MicroOp::Add || cursor.ops[2].microOp == MicroOp::Subtract;
         }
 
-        bool rewriteMergeRspAdjustmentsAtStart(const MicroPassContext& context, const Cursor& cursor)
+        bool rewriteMergeRegImmArithmeticWithNext(const MicroPassContext& context, const Cursor& cursor)
         {
-            return tryMergeRspAdjustmentsAtStart(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+            return tryMergeRegImmArithmeticWithNext(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
         }
 
         bool matchFoldLoadImmIntoNextMemStore(const MicroPassContext& context, const Cursor& cursor)
@@ -464,10 +453,10 @@ namespace PeepholePass
 
     void appendImmediateRules(RuleList& outRules)
     {
-        // Rule: merge_rsp_adjustments_at_start
-        // Purpose: merge split stack pointer add/sub adjustments into one instruction.
-        // Example: sub rsp, 8; mov r15, rcx; sub rsp, 0x20 -> sub rsp, 0x28; mov r15, rcx
-        outRules.push_back({"merge_rsp_adjustments_at_start", RuleTarget::OpBinaryRegImm, matchMergeRspAdjustmentsAtStart, rewriteMergeRspAdjustmentsAtStart});
+        // Rule: merge_regimm_arithmetic_with_next
+        // Purpose: merge two same-register immediate add/sub operations into one, anywhere in the block.
+        // Example: add rax, 4; mov r9, rcx; add rax, 8 -> add rax, 12; mov r9, rcx
+        outRules.push_back({"merge_regimm_arithmetic_with_next", RuleTarget::OpBinaryRegImm, matchMergeRegImmArithmeticWithNext, rewriteMergeRegImmArithmeticWithNext});
 
         // Rule: fold_loadimm_into_next_copy
         // Purpose: fold immediate load through a copy and remove temporary register.

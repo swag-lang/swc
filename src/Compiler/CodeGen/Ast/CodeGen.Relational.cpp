@@ -134,9 +134,7 @@ namespace
         if (operandType.isBool())
             return;
 
-        const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        builder.emitClearReg(zeroReg, operandBits);
-        builder.emitCmpRegReg(outReg, zeroReg, operandBits);
+        builder.emitCmpRegZero(outReg, operandBits);
 
         const MicroReg boolReg = codeGen.nextVirtualIntRegister();
         builder.emitSetCondReg(boolReg, MicroCond::NotEqual);

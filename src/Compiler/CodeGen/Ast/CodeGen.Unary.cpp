@@ -82,12 +82,10 @@ namespace
 
         if (operandTypeInfo.isFloat())
         {
-            const MicroReg valueReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-            builder.emitLoadRegReg(valueReg, resultPayload.reg, opBits);
             const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
             builder.emitClearReg(zeroReg, opBits);
-            builder.emitLoadRegReg(resultPayload.reg, zeroReg, opBits);
-            builder.emitOpBinaryRegReg(resultPayload.reg, valueReg, MicroOp::FloatSubtract, opBits);
+            builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, opBits);
+            resultPayload.reg = zeroReg;
             return Result::Continue;
         }
 

@@ -36,30 +36,18 @@ namespace
         if (indexPayload->isAddress())
         {
             if (outIndexBits == MicroOpBits::B64)
-            {
                 microBuilder.emitLoadRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64);
-            }
             else if (indexSigned)
-            {
                 microBuilder.emitLoadSignedExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
-            }
             else
-            {
-                microBuilder.emitClearReg(indexReg, MicroOpBits::B64);
-                microBuilder.emitLoadRegMem(indexReg, indexPayload->reg, 0, outIndexBits);
-            }
+                microBuilder.emitLoadZeroExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
         }
         else
         {
             if (indexSigned)
-            {
                 microBuilder.emitLoadSignedExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
-            }
             else
-            {
-                microBuilder.emitClearReg(indexReg, MicroOpBits::B64);
-                microBuilder.emitLoadRegReg(indexReg, indexPayload->reg, outIndexBits);
-            }
+                microBuilder.emitLoadZeroExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
         }
 
         outIndexBits = MicroOpBits::B64;

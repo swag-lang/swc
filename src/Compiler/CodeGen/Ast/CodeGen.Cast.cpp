@@ -90,9 +90,7 @@ namespace
 
             if (dstType.isBool())
             {
-                const MicroReg zeroReg = codeGen.nextVirtualIntRegister();
-                builder.emitClearReg(zeroReg, srcOpBits);
-                builder.emitCmpRegReg(srcReg, zeroReg, srcOpBits);
+                builder.emitCmpRegImm(srcReg, 0, srcOpBits);
                 builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
                 return Result::Continue;
             }

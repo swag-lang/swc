@@ -21,19 +21,6 @@ bool MicroInstrInfo::isUnconditionalJumpInstruction(const MicroInstr& inst, cons
     return true;
 }
 
-bool MicroInstrInfo::isSameRegisterClass(MicroReg leftReg, MicroReg rightReg)
-{
-    if (leftReg.isInt() && rightReg.isInt())
-        return true;
-    if (leftReg.isFloat() && rightReg.isFloat())
-        return true;
-    if (leftReg.isVirtualInt() && rightReg.isVirtualInt())
-        return true;
-    if (leftReg.isVirtualFloat() && rightReg.isVirtualFloat())
-        return true;
-    return false;
-}
-
 bool MicroInstrInfo::isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
 {
     if (inst.op == MicroInstrOpcode::Label)

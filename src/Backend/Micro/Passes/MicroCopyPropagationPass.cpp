@@ -70,7 +70,7 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
 
             MicroReg& reg         = *SWC_CHECK_NOT_NULL(ref.reg);
             MicroReg  resolvedReg = resolveAlias(aliases, reg);
-            if (resolvedReg != reg && MicroInstrInfo::isSameRegisterClass(reg, resolvedReg))
+            if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {
                 reg     = resolvedReg;
                 changed = true;
@@ -86,7 +86,7 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
             const MicroInstrOperand* instOps = inst.ops(operands);
             const MicroReg           dstReg  = instOps[0].reg;
             const MicroReg           srcReg  = resolveAlias(aliases, instOps[1].reg);
-            if (dstReg != srcReg && MicroInstrInfo::isSameRegisterClass(dstReg, srcReg) && instOps[2].opBits == MicroOpBits::B64)
+            if (dstReg != srcReg && dstReg.isSameClass(srcReg) && instOps[2].opBits == MicroOpBits::B64)
                 aliases[dstReg.packed] = srcReg;
         }
 
@@ -98,3 +98,4 @@ bool MicroCopyPropagationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
+

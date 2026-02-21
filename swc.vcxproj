@@ -203,6 +203,7 @@
         <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrStorage.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroReg.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\MicroBranchFoldingPass.cpp"/>

@@ -66,7 +66,7 @@ namespace PeepholePass
                 return false;
             if (copyOps[1].reg != tmpReg)
                 return false;
-            if (!MicroInstrInfo::isSameRegisterClass(copyOps[0].reg, tmpReg))
+            if (!copyOps[0].reg.isSameClass(tmpReg))
                 return false;
 
             if (!isCopyDeadAfterInstruction(context, std::next(copyIt), endIt, tmpReg))
@@ -170,3 +170,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

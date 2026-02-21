@@ -7,7 +7,6 @@ namespace MicroInstrInfo
 {
     bool isTerminatorInstruction(const MicroInstr& inst);
     bool isUnconditionalJumpInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
-    bool isSameRegisterClass(MicroReg leftReg, MicroReg rightReg);
     bool isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef);
     bool usesCpuFlags(const MicroInstr& inst);
     bool definesCpuFlags(const MicroInstr& inst);

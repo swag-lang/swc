@@ -28,7 +28,7 @@ namespace PeepholePass
                 return false;
             if (nextOps[2].microOp != MicroOp::Add)
                 return false;
-            if (!MicroInstrInfo::isSameRegisterClass(ops[0].reg, ops[1].reg))
+            if (!ops[0].reg.isSameClass(ops[1].reg))
                 return false;
             if (!areFlagsDeadAfterInstruction(context, nextIt, endIt))
                 return false;
@@ -156,3 +156,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

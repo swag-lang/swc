@@ -27,7 +27,7 @@ namespace PeepholePass
                 return false;
             if (ops[2].opBits != nextOps[2].opBits)
                 return false;
-            if (!MicroInstrInfo::isSameRegisterClass(copyDstReg, copySrcReg))
+            if (!copyDstReg.isSameClass(copySrcReg))
                 return false;
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, copyDstReg))
                 return false;
@@ -56,7 +56,7 @@ namespace PeepholePass
 
             const MicroReg copyDstReg = ops[0].reg;
             const MicroReg copySrcReg = ops[1].reg;
-            if (!MicroInstrInfo::isSameRegisterClass(copyDstReg, copySrcReg))
+            if (!copyDstReg.isSameClass(copySrcReg))
                 return false;
 
             bool replacesOperand = false;
@@ -140,7 +140,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (!MicroInstrInfo::isSameRegisterClass(tmpReg, srcReg))
+            if (!tmpReg.isSameClass(srcReg))
                 return false;
             if (opOps[0].reg != tmpReg)
                 return false;
@@ -190,7 +190,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (!MicroInstrInfo::isSameRegisterClass(tmpReg, srcReg))
+            if (!tmpReg.isSameClass(srcReg))
                 return false;
 
             if (unaryOps[0].reg != tmpReg)
@@ -329,7 +329,7 @@ namespace PeepholePass
 
             const MicroReg dstReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (dstReg == srcReg || !MicroInstrInfo::isSameRegisterClass(dstReg, srcReg))
+            if (dstReg == srcReg || !dstReg.isSameClass(srcReg))
                 return false;
 
             bool sawMutation = false;
@@ -433,7 +433,7 @@ namespace PeepholePass
             if (cursor.ops[2].opBits != opOps[2].opBits || cursor.ops[2].opBits != copyBackOps[2].opBits)
                 return false;
 
-            return MicroInstrInfo::isSameRegisterClass(tmpReg, srcReg);
+            return tmpReg.isSameClass(srcReg);
         }
 
         bool rewriteFoldCopyOpCopyBack(const MicroPassContext& context, const Cursor& cursor)
@@ -467,7 +467,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = cursor.ops[0].reg;
             const MicroReg srcReg = cursor.ops[1].reg;
-            if (!MicroInstrInfo::isSameRegisterClass(tmpReg, srcReg))
+            if (!tmpReg.isSameClass(srcReg))
                 return false;
 
             if (unaryOps[0].reg != tmpReg)
@@ -517,7 +517,7 @@ namespace PeepholePass
 
             const MicroReg origReg = cursor.ops[0].reg;
             const MicroReg tmpReg  = cursor.ops[1].reg;
-            if (!MicroInstrInfo::isSameRegisterClass(origReg, tmpReg))
+            if (!origReg.isSameClass(tmpReg))
                 return false;
 
             if (prevOpOps[0].reg != tmpReg)
@@ -640,3 +640,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

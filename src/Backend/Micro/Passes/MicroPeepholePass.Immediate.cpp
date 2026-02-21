@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstructionInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
@@ -43,7 +44,7 @@ namespace PeepholePass
 
                 if (!hasUse)
                 {
-                    if (useDef.isCall || MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                    if (useDef.isCall || MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                         return false;
                     continue;
                 }
@@ -298,7 +299,7 @@ namespace PeepholePass
                 return false;
 
             const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
-            if (useDef.isCall || MicroOptimization::isLocalDataflowBarrier(inst, useDef))
+            if (useDef.isCall || MicroInstructionInfo::isLocalDataflowBarrier(inst, useDef))
                 return false;
 
             switch (inst.op)
@@ -509,3 +510,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

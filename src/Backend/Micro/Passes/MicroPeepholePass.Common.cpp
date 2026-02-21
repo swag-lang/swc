@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/MicroInstructionInfo.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -88,7 +88,7 @@ namespace PeepholePass
             if (scanInst.op == MicroInstrOpcode::Ret)
                 return true;
 
-            if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+            if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
         }
 
@@ -131,7 +131,7 @@ namespace PeepholePass
                 return false;
             }
 
-            if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+            if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
         }
 
@@ -152,7 +152,7 @@ namespace PeepholePass
             if (definesCpuFlags(scanInst))
                 return true;
 
-            if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+            if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return true;
         }
 
@@ -218,3 +218,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

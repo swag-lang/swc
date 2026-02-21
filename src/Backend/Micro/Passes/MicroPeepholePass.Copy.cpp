@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstructionInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
@@ -26,7 +27,7 @@ namespace PeepholePass
                 return false;
             if (ops[2].opBits != nextOps[2].opBits)
                 return false;
-            if (!MicroOptimization::isSameRegisterClass(copyDstReg, copySrcReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(copyDstReg, copySrcReg))
                 return false;
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, copyDstReg))
                 return false;
@@ -55,7 +56,7 @@ namespace PeepholePass
 
             const MicroReg copyDstReg = ops[0].reg;
             const MicroReg copySrcReg = ops[1].reg;
-            if (!MicroOptimization::isSameRegisterClass(copyDstReg, copySrcReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(copyDstReg, copySrcReg))
                 return false;
 
             bool replacesOperand = false;
@@ -139,7 +140,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (!MicroOptimization::isSameRegisterClass(tmpReg, srcReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(tmpReg, srcReg))
                 return false;
             if (opOps[0].reg != tmpReg)
                 return false;
@@ -189,7 +190,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (!MicroOptimization::isSameRegisterClass(tmpReg, srcReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(tmpReg, srcReg))
                 return false;
 
             if (unaryOps[0].reg != tmpReg)
@@ -223,7 +224,7 @@ namespace PeepholePass
             {
                 const MicroInstr&      scanInst = *scanIt;
                 const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
-                if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                     break;
 
                 const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
@@ -299,7 +300,7 @@ namespace PeepholePass
             {
                 const MicroInstr&      scanInst = *scanIt;
                 const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
-                if (MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                if (MicroInstructionInfo::isLocalDataflowBarrier(scanInst, useDef))
                     break;
 
                 SmallVector<MicroInstrRegOperandRef> refs;
@@ -328,7 +329,7 @@ namespace PeepholePass
 
             const MicroReg dstReg = ops[0].reg;
             const MicroReg srcReg = ops[1].reg;
-            if (dstReg == srcReg || !MicroOptimization::isSameRegisterClass(dstReg, srcReg))
+            if (dstReg == srcReg || !MicroInstructionInfo::isSameRegisterClass(dstReg, srcReg))
                 return false;
 
             bool sawMutation = false;
@@ -432,7 +433,7 @@ namespace PeepholePass
             if (cursor.ops[2].opBits != opOps[2].opBits || cursor.ops[2].opBits != copyBackOps[2].opBits)
                 return false;
 
-            return MicroOptimization::isSameRegisterClass(tmpReg, srcReg);
+            return MicroInstructionInfo::isSameRegisterClass(tmpReg, srcReg);
         }
 
         bool rewriteFoldCopyOpCopyBack(const MicroPassContext& context, const Cursor& cursor)
@@ -466,7 +467,7 @@ namespace PeepholePass
 
             const MicroReg tmpReg = cursor.ops[0].reg;
             const MicroReg srcReg = cursor.ops[1].reg;
-            if (!MicroOptimization::isSameRegisterClass(tmpReg, srcReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(tmpReg, srcReg))
                 return false;
 
             if (unaryOps[0].reg != tmpReg)
@@ -516,7 +517,7 @@ namespace PeepholePass
 
             const MicroReg origReg = cursor.ops[0].reg;
             const MicroReg tmpReg  = cursor.ops[1].reg;
-            if (!MicroOptimization::isSameRegisterClass(origReg, tmpReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(origReg, tmpReg))
                 return false;
 
             if (prevOpOps[0].reg != tmpReg)
@@ -639,3 +640,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

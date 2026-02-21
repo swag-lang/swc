@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstructionInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
@@ -65,7 +66,7 @@ namespace PeepholePass
                 return false;
             if (copyOps[1].reg != tmpReg)
                 return false;
-            if (!MicroOptimization::isSameRegisterClass(copyOps[0].reg, tmpReg))
+            if (!MicroInstructionInfo::isSameRegisterClass(copyOps[0].reg, tmpReg))
                 return false;
 
             if (!isCopyDeadAfterInstruction(context, std::next(copyIt), endIt, tmpReg))
@@ -169,3 +170,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

@@ -16,6 +16,8 @@ namespace
                 return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegReg;
             case PeepholePass::RuleTarget::LoadRegImm:
                 return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegImm;
+            case PeepholePass::RuleTarget::LoadRegMem:
+                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegMem;
             case PeepholePass::RuleTarget::OpBinaryRegImm:
                 return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::OpBinaryRegImm;
             case PeepholePass::RuleTarget::LoadAddrRegMem:

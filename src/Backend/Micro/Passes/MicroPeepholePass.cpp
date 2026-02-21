@@ -27,7 +27,9 @@ namespace
     {
         AnyInstruction,
         LoadRegReg,
+        LoadRegImm,
         LoadAddrRegMem,
+        LoadMemImm,
     };
 
     using PeepholeRuleMatchFn   = bool (*)(const MicroPassContext& context, const PeepholeCursor& cursor);
@@ -339,6 +341,270 @@ namespace
         }
 
         SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
+    bool tryFoldLoadImmIntoNextMemStore(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        if (ops[1].opBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+
+        for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+        {
+            MicroInstr&       scanInst = *scanIt;
+            MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+
+            SmallVector<MicroInstrRegOperandRef> refs;
+            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+            bool hasUse = false;
+            bool hasDef = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                    continue;
+
+                hasUse |= ref.use;
+                hasDef |= ref.def;
+            }
+
+            if (hasDef)
+                return false;
+
+            if (!hasUse)
+            {
+                if (useDef.isCall || MicroOptimization::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+                continue;
+            }
+
+            if (scanInst.op != MicroInstrOpcode::LoadMemReg || !scanOps || scanOps[1].reg != tmpReg)
+                return false;
+            if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, tmpReg))
+                return false;
+
+            const MicroInstrOpcode                 originalOp  = scanInst.op;
+            const std::array<MicroInstrOperand, 4> originalOps = {scanOps[0], scanOps[1], scanOps[2], scanOps[3]};
+
+            const MicroOpBits storeBits = originalOps[2].opBits;
+            uint64_t          value     = ops[2].valueU64;
+            if (storeBits != MicroOpBits::B64)
+                value &= getOpBitsMask(storeBits);
+
+            scanInst.op          = MicroInstrOpcode::LoadMemImm;
+            scanOps[0]           = originalOps[0];
+            scanOps[1].opBits    = storeBits;
+            scanOps[2].valueU64  = originalOps[3].valueU64;
+            scanOps[3].valueU64  = value;
+            if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+            {
+                scanInst.op = originalOp;
+                for (uint32_t i = 0; i < 4; ++i)
+                    scanOps[i] = originalOps[i];
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool tryFoldLoadImmIntoNextCopy(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        MicroInstr& nextInst = *nextIt;
+        if (nextInst.op != MicroInstrOpcode::LoadRegReg)
+            return false;
+
+        MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!nextOps)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+        if (nextOps[1].reg != tmpReg)
+            return false;
+        if (ops[1].opBits != nextOps[2].opBits)
+            return false;
+        if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+            return false;
+
+        const MicroInstrOpcode                 originalOp  = nextInst.op;
+        const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
+
+        uint64_t immValue = ops[2].valueU64;
+        const MicroOpBits opBits   = originalOps[2].opBits;
+        if (opBits != MicroOpBits::B64)
+            immValue &= getOpBitsMask(opBits);
+
+        nextInst.op         = MicroInstrOpcode::LoadRegImm;
+        nextOps[0]          = originalOps[0];
+        nextOps[1].opBits   = opBits;
+        nextOps[2].valueU64 = immValue;
+        if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+        {
+            nextInst.op = originalOp;
+            for (uint32_t i = 0; i < 3; ++i)
+                nextOps[i] = originalOps[i];
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
+    bool tryFoldLoadImmIntoNextBinary(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        MicroInstr& nextInst = *nextIt;
+        if (nextInst.op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+
+        MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!nextOps)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+        if (nextOps[1].reg != tmpReg || nextOps[0].reg == tmpReg)
+            return false;
+        if (ops[1].opBits != nextOps[2].opBits)
+            return false;
+        if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+            return false;
+
+        const MicroInstrOpcode                 originalOp  = nextInst.op;
+        const std::array<MicroInstrOperand, 4> originalOps = {nextOps[0], nextOps[1], nextOps[2], nextOps[3]};
+
+        uint64_t immValue = ops[2].valueU64;
+        const MicroOpBits opBits   = originalOps[2].opBits;
+        if (opBits != MicroOpBits::B64)
+            immValue &= getOpBitsMask(opBits);
+
+        nextInst.op          = MicroInstrOpcode::OpBinaryRegImm;
+        nextOps[0]           = originalOps[0];
+        nextOps[1].opBits    = opBits;
+        nextOps[2].microOp   = originalOps[3].microOp;
+        nextOps[3].valueU64  = immValue;
+        if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+        {
+            nextInst.op = originalOp;
+            for (uint32_t i = 0; i < 4; ++i)
+                nextOps[i] = originalOps[i];
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
+    bool tryFoldLoadImmIntoNextCompare(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        MicroInstr& nextInst = *nextIt;
+        if (nextInst.op != MicroInstrOpcode::CmpRegReg)
+            return false;
+
+        MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!nextOps)
+            return false;
+
+        const MicroReg tmpReg = ops[0].reg;
+        if (nextOps[1].reg != tmpReg || nextOps[0].reg == tmpReg)
+            return false;
+        if (ops[1].opBits != nextOps[2].opBits)
+            return false;
+        if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+            return false;
+
+        const MicroInstrOpcode                 originalOp  = nextInst.op;
+        const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
+
+        uint64_t immValue = ops[2].valueU64;
+        const MicroOpBits opBits   = originalOps[2].opBits;
+        if (opBits != MicroOpBits::B64)
+            immValue &= getOpBitsMask(opBits);
+
+        nextInst.op         = MicroInstrOpcode::CmpRegImm;
+        nextOps[0]          = originalOps[0];
+        nextOps[1].opBits   = opBits;
+        nextOps[2].valueU64 = immValue;
+        if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+        {
+            nextInst.op = originalOp;
+            for (uint32_t i = 0; i < 3; ++i)
+                nextOps[i] = originalOps[i];
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        return true;
+    }
+
+    bool tryFoldAdjacentMemImm32Stores(const MicroPassContext& context, Ref instRef, const MicroInstrOperand* ops, const MicroStorage::Iterator& nextIt, const MicroStorage::Iterator& endIt)
+    {
+        if (!ops || nextIt == endIt)
+            return false;
+
+        MicroInstr& nextInst = *nextIt;
+        if (nextInst.op != MicroInstrOpcode::LoadMemImm)
+            return false;
+
+        MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!nextOps)
+            return false;
+
+        if (ops[1].opBits != MicroOpBits::B32 || nextOps[1].opBits != MicroOpBits::B32)
+            return false;
+        if (ops[0].reg != nextOps[0].reg)
+            return false;
+
+        const uint64_t firstOffset = ops[2].valueU64;
+        const uint64_t nextOffset  = nextOps[2].valueU64;
+        if (firstOffset > std::numeric_limits<uint64_t>::max() - 4)
+            return false;
+        if (firstOffset + 4 != nextOffset)
+            return false;
+
+        MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+        if (!firstInst)
+            return false;
+
+        MicroInstrOperand* firstOps = firstInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!firstOps)
+            return false;
+
+        const MicroInstrOpcode               originalFirstOp   = firstInst->op;
+        const std::array<MicroInstrOperand, 4> originalFirstOps = {firstOps[0], firstOps[1], firstOps[2], firstOps[3]};
+
+        const uint64_t loValue = originalFirstOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
+        const uint64_t hiValue = nextOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
+        const uint64_t merged  = loValue | (hiValue << 32);
+
+        firstInst->op        = MicroInstrOpcode::LoadMemImm;
+        firstOps[1].opBits   = MicroOpBits::B64;
+        firstOps[3].valueU64 = merged;
+        if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
+        {
+            firstInst->op = originalFirstOp;
+            for (uint32_t i = 0; i < 4; ++i)
+                firstOps[i] = originalFirstOps[i];
+            return false;
+        }
+
+        SWC_CHECK_NOT_NULL(context.instructions)->erase(nextIt.current);
         return true;
     }
 
@@ -1198,6 +1464,96 @@ namespace
         return tryFoldLoadAddrIntoNextMemOffset(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
     }
 
+    // Rule: fold_loadimm_into_next_mem_store
+    // Purpose: avoid materializing an immediate in a temp register right before storing it to memory.
+    // Example:
+    //   mov r11, 1
+    //   mov [rdx], r11
+    // becomes:
+    //   mov [rdx], 1
+    bool matchFoldLoadImmIntoNextMemStore(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.ops != nullptr && cursor.nextIt != cursor.endIt;
+    }
+
+    bool rewriteFoldLoadImmIntoNextMemStore(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldLoadImmIntoNextMemStore(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    // Rule: fold_loadimm_into_next_copy
+    // Purpose: forward an immediate through a copy and remove the temporary register.
+    // Example:
+    //   mov r11, 42
+    //   mov rax, r11
+    // becomes:
+    //   mov rax, 42
+    bool matchFoldLoadImmIntoNextCopy(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.ops != nullptr && cursor.nextIt != cursor.endIt;
+    }
+
+    bool rewriteFoldLoadImmIntoNextCopy(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldLoadImmIntoNextCopy(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    // Rule: fold_loadimm_into_next_binary
+    // Purpose: replace a temp-register constant + reg-reg binary op with direct reg-immediate binary op.
+    // Example:
+    //   mov r11, 42
+    //   add rax, r11
+    // becomes:
+    //   add rax, 42
+    bool matchFoldLoadImmIntoNextBinary(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.ops != nullptr && cursor.nextIt != cursor.endIt;
+    }
+
+    bool rewriteFoldLoadImmIntoNextBinary(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldLoadImmIntoNextBinary(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    // Rule: fold_loadimm_into_next_compare
+    // Purpose: replace a temp-register constant + reg-reg compare with direct reg-immediate compare.
+    // Example:
+    //   mov r11, 7
+    //   cmp rax, r11
+    // becomes:
+    //   cmp rax, 7
+    bool matchFoldLoadImmIntoNextCompare(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.ops != nullptr && cursor.nextIt != cursor.endIt;
+    }
+
+    bool rewriteFoldLoadImmIntoNextCompare(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldLoadImmIntoNextCompare(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
+    // Rule: fold_adjacent_memimm32_stores
+    // Purpose: merge two contiguous 32-bit immediate stores into one 64-bit immediate store.
+    // Example:
+    //   mov [rdx], 1
+    //   mov [rdx + 4], 2
+    // becomes:
+    //   mov [rdx], 0x0000000200000001
+    bool matchFoldAdjacentMemImm32Stores(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        SWC_UNUSED(context);
+        return cursor.ops != nullptr && cursor.nextIt != cursor.endIt;
+    }
+
+    bool rewriteFoldAdjacentMemImm32Stores(const MicroPassContext& context, const PeepholeCursor& cursor)
+    {
+        return tryFoldAdjacentMemImm32Stores(context, cursor.instRef, cursor.ops, cursor.nextIt, cursor.endIt);
+    }
+
     bool isRuleApplicable(const PeepholeRule& rule, const PeepholeCursor& cursor)
     {
         switch (rule.target)
@@ -1206,18 +1562,27 @@ namespace
                 return true;
             case PeepholeRuleTarget::LoadRegReg:
                 return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegReg;
+            case PeepholeRuleTarget::LoadRegImm:
+                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegImm;
             case PeepholeRuleTarget::LoadAddrRegMem:
                 return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadAddrRegMem;
+            case PeepholeRuleTarget::LoadMemImm:
+                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadMemImm;
             default:
                 return false;
         }
     }
 
-    const std::array<PeepholeRule, 12>& peepholeRules()
+    const std::array<PeepholeRule, 17>& peepholeRules()
     {
-        static constexpr std::array<PeepholeRule, 12> RULES = {{
+        static constexpr std::array<PeepholeRule, 17> RULES = {{
             {"fold_copy_add_into_load_address", PeepholeRuleTarget::LoadRegReg, matchFoldCopyAddIntoLoadAddress, rewriteFoldCopyAddIntoLoadAddress},
             {"fold_loadaddr_into_next_mem_offset", PeepholeRuleTarget::LoadAddrRegMem, matchFoldLoadAddrIntoNextMemOffset, rewriteFoldLoadAddrIntoNextMemOffset},
+            {"fold_loadimm_into_next_copy", PeepholeRuleTarget::LoadRegImm, matchFoldLoadImmIntoNextCopy, rewriteFoldLoadImmIntoNextCopy},
+            {"fold_loadimm_into_next_binary", PeepholeRuleTarget::LoadRegImm, matchFoldLoadImmIntoNextBinary, rewriteFoldLoadImmIntoNextBinary},
+            {"fold_loadimm_into_next_compare", PeepholeRuleTarget::LoadRegImm, matchFoldLoadImmIntoNextCompare, rewriteFoldLoadImmIntoNextCompare},
+            {"fold_loadimm_into_next_mem_store", PeepholeRuleTarget::LoadRegImm, matchFoldLoadImmIntoNextMemStore, rewriteFoldLoadImmIntoNextMemStore},
+            {"fold_adjacent_memimm32_stores", PeepholeRuleTarget::LoadMemImm, matchFoldAdjacentMemImm32Stores, rewriteFoldAdjacentMemImm32Stores},
             {"forward_copy_into_next_binary_source", PeepholeRuleTarget::LoadRegReg, matchForwardCopyIntoNextBinarySource, rewriteForwardCopyIntoNextBinarySource},
             {"forward_copy_into_next_compare_source", PeepholeRuleTarget::LoadRegReg, matchForwardCopyIntoNextCompareSource, rewriteForwardCopyIntoNextCompareSource},
             {"fold_copy_op_copy_back", PeepholeRuleTarget::LoadRegReg, matchFoldCopyOpCopyBack, rewriteFoldCopyOpCopyBack},

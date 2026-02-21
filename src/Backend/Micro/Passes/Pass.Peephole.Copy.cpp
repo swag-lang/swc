@@ -126,6 +126,88 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldCopyTwinLoadMemReuse(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroStorage::Iterator firstLoadIt = nextIt;
+            if (firstLoadIt == endIt)
+                return false;
+
+            const MicroStorage::Iterator secondLoadIt = std::next(firstLoadIt);
+            if (secondLoadIt == endIt)
+                return false;
+
+            MicroInstr& firstLoadInst = *firstLoadIt;
+            if (firstLoadInst.op != MicroInstrOpcode::LoadRegMem)
+                return false;
+
+            MicroInstr& secondLoadInst = *secondLoadIt;
+            if (secondLoadInst.op != MicroInstrOpcode::LoadRegMem)
+                return false;
+
+            MicroInstrOperand* firstLoadOps  = firstLoadInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* secondLoadOps = secondLoadInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!firstLoadOps || !secondLoadOps)
+                return false;
+
+            const MicroReg copiedBaseReg = ops[0].reg;
+            const MicroReg baseSrcReg    = ops[1].reg;
+            if (!copiedBaseReg.isSameClass(baseSrcReg))
+                return false;
+
+            if (firstLoadOps[1].reg != copiedBaseReg || secondLoadOps[1].reg != copiedBaseReg)
+                return false;
+            if (firstLoadOps[0].reg != baseSrcReg)
+                return false;
+            if (firstLoadOps[0].reg == secondLoadOps[0].reg)
+                return false;
+            if (!firstLoadOps[0].reg.isSameClass(secondLoadOps[0].reg))
+                return false;
+            if (firstLoadOps[2].opBits != secondLoadOps[2].opBits)
+                return false;
+            if (firstLoadOps[3].valueU64 != secondLoadOps[3].valueU64)
+                return false;
+            if (!isCopyDeadAfterInstruction(context, std::next(secondLoadIt), endIt, copiedBaseReg))
+                return false;
+
+            const std::array<MicroInstrOperand, 4> originalFirstLoadOps = {firstLoadOps[0], firstLoadOps[1], firstLoadOps[2], firstLoadOps[3]};
+            const std::array<MicroInstrOperand, 4> originalSecondLoadOps = {secondLoadOps[0], secondLoadOps[1], secondLoadOps[2], secondLoadOps[3]};
+            const MicroInstrOpcode                 originalSecondLoadOp   = secondLoadInst.op;
+
+            firstLoadOps[1].reg = baseSrcReg;
+            if (MicroOptimization::violatesEncoderConformance(context, firstLoadInst, firstLoadOps))
+            {
+                for (uint32_t i = 0; i < 4; ++i)
+                    firstLoadOps[i] = originalFirstLoadOps[i];
+                return false;
+            }
+
+            const MicroReg copiedValueReg = firstLoadOps[0].reg;
+            secondLoadInst.op             = MicroInstrOpcode::LoadRegReg;
+            secondLoadOps[0].reg          = originalSecondLoadOps[0].reg;
+            secondLoadOps[1].reg          = copiedValueReg;
+            secondLoadOps[2].opBits       = originalSecondLoadOps[2].opBits;
+            secondLoadOps[3].valueU64     = 0;
+            if (MicroOptimization::violatesEncoderConformance(context, secondLoadInst, secondLoadOps))
+            {
+                for (uint32_t i = 0; i < 4; ++i)
+                    firstLoadOps[i] = originalFirstLoadOps[i];
+                secondLoadInst.op = originalSecondLoadOp;
+                for (uint32_t i = 0; i < 4; ++i)
+                    secondLoadOps[i] = originalSecondLoadOps[i];
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool foldCopyOpCopyBack(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -459,6 +541,11 @@ namespace PeepholePass
         // Purpose: forward copied source register into next compare.
         // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
         outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource});
+
+        // Rule: fold_copy_twin_load_mem_reuse
+        // Purpose: reuse first identical memory load result and remove copied-base register.
+        // Example: mov r10, rdx; mov rdx, [r10]; mov r9, [r10] -> mov rdx, [rdx]; mov r9, rdx
+        outRules.push_back({RuleTarget::LoadRegReg, foldCopyTwinLoadMemReuse});
 
         // Rule: fold_copy_op_copy_back
         // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.

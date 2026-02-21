@@ -715,11 +715,11 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (!castRequest.isConstantFolding())
         return Result::Continue;
 
-    TaskContext&       ctx      = sema.ctx();
-    const TypeManager& typeMgr  = sema.typeMgr();
-    ConstantRef        srcCstRef = castRequest.srcConstRef;
+    TaskContext&       ctx        = sema.ctx();
+    const TypeManager& typeMgr    = sema.typeMgr();
+    ConstantRef        srcCstRef  = castRequest.srcConstRef;
     TypeRef            anyTypeRef = srcTypeRef;
-    const TypeInfo*    srcType   = &typeMgr.get(anyTypeRef);
+    const TypeInfo*    srcType    = &typeMgr.get(anyTypeRef);
 
     if (srcType->isIntUnsized() || srcType->isFloatUnsized())
     {

@@ -1061,7 +1061,7 @@ namespace
         outResolvedArgs.clear();
         appendImplicitInterfaceReceiverArg(sema, outResolvedArgs, nodeCallee, selectedFn, mapping);
 
-        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
+        const uint32_t numParams          = static_cast<uint32_t>(selectedFn.parameters().size());
         bool           hasUntypedVariadic = false;
         uint32_t       variadicParamIdx   = 0;
         if (numParams)

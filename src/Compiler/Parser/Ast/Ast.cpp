@@ -17,6 +17,39 @@ const AstNode& Ast::node(AstNodeRef nodeRef) const
     return *SWC_CHECK_NOT_NULL(nodePtr(g));
 }
 
+void Ast::captureParsedNodeBoundary()
+{
+    std::fill_n(parsedNodeBoundaryByShard_, SHARD_COUNT, 0u);
+    if (root_.isInvalid())
+    {
+        hasParsedNodeBoundary_ = true;
+        return;
+    }
+
+    visit(*this, root_, [this](AstNodeRef nodeRef, const AstNode&) {
+        const uint32_t globalRef = nodeRef.get();
+        const uint32_t shard     = refShard(globalRef);
+        const uint32_t local     = refLocal(globalRef);
+        SWC_ASSERT(shard < SHARD_COUNT);
+        parsedNodeBoundaryByShard_[shard] = std::max(parsedNodeBoundaryByShard_[shard], local + 1);
+        return VisitResult::Continue;
+    });
+
+    hasParsedNodeBoundary_ = true;
+}
+
+bool Ast::isAdditionalNode(AstNodeRef nodeRef) const
+{
+    if (!hasParsedNodeBoundary_ || nodeRef.isInvalid())
+        return false;
+
+    const uint32_t globalRef = nodeRef.get();
+    const uint32_t shard     = refShard(globalRef);
+    const uint32_t local     = refLocal(globalRef);
+    SWC_ASSERT(shard < SHARD_COUNT);
+    return local >= parsedNodeBoundaryByShard_[shard];
+}
+
 void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
 {
     if (spanRef.isInvalid())

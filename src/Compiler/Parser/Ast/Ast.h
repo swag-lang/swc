@@ -33,6 +33,8 @@ public:
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }
     bool              hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void              addFlag(AstFlags flag) { flags_.add(flag); }
+    void              captureParsedNodeBoundary();
+    bool              isAdditionalNode(AstNodeRef nodeRef) const;
 
     AstNode&       node(AstNodeRef nodeRef);
     const AstNode& node(AstNodeRef nodeRef) const;
@@ -79,7 +81,7 @@ public:
 
             const uint32_t localByteRef = local.first;
             globalRef                   = AstNodeRef{packRef(shard, localByteRef)};
-            ::new (local.second) NodeType();
+            ::new (local.second) NodeType{};
             local.second->setCodeRef(SourceCodeRef(srcView_->ref(), tokRef));
         }
 
@@ -137,6 +139,8 @@ private:
     SourceView* srcView_ = nullptr;
     AstNodeRef  root_    = AstNodeRef::invalid();
     AstFlags    flags_   = AstFlagsE::Zero;
+    uint32_t    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
+    bool        hasParsedNodeBoundary_                  = false;
 };
 
 SWC_END_NAMESPACE();

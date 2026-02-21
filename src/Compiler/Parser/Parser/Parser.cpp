@@ -291,6 +291,7 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     (void) ast_->makeNode<AstNodeId::Invalid>(TokenRef::invalid());
 
     ast_->setRoot(parseFile());
+    ast_->captureParsedNodeBoundary();
 }
 
 SWC_END_NAMESPACE();

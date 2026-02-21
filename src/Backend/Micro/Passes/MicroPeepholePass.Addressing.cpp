@@ -72,7 +72,7 @@ namespace PeepholePass
 
             uint8_t baseIndex   = 0;
             uint8_t offsetIndex = 0;
-            if (!getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, nextInst))
+            if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, nextInst))
                 return false;
 
             const MicroReg tmpReg = ops[0].reg;
@@ -132,7 +132,7 @@ namespace PeepholePass
             uint8_t           offsetIndex = 0;
             const MicroInstr& nextInst    = *cursor.nextIt;
             SWC_UNUSED(context);
-            return getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, nextInst);
+            return MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, nextInst);
         }
 
         bool rewriteFoldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)

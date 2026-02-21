@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroControlFlowSimplificationPass.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 
 // Simplifies the micro CFG by removing structurally redundant control flow.
 // Example: jmp L1; L1:          ->  <remove jump>.
@@ -10,18 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isUnconditionalJump(const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        if (!ops)
-            return false;
-
-        if (inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm)
-            return ops[0].cpuCond == MicroCond::Unconditional;
-        if (inst.op == MicroInstrOpcode::JumpReg || inst.op == MicroInstrOpcode::JumpTable)
-            return true;
-        return false;
-    }
-
     bool isJumpToImmediateNextLabel(const MicroStorage& storage, const MicroOperandStorage& operands, Ref jumpRef)
     {
         for (auto jumpIt = storage.view().begin(); jumpIt != storage.view().end(); ++jumpIt)
@@ -103,7 +92,7 @@ bool MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             continue;
         }
 
-        if (inst.op != MicroInstrOpcode::Ret && !isUnconditionalJump(inst, inst.ops(operands)))
+        if (inst.op != MicroInstrOpcode::Ret && !MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(operands)))
             continue;
 
         auto scanIt = it;

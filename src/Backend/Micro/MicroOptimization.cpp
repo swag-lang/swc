@@ -5,6 +5,69 @@
 
 SWC_BEGIN_NAMESPACE();
 
+uint64_t MicroOptimization::normalizeToOpBits(uint64_t value, MicroOpBits opBits)
+{
+    if (opBits == MicroOpBits::B64)
+        return value;
+
+    const uint64_t mask = getOpBitsMask(opBits);
+    return value & mask;
+}
+
+bool MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
+{
+    const uint64_t value = normalizeToOpBits(inValue, opBits);
+    const uint64_t imm   = normalizeToOpBits(immediate, opBits);
+
+    switch (microOp)
+    {
+        case MicroOp::Add:
+            outValue = normalizeToOpBits(value + imm, opBits);
+            return true;
+        case MicroOp::Subtract:
+            outValue = normalizeToOpBits(value - imm, opBits);
+            return true;
+        case MicroOp::And:
+            outValue = normalizeToOpBits(value & imm, opBits);
+            return true;
+        case MicroOp::Or:
+            outValue = normalizeToOpBits(value | imm, opBits);
+            return true;
+        case MicroOp::Xor:
+            outValue = normalizeToOpBits(value ^ imm, opBits);
+            return true;
+        case MicroOp::ShiftLeft:
+        case MicroOp::ShiftRight:
+        case MicroOp::ShiftArithmeticRight:
+        {
+            const uint32_t numBits = getNumBits(opBits);
+            if (!numBits)
+                return false;
+
+            const uint64_t shiftAmount = std::min<uint64_t>(imm, numBits - 1);
+            if (microOp == MicroOp::ShiftLeft)
+                outValue = normalizeToOpBits(value << shiftAmount, opBits);
+            else if (microOp == MicroOp::ShiftRight)
+                outValue = normalizeToOpBits(value >> shiftAmount, opBits);
+            else if (opBits == MicroOpBits::B8)
+                outValue = static_cast<uint8_t>(static_cast<int8_t>(value) >> shiftAmount);
+            else if (opBits == MicroOpBits::B16)
+                outValue = static_cast<uint16_t>(static_cast<int16_t>(value) >> shiftAmount);
+            else if (opBits == MicroOpBits::B32)
+                outValue = static_cast<uint32_t>(static_cast<int32_t>(value) >> shiftAmount);
+            else if (opBits == MicroOpBits::B64)
+                outValue = static_cast<uint64_t>(static_cast<int64_t>(value) >> shiftAmount);
+            else
+                return false;
+
+            outValue = normalizeToOpBits(outValue, opBits);
+            return true;
+        }
+        default:
+            return false;
+    }
+}
+
 namespace
 {
     bool isIdentityBinaryImm(MicroOp op, uint64_t value, MicroOpBits opBits)

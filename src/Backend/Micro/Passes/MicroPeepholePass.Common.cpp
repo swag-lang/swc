@@ -21,42 +21,6 @@ namespace PeepholePass
             return false;
         }
 
-        bool usesCpuFlags(const MicroInstr& inst)
-        {
-            switch (inst.op)
-            {
-                case MicroInstrOpcode::JumpCond:
-                case MicroInstrOpcode::JumpCondImm:
-                case MicroInstrOpcode::SetCondReg:
-                case MicroInstrOpcode::LoadCondRegReg:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        bool definesCpuFlags(const MicroInstr& inst)
-        {
-            switch (inst.op)
-            {
-                case MicroInstrOpcode::CmpRegReg:
-                case MicroInstrOpcode::CmpRegZero:
-                case MicroInstrOpcode::CmpRegImm:
-                case MicroInstrOpcode::CmpMemReg:
-                case MicroInstrOpcode::CmpMemImm:
-                case MicroInstrOpcode::ClearReg:
-                case MicroInstrOpcode::OpUnaryMem:
-                case MicroInstrOpcode::OpUnaryReg:
-                case MicroInstrOpcode::OpBinaryRegReg:
-                case MicroInstrOpcode::OpBinaryRegImm:
-                case MicroInstrOpcode::OpBinaryRegMem:
-                case MicroInstrOpcode::OpBinaryMemReg:
-                case MicroInstrOpcode::OpBinaryMemImm:
-                    return true;
-                default:
-                    return false;
-            }
-        }
     }
 
     bool isCopyDeadAfterInstruction(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg)
@@ -146,10 +110,10 @@ namespace PeepholePass
             const MicroInstr&      scanInst = *scanIt;
             const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
 
-            if (usesCpuFlags(scanInst))
+            if (MicroInstrInfo::usesCpuFlags(scanInst))
                 return false;
 
-            if (definesCpuFlags(scanInst))
+            if (MicroInstrInfo::definesCpuFlags(scanInst))
                 return true;
 
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
@@ -159,62 +123,6 @@ namespace PeepholePass
         return true;
     }
 
-    bool getMemBaseOffsetOperandIndices(uint8_t& outBaseIndex, uint8_t& outOffsetIndex, const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadRegMem:
-                outBaseIndex   = 1;
-                outOffsetIndex = 3;
-                return true;
-            case MicroInstrOpcode::LoadMemReg:
-                outBaseIndex   = 0;
-                outOffsetIndex = 3;
-                return true;
-            case MicroInstrOpcode::LoadMemImm:
-                outBaseIndex   = 0;
-                outOffsetIndex = 2;
-                return true;
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-                outBaseIndex   = 1;
-                outOffsetIndex = 4;
-                return true;
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-                outBaseIndex   = 1;
-                outOffsetIndex = 4;
-                return true;
-            case MicroInstrOpcode::LoadAddrRegMem:
-                outBaseIndex   = 1;
-                outOffsetIndex = 3;
-                return true;
-            case MicroInstrOpcode::CmpMemReg:
-                outBaseIndex   = 0;
-                outOffsetIndex = 3;
-                return true;
-            case MicroInstrOpcode::CmpMemImm:
-                outBaseIndex   = 0;
-                outOffsetIndex = 2;
-                return true;
-            case MicroInstrOpcode::OpUnaryMem:
-                outBaseIndex   = 0;
-                outOffsetIndex = 3;
-                return true;
-            case MicroInstrOpcode::OpBinaryRegMem:
-                outBaseIndex   = 1;
-                outOffsetIndex = 4;
-                return true;
-            case MicroInstrOpcode::OpBinaryMemReg:
-                outBaseIndex   = 0;
-                outOffsetIndex = 4;
-                return true;
-            case MicroInstrOpcode::OpBinaryMemImm:
-                outBaseIndex   = 0;
-                outOffsetIndex = 3;
-                return true;
-            default:
-                return false;
-        }
-    }
 }
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroInstructionCombinePass.h"
+#include "Backend/Micro/MicroOptimization.h"
 
 // Combines consecutive immediate ops on the same destination into one op.
 // Example: add r1, 2; add r1, 3  ->  add r1, 5.
@@ -10,15 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint64_t normalizeToOpBits(uint64_t value, MicroOpBits opBits)
-    {
-        if (opBits == MicroOpBits::B64)
-            return value;
-
-        const uint64_t mask = getOpBitsMask(opBits);
-        return value & mask;
-    }
-
     bool combineArithmetic(MicroOp& outOp, uint64_t& outValue, MicroOp firstOp, uint64_t firstValue, MicroOp secondOp, uint64_t secondValue, MicroOpBits opBits)
     {
         const bool firstArithmetic  = firstOp == MicroOp::Add || firstOp == MicroOp::Subtract;
@@ -29,7 +21,7 @@ namespace
         uint64_t combined = 0;
         combined          = firstOp == MicroOp::Add ? combined + firstValue : combined - firstValue;
         combined          = secondOp == MicroOp::Add ? combined + secondValue : combined - secondValue;
-        combined          = normalizeToOpBits(combined, opBits);
+        combined          = MicroOptimization::normalizeToOpBits(combined, opBits);
 
         outOp    = MicroOp::Add;
         outValue = combined;
@@ -45,15 +37,15 @@ namespace
         {
             case MicroOp::And:
                 outOp    = MicroOp::And;
-                outValue = normalizeToOpBits(firstValue & secondValue, opBits);
+                outValue = MicroOptimization::normalizeToOpBits(firstValue & secondValue, opBits);
                 return true;
             case MicroOp::Or:
                 outOp    = MicroOp::Or;
-                outValue = normalizeToOpBits(firstValue | secondValue, opBits);
+                outValue = MicroOptimization::normalizeToOpBits(firstValue | secondValue, opBits);
                 return true;
             case MicroOp::Xor:
                 outOp    = MicroOp::Xor;
-                outValue = normalizeToOpBits(firstValue ^ secondValue, opBits);
+                outValue = MicroOptimization::normalizeToOpBits(firstValue ^ secondValue, opBits);
                 return true;
             default:
                 return false;

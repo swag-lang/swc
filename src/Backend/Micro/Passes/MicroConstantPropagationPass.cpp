@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/MicroConstantPropagationPass.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimization.h"
 
 // Propagates known integer constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -15,71 +16,6 @@ namespace
     {
         uint64_t value = 0;
     };
-
-    uint64_t normalizeToOpBits(uint64_t value, MicroOpBits opBits)
-    {
-        if (opBits == MicroOpBits::B64)
-            return value;
-
-        const uint64_t mask = getOpBitsMask(opBits);
-        return value & mask;
-    }
-
-    bool foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
-    {
-        const uint64_t value = normalizeToOpBits(inValue, opBits);
-        const uint64_t imm   = normalizeToOpBits(immediate, opBits);
-        switch (microOp)
-        {
-            case MicroOp::Add:
-                outValue = normalizeToOpBits(value + imm, opBits);
-                return true;
-            case MicroOp::Subtract:
-                outValue = normalizeToOpBits(value - imm, opBits);
-                return true;
-            case MicroOp::And:
-                outValue = normalizeToOpBits(value & imm, opBits);
-                return true;
-            case MicroOp::Or:
-                outValue = normalizeToOpBits(value | imm, opBits);
-                return true;
-            case MicroOp::Xor:
-                outValue = normalizeToOpBits(value ^ imm, opBits);
-                return true;
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            {
-                const uint32_t numBits = getNumBits(opBits);
-                if (!numBits)
-                    return false;
-
-                const uint64_t shiftAmount = std::min<uint64_t>(imm, numBits - 1);
-                if (microOp == MicroOp::ShiftLeft)
-                    outValue = normalizeToOpBits(value << shiftAmount, opBits);
-                else if (microOp == MicroOp::ShiftRight)
-                    outValue = normalizeToOpBits(value >> shiftAmount, opBits);
-                else
-                {
-                    if (opBits == MicroOpBits::B8)
-                        outValue = static_cast<uint8_t>(value);
-                    else if (opBits == MicroOpBits::B16)
-                        outValue = static_cast<uint16_t>(value);
-                    else if (opBits == MicroOpBits::B32)
-                        outValue = static_cast<uint32_t>(value);
-                    else if (opBits == MicroOpBits::B64)
-                        outValue = static_cast<uint64_t>(static_cast<int64_t>(value) >> shiftAmount);
-                    else
-                        return false;
-                }
-
-                outValue = normalizeToOpBits(outValue, opBits);
-                return true;
-            }
-            default:
-                return false;
-        }
-    }
 
     void eraseKnownDefs(std::unordered_map<uint32_t, KnownConstant>& known, std::span<const MicroReg> defs)
     {
@@ -110,7 +46,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             {
                 inst.op         = MicroInstrOpcode::LoadRegImm;
                 ops[1].opBits   = ops[2].opBits;
-                ops[2].valueU64 = normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                ops[2].valueU64 = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                 changed         = true;
             }
         }
@@ -120,7 +56,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 uint64_t foldedValue = 0;
-                if (foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                if (MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
@@ -142,7 +78,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
         if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isInt())
         {
             known[ops[0].reg.packed] = {
-                .value = normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
+                .value = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
             };
         }
         else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
@@ -151,7 +87,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 known[ops[0].reg.packed] = {
-                    .value = normalizeToOpBits(itKnown->second.value, ops[2].opBits),
+                    .value = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits),
                 };
             }
         }
@@ -167,7 +103,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 uint64_t foldedValue = 0;
-                if (foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                if (MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                 {
                     known[ops[0].reg.packed] = {
                         .value = foldedValue,

@@ -234,6 +234,150 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldZeroScaledAddChain(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            if (ops[2].valueU64 != 0)
+                return false;
+
+            const MicroReg    zeroReg = ops[0].reg;
+            const MicroOpBits opBits  = ops[1].opBits;
+
+            MicroStorage::Iterator   copyIt = nextIt;
+            const MicroInstrOperand* copyOps = nullptr;
+
+            const MicroInstr&        firstNextInst = *nextIt;
+            const MicroInstrOperand* firstNextOps  = firstNextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!firstNextOps)
+                return false;
+
+            if (firstNextInst.op == MicroInstrOpcode::LoadRegReg && firstNextOps[1].reg == zeroReg)
+            {
+                copyIt  = nextIt;
+                copyOps = firstNextOps;
+            }
+            else
+            {
+                const MicroInstrUseDef firstUseDef = firstNextInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                if (firstUseDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(firstNextInst, firstUseDef))
+                    return false;
+
+                SmallVector<MicroInstrRegOperandRef> firstRefs;
+                firstNextInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), firstRefs, context.encoder);
+                for (const MicroInstrRegOperandRef& ref : firstRefs)
+                {
+                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != zeroReg)
+                        continue;
+                    return false;
+                }
+
+                copyIt = std::next(nextIt);
+                if (copyIt == endIt)
+                    return false;
+
+                const MicroInstr& copyInst = *copyIt;
+                if (copyInst.op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+
+                copyOps = copyInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!copyOps)
+                    return false;
+                if (copyOps[1].reg != zeroReg)
+                    return false;
+            }
+
+            const MicroStorage::Iterator mulIt = std::next(copyIt);
+            if (mulIt == endIt)
+                return false;
+            const MicroInstr& mulInst = *mulIt;
+            if (mulInst.op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+            const MicroInstrOperand* mulOps = mulInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!mulOps)
+                return false;
+
+            const MicroStorage::Iterator addIt = std::next(mulIt);
+            if (addIt == endIt)
+                return false;
+            MicroInstr& addInst = *addIt;
+            if (addInst.op != MicroInstrOpcode::OpBinaryRegReg)
+                return false;
+            MicroInstrOperand* addOps = addInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!addOps)
+                return false;
+
+            const MicroReg dstReg = copyOps[0].reg;
+            if (copyOps[2].opBits != opBits || mulOps[1].opBits != opBits || addOps[2].opBits != opBits)
+                return false;
+            if (mulOps[0].reg != dstReg || addOps[0].reg != dstReg)
+                return false;
+            if (mulOps[2].microOp != MicroOp::MultiplySigned)
+                return false;
+            if (addOps[3].microOp != MicroOp::Add)
+                return false;
+            if (addOps[1].reg == dstReg)
+                return false;
+
+            if (!areFlagsDeadAfterInstruction(context, addIt, endIt))
+                return false;
+
+            const MicroStorage::Iterator afterAddIt       = std::next(addIt);
+            const bool                   canEraseLoadZero = isCopyDeadAfterInstruction(context, afterAddIt, endIt, zeroReg);
+
+            const MicroInstrOpcode                 originalAddOp  = addInst.op;
+            const std::array<MicroInstrOperand, 4> originalAddOps = {addOps[0], addOps[1], addOps[2], addOps[3]};
+
+            addInst.op        = MicroInstrOpcode::LoadRegReg;
+            addOps[0].reg     = dstReg;
+            addOps[1].reg     = originalAddOps[1].reg;
+            addOps[2].opBits  = opBits;
+            addOps[3].valueU64 = 0;
+            if (MicroOptimization::violatesEncoderConformance(context, addInst, addOps))
+            {
+                addInst.op = originalAddOp;
+                for (uint32_t i = 0; i < 4; ++i)
+                    addOps[i] = originalAddOps[i];
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(mulIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyIt.current);
+
+            if (copyIt != nextIt)
+            {
+                MicroInstr*      midInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(nextIt.current);
+                MicroInstrOperand* midOps = midInst ? midInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+                if (midInst && midOps && midInst->op == MicroInstrOpcode::LoadRegMem)
+                {
+                    const MicroReg midDstReg = midOps[0].reg;
+                    if (midDstReg == addOps[1].reg && midOps[2].opBits == opBits && isCopyDeadAfterInstruction(context, afterAddIt, endIt, midDstReg))
+                    {
+                        const MicroReg originalMidDstReg = midOps[0].reg;
+                        midOps[0].reg                    = dstReg;
+                        if (MicroOptimization::violatesEncoderConformance(context, *midInst, midOps))
+                        {
+                            midOps[0].reg = originalMidDstReg;
+                        }
+                        else
+                        {
+                            SWC_CHECK_NOT_NULL(context.instructions)->erase(addIt.current);
+                        }
+                    }
+                }
+            }
+
+            if (canEraseLoadZero)
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+
+            return true;
+        }
+
         bool foldAdjacentMemImm32Stores(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -450,6 +594,11 @@ namespace PeepholePass
         // Purpose: store immediate directly to memory instead of via temporary register.
         // Example: mov r11, 1; mov [rdx], r11 -> mov [rdx], 1
         outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextMemStore});
+
+        // Rule: fold_zero_scaled_add_chain
+        // Purpose: remove useless zero*scale + add chains used for index-0 addressing.
+        // Example: mov z,0; mov d,z; imul d,16; add d,s -> mov d,s
+        outRules.push_back({RuleTarget::LoadRegImm, foldZeroScaledAddChain});
 
         // Rule: fold_adjacent_memimm32_stores
         // Purpose: merge two contiguous 32-bit immediate stores into one 64-bit store.

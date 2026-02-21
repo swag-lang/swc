@@ -64,11 +64,9 @@ namespace
         return out;
     }
 
-    void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef, bool storedPayload)
+    void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)
     {
-        const SemaNodeView view = storedPayload
-                                      ? sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol)
-                                      : sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const SemaNodeView view = sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
 
         out += " ";
         appendColored(out, ctx, SyntaxColor::Code, "[");
@@ -99,7 +97,7 @@ namespace
             first = false;
         }
 
-        const bool isValue = storedPayload ? sema.isValueStored(nodeRef) : sema.isValue(nodeRef);
+        const bool isValue = sema.isValue(nodeRef);
         if (isValue)
         {
             if (!first)
@@ -108,7 +106,7 @@ namespace
             first = false;
         }
 
-        const bool isLValue = storedPayload ? sema.isLValueStored(nodeRef) : sema.isLValue(nodeRef);
+        const bool isLValue = sema.isLValue(nodeRef);
         if (isLValue)
         {
             if (!first)
@@ -117,7 +115,7 @@ namespace
             first = false;
         }
 
-        const bool isFolded = storedPayload ? sema.isFoldedTypedConstStored(nodeRef) : sema.isFoldedTypedConst(nodeRef);
+        const bool isFolded = sema.isFoldedTypedConst(nodeRef);
         if (isFolded)
         {
             if (!first)
@@ -128,7 +126,7 @@ namespace
         appendColored(out, ctx, SyntaxColor::Code, "]");
     }
 
-    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, bool storedPayload, const AstPrintNodeEntry& entry, Sema* sema)
+    void appendNodeLine(Utf8& out, const TaskContext& ctx, const Ast& ast, AstNodeRef nodeRef, const AstPrintNodeEntry& entry, Sema* sema)
     {
         const AstNode&      node     = ast.node(nodeRef);
         const AstNodeIdInfo nodeInfo = Ast::nodeIdInfos(node.id());
@@ -155,7 +153,7 @@ namespace
         }
 
         if (sema)
-            appendSemaPayload(out, ctx, *sema, nodeRef, storedPayload);
+            appendSemaPayload(out, ctx, *sema, nodeRef);
 
         out += "\n";
     }
@@ -219,9 +217,8 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
     });
 
     printVisit.setPreNodeVisitor([&](AstNode&) -> Result {
-        const AstNodeRef nodeRef      = printVisit.currentNodeRef();
-        const AstNodeRef printNodeRef = resolveNodeRef(nodeRef);
-        const AstNodeRef parentRef    = printVisit.parentNodeRef();
+        const AstNodeRef nodeRef   = printVisit.currentNodeRef();
+        const AstNodeRef parentRef = printVisit.parentNodeRef();
 
         AstPrintNodeEntry entry;
         if (parentRef.isInvalid())
@@ -241,20 +238,8 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
             entry.isLastChild            = childOrder == totalChildren;
         }
 
-        appendNodeLine(out, ctx, ast, printNodeRef, false, entry, sema);
-        if (printNodeRef != nodeRef)
-        {
-            AstPrintNodeEntry substitutedEntry;
-            substitutedEntry.prefix = entry.prefix;
-            substitutedEntry.prefix += entry.isLastChild ? "   " : "|  ";
-            substitutedEntry.isLastChild = true;
-            appendNodeLine(out, ctx, ast, nodeRef, true, substitutedEntry, sema);
-            nodeEntries[nodeRef] = substitutedEntry;
-        }
-        else
-        {
-            nodeEntries[nodeRef] = entry;
-        }
+        appendNodeLine(out, ctx, ast, nodeRef, entry, sema);
+        nodeEntries[nodeRef] = entry;
 
         return Result::Continue;
     });

@@ -126,6 +126,82 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldCopyIntoNextSelfLoadMem(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroReg copyDstReg = ops[0].reg;
+            const MicroReg copySrcReg = ops[1].reg;
+            if (!copyDstReg.isSameClass(copySrcReg))
+                return false;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                MicroInstr&        scanInst = *scanIt;
+                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool usesCopyDst = false;
+                bool defsCopyDst = false;
+                bool defsCopySrc = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg)
+                        continue;
+
+                    const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                    if (reg == copyDstReg)
+                    {
+                        usesCopyDst |= ref.use;
+                        defsCopyDst |= ref.def;
+                    }
+
+                    if (reg == copySrcReg && ref.def)
+                        defsCopySrc = true;
+                }
+
+                if (defsCopySrc)
+                    return false;
+                if (!usesCopyDst)
+                {
+                    if (defsCopyDst)
+                        return false;
+                    continue;
+                }
+
+                if (scanInst.op != MicroInstrOpcode::LoadRegMem)
+                    return false;
+                if (scanOps[0].reg != copyDstReg || scanOps[1].reg != copyDstReg)
+                    return false;
+
+                const MicroReg originalBaseReg = scanOps[1].reg;
+                scanOps[1].reg                 = copySrcReg;
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanOps[1].reg = originalBaseReg;
+                    return false;
+                }
+
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                return true;
+            }
+
+            return false;
+        }
+
         bool foldCopyTwinLoadMemReuse(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -541,6 +617,11 @@ namespace PeepholePass
         // Purpose: forward copied source register into next compare.
         // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
         outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource});
+
+        // Rule: fold_copy_into_next_self_load_mem
+        // Purpose: fold copied base into later self-load memory form.
+        // Example: mov r11, rcx; mov r9, rdx; mov r11, [r11] -> mov r9, rdx; mov r11, [rcx]
+        outRules.push_back({RuleTarget::LoadRegReg, foldCopyIntoNextSelfLoadMem});
 
         // Rule: fold_copy_twin_load_mem_reuse
         // Purpose: reuse first identical memory load result and remove copied-base register.

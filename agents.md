@@ -3,6 +3,7 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
+- Once everything is working, run 'all_dm.bat' script to ensure no regression.
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
@@ -49,13 +50,19 @@
 
 ## Test Instructions
 
-- Run all semantic tests:
+- Run all tests:
+
   ````bash
-  swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema
+  all_dm.bat
+  `````
 
-`````
+- Run all semantic tests:
 
-* Run a specific test:
+    ````bash
+    swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema
+    `````
+
+* Run a specific semantic test:
 
   ```bash
   swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema -ff <filename>

@@ -153,13 +153,13 @@ namespace
 
         const CallConv& conv = CallConv::get(callConvKind);
 
-        bool startedSuffix = false;
-        const MicroStorage::View view = storage.view();
+        bool                     startedSuffix = false;
+        const MicroStorage::View view          = storage.view();
         for (auto it = view.end(); it != view.begin();)
         {
             --it;
-            const Ref              instRef = it.current;
-            const MicroInstr&      inst    = *it;
+            const Ref         instRef = it.current;
+            const MicroInstr& inst    = *it;
 
             const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
             if (isControlFlowBarrier(inst, useDef))

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -105,7 +105,7 @@ namespace PeepholePass
             const MicroInstrOpcode                 originalOp  = nextInst.op;
             const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
 
-            uint64_t         immValue = ops[2].valueU64;
+            uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
             if (opBits != MicroOpBits::B64)
                 immValue &= getOpBitsMask(opBits);
@@ -150,7 +150,7 @@ namespace PeepholePass
             const MicroInstrOpcode                 originalOp  = nextInst.op;
             const std::array<MicroInstrOperand, 4> originalOps = {nextOps[0], nextOps[1], nextOps[2], nextOps[3]};
 
-            uint64_t         immValue = ops[2].valueU64;
+            uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
             if (opBits != MicroOpBits::B64)
                 immValue &= getOpBitsMask(opBits);
@@ -196,7 +196,7 @@ namespace PeepholePass
             const MicroInstrOpcode                 originalOp  = nextInst.op;
             const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
 
-            uint64_t         immValue = ops[2].valueU64;
+            uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
             if (opBits != MicroOpBits::B64)
                 immValue &= getOpBitsMask(opBits);
@@ -222,11 +222,11 @@ namespace PeepholePass
             if (!ops || nextIt == endIt)
                 return false;
 
-            MicroInstr& nextInst = *nextIt;
+            const MicroInstr& nextInst = *nextIt;
             if (nextInst.op != MicroInstrOpcode::LoadMemImm)
                 return false;
 
-            MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
             if (!nextOps)
                 return false;
 
@@ -366,7 +366,7 @@ namespace PeepholePass
             if (firstImm > std::numeric_limits<uint64_t>::max() - secondImm)
                 return false;
 
-            MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
             if (!firstInst)
                 return false;
 
@@ -375,7 +375,7 @@ namespace PeepholePass
                 return false;
 
             const uint64_t originalImm = firstOps[3].valueU64;
-            firstOps[3].valueU64        = firstImm + secondImm;
+            firstOps[3].valueU64       = firstImm + secondImm;
             if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
             {
                 firstOps[3].valueU64 = originalImm;

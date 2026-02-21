@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -32,13 +32,13 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, nextIt, endIt))
                 return false;
 
-            const MicroReg   tmpReg       = ops[0].reg;
-            const MicroReg   baseReg      = ops[1].reg;
-            const uint64_t   offset       = nextOps[3].valueU64;
-            const MicroReg   originalDst  = nextOps[0].reg;
+            const MicroReg    tmpReg       = ops[0].reg;
+            const MicroReg    baseReg      = ops[1].reg;
+            const uint64_t    offset       = nextOps[3].valueU64;
+            const MicroReg    originalDst  = nextOps[0].reg;
             const MicroOpBits originalBits = nextOps[1].opBits;
-            const MicroOp    originalOp   = nextOps[2].microOp;
-            const uint64_t   originalImm  = nextOps[3].valueU64;
+            const MicroOp     originalOp   = nextOps[2].microOp;
+            const uint64_t    originalImm  = nextOps[3].valueU64;
 
             nextInst.op         = MicroInstrOpcode::LoadAddrRegMem;
             nextOps[0].reg      = tmpReg;
@@ -47,11 +47,11 @@ namespace PeepholePass
             nextOps[3].valueU64 = offset;
             if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
             {
-                nextInst.op          = MicroInstrOpcode::OpBinaryRegImm;
-                nextOps[0].reg       = originalDst;
-                nextOps[1].opBits    = originalBits;
-                nextOps[2].microOp   = originalOp;
-                nextOps[3].valueU64  = originalImm;
+                nextInst.op         = MicroInstrOpcode::OpBinaryRegImm;
+                nextOps[0].reg      = originalDst;
+                nextOps[1].opBits   = originalBits;
+                nextOps[2].microOp  = originalOp;
+                nextOps[3].valueU64 = originalImm;
                 return false;
             }
 
@@ -64,7 +64,7 @@ namespace PeepholePass
             if (!ops || nextIt == endIt)
                 return false;
 
-            MicroInstr&        nextInst = *nextIt;
+            const MicroInstr&  nextInst = *nextIt;
             MicroInstrOperand* nextOps  = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
             if (!nextOps)
                 return false;

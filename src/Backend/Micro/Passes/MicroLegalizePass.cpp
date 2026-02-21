@@ -107,7 +107,7 @@ namespace
             return;
 
         const MicroReg stackPointerReg = encoder.stackPointerReg();
-        const Ref      firstRef         = beginIt.current;
+        const Ref      firstRef        = beginIt.current;
 
         std::array<MicroInstrOperand, 4> subOps;
         subOps[0].reg      = stackPointerReg;
@@ -305,7 +305,7 @@ namespace
 
         const MicroReg stackPointerReg = encoder.stackPointerReg();
         const bool     operandIsDst    = issue.operandIndex == 0;
-        const bool     conflict = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
+        const bool     conflict        = operandIsDst ? originalSrcReg == requiredReg : originalDstReg == requiredReg;
         if (conflict)
             SWC_ASSERT(helperReg.isValid());
 
@@ -369,8 +369,8 @@ namespace
         SWC_ASSERT(forbiddenReg.isValid());
         SWC_ASSERT(scratchReg.isValid());
 
-        const MicroReg stackPointerReg = encoder.stackPointerReg();
-        const bool mustPreserveScratchReg = mustPreserveRegAfterInstruction(context, instRef, scratchReg);
+        const MicroReg stackPointerReg        = encoder.stackPointerReg();
+        const bool     mustPreserveScratchReg = mustPreserveRegAfterInstruction(context, instRef, scratchReg);
 
         if (mustPreserveScratchReg)
             insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, scratchReg);
@@ -433,7 +433,7 @@ bool MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    const auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
+    const auto& encoder               = *SWC_CHECK_NOT_NULL(context.encoder);
     uint64_t    stackScratchFrameSize = 0;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
@@ -454,7 +454,7 @@ bool MicroLegalizePass::run(MicroPassContext& context)
     if (stackScratchFrameSize)
         insertScratchFrame(context, encoder, stackScratchFrameSize);
 
-    bool        changed = false;
+    bool changed = false;
 
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.
@@ -478,11 +478,11 @@ bool MicroLegalizePass::run(MicroPassContext& context)
             changed = true;
             applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, 0);
 
-            MicroInstr* const currentInst = context.instructions->ptr(instRef);
+            const MicroInstr* const currentInst = context.instructions->ptr(instRef);
             if (!currentInst)
                 break;
 
-            MicroInstrOperand* const currentOps = currentInst->ops(*context.operands);
+            const MicroInstrOperand* const currentOps = currentInst->ops(*context.operands);
             if (!encoder.queryConformanceIssue(issue, *currentInst, currentOps))
                 break;
         }

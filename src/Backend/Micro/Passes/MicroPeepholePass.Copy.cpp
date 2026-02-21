@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -269,7 +269,7 @@ namespace PeepholePass
                         {
                             MicroReg&      mutableReg  = *SWC_CHECK_NOT_NULL(ref.reg);
                             const MicroReg originalReg = mutableReg;
-                            mutableReg                  = srcReg;
+                            mutableReg                 = srcReg;
                             if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
                             {
                                 mutableReg  = originalReg;
@@ -277,7 +277,7 @@ namespace PeepholePass
                                 break;
                             }
 
-                            mutableReg      = originalReg;
+                            mutableReg        = originalReg;
                             sawReplaceableUse = true;
                         }
                     }
@@ -552,7 +552,7 @@ namespace PeepholePass
             if (prevCopyIt.current == INVALID_REF)
                 return false;
 
-            MicroInstr&        prevOpInst = *prevOpIt;
+            const MicroInstr&  prevOpInst = *prevOpIt;
             MicroInstrOperand* prevOpOps  = prevOpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
             if (!prevOpOps)
                 return false;

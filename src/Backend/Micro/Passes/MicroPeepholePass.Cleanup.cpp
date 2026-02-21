@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 #include "Backend/Micro/MicroOptimization.h"
+#include "Backend/Micro/Passes/MicroPeepholePass.Private.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -73,7 +73,7 @@ namespace PeepholePass
 
             const MicroReg dstReg = copyOps[0].reg;
 
-            MicroInstr*        setCondInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr*  setCondInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
             MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
             if (!setCondOps)
                 return false;

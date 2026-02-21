@@ -71,13 +71,14 @@ bool MicroPeepholePass::run(MicroPassContext& context)
         const Ref                instRef = it.current;
         MicroInstr&              inst    = *it;
         const MicroInstrOperand* ops     = inst.ops(*context.operands);
-        ++it;
+        auto nextIt = it;
+        ++nextIt;
 
         PeepholePass::Cursor cursor;
         cursor.instRef = instRef;
         cursor.inst    = &inst;
         cursor.ops     = ops;
-        cursor.nextIt  = it;
+        cursor.nextIt  = nextIt;
         cursor.endIt   = view.end();
 
         bool appliedRule = false;
@@ -92,7 +93,15 @@ bool MicroPeepholePass::run(MicroPassContext& context)
         }
 
         if (appliedRule)
+        {
+            if (nextIt == view.end() || context.instructions->ptr(nextIt.current) != nullptr)
+                it = nextIt;
+            else
+                it = view.begin();
             continue;
+        }
+
+        it = nextIt;
     }
 
     return changed;

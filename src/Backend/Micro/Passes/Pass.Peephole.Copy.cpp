@@ -126,6 +126,169 @@ namespace PeepholePass
             return true;
         }
 
+        bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef)
+        {
+            outUse = false;
+            outDef = false;
+
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                    continue;
+
+                outUse |= ref.use;
+                outDef |= ref.def;
+            }
+
+            return outUse || outDef;
+        }
+
+        bool rewriteAccumulatorInstruction(MicroInstr& inst, MicroInstrOperand* instOps, MicroReg fromReg, MicroReg toReg)
+        {
+            if (!instOps)
+                return false;
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                    if (instOps[0].reg != fromReg)
+                        return false;
+                    instOps[0].reg = toReg;
+                    if (instOps[1].reg == fromReg)
+                        instOps[1].reg = toReg;
+                    return true;
+
+                case MicroInstrOpcode::OpBinaryRegMem:
+                    if (instOps[0].reg != fromReg)
+                        return false;
+                    instOps[0].reg = toReg;
+                    if (instOps[1].reg == fromReg)
+                        instOps[1].reg = toReg;
+                    return true;
+
+                case MicroInstrOpcode::OpBinaryRegImm:
+                    if (instOps[0].reg != fromReg)
+                        return false;
+                    instOps[0].reg = toReg;
+                    return true;
+
+                case MicroInstrOpcode::OpBinaryRegReg:
+                    if (instOps[0].reg != fromReg)
+                        return false;
+                    instOps[0].reg = toReg;
+                    if (instOps[1].reg == fromReg)
+                        instOps[1].reg = toReg;
+                    return true;
+
+                case MicroInstrOpcode::OpUnaryReg:
+                    if (instOps[0].reg != fromReg)
+                        return false;
+                    instOps[0].reg = toReg;
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        bool foldRetCopyIntoAccumulator(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroInstr& nextInst = *nextIt;
+            if (nextInst.op != MicroInstrOpcode::Ret)
+                return false;
+
+            const MicroReg retReg = ops[0].reg;
+            const MicroReg accReg = ops[1].reg;
+            if (!retReg.isSameClass(accReg))
+                return false;
+
+            struct RewritePlan
+            {
+                Ref                             ref = INVALID_REF;
+                SmallVector<MicroInstrOperand> rewrittenOps;
+            };
+
+            SmallVector<RewritePlan> rewritePlans;
+            bool                     foundRootDef = false;
+
+            MicroStorage::Iterator scanIt{SWC_CHECK_NOT_NULL(context.instructions), instRef};
+            while (scanIt.current != INVALID_REF)
+            {
+                --scanIt;
+                if (scanIt.current == INVALID_REF)
+                    break;
+
+                MicroInstr& scanInst = *scanIt;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                bool usesRet = false;
+                bool defsRet = false;
+                classifyRegUseDef(context, scanInst, retReg, usesRet, defsRet);
+                if (usesRet || defsRet)
+                    return false;
+
+                bool usesAcc = false;
+                bool defsAcc = false;
+                if (!classifyRegUseDef(context, scanInst, accReg, usesAcc, defsAcc))
+                    continue;
+
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                RewritePlan plan;
+                plan.ref = scanIt.current;
+                plan.rewrittenOps.reserve(scanInst.numOperands);
+                for (uint8_t opIdx = 0; opIdx < scanInst.numOperands; ++opIdx)
+                    plan.rewrittenOps.push_back(scanOps[opIdx]);
+
+                if (!rewriteAccumulatorInstruction(scanInst, plan.rewrittenOps.data(), accReg, retReg))
+                    return false;
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, plan.rewrittenOps.data()))
+                    return false;
+
+                rewritePlans.push_back(std::move(plan));
+
+                if (defsAcc && !usesAcc)
+                {
+                    foundRootDef = true;
+                    break;
+                }
+            }
+
+            if (!foundRootDef || rewritePlans.empty())
+                return false;
+
+            for (RewritePlan& plan : rewritePlans)
+            {
+                MicroInstr* instPtr = SWC_CHECK_NOT_NULL(context.instructions)->ptr(plan.ref);
+                if (!instPtr)
+                    return false;
+
+                MicroInstrOperand* instOps = instPtr->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!instOps || instPtr->numOperands != plan.rewrittenOps.size())
+                    return false;
+
+                for (uint8_t opIdx = 0; opIdx < instPtr->numOperands; ++opIdx)
+                    instOps[opIdx] = plan.rewrittenOps[opIdx];
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool foldCopyIntoNextSelfLoadMem(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -627,6 +790,11 @@ namespace PeepholePass
         // Purpose: reuse first identical memory load result and remove copied-base register.
         // Example: mov r10, rdx; mov rdx, [r10]; mov r9, [r10] -> mov rdx, [rdx]; mov r9, rdx
         outRules.push_back({RuleTarget::LoadRegReg, foldCopyTwinLoadMemReuse});
+
+        // Rule: fold_ret_copy_into_accumulator
+        // Purpose: retarget the final accumulator chain to return register and drop trailing copy.
+        // Example: add rdx, [r8]; mov rax, rdx; ret -> add rax, [r8]; ret
+        outRules.push_back({RuleTarget::LoadRegReg, foldRetCopyIntoAccumulator});
 
         // Rule: fold_copy_op_copy_back
         // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.

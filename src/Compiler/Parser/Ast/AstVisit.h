@@ -97,12 +97,11 @@ private:
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
 
-    static void  resetFrame(Frame& frame, AstNodeRef nodeRef);
+    static void    resetFrame(Frame& frame, AstNodeRef nodeRef);
     AstVisitResult stepPreStage(Frame& frame);
     AstVisitResult stepChildrenStage(Frame& frame);
     AstVisitResult stepPostStage(Frame& frame);
     void           collectChildren(Frame& frame);
-    AstNodeRef     resolveCallbackRef(AstNodeRef nodeRef) const;
     AstNode*       parentNodeInternal(size_t up) const;
     AstNodeRef     parentNodeRefInternal(size_t up) const;
 };

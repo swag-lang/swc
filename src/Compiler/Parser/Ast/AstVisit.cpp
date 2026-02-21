@@ -131,8 +131,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
             if (postChildVisitor_ && frame.postChildState != Frame::CallState::Done)
             {
                 SWC_ASSERT(frame.nextChildIx > 0);
-                const AstNodeRef lastChildRef = children_[frame.firstChildIx + frame.nextChildIx - 1];
-                AstNodeRef       callbackRef  = resolveCallbackRef(lastChildRef);
+                AstNodeRef callbackRef = children_[frame.firstChildIx + frame.nextChildIx - 1];
 
                 frame.firstPass     = (frame.postChildState == Frame::CallState::NotCalled);
                 const Result result = postChildVisitor_(*frame.node, callbackRef);
@@ -159,17 +158,12 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         const uint32_t localIdx = frame.nextChildIx;
         const uint32_t globalIx = frame.firstChildIx + localIdx;
 
-        AstNodeRef childRef         = children_[globalIx];
-        AstNodeRef callbackChildRef = resolveCallbackRef(childRef);
+        AstNodeRef childRef = children_[globalIx];
 
         if (preChildVisitor_ && frame.preChildState != Frame::CallState::Done)
         {
-            frame.firstPass = (frame.preChildState == Frame::CallState::NotCalled);
-            auto result     = Result::Continue;
-            if (mode_ == AstVisitMode::ResolveBeforeCallbacks)
-                result = preChildVisitor_(*frame.node, callbackChildRef);
-            else
-                result = preChildVisitor_(*frame.node, childRef);
+            frame.firstPass     = (frame.preChildState == Frame::CallState::NotCalled);
+            const Result result = preChildVisitor_(*frame.node, childRef);
 
             if (result == Result::Error)
                 return AstVisitResult::Error;
@@ -252,13 +246,24 @@ void AstVisit::collectChildren(Frame& frame)
     info.collectChildren(children_, *ast_, *frame.node);
     frame.numChildren = children_.size32() - frame.firstChildIx;
     frame.nextChildIx = 0;
-}
 
-AstNodeRef AstVisit::resolveCallbackRef(AstNodeRef nodeRef) const
-{
-    if (mode_ == AstVisitMode::ResolveBeforeCallbacks && nodeRefResolver_ && nodeRef.isValid())
-        return nodeRefResolver_(nodeRef);
-    return nodeRef;
+    if (mode_ != AstVisitMode::ResolveBeforeCallbacks || !nodeRefResolver_)
+        return;
+
+    const uint32_t childStart = frame.firstChildIx;
+    const uint32_t childEnd   = frame.firstChildIx + frame.numChildren;
+    for (uint32_t i = childStart; i < childEnd; i++)
+    {
+        const AstNodeRef childRef = children_[i];
+        if (childRef.isInvalid())
+            continue;
+
+        const AstNodeRef resolvedRef = nodeRefResolver_(childRef);
+        if (resolvedRef.isInvalid() || resolvedRef == frame.nodeRef)
+            continue;
+
+        children_[i] = resolvedRef;
+    }
 }
 
 AstNode* AstVisit::parentNodeInternal(size_t up) const

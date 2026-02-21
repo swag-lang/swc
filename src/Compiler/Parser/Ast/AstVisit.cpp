@@ -92,7 +92,7 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
 
     if (preNodeVisitor_ && frame.preNodeState != Frame::CallState::Done)
     {
-        frame.firstPass = (frame.preNodeState == Frame::CallState::NotCalled);
+        frame.firstPass     = (frame.preNodeState == Frame::CallState::NotCalled);
         const Result result = preNodeVisitor_(*frame.node);
 
         if (result == Result::Error)
@@ -132,9 +132,9 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
             {
                 SWC_ASSERT(frame.nextChildIx > 0);
                 const AstNodeRef lastChildRef = children_[frame.firstChildIx + frame.nextChildIx - 1];
-                AstNodeRef callbackRef = resolveCallbackRef(lastChildRef);
+                AstNodeRef       callbackRef  = resolveCallbackRef(lastChildRef);
 
-                frame.firstPass = (frame.postChildState == Frame::CallState::NotCalled);
+                frame.firstPass     = (frame.postChildState == Frame::CallState::NotCalled);
                 const Result result = postChildVisitor_(*frame.node, callbackRef);
 
                 if (result == Result::Error)
@@ -159,13 +159,13 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         const uint32_t localIdx = frame.nextChildIx;
         const uint32_t globalIx = frame.firstChildIx + localIdx;
 
-        AstNodeRef childRef = children_[globalIx];
+        AstNodeRef childRef         = children_[globalIx];
         AstNodeRef callbackChildRef = resolveCallbackRef(childRef);
 
         if (preChildVisitor_ && frame.preChildState != Frame::CallState::Done)
         {
             frame.firstPass = (frame.preChildState == Frame::CallState::NotCalled);
-            Result result = Result::Continue;
+            auto result     = Result::Continue;
             if (mode_ == AstVisitMode::ResolveBeforeCallbacks)
                 result = preChildVisitor_(*frame.node, callbackChildRef);
             else
@@ -216,11 +216,14 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
 {
     if (postNodeVisitor_ && frame.postNodeState != Frame::CallState::Done)
     {
-        frame.firstPass = (frame.postNodeState == Frame::CallState::NotCalled);
+        frame.firstPass     = (frame.postNodeState == Frame::CallState::NotCalled);
         const Result result = postNodeVisitor_(*frame.node);
 
         if (result == Result::Error)
+        {
             return AstVisitResult::Error;
+        }
+
         if (result == Result::Pause)
         {
             frame.postNodeState = Frame::CallState::Paused;
@@ -228,7 +231,9 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
         }
 
         if (frame.stage != Frame::Stage::Post)
+        {
             return AstVisitResult::Continue;
+        }
 
         frame.postNodeState = Frame::CallState::Done;
     }
@@ -258,13 +263,11 @@ AstNodeRef AstVisit::resolveCallbackRef(AstNodeRef nodeRef) const
 
 AstNode* AstVisit::parentNodeInternal(size_t up) const
 {
-    // stack_.back() is the current node's frame.
-    // Direct parent: up = 0 -> stack_[size-2]
-    if (stack_.size() <= 1) // root has no parent
+    if (stack_.size() <= 1)
         return nullptr;
 
-    const size_t selfIdx = stack_.size() - 1; // current frame index
-    if (up >= selfIdx)                        // going above root
+    const size_t selfIdx = stack_.size() - 1;
+    if (up >= selfIdx)
         return nullptr;
 
     const Frame& fr = stack_[selfIdx - 1 - up];
@@ -273,13 +276,11 @@ AstNode* AstVisit::parentNodeInternal(size_t up) const
 
 AstNodeRef AstVisit::parentNodeRefInternal(size_t up) const
 {
-    // stack_.back() is the current node's frame.
-    // Direct parent: up = 0 -> stack_[size-2]
-    if (stack_.size() <= 1) // root has no parent
+    if (stack_.size() <= 1)
         return AstNodeRef::invalid();
 
-    const size_t selfIdx = stack_.size() - 1; // current frame index
-    if (up >= selfIdx)                        // going above root
+    const size_t selfIdx = stack_.size() - 1;
+    if (up >= selfIdx)
         return AstNodeRef::invalid();
 
     const Frame& fr = stack_[selfIdx - 1 - up];

@@ -71,7 +71,7 @@ bool MicroPeepholePass::run(MicroPassContext& context)
         const Ref                instRef = it.current;
         MicroInstr&              inst    = *it;
         const MicroInstrOperand* ops     = inst.ops(*context.operands);
-        auto nextIt = it;
+        auto                     nextIt  = it;
         ++nextIt;
 
         PeepholePass::Cursor cursor;

@@ -122,7 +122,7 @@ namespace
 
             case ConstantKind::Array:
             {
-                const ByteSpan arrayBytes  = cst.getArray();
+                const ByteSpan arrayBytes = cst.getArray();
                 if (targetTypeRef.isValid())
                 {
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);

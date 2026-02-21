@@ -715,10 +715,10 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
             {
-                outIssue.kind        = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
                 outIssue.operandIndex = 1;
-                outIssue.requiredReg = rcxReg;
-                outIssue.helperReg   = x64RegToMicroReg(X64Reg::Rax);
+                outIssue.requiredReg  = rcxReg;
+                outIssue.helperReg    = x64RegToMicroReg(X64Reg::Rax);
                 return true;
             }
         }
@@ -734,8 +734,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             {
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
                 outIssue.operandIndex = 0;
-                outIssue.requiredReg = raxReg;
-                outIssue.helperReg   = x64RegToMicroReg(X64Reg::Rcx);
+                outIssue.requiredReg  = raxReg;
+                outIssue.helperReg    = x64RegToMicroReg(X64Reg::Rcx);
                 return true;
             }
 

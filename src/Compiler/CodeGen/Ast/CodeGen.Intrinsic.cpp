@@ -22,10 +22,10 @@ namespace
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        const SemaNodeView             exprView      = codeGen.viewType(exprRef);
-        const CodeGenNodePayload* const exprPayload  = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
-        const TypeInfo* const          exprType      = exprView.type();
-        const TypeRef                  resultTypeRef = codeGen.curViewType().typeRef();
+        const SemaNodeView              exprView      = codeGen.viewType(exprRef);
+        const CodeGenNodePayload* const exprPayload   = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
+        const TypeInfo* const           exprType      = exprView.type();
+        const TypeRef                   resultTypeRef = codeGen.curViewType().typeRef();
         SWC_ASSERT(exprType != nullptr);
 
         if (exprType->isIntUnsigned())

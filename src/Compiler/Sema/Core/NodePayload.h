@@ -129,10 +129,10 @@ private:
 
     struct SubstituteStorage
     {
-        AstNodeRef      substNodeRef  = AstNodeRef::invalid();
-        NodePayloadKind originalKind  = NodePayloadKind::Invalid;
-        uint32_t        originalRef   = 0;
-        uint32_t        originalShard = 0;
+        AstNodeRef       substNodeRef  = AstNodeRef::invalid();
+        NodePayloadKind  originalKind  = NodePayloadKind::Invalid;
+        uint32_t         originalRef   = 0;
+        uint32_t         originalShard = 0;
         NodePayloadFlags originalFlags = static_cast<NodePayloadFlags>(0);
     };
 

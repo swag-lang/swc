@@ -941,7 +941,7 @@ namespace
         if (!variadicType.isTypedVariadic())
             return Result::Continue;
 
-        const TypeRef variadicTy = variadicType.payloadTypeRef();
+        const TypeRef       variadicTy       = variadicType.payloadTypeRef();
         const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
         if (fixedVariadicArg.argRef.isValid())
         {

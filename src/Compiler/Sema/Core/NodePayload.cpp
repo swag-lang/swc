@@ -671,9 +671,9 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
             SWC_ASSERT(storage);
             flags = storage->originalFlags;
             info  = {
-                .kind     = storage->originalKind,
-                .ref      = storage->originalRef,
-                .shardIdx = storage->originalShard,
+                 .kind     = storage->originalKind,
+                 .ref      = storage->originalRef,
+                 .shardIdx = storage->originalShard,
             };
             continue;
         }

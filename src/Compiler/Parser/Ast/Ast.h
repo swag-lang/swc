@@ -136,9 +136,9 @@ private:
     };
 
     Shard       shards_[SHARD_COUNT];
-    SourceView* srcView_ = nullptr;
-    AstNodeRef  root_    = AstNodeRef::invalid();
-    AstFlags    flags_   = AstFlagsE::Zero;
+    SourceView* srcView_                                = nullptr;
+    AstNodeRef  root_                                   = AstNodeRef::invalid();
+    AstFlags    flags_                                  = AstFlagsE::Zero;
     uint32_t    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
     bool        hasParsedNodeBoundary_                  = false;
 };

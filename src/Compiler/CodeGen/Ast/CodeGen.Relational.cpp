@@ -351,9 +351,9 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
     resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
 
-    MicroBuilder& builder      = codeGen.builder();
-    const Ref      falseLabel  = builder.createLabel();
-    const Ref      doneLabel   = builder.createLabel();
+    MicroBuilder& builder    = codeGen.builder();
+    const Ref     falseLabel = builder.createLabel();
+    const Ref     doneLabel  = builder.createLabel();
 
     builder.emitCmpRegZero(condReg, condBits);
     builder.emitJumpToLabel(MicroCond::Equal, condBits, falseLabel);

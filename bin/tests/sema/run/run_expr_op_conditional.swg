@@ -131,23 +131,22 @@ struct CondPair
     }
 }
 
-// BUG:
-//#test
-//{
-//    func ternaryNested(a: bool, b: bool)->s32
-//    {
-//        return a ? (b ? 42 : 7) : (b ? 9 : 10)
-//    }
-//
-//    const V0 = #run ternaryNested(true, true)
-//    const V1 = #run ternaryNested(true, false)
-//    const V2 = #run ternaryNested(false, true)
-//    const V3 = #run ternaryNested(false, false)
-//    #assert(V0 == 42)
-//    #assert(V1 == 7)
-//    #assert(V2 == 9)
-//    #assert(V3 == 10)
-//}
+#test
+{
+    func ternaryNested(a: bool, b: bool)->s32
+    {
+        return a ? (b ? 42 : 7) : (b ? 9 : 10)
+    }
+
+    const V0 = #run ternaryNested(true, true)
+    const V1 = #run ternaryNested(true, false)
+    const V2 = #run ternaryNested(false, true)
+    const V3 = #run ternaryNested(false, false)
+    #assert(V0 == 42)
+    #assert(V1 == 7)
+    #assert(V2 == 9)
+    #assert(V3 == 10)
+}
 
 // BUG:
 //#test

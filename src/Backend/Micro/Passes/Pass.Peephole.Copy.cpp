@@ -551,7 +551,12 @@ namespace PeepholePass
                 const MicroInstr&      scanInst = *scanIt;
                 const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
                 if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                {
+                    // Linear scan cannot prove liveness across control-flow barriers.
+                    // Be conservative and keep the copy in place.
+                    canCoalesce = false;
                     break;
+                }
 
                 const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
                 if (scanInst.op == MicroInstrOpcode::LoadRegReg && scanOps && scanOps[0].reg == srcReg && scanOps[1].reg == dstReg)

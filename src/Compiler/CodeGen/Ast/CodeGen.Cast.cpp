@@ -71,6 +71,22 @@ namespace
         const bool      dstFloatType   = dstType.isFloat();
         const bool      dstIntLikeType = isNumericIntLike(dstType);
 
+        if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
+        {
+            MicroReg srcReg = srcPayload->reg;
+            if (srcPayload->isAddress())
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, MicroOpBits::B64);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitCmpRegZero(srcReg, MicroOpBits::B64);
+            builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+            return Result::Continue;
+        }
+
         if (srcIntLikeType && dstIntLikeType)
         {
             const MicroOpBits srcOpBits = castPayloadBits(srcType);

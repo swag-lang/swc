@@ -23,15 +23,14 @@
     func unaryBangBad(a: [2] s32)->bool { return !a } // swc-expected-error {{sema_err_unary_operand_type}}
 }
 
-// BUG:
-//#test
-//{
-//    func unaryBangPointer(a: *void)->bool { return !a }
-//    const V0 = #run unaryBangPointer(null)
-//    const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
-//    #assert(V0)
-//    #assert(!V1)
-//}
+#test
+{
+    func unaryBangPointer(a: *void)->bool { return !a }
+    const V0 = #run unaryBangPointer(null)
+    const V1 = #run unaryBangPointer(cast(*void) 0x1000'u64)
+    #assert(V0)
+    #assert(!V1)
+}
 
 #test
 {

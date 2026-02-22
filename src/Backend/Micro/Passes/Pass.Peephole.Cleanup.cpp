@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
@@ -138,6 +139,89 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldClearRegIntoNextMemStoreZero(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstr*            inst    = cursor.inst;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!inst || inst->op != MicroInstrOpcode::ClearReg)
+                return false;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroReg    tmpReg    = ops[0].reg;
+            const MicroOpBits clearBits = ops[1].opBits;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                MicroInstr&        scanInst = *scanIt;
+                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                        continue;
+
+                    hasUse |= ref.use;
+                    hasDef |= ref.def;
+                }
+
+                if (hasDef)
+                    return false;
+
+                if (!hasUse)
+                {
+                    if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                        return false;
+                    continue;
+                }
+
+                if (scanInst.op != MicroInstrOpcode::LoadMemReg || scanOps[1].reg != tmpReg)
+                    return false;
+
+                if (getNumBits(clearBits) < getNumBits(scanOps[2].opBits))
+                    return false;
+
+                if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, tmpReg))
+                    return false;
+
+                if (!areFlagsDeadAfterInstruction(context, scanIt, endIt))
+                    return false;
+
+                const MicroInstrOpcode originalOp  = scanInst.op;
+                const std::array       originalOps = {scanOps[0], scanOps[1], scanOps[2], scanOps[3]};
+
+                scanInst.op         = MicroInstrOpcode::LoadMemImm;
+                scanOps[0]          = originalOps[0];
+                scanOps[1].opBits   = originalOps[2].opBits;
+                scanOps[2].valueU64 = originalOps[3].valueU64;
+                scanOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(originalOps[2].opBits)));
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanInst.op = originalOp;
+                    for (uint32_t i = 0; i < 4; ++i)
+                        scanOps[i] = originalOps[i];
+                    return false;
+                }
+
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                return true;
+            }
+
+            return false;
+        }
+
     }
 
     void appendCleanupRules(RuleList& outRules)
@@ -151,6 +235,11 @@ namespace PeepholePass
         // Purpose: route setcc and zero-extend directly to final destination register.
         // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax
         outRules.push_back({RuleTarget::AnyInstruction, foldSetCondZeroExtCopy});
+
+        // Rule: fold_clearreg_into_next_mem_store_zero
+        // Purpose: store zero immediate directly to memory instead of through a cleared temp register.
+        // Example: xor rdx, rdx; mov [rsp], rdx -> mov [rsp], 0
+        outRules.push_back({RuleTarget::AnyInstruction, foldClearRegIntoNextMemStoreZero});
 
         // Rule: remove_no_op_instruction
         // Purpose: remove encoder-level no-op instructions.

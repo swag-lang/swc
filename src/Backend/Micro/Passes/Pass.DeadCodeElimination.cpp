@@ -151,7 +151,7 @@ namespace
 
         const CallConv& conv = CallConv::get(callConvKind);
 
-        bool                     startedSuffix = false;
+        bool                     processRegion = false;
         const MicroStorage::View view          = storage.view();
         for (auto it = view.end(); it != view.begin();)
         {
@@ -162,21 +162,21 @@ namespace
             const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
             if (isControlFlowBarrier(inst, useDef))
             {
-                if (!startedSuffix)
+                liveRegs.clear();
+                if (inst.op == MicroInstrOpcode::Ret)
                 {
-                    if (inst.op == MicroInstrOpcode::Ret)
-                    {
-                        addLiveReg(liveRegs, conv.intReturn);
-                        addLiveReg(liveRegs, conv.floatReturn);
-                    }
-
+                    processRegion = true;
+                    addLiveReg(liveRegs, conv.intReturn);
+                    addLiveReg(liveRegs, conv.floatReturn);
                     continue;
                 }
 
-                break;
+                processRegion = false;
+                continue;
             }
 
-            startedSuffix = true;
+            if (!processRegion)
+                continue;
 
             if (!isBackwardDeadDefRemovableInstruction(inst) || !isPureDefCandidate(inst, useDef, encoder))
             {

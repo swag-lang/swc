@@ -34,11 +34,16 @@ namespace
         MicroPeepholePass*                  peepholePass            = nullptr;
     };
 
-    void registerMandatoryPasses(MicroPassManager& passManager, MicroRegisterAllocationPass& regAllocPass, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroEmitPass& emitPass)
+    void registerMandatoryPasses(MicroPassManager& passManager, MicroRegisterAllocationPass& regAllocPass, MicroLegalizePass& legalizePass)
     {
         passManager.addMandatory(regAllocPass);
-        passManager.addMandatory(prologEpilogPass);
         passManager.addMandatory(legalizePass);
+    }
+
+    void registerFinalPasses(MicroPassManager& passManager, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroEmitPass& emitPass)
+    {
+        passManager.addFinal(prologEpilogPass);
+        passManager.addFinal(legalizePass);
         passManager.addFinal(emitPass);
     }
 
@@ -180,7 +185,8 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
     MicroPassManager passManager;
     registerOptimizationPasses(passManager, builder.backendBuildCfg().optimizeLevel, optimizationPasses);
-    registerMandatoryPasses(passManager, regAllocPass, prologEpilogPass, legalizePass, emitPass);
+    registerMandatoryPasses(passManager, regAllocPass, legalizePass);
+    registerFinalPasses(passManager, prologEpilogPass, legalizePass, emitPass);
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim    = builder.instructions().count();

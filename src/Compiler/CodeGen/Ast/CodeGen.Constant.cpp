@@ -113,6 +113,17 @@ namespace
             case ConstantKind::Struct:
             {
                 const ByteSpan structBytes = cst.getStruct();
+                if (targetTypeRef.isValid())
+                {
+                    const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
+                    if (targetType.isReference())
+                    {
+                        builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+                        payload.setIsValue();
+                        return;
+                    }
+                }
+
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(structBytes.size() == storageSize);
                 builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);

@@ -362,19 +362,18 @@ alias BigArray = [5] s32
     const V = #run passErr("ok", 1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
-// BUG:
-//#test
-//{
-//    func passConstRef(x: const &SmallPair)->u64
-//    {
-//        return cast(u64) x.a + cast(u64) x.b + x.c
-//    }
-//
-//    const P: SmallPair = {a: 1'u32, b: 2'u32, c: 39'u64}
-//    const V = #run passConstRef(P)
-//    #assert(#typeof(V) == u64)
-//    #assert(V == 42'u64)
-//}
+#test
+{
+    func passConstRef(x: const &SmallPair)->u64
+    {
+        return cast(u64) x.a + cast(u64) x.b + x.c
+    }
+
+    const P: SmallPair = {a: 1'u32, b: 2'u32, c: 39'u64}
+    const V = #run passConstRef(P)
+    #assert(#typeof(V) == u64)
+    #assert(V == 42'u64)
+}
 
 #test
 {

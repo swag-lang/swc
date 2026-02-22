@@ -14,6 +14,10 @@ namespace
 {
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
+        const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
+        if (leftTypeView.type() && leftTypeView.type()->isReference())
+            return false;
+
         if (leftPayload.isValue())
             return true;
 

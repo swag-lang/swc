@@ -430,10 +430,12 @@ namespace
 
             if (normalizedTypeRef.isValid())
             {
-                const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                preparedArg.isFloat                                  = normalizedArg.isFloat;
-                preparedArg.numBits                                  = normalizedArg.numBits;
-                preparedArg.isAddressed                              = argPayload->isAddress() && !normalizedArg.isIndirect;
+                const TypeInfo&                        normalizedType     = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+                const ABITypeNormalize::NormalizedType normalizedArg      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+                const bool                             passAddressAsValue = normalizedType.isReference();
+                preparedArg.isFloat                                       = normalizedArg.isFloat;
+                preparedArg.numBits                                       = normalizedArg.numBits;
+                preparedArg.isAddressed                                   = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
             }
 
             preparedArg.kind = abiPreparedArgKind(arg.passKind);
@@ -471,10 +473,12 @@ namespace
 
                 if (normalizedTypeRef.isValid())
                 {
-                    const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                    preparedArg.isFloat                                  = normalizedArg.isFloat;
-                    preparedArg.numBits                                  = normalizedArg.numBits;
-                    preparedArg.isAddressed                              = argPayload->isAddress() && !normalizedArg.isIndirect;
+                    const TypeInfo&                        normalizedType     = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+                    const ABITypeNormalize::NormalizedType normalizedArg      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+                    const bool                             passAddressAsValue = normalizedType.isReference();
+                    preparedArg.isFloat                                       = normalizedArg.isFloat;
+                    preparedArg.numBits                                       = normalizedArg.numBits;
+                    preparedArg.isAddressed                                   = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
                 }
 
                 preparedArg.kind = abiPreparedArgKind(arg.passKind);

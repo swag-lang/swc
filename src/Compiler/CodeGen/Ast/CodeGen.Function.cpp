@@ -156,37 +156,67 @@ namespace
             ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
     }
 
-    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void collectFunctionParameterInfos(SmallVector<CodeGenHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
-        const std::vector<SymbolVariable*>& params   = symbolFunc.parameters();
-        MicroBuilder&                       builder  = codeGen.builder();
+        const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
+        outParamInfos.clear();
+        if (params.empty())
+            return;
 
+        outParamInfos.resize(params.size());
+
+        const CallConv&                        callConv            = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet       = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
         for (size_t i = 0; i < params.size(); ++i)
         {
             const SymbolVariable* const symVar = params[i];
             if (!symVar)
                 continue;
 
-            const CodeGenHelpers::FunctionParameterInfo paramInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar);
+            outParamInfos[i] = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg);
+        }
+    }
+
+    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenHelpers::FunctionParameterInfo> paramInfos)
+    {
+        const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
+        const std::vector<SymbolVariable*>& params   = symbolFunc.parameters();
+        MicroBuilder&                       builder  = codeGen.builder();
+        SWC_ASSERT(paramInfos.size() == params.size());
+
+        SmallVector<uint32_t> registerParamIndices;
+        registerParamIndices.reserve(params.size());
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            const SymbolVariable* const symVar = params[i];
+            if (!symVar)
+                continue;
+
+            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (!paramInfo.isRegisterArg)
                 continue;
+
+            registerParamIndices.push_back(static_cast<uint32_t>(i));
+        }
+
+        for (size_t i = 0; i < registerParamIndices.size(); ++i)
+        {
+            const uint32_t               paramIndex = registerParamIndices[i];
+            const SymbolVariable* const  symVar     = params[paramIndex];
+            SWC_ASSERT(symVar != nullptr);
+            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
 
             CodeGenNodePayload symbolPayload;
             symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
             symbolPayload.typeRef = symVar->typeRef();
 
             SmallVector<MicroReg> futureSourceRegs;
-            for (size_t j = i + 1; j < params.size(); ++j)
+            futureSourceRegs.reserve(registerParamIndices.size() - i - 1);
+            for (size_t j = i + 1; j < registerParamIndices.size(); ++j)
             {
-                const SymbolVariable* const laterSymVar = params[j];
-                if (!laterSymVar)
-                    continue;
-
-                const CodeGenHelpers::FunctionParameterInfo laterParamInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *laterSymVar);
-                if (!laterParamInfo.isRegisterArg)
-                    continue;
-
+                const uint32_t                              laterParamIndex = registerParamIndices[j];
+                const CodeGenHelpers::FunctionParameterInfo laterParamInfo  = paramInfos[laterParamIndex];
                 futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
@@ -198,19 +228,22 @@ namespace
         }
     }
 
-    void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenHelpers::FunctionParameterInfo> paramInfos)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
-        for (const SymbolVariable* symVar : params)
+        SWC_ASSERT(paramInfos.size() == params.size());
+
+        for (size_t i = 0; i < params.size(); ++i)
         {
+            const SymbolVariable* const symVar = params[i];
             if (!symVar)
                 continue;
 
-            const CodeGenHelpers::FunctionParameterInfo paramInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar);
+            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
 
-            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar);
+            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, paramInfo);
         }
     }
 
@@ -656,9 +689,11 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
+    SmallVector<CodeGenHelpers::FunctionParameterInfo> paramInfos;
+    collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
     buildLocalStackLayout(codeGen);
-    materializeRegisterParameters(codeGen, symbolFunc);
-    materializeStackParameters(codeGen, symbolFunc);
+    materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
+    materializeStackParameters(codeGen, symbolFunc, paramInfos);
     emitLocalStackFramePrologue(codeGen, callConvKind);
 
     return Result::Continue;

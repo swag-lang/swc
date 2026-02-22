@@ -323,7 +323,9 @@ bool CompilerInstance::registerForeignLib(std::string_view name)
 SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 {
     SWC_RACE_CONDITION_WRITE(rcFiles_);
-    path         = fs::absolute(path);
+    if (!path.is_absolute())
+        path = fs::absolute(path);
+
     auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
 #if SWC_HAS_REF_DEBUG_INFO
@@ -348,9 +350,9 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     std::vector<fs::path> paths;
 
     // Collect direct folders from the command line
-    paths.clear();
     for (const fs::path& folder : cmdLine.directories)
     {
+        paths.clear();
         FileSystem::collectSwagFilesRec(ctx, folder, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
@@ -376,6 +378,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
         modulePathSrc_ = cmdLine.modulePath / "src";
         RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
+        paths.clear();
         FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
@@ -388,6 +391,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
+        paths.clear();
         FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);

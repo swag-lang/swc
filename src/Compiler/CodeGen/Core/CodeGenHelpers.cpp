@@ -160,7 +160,7 @@ namespace
     }
 }
 
-CodeGenHelpers::FunctionParameterInfo CodeGenHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+CodeGenHelpers::FunctionParameterInfo CodeGenHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg)
 {
     SWC_ASSERT(symVar.hasParameterIndex());
 
@@ -169,12 +169,19 @@ CodeGenHelpers::FunctionParameterInfo CodeGenHelpers::functionParameterInfo(Code
     const uint32_t                         parameterIndex  = symVar.parameterIndex();
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
 
-    result.slotIndex     = ABICall::argumentIndexForFunctionParameter(codeGen.ctx(), symbolFunc.callConvKind(), symbolFunc.returnTypeRef(), parameterIndex);
+    result.slotIndex     = hasIndirectReturnArg ? parameterIndex + 1 : parameterIndex;
     result.isFloat       = normalizedParam.isFloat;
     result.isIndirect    = normalizedParam.isIndirect;
     result.opBits        = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
     result.isRegisterArg = result.slotIndex < callConv.numArgRegisterSlots();
     return result;
+}
+
+CodeGenHelpers::FunctionParameterInfo CodeGenHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    return functionParameterInfo(codeGen, symbolFunc, symVar, normalizedRet.isIndirect);
 }
 
 void CodeGenHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)
@@ -202,9 +209,8 @@ void CodeGenHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const Symb
     }
 }
 
-CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    const FunctionParameterInfo paramInfo = functionParameterInfo(codeGen, symbolFunc, symVar);
     CodeGenNodePayload          outPayload;
 
     outPayload.typeRef = symVar.typeRef();
@@ -218,6 +224,12 @@ CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen
 
     codeGen.setVariablePayload(symVar, outPayload);
     return outPayload;
+}
+
+CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    const FunctionParameterInfo paramInfo = functionParameterInfo(codeGen, symbolFunc, symVar);
+    return materializeFunctionParameter(codeGen, symbolFunc, symVar, paramInfo);
 }
 
 void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes)

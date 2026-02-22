@@ -1,5 +1,17 @@
 #global internal
 
+struct FixedPair
+{
+    a: s32
+    b: s32
+}
+
+enum FixedKind: u8
+{
+    A = 5
+    B = 9
+}
+
 #test
 {
     func callOne(a: s32)->s32 { return 41 }
@@ -136,3 +148,40 @@
     func wrongType(a: s32, b: s32, c: s32)->s32 { return 1 }
     const V = #run wrongType(1, "bad", 3) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+// BUG:
+//#test
+//{
+//    func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
+//    {
+//        return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
+//    }
+//
+//    const V = #run callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
+//    #assert(V == 148)
+//}
+
+#test
+{
+    func callPointerEnum(a: *void, b: FixedKind, c: s32)->u64
+    {
+        return cast(u64) (a != null) + cast(u64) cast(u8) b + cast(u64) c
+    }
+
+    const V0 = #run callPointerEnum(null, FixedKind.A, 3)
+    const V1 = #run callPointerEnum(cast(*void) 0x45'u64, FixedKind.B, 7)
+    #assert(V0 == 8'u64)
+    #assert(V1 == 17'u64)
+}
+
+// BUG:
+//#test
+//{
+//    func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
+//    {
+//        return @kindof(a) == FixedPair and @kindof(b[0]) == s32 and @kindof(c) == string and @kindof(d) == *void and @kindof(e) == FixedKind
+//    }
+//
+//    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B)
+//    #assert(V)
+//}

@@ -31,8 +31,8 @@ namespace PeepholePass
 
     struct Rule
     {
-        RuleTarget       target;
-        RuleApplyFn      apply;
+        RuleTarget  target;
+        RuleApplyFn apply;
     };
 
     using RuleList = std::vector<Rule>;

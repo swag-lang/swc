@@ -297,6 +297,68 @@ enum VariadicKind: u16
 //{
 //    func variadicAny(values: ...)->bool
 //    {
+//        let a = cast(s32) values[0]
+//        let b = cast(string) values[1]
+//        let c = cast(bool) values[2]
+//        return @kindof(a) == s32 and @kindof(b) == string and @kindof(c) == bool
+//    }
+//
+//    const V0 = #run variadicAny(1, "ab", true)
+//    #assert(V0)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicAny(values: ...)->s32
+//    {
+//        let p0 = cast(VariadicPair) values[0]
+//        let p1 = cast(VariadicPair) values[1]
+//        return p0.a + p0.b + p1.a + p1.b
+//    }
+//
+//    const pair0: VariadicPair = {a: 2, b: 3}
+//    const pair1: VariadicPair = {a: 5, b: 7}
+//    const V0 = #run variadicAny(pair0, pair1)
+//    #assert(V0 == 17)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicAny(values: ...)->s32
+//    {
+//        let a0 = cast([4] s32) values[0]
+//        let a1 = cast([4] s32) values[1]
+//        return a0[0] + a0[3] + a1[1] + a1[2]
+//    }
+//
+//    const arr0: [4] s32 = [1, 2, 3, 4]
+//    const arr1: [4] s32 = [10, 20, 30, 40]
+//    const V0 = #run variadicAny(arr0, arr1)
+//    #assert(V0 == 55)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicAny(values: ...)->u16
+//    {
+//        let e0 = cast(VariadicKind) values[0]
+//        let e1 = cast(VariadicKind) values[1]
+//        return cast(u16) e0 + cast(u16) e1
+//    }
+//
+//    const V0 = #run variadicAny(VariadicKind.A, VariadicKind.B)
+//    #assert(#typeof(V0) == u16)
+//    #assert(V0 == 40'u16)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicAny(values: ...)->bool
+//    {
 //        return @kindof(values[0]) == s32 and @kindof(values[1]) == f64 and @kindof(values[2]) == bool and @kindof(values[3]) == string
 //    }
 //

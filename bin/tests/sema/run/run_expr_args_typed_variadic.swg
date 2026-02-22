@@ -19,6 +19,8 @@ enum TypedVariadicKind: u16
     B = 29
 }
 
+alias TypedVariadicAlias = s32
+
 #test
 {
     func variadicTyped(values: s32...)->s32 { return 78 }
@@ -165,6 +167,43 @@ enum TypedVariadicKind: u16
     #assert(#typeof(V0) == u8)
     #assert(V0 == 198'u8)
 }
+
+#test
+{
+    func variadicTyped(values: TypedVariadicAlias...)->s32
+    {
+        return values[0] + values[1] + values[2]
+    }
+
+    const V0 = #run variadicTyped(10, 20, 30)
+    #assert(V0 == 60)
+}
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: s32...)->bool
+//    {
+//        return @kindof(values[0]) == s32 and @kindof(values[1]) == s32 and @kindof(values[2]) == s32
+//    }
+//
+//    const V0 = #run variadicTyped(4, 5, 6)
+//    #assert(V0)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicTypedWithHead(a: s32, values: TypedVariadicPair...)->s32
+//    {
+//        return a + values[0].a + values[0].b + values[1].a + values[1].b
+//    }
+//
+//    const p0: TypedVariadicPair = {a: 2, b: 3}
+//    const p1: TypedVariadicPair = {a: 5, b: 7}
+//    const V0 = #run variadicTypedWithHead(1, p0, p1)
+//    #assert(V0 == 18)
+//}
 
 // BUG:
 //#test

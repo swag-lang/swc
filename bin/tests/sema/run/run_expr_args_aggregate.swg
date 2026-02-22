@@ -21,6 +21,12 @@ enum AbiEnum: u16
     B = 123
 }
 
+struct AbiNested
+{
+    p: AbiPair
+    q: AbiPayload
+}
+
 #test
 {
     func passString(text: string)->string { return text }
@@ -188,4 +194,38 @@ enum AbiEnum: u16
     #assert(V == 115'u64)
     const V1 = #run passAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
     #assert(V1 == 235'u64)
+}
+
+#test
+{
+    func passNested(value: AbiNested, extra: s32)->u64
+    {
+        return cast(u64) value.p.a + cast(u64) value.p.b + value.q.a0 + value.q.a3 + cast(u64) extra
+    }
+
+    const V = #run passNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5)
+    #assert(V == 62'u64)
+}
+
+// BUG:
+//#test
+//{
+//    func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void, values: [2] s32, e: AbiEnum)->bool
+//    {
+//        return @kindof(value) == AbiPair and @kindof(payload) == AbiPayload and @kindof(text) == string and @kindof(p) == *void and @kindof(values[1]) == s32 and @kindof(e) == AbiEnum
+//    }
+//
+//    const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)
+//    #assert(V)
+//}
+
+#test
+{
+    func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
+    {
+        return value.p.a + array0[0].b + array0[1].a
+    }
+
+    const V = #run passNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}])
+    #assert(V == 61)
 }

@@ -328,24 +328,64 @@ namespace
         state.spillFrameUsed += slotSize;
     }
 
-    void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
+    uint64_t spillMemOffset(uint64_t spillOffset, int64_t stackDepth)
+    {
+        SWC_ASSERT(spillOffset <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
+        int64_t finalOffset = static_cast<int64_t>(spillOffset);
+        finalOffset += stackDepth;
+        SWC_ASSERT(finalOffset >= std::numeric_limits<int32_t>::min());
+        SWC_ASSERT(finalOffset <= std::numeric_limits<int32_t>::max());
+        return static_cast<uint64_t>(finalOffset);
+    }
+
+    void queueSpillStore(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadMemReg;
         out.numOps          = 4;
         out.ops[0].reg      = conv.stackPointer;
         out.ops[1].reg      = physReg;
         out.ops[2].opBits   = regState.spillBits;
-        out.ops[3].valueU64 = regState.spillOffset;
+        out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
     }
 
-    void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, const CallConv& conv)
+    void queueSpillLoad(PendingInsert& out, MicroReg physReg, const VRegState& regState, int64_t stackDepth, const CallConv& conv)
     {
         out.op              = MicroInstrOpcode::LoadRegMem;
         out.numOps          = 4;
         out.ops[0].reg      = physReg;
         out.ops[1].reg      = conv.stackPointer;
         out.ops[2].opBits   = regState.spillBits;
-        out.ops[3].valueU64 = regState.spillOffset;
+        out.ops[3].valueU64 = spillMemOffset(regState.spillOffset, stackDepth);
+    }
+
+    void applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst, const MicroOperandStorage& operands, const CallConv& conv)
+    {
+        if (inst.op == MicroInstrOpcode::Push)
+        {
+            stackDepth += static_cast<int64_t>(sizeof(uint64_t));
+            return;
+        }
+
+        if (inst.op == MicroInstrOpcode::Pop)
+        {
+            stackDepth -= static_cast<int64_t>(sizeof(uint64_t));
+            return;
+        }
+
+        if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
+            return;
+
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (ops[0].reg != conv.stackPointer)
+            return;
+        if (ops[1].opBits != MicroOpBits::B64)
+            return;
+
+        const int64_t immValue = static_cast<int64_t>(ops[3].valueU64);
+        if (ops[2].microOp == MicroOp::Subtract)
+            stackDepth += immValue;
+        else if (ops[2].microOp == MicroOp::Add)
+            stackDepth -= immValue;
     }
 
     bool isCandidateBetter(const PassState& state, uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
@@ -492,6 +532,7 @@ namespace
                               const AllocRequest&         request,
                               std::span<const uint32_t>   protectedKeys,
                               uint32_t                    stamp,
+                              int64_t                     stackDepth,
                               std::vector<PendingInsert>& pending)
     {
         // Prefer free registers; otherwise evict one candidate and spill if needed.
@@ -522,7 +563,7 @@ namespace
         if (victimState.dirty || !hadSpillSlot)
         {
             PendingInsert spillPending;
-            queueSpillStore(spillPending, victimReg, victimState, *state.conv);
+            queueSpillStore(spillPending, victimReg, victimState, stackDepth, *state.conv);
             pending.push_back(spillPending);
             victimState.dirty = false;
         }
@@ -535,6 +576,7 @@ namespace
                            const AllocRequest&         request,
                            std::span<const uint32_t>   protectedKeys,
                            uint32_t                    stamp,
+                           int64_t                     stackDepth,
                            std::vector<PendingInsert>& pending)
     {
         // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
@@ -542,7 +584,7 @@ namespace
         if (regState.mapped)
             return regState.phys;
 
-        const auto physReg = allocatePhysical(state, request, protectedKeys, stamp, pending);
+        const auto physReg = allocatePhysical(state, request, protectedKeys, stamp, stackDepth, pending);
         mapVirtReg(state, request.virtKey, physReg);
 
         auto& mappedState = state.states[request.virtKey];
@@ -550,7 +592,7 @@ namespace
         {
             SWC_ASSERT(mappedState.hasSpill);
             PendingInsert loadPending;
-            queueSpillLoad(loadPending, physReg, mappedState, *state.conv);
+            queueSpillLoad(loadPending, physReg, mappedState, stackDepth, *state.conv);
             pending.push_back(loadPending);
             mappedState.dirty = false;
         }
@@ -558,7 +600,7 @@ namespace
         return physReg;
     }
 
-    void spillCallLiveOut(PassState& state, uint32_t stamp, std::vector<PendingInsert>& pending)
+    void spillCallLiveOut(PassState& state, uint32_t stamp, int64_t stackDepth, std::vector<PendingInsert>& pending)
     {
         // Calls may clobber transient regs; force spill of vulnerable live values before call.
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
@@ -577,7 +619,7 @@ namespace
             {
                 ensureSpillSlot(state, regState, physReg.isFloat());
                 PendingInsert spillPending;
-                queueSpillStore(spillPending, physReg, regState, *state.conv);
+                queueSpillStore(spillPending, physReg, regState, stackDepth, *state.conv);
                 pending.push_back(spillPending);
                 regState.dirty = false;
             }
@@ -629,6 +671,7 @@ namespace
 
         uint32_t stamp = 1;
         uint32_t idx   = 0;
+        int64_t  stackDepth = 0;
         for (auto it = state.instructions->view().begin(); it != state.instructions->view().end() && idx < state.instructionCount; ++it)
         {
             if (stamp == std::numeric_limits<uint32_t>::max())
@@ -690,7 +733,7 @@ namespace
                 if (liveAcrossCall && !request.needsPersistent)
                     state.callSpillVregs.insert(request.virtKey);
 
-                const auto physReg              = assignVirtReg(state, request, protectedKeys, stamp, pending);
+                const auto physReg              = assignVirtReg(state, request, protectedKeys, stamp, stackDepth, pending);
                 *SWC_CHECK_NOT_NULL(regRef.reg) = physReg;
 
                 if (request.isDef)
@@ -699,7 +742,7 @@ namespace
 
             const auto useDef = it->collectUseDef(*state.operands, state.context->encoder);
             if (useDef.isCall)
-                spillCallLiveOut(state, stamp, pending);
+                spillCallLiveOut(state, stamp, stackDepth, pending);
 
             for (const auto& pendingInst : pending)
             {
@@ -707,6 +750,7 @@ namespace
             }
 
             expireDeadMappings(state, stamp);
+            applyStackPointerDelta(stackDepth, *it, *state.operands, *state.conv);
             ++idx;
         }
     }

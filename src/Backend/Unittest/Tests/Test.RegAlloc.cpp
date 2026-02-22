@@ -282,6 +282,9 @@ namespace
         bool  hasStore = false;
         bool  hasLoad  = false;
 
+        std::unordered_set<uint32_t> spillBaseRegs;
+        spillBaseRegs.insert(conv.stackPointer.packed);
+
         for (const auto& inst : builder.instructions().view())
         {
             if (isStackAdjust(inst, storeOps, conv.stackPointer, MicroOp::Subtract))
@@ -296,14 +299,27 @@ namespace
                 continue;
             }
 
+            if (inst.op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* ops = inst.ops(storeOps);
+                if (ops[1].reg == conv.stackPointer && ops[2].opBits == MicroOpBits::B64)
+                    spillBaseRegs.insert(ops[0].reg.packed);
+                continue;
+            }
+
             if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem)
                 continue;
 
             const MicroInstrOperand* ops = inst.ops(storeOps);
-            if (inst.op == MicroInstrOpcode::LoadMemReg && ops[0].reg == conv.stackPointer)
-                hasStore = true;
-            else if (inst.op == MicroInstrOpcode::LoadRegMem && ops[1].reg == conv.stackPointer)
+            if (inst.op == MicroInstrOpcode::LoadMemReg)
+            {
+                if (spillBaseRegs.contains(ops[0].reg.packed))
+                    hasStore = true;
+            }
+            else if (spillBaseRegs.contains(ops[1].reg.packed))
+            {
                 hasLoad = true;
+            }
         }
 
         return hasSub && hasAdd && hasStore && hasLoad;

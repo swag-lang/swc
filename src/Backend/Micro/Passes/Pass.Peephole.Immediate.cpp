@@ -106,7 +106,7 @@ namespace PeepholePass
             const MicroReg tmpReg = ops[0].reg;
             if (nextOps[1].reg != tmpReg)
                 return false;
-            if (ops[1].opBits != nextOps[2].opBits)
+            if (getNumBits(ops[1].opBits) < getNumBits(nextOps[2].opBits))
                 return false;
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;

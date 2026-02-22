@@ -20,6 +20,48 @@ namespace PeepholePass
             return true;
         }
 
+        bool removeDeadCompareInstruction(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref         instRef = cursor.instRef;
+            const MicroInstr& inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
+            const MicroInstrOperand* ops = cursor.ops;
+            if (inst.op != MicroInstrOpcode::CmpRegImm && inst.op != MicroInstrOpcode::CmpRegReg)
+                return false;
+            if (!ops)
+                return false;
+
+            const MicroStorage::View view = SWC_CHECK_NOT_NULL(context.instructions)->view();
+            auto                     it          = view.begin();
+            Ref                      previousRef = INVALID_REF;
+            for (; it != view.end(); ++it)
+            {
+                if (it.current == instRef)
+                    break;
+                if (it->op != MicroInstrOpcode::Debug)
+                    previousRef = it.current;
+            }
+
+            if (it == view.end())
+                return false;
+            if (!areFlagsDeadAfterInstruction(context, it, view.end()))
+                return false;
+
+            const MicroReg compareLhsReg = ops[0].reg;
+            if (previousRef != INVALID_REF && compareLhsReg.isValid() && compareLhsReg.isInt())
+            {
+                const MicroInstr* prevInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(previousRef);
+                if (prevInst && prevInst->op == MicroInstrOpcode::LoadRegImm)
+                {
+                    const MicroInstrOperand* prevOps = prevInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                    if (prevOps && prevOps[0].reg == compareLhsReg && isCopyDeadAfterInstruction(context, cursor.nextIt, cursor.endIt, compareLhsReg))
+                        SWC_CHECK_NOT_NULL(context.instructions)->erase(previousRef);
+                }
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool foldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -100,6 +142,11 @@ namespace PeepholePass
 
     void appendCleanupRules(RuleList& outRules)
     {
+        // Rule: remove_dead_compare_instruction
+        // Purpose: remove compare operations whose flags are never consumed.
+        // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
+        outRules.push_back({RuleTarget::AnyInstruction, removeDeadCompareInstruction});
+
         // Rule: fold_setcond_zeroext_copy
         // Purpose: route setcc and zero-extend directly to final destination register.
         // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax

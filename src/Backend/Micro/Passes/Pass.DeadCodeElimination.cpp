@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 
 // Eliminates side-effect-free instructions whose results are not live.
@@ -126,13 +127,10 @@ namespace
 
     bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst)
     {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadRegReg:
-                return true;
-            default:
-                return false;
-        }
+        if (MicroInstrInfo::definesCpuFlags(inst))
+            return false;
+
+        return isRemovableInstruction(inst);
     }
 
     void addLiveReg(std::unordered_set<uint32_t>& liveRegs, MicroReg reg)

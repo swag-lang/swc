@@ -97,17 +97,6 @@ namespace PeepholePass
                     replacesOperand = true;
                 }
             }
-            else if (nextInst.op == MicroInstrOpcode::CmpRegZero)
-            {
-                if (ops[2].opBits != nextOps[1].opBits)
-                    return false;
-
-                if (nextOps[0].reg == copyDstReg)
-                {
-                    nextOps[0].reg  = copySrcReg;
-                    replacesOperand = true;
-                }
-            }
             else
             {
                 return false;

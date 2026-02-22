@@ -633,8 +633,6 @@ namespace
 
             case MicroInstrOpcode::CmpRegReg:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
-            case MicroInstrOpcode::CmpRegZero:
-                return std::format("{}({}, 0)", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::CmpRegImm:
                 return std::format("{}({}, {})", tagInstructionToken("cmp"), regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::CmpMemReg:
@@ -1386,12 +1384,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::CmpRegReg:
                 appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
-                break;
-
-            case MicroInstrOpcode::CmpRegZero:
-                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
-                appendSep(out);
-                appendTypeBits(out, ctx, ops[1].opBits);
                 break;
 
             case MicroInstrOpcode::CmpRegImm:

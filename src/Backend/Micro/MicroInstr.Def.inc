@@ -315,17 +315,6 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 SWC_MICRO_INSTR_DEF(
-    CmpRegZero,
-    MicroInstrDef{
-        .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},
-        .special = MicroInstrRegSpecial::None,
-        .microOpIndex = 0,
-        .callConvIndex = 0,
-        .flags = MicroInstrFlagsE::DefinesCpuFlags,
-        .memBaseOperandIndex = 0,
-        .memOffsetOperandIndex = 0,
-    })
-SWC_MICRO_INSTR_DEF(
     CmpRegImm,
     MicroInstrDef{
         .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::None, MicroInstrRegMode::None},

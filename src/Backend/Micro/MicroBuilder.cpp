@@ -431,15 +431,6 @@ void MicroBuilder::emitCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
     return;
 }
 
-void MicroBuilder::emitCmpRegZero(MicroReg reg, MicroOpBits opBits)
-{
-    const auto&        inst = addInstruction(MicroInstrOpcode::CmpRegZero, 2);
-    MicroInstrOperand* ops  = inst.ops(operands_);
-    ops[0].reg              = reg;
-    ops[1].opBits           = opBits;
-    return;
-}
-
 void MicroBuilder::emitCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpMemReg, 4);

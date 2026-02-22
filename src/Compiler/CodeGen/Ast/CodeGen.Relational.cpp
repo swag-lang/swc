@@ -134,7 +134,7 @@ namespace
         if (operandType.isBool())
             return;
 
-        builder.emitCmpRegZero(outReg, operandBits);
+        builder.emitCmpRegImm(outReg, 0, operandBits);
 
         const MicroReg boolReg = codeGen.nextVirtualIntRegister();
         builder.emitSetCondReg(boolReg, MicroCond::NotEqual);
@@ -353,7 +353,7 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     const Ref     falseLabel = builder.createLabel();
     const Ref     doneLabel  = builder.createLabel();
 
-    builder.emitCmpRegZero(condReg, condBits);
+    builder.emitCmpRegImm(condReg, 0, condBits);
     builder.emitJumpToLabel(MicroCond::Equal, condBits, falseLabel);
     builder.emitLoadRegReg(resultPayload.reg, trueReg, resultBits);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);

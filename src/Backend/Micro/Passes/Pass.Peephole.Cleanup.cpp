@@ -20,21 +20,6 @@ namespace PeepholePass
             return true;
         }
 
-        bool canonicalizeCmpRegImmZero(const MicroPassContext& context, const Cursor& cursor)
-        {
-            SWC_UNUSED(context);
-            if (!cursor.ops)
-                return false;
-
-            if (cursor.inst->op != MicroInstrOpcode::CmpRegImm)
-                return false;
-            if (cursor.ops[2].valueU64 != 0)
-                return false;
-
-            cursor.inst->op = MicroInstrOpcode::CmpRegZero;
-            return true;
-        }
-
         bool foldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -115,11 +100,6 @@ namespace PeepholePass
 
     void appendCleanupRules(RuleList& outRules)
     {
-        // Rule: canonicalize_cmp_reg_imm_zero
-        // Purpose: normalize compare-against-zero into dedicated zero-compare opcode.
-        // Example: cmp r11, 0 -> cmp_zero r11
-        outRules.push_back({RuleTarget::AnyInstruction, canonicalizeCmpRegImmZero});
-
         // Rule: fold_setcond_zeroext_copy
         // Purpose: route setcc and zero-extend directly to final destination register.
         // Example: setcc r10; zero_extend r10; mov rax, r10 -> setcc rax; zero_extend rax

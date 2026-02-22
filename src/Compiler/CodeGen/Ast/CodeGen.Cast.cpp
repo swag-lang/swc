@@ -82,7 +82,7 @@ namespace
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
-            builder.emitCmpRegZero(srcReg, MicroOpBits::B64);
+            builder.emitCmpRegImm(srcReg, 0, MicroOpBits::B64);
             builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
             return Result::Continue;
         }

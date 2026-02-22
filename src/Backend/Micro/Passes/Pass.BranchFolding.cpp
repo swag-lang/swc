@@ -144,21 +144,6 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
                 compareState.valid = false;
             }
         }
-        else if (inst.op == MicroInstrOpcode::CmpRegZero && ops[0].reg.isInt())
-        {
-            const auto knownIt = known.find(ops[0].reg.packed);
-            if (knownIt != known.end())
-            {
-                compareState.valid  = true;
-                compareState.lhs    = MicroOptimization::normalizeToOpBits(knownIt->second.value, ops[1].opBits);
-                compareState.rhs    = 0;
-                compareState.opBits = ops[1].opBits;
-            }
-            else
-            {
-                compareState.valid = false;
-            }
-        }
         else if (inst.op == MicroInstrOpcode::CmpRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
         {
             const auto lhsIt = known.find(ops[0].reg.packed);

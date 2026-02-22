@@ -135,9 +135,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::CmpRegReg:
             encoder.encodeCmpRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
-        case MicroInstrOpcode::CmpRegZero:
-            encoder.encodeCmpRegZero(ops[0].reg, ops[1].opBits);
-            break;
         case MicroInstrOpcode::CmpRegImm:
             encoder.encodeCmpRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
             break;

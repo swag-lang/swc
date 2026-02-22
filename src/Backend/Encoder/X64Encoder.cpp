@@ -1550,21 +1550,18 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
     return;
 }
 
-void X64Encoder::encodeCmpRegZero(MicroReg reg, MicroOpBits opBits)
-{
-    SWC_ASSERT(reg.isInt());
-    emitRex(store_, opBits, reg, reg);
-    emitSpecCpuOp(store_, MicroOp::Test, opBits);
-    emitModRm(store_, reg, reg);
-    return;
-}
-
 void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
 {
     SWC_ASSERT(!reg.isFloat());
 
     if (value == 0)
-        return encodeCmpRegZero(reg, opBits);
+    {
+        SWC_ASSERT(reg.isInt());
+        emitRex(store_, opBits, reg, reg);
+        emitSpecCpuOp(store_, MicroOp::Test, opBits);
+        emitModRm(store_, reg, reg);
+        return;
+    }
 
     if (opBits == MicroOpBits::B8)
     {

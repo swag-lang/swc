@@ -57,6 +57,7 @@ namespace
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
@@ -73,6 +74,7 @@ namespace
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
@@ -92,6 +94,7 @@ namespace
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
@@ -105,6 +108,7 @@ namespace
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));

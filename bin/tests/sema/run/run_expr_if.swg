@@ -2,9 +2,9 @@
 
 #test
 {
-    func ifTrueNoElse()->s32
+    func ifArgNoElse(flag: bool)->s32
     {
-        if true
+        if flag
         {
             return 11
         }
@@ -12,31 +12,17 @@
         return 22
     }
 
-    const V = #run ifTrueNoElse()
-    #assert(V == 11)
+    const V0 = #run ifArgNoElse(true)
+    const V1 = #run ifArgNoElse(false)
+    #assert(V0 == 11)
+    #assert(V1 == 22)
 }
 
 #test
 {
-    func ifFalseNoElse()->s32
+    func ifElseArg(flag: bool)->s32
     {
-        if false
-        {
-            return 11
-        }
-
-        return 22
-    }
-
-    const V = #run ifFalseNoElse()
-    #assert(V == 22)
-}
-
-#test
-{
-    func ifElseTrue()->s32
-    {
-        if true
+        if flag
         {
             return 31
         }
@@ -46,37 +32,21 @@
         }
     }
 
-    const V = #run ifElseTrue()
-    #assert(V == 31)
+    const V0 = #run ifElseArg(true)
+    const V1 = #run ifElseArg(false)
+    #assert(V0 == 31)
+    #assert(V1 == 32)
 }
 
 #test
 {
-    func ifElseFalse()->s32
+    func ifElseIfArgs(flag0: bool, flag1: bool)->s32
     {
-        if false
-        {
-            return 41
-        }
-        else
-        {
-            return 42
-        }
-    }
-
-    const V = #run ifElseFalse()
-    #assert(V == 42)
-}
-
-#test
-{
-    func ifElseIfMiddle()->s32
-    {
-        if false
+        if flag0
         {
             return 51
         }
-        elif true
+        elif flag1
         {
             return 52
         }
@@ -86,39 +56,21 @@
         }
     }
 
-    const V = #run ifElseIfMiddle()
-    #assert(V == 52)
+    const V0 = #run ifElseIfArgs(true, false)
+    const V1 = #run ifElseIfArgs(false, true)
+    const V2 = #run ifElseIfArgs(false, false)
+    #assert(V0 == 51)
+    #assert(V1 == 52)
+    #assert(V2 == 53)
 }
 
 #test
 {
-    func ifElseIfLast()->s32
+    func nestedIfArgs(outer: bool, inner: bool)->s32
     {
-        if false
+        if outer
         {
-            return 61
-        }
-        elif false
-        {
-            return 62
-        }
-        else
-        {
-            return 63
-        }
-    }
-
-    const V = #run ifElseIfLast()
-    #assert(V == 63)
-}
-
-#test
-{
-    func nestedIf()->s32
-    {
-        if true
-        {
-            if false
+            if inner
             {
                 return 71
             }
@@ -131,6 +83,10 @@
         return 73
     }
 
-    const V = #run nestedIf()
-    #assert(V == 72)
+    const V0 = #run nestedIfArgs(true, true)
+    const V1 = #run nestedIfArgs(true, false)
+    const V2 = #run nestedIfArgs(false, true)
+    #assert(V0 == 71)
+    #assert(V1 == 72)
+    #assert(V2 == 73)
 }

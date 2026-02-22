@@ -80,6 +80,22 @@ namespace
             builder.emitLoadRegReg(payload.reg, exprPayload->reg, MicroOpBits::B64);
         return Result::Continue;
     }
+
+    Result codeGenKindOf(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(!children.empty());
+
+        const AstNodeRef                 exprRef     = children[0];
+        const CodeGenNodePayload* const  exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
+        CodeGenNodePayload&              result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        MicroBuilder&                    builder     = codeGen.builder();
+        const MicroReg                   anyBaseReg  = exprPayload->reg;
+        result.reg                                    = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(result.reg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -94,6 +110,8 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicDataOf:
             return codeGenDataOf(codeGen, *this);
+        case TokenId::IntrinsicKindOf:
+            return codeGenKindOf(codeGen, *this);
 
         default:
             SWC_UNREACHABLE();

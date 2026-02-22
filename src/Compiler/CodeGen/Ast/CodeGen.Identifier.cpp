@@ -68,6 +68,8 @@ namespace
                 return;
 
             default:
+                if (symbol.isType())
+                    return;
                 SWC_UNREACHABLE();
         }
     }

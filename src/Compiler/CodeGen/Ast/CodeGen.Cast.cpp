@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -42,6 +43,90 @@ namespace
         return MicroOpBits::Zero;
     }
 
+    bool anyCastAsValueBits(CodeGen& codeGen, const TypeInfo& dstType, MicroOpBits& outBits)
+    {
+        outBits = MicroOpBits::Zero;
+
+        if (dstType.isFloat() || dstType.isIntLike() || dstType.isBool())
+        {
+            outBits = castPayloadBits(dstType);
+            return outBits != MicroOpBits::Zero;
+        }
+
+        const bool pointerLikeValue =
+            dstType.isAnyPointer() ||
+            dstType.isReference() ||
+            dstType.isMoveReference() ||
+            dstType.isEnum() ||
+            dstType.isTypeInfo() ||
+            dstType.isFunction() ||
+            dstType.isCString();
+        if (!pointerLikeValue)
+            return false;
+
+        const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());
+        if (dstSize != 1 && dstSize != 2 && dstSize != 4 && dstSize != 8)
+            return false;
+
+        outBits = microOpBitsFromChunkSize(static_cast<uint32_t>(dstSize));
+        return true;
+    }
+
+    Result emitAnyCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
+    {
+        if (dstTypeRef.isInvalid())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef);
+            return Result::Continue;
+        }
+
+        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
+        SWC_ASSERT(srcPayload != nullptr);
+
+        const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
+        SWC_ASSERT(srcView.type());
+        if (!srcView.type()->isAny())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        if (dstType.isAny())
+        {
+            codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(srcPayload->isAddress());
+
+        MicroBuilder& builder      = codeGen.builder();
+        const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(valueAddrReg, srcPayload->reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+
+        if (dstType.isString() || dstType.isSlice() || dstType.isInterface() || dstType.isAnyVariadic())
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        MicroOpBits valueBits = MicroOpBits::Zero;
+        if (anyCastAsValueBits(codeGen, dstType, valueBits))
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
+            return Result::Continue;
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(dstPayload.reg, valueAddrReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder    = codeGen.builder();
@@ -63,6 +148,9 @@ namespace
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
         }
+
+        if (codeGen.typeMgr().get(sourceTypeRef).isAny())
+            return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
 
         const TypeInfo& srcType        = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);

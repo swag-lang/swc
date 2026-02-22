@@ -207,17 +207,16 @@ struct AbiNested
     #assert(V == 62'u64)
 }
 
-// BUG:
-//#test
-//{
-//    func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void, values: [2] s32, e: AbiEnum)->bool
-//    {
-//        return @kindof(value) == AbiPair and @kindof(payload) == AbiPayload and @kindof(text) == string and @kindof(p) == *void and @kindof(values[1]) == s32 and @kindof(e) == AbiEnum
-//    }
-//
-//    const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)
-//    #assert(V)
-//}
+#test
+{
+    func passKindof(value: AbiPair, payload: AbiPayload, text: string, p: *void, values: [2] s32, e: AbiEnum)->bool
+    {
+        return #typeof(value) == AbiPair and #typeof(payload) == AbiPayload and #typeof(text) == string and #typeof(p) == *void and #typeof(values[1]) == s32 and #typeof(e) == AbiEnum
+    }
+
+    const V = #run passKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], AbiEnum.A)
+    #assert(V)
+}
 
 #test
 {

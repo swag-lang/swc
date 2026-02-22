@@ -149,17 +149,16 @@ enum FixedKind: u8
     const V = #run wrongType(1, "bad", 3) // swc-expected-error {{sema_err_cannot_cast}}
 }
 
-// BUG:
-//#test
-//{
-//    func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
-//    {
-//        return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
-//    }
-//
-//    const V = #run callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
-//    #assert(V == 148)
-//}
+#test
+{
+    func callAggregate(a: FixedPair, b: [3] s32, c: string)->s32
+    {
+        return a.a + a.b + b[0] + b[2] + cast(s32) c[1]
+    }
+
+    const V = #run callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
+    #assert(V == 168)
+}
 
 #test
 {

@@ -156,7 +156,6 @@ int z = 15;
 // NOTE: important information
 // HACK: temporary solution
 // XXX: warning
-// BUG: known issue
 
 // --- Single-line comments with escape sequences (not interpreted) ---
 // This is \n not a newline

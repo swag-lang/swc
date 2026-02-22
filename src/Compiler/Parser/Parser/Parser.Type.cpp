@@ -158,7 +158,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Left reference
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
-        const AstNodeRef child = parseType();
+        const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ReferenceType>(ref());
@@ -169,7 +169,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Right reference
     if (consumeIf(TokenId::SymAmpersandAmpersand).isValid())
     {
-        const AstNodeRef child = parseType();
+        const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(ref());
@@ -180,7 +180,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
     // Value pointer
     if (consumeIf(TokenId::SymAsterisk).isValid())
     {
-        const AstNodeRef child = parseType();
+        const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::ValuePointerType>(ref());
@@ -199,7 +199,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseType();
+            const AstNodeRef child = parseSubType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::BlockPointerType>(startTok);
@@ -212,7 +212,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseType();
+            const AstNodeRef child = parseSubType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::SliceType>(startTok);
@@ -225,7 +225,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         {
             if (expectAndConsumeClosing(TokenId::SymRightBracket, leftBracket).isInvalid())
                 return AstNodeRef::invalid();
-            const AstNodeRef child = parseType();
+            const AstNodeRef child = parseSubType();
             if (child.isInvalid())
                 return AstNodeRef::invalid();
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayType>(startTok);
@@ -263,7 +263,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             return AstNodeRef::invalid();
 
         // Recursively parse the rest of the type (handles chaining like [X][Y])
-        const AstNodeRef child = parseType();
+        const AstNodeRef child = parseSubType();
         if (child.isInvalid())
             return AstNodeRef::invalid();
 

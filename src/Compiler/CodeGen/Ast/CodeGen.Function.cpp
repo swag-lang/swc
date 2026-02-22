@@ -126,7 +126,39 @@ namespace
         MicroBuilder& builder = codeGen.builder();
         if (srcPayload.isAddress())
         {
-            CodeGenHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
+            uint32_t offset = 0;
+
+            while (elemSize >= offset + 8)
+            {
+                const MicroReg tmp = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(tmp, srcPayload.reg, offset, MicroOpBits::B64);
+                builder.emitLoadMemReg(dstAddressReg, offset, tmp, MicroOpBits::B64);
+                offset += 8;
+            }
+
+            if (elemSize >= offset + 4)
+            {
+                const MicroReg tmp = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(tmp, srcPayload.reg, offset, MicroOpBits::B32);
+                builder.emitLoadMemReg(dstAddressReg, offset, tmp, MicroOpBits::B32);
+                offset += 4;
+            }
+
+            if (elemSize >= offset + 2)
+            {
+                const MicroReg tmp = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(tmp, srcPayload.reg, offset, MicroOpBits::B16);
+                builder.emitLoadMemReg(dstAddressReg, offset, tmp, MicroOpBits::B16);
+                offset += 2;
+            }
+
+            if (elemSize >= offset + 1)
+            {
+                const MicroReg tmp = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(tmp, srcPayload.reg, offset, MicroOpBits::B8);
+                builder.emitLoadMemReg(dstAddressReg, offset, tmp, MicroOpBits::B8);
+            }
+
             return;
         }
 

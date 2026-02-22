@@ -179,59 +179,55 @@ alias TypedVariadicAlias = s32
     #assert(V0 == 60)
 }
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: s32...)->bool
-//    {
-//        return @kindof(values[0]) == s32 and @kindof(values[1]) == s32 and @kindof(values[2]) == s32
-//    }
-//
-//    const V0 = #run variadicTyped(4, 5, 6)
-//    #assert(V0)
-//}
+#test
+{
+    func variadicTyped(values: s32...)->bool
+    {
+        return #typeof(values[0]) == s32 and #typeof(values[1]) == s32 and #typeof(values[2]) == s32
+    }
 
-// BUG:
-//#test
-//{
-//    func variadicTypedWithHead(a: s32, values: TypedVariadicPair...)->s32
-//    {
-//        return a + values[0].a + values[0].b + values[1].a + values[1].b
-//    }
-//
-//    const p0: TypedVariadicPair = {a: 2, b: 3}
-//    const p1: TypedVariadicPair = {a: 5, b: 7}
-//    const V0 = #run variadicTypedWithHead(1, p0, p1)
-//    #assert(V0 == 18)
-//}
+    const V0 = #run variadicTyped(4, 5, 6)
+    #assert(V0)
+}
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: TypedVariadicPair...)->s32
-//    {
-//        return values[0].a + values[0].b + values[1].a + values[1].b
-//    }
-//
-//    const p0: TypedVariadicPair = {a: 2, b: 3}
-//    const p1: TypedVariadicPair = {a: 5, b: 7}
-//    const V0 = #run variadicTyped(p0, p1)
-//    #assert(V0 == 17)
-//}
+#test
+{
+    func variadicTypedWithHead(a: s32, values: TypedVariadicPair...)->s32
+    {
+        return a + values[0].a + values[0].b + values[1].a + values[1].b
+    }
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: [4] s32...)->s32
-//    {
-//        return values[0][0] + values[0][3] + values[1][1] + values[1][2]
-//    }
-//
-//    const a0: [4] s32 = [1, 2, 3, 4]
-//    const a1: [4] s32 = [10, 20, 30, 40]
-//    const V0 = #run variadicTyped(a0, a1)
-//    #assert(V0 == 55)
-//}
+    const p0: TypedVariadicPair = {a: 2, b: 3}
+    const p1: TypedVariadicPair = {a: 5, b: 7}
+    const V0 = #run variadicTypedWithHead(1, p0, p1)
+    #assert(V0 == 18)
+}
+
+#test
+{
+    func variadicTyped(values: TypedVariadicPair...)->s32
+    {
+        return values[0].a + values[0].b + values[1].a + values[1].b
+    }
+
+    const p0: TypedVariadicPair = {a: 2, b: 3}
+    const p1: TypedVariadicPair = {a: 5, b: 7}
+    const V0 = #run variadicTyped(p0, p1)
+    #assert(V0 == 17)
+}
+
+#test
+{
+    func variadicTyped(values: [4] s32...)->s32
+    {
+        return values[0][0] + values[0][3] + values[1][1] + values[1][2]
+    }
+
+    const a0: [4] s32 = [1, 2, 3, 4]
+    const a1: [4] s32 = [10, 20, 30, 40]
+    const V0 = #run variadicTyped(a0, a1)
+    #assert(V0 == 55)
+}
 
 #test
 {
@@ -245,41 +241,38 @@ alias TypedVariadicAlias = s32
     #assert(V0 == 40'u16)
 }
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: TypedVariadicPayload...)->u64
-//    {
-//        return cast(u64) values[0].arr[1] + cast(u64) values[0].flag + cast(u64) values[0].tag + cast(u64) values[1].arr[0] + cast(u64) values[1].tag
-//    }
-//
-//    const v0: TypedVariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
-//    const v1: TypedVariadicPayload = {arr: [3, 2, 1], flag: false, tag: 4'u8}
-//    const V0 = #run variadicTyped(v0, v1)
-//    #assert(#typeof(V0) == u64)
-//    #assert(V0 == 21'u64)
-//}
+#test
+{
+    func variadicTyped(values: TypedVariadicPayload...)->u64
+    {
+        return cast(u64) values[0].arr[1] + cast(u64) values[0].flag + cast(u64) values[0].tag + cast(u64) values[1].arr[0] + cast(u64) values[1].tag
+    }
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: *void...)->bool
-//    {
-//        return values[0] == cast(*void) 0x1234'u64 and values[1] == null
-//    }
-//
-//    const V0 = #run variadicTyped(cast(*void) 0x1234'u64, null)
-//    #assert(V0)
-//}
+    const v0: TypedVariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
+    const v1: TypedVariadicPayload = {arr: [3, 2, 1], flag: false, tag: 4'u8}
+    const V0 = #run variadicTyped(v0, v1)
+    #assert(#typeof(V0) == u64)
+    #assert(V0 == 21'u64)
+}
 
-// BUG:
-//#test
-//{
-//    func variadicTyped(values: TypedVariadicKind...)->bool
-//    {
-//        return @kindof(values[0]) == TypedVariadicKind and @kindof(values[1]) == TypedVariadicKind
-//    }
-//
-//    const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
-//    #assert(V0)
-//}
+#test
+{
+    func variadicTyped(values: *void...)->bool
+    {
+        return values[0] == cast(*void) 0x1234'u64 and values[1] == null
+    }
+
+    const V0 = #run variadicTyped(cast(*void) 0x1234'u64, null)
+    #assert(V0)
+}
+
+#test
+{
+    func variadicTyped(values: TypedVariadicKind...)->bool
+    {
+        return #typeof(values[0]) == TypedVariadicKind and #typeof(values[1]) == TypedVariadicKind
+    }
+
+    const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
+    #assert(V0)
+}

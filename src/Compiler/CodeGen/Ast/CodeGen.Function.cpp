@@ -30,52 +30,13 @@ namespace
         return typeInfo.isString();
     }
 
-    TypeRef resolveLocalVarTypeRef(CodeGen& codeGen, const SymbolVariable& symVar)
+    TypeRef resolveLocalVarTypeRef(const SymbolVariable& symVar)
     {
-        TypeRef typeRef = symVar.typeRef();
-        if (typeRef.isValid())
-            return typeRef;
-
-        const AstNode* declNode = symVar.decl();
-        if (!declNode)
-            return TypeRef::invalid();
-
-        const AstNodeRef declNodeRef = declNode->nodeRef(codeGen.ast());
-        if (declNodeRef.isInvalid())
-            return TypeRef::invalid();
-
-        const SemaNodeView declTypeView = codeGen.viewType(declNodeRef);
-        if (declTypeView.type())
-            return declTypeView.typeRef();
-
-        if (declNode->is(AstNodeId::SingleVarDecl))
-        {
-            const AstSingleVarDecl* singleVarDecl = declNode->cast<AstSingleVarDecl>();
-            if (singleVarDecl->nodeInitRef.isValid())
-            {
-                const SemaNodeView initTypeView = codeGen.viewType(singleVarDecl->nodeInitRef);
-                if (initTypeView.type())
-                    return initTypeView.typeRef();
-            }
-        }
-        else if (declNode->is(AstNodeId::MultiVarDecl))
-        {
-            const AstMultiVarDecl* multiVarDecl = declNode->cast<AstMultiVarDecl>();
-            if (multiVarDecl->nodeInitRef.isValid())
-            {
-                const SemaNodeView initTypeView = codeGen.viewType(multiVarDecl->nodeInitRef);
-                if (initTypeView.type())
-                    return initTypeView.typeRef();
-            }
-        }
-
-        return TypeRef::invalid();
+        return symVar.typeRef();
     }
 
-    void buildLocalStackLayout(CodeGen& codeGen, AstNodeRef bodyNodeRef)
+    void buildLocalStackLayout(CodeGen& codeGen)
     {
-        SWC_UNUSED(bodyNodeRef);
-
         const auto& localSymbols = codeGen.function().localVariables();
         if (localSymbols.empty())
             return;
@@ -85,7 +46,7 @@ namespace
         for (const SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
-            const TypeRef typeRef = resolveLocalVarTypeRef(codeGen, *symVar);
+            const TypeRef typeRef = resolveLocalVarTypeRef(*symVar);
             if (typeRef.isInvalid())
                 continue;
 
@@ -695,7 +656,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
-    buildLocalStackLayout(codeGen, nodeBodyRef);
+    buildLocalStackLayout(codeGen);
     materializeRegisterParameters(codeGen, symbolFunc);
     materializeStackParameters(codeGen, symbolFunc);
     emitLocalStackFramePrologue(codeGen, callConvKind);

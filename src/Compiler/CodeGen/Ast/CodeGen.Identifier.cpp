@@ -4,7 +4,6 @@
 #include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -100,7 +99,8 @@ namespace
 
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder& builder  = codeGen.builder();
+        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar);
         if (localSlot && codeGen.localStackBaseReg().isValid())
         {
@@ -119,38 +119,44 @@ namespace
                 builder.emitOpBinaryRegImm(symbolPayload.reg, ApInt(localSlot->offset, 64), MicroOp::Add, MicroOpBits::B64);
             }
 
-            if (initRef.isValid())
+            if (!skipInit)
             {
-                const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
-                if (!initPayload)
-                    initPayload = codeGen.ensurePayload(initRef);
-
-                if (initPayload)
+                if (initRef.isValid())
                 {
-                    if (initPayload->isAddress())
+                    const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
+                    SWC_ASSERT(initPayload != nullptr);
+
+                    if (initPayload)
                     {
-                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
-                    }
-                    else
-                    {
-                        if (localSlot->size > 8)
+                        if (initPayload->isAddress())
                         {
                             CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
-                            codeGen.setVariablePayload(symVar, symbolPayload);
-                            return;
                         }
-
-                        MicroOpBits copyBits = MicroOpBits::Zero;
-                        if (localSlot->size == 1)
-                            copyBits = MicroOpBits::B8;
-                        else if (localSlot->size == 2)
-                            copyBits = MicroOpBits::B16;
-                        else if (localSlot->size == 4)
-                            copyBits = MicroOpBits::B32;
                         else
-                            copyBits = MicroOpBits::B64;
-                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
+                        {
+                            if (localSlot->size > 8)
+                            {
+                                CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                                codeGen.setVariablePayload(symVar, symbolPayload);
+                                return;
+                            }
+
+                            MicroOpBits copyBits = MicroOpBits::Zero;
+                            if (localSlot->size == 1)
+                                copyBits = MicroOpBits::B8;
+                            else if (localSlot->size == 2)
+                                copyBits = MicroOpBits::B16;
+                            else if (localSlot->size == 4)
+                                copyBits = MicroOpBits::B32;
+                            else
+                                copyBits = MicroOpBits::B64;
+                            builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
+                        }
                     }
+                }
+                else
+                {
+                    CodeGenHelpers::emitMemZero(codeGen, symbolPayload.reg, localSlot->size);
                 }
             }
 
@@ -158,14 +164,22 @@ namespace
             return;
         }
 
-        if (initRef.isInvalid())
+        if (skipInit)
             return;
 
-        const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
-        if (!initPayload)
-            initPayload = codeGen.ensurePayload(initRef);
-        if (!initPayload)
+        if (initRef.isInvalid())
+        {
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.typeRef = symVar.typeRef();
+            symbolPayload.setIsValue();
+            symbolPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
+            builder.emitClearReg(symbolPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
+            codeGen.setVariablePayload(symVar, symbolPayload);
             return;
+        }
+
+        const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
+        SWC_ASSERT(initPayload != nullptr);
 
         CodeGenNodePayload symbolPayload;
         symbolPayload.typeRef     = symVar.typeRef();

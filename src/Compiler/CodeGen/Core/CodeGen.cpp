@@ -163,17 +163,6 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef)
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
 }
 
-CodeGenNodePayload* CodeGen::ensurePayload(AstNodeRef nodeRef)
-{
-    CodeGenNodePayload* nodePayload = payload(nodeRef);
-    if (nodePayload)
-        return nodePayload;
-
-    if (emitConstant(nodeRef) == Result::Error)
-        return nullptr;
-    return payload(nodeRef);
-}
-
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
     variablePayloads_[&sym] = payload;

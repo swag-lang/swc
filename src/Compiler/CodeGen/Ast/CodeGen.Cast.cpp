@@ -85,8 +85,6 @@ namespace
     {
         MicroBuilder&             builder    = codeGen.builder();
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        if (!srcPayload)
-            srcPayload = codeGen.ensurePayload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
@@ -145,8 +143,6 @@ namespace
         }
 
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        if (!srcPayload)
-            srcPayload = codeGen.ensurePayload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
@@ -197,8 +193,6 @@ namespace
     {
         MicroBuilder&             builder    = codeGen.builder();
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        if (!srcPayload)
-            srcPayload = codeGen.ensurePayload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
         TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();

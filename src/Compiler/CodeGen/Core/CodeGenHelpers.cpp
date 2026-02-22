@@ -103,6 +103,61 @@ namespace
         if (tailSize)
             emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg);
     }
+
+    void emitMemZeroChunk(MicroBuilder& builder, MicroReg dstReg, uint64_t offset, uint32_t chunkSize, MicroReg zeroReg)
+    {
+        builder.emitLoadMemReg(dstReg, offset, zeroReg, microOpBitsFromChunkSize(chunkSize));
+    }
+
+    void emitMemZeroUnrolled(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, MicroReg zeroReg)
+    {
+        uint32_t offset = 0;
+        uint32_t remain = sizeInBytes;
+
+        while (remain >= 8)
+        {
+            emitMemZeroChunk(builder, dstReg, offset, 8, zeroReg);
+            offset += 8;
+            remain -= 8;
+        }
+
+        if (remain >= 4)
+        {
+            emitMemZeroChunk(builder, dstReg, offset, 4, zeroReg);
+            offset += 4;
+            remain -= 4;
+        }
+
+        if (remain >= 2)
+        {
+            emitMemZeroChunk(builder, dstReg, offset, 2, zeroReg);
+            offset += 2;
+            remain -= 2;
+        }
+
+        if (remain)
+            emitMemZeroChunk(builder, dstReg, offset, 1, zeroReg);
+    }
+
+    void emitMemZeroLoop(MicroBuilder& builder, MicroReg dstReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg zeroReg, MicroReg countReg)
+    {
+        const uint32_t chunkCount = sizeInBytes / chunkSize;
+        const uint32_t tailSize   = sizeInBytes % chunkSize;
+        SWC_ASSERT(chunkCount > 0);
+
+        const auto loopLabel = builder.createLabel();
+
+        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+        emitMemZeroChunk(builder, dstReg, 0, chunkSize, zeroReg);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+
+        if (tailSize)
+            emitMemZeroUnrolled(builder, dstReg, tailSize, zeroReg);
+    }
 }
 
 CodeGenHelpers::FunctionParameterInfo CodeGenHelpers::functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
@@ -202,6 +257,39 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     const auto     countReg  = codeGen.nextVirtualIntRegister();
     const uint32_t chunkSize = allow128 ? 16 : 8;
     emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg);
+}
+
+void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes)
+{
+    if (!sizeInBytes)
+        return;
+
+    MicroBuilder&  builder       = codeGen.builder();
+    const auto&    buildCfg      = builder.backendBuildCfg();
+    const auto     optimizeLevel = buildCfg.optimizeLevel;
+    const bool     optimize      = optimizeLevel >= Runtime::BuildCfgBackendOptim::O1;
+    const uint32_t unrollLimit   = getUnrollMemLimit(buildCfg);
+
+    const auto dstRegTmp = codeGen.nextVirtualIntRegister();
+    const auto zeroReg   = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
+    builder.emitClearReg(zeroReg, MicroOpBits::B64);
+
+    if (!optimize)
+    {
+        const auto countReg = codeGen.nextVirtualIntRegister();
+        emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 1, zeroReg, countReg);
+        return;
+    }
+
+    if (sizeInBytes <= unrollLimit)
+    {
+        emitMemZeroUnrolled(builder, dstRegTmp, sizeInBytes, zeroReg);
+        return;
+    }
+
+    const auto countReg = codeGen.nextVirtualIntRegister();
+    emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 8, zeroReg, countReg);
 }
 
 SWC_END_NAMESPACE();

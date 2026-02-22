@@ -407,3 +407,37 @@ enum IfElseKind: u16
 
     const V0 = #run useElseLocalOutside(false)
 }
+
+#test
+{
+    func ifElseNoInitVar(flag: bool)->s32
+    {
+        if flag
+        {
+            var x: s32
+            return x + 1
+        }
+        else
+        {
+            var y: s32
+            return y + 2
+        }
+    }
+
+    const V0 = #run ifElseNoInitVar(true)
+    const V1 = #run ifElseNoInitVar(false)
+    #assert(V0 == 1)
+    #assert(V1 == 2)
+}
+
+#test
+{
+    func explicitUndefinedSkipInit()->s32
+    {
+        var x: s32 = undefined
+        return 7
+    }
+
+    const V0 = #run explicitUndefinedSkipInit()
+    #assert(V0 == 7)
+}

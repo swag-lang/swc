@@ -122,7 +122,6 @@ public:
     const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
 
     CodeGenNodePayload*       payload(AstNodeRef nodeRef);
-    CodeGenNodePayload*       ensurePayload(AstNodeRef nodeRef);
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     void                      setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot);

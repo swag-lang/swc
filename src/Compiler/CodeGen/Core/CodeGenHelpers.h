@@ -25,6 +25,7 @@ namespace CodeGenHelpers
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
 
     void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
+    void emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes);
 }
 
 SWC_END_NAMESPACE();

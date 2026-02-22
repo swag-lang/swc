@@ -292,6 +292,7 @@ enum VariadicKind: u16
     #assert(V0 == 3)
 }
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->bool
@@ -303,6 +304,7 @@ enum VariadicKind: u16
 //    #assert(V0)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->bool
@@ -314,6 +316,7 @@ enum VariadicKind: u16
 //    #assert(V0)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->s32
@@ -331,6 +334,7 @@ enum VariadicKind: u16
 //    #assert(V0 == 17)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->s32
@@ -348,6 +352,7 @@ enum VariadicKind: u16
 //    #assert(V0 == 55)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->u16
@@ -362,6 +367,7 @@ enum VariadicKind: u16
 //    #assert(V0 == 40'u16)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->u64
@@ -383,6 +389,7 @@ enum VariadicKind: u16
 //    #assert(V0 == 110'u64)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->u16
@@ -397,6 +404,7 @@ enum VariadicKind: u16
 //    #assert(V0 == 40'u16)
 //}
 
+// BUG:
 //#test
 //{
 //    func variadicAny(values: ...)->bool

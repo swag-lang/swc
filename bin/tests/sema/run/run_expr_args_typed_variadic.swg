@@ -1,5 +1,24 @@
 #global internal
 
+struct TypedVariadicPair
+{
+    a: s32
+    b: s32
+}
+
+struct TypedVariadicPayload
+{
+    arr: [3] s32
+    flag: bool
+    tag: u8
+}
+
+enum TypedVariadicKind: u16
+{
+    A = 11
+    B = 29
+}
+
 #test
 {
     func variadicTyped(values: s32...)->s32 { return 78 }
@@ -146,3 +165,82 @@
     #assert(#typeof(V0) == u8)
     #assert(V0 == 198'u8)
 }
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: TypedVariadicPair...)->s32
+//    {
+//        return values[0].a + values[0].b + values[1].a + values[1].b
+//    }
+//
+//    const p0: TypedVariadicPair = {a: 2, b: 3}
+//    const p1: TypedVariadicPair = {a: 5, b: 7}
+//    const V0 = #run variadicTyped(p0, p1)
+//    #assert(V0 == 17)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: [4] s32...)->s32
+//    {
+//        return values[0][0] + values[0][3] + values[1][1] + values[1][2]
+//    }
+//
+//    const a0: [4] s32 = [1, 2, 3, 4]
+//    const a1: [4] s32 = [10, 20, 30, 40]
+//    const V0 = #run variadicTyped(a0, a1)
+//    #assert(V0 == 55)
+//}
+
+#test
+{
+    func variadicTyped(values: TypedVariadicKind...)->u16
+    {
+        return cast(u16) values[0] + cast(u16) values[1]
+    }
+
+    const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
+    #assert(#typeof(V0) == u16)
+    #assert(V0 == 40'u16)
+}
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: TypedVariadicPayload...)->u64
+//    {
+//        return cast(u64) values[0].arr[1] + cast(u64) values[0].flag + cast(u64) values[0].tag + cast(u64) values[1].arr[0] + cast(u64) values[1].tag
+//    }
+//
+//    const v0: TypedVariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
+//    const v1: TypedVariadicPayload = {arr: [3, 2, 1], flag: false, tag: 4'u8}
+//    const V0 = #run variadicTyped(v0, v1)
+//    #assert(#typeof(V0) == u64)
+//    #assert(V0 == 21'u64)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: *void...)->bool
+//    {
+//        return values[0] == cast(*void) 0x1234'u64 and values[1] == null
+//    }
+//
+//    const V0 = #run variadicTyped(cast(*void) 0x1234'u64, null)
+//    #assert(V0)
+//}
+
+// BUG:
+//#test
+//{
+//    func variadicTyped(values: TypedVariadicKind...)->bool
+//    {
+//        return @kindof(values[0]) == TypedVariadicKind and @kindof(values[1]) == TypedVariadicKind
+//    }
+//
+//    const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
+//    #assert(V0)
+//}

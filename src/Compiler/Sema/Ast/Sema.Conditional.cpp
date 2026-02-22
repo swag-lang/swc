@@ -9,6 +9,54 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Result resolveConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
+    {
+        outTypeRef = TypeRef::invalid();
+
+        const std::span<const SemaFrame> frames = sema.frames();
+        for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
+        {
+            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
+            for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+            {
+                const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
+                if (!bindingTypeRef.isValid())
+                    continue;
+
+                CastRequest trueCastRequest(CastKind::Implicit);
+                trueCastRequest.errorNodeRef = nodeTrueView.nodeRef();
+                const Result trueCastResult  = Cast::castAllowed(sema, trueCastRequest, nodeTrueView.typeRef(), bindingTypeRef);
+                if (trueCastResult == Result::Pause)
+                    return Result::Pause;
+                if (trueCastResult != Result::Continue)
+                    continue;
+
+                CastRequest falseCastRequest(CastKind::Implicit);
+                falseCastRequest.errorNodeRef = nodeFalseView.nodeRef();
+                const Result falseCastResult  = Cast::castAllowed(sema, falseCastRequest, nodeFalseView.typeRef(), bindingTypeRef);
+                if (falseCastResult == Result::Pause)
+                    return Result::Pause;
+                if (falseCastResult != Result::Continue)
+                    continue;
+
+                outTypeRef = bindingTypeRef;
+                return Result::Continue;
+            }
+        }
+
+        if (nodeTrueView.typeRef() == nodeFalseView.typeRef())
+        {
+            outTypeRef = nodeTrueView.typeRef();
+            return Result::Continue;
+        }
+
+        outTypeRef = Cast::castAllowedBothWays(sema, nodeTrueView.typeRef(), nodeFalseView.typeRef());
+        return Result::Continue;
+    }
+}
+
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView       nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);
@@ -26,10 +74,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
 
     // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();
-    if (nodeTrueView.typeRef() == nodeFalseView.typeRef())
-        typeRef = nodeTrueView.typeRef();
-    else
-        typeRef = Cast::castAllowedBothWays(sema, nodeTrueView.typeRef(), nodeFalseView.typeRef());
+    RESULT_VERIFY(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
 
     if (!typeRef.isValid())
     {

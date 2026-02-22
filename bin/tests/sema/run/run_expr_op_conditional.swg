@@ -148,18 +148,17 @@ struct CondPair
     #assert(V3 == 10)
 }
 
-// BUG:
-//#test
-//{
-//    func ternaryStruct(cond: bool)->CondPair
-//    {
-//        return cond ? {a: 1, b: 2} : {a: 3, b: 4}
-//    }
-//
-//    const V0 = #run ternaryStruct(true)
-//    const V1 = #run ternaryStruct(false)
-//    #assert(V0.a == 1)
-//    #assert(V0.b == 2)
-//    #assert(V1.a == 3)
-//    #assert(V1.b == 4)
-//}
+#test
+{
+    func ternaryStruct(cond: bool)->CondPair
+    {
+        return cond ? {a: 1, b: 2} : {a: 3, b: 4}
+    }
+
+    const V0 = #run ternaryStruct(true)
+    const V1 = #run ternaryStruct(false)
+    #assert(V0.a == 1)
+    #assert(V0.b == 2)
+    #assert(V1.a == 3)
+    #assert(V1.b == 4)
+}

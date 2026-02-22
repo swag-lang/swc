@@ -21,3 +21,17 @@
     func shiftLeftStrict(a: u32, b: u32)->u32 { return a << b }
     const V = #run shiftLeftStrict(21'u32, 1'u32, 1'u32) // swc-expected-error {{sema_err_too_many_arguments}}
 }
+
+#test
+{
+    func shiftLeftWide(a: u64, b: u32)->u64 { return a << b }
+    const V = #run shiftLeftWide(1'u64, 40'u32)
+    #assert(#typeof(V) == u64)
+    #assert(V == 0x0000_0100_0000_0000'u64)
+}
+
+#test
+{
+    func shiftLeftTooFew(a: u32, b: u32)->u32 { return a << b }
+    const V = #run shiftLeftTooFew(21'u32) // swc-expected-error {{sema_err_too_few_arguments}}
+}

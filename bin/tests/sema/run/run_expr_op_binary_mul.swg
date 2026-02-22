@@ -30,3 +30,17 @@
     func mulStrict(a: s32, b: s32)->s32 { return a * b }
     const V = #run mulStrict(6, 7, 1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
+
+#test
+{
+    func mul(a: u64, b: u64)->u64 { return a * b }
+    const V = #run mul(6'u64, 7'u64)
+    #assert(#typeof(V) == u64)
+    #assert(V == 42'u64)
+}
+
+#test
+{
+    func mulTooFew(a: s32, b: s32)->s32 { return a * b }
+    const V = #run mulTooFew(6) // swc-expected-error {{sema_err_too_few_arguments}}
+}

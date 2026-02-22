@@ -20,3 +20,19 @@
 {
     func unaryMinusBad(a: u32)->u32 { return -a } // swc-expected-error {{sema_err_negate_unsigned}}
 }
+
+#test
+{
+    func unaryMinusS64(a: s64)->s64 { return -a }
+    const V = #run unaryMinusS64(42's64)
+    #assert(#typeof(V) == s64)
+    #assert(V == -42's64)
+}
+
+#test
+{
+    func unaryMinusChain(a: s32)->s32 { return -(-a) }
+    const V = #run unaryMinusChain(42)
+    #assert(#typeof(V) == s32)
+    #assert(V == 42)
+}

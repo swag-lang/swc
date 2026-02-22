@@ -6,6 +6,12 @@ enum CondEnum: u16
     B = 2
 }
 
+struct CondPair
+{
+    a: s32
+    b: s32
+}
+
 #test
 {
     func ternaryInt(cond: bool, a: s32, b: s32)->s32
@@ -124,3 +130,37 @@ enum CondEnum: u16
         return cond ? 1 : "bad" // swc-expected-error {{sema_err_binary_operand_type}}
     }
 }
+
+// BUG:
+//#test
+//{
+//    func ternaryNested(a: bool, b: bool)->s32
+//    {
+//        return a ? (b ? 42 : 7) : (b ? 9 : 10)
+//    }
+//
+//    const V0 = #run ternaryNested(true, true)
+//    const V1 = #run ternaryNested(true, false)
+//    const V2 = #run ternaryNested(false, true)
+//    const V3 = #run ternaryNested(false, false)
+//    #assert(V0 == 42)
+//    #assert(V1 == 7)
+//    #assert(V2 == 9)
+//    #assert(V3 == 10)
+//}
+
+// BUG:
+//#test
+//{
+//    func ternaryStruct(cond: bool)->CondPair
+//    {
+//        return cond ? {a: 1, b: 2} : {a: 3, b: 4}
+//    }
+//
+//    const V0 = #run ternaryStruct(true)
+//    const V1 = #run ternaryStruct(false)
+//    #assert(V0.a == 1)
+//    #assert(V0.b == 2)
+//    #assert(V1.a == 3)
+//    #assert(V1.b == 4)
+//}

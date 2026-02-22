@@ -29,3 +29,17 @@
     var a, b: s32
     a = b / 0 // swc-expected-error {{sema_err_division_zero}}
 }
+
+#test
+{
+    func div(a: s64, b: s64)->s64 { return a / b }
+    const V = #run div(-84's64, 2's64)
+    #assert(#typeof(V) == s64)
+    #assert(V == -42's64)
+}
+
+#test
+{
+    func divTooFew(a: s32, b: s32)->s32 { return a / b }
+    const V = #run divTooFew(126) // swc-expected-error {{sema_err_too_few_arguments}}
+}

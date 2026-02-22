@@ -60,3 +60,17 @@ enum Color
     #assert(#typeof(V0) == u64)
     #assert(V0 == 1000'u64)
 }
+
+#test
+{
+    func countArray(value: [5] u16)->u64 { return @countof(value) }
+    const V0 = #run countArray([1'u16, 2'u16, 3'u16, 4'u16, 5'u16])
+    #assert(V0 == 5'u64)
+}
+
+#test
+{
+    func countAny(values: ...)->u64 { return @countof(values) }
+    const V0 = #run countAny(1, "ab", true, 4.0'f64)
+    #assert(V0 == 4'u64)
+}

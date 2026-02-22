@@ -213,7 +213,7 @@ namespace PeepholePass
 
             struct RewritePlan
             {
-                Ref                             ref = INVALID_REF;
+                Ref                            ref = INVALID_REF;
                 SmallVector<MicroInstrOperand> rewrittenOps;
             };
 
@@ -273,7 +273,7 @@ namespace PeepholePass
 
             for (RewritePlan& plan : rewritePlans)
             {
-                MicroInstr* instPtr = SWC_CHECK_NOT_NULL(context.instructions)->ptr(plan.ref);
+                const MicroInstr* instPtr = SWC_CHECK_NOT_NULL(context.instructions)->ptr(plan.ref);
                 if (!instPtr)
                     return false;
 
@@ -382,7 +382,7 @@ namespace PeepholePass
             if (secondLoadIt == endIt)
                 return false;
 
-            MicroInstr& firstLoadInst = *firstLoadIt;
+            const MicroInstr& firstLoadInst = *firstLoadIt;
             if (firstLoadInst.op != MicroInstrOpcode::LoadRegMem)
                 return false;
 
@@ -415,9 +415,9 @@ namespace PeepholePass
             if (!isCopyDeadAfterInstruction(context, std::next(secondLoadIt), endIt, copiedBaseReg))
                 return false;
 
-            const std::array<MicroInstrOperand, 4> originalFirstLoadOps = {firstLoadOps[0], firstLoadOps[1], firstLoadOps[2], firstLoadOps[3]};
-            const std::array<MicroInstrOperand, 4> originalSecondLoadOps = {secondLoadOps[0], secondLoadOps[1], secondLoadOps[2], secondLoadOps[3]};
-            const MicroInstrOpcode                 originalSecondLoadOp   = secondLoadInst.op;
+            const std::array       originalFirstLoadOps  = {firstLoadOps[0], firstLoadOps[1], firstLoadOps[2], firstLoadOps[3]};
+            const std::array       originalSecondLoadOps = {secondLoadOps[0], secondLoadOps[1], secondLoadOps[2], secondLoadOps[3]};
+            const MicroInstrOpcode originalSecondLoadOp  = secondLoadInst.op;
 
             firstLoadOps[1].reg = baseSrcReg;
             if (MicroOptimization::violatesEncoderConformance(context, firstLoadInst, firstLoadOps))
@@ -737,8 +737,8 @@ namespace PeepholePass
             if (prevCopyInst.op != MicroInstrOpcode::LoadRegReg || !prevCopyOps)
                 return false;
 
-            const MicroReg origReg     = cursor.ops[0].reg;
-            const MicroReg tmpReg      = cursor.ops[1].reg;
+            const MicroReg origReg = cursor.ops[0].reg;
+            const MicroReg tmpReg  = cursor.ops[1].reg;
             if (!origReg.isSameClass(tmpReg))
                 return false;
 

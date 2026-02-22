@@ -190,7 +190,7 @@ namespace
             }
 
             const uint32_t defKey = useDef.defs.front().packed;
-            if (liveRegs.find(defKey) == liveRegs.end())
+            if (!liveRegs.contains(defKey))
             {
                 eraseList.push_back(instRef);
                 changed = true;

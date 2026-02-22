@@ -58,8 +58,8 @@ namespace PeepholePass
                 if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, tmpReg))
                     return false;
 
-                const MicroInstrOpcode                 originalOp  = scanInst.op;
-                const std::array<MicroInstrOperand, 4> originalOps = {scanOps[0], scanOps[1], scanOps[2], scanOps[3]};
+                const MicroInstrOpcode originalOp  = scanInst.op;
+                const std::array       originalOps = {scanOps[0], scanOps[1], scanOps[2], scanOps[3]};
 
                 const MicroOpBits storeBits = originalOps[2].opBits;
                 uint64_t          value     = ops[2].valueU64;
@@ -111,8 +111,8 @@ namespace PeepholePass
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;
 
-            const MicroInstrOpcode                 originalOp  = nextInst.op;
-            const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
+            const MicroInstrOpcode originalOp  = nextInst.op;
+            const std::array       originalOps = {nextOps[0], nextOps[1], nextOps[2]};
 
             uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
@@ -160,8 +160,8 @@ namespace PeepholePass
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;
 
-            const MicroInstrOpcode                 originalOp  = nextInst.op;
-            const std::array<MicroInstrOperand, 4> originalOps = {nextOps[0], nextOps[1], nextOps[2], nextOps[3]};
+            const MicroInstrOpcode originalOp  = nextInst.op;
+            const std::array       originalOps = {nextOps[0], nextOps[1], nextOps[2], nextOps[3]};
 
             uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
@@ -210,8 +210,8 @@ namespace PeepholePass
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;
 
-            const MicroInstrOpcode                 originalOp  = nextInst.op;
-            const std::array<MicroInstrOperand, 3> originalOps = {nextOps[0], nextOps[1], nextOps[2]};
+            const MicroInstrOpcode originalOp  = nextInst.op;
+            const std::array       originalOps = {nextOps[0], nextOps[1], nextOps[2]};
 
             uint64_t          immValue = ops[2].valueU64;
             const MicroOpBits opBits   = originalOps[2].opBits;
@@ -245,9 +245,9 @@ namespace PeepholePass
 
             const uint64_t    immValue = ops[2].valueU64;
             const MicroReg    immReg   = ops[0].reg;
-            const MicroOpBits opBits  = ops[1].opBits;
+            const MicroOpBits opBits   = ops[1].opBits;
 
-            MicroStorage::Iterator   copyIt = nextIt;
+            MicroStorage::Iterator   copyIt  = nextIt;
             const MicroInstrOperand* copyOps = nullptr;
 
             const MicroInstr&        firstNextInst = *nextIt;
@@ -325,11 +325,11 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, addIt, endIt))
                 return false;
 
-            const MicroStorage::Iterator afterAddIt       = std::next(addIt);
-            const bool                   canEraseLoadImm  = isCopyDeadAfterInstruction(context, afterAddIt, endIt, immReg);
+            const MicroStorage::Iterator afterAddIt      = std::next(addIt);
+            const bool                   canEraseLoadImm = isCopyDeadAfterInstruction(context, afterAddIt, endIt, immReg);
 
-            const MicroInstrOpcode                 originalAddOp  = addInst.op;
-            const std::array<MicroInstrOperand, 4> originalAddOps = {addOps[0], addOps[1], addOps[2], addOps[3]};
+            const MicroInstrOpcode originalAddOp  = addInst.op;
+            const std::array       originalAddOps = {addOps[0], addOps[1], addOps[2], addOps[3]};
 
             if (!immValue)
             {
@@ -351,7 +351,7 @@ namespace PeepholePass
 
                 if (copyIt != nextIt)
                 {
-                    MicroInstr*        midInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(nextIt.current);
+                    const MicroInstr*  midInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(nextIt.current);
                     MicroInstrOperand* midOps  = midInst ? midInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
                     if (midInst && midOps && midInst->op == MicroInstrOpcode::LoadRegMem)
                     {
@@ -379,11 +379,11 @@ namespace PeepholePass
 
                 const uint64_t mulImm       = mulOps[3].valueU64;
                 const uint64_t scaledOffset = immValue * mulImm;
-                addInst.op         = MicroInstrOpcode::LoadAddrRegMem;
-                addOps[0].reg      = dstReg;
-                addOps[1].reg      = originalAddOps[1].reg;
-                addOps[2].opBits   = MicroOpBits::B64;
-                addOps[3].valueU64 = scaledOffset;
+                addInst.op                  = MicroInstrOpcode::LoadAddrRegMem;
+                addOps[0].reg               = dstReg;
+                addOps[1].reg               = originalAddOps[1].reg;
+                addOps[2].opBits            = MicroOpBits::B64;
+                addOps[3].valueU64          = scaledOffset;
                 if (MicroOptimization::violatesEncoderConformance(context, addInst, addOps))
                 {
                     addInst.op = originalAddOp;
@@ -439,8 +439,8 @@ namespace PeepholePass
             if (!firstOps)
                 return false;
 
-            const MicroInstrOpcode                 originalFirstOp  = firstInst->op;
-            const std::array<MicroInstrOperand, 4> originalFirstOps = {firstOps[0], firstOps[1], firstOps[2], firstOps[3]};
+            const MicroInstrOpcode originalFirstOp  = firstInst->op;
+            const std::array       originalFirstOps = {firstOps[0], firstOps[1], firstOps[2], firstOps[3]};
 
             const uint64_t loValue = originalFirstOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
             const uint64_t hiValue = nextOps[3].valueU64 & getOpBitsMask(MicroOpBits::B32);
@@ -564,7 +564,7 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, secondAdjustIt, endIt))
                 return false;
 
-            MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
             if (!firstInst)
                 return false;
 
@@ -572,14 +572,14 @@ namespace PeepholePass
             if (!firstOps)
                 return false;
 
-            const MicroOp   originalFirstOp  = firstOps[2].microOp;
-            const uint64_t  originalFirstImm = firstOps[3].valueU64;
-            const uint64_t  opBitsMask       = opBits == MicroOpBits::B64 ? std::numeric_limits<uint64_t>::max() : getOpBitsMask(opBits);
-            const uint64_t  firstImm         = originalFirstImm & opBitsMask;
-            const uint64_t  secondImm        = secondAdjustOps[3].valueU64 & opBitsMask;
-            const MicroOp   secondOp         = secondAdjustOps[2].microOp;
-            MicroOp         combinedOp       = MicroOp::Add;
-            uint64_t        combinedImm      = 0;
+            const MicroOp  originalFirstOp  = firstOps[2].microOp;
+            const uint64_t originalFirstImm = firstOps[3].valueU64;
+            const uint64_t opBitsMask       = opBits == MicroOpBits::B64 ? std::numeric_limits<uint64_t>::max() : getOpBitsMask(opBits);
+            const uint64_t firstImm         = originalFirstImm & opBitsMask;
+            const uint64_t secondImm        = secondAdjustOps[3].valueU64 & opBitsMask;
+            const MicroOp  secondOp         = secondAdjustOps[2].microOp;
+            auto           combinedOp       = MicroOp::Add;
+            uint64_t       combinedImm      = 0;
 
             if (firstOp == MicroOp::Add && secondOp == MicroOp::Add)
             {

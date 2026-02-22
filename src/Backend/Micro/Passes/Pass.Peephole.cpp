@@ -46,8 +46,8 @@ namespace
 
     const PeepholePass::RuleList& peepholeRules()
     {
-        static const PeepholePass::RuleList rules = buildPeepholeRules();
-        return rules;
+        static const PeepholePass::RuleList RULES = buildPeepholeRules();
+        return RULES;
     }
 
     bool applyRule(const MicroPassContext& context, const PeepholePass::Rule& rule, const PeepholePass::Cursor& cursor)

@@ -161,7 +161,7 @@ namespace
             totalStorageSize += elemSize;
         }
         constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
-        const uint64_t     sliceOffset    = alignUpU64(totalStorageSize, static_cast<uint32_t>(sliceAlign));
+        const uint64_t     sliceOffset    = alignUpU64(totalStorageSize, sliceAlign);
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
@@ -181,7 +181,7 @@ namespace
 
             const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
-            offset                       = alignUpU64(offset, elemAlign);
+            offset                 = alignUpU64(offset, elemAlign);
             MicroReg dstAddressReg = frameBaseReg;
             if (offset)
             {
@@ -273,11 +273,11 @@ namespace
 
         const uint64_t     variadicCount = variadicInfos.size();
         constexpr uint64_t anyAlign      = alignof(Runtime::Any);
-        const uint64_t     anyOffset     = alignUpU64(spillStorageSize, static_cast<uint32_t>(anyAlign));
+        const uint64_t     anyOffset     = alignUpU64(spillStorageSize, anyAlign);
         const uint64_t     anyStorage    = variadicCount * sizeof(Runtime::Any);
 
         constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
-        const uint64_t     sliceOffset    = alignUpU64(anyOffset + anyStorage, static_cast<uint32_t>(sliceAlign));
+        const uint64_t     sliceOffset    = alignUpU64(anyOffset + anyStorage, sliceAlign);
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 

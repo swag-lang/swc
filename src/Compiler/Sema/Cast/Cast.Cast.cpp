@@ -752,7 +752,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
         if (valueSize)
         {
-            std::vector<std::byte> valueBytes(static_cast<size_t>(valueSize), std::byte{0});
+            std::vector valueBytes(valueSize, std::byte{0});
             ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef);
 
             const std::string_view rawValueView(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());

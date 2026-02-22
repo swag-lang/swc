@@ -19,23 +19,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isRuntimeAssertExceptionCode(uint32_t code)
-    {
-#ifdef _WIN32
-        return code == EXCEPTION_ILLEGAL_INSTRUCTION;
-#else
-        SWC_UNUSED(code);
-        return false;
-#endif
-    }
-
     JITCallErrorKind toCallErrorKind(uint32_t exceptionCode)
     {
         if (!exceptionCode)
             return JITCallErrorKind::None;
-
-        if (isRuntimeAssertExceptionCode(exceptionCode))
-            return JITCallErrorKind::RuntimeAssert;
 
         return JITCallErrorKind::HardwareException;
     }
@@ -49,8 +36,7 @@ namespace
 #endif
 
         outErrorKind = toCallErrorKind(exceptionCode);
-        if (outErrorKind != JITCallErrorKind::RuntimeAssert)
-            HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
+        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
 
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

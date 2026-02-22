@@ -147,12 +147,6 @@ void MicroBuilder::emitBreakpoint()
     return;
 }
 
-void MicroBuilder::emitAssertTrap()
-{
-    addInstruction(MicroInstrOpcode::AssertTrap, 0);
-    return;
-}
-
 Ref MicroBuilder::createLabel()
 {
     const Ref labelRef = static_cast<Ref>(labels_.size());

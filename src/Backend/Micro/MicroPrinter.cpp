@@ -669,8 +669,6 @@ namespace
                 return tagInstructionToken("ret");
             case MicroInstrOpcode::Breakpoint:
                 return tagInstructionToken("breakpoint");
-            case MicroInstrOpcode::AssertTrap:
-                return tagInstructionToken("assert_trap");
             case MicroInstrOpcode::Push:
                 return std::format("{} {}", tagInstructionToken("push"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Pop:
@@ -1259,7 +1257,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
             case MicroInstrOpcode::Breakpoint:
-            case MicroInstrOpcode::AssertTrap:
                 break;
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:

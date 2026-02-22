@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
-#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
@@ -123,11 +122,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         JITCallErrorKind callErrorKind = JITCallErrorKind::None;
         const Result     callResult    = JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, &callErrorKind);
         if (callResult != Result::Continue)
-        {
-            if (callErrorKind == JITCallErrorKind::RuntimeAssert)
-                return SemaError::raise(sema, DiagnosticId::sema_err_runtime_assert, nodeExprRef);
             return Result::Error;
-        }
     }
 
     ConstantValue resultConstant;

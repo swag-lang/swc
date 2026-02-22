@@ -25,7 +25,6 @@ struct JITReturn
 enum class JITCallErrorKind : uint8_t
 {
     None,
-    RuntimeAssert,
     HardwareException,
 };
 

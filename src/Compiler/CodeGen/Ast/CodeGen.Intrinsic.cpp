@@ -124,29 +124,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     switch (tok.id)
     {
         case TokenId::IntrinsicAssert:
-        {
-            SmallVector<AstNodeRef> args;
-            collectArguments(args, codeGen.ast());
-            if (args.empty())
-                return Result::Continue;
-
-            const CodeGenNodePayload* const argPayload = codeGen.payload(args[0]);
-            if (!argPayload)
-                return Result::Continue;
-            const MicroReg                  condReg    = codeGen.nextVirtualIntRegister();
-            MicroBuilder&                   builder    = codeGen.builder();
-            if (argPayload->isAddress())
-                builder.emitLoadRegMem(condReg, argPayload->reg, 0, MicroOpBits::B8);
-            else
-                builder.emitLoadRegReg(condReg, argPayload->reg, MicroOpBits::B8);
-
-            const Ref okLabel = builder.createLabel();
-            builder.emitCmpRegImm(condReg, ApInt(uint64_t{0}, 64), MicroOpBits::B8);
-            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
-            builder.emitAssertTrap();
-            builder.placeLabel(okLabel);
             return Result::Continue;
-        }
 
         case TokenId::IntrinsicBcBreakpoint:
             codeGen.builder().emitBreakpoint();

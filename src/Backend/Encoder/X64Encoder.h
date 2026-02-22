@@ -32,7 +32,6 @@ private:
     void encodePop(MicroReg reg) override;
     void encodeNop() override;
     void encodeBreakpoint() override;
-    void encodeAssertTrap() override;
     void encodeRet() override;
     void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv) override;
     void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv) override;

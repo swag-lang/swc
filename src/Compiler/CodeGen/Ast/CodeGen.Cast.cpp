@@ -3,6 +3,8 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -11,6 +13,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t addPayloadToConstantManagerAndGetAddress(CodeGen& codeGen, ByteSpan payload)
+    {
+        const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
+        const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
+        return reinterpret_cast<uint64_t>(storedPayload.data());
+    }
+
     bool isNumericIntLike(const TypeInfo& typeInfo)
     {
         return typeInfo.isIntLike() || typeInfo.isBool();
@@ -72,6 +81,61 @@ namespace
         return true;
     }
 
+    Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
+    {
+        MicroBuilder&             builder    = codeGen.builder();
+        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
+        if (!srcPayload)
+            srcPayload = codeGen.ensurePayload(srcNodeRef);
+        SWC_ASSERT(srcPayload != nullptr);
+
+        const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
+        if (srcConstView.hasConstant())
+        {
+            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            if (srcConst.isArray())
+            {
+                const ByteSpan        arrayBytes    = srcConst.getArray();
+                const Runtime::String runtimeString = {
+                    .ptr    = reinterpret_cast<const char*>(arrayBytes.data()),
+                    .length = arrayBytes.size(),
+                };
+                const ByteSpan runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
+                const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
+
+                CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                builder.emitLoadRegPtrImm(dstPayload.reg, storageAddress, srcConstView.cstRef());
+                return Result::Continue;
+            }
+        }
+
+        const uint64_t     length       = srcType.sizeOf(codeGen.ctx());
+        Runtime::String*   runtimeValue = codeGen.compiler().allocate<Runtime::String>();
+        runtimeValue->ptr               = nullptr;
+        runtimeValue->length            = 0;
+        const uint64_t runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
+
+        const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);
+
+        MicroReg srcDataReg = srcPayload->reg;
+        if (!srcPayload->isAddress())
+        {
+            srcDataReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(srcDataReg, srcPayload->reg, MicroOpBits::B64);
+        }
+
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, ptr), srcDataReg, MicroOpBits::B64);
+
+        const MicroReg lengthReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(lengthReg, ApInt(length, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, length), lengthReg, MicroOpBits::B64);
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        builder.emitLoadRegReg(dstPayload.reg, runtimeValueReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result emitAnyCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         if (dstTypeRef.isInvalid())
@@ -81,6 +145,8 @@ namespace
         }
 
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
+        if (!srcPayload)
+            srcPayload = codeGen.ensurePayload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
@@ -131,6 +197,8 @@ namespace
     {
         MicroBuilder&             builder    = codeGen.builder();
         const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
+        if (!srcPayload)
+            srcPayload = codeGen.ensurePayload(srcNodeRef);
         SWC_ASSERT(srcPayload != nullptr);
 
         TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
@@ -154,6 +222,8 @@ namespace
 
         const TypeInfo& srcType        = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);
+        if (dstType.isString() && srcType.isArray())
+            return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
         const bool      srcFloatType   = srcType.isFloat();
         const bool      srcIntLikeType = isNumericIntLike(srcType);
         const bool      dstFloatType   = dstType.isFloat();

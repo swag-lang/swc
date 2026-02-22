@@ -16,6 +16,205 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct LocalVarSymbolEntry
+    {
+        const SymbolVariable* symVar     = nullptr;
+        AstNodeRef            declNodeRef = AstNodeRef::invalid();
+    };
+
+    uint64_t alignUpU64(uint64_t value, uint32_t align)
+    {
+        SWC_ASSERT(align != 0);
+        if (align == 0)
+            return value;
+        const uint64_t alignValue = align;
+        return ((value + alignValue - 1) / alignValue) * alignValue;
+    }
+
+    bool isHandleBackedLocalType(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isString();
+    }
+
+    AstNodeRef semaNodeRefOrOriginal(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const AstNodeRef semaNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (semaNodeRef.isValid())
+            return semaNodeRef;
+        return nodeRef;
+    }
+
+    TypeRef resolveLocalVarTypeRef(CodeGen& codeGen, const LocalVarSymbolEntry& entry)
+    {
+        SWC_ASSERT(entry.symVar != nullptr);
+
+        TypeRef typeRef = entry.symVar->typeRef();
+        if (typeRef.isValid())
+            return typeRef;
+
+        if (entry.declNodeRef.isValid())
+        {
+            const SemaNodeView declTypeView = codeGen.viewType(entry.declNodeRef);
+            if (declTypeView.type())
+                return declTypeView.typeRef();
+
+            const AstNode& declNode = codeGen.node(entry.declNodeRef);
+            if (declNode.is(AstNodeId::SingleVarDecl))
+            {
+                const AstSingleVarDecl* singleVarDecl = declNode.cast<AstSingleVarDecl>();
+                if (singleVarDecl->nodeInitRef.isValid())
+                {
+                    const SemaNodeView initTypeView = codeGen.viewType(singleVarDecl->nodeInitRef);
+                    if (initTypeView.type())
+                        return initTypeView.typeRef();
+                }
+            }
+            else if (declNode.is(AstNodeId::MultiVarDecl))
+            {
+                const AstMultiVarDecl* multiVarDecl = declNode.cast<AstMultiVarDecl>();
+                if (multiVarDecl->nodeInitRef.isValid())
+                {
+                    const SemaNodeView initTypeView = codeGen.viewType(multiVarDecl->nodeInitRef);
+                    if (initTypeView.type())
+                        return initTypeView.typeRef();
+                }
+            }
+        }
+
+        const AstNode* declNode = entry.symVar->decl();
+        if (!declNode)
+            return TypeRef::invalid();
+
+        const AstNodeRef declNodeRef = declNode->nodeRef(codeGen.ast());
+        if (declNodeRef.isInvalid())
+            return TypeRef::invalid();
+
+        const SemaNodeView declTypeView = codeGen.viewType(declNodeRef);
+        if (declTypeView.type())
+            return declTypeView.typeRef();
+
+        return TypeRef::invalid();
+    }
+
+    void collectLocalVarSymbolsRecursive(CodeGen& codeGen, AstNodeRef nodeRef, SmallVector<LocalVarSymbolEntry>& outSymbols)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.is(AstNodeId::FunctionDecl))
+            return;
+
+        const AstNodeRef semaNodeRef = semaNodeRefOrOriginal(codeGen, nodeRef);
+
+        if (node.is(AstNodeId::SingleVarDecl))
+        {
+            const SemaNodeView view = codeGen.viewSymbol(semaNodeRef);
+            if (view.sym() && view.sym()->isVariable())
+            {
+                const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
+                if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                {
+                    LocalVarSymbolEntry entry;
+                    entry.symVar      = &symVar;
+                    entry.declNodeRef = semaNodeRef;
+                    outSymbols.push_back(entry);
+                }
+            }
+        }
+        else if (node.is(AstNodeId::MultiVarDecl) || node.is(AstNodeId::VarDeclDestructuring))
+        {
+            const SemaNodeView view = codeGen.viewSymbolList(semaNodeRef);
+            for (const Symbol* sym : view.symList())
+            {
+                if (!sym || !sym->isVariable())
+                    continue;
+                const SymbolVariable& symVar = sym->cast<SymbolVariable>();
+                if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                {
+                    LocalVarSymbolEntry entry;
+                    entry.symVar      = &symVar;
+                    entry.declNodeRef = semaNodeRef;
+                    outSymbols.push_back(entry);
+                }
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, codeGen.ast());
+        for (const AstNodeRef childRef : children)
+            collectLocalVarSymbolsRecursive(codeGen, childRef, outSymbols);
+    }
+
+    void buildLocalStackLayout(CodeGen& codeGen, AstNodeRef bodyNodeRef)
+    {
+        SmallVector<LocalVarSymbolEntry> localSymbols;
+        collectLocalVarSymbolsRecursive(codeGen, bodyNodeRef, localSymbols);
+        if (localSymbols.empty())
+            return;
+
+        const CallConv& callConv = CallConv::get(codeGen.function().callConvKind());
+        uint64_t        frameSize = 0;
+        for (const LocalVarSymbolEntry& entry : localSymbols)
+        {
+            const SymbolVariable* symVar = entry.symVar;
+            SWC_ASSERT(symVar != nullptr);
+            const TypeRef typeRef = resolveLocalVarTypeRef(codeGen, entry);
+            if (typeRef.isInvalid())
+                continue;
+
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
+            if (isHandleBackedLocalType(typeInfo))
+            {
+                size      = sizeof(uint64_t);
+                alignment = alignof(uint64_t);
+            }
+            if (!size)
+                continue;
+
+            frameSize = alignUpU64(frameSize, alignment);
+            const CodeGen::LocalStackSlot slot = {
+                .offset = static_cast<uint32_t>(frameSize),
+                .size   = size,
+                .align  = alignment,
+            };
+            codeGen.setLocalStackSlot(*symVar, slot);
+            frameSize += size;
+        }
+
+        const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
+        frameSize                     = alignUpU64(frameSize, stackAlignment);
+        SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+        codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
+    }
+
+    void emitLocalStackFramePrologue(CodeGen& codeGen, CallConvKind callConvKind)
+    {
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        const CallConv& callConv = CallConv::get(callConvKind);
+        MicroBuilder&   builder  = codeGen.builder();
+        const uint32_t  frameSize = codeGen.localStackFrameSize();
+        SWC_ASSERT(frameSize != 0);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
+
+        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+        codeGen.setLocalStackBaseReg(frameBaseReg);
+    }
+
+    void emitLocalStackFrameEpilogue(CodeGen& codeGen, CallConvKind callConvKind)
+    {
+        if (!codeGen.hasLocalStackFrame())
+            return;
+
+        const CallConv& callConv = CallConv::get(callConvKind);
+        codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
+    }
+
     MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenHelpers::FunctionParameterInfo& paramInfo)
     {
         if (paramInfo.isFloat)
@@ -112,13 +311,20 @@ namespace
         }
     }
 
-    uint64_t alignUpU64(uint64_t value, uint32_t align)
+    void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
-        SWC_ASSERT(align != 0);
-        if (align == 0)
-            return value;
-        const uint64_t alignValue = align;
-        return ((value + alignValue - 1) / alignValue) * alignValue;
+        const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
+        for (const SymbolVariable* symVar : params)
+        {
+            if (!symVar)
+                continue;
+
+            const CodeGenHelpers::FunctionParameterInfo paramInfo = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar);
+            if (paramInfo.isRegisterArg)
+                continue;
+
+            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar);
+        }
     }
 
     void storeTypedVariadicElement(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, uint32_t elemSize)
@@ -510,6 +716,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
+            emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
             return Result::Continue;
         }
@@ -538,6 +745,7 @@ namespace
             ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload->reg, isAddressed, normalizedRet);
         }
 
+        emitLocalStackFrameEpilogue(codeGen, callConvKind);
         builder.emitRet();
         return Result::Continue;
     }
@@ -552,15 +760,19 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
     const CallConv&                        callConv      = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
-    materializeRegisterParameters(codeGen, symbolFunc);
 
     if (normalizedRet.isIndirect)
     {
-        // Cache hidden return pointer in the function payload for return statements.
+        // Capture hidden return pointer before any parameter materialization can clobber input registers.
         SWC_ASSERT(!callConv.intArgRegs.empty());
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef());
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
+
+    buildLocalStackLayout(codeGen, nodeBodyRef);
+    materializeRegisterParameters(codeGen, symbolFunc);
+    materializeStackParameters(codeGen, symbolFunc);
+    emitLocalStackFramePrologue(codeGen, callConvKind);
 
     return Result::Continue;
 }

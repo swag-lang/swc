@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -45,6 +46,29 @@ namespace
             return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
+        if (const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar))
+        {
+            SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+            CodeGenNodePayload localPayload;
+            localPayload.typeRef = symVar.typeRef();
+            localPayload.setIsAddress();
+            if (!localSlot->offset)
+            {
+                localPayload.reg = codeGen.localStackBaseReg();
+            }
+            else
+            {
+                MicroBuilder& builder = codeGen.builder();
+                localPayload.reg      = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(localSlot->offset, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+
+            codeGen.setVariablePayload(symVar, localPayload);
+            return localPayload;
+        }
+
         SWC_UNREACHABLE();
     }
 
@@ -77,10 +101,69 @@ namespace
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder = codeGen.builder();
+        const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar);
+        if (localSlot && codeGen.localStackBaseReg().isValid())
+        {
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.typeRef = symVar.typeRef();
+            symbolPayload.setIsAddress();
+
+            if (!localSlot->offset)
+            {
+                symbolPayload.reg = codeGen.localStackBaseReg();
+            }
+            else
+            {
+                symbolPayload.reg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(symbolPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(symbolPayload.reg, ApInt(localSlot->offset, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+
+            if (initRef.isValid())
+            {
+                const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
+                if (!initPayload)
+                    initPayload = codeGen.ensurePayload(initRef);
+
+                if (initPayload)
+                {
+                    if (initPayload->isAddress())
+                    {
+                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                    }
+                    else
+                    {
+                        if (localSlot->size > 8)
+                        {
+                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                            codeGen.setVariablePayload(symVar, symbolPayload);
+                            return;
+                        }
+
+                        MicroOpBits copyBits = MicroOpBits::Zero;
+                        if (localSlot->size == 1)
+                            copyBits = MicroOpBits::B8;
+                        else if (localSlot->size == 2)
+                            copyBits = MicroOpBits::B16;
+                        else if (localSlot->size == 4)
+                            copyBits = MicroOpBits::B32;
+                        else
+                            copyBits = MicroOpBits::B64;
+                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
+                    }
+                }
+            }
+
+            codeGen.setVariablePayload(symVar, symbolPayload);
+            return;
+        }
+
         if (initRef.isInvalid())
             return;
 
         const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
+        if (!initPayload)
+            initPayload = codeGen.ensurePayload(initRef);
         if (!initPayload)
             return;
 

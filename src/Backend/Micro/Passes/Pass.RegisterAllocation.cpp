@@ -672,6 +672,9 @@ namespace
         uint32_t stamp      = 1;
         uint32_t idx        = 0;
         int64_t  stackDepth = 0;
+        std::unordered_map<Ref, int64_t> labelStackDepth;
+        if (state.hasControlFlow)
+            labelStackDepth.reserve(state.instructions->count() / 2 + 1);
         for (auto it = state.instructions->view().begin(); it != state.instructions->view().end() && idx < state.instructionCount; ++it)
         {
             if (stamp == std::numeric_limits<uint32_t>::max())
@@ -680,6 +683,15 @@ namespace
                 stamp = 1;
             }
             ++stamp;
+
+            if (it->op == MicroInstrOpcode::Label && it->numOperands >= 1)
+            {
+                const MicroInstrOperand* const ops      = it->ops(*state.operands);
+                const Ref                     labelRef  = static_cast<Ref>(ops[0].valueU64);
+                const auto                    labelIt   = labelStackDepth.find(labelRef);
+                if (labelIt != labelStackDepth.end())
+                    stackDepth = labelIt->second;
+            }
 
             for (const auto key : state.liveOut[idx])
                 state.liveStamp[key] = stamp;
@@ -750,6 +762,16 @@ namespace
             }
 
             expireDeadMappings(state, stamp);
+
+            if (it->op == MicroInstrOpcode::JumpCond && it->numOperands >= 3)
+            {
+                const MicroInstrOperand* const ops     = it->ops(*state.operands);
+                const Ref                     labelRef = static_cast<Ref>(ops[2].valueU64);
+                const auto                    emplaced = labelStackDepth.emplace(labelRef, stackDepth);
+                if (!emplaced.second && emplaced.first->second < stackDepth)
+                    emplaced.first->second = stackDepth;
+            }
+
             applyStackPointerDelta(stackDepth, *it, *state.operands, *state.conv);
             ++idx;
         }

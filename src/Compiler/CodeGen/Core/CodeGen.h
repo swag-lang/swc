@@ -29,6 +29,7 @@ struct CodeGenNodePayload
     MicroReg    reg         = MicroReg::invalid();
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
+    uint32_t    generation  = 0;
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -44,6 +45,13 @@ public:
         Ref  falseLabel   = INVALID_REF;
         Ref  doneLabel    = INVALID_REF;
         bool hasElseBlock = false;
+    };
+
+    struct LocalStackSlot
+    {
+        uint32_t offset = 0;
+        uint32_t size   = 0;
+        uint32_t align  = 1;
     };
 
     explicit CodeGen(Sema& sema);
@@ -115,8 +123,16 @@ public:
     const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
 
     CodeGenNodePayload*       payload(AstNodeRef nodeRef);
+    CodeGenNodePayload*       ensurePayload(AstNodeRef nodeRef);
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
+    void                      setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot);
+    const LocalStackSlot*     localStackSlot(const SymbolVariable& sym) const;
+    void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
+    uint32_t                  localStackFrameSize() const { return localStackFrameSize_; }
+    bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
+    void                      setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
+    MicroReg                  localStackBaseReg() const { return localStackBaseReg_; }
     CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
@@ -158,6 +174,10 @@ private:
     MicroBuilder*                                                 builder_             = nullptr;
     uint32_t                                                      nextVirtualRegister_ = 1;
     std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
+    std::unordered_map<const SymbolVariable*, LocalStackSlot>     localStackSlots_;
+    uint32_t                                                      localStackFrameSize_ = 0;
+    MicroReg                                                      localStackBaseReg_   = MicroReg::invalid();
+    uint32_t                                                      payloadGeneration_   = 1;
     std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
 };
 

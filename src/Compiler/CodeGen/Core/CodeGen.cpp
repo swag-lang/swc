@@ -11,6 +11,19 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    std::atomic<uint32_t> gPayloadGenerationCounter = 1;
+
+    uint32_t nextPayloadGeneration()
+    {
+        uint32_t generation = gPayloadGenerationCounter.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (generation == 0)
+            generation = gPayloadGenerationCounter.fetch_add(1, std::memory_order_relaxed) + 1;
+        return generation;
+    }
+}
+
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -23,8 +36,13 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
 
+    payloadGeneration_ = nextPayloadGeneration();
+
     SWC_ASSERT(nextVirtualRegister_ == 1);
     SWC_ASSERT(variablePayloads_.empty());
+    SWC_ASSERT(localStackSlots_.empty());
+    SWC_ASSERT(localStackFrameSize_ == 0);
+    SWC_ASSERT(!localStackBaseReg_.isValid());
     ifStmtCodeGenStates_.clear();
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
@@ -157,7 +175,23 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef)
     nodeRef = resolvedNodeRef(nodeRef);
     if (nodeRef.isInvalid())
         return nullptr;
-    return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    CodeGenNodePayload* nodePayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (!nodePayload)
+        return nullptr;
+    if (nodePayload->generation != payloadGeneration_)
+        return nullptr;
+    return nodePayload;
+}
+
+CodeGenNodePayload* CodeGen::ensurePayload(AstNodeRef nodeRef)
+{
+    CodeGenNodePayload* nodePayload = payload(nodeRef);
+    if (nodePayload)
+        return nodePayload;
+
+    if (emitConstant(nodeRef) == Result::Error)
+        return nullptr;
+    return payload(nodeRef);
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
@@ -169,6 +203,19 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
 {
     const auto it = variablePayloads_.find(&sym);
     if (it == variablePayloads_.end())
+        return nullptr;
+    return &it->second;
+}
+
+void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot)
+{
+    localStackSlots_[&sym] = slot;
+}
+
+const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym) const
+{
+    const auto it = localStackSlots_.find(&sym);
+    if (it == localStackSlots_.end())
         return nullptr;
     return &it->second;
 }
@@ -205,6 +252,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->reg         = nextVirtualRegister();
     nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
+    nodePayload->generation  = payloadGeneration_;
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 

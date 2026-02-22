@@ -37,8 +37,8 @@ void Stats::print(const TaskContext& ctx) const
 
     // Backend micro counts
     Logger::print(ctx, "\n");
-    const size_t numMicroNoOptim      = numMicroInstrNoOptim.load();
-    const size_t numMicroFinal        = numMicroInstrFinal.load();
+    const size_t numMicroNoOptim = numMicroInstrNoOptim.load();
+    const size_t numMicroFinal   = numMicroInstrFinal.load();
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
 

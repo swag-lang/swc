@@ -84,8 +84,8 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         const TypeInfo& ty         = type(ctx);
         const uint64_t  structSize = ty.sizeOf(ctx);
         SWC_ASSERT(structSize);
-        const std::vector<std::byte> buffer(structSize);
-        const ByteSpan               bytes = asByteSpan(buffer);
+        std::vector<std::byte> buffer(structSize);
+        const ByteSpanRW       bytes = asByteSpan(buffer);
         ConstantLower::lowerAggregateStructToBytes(sema, bytes, ty, {});
         const ConstantValue cstVal = ConstantValue::makeStruct(ctx, typeRef, bytes);
         defaultStructCst_          = sema.cstMgr().addConstant(ctx, cstVal);

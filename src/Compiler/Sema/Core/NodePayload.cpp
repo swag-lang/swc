@@ -475,7 +475,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto&                        shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                  shard   = shards_[info.shardIdx];
             const CodeGenPayloadStorage* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -488,7 +488,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto&                          shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                    shard   = shards_[info.shardIdx];
             const ResolvedCallArgsStorage* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             if (storage->argsSpan.isInvalid())
@@ -586,7 +586,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto&                        shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                  shard   = shards_[info.shardIdx];
             const CodeGenPayloadStorage* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -599,7 +599,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto&                          shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                    shard   = shards_[info.shardIdx];
             const ResolvedCallArgsStorage* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -612,7 +612,7 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
         if (info.kind == NodePayloadKind::Substitute)
         {
-            auto&                    shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&              shard   = shards_[info.shardIdx];
             const SubstituteStorage* storage = shard.store.ptr<SubstituteStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -640,7 +640,7 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
     {
         if (info.kind == NodePayloadKind::CodeGenPayload)
         {
-            auto&                        shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                  shard   = shards_[info.shardIdx];
             const CodeGenPayloadStorage* storage = shard.store.ptr<CodeGenPayloadStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -653,7 +653,7 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 
         if (info.kind == NodePayloadKind::ResolvedCallArgs)
         {
-            auto&                          shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&                    shard   = shards_[info.shardIdx];
             const ResolvedCallArgsStorage* storage = shard.store.ptr<ResolvedCallArgsStorage>(info.ref);
             SWC_ASSERT(storage);
             info = {
@@ -666,7 +666,7 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 
         if (info.kind == NodePayloadKind::Substitute)
         {
-            auto&                    shard   = const_cast<Shard&>(shards_[info.shardIdx]);
+            const auto&              shard   = shards_[info.shardIdx];
             const SubstituteStorage* storage = shard.store.ptr<SubstituteStorage>(info.ref);
             SWC_ASSERT(storage);
             flags = storage->originalFlags;
@@ -682,27 +682,51 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
     }
 }
 
-NodePayload::CodeGenPayloadStorage* NodePayload::codeGenPayloadStorage(const AstNode& node) const
+NodePayload::CodeGenPayloadStorage* NodePayload::codeGenPayloadStorage(const AstNode& node)
 {
     SWC_ASSERT(payloadKind(node) == NodePayloadKind::CodeGenPayload);
     const uint32_t shardIdx = payloadShard(node);
-    auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
+    auto&          shard    = shards_[shardIdx];
     return shard.store.ptr<CodeGenPayloadStorage>(node.payloadRef());
 }
 
-NodePayload::ResolvedCallArgsStorage* NodePayload::resolvedCallArgsStorage(const AstNode& node) const
+const NodePayload::CodeGenPayloadStorage* NodePayload::codeGenPayloadStorage(const AstNode& node) const
+{
+    SWC_ASSERT(payloadKind(node) == NodePayloadKind::CodeGenPayload);
+    const uint32_t shardIdx = payloadShard(node);
+    const auto&    shard    = shards_[shardIdx];
+    return shard.store.ptr<CodeGenPayloadStorage>(node.payloadRef());
+}
+
+NodePayload::ResolvedCallArgsStorage* NodePayload::resolvedCallArgsStorage(const AstNode& node)
 {
     SWC_ASSERT(payloadKind(node) == NodePayloadKind::ResolvedCallArgs);
     const uint32_t shardIdx = payloadShard(node);
-    auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
+    auto&          shard    = shards_[shardIdx];
     return shard.store.ptr<ResolvedCallArgsStorage>(node.payloadRef());
 }
 
-NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node) const
+const NodePayload::ResolvedCallArgsStorage* NodePayload::resolvedCallArgsStorage(const AstNode& node) const
+{
+    SWC_ASSERT(payloadKind(node) == NodePayloadKind::ResolvedCallArgs);
+    const uint32_t shardIdx = payloadShard(node);
+    const auto&    shard    = shards_[shardIdx];
+    return shard.store.ptr<ResolvedCallArgsStorage>(node.payloadRef());
+}
+
+NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node)
 {
     SWC_ASSERT(payloadKind(node) == NodePayloadKind::Substitute);
     const uint32_t shardIdx = payloadShard(node);
-    auto&          shard    = const_cast<Shard&>(shards_[shardIdx]);
+    auto&          shard    = shards_[shardIdx];
+    return shard.store.ptr<SubstituteStorage>(node.payloadRef());
+}
+
+const NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node) const
+{
+    SWC_ASSERT(payloadKind(node) == NodePayloadKind::Substitute);
+    const uint32_t shardIdx = payloadShard(node);
+    const auto&    shard    = shards_[shardIdx];
     return shard.store.ptr<SubstituteStorage>(node.payloadRef());
 }
 

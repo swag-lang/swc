@@ -100,7 +100,7 @@ namespace
 
         SWC_ASSERT(srcPayload->isAddress());
 
-        MicroBuilder& builder      = codeGen.builder();
+        MicroBuilder&  builder      = codeGen.builder();
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(valueAddrReg, srcPayload->reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
 
@@ -112,7 +112,7 @@ namespace
             return Result::Continue;
         }
 
-        MicroOpBits valueBits = MicroOpBits::Zero;
+        auto valueBits = MicroOpBits::Zero;
         if (anyCastAsValueBits(codeGen, dstType, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

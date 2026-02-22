@@ -172,7 +172,7 @@ namespace
     }
 }
 
-Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root, Sema* sema)
+Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema* sema)
 {
     Utf8 out;
     if (root.isInvalid())
@@ -200,8 +200,7 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
         return Result::Continue;
     });
 
-    auto& mutableAst = const_cast<Ast&>(ast);
-    orderingVisit.start(mutableAst, root);
+    orderingVisit.start(ast, root);
     if (runVisit(orderingVisit, ctx) == AstVisitResult::Error)
         return out;
 
@@ -244,14 +243,14 @@ Utf8 AstPrinter::format(const TaskContext& ctx, const Ast& ast, AstNodeRef root,
         return Result::Continue;
     });
 
-    printVisit.start(mutableAst, root);
+    printVisit.start(ast, root);
     if (runVisit(printVisit, ctx) == AstVisitResult::Error)
         return {};
 
     return out;
 }
 
-void AstPrinter::print(const TaskContext& ctx, const Ast& ast, AstNodeRef root, Sema* sema)
+void AstPrinter::print(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema* sema)
 {
     Logger::print(ctx, format(ctx, ast, root, sema));
     Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));

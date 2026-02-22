@@ -100,22 +100,21 @@ namespace
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
-        const Symbol& sym = *nodeSymView.sym();
-        SWC_ASSERT(sym.isFunction());
+        SymbolFunction* calledFn = nodeSymView.sym()->safeCast<SymbolFunction>();
+        SWC_ASSERT(calledFn);
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
-            const auto calledFn = const_cast<SymbolFunction*>(&sym.cast<SymbolFunction>());
             if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef() && !calledFn->isForeign())
                 currentFn->addCallDependency(calledFn);
         }
 
         if (tryIntrinsicFold)
         {
-            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, sym.cast<SymbolFunction>(), args));
+            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, *calledFn, args));
         }
         else
         {
-            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), sym.cast<SymbolFunction>(), args, ufcsArg));
+            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), *calledFn, args, ufcsArg));
         }
 
         return Result::Continue;

@@ -30,8 +30,8 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
     const std::pair<std::string_view, Ref> res = addString(value);
     addRelocation(baseOffset + fieldOffset, res.second);
 
-    char** ptrField = ptr<char*>(baseOffset + fieldOffset);
-    *ptrField       = const_cast<char*>(res.first.data());
+    const char** ptrField = ptr<const char*>(baseOffset + fieldOffset);
+    *ptrField             = res.first.data();
 
     return static_cast<uint32_t>(res.first.size());
 }

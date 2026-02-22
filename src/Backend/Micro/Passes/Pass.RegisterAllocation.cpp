@@ -669,8 +669,8 @@ namespace
         state.liveStamp.clear();
         state.liveStamp.reserve(state.instructionCount * 2ull);
 
-        uint32_t stamp = 1;
-        uint32_t idx   = 0;
+        uint32_t stamp      = 1;
+        uint32_t idx        = 0;
         int64_t  stackDepth = 0;
         for (auto it = state.instructions->view().begin(); it != state.instructions->view().end() && idx < state.instructionCount; ++it)
         {

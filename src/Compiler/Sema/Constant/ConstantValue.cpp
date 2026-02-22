@@ -760,7 +760,7 @@ Utf8 ConstantValue::toString(const TaskContext& ctx) const
         case ConstantKind::ValuePointer:
         {
             const TypeInfo& type = ctx.typeMgr().get(typeRef_);
-            if (type.isAnyTypeInfo(const_cast<TaskContext&>(ctx)))
+            if (type.isAnyTypeInfo(ctx))
             {
                 const auto backType = ctx.typeGen().getBackTypeRef(reinterpret_cast<const void*>(getValuePointer()));
                 if (backType.isValid())

@@ -68,9 +68,10 @@ public:
     void     incPendingImplRegistrations();
     void     decPendingImplRegistrations();
 
-    std::atomic<uint32_t>& atomicId() const { return const_cast<CompilerInstance*>(this)->atomicId_; }
-    bool                   setMainFunc(AstCompilerFunc* node);
-    AstCompilerFunc*       mainFunc() const { return mainFunc_; }
+    std::atomic<uint32_t>&       atomicId() { return atomicId_; }
+    const std::atomic<uint32_t>& atomicId() const { return atomicId_; }
+    bool                         setMainFunc(AstCompilerFunc* node);
+    AstCompilerFunc*             mainFunc() const { return mainFunc_; }
 
     bool                     registerForeignLib(std::string_view name);
     const std::vector<Utf8>& foreignLibs() const { return foreignLibs_; }

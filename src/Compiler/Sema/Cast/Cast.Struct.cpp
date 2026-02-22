@@ -261,8 +261,8 @@ namespace
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
-        const std::vector<std::byte> buffer(structSize);
-        const auto                   bytes = asByteSpan(buffer);
+        std::vector<std::byte> buffer(structSize);
+        const ByteSpanRW       bytes = asByteSpan(buffer);
 
         for (size_t i = 0; i < dstFields.size(); ++i)
         {
@@ -273,7 +273,7 @@ namespace
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
             const uint64_t  fieldOffset  = dstFields[i]->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
-            ConstantLower::lowerToBytes(*args.sema, ByteSpan{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
+            ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, castedByDst[i], fieldTypeRef);
         }
 
         const auto result             = ConstantValue::makeStruct(args.sema->ctx(), args.dstTypeRef, bytes);

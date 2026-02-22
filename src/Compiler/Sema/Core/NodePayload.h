@@ -150,9 +150,12 @@ private:
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
-    CodeGenPayloadStorage*         codeGenPayloadStorage(const AstNode& node) const;
-    ResolvedCallArgsStorage*       resolvedCallArgsStorage(const AstNode& node) const;
-    SubstituteStorage*             substituteStorage(const AstNode& node) const;
+    CodeGenPayloadStorage*         codeGenPayloadStorage(const AstNode& node);
+    const CodeGenPayloadStorage*   codeGenPayloadStorage(const AstNode& node) const;
+    ResolvedCallArgsStorage*       resolvedCallArgsStorage(const AstNode& node);
+    const ResolvedCallArgsStorage* resolvedCallArgsStorage(const AstNode& node) const;
+    SubstituteStorage*             substituteStorage(const AstNode& node);
+    const SubstituteStorage*       substituteStorage(const AstNode& node) const;
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_ = nullptr;

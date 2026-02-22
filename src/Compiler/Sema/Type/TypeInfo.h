@@ -152,7 +152,7 @@ public:
     bool isEnumFlags() const noexcept;
     bool isLambdaClosure() const noexcept;
     bool isLambdaMethod() const noexcept;
-    bool isAnyTypeInfo(TaskContext& ctx) const noexcept;
+    bool isAnyTypeInfo(const TaskContext& ctx) const noexcept;
 
     Sign payloadIntSign() const noexcept
     {

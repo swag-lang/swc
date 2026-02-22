@@ -1044,7 +1044,7 @@ bool TypeInfo::isLambdaMethod() const noexcept
     return isFunction() && payloadFunction_.sym->hasExtraFlag(SymbolFunctionFlagsE::Method);
 }
 
-bool TypeInfo::isAnyTypeInfo(TaskContext& ctx) const noexcept
+bool TypeInfo::isAnyTypeInfo(const TaskContext& ctx) const noexcept
 {
     if (isTypeInfo())
         return true;

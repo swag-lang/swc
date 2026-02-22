@@ -151,7 +151,7 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
     sema().appendResolvedCallArguments(nodeRef, out);
 }
 
-CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef) const
+CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef)
 {
     nodeRef = resolvedNodeRef(nodeRef);
     if (nodeRef.isInvalid())

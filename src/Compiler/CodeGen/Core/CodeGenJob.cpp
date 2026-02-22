@@ -73,9 +73,9 @@ JobResult CodeGenJob::exec()
     // Generate micro instructions for this function and mark codegen as pre-solved.
     ///////////////////////////////////////////
     SWC_ASSERT(root_.isValid());
-    CodeGen      codeGen(*sema_);
+    CodeGen codeGen(*sema_);
 #if SWC_HAS_STATS
-    Timer        timeCodeGen(&Stats::get().timeCodeGen);
+    Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif
     const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
     if (codeGenResult != Result::Continue)

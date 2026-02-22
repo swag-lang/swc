@@ -107,7 +107,7 @@ public:
     SymbolFunction&       function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
 
-    CodeGenNodePayload*       payload(AstNodeRef nodeRef) const;
+    CodeGenNodePayload*       payload(AstNodeRef nodeRef);
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
@@ -121,7 +121,7 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<Sema&>(sema()).viewZero(nodeRef).nodeRef(); }
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
     void       setVisitors();
     Result     preNode(AstNode& node);
     Result     postNode(AstNode& node);

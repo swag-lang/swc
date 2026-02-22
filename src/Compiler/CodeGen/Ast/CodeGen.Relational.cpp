@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const CodeGenNodePayload& ensureOperandPayload(const CodeGen& codeGen, AstNodeRef nodeRef)
+    const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
     }

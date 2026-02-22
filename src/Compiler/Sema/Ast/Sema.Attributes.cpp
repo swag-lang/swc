@@ -35,7 +35,7 @@ namespace
         return false;
     }
 
-    void printAstStage(const Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
+    void printAstStage(Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
     {
         const AstNode&        node     = sema.node(nodeRef);
         const TaskContext&    ctx      = sema.ctx();
@@ -79,7 +79,7 @@ namespace
         Logger::print(ctx, "\n");
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
-        AstPrinter::print(ctx, sema.ast(), nodeRef, const_cast<Sema*>(&sema));
+        AstPrinter::print(ctx, sema.ast(), nodeRef, &sema);
     }
 
     RtAttributeFlags predefinedRtAttributeFlag(const Sema& sema, IdentifierRef idRef)

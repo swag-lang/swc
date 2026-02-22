@@ -67,7 +67,7 @@ public:
 
     const T* find(std::string_view key, uint32_t hash) const
     {
-        return const_cast<StringMap*>(this)->findImpl(key, hash);
+        return findImpl(key, hash);
     }
 
     bool contains(std::string_view key, uint32_t hash) const
@@ -326,7 +326,7 @@ private:
         }
     }
 
-    bool findIndex(std::string_view key, uint32_t hash, size_t& out_idx)
+    bool findIndex(std::string_view key, uint32_t hash, size_t& out_idx) const
     {
         if (slots.empty())
             return false;
@@ -342,7 +342,7 @@ private:
                 return false;
             if (isOccupied(c))
             {
-                Slot& s = slots[idx];
+                const Slot& s = slots[idx];
 
                 if (c == fp && s.hash == hash && s.key == key)
                 {
@@ -360,6 +360,14 @@ private:
     }
 
     T* findImpl(std::string_view key, uint32_t hash)
+    {
+        size_t idx;
+        if (!findIndex(key, hash, idx))
+            return nullptr;
+        return &slots[idx].value;
+    }
+
+    const T* findImpl(std::string_view key, uint32_t hash) const
     {
         size_t idx;
         if (!findIndex(key, hash, idx))

@@ -84,7 +84,7 @@ namespace
         TaskContext&           ctx       = args.sema->ctx();
         const uint64_t         arraySize = args.dstType->sizeOf(ctx);
         std::vector<std::byte> buffer(arraySize);
-        const ByteSpan         bytes = asByteSpan(buffer);
+        const ByteSpanRW       bytes = asByteSpan(buffer);
         ConstantLower::lowerAggregateArrayToBytes(*args.sema, bytes, *args.dstType, values);
 
         const ConstantValue result = ConstantValue::makeArray(ctx, args.dstTypeRef, bytes);

@@ -10,12 +10,12 @@ struct Stats
     std::atomic<size_t>   numWarnings = 0;
 
 #if SWC_HAS_STATS
-    std::atomic<uint64_t> timeLoadFile   = 0;
-    std::atomic<uint64_t> timeLexer      = 0;
-    std::atomic<uint64_t> timeParser     = 0;
-    std::atomic<uint64_t> timeSema       = 0;
-    std::atomic<uint64_t> timeCodeGen    = 0;
-    std::atomic<uint64_t> timeMicroLower = 0;
+    std::atomic<uint64_t> timeLoadFile      = 0;
+    std::atomic<uint64_t> timeLexer         = 0;
+    std::atomic<uint64_t> timeParser        = 0;
+    std::atomic<uint64_t> timeSema          = 0;
+    std::atomic<uint64_t> timeCodeGen       = 0;
+    std::atomic<uint64_t> timeMicroLower    = 0;
     std::atomic<uint64_t> timeBackendPasses = 0;
     std::atomic<uint64_t> timeJitExec       = 0;
 

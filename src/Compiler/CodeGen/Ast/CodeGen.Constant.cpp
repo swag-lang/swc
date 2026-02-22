@@ -152,10 +152,10 @@ namespace
 
                     if (targetType.isSlice())
                     {
-                        const TypeInfo&      elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());
-                        const uint64_t       elementSize = elementType.sizeOf(codeGen.ctx());
-                        const Runtime::Slice runtimeSlice{
-                            .ptr   = const_cast<std::byte*>(arrayBytes.data()),
+                        const TypeInfo&                       elementType = codeGen.typeMgr().get(targetType.payloadTypeRef());
+                        const uint64_t                        elementSize = elementType.sizeOf(codeGen.ctx());
+                        const Runtime::Slice<const std::byte> runtimeSlice{
+                            .ptr   = arrayBytes.data(),
                             .count = elementSize ? arrayBytes.size() / elementSize : 0,
                         };
                         const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));

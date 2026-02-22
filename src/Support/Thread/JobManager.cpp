@@ -293,7 +293,7 @@ bool JobManager::wakeAll(JobClientId client)
     {
         std::vector<JobRecord*> temp;
         temp.reserve(liveRecs_.size());
-        for (const JobRecord* rec : liveRecs_)
+        for (JobRecord* rec : liveRecs_)
         {
             if (!rec)
                 continue;
@@ -301,7 +301,7 @@ bool JobManager::wakeAll(JobClientId client)
                 continue;
             if (rec->state != JobRecord::State::Waiting)
                 continue;
-            temp.push_back(const_cast<JobRecord*>(rec));
+            temp.push_back(rec);
         }
 
         std::ranges::sort(temp, [](const JobRecord* a, const JobRecord* b) { return a->index < b->index; });

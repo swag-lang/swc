@@ -123,6 +123,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     const Token& tok = codeGen.token(codeRef());
     switch (tok.id)
     {
+        case TokenId::IntrinsicBcBreakpoint:
+            codeGen.builder().emitBreakpoint();
+            return Result::Continue;
+
         case TokenId::IntrinsicCompiler:
         {
             const uint64_t            compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
@@ -133,7 +137,6 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         }
 
         default:
-            // TODO
             SWC_UNREACHABLE();
     }
 }

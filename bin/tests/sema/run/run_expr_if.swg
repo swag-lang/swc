@@ -2,7 +2,6 @@
 
 #test
 {
-    #[Swag.PrintMicro]
     func ifArgNoElse()->s32
     {
         if false

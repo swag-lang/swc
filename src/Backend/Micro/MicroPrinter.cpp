@@ -667,6 +667,8 @@ namespace
 
             case MicroInstrOpcode::Ret:
                 return tagInstructionToken("ret");
+            case MicroInstrOpcode::Breakpoint:
+                return tagInstructionToken("breakpoint");
             case MicroInstrOpcode::Push:
                 return std::format("{} {}", tagInstructionToken("push"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Pop:
@@ -1254,6 +1256,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Debug:
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
+            case MicroInstrOpcode::Breakpoint:
                 break;
             case MicroInstrOpcode::Push:
             case MicroInstrOpcode::Pop:

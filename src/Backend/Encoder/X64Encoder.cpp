@@ -2869,4 +2869,10 @@ void X64Encoder::encodeNop()
     return;
 }
 
+void X64Encoder::encodeBreakpoint()
+{
+    emitCpuOp(store_, 0xCC);
+    return;
+}
+
 SWC_END_NAMESPACE();

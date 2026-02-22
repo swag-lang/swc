@@ -141,6 +141,12 @@ void MicroBuilder::emitNop()
     return;
 }
 
+void MicroBuilder::emitBreakpoint()
+{
+    addInstruction(MicroInstrOpcode::Breakpoint, 0);
+    return;
+}
+
 Ref MicroBuilder::createLabel()
 {
     const Ref labelRef = static_cast<Ref>(labels_.size());

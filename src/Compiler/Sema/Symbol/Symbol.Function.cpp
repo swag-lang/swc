@@ -4,8 +4,10 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
+#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -170,9 +172,13 @@ void SymbolFunction::emit(TaskContext& ctx)
     if (hasLoweredCode())
         return;
     auto& builder = microInstrBuilder(ctx);
+#if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);
+#endif
     loweredMicroCode_.emit(ctx, builder);
+#if SWC_HAS_STATS
     Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
+#endif
     ctx.compiler().notifyAlive();
 }
 

@@ -4,8 +4,10 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Global.h"
+#if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
+#endif
 #include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -72,7 +74,9 @@ JobResult CodeGenJob::exec()
     ///////////////////////////////////////////
     SWC_ASSERT(root_.isValid());
     CodeGen      codeGen(*sema_);
+#if SWC_HAS_STATS
     Timer        timeCodeGen(&Stats::get().timeCodeGen);
+#endif
     const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
     if (codeGenResult != Result::Continue)
         return toJobResult(codeGenResult);

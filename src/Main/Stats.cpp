@@ -39,41 +39,24 @@ void Stats::print(const TaskContext& ctx) const
     Logger::print(ctx, "\n");
     const size_t numMicroNoOptim      = numMicroInstrNoOptim.load();
     const size_t numMicroFinal        = numMicroInstrFinal.load();
-    const size_t numMicroOpNoOptim    = numMicroOperandsNoOptim.load();
-    const size_t numMicroOpFinal      = numMicroOperandsFinal.load();
-    const size_t numMicroOptimRemoved = numMicroInstrOptimRemoved.load();
-    const size_t numMicroOptimAdded   = numMicroInstrOptimAdded.load();
-
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.numInstrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.numInstrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.numOperandsNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOpNoOptim));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.numOperandsFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOpFinal));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
 
     const int64_t numMicroPipelineDelta     = static_cast<int64_t>(numMicroNoOptim) - static_cast<int64_t>(numMicroFinal);
     const char    numMicroPipelineDeltaSign = numMicroPipelineDelta >= 0 ? '+' : '-';
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.pipelineDelta", colorMsg, std::format("{}{}", numMicroPipelineDeltaSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroPipelineDelta)))));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, std::format("{}{}", numMicroPipelineDeltaSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroPipelineDelta)))));
 
     double pipelineRemovedPct = 0.0;
     if (numMicroNoOptim != 0)
         pipelineRemovedPct = 100.0 * static_cast<double>(numMicroPipelineDelta) / static_cast<double>(numMicroNoOptim);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.pipelineRemovedPct", colorMsg, std::format("{:.2f}%", pipelineRemovedPct));
-
-    const int64_t numMicroOptimNet     = static_cast<int64_t>(numMicroOptimRemoved) - static_cast<int64_t>(numMicroOptimAdded);
-    const char    numMicroOptimNetSign = numMicroOptimNet >= 0 ? '+' : '-';
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimRemoved", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOptimRemoved));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimAdded", colorMsg, Utf8Helper::toNiceBigNumber(numMicroOptimAdded));
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimNet", colorMsg, std::format("{}{}", numMicroOptimNetSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroOptimNet)))));
-
-    double optimRemovedPct = 0.0;
-    if (numMicroNoOptim != 0)
-        optimRemovedPct = 100.0 * static_cast<double>(numMicroOptimNet) / static_cast<double>(numMicroNoOptim);
-    Logger::printHeaderDot(ctx, colorHeader, "count.micro.optimRemovedPct", colorMsg, std::format("{:.2f}%", optimRemovedPct));
+    Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrReducedPct", colorMsg, std::format("{:.2f}%", pipelineRemovedPct));
 
     // Time
     Logger::print(ctx, "\n");
     Logger::printHeaderDot(ctx, colorHeader, "time.frontend.loadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.frontend.lexer", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.frontend.parser", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
+    Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
     Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
 
@@ -83,6 +66,8 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "mem.sema.constants", colorMsg, Utf8Helper::toNiceSize(memConstants.load()));
     Logger::printHeaderDot(ctx, colorHeader, "mem.sema.types", colorMsg, Utf8Helper::toNiceSize(memTypes.load()));
     Logger::printHeaderDot(ctx, colorHeader, "mem.sema.symbols", colorMsg, Utf8Helper::toNiceSize(memSymbols.load()));
+    Logger::printHeaderDot(ctx, colorHeader, "mem.jit.used", colorMsg, Utf8Helper::toNiceSize(memJitUsed.load()));
+    Logger::printHeaderDot(ctx, colorHeader, "mem.jit.reserved", colorMsg, Utf8Helper::toNiceSize(memJitReserved.load()));
     Logger::printHeaderDot(ctx, colorHeader, "mem.micro.storageNoOptim", colorMsg, Utf8Helper::toNiceSize(memMicroStorageNoOptim.load()));
     Logger::printHeaderDot(ctx, colorHeader, "mem.micro.storageFinal", colorMsg, Utf8Helper::toNiceSize(memMicroStorageFinal.load()));
 #endif

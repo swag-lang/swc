@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#if SWC_HAS_STATS
+#include "Main/Stats.h"
+#endif
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -63,12 +66,18 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
             return false;
 
         blocks_.push_back({.ptr = ptr, .size = blockSize, .allocated = 0});
+#if SWC_HAS_STATS
+        Stats::get().memJitReserved.fetch_add(blockSize, std::memory_order_relaxed);
+#endif
         targetBlock = &blocks_.back();
     }
 
     SWC_ASSERT(targetBlock);
     std::byte* const dst = static_cast<std::byte*>(targetBlock->ptr) + targetBlock->allocated;
     targetBlock->allocated += requestSizeAlign;
+#if SWC_HAS_STATS
+    Stats::get().memJitUsed.fetch_add(requestSizeAlign, std::memory_order_relaxed);
+#endif
 
     outExecutableMemory.ptr_            = dst;
     outExecutableMemory.size_           = requestSize;

@@ -141,8 +141,6 @@ namespace
         {
             case MicroRelocation::Kind::ConstantAddress:
                 outTargetAddress = reloc.targetAddress;
-                if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
-                    outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
                 return true;
 
             case MicroRelocation::Kind::LocalFunctionAddress:

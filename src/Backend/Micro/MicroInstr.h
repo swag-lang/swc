@@ -94,8 +94,8 @@ struct MicroInstrOperand
 
     void setImmediateValue(const ApInt& value)
     {
-        valueInt  = value;
-        valueU64  = value.as64();
+        valueInt = value;
+        valueU64 = value.as64();
     }
 
     bool hasWideImmediateValue() const

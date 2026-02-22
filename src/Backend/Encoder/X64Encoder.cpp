@@ -783,8 +783,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsWide = ops[2].hasWideImmediateValue();
-        const bool immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
+        const bool     immediateIsWide = ops[2].hasWideImmediateValue();
+        const bool     immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
         const uint64_t immediateU64 =
             immediateIsWide && immediateFits64 ? ops[2].wideImmediateValue().as64() : ops[2].valueU64;
 
@@ -875,9 +875,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ?
-                                              canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) :
-                                              canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
         if (ops[1].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadMemImm64;
@@ -911,9 +909,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadAmcMemImm)
     {
-        const bool immediateIsEncodable = !ops[7].hasWideImmediateValue() ?
-                                              canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits) :
-                                              canEncodeOpImmediate(ops[7].wideImmediateValue(), ops[4].opBits);
+        const bool immediateIsEncodable = !ops[7].hasWideImmediateValue() ? canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits) : canEncodeOpImmediate(ops[7].wideImmediateValue(), ops[4].opBits);
         if (ops[4].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadAmcMemImm64;

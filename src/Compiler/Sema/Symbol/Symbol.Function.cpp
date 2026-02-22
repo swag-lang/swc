@@ -135,6 +135,14 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
     parameters_.push_back(sym);
 }
 
+void SymbolFunction::addLocalVariable(SymbolVariable* sym)
+{
+    SWC_ASSERT(sym != nullptr);
+    if (std::ranges::find(localVariables_, sym) != localVariables_.end())
+        return;
+    localVariables_.push_back(sym);
+}
+
 MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept
 {
     microInstrBuilder_.setContext(ctx);

@@ -16,12 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct LocalVarSymbolEntry
-    {
-        const SymbolVariable* symVar     = nullptr;
-        AstNodeRef            declNodeRef = AstNodeRef::invalid();
-    };
-
     uint64_t alignUpU64(uint64_t value, uint32_t align)
     {
         SWC_ASSERT(align != 0);
@@ -36,52 +30,13 @@ namespace
         return typeInfo.isString();
     }
 
-    AstNodeRef semaNodeRefOrOriginal(CodeGen& codeGen, AstNodeRef nodeRef)
+    TypeRef resolveLocalVarTypeRef(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        const AstNodeRef semaNodeRef = codeGen.viewZero(nodeRef).nodeRef();
-        if (semaNodeRef.isValid())
-            return semaNodeRef;
-        return nodeRef;
-    }
-
-    TypeRef resolveLocalVarTypeRef(CodeGen& codeGen, const LocalVarSymbolEntry& entry)
-    {
-        SWC_ASSERT(entry.symVar != nullptr);
-
-        TypeRef typeRef = entry.symVar->typeRef();
+        TypeRef typeRef = symVar.typeRef();
         if (typeRef.isValid())
             return typeRef;
 
-        if (entry.declNodeRef.isValid())
-        {
-            const SemaNodeView declTypeView = codeGen.viewType(entry.declNodeRef);
-            if (declTypeView.type())
-                return declTypeView.typeRef();
-
-            const AstNode& declNode = codeGen.node(entry.declNodeRef);
-            if (declNode.is(AstNodeId::SingleVarDecl))
-            {
-                const AstSingleVarDecl* singleVarDecl = declNode.cast<AstSingleVarDecl>();
-                if (singleVarDecl->nodeInitRef.isValid())
-                {
-                    const SemaNodeView initTypeView = codeGen.viewType(singleVarDecl->nodeInitRef);
-                    if (initTypeView.type())
-                        return initTypeView.typeRef();
-                }
-            }
-            else if (declNode.is(AstNodeId::MultiVarDecl))
-            {
-                const AstMultiVarDecl* multiVarDecl = declNode.cast<AstMultiVarDecl>();
-                if (multiVarDecl->nodeInitRef.isValid())
-                {
-                    const SemaNodeView initTypeView = codeGen.viewType(multiVarDecl->nodeInitRef);
-                    if (initTypeView.type())
-                        return initTypeView.typeRef();
-                }
-            }
-        }
-
-        const AstNode* declNode = entry.symVar->decl();
+        const AstNode* declNode = symVar.decl();
         if (!declNode)
             return TypeRef::invalid();
 
@@ -93,73 +48,44 @@ namespace
         if (declTypeView.type())
             return declTypeView.typeRef();
 
+        if (declNode->is(AstNodeId::SingleVarDecl))
+        {
+            const AstSingleVarDecl* singleVarDecl = declNode->cast<AstSingleVarDecl>();
+            if (singleVarDecl->nodeInitRef.isValid())
+            {
+                const SemaNodeView initTypeView = codeGen.viewType(singleVarDecl->nodeInitRef);
+                if (initTypeView.type())
+                    return initTypeView.typeRef();
+            }
+        }
+        else if (declNode->is(AstNodeId::MultiVarDecl))
+        {
+            const AstMultiVarDecl* multiVarDecl = declNode->cast<AstMultiVarDecl>();
+            if (multiVarDecl->nodeInitRef.isValid())
+            {
+                const SemaNodeView initTypeView = codeGen.viewType(multiVarDecl->nodeInitRef);
+                if (initTypeView.type())
+                    return initTypeView.typeRef();
+            }
+        }
+
         return TypeRef::invalid();
-    }
-
-    void collectLocalVarSymbolsRecursive(CodeGen& codeGen, AstNodeRef nodeRef, SmallVector<LocalVarSymbolEntry>& outSymbols)
-    {
-        if (nodeRef.isInvalid())
-            return;
-
-        const AstNode& node = codeGen.node(nodeRef);
-        if (node.is(AstNodeId::FunctionDecl))
-            return;
-
-        const AstNodeRef semaNodeRef = semaNodeRefOrOriginal(codeGen, nodeRef);
-
-        if (node.is(AstNodeId::SingleVarDecl))
-        {
-            const SemaNodeView view = codeGen.viewSymbol(semaNodeRef);
-            if (view.sym() && view.sym()->isVariable())
-            {
-                const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
-                if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                {
-                    LocalVarSymbolEntry entry;
-                    entry.symVar      = &symVar;
-                    entry.declNodeRef = semaNodeRef;
-                    outSymbols.push_back(entry);
-                }
-            }
-        }
-        else if (node.is(AstNodeId::MultiVarDecl) || node.is(AstNodeId::VarDeclDestructuring))
-        {
-            const SemaNodeView view = codeGen.viewSymbolList(semaNodeRef);
-            for (const Symbol* sym : view.symList())
-            {
-                if (!sym || !sym->isVariable())
-                    continue;
-                const SymbolVariable& symVar = sym->cast<SymbolVariable>();
-                if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                {
-                    LocalVarSymbolEntry entry;
-                    entry.symVar      = &symVar;
-                    entry.declNodeRef = semaNodeRef;
-                    outSymbols.push_back(entry);
-                }
-            }
-        }
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, codeGen.ast());
-        for (const AstNodeRef childRef : children)
-            collectLocalVarSymbolsRecursive(codeGen, childRef, outSymbols);
     }
 
     void buildLocalStackLayout(CodeGen& codeGen, AstNodeRef bodyNodeRef)
     {
-        SmallVector<LocalVarSymbolEntry> localSymbols;
-        collectLocalVarSymbolsRecursive(codeGen, bodyNodeRef, localSymbols);
+        SWC_UNUSED(bodyNodeRef);
+
+        const auto& localSymbols = codeGen.function().localVariables();
         if (localSymbols.empty())
             return;
 
         const CallConv& callConv = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
-        for (const LocalVarSymbolEntry& entry : localSymbols)
+        for (const SymbolVariable* symVar : localSymbols)
         {
-            const SymbolVariable* symVar = entry.symVar;
             SWC_ASSERT(symVar != nullptr);
-            const TypeRef typeRef = resolveLocalVarTypeRef(codeGen, entry);
+            const TypeRef typeRef = resolveLocalVarTypeRef(codeGen, *symVar);
             if (typeRef.isInvalid())
                 continue;
 

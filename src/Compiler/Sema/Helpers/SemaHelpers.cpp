@@ -24,6 +24,10 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
             if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
                 symFunc->addParameter(symVar);
         }
+        else if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
+        {
+            symFunc->addLocalVariable(symVar);
+        }
     }
 
     if (SymbolFunction* symFunc = sym->safeCast<SymbolFunction>())

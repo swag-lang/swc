@@ -40,7 +40,9 @@ public:
     void                                setRtAttributeFlags(RtAttributeFlags attr) { rtAttributeFlags_ = attr; }
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
+    const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     void                                addParameter(SymbolVariable* sym);
+    void                                addLocalVariable(SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
@@ -85,6 +87,7 @@ private:
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT = 0xFFFFFFFFu;
 
     std::vector<SymbolVariable*> parameters_;
+    std::vector<SymbolVariable*> localVariables_;
     RtAttributeFlags             rtAttributeFlags_    = RtAttributeFlagsE::Zero;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;

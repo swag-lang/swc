@@ -226,6 +226,45 @@ namespace
         b.emitRet();
     }
 
+    void buildSpillAcrossBalancedControlFlow(MicroBuilder& b, CallConvKind callConvKind)
+    {
+        const CallConv& conv      = CallConv::get(callConvKind);
+        const Ref       elseLabel = b.createLabel();
+        const Ref       doneLabel = b.createLabel();
+
+        for (uint32_t i = 0; i < 20; ++i)
+        {
+            const auto v = MicroReg::virtualIntReg(7000 + i);
+            b.emitLoadRegImm(v, ApInt(i + 3, 64), MicroOpBits::B64);
+        }
+
+        constexpr MicroReg cmpL = MicroReg::virtualIntReg(7100);
+        constexpr MicroReg cmpR = MicroReg::virtualIntReg(7101);
+        b.emitLoadRegImm(cmpL, ApInt(1, 64), MicroOpBits::B64);
+        b.emitLoadRegImm(cmpR, ApInt(2, 64), MicroOpBits::B64);
+        b.emitCmpRegReg(cmpL, cmpR, MicroOpBits::B64);
+        b.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, elseLabel);
+
+        b.emitOpBinaryRegImm(conv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(conv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        b.placeLabel(elseLabel);
+        b.emitOpBinaryRegImm(conv.stackPointer, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+        b.emitCallReg(MicroReg::intReg(0), callConvKind);
+        b.emitOpBinaryRegImm(conv.stackPointer, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+
+        b.placeLabel(doneLabel);
+        for (uint32_t i = 0; i < 20; ++i)
+        {
+            const auto v = MicroReg::virtualIntReg(7000 + i);
+            b.emitOpBinaryRegImm(v, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        b.emitRet();
+    }
+
     bool isStackAdjust(const MicroInstr& inst, MicroOperandStorage& operands, MicroReg stackPtr, MicroOp op)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -552,6 +591,29 @@ SWC_TEST_BEGIN(RegAlloc_VirtualRegForbiddenPhysRegs)
 
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
         if (containsIntArgRegs(builder, CallConv::get(callConvKind)))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_Spill_BalancedControlFlow)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        MicroBuilder builder(ctx);
+        buildSpillAcrossBalancedControlFlow(builder, callConvKind);
+
+        MicroRegisterAllocationPass regAllocPass;
+        MicroPassManager            passes;
+        passes.add(regAllocPass);
+
+        MicroPassContext passCtx;
+        passCtx.callConvKind = callConvKind;
+        builder.runPasses(passes, nullptr, passCtx);
+
+        RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
+
+        if (!hasSpillFrameOps(builder, CallConv::get(callConvKind)))
             return Result::Error;
     }
 }

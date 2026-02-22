@@ -388,6 +388,19 @@ namespace
             stackDepth -= immValue;
     }
 
+    void mergeLabelStackDepth(std::unordered_map<Ref, int64_t>& labelStackDepth, Ref labelRef, int64_t stackDepth)
+    {
+        const auto it = labelStackDepth.find(labelRef);
+        if (it == labelStackDepth.end())
+        {
+            labelStackDepth.emplace(labelRef, stackDepth);
+            return;
+        }
+
+        // All incoming edges to the same label must agree on transient stack depth.
+        SWC_ASSERT(it->second == stackDepth);
+    }
+
     bool isCandidateBetter(const PassState& state, uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
     {
         if (!currentBestReg.isValid())
@@ -767,9 +780,7 @@ namespace
             {
                 const MicroInstrOperand* const ops     = it->ops(*state.operands);
                 const Ref                     labelRef = static_cast<Ref>(ops[2].valueU64);
-                const auto                    emplaced = labelStackDepth.emplace(labelRef, stackDepth);
-                if (!emplaced.second && emplaced.first->second < stackDepth)
-                    emplaced.first->second = stackDepth;
+                mergeLabelStackDepth(labelStackDepth, labelRef, stackDepth);
             }
 
             applyStackPointerDelta(stackDepth, *it, *state.operands, *state.conv);

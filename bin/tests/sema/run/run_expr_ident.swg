@@ -361,3 +361,35 @@ alias BigArray = [5] s32
     func passErr(x: string) => x
     const V = #run passErr("ok", 1) // swc-expected-error {{sema_err_too_many_arguments}}
 }
+
+// BUG:
+//#test
+//{
+//    func passConstRef(x: const &SmallPair)->u64
+//    {
+//        return cast(u64) x.a + cast(u64) x.b + x.c
+//    }
+//
+//    const P: SmallPair = {a: 1'u32, b: 2'u32, c: 39'u64}
+//    const V = #run passConstRef(P)
+//    #assert(#typeof(V) == u64)
+//    #assert(V == 42'u64)
+//}
+
+#test
+{
+    func passMixed(a: s32, b: f64, c: string, d: SmallPair, e: PassEnum)->u64
+    {
+        return cast(u64) a + cast(u64) b + cast(u64) c[0] + d.c + cast(u64) cast(u16) e
+    }
+
+    const V = #run passMixed(1, 2.0'f64, "A", {a: 3'u32, b: 4'u32, c: 5'u64}, PassEnum.A)
+    #assert(#typeof(V) == u64)
+    #assert(V == 84'u64)
+}
+
+#test
+{
+    func passMixedErr(a: s32, b: SmallPair)->s32 { return a + cast(s32) b.a }
+    const V = #run passMixedErr(1) // swc-expected-error {{sema_err_too_few_arguments}}
+}

@@ -302,3 +302,47 @@ struct BigCopy
         return a + b
     }
 }
+
+// BUG:
+//#test
+//{
+//    func localShadow()->s32
+//    {
+//        var x: s32 = 40
+//        {
+//            var y: s32 = 2
+//            return y + x
+//        }
+//    }
+//
+//    const V = #run localShadow()
+//    #assert(V == 42)
+//}
+
+// BUG:
+//#test
+//{
+//    func localStructArray()->s32
+//    {
+//        var s: LocalStruct = {x: 41, y: true}
+//        var a: [3] s32 = [0, 1, 2]
+//        return s.x + a[1]
+//    }
+//
+//    const V = #run localStructArray()
+//    #assert(V == 42)
+//}
+
+#test
+{
+    func localConstFold()->u64
+    {
+        let a: u64 = 40'u64
+        let b: u64 = 2'u64
+        return a + b
+    }
+
+    const V = #run localConstFold()
+    #assert(#typeof(V) == u64)
+    #assert(V == 42'u64)
+}

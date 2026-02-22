@@ -99,3 +99,24 @@ struct S
 {
     const Cfg = #run dref @compiler.getBuildCfg()
 }
+
+#test
+{
+    func localRun()->s64 { return 42's64 }
+    const V = #run localRun()
+    #assert(#typeof(V) == s64)
+    #assert(V == 42's64)
+}
+
+#test
+{
+    func noArg()->s32 { return 1 }
+    const V = #run noArg(0) // swc-expected-error {{sema_err_too_many_arguments}}
+}
+
+#test
+{
+    const V = #run cast(s64) (40 + 2)
+    #assert(#typeof(V) == s64)
+    #assert(V == 42's64)
+}

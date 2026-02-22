@@ -25,6 +25,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     SWC_ASSERT(nextVirtualRegister_ == 1);
     SWC_ASSERT(variablePayloads_.empty());
+    ifStmtCodeGenStates_.clear();
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();

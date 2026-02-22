@@ -1238,6 +1238,7 @@ struct AstIfStmt : AstIfBaseT<AstNodeId::IfStmt>
 
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

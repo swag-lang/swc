@@ -39,6 +39,13 @@ struct CodeGenNodePayload
 class CodeGen
 {
 public:
+    struct IfStmtCodeGenState
+    {
+        Ref  falseLabel   = INVALID_REF;
+        Ref  doneLabel    = INVALID_REF;
+        bool hasElseBlock = false;
+    };
+
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
@@ -114,6 +121,22 @@ public:
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    IfStmtCodeGenState&       setIfStmtCodeGenState(AstNodeRef nodeRef, const IfStmtCodeGenState& value)
+    {
+        const auto it = ifStmtCodeGenStates_.insert_or_assign(nodeRef, value).first;
+        return it->second;
+    }
+    IfStmtCodeGenState* ifStmtCodeGenState(AstNodeRef nodeRef)
+    {
+        const auto it = ifStmtCodeGenStates_.find(nodeRef);
+        if (it == ifStmtCodeGenStates_.end())
+            return nullptr;
+        return &it->second;
+    }
+    void eraseIfStmtCodeGenState(AstNodeRef nodeRef)
+    {
+        ifStmtCodeGenStates_.erase(nodeRef);
+    }
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
@@ -135,6 +158,7 @@ private:
     MicroBuilder*                                                 builder_             = nullptr;
     uint32_t                                                      nextVirtualRegister_ = 1;
     std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
+    std::unordered_map<AstNodeRef, IfStmtCodeGenState>           ifStmtCodeGenStates_;
 };
 
 SWC_END_NAMESPACE();

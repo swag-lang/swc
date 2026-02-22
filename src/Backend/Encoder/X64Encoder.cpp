@@ -2875,4 +2875,11 @@ void X64Encoder::encodeBreakpoint()
     return;
 }
 
+void X64Encoder::encodeAssertTrap()
+{
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0x0B);
+    return;
+}
+
 SWC_END_NAMESPACE();

@@ -77,6 +77,17 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 SWC_MICRO_INSTR_DEF(
+    AssertTrap,
+    MicroInstrDef{
+        .regModes = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special = MicroInstrRegSpecial::None,
+        .microOpIndex = 0,
+        .callConvIndex = 0,
+        .flags = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex = 0,
+        .memOffsetOperandIndex = 0,
+    })
+SWC_MICRO_INSTR_DEF(
     Ret,
     MicroInstrDef{
         .regModes = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},

@@ -107,6 +107,7 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
+    void emitAssertTrap();
     void emitLabel(Ref& outLabelRef);
     void emitRet();
     void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);

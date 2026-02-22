@@ -19,9 +19,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    bool isRuntimeAssertExceptionCode(uint32_t code)
     {
-        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
+#ifdef _WIN32
+        return code == EXCEPTION_ILLEGAL_INSTRUCTION;
+#else
+        SWC_UNUSED(code);
+        return false;
+#endif
+    }
+
+    JITCallErrorKind toCallErrorKind(uint32_t exceptionCode)
+    {
+        if (!exceptionCode)
+            return JITCallErrorKind::None;
+
+        if (isRuntimeAssertExceptionCode(exceptionCode))
+            return JITCallErrorKind::RuntimeAssert;
+
+        return JITCallErrorKind::HardwareException;
+    }
+
+    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args, JITCallErrorKind& outErrorKind)
+    {
+        uint32_t exceptionCode = 0;
+#ifdef _WIN32
+        if (args && args->ExceptionRecord)
+            exceptionCode = args->ExceptionRecord->ExceptionCode;
+#endif
+
+        outErrorKind = toCallErrorKind(exceptionCode);
+        if (outErrorKind != JITCallErrorKind::RuntimeAssert)
+            HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
+
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
@@ -302,10 +332,11 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     (void) call(ctx, invoker);
 }
 
-Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
+Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
     SWC_ASSERT(invoker != nullptr);
-    bool hasException = false;
+    bool             hasException = false;
+    JITCallErrorKind callError    = JITCallErrorKind::None;
 
     SWC_TRY
     {
@@ -322,10 +353,13 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0)
             typedInvoker();
         }
     }
-    SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS()))
+    SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS(), callError))
     {
         hasException = true;
     }
+
+    if (outErrorKind)
+        *outErrorKind = hasException ? callError : JITCallErrorKind::None;
 
     return hasException ? Result::Error : Result::Continue;
 }

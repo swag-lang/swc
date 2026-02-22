@@ -80,6 +80,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::Breakpoint:
             encoder.encodeBreakpoint();
             break;
+        case MicroInstrOpcode::AssertTrap:
+            encoder.encodeAssertTrap();
+            break;
         case MicroInstrOpcode::Ret:
             encoder.encodeRet();
             break;

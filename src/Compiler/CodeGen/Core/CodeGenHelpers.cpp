@@ -243,8 +243,14 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 
     if (!optimize)
     {
+        if (sizeInBytes <= unrollLimit)
+        {
+            emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, false, tmpIntReg, tmpFloatReg);
+            return;
+        }
+
         const auto countReg = codeGen.nextVirtualIntRegister();
-        emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, 1, tmpIntReg, tmpFloatReg, countReg);
+        emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, 8, tmpIntReg, tmpFloatReg, countReg);
         return;
     }
 
@@ -277,8 +283,14 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
 
     if (!optimize)
     {
+        if (sizeInBytes <= unrollLimit)
+        {
+            emitMemZeroUnrolled(builder, dstRegTmp, sizeInBytes, zeroReg);
+            return;
+        }
+
         const auto countReg = codeGen.nextVirtualIntRegister();
-        emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 1, zeroReg, countReg);
+        emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 8, zeroReg, countReg);
         return;
     }
 

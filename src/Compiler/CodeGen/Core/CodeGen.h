@@ -158,7 +158,7 @@ private:
     MicroBuilder*                                                 builder_             = nullptr;
     uint32_t                                                      nextVirtualRegister_ = 1;
     std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
-    std::unordered_map<AstNodeRef, IfStmtCodeGenState>           ifStmtCodeGenStates_;
+    std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
 };
 
 SWC_END_NAMESPACE();

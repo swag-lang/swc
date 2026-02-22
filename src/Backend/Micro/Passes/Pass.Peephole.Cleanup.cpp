@@ -22,15 +22,15 @@ namespace PeepholePass
 
         bool removeDeadCompareInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref         instRef = cursor.instRef;
-            const MicroInstr& inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
-            const MicroInstrOperand* ops = cursor.ops;
+            const Ref                instRef = cursor.instRef;
+            const MicroInstr&        inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
+            const MicroInstrOperand* ops     = cursor.ops;
             if (inst.op != MicroInstrOpcode::CmpRegImm && inst.op != MicroInstrOpcode::CmpRegReg)
                 return false;
             if (!ops)
                 return false;
 
-            const MicroStorage::View view = SWC_CHECK_NOT_NULL(context.instructions)->view();
+            const MicroStorage::View view        = SWC_CHECK_NOT_NULL(context.instructions)->view();
             auto                     it          = view.begin();
             Ref                      previousRef = INVALID_REF;
             for (; it != view.end(); ++it)

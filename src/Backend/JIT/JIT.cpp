@@ -321,8 +321,8 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
     SWC_ASSERT(invoker != nullptr);
-    bool             hasException = false;
-    JITCallErrorKind callError    = JITCallErrorKind::None;
+    bool hasException = false;
+    auto callError    = JITCallErrorKind::None;
 
     SWC_TRY
     {

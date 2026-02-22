@@ -119,8 +119,8 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         TaskScopedState scopedState(ctx);
         ctx.state().setRunJit(&symFn, nodeExprRef, sema.node(nodeExprRef).codeRef());
 
-        JITCallErrorKind callErrorKind = JITCallErrorKind::None;
-        const Result     callResult    = JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, &callErrorKind);
+        auto         callErrorKind = JITCallErrorKind::None;
+        const Result callResult    = JIT::call(ctx, symFn.jitEntryAddress(), &resultStorageAddress, &callErrorKind);
         if (callResult != Result::Continue)
             return Result::Error;
     }

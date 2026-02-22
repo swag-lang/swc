@@ -45,8 +45,8 @@ Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    MicroBuilder&  builder = codeGen.builder();
-    const AstNodeRef ifRef = codeGen.curNodeRef();
+    MicroBuilder&    builder = codeGen.builder();
+    const AstNodeRef ifRef   = codeGen.curNodeRef();
 
     if (childRef == nodeConditionRef)
     {

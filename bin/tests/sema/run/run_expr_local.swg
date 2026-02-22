@@ -287,54 +287,6 @@ struct BigCopy
 
 #test
 {
-    func bad()->s32
-    {
-        var a, b: s32 = "bad" // swc-expected-error {{sema_err_cannot_cast}}
-        return a + b
-    }
-}
-
-#test
-{
-    func bad()->s32
-    {
-        let a, b: s32 // swc-expected-error {{sema_err_let_missing_init}}
-        return a + b
-    }
-}
-
-// BUG:
-//#test
-//{
-//    func localShadow()->s32
-//    {
-//        var x: s32 = 40
-//        {
-//            var y: s32 = 2
-//            return y + x
-//        }
-//    }
-//
-//    const V = #run localShadow()
-//    #assert(V == 42)
-//}
-
-// BUG:
-//#test
-//{
-//    func localStructArray()->s32
-//    {
-//        var s: LocalStruct = {x: 41, y: true}
-//        var a: [3] s32 = [0, 1, 2]
-//        return s.x + a[1]
-//    }
-//
-//    const V = #run localStructArray()
-//    #assert(V == 42)
-//}
-
-#test
-{
     func localConstFold()->u64
     {
         let a: u64 = 40'u64

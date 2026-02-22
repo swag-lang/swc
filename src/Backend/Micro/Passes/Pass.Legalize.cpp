@@ -447,7 +447,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
+    void applyLegalizeIssue(const MicroPassContext& context, const Encoder& encoder, Ref instRef, const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         // Encoder reports one issue at a time; apply one targeted rewrite/fix.
         switch (issue.kind)

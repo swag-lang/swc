@@ -145,7 +145,7 @@ namespace PeepholePass
             return outUse || outDef;
         }
 
-        bool rewriteAccumulatorInstruction(MicroInstr& inst, MicroInstrOperand* instOps, MicroReg fromReg, MicroReg toReg)
+        bool rewriteAccumulatorInstruction(const MicroInstr& inst, MicroInstrOperand* instOps, MicroReg fromReg, MicroReg toReg)
         {
             if (!instOps)
                 return false;

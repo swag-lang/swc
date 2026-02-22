@@ -2,6 +2,24 @@
 
 #test
 {
+    #[Swag.PrintMicro]
+    func ifArgNoElse()->s32
+    {
+        if false
+        {
+            return 12
+        }
+
+        return 11
+    }
+
+    const V0 = #run ifArgNoElse()
+    #assert(V0 == 11)
+}
+
+
+#test
+{
     func ifArgNoElse(flag: bool)->s32
     {
         if flag

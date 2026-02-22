@@ -28,6 +28,7 @@ namespace
                 return MicroOpBits::B64;
         }
     }
+
 }
 
 Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const

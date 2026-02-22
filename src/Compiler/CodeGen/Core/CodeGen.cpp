@@ -11,19 +11,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    std::atomic<uint32_t> gPayloadGenerationCounter = 1;
-
-    uint32_t nextPayloadGeneration()
-    {
-        uint32_t generation = gPayloadGenerationCounter.fetch_add(1, std::memory_order_relaxed) + 1;
-        if (generation == 0)
-            generation = gPayloadGenerationCounter.fetch_add(1, std::memory_order_relaxed) + 1;
-        return generation;
-    }
-}
-
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -35,8 +22,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     visit_.start(ast(), root);
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
-
-    payloadGeneration_ = nextPayloadGeneration();
 
     SWC_ASSERT(nextVirtualRegister_ == 1);
     SWC_ASSERT(variablePayloads_.empty());
@@ -175,12 +160,7 @@ CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef)
     nodeRef = resolvedNodeRef(nodeRef);
     if (nodeRef.isInvalid())
         return nullptr;
-    CodeGenNodePayload* nodePayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
-    if (!nodePayload)
-        return nullptr;
-    if (nodePayload->generation != payloadGeneration_)
-        return nullptr;
-    return nodePayload;
+    return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
 }
 
 CodeGenNodePayload* CodeGen::ensurePayload(AstNodeRef nodeRef)
@@ -252,7 +232,6 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->reg         = nextVirtualRegister();
     nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
-    nodePayload->generation  = payloadGeneration_;
     return *SWC_CHECK_NOT_NULL(nodePayload);
 }
 

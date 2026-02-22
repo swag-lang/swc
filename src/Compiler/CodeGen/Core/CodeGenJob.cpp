@@ -42,6 +42,8 @@ JobResult CodeGenJob::exec()
     SWC_ASSERT(sema_);
     SWC_ASSERT(symbolFunc_);
     ctx().state().reset();
+    if (symbolFunc_->isCodeGenCompleted())
+        return JobResult::Done;
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
@@ -70,27 +72,30 @@ JobResult CodeGenJob::exec()
         sema_->compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema_->compiler().jobClientId());
     }
 
-    // Generate micro instructions for this function and mark codegen as pre-solved.
+    // Generate micro instructions only once and mark codegen as pre-solved.
     ///////////////////////////////////////////
-    SWC_ASSERT(root_.isValid());
-    CodeGen codeGen(*sema_);
+    if (!symbolFunc_->isCodeGenPreSolved())
+    {
+        SWC_ASSERT(root_.isValid());
+        CodeGen codeGen(*sema_);
 #if SWC_HAS_STATS
-    Timer timeCodeGen(&Stats::get().timeCodeGen);
+        Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif
-    const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
-    if (codeGenResult != Result::Continue)
-        return toJobResult(codeGenResult);
-    symbolFunc_->setCodeGenPreSolved(ctx());
+        const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
+        if (codeGenResult != Result::Continue)
+            return toJobResult(codeGenResult);
+        symbolFunc_->setCodeGenPreSolved(ctx());
 
-    // Lowered microcode persisted on the symbol for later materialization.
-    ///////////////////////////////////////////
-    symbolFunc_->emit(ctx());
+        // Lowered microcode persisted on the symbol for later materialization.
+        ///////////////////////////////////////////
+        symbolFunc_->emit(ctx());
+    }
 
     // Finalize only when dependency codegen is already pre-solved or completed.
     ///////////////////////////////////////////
     for (const SymbolFunction* dep : deps)
     {
-        if (!dep->isCodeGenPreSolved())
+        if (!dep->isCodeGenPreSolved() && !dep->isCodeGenCompleted())
             return waitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_);
     }
 

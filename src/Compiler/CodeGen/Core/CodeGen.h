@@ -29,7 +29,6 @@ struct CodeGenNodePayload
     MicroReg    reg         = MicroReg::invalid();
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
-    uint32_t    generation  = 0;
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -177,7 +176,6 @@ private:
     std::unordered_map<const SymbolVariable*, LocalStackSlot>     localStackSlots_;
     uint32_t                                                      localStackFrameSize_ = 0;
     MicroReg                                                      localStackBaseReg_   = MicroReg::invalid();
-    uint32_t                                                      payloadGeneration_   = 1;
     std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
 };
 

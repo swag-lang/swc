@@ -5,6 +5,7 @@
 #include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Math/ApInt.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -83,21 +84,35 @@ struct MicroInstrOperand
         uint64_t      valueU64;
     };
 
+    ApInt valueInt;
+
     MicroInstrOperand() :
-        valueU64(0)
+        valueU64(0),
+        valueInt(uint64_t{0}, 64)
     {
     }
 
-    MicroInstrOperand(const MicroInstrOperand& other)
+    void setImmediateValue(const ApInt& value)
     {
-        std::memcpy(this, &other, sizeof(MicroInstrOperand));
+        valueInt  = value;
+        valueU64  = value.as64();
     }
 
-    MicroInstrOperand& operator=(const MicroInstrOperand& other)
+    bool hasWideImmediateValue() const
     {
-        if (this != &other)
-            std::memcpy(this, &other, sizeof(MicroInstrOperand));
-        return *this;
+        return valueInt.bitWidth() > 64 && valueInt.as64() == valueU64;
+    }
+
+    const ApInt& wideImmediateValue() const
+    {
+        return valueInt;
+    }
+
+    ApInt immediateValue(uint32_t fallbackBitWidth = 64) const
+    {
+        if (hasWideImmediateValue())
+            return valueInt;
+        return ApInt(valueU64, fallbackBitWidth);
     }
 };
 

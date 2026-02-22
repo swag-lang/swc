@@ -144,7 +144,8 @@ namespace
     void applyClampImmediate(const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)
     {
         SWC_ASSERT(hasOperand(inst, ops, issue.operandIndex));
-        ops[issue.operandIndex].valueU64 = std::min(ops[issue.operandIndex].valueU64, issue.valueLimitU64);
+        const uint64_t clampedValue = std::min(ops[issue.operandIndex].valueU64, issue.valueLimitU64);
+        ops[issue.operandIndex].setImmediateValue(ApInt(clampedValue, 64));
     }
 
     void applyNormalizeOpBits(const MicroInstr& inst, MicroInstrOperand* ops, const MicroConformanceIssue& issue)

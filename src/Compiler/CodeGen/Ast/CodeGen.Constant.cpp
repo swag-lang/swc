@@ -24,21 +24,21 @@ namespace
         {
             case ConstantKind::Bool:
             {
-                builder.emitLoadRegImm(payload.reg, cst.getBool() ? 1 : 0, MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::Char:
             {
-                builder.emitLoadRegImm(payload.reg, cst.getChar(), MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(cst.getChar(), 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::Rune:
             {
-                builder.emitLoadRegImm(payload.reg, cst.getRune(), MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(cst.getRune(), 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
@@ -47,7 +47,7 @@ namespace
             {
                 const auto& val = cst.getInt();
                 SWC_ASSERT(val.fits64());
-                builder.emitLoadRegImm(payload.reg, static_cast<uint64_t>(val.asI64()), MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(static_cast<uint64_t>(val.asI64()), 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
@@ -58,7 +58,7 @@ namespace
                 if (value.bitWidth() == 32)
                 {
                     const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());
-                    builder.emitLoadRegImm(payload.reg, bits, MicroOpBits::B32);
+                    builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B32);
                     payload.setIsValue();
                     return;
                 }
@@ -66,7 +66,7 @@ namespace
                 if (value.bitWidth() == 64)
                 {
                     const uint64_t bits = std::bit_cast<uint64_t>(value.asDouble());
-                    builder.emitLoadRegImm(payload.reg, bits, MicroOpBits::B64);
+                    builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B64);
                     payload.setIsValue();
                     return;
                 }
@@ -101,7 +101,7 @@ namespace
 
             case ConstantKind::Null:
             {
-                builder.emitLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
@@ -197,7 +197,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 {
     const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-    codeGen.builder().emitLoadRegImm(payload.reg, 0, MicroOpBits::B64);
+    codeGen.builder().emitLoadRegImm(payload.reg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
     return Result::Continue;
 }
 

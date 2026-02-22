@@ -88,15 +88,15 @@ namespace
         constexpr MicroReg v1 = MicroReg::virtualIntReg(1);
         constexpr MicroReg v2 = MicroReg::virtualIntReg(2);
 
-        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
-        b.emitLoadRegImm(v1, 2, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, ApInt(1, 64), MicroOpBits::B64);
+        b.emitLoadRegImm(v1, ApInt(2, 64), MicroOpBits::B64);
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
-        b.emitOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
-        b.emitOpBinaryRegImm(v1, 3, MicroOp::Add, MicroOpBits::B64);
-        b.emitLoadRegImm(v2, 4, MicroOpBits::B64);
-        b.emitOpBinaryRegImm(v2, 5, MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v0, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v1, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v2, ApInt(4, 64), MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v2, ApInt(5, 64), MicroOp::Add, MicroOpBits::B64);
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
-        b.emitOpBinaryRegImm(v0, 7, MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v0, ApInt(7, 64), MicroOp::Add, MicroOpBits::B64);
     }
 
     void buildNoCalls(MicroBuilder& b, CallConvKind)
@@ -105,12 +105,12 @@ namespace
         constexpr MicroReg v1 = MicroReg::virtualIntReg(11);
         constexpr MicroReg v2 = MicroReg::virtualIntReg(12);
 
-        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
-        b.emitOpBinaryRegImm(v0, 1, MicroOp::Add, MicroOpBits::B64);
-        b.emitLoadRegImm(v1, 2, MicroOpBits::B64);
-        b.emitOpBinaryRegImm(v1, 1, MicroOp::Add, MicroOpBits::B64);
-        b.emitLoadRegImm(v2, 3, MicroOpBits::B64);
-        b.emitOpBinaryRegImm(v2, 1, MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, ApInt(1, 64), MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v0, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v1, ApInt(2, 64), MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v1, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        b.emitLoadRegImm(v2, ApInt(3, 64), MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v2, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     }
 
     void buildMixedIntFloat(MicroBuilder& b, CallConvKind callConvKind)
@@ -121,12 +121,12 @@ namespace
         constexpr MicroReg vf2 = MicroReg::virtualFloatReg(2);
         constexpr MicroReg vf3 = MicroReg::virtualFloatReg(3);
 
-        b.emitLoadRegImm(vi, 9, MicroOpBits::B64);
+        b.emitLoadRegImm(vi, ApInt(9, 64), MicroOpBits::B64);
         b.emitClearReg(vf0, MicroOpBits::B64);
         b.emitClearReg(vf1, MicroOpBits::B64);
         b.emitOpBinaryRegReg(vf0, vf1, MicroOp::FloatXor, MicroOpBits::B64);
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
-        b.emitOpBinaryRegImm(vi, 2, MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(vi, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
         b.emitClearReg(vf2, MicroOpBits::B64);
         b.emitClearReg(vf3, MicroOpBits::B64);
         b.emitOpBinaryRegReg(vf2, vf3, MicroOp::FloatXor, MicroOpBits::B64);
@@ -137,8 +137,8 @@ namespace
         for (uint32_t i = 0; i < 128; ++i)
         {
             const auto v = MicroReg::virtualIntReg(1000 + i);
-            b.emitLoadRegImm(v, i + 1, MicroOpBits::B64);
-            b.emitOpBinaryRegImm(v, (i & 7) + 1, MicroOp::Add, MicroOpBits::B64);
+            b.emitLoadRegImm(v, ApInt(i + 1, 64), MicroOpBits::B64);
+            b.emitOpBinaryRegImm(v, ApInt((i & 7) + 1, 64), MicroOp::Add, MicroOpBits::B64);
             if ((i % 16) == 15)
                 b.emitCallReg(MicroReg::intReg(0), callConvKind);
         }
@@ -159,9 +159,9 @@ namespace
     {
         constexpr MicroReg v0 = MicroReg::virtualIntReg(3000);
 
-        b.emitLoadRegImm(v0, 1, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, ApInt(1, 64), MicroOpBits::B64);
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
-        b.emitOpBinaryRegImm(v0, 2, MicroOp::Add, MicroOpBits::B64);
+        b.emitOpBinaryRegImm(v0, ApInt(2, 64), MicroOp::Add, MicroOpBits::B64);
         b.emitRet();
     }
 
@@ -169,7 +169,7 @@ namespace
     {
         constexpr MicroReg v0 = MicroReg::virtualIntReg(3100);
 
-        b.emitLoadRegImm(v0, 3, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, ApInt(3, 64), MicroOpBits::B64);
         b.emitRet();
     }
 
@@ -178,7 +178,7 @@ namespace
         for (uint32_t i = 0; i < 24; ++i)
         {
             const auto v = MicroReg::virtualIntReg(4000 + i);
-            b.emitLoadRegImm(v, i + 1, MicroOpBits::B64);
+            b.emitLoadRegImm(v, ApInt(i + 1, 64), MicroOpBits::B64);
         }
 
         b.emitCallReg(MicroReg::intReg(0), callConvKind);
@@ -186,7 +186,7 @@ namespace
         for (uint32_t i = 0; i < 24; ++i)
         {
             const auto v = MicroReg::virtualIntReg(4000 + i);
-            b.emitOpBinaryRegImm(v, 3, MicroOp::Add, MicroOpBits::B64);
+            b.emitOpBinaryRegImm(v, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
         }
 
         b.emitRet();
@@ -220,8 +220,8 @@ namespace
         b.addVirtualRegForbiddenPhysRegs(v0, conv.intArgRegs);
         b.addVirtualRegForbiddenPhysRegs(v1, conv.intArgRegs);
 
-        b.emitLoadRegImm(v0, 11, MicroOpBits::B64);
-        b.emitLoadRegImm(v1, 7, MicroOpBits::B64);
+        b.emitLoadRegImm(v0, ApInt(11, 64), MicroOpBits::B64);
+        b.emitLoadRegImm(v1, ApInt(7, 64), MicroOpBits::B64);
         b.emitOpBinaryRegReg(v0, v1, MicroOp::Add, MicroOpBits::B64);
         b.emitRet();
     }
@@ -573,14 +573,14 @@ SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
     builder.emitLoadAddressRegMem(r9, r9, 0, MicroOpBits::B64);
     builder.emitLoadCondRegReg(r10, r10, MicroCond::Greater, MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r11, r11, MicroOp::Exchange, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Or, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::Xor, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0xFFFFFFFFFFFFFFFF, MicroOp::And, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftRight, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, 0, MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Or, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Xor, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0xFFFFFFFFFFFFFFFF, 64), MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
     builder.emitRet();
 
     runPeepholePass(builder);
@@ -611,9 +611,9 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     builder.emitLoadAddressRegMem(r9, r9, 1, MicroOpBits::B64);
     builder.emitLoadCondRegReg(r10, r11, MicroCond::Greater, MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r12, r13, MicroOp::Exchange, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r14, 1, MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r14, 1, MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r14, 0x7F, MicroOp::And, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, ApInt(1, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r14, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64);
     builder.emitRet();
 
     runPeepholePass(builder);

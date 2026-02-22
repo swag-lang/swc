@@ -167,7 +167,7 @@ namespace
 
         outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
         if (outTransientStackSize)
-            builder.emitOpBinaryRegImm(callConv.stackPointer, outTransientStackSize, MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(outTransientStackSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
@@ -187,7 +187,7 @@ namespace
             {
                 dstAddressReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(dstAddressReg, frameBaseReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(dstAddressReg, offset, MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(dstAddressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
             }
             storeTypedVariadicElement(codeGen, dstAddressReg, *argPayload, elemSize);
             offset += elemSize;
@@ -198,12 +198,12 @@ namespace
         {
             sliceAddrReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(sliceAddrReg, sliceOffset, MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(sliceAddrReg, ApInt(sliceOffset, 64), MicroOp::Add, MicroOpBits::B64);
         }
 
         builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), frameBaseReg, MicroOpBits::B64);
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(countReg, variadicCount, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, ApInt(variadicCount, 64), MicroOpBits::B64);
         builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
 
         outPreparedArg.srcReg      = sliceAddrReg;
@@ -283,7 +283,7 @@ namespace
 
         outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
         if (outTransientStackSize)
-            builder.emitOpBinaryRegImm(callConv.stackPointer, outTransientStackSize, MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(outTransientStackSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
@@ -293,7 +293,7 @@ namespace
         {
             anyBaseReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(anyBaseReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(anyBaseReg, anyOffset, MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(anyBaseReg, ApInt(anyOffset, 64), MicroOp::Add, MicroOpBits::B64);
         }
 
         for (uint64_t i = 0; i < variadicCount; ++i)
@@ -305,7 +305,7 @@ namespace
             {
                 anyEntryReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(anyEntryReg, anyBaseReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(anyEntryReg, i * sizeof(Runtime::Any), MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(anyEntryReg, ApInt(i * sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
             }
 
             MicroReg valuePtrReg = MicroReg::invalid();
@@ -316,7 +316,7 @@ namespace
                 {
                     valuePtrReg = codeGen.nextVirtualIntRegister();
                     builder.emitLoadRegReg(valuePtrReg, frameBaseReg, MicroOpBits::B64);
-                    builder.emitOpBinaryRegImm(valuePtrReg, info.spillOffset, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(valuePtrReg, ApInt(info.spillOffset, 64), MicroOp::Add, MicroOpBits::B64);
                 }
                 storeTypedVariadicElement(codeGen, valuePtrReg, *info.argPayload, info.valueSize);
             }
@@ -345,12 +345,12 @@ namespace
         {
             sliceAddrReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(sliceAddrReg, sliceOffset, MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(sliceAddrReg, ApInt(sliceOffset, 64), MicroOp::Add, MicroOpBits::B64);
         }
 
         builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), anyBaseReg, MicroOpBits::B64);
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(countReg, variadicCount, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, ApInt(variadicCount, 64), MicroOpBits::B64);
         builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
 
         outPreparedArg.srcReg      = sliceAddrReg;
@@ -599,7 +599,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
     emitFunctionCall(codeGen, calledFunction, calleeView.nodeRef(), preparedCall);
     if (transientStackSize)
-        builder.emitOpBinaryRegImm(callConv.stackPointer, transientStackSize, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);

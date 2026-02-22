@@ -170,7 +170,7 @@ namespace
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
-            builder.emitCmpRegImm(srcReg, 0, MicroOpBits::B64);
+            builder.emitCmpRegImm(srcReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
             builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
             return Result::Continue;
         }
@@ -194,7 +194,7 @@ namespace
 
             if (dstType.isBool())
             {
-                builder.emitCmpRegImm(srcReg, 0, srcOpBits);
+                builder.emitCmpRegImm(srcReg, ApInt(uint64_t{0}, 64), srcOpBits);
                 builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
                 return Result::Continue;
             }

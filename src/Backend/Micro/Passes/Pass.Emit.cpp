@@ -62,7 +62,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
         case MicroInstrOpcode::LoadRegPtrImm:
         {
             const uint32_t codeStartOffset = encoder.size();
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
             SWC_ASSERT(ops[1].opBits == MicroOpBits::B64);
             bindAbs64RelocationOffset(context, instructionRef, codeStartOffset, encoder.size());
             break;
@@ -94,7 +94,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeLoadRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadRegImm:
-            encoder.encodeLoadRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::LoadRegMem:
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
@@ -118,7 +118,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeLoadAmcMemReg(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[2].reg, ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadAmcMemImm:
-            encoder.encodeLoadAmcMemImm(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[7].valueU64, ops[4].opBits);
+            encoder.encodeLoadAmcMemImm(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[7].immediateValue(getNumBits(ops[4].opBits)), ops[4].opBits);
             break;
         case MicroInstrOpcode::LoadAmcRegMem:
             encoder.encodeLoadAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
@@ -130,19 +130,19 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::LoadMemImm:
-            encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits);
+            encoder.encodeLoadMemImm(ops[0].reg, ops[2].valueU64, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::CmpRegReg:
             encoder.encodeCmpRegReg(ops[0].reg, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::CmpRegImm:
-            encoder.encodeCmpRegImm(ops[0].reg, ops[2].valueU64, ops[1].opBits);
+            encoder.encodeCmpRegImm(ops[0].reg, ops[2].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::CmpMemReg:
             encoder.encodeCmpMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;
         case MicroInstrOpcode::CmpMemImm:
-            encoder.encodeCmpMemImm(ops[0].reg, ops[2].valueU64, ops[3].valueU64, ops[1].opBits);
+            encoder.encodeCmpMemImm(ops[0].reg, ops[2].valueU64, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             break;
         case MicroInstrOpcode::SetCondReg:
             encoder.encodeSetCondReg(ops[0].reg, ops[1].cpuCond);
@@ -166,10 +166,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             encoder.encodeOpBinaryMemReg(ops[0].reg, ops[4].valueU64, ops[1].reg, ops[3].microOp, ops[2].opBits);
             break;
         case MicroInstrOpcode::OpBinaryRegImm:
-            encoder.encodeOpBinaryRegImm(ops[0].reg, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+            encoder.encodeOpBinaryRegImm(ops[0].reg, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryMemImm:
-            encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].valueU64, ops[2].microOp, ops[1].opBits);
+            encoder.encodeOpBinaryMemImm(ops[0].reg, ops[3].valueU64, ops[4].immediateValue(getNumBits(ops[1].opBits)), ops[2].microOp, ops[1].opBits);
             break;
         case MicroInstrOpcode::OpBinaryRegMem:
             encoder.encodeOpBinaryRegMem(ops[0].reg, ops[1].reg, ops[4].valueU64, ops[3].microOp, ops[2].opBits);

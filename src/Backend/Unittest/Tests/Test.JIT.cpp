@@ -38,7 +38,7 @@ namespace
 
     void buildReturn42(MicroBuilder& builder, const CallConv& callConv)
     {
-        builder.emitLoadRegImm(callConv.intReturn, 42, MicroOpBits::B64);
+        builder.emitLoadRegImm(callConv.intReturn, ApInt(42, 64), MicroOpBits::B64);
         builder.emitRet();
     }
 }
@@ -54,8 +54,8 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     const CallConv& callConv = CallConv::host();
 
     MicroBuilder calleeBuilder(ctx);
-    calleeBuilder.emitLoadRegImm(MicroReg::intReg(15), 0x1234, MicroOpBits::B64);
-    calleeBuilder.emitLoadRegImm(callConv.intReturn, 1, MicroOpBits::B64);
+    calleeBuilder.emitLoadRegImm(MicroReg::intReg(15), ApInt(0x1234, 64), MicroOpBits::B64);
+    calleeBuilder.emitLoadRegImm(callConv.intReturn, ApInt(1, 64), MicroOpBits::B64);
     calleeBuilder.emitRet();
 
     MachineCode loweredCalleeCode;
@@ -69,10 +69,10 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     SWC_ASSERT(calleeFn() == 1);
 
     MicroBuilder callerBuilder(ctx);
-    callerBuilder.emitLoadRegImm(MicroReg::intReg(15), 7, MicroOpBits::B64);
+    callerBuilder.emitLoadRegImm(MicroReg::intReg(15), ApInt(7, 64), MicroOpBits::B64);
     callerBuilder.emitLoadRegPtrImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn));
     callerBuilder.emitCallReg(MicroReg::intReg(10), CallConvKind::Host);
-    callerBuilder.emitOpBinaryRegImm(MicroReg::intReg(15), 1, MicroOp::Add, MicroOpBits::B64);
+    callerBuilder.emitOpBinaryRegImm(MicroReg::intReg(15), ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     callerBuilder.emitLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
     callerBuilder.emitRet();
 

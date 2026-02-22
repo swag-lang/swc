@@ -109,7 +109,7 @@ namespace
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder       = codeGen.builder();
-        builder.emitCmpRegImm(operandReg, 0, opBits);
+        builder.emitCmpRegImm(operandReg, ApInt(uint64_t{0}, 64), opBits);
         builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
         builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
         return Result::Continue;

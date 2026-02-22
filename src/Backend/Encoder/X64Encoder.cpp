@@ -259,6 +259,19 @@ namespace
         return false;
     }
 
+    bool canEncodeOpImmediate(const ApInt& value, MicroOpBits opBits)
+    {
+        if (!value.fit64())
+            return false;
+        return canEncodeOpImmediate(value.as64(), opBits);
+    }
+
+    uint64_t immediateToU64(const ApInt& value)
+    {
+        SWC_INTERNAL_CHECK(value.fit64());
+        return value.as64();
+    }
+
     bool isShiftImmediateOp(MicroOp op)
     {
         return op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight || op == MicroOp::ShiftArithmeticRight;
@@ -770,7 +783,13 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits == MicroOpBits::B8 && ops[2].valueU64 > 0xFF)
+        const bool immediateIsWide = ops[2].hasWideImmediateValue();
+        const bool immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
+        const uint64_t immediateU64 =
+            immediateIsWide && immediateFits64 ? ops[2].wideImmediateValue().as64() : ops[2].valueU64;
+
+        if (ops[1].opBits == MicroOpBits::B8 &&
+            ((!immediateFits64 && immediateIsWide) || immediateU64 > 0xFF))
         {
             outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
             outIssue.operandIndex  = 2;
@@ -778,7 +797,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits == MicroOpBits::B16 && ops[2].valueU64 > 0xFFFF)
+        if (ops[1].opBits == MicroOpBits::B16 &&
+            ((!immediateFits64 && immediateIsWide) || immediateU64 > 0xFFFF))
         {
             outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
             outIssue.operandIndex  = 2;
@@ -786,7 +806,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits == MicroOpBits::B32 && ops[2].valueU64 > 0xFFFFFFFF)
+        if (ops[1].opBits == MicroOpBits::B32 &&
+            ((!immediateFits64 && immediateIsWide) || immediateU64 > 0xFFFFFFFF))
         {
             outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
             outIssue.operandIndex  = 2;
@@ -801,7 +822,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (!isShiftImmediateOp(ops[2].microOp))
             return false;
 
-        if (ops[3].valueU64 <= 0x7F)
+        const bool immediateIsWide = ops[3].hasWideImmediateValue();
+        if ((!immediateIsWide && ops[3].valueU64 <= 0x7F) ||
+            (immediateIsWide && ops[3].wideImmediateValue().fit64() && ops[3].wideImmediateValue().as64() <= 0x7F))
             return false;
 
         outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
@@ -816,7 +839,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (!isShiftImmediateOp(ops[2].microOp))
             return false;
 
-        if (ops[4].valueU64 <= 0x7F)
+        const bool immediateIsWide = ops[4].hasWideImmediateValue();
+        if ((!immediateIsWide && ops[4].valueU64 <= 0x7F) ||
+            (immediateIsWide && ops[4].wideImmediateValue().fit64() && ops[4].wideImmediateValue().as64() <= 0x7F))
             return false;
 
         outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
@@ -850,13 +875,16 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (ops[1].opBits == MicroOpBits::B64 && !canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits))
+        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ?
+                                              canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) :
+                                              canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        if (ops[1].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadMemImm64;
             return true;
         }
 
-        if (!canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits))
+        if (!immediateIsEncodable)
         {
             outIssue.kind         = MicroConformanceIssueKind::ClampImmediate;
             outIssue.operandIndex = 3;
@@ -883,13 +911,16 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadAmcMemImm)
     {
-        if (ops[4].opBits == MicroOpBits::B64 && !canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits))
+        const bool immediateIsEncodable = !ops[7].hasWideImmediateValue() ?
+                                              canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits) :
+                                              canEncodeOpImmediate(ops[7].wideImmediateValue(), ops[4].opBits);
+        if (ops[4].opBits == MicroOpBits::B64 && !immediateIsEncodable)
         {
             outIssue.kind = MicroConformanceIssueKind::SplitLoadAmcMemImm64;
             return true;
         }
 
-        if (!canEncodeOpImmediate(ops[7].valueU64, ops[4].opBits))
+        if (!immediateIsEncodable)
         {
             outIssue.kind         = MicroConformanceIssueKind::ClampImmediate;
             outIssue.operandIndex = 7;
@@ -984,21 +1015,22 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
     return;
 }
 
-void X64Encoder::encodeLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void X64Encoder::encodeLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
 {
     SWC_INTERNAL_CHECK(!reg.isFloat());
+    const uint64_t valueU64 = immediateToU64(value);
 
     if (opBits == MicroOpBits::B8)
     {
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0xB0, reg);
-        emitValue(store_, value, opBits);
+        emitValue(store_, valueU64, opBits);
     }
     else
     {
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0xB8, reg);
-        emitValue(store_, value, opBits);
+        emitValue(store_, valueU64, opBits);
     }
 
     return;
@@ -1188,10 +1220,11 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
 
 namespace
 {
-    void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
+    void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)
     {
         SWC_UNUSED(opBitsBaseMul);
         SWC_INTERNAL_CHECK(canEncodeSigned32(addValue));
+        const uint64_t valueU64 = immediateToU64(value);
 
         const bool baseIsNoBase = regBase.isNoBase();
         auto       baseX64      = baseIsNoBase ? X64Reg::Rax : microRegToX64Reg(regBase);
@@ -1244,7 +1277,7 @@ namespace
         }
 
         // Value
-        emitValue(store, value, std::min(opBitsValue, MicroOpBits::B32));
+        emitValue(store, valueU64, std::min(opBitsValue, MicroOpBits::B32));
         return;
     }
 
@@ -1343,7 +1376,7 @@ void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t
     return encodeAmcReg(store_, regSrc, opBitsSrc, regBase, regMul, mulValue, addValue, opBitsBaseMul, MicroOp::Move, true);
 }
 
-void X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
+void X64Encoder::encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)
 {
     return encodeAmcImm(store_, regBase, regMul, mulValue, addValue, opBitsBaseMul, value, opBitsValue);
 }
@@ -1378,35 +1411,36 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
     return;
 }
 
-void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     SWC_INTERNAL_CHECK(opBits != MicroOpBits::B128);
+    uint64_t valueU64 = immediateToU64(value);
 
-    if (!canEncodeOpImmediate(value, opBits))
+    if (!canEncodeOpImmediate(valueU64, opBits))
     {
         if (opBits == MicroOpBits::B64)
         {
-            const uint32_t lowU32  = static_cast<uint32_t>(value & 0xFFFFFFFFu);
-            const uint32_t highU32 = static_cast<uint32_t>((value >> 32) & 0xFFFFFFFFu);
-            encodeLoadMemImm(memReg, memOffset, lowU32, MicroOpBits::B32);
-            encodeLoadMemImm(memReg, memOffset + 4, highU32, MicroOpBits::B32);
+            const uint32_t lowU32  = static_cast<uint32_t>(valueU64 & 0xFFFFFFFFu);
+            const uint32_t highU32 = static_cast<uint32_t>((valueU64 >> 32) & 0xFFFFFFFFu);
+            encodeLoadMemImm(memReg, memOffset, ApInt(lowU32, 64), MicroOpBits::B32);
+            encodeLoadMemImm(memReg, memOffset + 4, ApInt(highU32, 64), MicroOpBits::B32);
             return;
         }
 
         if (opBits == MicroOpBits::B8)
-            value &= 0xFF;
+            valueU64 &= 0xFF;
         else if (opBits == MicroOpBits::B16)
-            value &= 0xFFFF;
+            valueU64 &= 0xFFFF;
         else if (opBits == MicroOpBits::B32)
-            value &= 0xFFFFFFFF;
+            valueU64 &= 0xFFFFFFFF;
     }
 
     emitRex(store_, opBits, MicroReg{}, memReg);
     emitSpecB8(store_, 0xC7, opBits);
     emitModRm(store_, memOffset, MODRM_REG_0, memReg);
-    emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
+    emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
 
     return;
 }
@@ -1550,11 +1584,12 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
     return;
 }
 
-void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void X64Encoder::encodeCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!reg.isFloat());
+    const uint64_t valueU64 = immediateToU64(value);
 
-    if (value == 0)
+    if (valueU64 == 0)
     {
         SWC_ASSERT(reg.isInt());
         emitRex(store_, opBits, reg, reg);
@@ -1568,21 +1603,21 @@ void X64Encoder::encodeCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBit
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x80);
         emitModRm(store_, MODRM_REG_7, reg);
-        emitValue(store_, value, MicroOpBits::B8);
+        emitValue(store_, valueU64, MicroOpBits::B8);
     }
-    else if (canEncode8(value, opBits))
+    else if (canEncode8(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x83);
         emitModRm(store_, MODRM_REG_7, reg);
-        emitValue(store_, value, MicroOpBits::B8);
+        emitValue(store_, valueU64, MicroOpBits::B8);
     }
-    else if (canEncodeOpImmediate(value, opBits))
+    else if (canEncodeOpImmediate(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, reg);
         emitCpuOp(store_, 0x81);
         emitModRm(store_, MODRM_REG_7, reg);
-        emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
+        emitValue(store_, valueU64, std::min(opBits, MicroOpBits::B32));
     }
     else
     {
@@ -1605,31 +1640,32 @@ void X64Encoder::encodeCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
     return;
 }
 
-void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void X64Encoder::encodeCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
+    const uint64_t valueU64 = immediateToU64(value);
 
     if (opBits == MicroOpBits::B8)
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x80);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
-        emitValue(store_, value, MicroOpBits::B8);
+        emitValue(store_, valueU64, MicroOpBits::B8);
     }
-    else if (canEncode8(value, opBits))
+    else if (canEncode8(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x83);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
-        emitValue(store_, value, MicroOpBits::B8);
+        emitValue(store_, valueU64, MicroOpBits::B8);
     }
-    else if (canEncodeOpImmediate(value, opBits))
+    else if (canEncodeOpImmediate(valueU64, opBits))
     {
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitCpuOp(store_, 0x81);
         emitModRm(store_, memOffset, MODRM_REG_7, memReg);
-        emitValue(store_, value, opBits == MicroOpBits::B16 ? opBits : MicroOpBits::B32);
+        emitValue(store_, valueU64, opBits == MicroOpBits::B16 ? opBits : MicroOpBits::B32);
     }
     else
     {
@@ -1867,7 +1903,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
             emitModRm(store_, MODRM_REG_7, regSrc);
 
         if ((op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned) && opBits == MicroOpBits::B8)
-            encodeOpBinaryRegImm(rax, 8, MicroOp::ShiftRight, MicroOpBits::B32); // AH => AL
+            encodeOpBinaryRegImm(rax, ApInt(8, 64), MicroOp::ShiftRight, MicroOpBits::B32); // AH => AL
         else if (op == MicroOp::ModuloUnsigned || op == MicroOp::ModuloSigned)
             encodeLoadRegReg(rax, x64RegToMicroReg(X64Reg::Rdx), opBits);
     }
@@ -2010,8 +2046,9 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     return;
 }
 
-void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits)
+void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, MicroOp op, MicroOpBits opBits)
 {
+    const uint64_t value = immediateToU64(valueInt);
     ///////////////////////////////////////////
 
     if (op == MicroOp::Xor)
@@ -2288,8 +2325,9 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, 
     return;
 }
 
-void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits)
+void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& valueInt, MicroOp op, MicroOpBits opBits)
 {
+    const uint64_t value = immediateToU64(valueInt);
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
     SWC_ASSERT(!(op == MicroOp::ModuloSigned || op == MicroOp::ModuloUnsigned || op == MicroOp::DivideUnsigned || op == MicroOp::DivideSigned || op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned));
@@ -2803,7 +2841,7 @@ void X64Encoder::encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, 
     // External address calls are lowered as mov target -> temp, then indirect call.
     SWC_UNUSED(targetSymbol);
     const CallConv& conv = CallConv::get(callConv);
-    encodeLoadRegImm(conv.intReturn, targetAddress, MicroOpBits::B64);
+    encodeLoadRegImm(conv.intReturn, ApInt(targetAddress, 64), MicroOpBits::B64);
     encodeCallReg(conv.intReturn, callConv);
     return;
 }

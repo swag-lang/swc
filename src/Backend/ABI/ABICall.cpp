@@ -91,7 +91,7 @@ namespace
     void emitCallStackAdjust(MicroBuilder& builder, const CallConv& conv, uint32_t stackAdjust, MicroOp op)
     {
         if (stackAdjust)
-            builder.emitOpBinaryRegImm(conv.stackPointer, stackAdjust, op, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), op, MicroOpBits::B64);
     }
 
     void emitReturnWriteBackIfNeeded(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret)
@@ -178,7 +178,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         regArgsUseHomeSlot.resize(numRegArgsUsed, 0);
 
         if (stackAdjust)
-            builder.emitOpBinaryRegImm(conv.stackPointer, stackAdjust, MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(stackAdjust, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {

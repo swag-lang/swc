@@ -91,13 +91,13 @@ namespace
 
         const auto loopLabel = builder.createLabel();
 
-        builder.emitLoadRegImm(countReg, chunkCount, MicroOpBits::B64);
+        builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
         emitMemCopyChunk(builder, dstReg, srcReg, 0, chunkSize, tmpIntReg, tmpFloatReg);
-        builder.emitOpBinaryRegImm(srcReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(dstReg, chunkSize, MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(countReg, 1, MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(srcReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)

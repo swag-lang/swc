@@ -241,13 +241,13 @@ void MicroBuilder::emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     return;
 }
 
-void MicroBuilder::emitLoadRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegImm, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
     ops[1].opBits           = opBits;
-    ops[2].valueU64         = value;
+    ops[2].setImmediateValue(value);
     return;
 }
 
@@ -371,7 +371,7 @@ void MicroBuilder::emitLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t
     return;
 }
 
-void MicroBuilder::emitLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, uint64_t value, MicroOpBits opBitsValue)
+void MicroBuilder::emitLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadAmcMemImm, 8);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -381,7 +381,7 @@ void MicroBuilder::emitLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t
     ops[4].opBits           = opBitsValue;
     ops[5].valueU64         = mulValue;
     ops[6].valueU64         = addValue;
-    ops[7].valueU64         = value;
+    ops[7].setImmediateValue(value);
     return;
 }
 
@@ -410,14 +410,14 @@ void MicroBuilder::emitLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
     return;
 }
 
-void MicroBuilder::emitLoadMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadMemImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = memReg;
     ops[1].opBits           = opBits;
     ops[2].valueU64         = memOffset;
-    ops[3].valueU64         = value;
+    ops[3].setImmediateValue(value);
     return;
 }
 
@@ -442,24 +442,24 @@ void MicroBuilder::emitCmpMemReg(MicroReg memReg, uint64_t memOffset, MicroReg r
     return;
 }
 
-void MicroBuilder::emitCmpMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitCmpMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpMemImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = memReg;
     ops[1].opBits           = opBits;
     ops[2].valueU64         = memOffset;
-    ops[3].valueU64         = value;
+    ops[3].setImmediateValue(value);
     return;
 }
 
-void MicroBuilder::emitCmpRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+void MicroBuilder::emitCmpRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::CmpRegImm, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
     ops[1].opBits           = opBits;
-    ops[2].valueU64         = value;
+    ops[2].setImmediateValue(value);
     return;
 }
 
@@ -548,18 +548,18 @@ void MicroBuilder::emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     return;
 }
 
-void MicroBuilder::emitOpBinaryRegImm(MicroReg reg, uint64_t value, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegImm, 4);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
     ops[1].opBits           = opBits;
     ops[2].microOp          = op;
-    ops[3].valueU64         = value;
+    ops[3].setImmediateValue(value);
     return;
 }
 
-void MicroBuilder::emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint64_t value, MicroOp op, MicroOpBits opBits)
+void MicroBuilder::emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryMemImm, 5);
     MicroInstrOperand* ops  = inst.ops(operands_);
@@ -567,7 +567,7 @@ void MicroBuilder::emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, uint6
     ops[1].opBits           = opBits;
     ops[2].microOp          = op;
     ops[3].valueU64         = memOffset;
-    ops[4].valueU64         = value;
+    ops[4].setImmediateValue(value);
     return;
 }
 

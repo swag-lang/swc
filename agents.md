@@ -3,7 +3,7 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
-- Once everything is working, run 'tools/all_dm.bat' script to ensure no regression.
+- Once everything is working, run 'tools/all.bat' and 'tools/all_dm.bat' script to ensure no regression.
 - When doing a change in codegen, run it 10x times in a row, to detect non deterministic behavior.
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
@@ -44,28 +44,33 @@
 - MSBuild is located at:
   `C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\amd64\`
 - Default build configuration:
+  `/p:Configuration=Release`
   `/p:Configuration=DevMode`
 - Build output:
     - Directory: `C:\Perso\swag-lang\swc\bin`
     - Binary name (DevMode): `swc_devmode`
+    - Binary name (Release): `swc`
 
 ## Test Instructions
 
 - Run all tests:
 
   ````bash
+  all.bat
   all_dm.bat
   `````
 
 - Run all semantic tests:
 
     ````bash
+    swc sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema
     swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema
     `````
 
 * Run a specific semantic test:
 
   ```bash
+  swc sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema -ff <filename>
   swc_devmode sema --verify --runtime -d C:\Perso\swag-lang\swc\bin\tests\sema -ff <filename>
   ```
 

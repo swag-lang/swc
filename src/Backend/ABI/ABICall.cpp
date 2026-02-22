@@ -101,7 +101,10 @@ namespace
 
         MicroReg regBase = MicroReg::invalid();
         MicroReg regTmp  = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+        const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
+        SWC_INTERNAL_CHECK(hasScratchRegs);
+        SWC_INTERNAL_CHECK(regBase.isValid());
+        SWC_INTERNAL_CHECK(regTmp.isValid());
         emitReturnWriteBack(builder, conv, ret, regBase);
     }
 }
@@ -171,7 +174,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     {
         MicroReg regBase = MicroReg::invalid();
         MicroReg regTmp  = MicroReg::invalid();
-        SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+        const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
+        SWC_INTERNAL_CHECK(hasScratchRegs);
 
         const uint32_t       numRegArgsUsed = std::min(numPreparedArgs, numRegArgs);
         SmallVector<uint8_t> regArgsUseHomeSlot;
@@ -341,7 +345,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     MicroReg hiddenRetArgSrcReg = MicroReg::invalid();
     MicroReg hiddenRetArgTmpReg = MicroReg::invalid();
-    SWC_ASSERT(conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg));
+    const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
+    SWC_INTERNAL_CHECK(hasScratchRegs);
     builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
 
     SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;
@@ -442,7 +447,8 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     MicroReg regBase = MicroReg::invalid();
     MicroReg regTmp  = MicroReg::invalid();
-    SWC_ASSERT(conv.tryPickIntScratchRegs(regBase, regTmp));
+    const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
+    SWC_INTERNAL_CHECK(hasScratchRegs);
 
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     emitCallArgs(builder, conv, args, regBase, regTmp);

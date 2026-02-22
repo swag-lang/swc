@@ -1249,8 +1249,10 @@ namespace
         // OpCode
         emitSpecCpuOp(store, 0xC7, opBitsValue);
 
+        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
+
         // ModRM
-        if (!baseIsNoBase && baseX64 == X64Reg::R13)
+        if (needsForcedDisplacement)
             emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
         else if (addValue == 0 || baseIsNoBase)
             emitModRm(store, ModRmMode::Memory, MODRM_REG_0, MODRM_RM_SIB);
@@ -1268,7 +1270,7 @@ namespace
         else
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
-            if (baseX64 == X64Reg::R13 || addValue != 0)
+            if (needsForcedDisplacement || addValue != 0)
                 emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
         }
 
@@ -1335,8 +1337,10 @@ namespace
                 break;
         }
 
+        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
+
         // ModRM
-        if (!baseIsNoBase && baseX64 == X64Reg::R13)
+        if (needsForcedDisplacement)
             emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, reg, MODRM_RM_SIB);
         else if (addValue == 0 || baseIsNoBase)
             emitModRm(store, ModRmMode::Memory, reg, MODRM_RM_SIB);
@@ -1354,7 +1358,7 @@ namespace
         else
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
-            if (baseX64 == X64Reg::R13 || addValue != 0)
+            if (needsForcedDisplacement || addValue != 0)
                 emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
         }
 

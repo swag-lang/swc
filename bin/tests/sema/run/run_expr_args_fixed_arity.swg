@@ -173,14 +173,13 @@ enum FixedKind: u8
     #assert(V1 == 17'u64)
 }
 
-// BUG:
-//#test
-//{
-//    func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
-//    {
-//        return @kindof(a) == FixedPair and @kindof(b[0]) == s32 and @kindof(c) == string and @kindof(d) == *void and @kindof(e) == FixedKind
-//    }
-//
-//    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B)
-//    #assert(V)
-//}
+#test
+{
+    func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bool
+    {
+        return #typeof(a) == FixedPair and #typeof(b[0]) == s32 and #typeof(c) == string and #typeof(d) == *void and #typeof(e) == FixedKind
+    }
+
+    const V = #run callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void) 0x10'u64, FixedKind.B)
+    #assert(V)
+}

@@ -101,7 +101,7 @@ namespace
                 const ByteSpan runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
                 const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
 
-                CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
                 builder.emitLoadRegPtrImm(dstPayload.reg, storageAddress, srcConstView.cstRef());
                 return Result::Continue;
             }
@@ -129,7 +129,7 @@ namespace
         builder.emitLoadRegImm(lengthReg, ApInt(length, 64), MicroOpBits::B64);
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, length), lengthReg, MicroOpBits::B64);
 
-        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         builder.emitLoadRegReg(dstPayload.reg, runtimeValueReg, MicroOpBits::B64);
         return Result::Continue;
     }

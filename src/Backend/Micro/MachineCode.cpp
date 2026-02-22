@@ -52,6 +52,7 @@ namespace
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
+        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.loadStoreForwardPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));

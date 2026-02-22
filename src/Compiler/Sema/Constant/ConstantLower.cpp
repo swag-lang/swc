@@ -160,8 +160,8 @@ namespace
         if (dstType.isSlice())
         {
             SWC_ASSERT(cst.isSlice() && dstBytes.size() == sizeof(Runtime::Slice<uint8_t>));
-            const ByteSpan                      bytes = cst.getSlice();
-            const Runtime::Slice<const uint8_t> rt    = {.ptr = reinterpret_cast<const uint8_t*>(bytes.data()), .count = bytes.size()};
+            const ByteSpan       bytes = cst.getSlice();
+            const Runtime::Slice rt    = {.ptr = reinterpret_cast<const uint8_t*>(bytes.data()), .count = bytes.size()};
             std::memcpy(dstBytes.data(), &rt, sizeof(rt));
             return;
         }

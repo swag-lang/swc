@@ -354,7 +354,7 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     const Ref     doneLabel  = builder.createLabel();
 
     builder.emitCmpRegImm(condReg, 0, condBits);
-    builder.emitJumpToLabel(MicroCond::Equal, condBits, falseLabel);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
     builder.emitLoadRegReg(resultPayload.reg, trueReg, resultBits);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
     builder.placeLabel(falseLabel);

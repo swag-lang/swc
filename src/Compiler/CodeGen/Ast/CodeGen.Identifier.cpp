@@ -99,9 +99,10 @@ namespace
 
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
-        MicroBuilder& builder  = codeGen.builder();
-        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        MicroBuilder&                  builder   = codeGen.builder();
+        const bool                     skipInit  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar);
+
         if (localSlot && codeGen.localStackBaseReg().isValid())
         {
             CodeGenNodePayload symbolPayload;
@@ -141,7 +142,7 @@ namespace
                                 return;
                             }
 
-                            MicroOpBits copyBits = MicroOpBits::Zero;
+                            auto copyBits = MicroOpBits::Zero;
                             if (localSlot->size == 1)
                                 copyBits = MicroOpBits::B8;
                             else if (localSlot->size == 2)

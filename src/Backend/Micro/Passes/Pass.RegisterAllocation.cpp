@@ -682,9 +682,9 @@ namespace
         state.liveStamp.clear();
         state.liveStamp.reserve(state.instructionCount * 2ull);
 
-        uint32_t stamp      = 1;
-        uint32_t idx        = 0;
-        int64_t  stackDepth = 0;
+        uint32_t                         stamp      = 1;
+        uint32_t                         idx        = 0;
+        int64_t                          stackDepth = 0;
         std::unordered_map<Ref, int64_t> labelStackDepth;
         if (state.hasControlFlow)
             labelStackDepth.reserve(state.instructions->count() / 2 + 1);
@@ -700,8 +700,8 @@ namespace
             if (it->op == MicroInstrOpcode::Label && it->numOperands >= 1)
             {
                 const MicroInstrOperand* const ops      = it->ops(*state.operands);
-                const Ref                     labelRef  = static_cast<Ref>(ops[0].valueU64);
-                const auto                    labelIt   = labelStackDepth.find(labelRef);
+                const Ref                      labelRef = static_cast<Ref>(ops[0].valueU64);
+                const auto                     labelIt  = labelStackDepth.find(labelRef);
                 if (labelIt != labelStackDepth.end())
                     stackDepth = labelIt->second;
             }
@@ -778,8 +778,8 @@ namespace
 
             if (it->op == MicroInstrOpcode::JumpCond && it->numOperands >= 3)
             {
-                const MicroInstrOperand* const ops     = it->ops(*state.operands);
-                const Ref                     labelRef = static_cast<Ref>(ops[2].valueU64);
+                const MicroInstrOperand* const ops      = it->ops(*state.operands);
+                const Ref                      labelRef = static_cast<Ref>(ops[2].valueU64);
                 mergeLabelStackDepth(labelStackDepth, labelRef, stackDepth);
             }
 

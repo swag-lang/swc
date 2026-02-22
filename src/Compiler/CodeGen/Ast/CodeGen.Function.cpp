@@ -41,7 +41,7 @@ namespace
         if (localSymbols.empty())
             return;
 
-        const CallConv& callConv = CallConv::get(codeGen.function().callConvKind());
+        const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
         for (const SymbolVariable* symVar : localSymbols)
         {
@@ -50,7 +50,7 @@ namespace
             if (typeRef.isInvalid())
                 continue;
 
-            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
             uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
             if (isHandleBackedLocalType(typeInfo))
@@ -61,7 +61,7 @@ namespace
             if (!size)
                 continue;
 
-            frameSize = alignUpU64(frameSize, alignment);
+            frameSize                          = alignUpU64(frameSize, alignment);
             const CodeGen::LocalStackSlot slot = {
                 .offset = static_cast<uint32_t>(frameSize),
                 .size   = size,
@@ -82,8 +82,8 @@ namespace
         if (!codeGen.hasLocalStackFrame())
             return;
 
-        const CallConv& callConv = CallConv::get(callConvKind);
-        MicroBuilder&   builder  = codeGen.builder();
+        const CallConv& callConv  = CallConv::get(callConvKind);
+        MicroBuilder&   builder   = codeGen.builder();
         const uint32_t  frameSize = codeGen.localStackFrameSize();
         SWC_ASSERT(frameSize != 0);
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);

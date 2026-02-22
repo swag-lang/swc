@@ -107,8 +107,8 @@ namespace
             }
         }
 
-        const uint64_t     length       = srcType.sizeOf(codeGen.ctx());
-        Runtime::String*   runtimeValue = codeGen.compiler().allocate<Runtime::String>();
+        const uint64_t   length         = srcType.sizeOf(codeGen.ctx());
+        Runtime::String* runtimeValue   = codeGen.compiler().allocate<Runtime::String>();
         runtimeValue->ptr               = nullptr;
         runtimeValue->length            = 0;
         const uint64_t runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
@@ -214,14 +214,14 @@ namespace
         if (codeGen.typeMgr().get(sourceTypeRef).isAny())
             return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
 
-        const TypeInfo& srcType        = codeGen.typeMgr().get(sourceTypeRef);
-        const TypeInfo& dstType        = codeGen.typeMgr().get(dstTypeRef);
+        const TypeInfo& srcType = codeGen.typeMgr().get(sourceTypeRef);
+        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
         if (dstType.isString() && srcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
-        const bool      srcFloatType   = srcType.isFloat();
-        const bool      srcIntLikeType = isNumericIntLike(srcType);
-        const bool      dstFloatType   = dstType.isFloat();
-        const bool      dstIntLikeType = isNumericIntLike(dstType);
+        const bool srcFloatType   = srcType.isFloat();
+        const bool srcIntLikeType = isNumericIntLike(srcType);
+        const bool dstFloatType   = dstType.isFloat();
+        const bool dstIntLikeType = isNumericIntLike(dstType);
 
         if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
         {

@@ -188,11 +188,11 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (view.cstRef().isInvalid())
         return Result::Continue;
 
-    const ConstantValue& cst     = cstMgr().get(view.cstRef());
+    const ConstantValue& cst = cstMgr().get(view.cstRef());
     if (cst.kind() == ConstantKind::Undefined)
         return Result::Continue;
 
-    CodeGenNodePayload&  payload = setPayload(nodeRef, view.typeRef());
+    CodeGenNodePayload& payload = setPayload(nodeRef, view.typeRef());
     emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef());
     return Result::SkipChildren;
 }

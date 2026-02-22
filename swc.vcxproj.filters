@@ -186,6 +186,9 @@
     <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.Peephole.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>

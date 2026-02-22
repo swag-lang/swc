@@ -410,7 +410,6 @@ enum IfElseKind: u16
 
 #test
 {
-    #[Swag.PrintMicro]
     func ifElseNoInitVar(flag: bool)->s32
     {
         if flag

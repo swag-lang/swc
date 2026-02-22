@@ -192,6 +192,7 @@
         <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeX64.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.FFI.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\Tests\Test.Peephole.cpp"/>
         <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp"/>
         <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
         <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>

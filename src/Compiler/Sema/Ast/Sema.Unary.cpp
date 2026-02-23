@@ -187,17 +187,13 @@ namespace
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
-        if (view.sym() && view.sym()->isVariable())
+        if (view.sym() && view.sym()->isLetVariable())
         {
-            const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
-            {
-                const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
-                const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
-                diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
+            const auto            diag      = SemaError::report(sema, DiagnosticId::sema_err_take_address_constant, node.codeRef());
+            const SourceCodeRange codeRange = sema.node(view.nodeRef()).codeRangeWithChildren(sema.ctx(), sema.ast());
+            diag.last().addSpan(codeRange, "", DiagnosticSeverity::Note);
+            diag.report(sema.ctx());
+            return Result::Error;
         }
 
         if (view.cstRef().isValid())

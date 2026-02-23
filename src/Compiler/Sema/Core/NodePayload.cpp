@@ -61,12 +61,13 @@ namespace
         return typeRef;
     }
 
-    bool canFoldLetVariable(const AstNode& node, const SymbolVariable& symVar)
+    bool canFoldLetVariable(const AstNode& node, const Symbol& sym)
     {
         if (!canFoldLetVariableOnNode(node))
             return false;
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+        if (!sym.isLetVariable())
             return false;
+        const SymbolVariable& symVar = sym.cast<SymbolVariable>();
         if (symVar.cstRef().isInvalid())
             return false;
         return symVar.typeRef().isValid();
@@ -114,11 +115,10 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
                 return sym.cast<SymbolConstant>().cstRef();
             if (sym.isEnumValue())
                 return sym.cast<SymbolEnumValue>().cstRef();
-            if (sym.isVariable())
+            if (canFoldLetVariable(node, sym))
             {
                 const SymbolVariable& symVar = sym.cast<SymbolVariable>();
-                if (canFoldLetVariable(node, symVar))
-                    return symVar.cstRef();
+                return symVar.cstRef();
             }
             break;
         }
@@ -132,11 +132,10 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
                 return symList.front()->cast<SymbolConstant>().cstRef();
             if (symList.front()->isEnumValue())
                 return symList.front()->cast<SymbolEnumValue>().cstRef();
-            if (symList.front()->isVariable())
+            if (canFoldLetVariable(node, *symList.front()))
             {
                 const SymbolVariable& symVar = symList.front()->cast<SymbolVariable>();
-                if (canFoldLetVariable(node, symVar))
-                    return symVar.cstRef();
+                return symVar.cstRef();
             }
             break;
         }

@@ -36,6 +36,13 @@ bool Symbol::isAttribute() const noexcept
     return cast<SymbolFunction>().isAttribute();
 }
 
+bool Symbol::isLetVariable() const noexcept
+{
+    if (!isVariable())
+        return false;
+    return cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Let);
+}
+
 void Symbol::setTyped(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Typed))

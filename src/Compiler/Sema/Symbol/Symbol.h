@@ -109,6 +109,7 @@ public:
     bool is(SymbolKind kind) const noexcept { return kind_ == kind; }
     bool isNamespace() const noexcept { return kind_ == SymbolKind::Namespace; }
     bool isVariable() const noexcept { return kind_ == SymbolKind::Variable; }
+    bool isLetVariable() const noexcept;
     bool isConstant() const noexcept { return kind_ == SymbolKind::Constant; }
     bool isEnum() const noexcept { return kind_ == SymbolKind::Enum; }
     bool isEnumValue() const noexcept { return kind_ == SymbolKind::EnumValue; }

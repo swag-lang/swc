@@ -23,9 +23,6 @@ namespace
                     continue;
                 sawStart = true;
             }
-
-            if (it->op == MicroInstrOpcode::Debug)
-                continue;
             return it.current;
         }
 
@@ -39,9 +36,6 @@ namespace
         {
             if (it.current == beforeRef)
                 return previousRef;
-
-            if (it->op == MicroInstrOpcode::Debug)
-                continue;
             previousRef = it.current;
         }
 

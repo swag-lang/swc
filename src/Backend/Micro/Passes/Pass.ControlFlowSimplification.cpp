@@ -32,9 +32,6 @@ namespace
             for (; scanIt != storage.view().end(); ++scanIt)
             {
                 const MicroInstr& inst = *scanIt;
-                if (inst.op == MicroInstrOpcode::Debug)
-                    continue;
-
                 if (inst.op == MicroInstrOpcode::Label)
                 {
                     const MicroInstrOperand* labelOps = inst.ops(operands);

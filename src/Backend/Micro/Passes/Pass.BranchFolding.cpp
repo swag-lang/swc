@@ -160,7 +160,7 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
                 compareState.valid = false;
             }
         }
-        else if (inst.op != MicroInstrOpcode::Debug)
+        else
         {
             compareState.valid = false;
         }

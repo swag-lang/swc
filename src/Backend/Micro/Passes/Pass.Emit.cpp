@@ -33,8 +33,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
     {
         case MicroInstrOpcode::End:
             break;
-        case MicroInstrOpcode::Debug:
-            break;
 
         case MicroInstrOpcode::Label:
             // Record concrete code offset so pending branch patches can resolve target.

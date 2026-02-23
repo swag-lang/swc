@@ -38,8 +38,7 @@ namespace PeepholePass
             {
                 if (it.current == instRef)
                     break;
-                if (it->op != MicroInstrOpcode::Debug)
-                    previousRef = it.current;
+                previousRef = it.current;
             }
 
             if (it == view.end())

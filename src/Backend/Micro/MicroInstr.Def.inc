@@ -20,17 +20,6 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex = 0,
         .memOffsetOperandIndex = 0,
     })
-SWC_MICRO_INSTR_DEF(
-    Debug,
-    MicroInstrDef{
-        .regModes = {MicroInstrRegMode::None, MicroInstrRegMode::None, MicroInstrRegMode::None},
-        .special = MicroInstrRegSpecial::None,
-        .microOpIndex = 0,
-        .callConvIndex = 0,
-        .flags = MicroInstrFlagsE::Zero,
-        .memBaseOperandIndex = 0,
-        .memOffsetOperandIndex = 0,
-    })
 
 SWC_MICRO_INSTR_DEF(
     Push,

@@ -132,7 +132,6 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
     {
         case MicroInstrOpcode::End:
         case MicroInstrOpcode::Label:
-        case MicroInstrOpcode::Debug:
         case MicroInstrOpcode::Push:
         case MicroInstrOpcode::Pop:
         case MicroInstrOpcode::Ret:

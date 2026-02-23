@@ -370,7 +370,7 @@ Result AstAttributeList::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
-    const AstCallExpr* callNode = sema.node(nodeCallRef).safeCast<AstCallExpr>();
+    const AstCallExpr* callNode = sema.node(nodeCallRef).cast<AstCallExpr>();
     SWC_ASSERT(callNode != nullptr);
 
     const SemaNodeView callView = sema.viewSymbol(nodeCallRef);
@@ -383,16 +383,15 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     if (!callView.sym()->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, errorRef);
 
-    const SymbolFunction* attrSym = callView.sym()->safeCast<SymbolFunction>();
-    SWC_ASSERT(attrSym != nullptr);
+    const SymbolFunction& attrSym = callView.sym()->cast<SymbolFunction>();
 
     SmallVector<AstNodeRef> args;
     callNode->collectArguments(args, sema.ast());
     SmallVector<AstNodeRef> argValues;
     Match::resolveCallArgumentValues(sema, argValues, args.span());
-    RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), *attrSym, sema.frame().currentAttributes()));
+    RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), attrSym, sema.frame().currentAttributes()));
 
-    const RtAttributeFlags attrFlags = attrSym->rtAttributeFlags();
+    const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
         sema.frame().currentAttributes().addRtFlag(attrFlags);
@@ -400,7 +399,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     }
 
     AttributeInstance inst;
-    inst.symbol = attrSym;
+    inst.symbol = &attrSym;
     sema.frame().currentAttributes().attributes.push_back(inst);
 
     return Result::Continue;

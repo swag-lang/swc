@@ -40,8 +40,7 @@ namespace
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
         const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym    = SWC_CHECK_NOT_NULL(rightView.sym());
-        const SymbolVariable*     symVar      = rightSym->safeCast<SymbolVariable>();
-        SWC_ASSERT(symVar != nullptr);
+        const SymbolVariable&     symVar      = rightSym->cast<SymbolVariable>();
 
         const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
@@ -49,7 +48,7 @@ namespace
 
         if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, *leftPayload))
         {
-            builder.emitLoadAddressRegMem(payload.reg, leftPayload->reg, symVar->offset(), MicroOpBits::B64);
+            builder.emitLoadAddressRegMem(payload.reg, leftPayload->reg, symVar.offset(), MicroOpBits::B64);
             return Result::Continue;
         }
 
@@ -65,7 +64,7 @@ namespace
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
         builder.emitLoadMemReg(spillAddrReg, 0, leftPayload->reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
-        builder.emitLoadAddressRegMem(payload.reg, spillAddrReg, symVar->offset(), MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(payload.reg, spillAddrReg, symVar.offset(), MicroOpBits::B64);
         return Result::Continue;
     }
 
@@ -76,7 +75,7 @@ namespace
 
         const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
-        const auto&        methodFunc = *SWC_CHECK_NOT_NULL(methodSym->safeCast<SymbolFunction>());
+        const SymbolFunction& methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());

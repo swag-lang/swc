@@ -56,8 +56,8 @@ namespace
     {
         if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
         {
-            const SymbolImpl* symImpl   = sema.frame().currentImpl()->asSymMap()->safeCast<SymbolImpl>();
-            const TypeRef     ownerType = symImpl->symStruct()->typeRef();
+            const SymbolImpl& symImpl   = sema.frame().currentImpl()->asSymMap()->cast<SymbolImpl>();
+            const TypeRef     ownerType = symImpl.symStruct()->typeRef();
             TaskContext&      ctx       = sema.ctx();
             SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
@@ -100,21 +100,20 @@ namespace
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
-        SymbolFunction* calledFn = nodeSymView.sym()->safeCast<SymbolFunction>();
-        SWC_ASSERT(calledFn);
+        SymbolFunction& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
-            if (currentFn->decl() && calledFn->decl() && currentFn->srcViewRef() == calledFn->srcViewRef() && !calledFn->isForeign())
-                currentFn->addCallDependency(calledFn);
+            if (currentFn->decl() && calledFn.decl() && currentFn->srcViewRef() == calledFn.srcViewRef() && !calledFn.isForeign())
+                currentFn->addCallDependency(&calledFn);
         }
 
         if (tryIntrinsicFold)
         {
-            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, *calledFn, args));
+            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
         }
         else
         {
-            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), *calledFn, args, ufcsArg));
+            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
         }
 
         return Result::Continue;

@@ -126,33 +126,29 @@ namespace
                 {
                     const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
                     SWC_ASSERT(initPayload != nullptr);
-
-                    if (initPayload)
+                    if (initPayload->isAddress())
                     {
-                        if (initPayload->isAddress())
+                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                    }
+                    else
+                    {
+                        if (localSlot->size > 8)
                         {
                             CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                            codeGen.setVariablePayload(symVar, symbolPayload);
+                            return;
                         }
-                        else
-                        {
-                            if (localSlot->size > 8)
-                            {
-                                CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
-                                codeGen.setVariablePayload(symVar, symbolPayload);
-                                return;
-                            }
 
-                            auto copyBits = MicroOpBits::Zero;
-                            if (localSlot->size == 1)
-                                copyBits = MicroOpBits::B8;
-                            else if (localSlot->size == 2)
-                                copyBits = MicroOpBits::B16;
-                            else if (localSlot->size == 4)
-                                copyBits = MicroOpBits::B32;
-                            else
-                                copyBits = MicroOpBits::B64;
-                            builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
-                        }
+                        auto copyBits = MicroOpBits::Zero;
+                        if (localSlot->size == 1)
+                            copyBits = MicroOpBits::B8;
+                        else if (localSlot->size == 2)
+                            copyBits = MicroOpBits::B16;
+                        else if (localSlot->size == 4)
+                            copyBits = MicroOpBits::B32;
+                        else
+                            copyBits = MicroOpBits::B64;
+                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
                     }
                 }
                 else

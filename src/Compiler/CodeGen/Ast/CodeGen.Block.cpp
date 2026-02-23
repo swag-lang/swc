@@ -74,8 +74,6 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
     const CodeGen::IfStmtCodeGenState* state = codeGen.ifStmtCodeGenState(ifRef);
     SWC_ASSERT(state != nullptr);
-    if (!state)
-        return Result::Continue;
 
     if (childRef == nodeIfBlockRef)
     {

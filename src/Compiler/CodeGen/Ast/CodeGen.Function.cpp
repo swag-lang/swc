@@ -169,9 +169,7 @@ namespace
         for (size_t i = 0; i < params.size(); ++i)
         {
             const SymbolVariable* const symVar = params[i];
-            if (!symVar)
-                continue;
-
+            SWC_ASSERT(symVar != nullptr);
             outParamInfos[i] = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg);
         }
     }
@@ -188,9 +186,7 @@ namespace
         for (size_t i = 0; i < params.size(); ++i)
         {
             const SymbolVariable* const symVar = params[i];
-            if (!symVar)
-                continue;
-
+            SWC_ASSERT(symVar != nullptr);
             const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (!paramInfo.isRegisterArg)
                 continue;
@@ -234,9 +230,7 @@ namespace
         for (size_t i = 0; i < params.size(); ++i)
         {
             const SymbolVariable* const symVar = params[i];
-            if (!symVar)
-                continue;
-
+            SWC_ASSERT(symVar != nullptr);
             const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
@@ -509,22 +503,21 @@ namespace
         if (!params.empty())
         {
             const SymbolVariable* const lastParam = params.back();
-            if (lastParam)
+            SWC_ASSERT(lastParam != nullptr);
+
+            const TypeInfo& lastParamType = codeGen.ctx().typeMgr().get(lastParam->typeRef());
+            if (lastParamType.isTypedVariadic())
             {
-                const TypeInfo& lastParamType = codeGen.ctx().typeMgr().get(lastParam->typeRef());
-                if (lastParamType.isTypedVariadic())
-                {
-                    hasVariadic           = true;
-                    hasTypedVariadic      = true;
-                    variadicParamIdx      = numParams - 1;
-                    typedVariadicElemType = lastParamType.payloadTypeRef();
-                }
-                else if (lastParamType.isVariadic())
-                {
-                    hasVariadic      = true;
-                    hasTypedVariadic = false;
-                    variadicParamIdx = numParams - 1;
-                }
+                hasVariadic           = true;
+                hasTypedVariadic      = true;
+                variadicParamIdx      = numParams - 1;
+                typedVariadicElemType = lastParamType.payloadTypeRef();
+            }
+            else if (lastParamType.isVariadic())
+            {
+                hasVariadic      = true;
+                hasTypedVariadic = false;
+                variadicParamIdx = numParams - 1;
             }
         }
 
@@ -546,8 +539,12 @@ namespace
             preparedArg.srcReg = argPayload->reg;
 
             TypeRef normalizedTypeRef = TypeRef::invalid();
-            if (i < params.size() && params[i])
-                normalizedTypeRef = params[i]->typeRef();
+            if (i < params.size())
+            {
+                const SymbolVariable* const param = params[i];
+                SWC_ASSERT(param != nullptr);
+                normalizedTypeRef = param->typeRef();
+            }
 
             if (normalizedTypeRef.isInvalid())
                 normalizedTypeRef = argView.typeRef();
@@ -596,8 +593,12 @@ namespace
                 preparedArg.srcReg = argPayload->reg;
 
                 TypeRef normalizedTypeRef = TypeRef::invalid();
-                if (i < numParams && params[i])
-                    normalizedTypeRef = params[i]->typeRef();
+                if (i < numParams)
+                {
+                    const SymbolVariable* const param = params[i];
+                    SWC_ASSERT(param != nullptr);
+                    normalizedTypeRef = param->typeRef();
+                }
 
                 if (normalizedTypeRef.isInvalid())
                     normalizedTypeRef = argView.typeRef();
@@ -633,6 +634,7 @@ namespace
         }
 
         ABICall::PreparedArg                        variadicPreparedArg;
+        SWC_ASSERT(params[variadicParamIdx] != nullptr);
         const TypeRef                               variadicParamTypeRef = params[variadicParamIdx]->typeRef();
         const ABITypeNormalize::NormalizedType      normalizedVariadic   = ABITypeNormalize::normalize(codeGen.ctx(), callConv, variadicParamTypeRef, ABITypeNormalize::Usage::Argument);
         const std::span<const ResolvedCallArgument> variadicArgs         = args.subspan(numFixedArgs);

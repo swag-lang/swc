@@ -140,9 +140,7 @@ namespace
     {
         for (const SymbolVariable* param : fn.parameters())
         {
-            if (!param)
-                continue;
-
+            SWC_ASSERT(param != nullptr);
             const TypeInfo& typeInfo = sema.typeMgr().get(param->typeRef());
             if (typeInfo.isAnyVariadic())
                 return true;

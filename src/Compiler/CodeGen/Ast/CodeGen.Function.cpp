@@ -17,10 +17,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool shouldPassAddressAsValue(CodeGen& codeGen, TypeRef typeRef, const ABITypeNormalize::NormalizedType& normalizedType)
+    uint32_t checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        if (typeRef.isInvalid())
-            return false;
+        const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
+        SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
+        return static_cast<uint32_t>(rawSize);
+    }
+
+    bool shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, const ABITypeNormalize::NormalizedType& normalizedType)
+    {
         if (normalizedType.isIndirect)
             return false;
         if (normalizedType.isFloat)
@@ -28,7 +33,6 @@ namespace
         if (normalizedType.numBits != 64)
             return false;
 
-        const TypeInfo& typeInfo = codeGen.ctx().typeMgr().get(typeRef);
         return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
     }
 
@@ -133,6 +137,61 @@ namespace
             payload.setIsAddress();
         else
             payload.setIsValue();
+    }
+
+    TypeRef resolveNormalizedArgTypeRef(CodeGen& codeGen, const std::vector<SymbolVariable*>& params, size_t argIndex, const SemaNodeView& argView)
+    {
+        TypeRef normalizedTypeRef = TypeRef::invalid();
+        if (argIndex < params.size())
+        {
+            const SymbolVariable* const param = params[argIndex];
+            SWC_ASSERT(param != nullptr);
+            normalizedTypeRef = param->typeRef();
+        }
+
+        if (normalizedTypeRef.isInvalid())
+            return argView.typeRef();
+
+        const TypeInfo& paramType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        if (paramType.isAnyVariadic())
+            return argView.typeRef();
+
+        return normalizedTypeRef;
+    }
+
+    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef)
+    {
+        if (normalizedTypeRef.isInvalid())
+            return;
+
+        const TypeInfo&                        normalizedType   = codeGen.ctx().typeMgr().get(normalizedTypeRef);
+        const ABITypeNormalize::NormalizedType normalizedArg    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+        const bool                             passAddressValue = shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg);
+        const bool                             passAddressRef   = normalizedType.isReference() || passAddressValue;
+        outPreparedArg.isFloat                                   = normalizedArg.isFloat;
+        outPreparedArg.numBits                                   = normalizedArg.numBits;
+        outPreparedArg.isAddressed                               = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
+        if (passAddressValue && argPayload.isAddress())
+            outPreparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload.reg, checkedTypeSizeInBytes(codeGen, normalizedType));
+    }
+
+    void appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const std::vector<SymbolVariable*>& params, size_t argIndex, const ResolvedCallArgument& arg)
+    {
+        const AstNodeRef argRef = arg.argRef;
+        if (argRef.isInvalid())
+            return;
+
+        const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
+        SWC_ASSERT(argPayload != nullptr);
+        const SemaNodeView argView = codeGen.viewType(argRef);
+
+        ABICall::PreparedArg preparedArg;
+        preparedArg.srcReg = argPayload->reg;
+
+        const TypeRef normalizedTypeRef = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
+        fillPreparedDirectArgType(preparedArg, codeGen, callConv, *argPayload, normalizedTypeRef);
+        preparedArg.kind = abiPreparedArgKind(arg.passKind);
+        outArgs.push_back(preparedArg);
     }
 
     void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const AstNodeRef& calleeRef, const ABICall::PreparedCall& preparedCall)
@@ -526,112 +585,10 @@ namespace
             numFixedArgs = std::min(args.size(), variadicParamIdx);
 
         for (size_t i = 0; i < numFixedArgs; ++i)
-        {
-            const auto&      arg    = args[i];
-            const AstNodeRef argRef = arg.argRef;
-            if (argRef.isInvalid())
-                continue;
-            const CodeGenNodePayload* argPayload = codeGen.payload(argRef);
-            SWC_ASSERT(argPayload != nullptr);
-            const SemaNodeView argView = codeGen.viewType(argRef);
-
-            ABICall::PreparedArg preparedArg;
-            preparedArg.srcReg = argPayload->reg;
-
-            TypeRef normalizedTypeRef = TypeRef::invalid();
-            if (i < params.size())
-            {
-                const SymbolVariable* const param = params[i];
-                SWC_ASSERT(param != nullptr);
-                normalizedTypeRef = param->typeRef();
-            }
-
-            if (normalizedTypeRef.isInvalid())
-                normalizedTypeRef = argView.typeRef();
-            else
-            {
-                const TypeInfo& paramType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-                if (paramType.isAnyVariadic())
-                    normalizedTypeRef = argView.typeRef();
-            }
-
-            if (normalizedTypeRef.isValid())
-            {
-                const TypeInfo&                        normalizedType           = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-                const ABITypeNormalize::NormalizedType normalizedArg            = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                const bool                             handleBackedAddressValue = shouldPassAddressAsValue(codeGen, normalizedTypeRef, normalizedArg);
-                const bool                             passAddressAsValue       = normalizedType.isReference() || handleBackedAddressValue;
-                preparedArg.isFloat                                             = normalizedArg.isFloat;
-                preparedArg.numBits                                             = normalizedArg.numBits;
-                preparedArg.isAddressed                                         = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
-                if (handleBackedAddressValue && argPayload->isAddress())
-                {
-                    const uint64_t copySize = normalizedType.sizeOf(codeGen.ctx());
-                    SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
-                    preparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload->reg, static_cast<uint32_t>(copySize));
-                }
-            }
-
-            preparedArg.kind = abiPreparedArgKind(arg.passKind);
-
-            outArgs.push_back(preparedArg);
-        }
+            appendPreparedFixedArg(outArgs, codeGen, callConv, params, i, args[i]);
 
         if (!hasVariadic)
-        {
-            for (size_t i = numFixedArgs; i < args.size(); ++i)
-            {
-                const auto&      arg    = args[i];
-                const AstNodeRef argRef = arg.argRef;
-                if (argRef.isInvalid())
-                    continue;
-                const CodeGenNodePayload* argPayload = codeGen.payload(argRef);
-                SWC_ASSERT(argPayload != nullptr);
-                const SemaNodeView argView = codeGen.viewType(argRef);
-
-                ABICall::PreparedArg preparedArg;
-                preparedArg.srcReg = argPayload->reg;
-
-                TypeRef normalizedTypeRef = TypeRef::invalid();
-                if (i < numParams)
-                {
-                    const SymbolVariable* const param = params[i];
-                    SWC_ASSERT(param != nullptr);
-                    normalizedTypeRef = param->typeRef();
-                }
-
-                if (normalizedTypeRef.isInvalid())
-                    normalizedTypeRef = argView.typeRef();
-                else
-                {
-                    const TypeInfo& paramType = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-                    if (paramType.isAnyVariadic())
-                        normalizedTypeRef = argView.typeRef();
-                }
-
-                if (normalizedTypeRef.isValid())
-                {
-                    const TypeInfo&                        normalizedType           = codeGen.ctx().typeMgr().get(normalizedTypeRef);
-                    const ABITypeNormalize::NormalizedType normalizedArg            = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                    const bool                             handleBackedAddressValue = shouldPassAddressAsValue(codeGen, normalizedTypeRef, normalizedArg);
-                    const bool                             passAddressAsValue       = normalizedType.isReference() || handleBackedAddressValue;
-                    preparedArg.isFloat                                             = normalizedArg.isFloat;
-                    preparedArg.numBits                                             = normalizedArg.numBits;
-                    preparedArg.isAddressed                                         = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
-                    if (handleBackedAddressValue && argPayload->isAddress())
-                    {
-                        const uint64_t copySize = normalizedType.sizeOf(codeGen.ctx());
-                        SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
-                        preparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload->reg, static_cast<uint32_t>(copySize));
-                    }
-                }
-
-                preparedArg.kind = abiPreparedArgKind(arg.passKind);
-                outArgs.push_back(preparedArg);
-            }
-
             return;
-        }
 
         ABICall::PreparedArg variadicPreparedArg;
         SWC_ASSERT(params[variadicParamIdx] != nullptr);
@@ -682,12 +639,10 @@ namespace
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
             const bool isAddressed = exprPayload->isAddress();
-            if (isAddressed && shouldPassAddressAsValue(codeGen, returnTypeRef, normalizedRet))
+            const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
+            if (isAddressed && shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet))
             {
-                const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
-                const uint64_t  copySize       = returnTypeInfo.sizeOf(codeGen.ctx());
-                SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
-                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload->reg, static_cast<uint32_t>(copySize));
+                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload->reg, checkedTypeSizeInBytes(codeGen, returnTypeInfo));
                 ABICall::materializeValueToReturnRegs(builder, callConvKind, copiedValueReg, false, normalizedRet);
             }
             else

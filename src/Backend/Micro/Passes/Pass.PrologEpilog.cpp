@@ -32,6 +32,183 @@ namespace
         ops[3].valueU64 += additionalValue;
         return true;
     }
+
+    bool hasCallInstruction(const MicroPassContext& context)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        const auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const auto& inst : context.instructions->view())
+        {
+            const auto useDef = inst.collectUseDef(operands, context.encoder);
+            if (useDef.isCall)
+                return true;
+        }
+
+        return false;
+    }
+
+    void collectUsedConcreteRegs(const MicroPassContext& context, std::unordered_set<uint32_t>& outUsedRegs)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        outUsedRegs.clear();
+        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const auto& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(operands, refs, context.encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                if (!reg.isValid() || reg.isVirtual())
+                    continue;
+
+                outUsedRegs.insert(reg.packed);
+            }
+        }
+    }
+
+    bool isFramePointerLocallyInitializedFromStackPointer(const MicroPassContext& context, const CallConv& conv)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (!conv.framePointer.isValid() || !conv.stackPointer.isValid())
+            return false;
+
+        bool  foundInit = false;
+        auto& operands  = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const auto& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(operands, refs, context.encoder);
+
+            bool framePointerUsed = false;
+            bool framePointerDef  = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
+                    continue;
+
+                if (ref.use)
+                    framePointerUsed = true;
+                if (ref.def)
+                    framePointerDef = true;
+            }
+
+            if (framePointerUsed && !foundInit)
+                return false;
+            if (!framePointerDef || foundInit)
+                continue;
+
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                return false;
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                return false;
+            if (ops[0].reg != conv.framePointer)
+                return false;
+            if (ops[1].reg != conv.stackPointer)
+                return false;
+            if (ops[2].opBits != MicroOpBits::B64)
+                return false;
+
+            foundInit = true;
+        }
+
+        return foundInit;
+    }
+
+    bool isSafeTransientReplacementIntReg(const CallConv& conv, MicroReg reg)
+    {
+        if (!reg.isValid() || !reg.isInt())
+            return false;
+        if (reg == conv.stackPointer || reg == conv.framePointer || reg == conv.intReturn)
+            return false;
+        if (conv.isIntArgReg(reg))
+            return false;
+        return true;
+    }
+
+    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<uint32_t>& usedRegs, const std::unordered_set<uint32_t>& pickedTransientRegs, MicroReg& outReg)
+    {
+        outReg = MicroReg::invalid();
+        for (const MicroReg reg : conv.intTransientRegs)
+        {
+            if (!reg.isValid())
+                continue;
+            if (!isSafeTransientReplacementIntReg(conv, reg))
+                continue;
+            if (usedRegs.contains(reg.packed))
+                continue;
+            if (pickedTransientRegs.contains(reg.packed))
+                continue;
+
+            outReg = reg;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool remapPersistentIntRegsToUnusedTransient(const MicroPassContext& context, const CallConv& conv)
+    {
+        if (hasCallInstruction(context))
+            return false;
+
+        std::unordered_set<uint32_t> usedRegs;
+        collectUsedConcreteRegs(context, usedRegs);
+        if (usedRegs.empty())
+            return false;
+        if (!conv.framePointer.isValid() || !conv.isIntPersistentReg(conv.framePointer))
+            return false;
+        if (!usedRegs.contains(conv.framePointer.packed))
+            return false;
+        if (!isFramePointerLocallyInitializedFromStackPointer(context, conv))
+            return false;
+
+        std::unordered_set<uint32_t> pickedTransientRegs;
+        pickedTransientRegs.reserve(8);
+
+        MicroReg replacementReg;
+        if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
+            return false;
+
+        bool  changed  = false;
+        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const auto& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(operands, refs, context.encoder);
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                if (!reg.isValid() || reg.isVirtual())
+                    continue;
+                if (reg != conv.framePointer)
+                    continue;
+
+                *SWC_CHECK_NOT_NULL(ref.reg) = replacementReg;
+                changed                      = true;
+            }
+        }
+
+        return changed;
+    }
 }
 
 bool MicroPrologEpilogPass::run(MicroPassContext& context)
@@ -49,9 +226,10 @@ bool MicroPrologEpilogPass::run(MicroPassContext& context)
     }
 
     const CallConv& conv = CallConv::get(context.callConvKind);
+    const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv);
     buildSavedRegsPlan(context, conv);
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
-        return false;
+        return remappedPersistentRegsToTransient;
 
     Ref              firstRef = INVALID_REF;
     SmallVector<Ref> retRefs;
@@ -68,7 +246,7 @@ bool MicroPrologEpilogPass::run(MicroPassContext& context)
     for (const Ref retRef : retRefs)
         insertSavedRegsEpilogue(context, conv, retRef);
 
-    return firstRef != INVALID_REF;
+    return firstRef != INVALID_REF || remappedPersistentRegsToTransient;
 }
 
 bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const

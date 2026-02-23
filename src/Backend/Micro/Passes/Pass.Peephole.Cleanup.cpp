@@ -9,6 +9,11 @@ namespace PeepholePass
 {
     namespace
     {
+        bool isStackBaseRegister(const MicroReg reg)
+        {
+            return reg == MicroReg::intReg(4) || reg == MicroReg::intReg(5);
+        }
+
         bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                instRef = cursor.instRef;
@@ -28,7 +33,7 @@ namespace PeepholePass
                 return false;
 
             const MicroReg baseReg = ops[baseIndex].reg;
-            if (baseReg != MicroReg::intReg(4) && baseReg != MicroReg::intReg(5))
+            if (!isStackBaseRegister(baseReg))
                 return false;
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
@@ -48,7 +53,19 @@ namespace PeepholePass
                 uint8_t scanBaseIndex   = 0;
                 uint8_t scanOffsetIndex = 0;
                 if (MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
+                {
+                    const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                    if (!scanOps)
+                        return false;
+
+                    if ((scanInst.op == MicroInstrOpcode::LoadMemReg || scanInst.op == MicroInstrOpcode::LoadMemImm) &&
+                        isStackBaseRegister(scanOps[scanBaseIndex].reg))
+                    {
+                        continue;
+                    }
+
                     return false;
+                }
             }
 
             return false;

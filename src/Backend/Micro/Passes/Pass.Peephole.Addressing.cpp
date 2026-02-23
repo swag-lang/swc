@@ -211,7 +211,7 @@ namespace PeepholePass
                 default:
                     return false;
             }
-            if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+            if (!isRegUnusedAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;
 
             std::array<MicroInstrOperand, 5> newOps;
@@ -222,6 +222,57 @@ namespace PeepholePass
             newOps[4].valueU64 = ops[3].valueU64;
 
             const Ref         newRef  = SWC_CHECK_NOT_NULL(context.instructions)->insertBefore(*SWC_CHECK_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
+            const MicroInstr* newInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(newRef);
+            if (!newInst)
+                return false;
+
+            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!newInstOps)
+            {
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(newRef);
+                return false;
+            }
+
+            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
+            {
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(newRef);
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(nextIt.current);
+            return true;
+        }
+
+        bool foldLoadRegMemIntoNextCmpMemImm(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroInstr&        nextInst = *nextIt;
+            const MicroInstrOperand* nextOps  = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (nextInst.op != MicroInstrOpcode::CmpRegImm || !nextOps)
+                return false;
+
+            const MicroReg tmpReg = ops[0].reg;
+            if (nextOps[0].reg != tmpReg)
+                return false;
+            if (ops[2].opBits != nextOps[1].opBits)
+                return false;
+            if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+                return false;
+
+            std::array<MicroInstrOperand, 4> newOps;
+            newOps[0].reg    = ops[1].reg;
+            newOps[1].opBits = ops[2].opBits;
+            newOps[2].valueU64 = ops[3].valueU64;
+            newOps[3]        = nextOps[2];
+
+            const Ref         newRef  = SWC_CHECK_NOT_NULL(context.instructions)->insertBefore(*SWC_CHECK_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::CmpMemImm, newOps);
             const MicroInstr* newInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(newRef);
             if (!newInst)
                 return false;
@@ -291,6 +342,51 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldLoadAddrIntoNextLoadAddr(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            MicroInstr&        nextInst = *nextIt;
+            MicroInstrOperand* nextOps  = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (nextInst.op != MicroInstrOpcode::LoadAddrRegMem || !nextOps)
+                return false;
+
+            const MicroReg tmpReg = ops[0].reg;
+            if (nextOps[1].reg != tmpReg)
+                return false;
+            if (ops[2].opBits != nextOps[2].opBits)
+                return false;
+            if (ops[2].opBits != MicroOpBits::B64)
+                return false;
+            if (!isRegUnusedAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+                return false;
+
+            const uint64_t baseOffset = ops[3].valueU64;
+            const uint64_t nextOffset = nextOps[3].valueU64;
+            if (baseOffset > std::numeric_limits<uint64_t>::max() - nextOffset)
+                return false;
+            const uint64_t foldedOffset = baseOffset + nextOffset;
+
+            const MicroReg originalBaseReg = nextOps[1].reg;
+            const uint64_t originalOffset  = nextOps[3].valueU64;
+            nextOps[1].reg                 = ops[1].reg;
+            nextOps[3].valueU64            = foldedOffset;
+            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            {
+                nextOps[1].reg      = originalBaseReg;
+                nextOps[3].valueU64 = originalOffset;
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool foldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -351,7 +447,8 @@ namespace PeepholePass
                     return false;
                 if (scanOps[baseIndex].reg != tmpReg)
                     return false;
-                if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, tmpReg))
+                if (!isTempDeadForAddressFold(context, std::next(scanIt), endIt, tmpReg) &&
+                    !isRegUnusedAfterInstruction(context, std::next(scanIt), endIt, tmpReg))
                     return false;
 
                 const uint64_t extraOffset  = ops[3].valueU64;
@@ -499,12 +596,22 @@ namespace PeepholePass
         // Example: mov r11, rdx; add r11, 8 -> lea r11, [rdx + 8]
         outRules.push_back({RuleTarget::LoadRegReg, foldCopyAddIntoLoadAddress});
 
+        // Rule: fold_loadaddr_into_next_loadaddr
+        // Purpose: collapse chained address computations into one.
+        // Example: lea r11, [rsp + 8]; lea rdx, [r11] -> lea rdx, [rsp + 8]
+        outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextLoadAddr});
+
         // Rule: fold_loadaddr_into_next_mem_offset
         // Purpose: consume temporary address register in next memory instruction.
         // Example: lea r11, [rdx + 8]; mov [r11], rax -> mov [rdx + 8], rax
         outRules.push_back({RuleTarget::LoadAddrRegMem, foldLoadAddrIntoNextMemOffset});
 
         outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextLoadAddrCopy});
+
+        // Rule: fold_loadregmem_into_next_cmpmemimm
+        // Purpose: fold loaded temporary compared with immediate into direct memory compare.
+        // Example: mov r8, [rsp + 8]; cmp r8, 0 -> cmp [rsp + 8], 0
+        outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextCmpMemImm});
 
         outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem});
 

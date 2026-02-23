@@ -571,14 +571,18 @@ namespace
         }
 
         auto&      victimState  = state.states[victimKey];
-        const bool hadSpillSlot = victimState.hasSpill;
-        ensureSpillSlot(state, victimState, victimReg.isFloat());
-        if (victimState.dirty || !hadSpillSlot)
+        const bool victimLiveOut = isLiveOut(state, victimKey, stamp);
+        if (victimLiveOut)
         {
-            PendingInsert spillPending;
-            queueSpillStore(spillPending, victimReg, victimState, stackDepth, *state.conv);
-            pending.push_back(spillPending);
-            victimState.dirty = false;
+            const bool hadSpillSlot = victimState.hasSpill;
+            ensureSpillSlot(state, victimState, victimReg.isFloat());
+            if (victimState.dirty || !hadSpillSlot)
+            {
+                PendingInsert spillPending;
+                queueSpillStore(spillPending, victimReg, victimState, stackDepth, *state.conv);
+                pending.push_back(spillPending);
+                victimState.dirty = false;
+            }
         }
 
         unmapVirtReg(state, victimKey);

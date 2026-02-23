@@ -104,7 +104,7 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     builder.emitLoadRegReg(r8, r9, MicroOpBits::B64);
     builder.emitLoadAddressRegMem(r9, r9, 1, MicroOpBits::B64);
     builder.emitLoadCondRegReg(r10, r11, MicroCond::Greater, MicroOpBits::B64);
-    builder.emitOpBinaryRegReg(r12, r13, MicroOp::Exchange, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r12, r8, MicroOp::Exchange, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r14, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r14, ApInt(1, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r14, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64);

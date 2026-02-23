@@ -363,15 +363,18 @@ namespace
 
         const bool mustPreserveRequiredReg = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         uint64_t   helperStackOffset       = stackScratchBaseOffset;
-        if (mustPreserveRequiredReg)
+        const bool shouldStoreRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        if (shouldStoreRequiredReg)
         {
             insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, requiredReg);
             helperStackOffset += REG_STACK_SLOT_SIZE;
         }
 
+        const bool shouldStoreHelperReg = conflict && helperReg != originalDstReg;
         if (conflict)
         {
-            insertStoreRegToStack(context, instRef, stackPointerReg, helperStackOffset, helperReg);
+            if (shouldStoreHelperReg)
+                insertStoreRegToStack(context, instRef, stackPointerReg, helperStackOffset, helperReg);
             insertMoveRegReg(context, instRef, helperReg, requiredReg, MicroOpBits::B64);
         }
 
@@ -399,9 +402,9 @@ namespace
         if (rewrittenDstReg != originalDstReg)
             insertMoveRegReg(context, instRef, originalDstReg, rewrittenDstReg, opBits);
 
-        if (mustPreserveRequiredReg && requiredReg != originalDstReg)
+        if (shouldStoreRequiredReg)
             insertLoadRegFromStack(context, instRef, requiredReg, stackPointerReg, stackScratchBaseOffset);
-        if (conflict && helperReg != originalDstReg)
+        if (shouldStoreHelperReg)
             insertLoadRegFromStack(context, instRef, helperReg, stackPointerReg, helperStackOffset);
         removeInstruction(context, instRef);
     }
@@ -423,8 +426,9 @@ namespace
 
         const MicroReg stackPointerReg        = encoder.stackPointerReg();
         const bool     mustPreserveScratchReg = mustPreserveRegAfterInstruction(context, instRef, scratchReg);
+        const bool     shouldStoreScratchReg  = mustPreserveScratchReg && scratchReg != originalDstReg;
 
-        if (mustPreserveScratchReg)
+        if (shouldStoreScratchReg)
             insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, scratchReg);
         if (issue.operandIndex == 0)
             insertMoveRegReg(context, instRef, scratchReg, originalDstReg, MicroOpBits::B64);
@@ -443,7 +447,7 @@ namespace
         if (rewrittenDstReg != originalDstReg)
             insertMoveRegReg(context, instRef, originalDstReg, rewrittenDstReg, opBits);
 
-        if (mustPreserveScratchReg && scratchReg != originalDstReg)
+        if (shouldStoreScratchReg)
             insertLoadRegFromStack(context, instRef, scratchReg, stackPointerReg, stackScratchBaseOffset);
         removeInstruction(context, instRef);
     }

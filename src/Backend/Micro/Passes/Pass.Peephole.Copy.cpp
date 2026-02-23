@@ -242,6 +242,110 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldCopyIntoNextMemoryBase(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroReg copyDstReg = ops[0].reg;
+            const MicroReg copySrcReg = ops[1].reg;
+            if (!copyDstReg.isSameClass(copySrcReg))
+                return false;
+            if (ops[2].opBits != MicroOpBits::B64)
+                return false;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                MicroInstr&        scanInst = *scanIt;
+                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                bool srcDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg)
+                        continue;
+
+                    const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                    if (reg == copyDstReg)
+                    {
+                        hasUse |= ref.use;
+                        hasDef |= ref.def;
+                    }
+                    else if (reg == copySrcReg && ref.def)
+                    {
+                        srcDef = true;
+                    }
+                }
+
+                if (srcDef)
+                    return false;
+
+                if (!hasUse)
+                {
+                    if (hasDef)
+                        return false;
+                    continue;
+                }
+
+                uint8_t baseIndex = 0;
+                switch (scanInst.op)
+                {
+                    case MicroInstrOpcode::LoadRegMem:
+                        if (scanOps[0].reg == copyDstReg)
+                            return false;
+                        baseIndex = 1;
+                        break;
+                    case MicroInstrOpcode::LoadMemReg:
+                        if (scanOps[1].reg == copyDstReg)
+                            return false;
+                        baseIndex = 0;
+                        break;
+                    case MicroInstrOpcode::LoadMemImm:
+                        baseIndex = 0;
+                        break;
+                    default:
+                        return false;
+                }
+
+                if (hasDef || scanOps[baseIndex].reg != copyDstReg)
+                    return false;
+
+                const MicroReg originalBaseReg = scanOps[baseIndex].reg;
+                scanOps[baseIndex].reg          = copySrcReg;
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanOps[baseIndex].reg = originalBaseReg;
+                    return false;
+                }
+
+                if (!isRegUnusedAfterInstruction(context, std::next(scanIt), endIt, copyDstReg))
+                {
+                    scanOps[baseIndex].reg = originalBaseReg;
+                    return false;
+                }
+
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                return true;
+            }
+
+            return false;
+        }
+
         bool classifyRegUseDef(const MicroPassContext& context, const MicroInstr& inst, MicroReg reg, bool& outUse, bool& outDef)
         {
             outUse = false;
@@ -339,6 +443,7 @@ namespace PeepholePass
                 return false;
 
             MicroStorage::Iterator retIt = endIt;
+            bool                   accValueLiveAfterCopy = true;
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 const MicroInstr& scanInst = *scanIt;
@@ -352,15 +457,16 @@ namespace PeepholePass
                 if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                     return false;
 
-                bool usesRet = false;
-                bool defsRet = false;
-                if (classifyRegUseDef(context, scanInst, retReg, usesRet, defsRet))
-                    return false;
+                if (!accValueLiveAfterCopy)
+                    continue;
 
                 bool usesAcc = false;
                 bool defsAcc = false;
-                if (classifyRegUseDef(context, scanInst, accReg, usesAcc, defsAcc))
+                classifyRegUseDef(context, scanInst, accReg, usesAcc, defsAcc);
+                if (usesAcc)
                     return false;
+                if (defsAcc)
+                    accValueLiveAfterCopy = false;
             }
 
             if (retIt == endIt)
@@ -867,6 +973,60 @@ namespace PeepholePass
             return true;
         }
 
+        bool removeUnusedCopyDestination(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                instRef = cursor.instRef;
+            const MicroInstr*        inst    = cursor.inst;
+            const MicroInstrOperand* ops     = cursor.ops;
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || !ops)
+                return false;
+
+            const MicroReg dstReg = ops[0].reg;
+            const MicroReg srcReg = ops[1].reg;
+            if (dstReg == srcReg || !dstReg.isSameClass(srcReg))
+                return false;
+
+            if (dstReg.isInstructionPointer())
+                return false;
+
+            const MicroReg stackPointerReg = context.encoder ? context.encoder->stackPointerReg() : MicroReg::invalid();
+            if (stackPointerReg.isValid() && dstReg == stackPointerReg)
+                return false;
+
+            if (!isRegUnusedAfterInstruction(context, cursor.nextIt, cursor.endIt, dstReg))
+                return false;
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
+        bool removeDeadCopyBeforeUse(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                instRef = cursor.instRef;
+            const MicroInstr*        inst    = cursor.inst;
+            const MicroInstrOperand* ops     = cursor.ops;
+            if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || !ops)
+                return false;
+
+            const MicroReg dstReg = ops[0].reg;
+            const MicroReg srcReg = ops[1].reg;
+            if (dstReg == srcReg || !dstReg.isSameClass(srcReg))
+                return false;
+
+            if (dstReg.isInstructionPointer())
+                return false;
+
+            const MicroReg stackPointerReg = context.encoder ? context.encoder->stackPointerReg() : MicroReg::invalid();
+            if (stackPointerReg.isValid() && dstReg == stackPointerReg)
+                return false;
+
+            if (!isCopyDeadAfterInstruction(context, cursor.nextIt, cursor.endIt, dstReg))
+                return false;
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool foldCopyBackWithPreviousOp(const MicroPassContext& context, const Cursor& cursor)
         {
             if (!cursor.ops)
@@ -946,6 +1106,11 @@ namespace PeepholePass
         // Example: mov r8, r11; cmp r8, 0 -> cmp r11, 0
         outRules.push_back({RuleTarget::LoadRegReg, forwardCopyIntoNextCompareSource});
 
+        // Rule: fold_copy_into_next_memory_base
+        // Purpose: fold copied base register into next memory access base.
+        // Example: mov r10, rsp; mov [r10], xmm3 -> mov [rsp], xmm3
+        outRules.push_back({RuleTarget::LoadRegReg, foldCopyIntoNextMemoryBase});
+
         // Rule: fold_copy_into_next_self_load_mem
         // Purpose: fold copied base into later self-load memory form.
         // Example: mov r11, rcx; mov r9, rdx; mov r11, [r11] -> mov r9, rdx; mov r11, [rcx]
@@ -980,6 +1145,16 @@ namespace PeepholePass
         // Purpose: rewrite downstream uses of copy destination to copy source and remove copy.
         // Example: mov r8, r11; add r9, r8; or r10, r8 -> add r9, r11; or r10, r11
         outRules.push_back({RuleTarget::LoadRegReg, coalesceCopyInstruction});
+
+        // Rule: remove_unused_copy_destination
+        // Purpose: remove a copy when the destination register is never used afterwards.
+        // Example: mov r9, r11; add rax, rcx -> add rax, rcx
+        outRules.push_back({RuleTarget::LoadRegReg, removeUnusedCopyDestination});
+
+        // Rule: remove_dead_copy_before_use
+        // Purpose: remove a copy when the destination value dies before any reachable use.
+        // Example: mov rbp, rsp; push rdi; mov rbp, rsp -> push rdi; mov rbp, rsp
+        outRules.push_back({RuleTarget::LoadRegReg, removeDeadCopyBeforeUse});
 
         // Rule: remove_overwritten_copy
         // Purpose: remove a copy when the destination is immediately overwritten by another copy.

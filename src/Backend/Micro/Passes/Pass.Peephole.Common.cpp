@@ -77,7 +77,12 @@ namespace PeepholePass
                 return true;
 
             if (scanInst.op == MicroInstrOpcode::Ret)
+            {
+                const CallConv& functionConv = CallConv::get(context.callConvKind);
+                if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+                    return false;
                 return true;
+            }
 
             if (useDef.isCall)
             {
@@ -136,6 +141,44 @@ namespace PeepholePass
 
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;
+        }
+
+        return true;
+    }
+
+    bool isRegUnusedAfterInstruction(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg reg)
+    {
+        if (!reg.isValid() || reg.isNoBase())
+            return true;
+
+        const CallConv& functionConv = CallConv::get(context.callConvKind);
+        for (; scanIt != endIt; ++scanIt)
+        {
+            const MicroInstr&                    scanInst = *scanIt;
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            SmallVector<MicroInstrRegOperandRef> refs;
+            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.use || !ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                    continue;
+
+                return false;
+            }
+
+            if (useDef.isCall)
+            {
+                const CallConv& callConv = CallConv::get(useDef.callConv);
+                if (isRegCallArgument(callConv, reg))
+                    return false;
+            }
+
+            if (scanInst.op == MicroInstrOpcode::Ret)
+            {
+                if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+                    return false;
+            }
         }
 
         return true;

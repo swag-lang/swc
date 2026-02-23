@@ -40,10 +40,11 @@ namespace
         passManager.addMandatory(legalizePass);
     }
 
-    void registerFinalPasses(MicroPassManager& passManager, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroEmitPass& emitPass)
+    void registerFinalPasses(MicroPassManager& passManager, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroPeepholePass& peepholePass, MicroEmitPass& emitPass)
     {
         passManager.addFinal(prologEpilogPass);
         passManager.addFinal(legalizePass);
+        passManager.addFinal(peepholePass);
         passManager.addFinal(emitPass);
     }
 
@@ -186,7 +187,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     MicroPassManager passManager;
     registerOptimizationPasses(passManager, builder.backendBuildCfg().optimizeLevel, optimizationPasses);
     registerMandatoryPasses(passManager, regAllocPass, legalizePass);
-    registerFinalPasses(passManager, prologEpilogPass, legalizePass, emitPass);
+    registerFinalPasses(passManager, prologEpilogPass, legalizePass, peepholePass, emitPass);
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim    = builder.instructions().count();

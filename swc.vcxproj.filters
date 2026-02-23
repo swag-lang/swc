@@ -186,10 +186,31 @@
     <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.BranchFolding.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.ConstantPropagation.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.ControlFlowSimplification.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.CopyPropagation.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.DeadCodeElimination.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.LoadStoreForwarding.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\Unittest\Tests\Test.Peephole.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp">
+      <Filter>src\Backend\Unittest\Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Unittest\Tests\Test.StrengthReduction.cpp">
       <Filter>src\Backend\Unittest\Tests</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">

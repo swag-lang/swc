@@ -1,0 +1,96 @@
+#include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
+#include "Support/Unittest/Unittest.h"
+
+SWC_BEGIN_NAMESPACE();
+
+#if SWC_HAS_UNITTEST
+
+namespace
+{
+    void runConstantPropagationPass(MicroBuilder& builder)
+    {
+        MicroConstantPropagationPass pass;
+        MicroPassManager            passManager;
+        passManager.add(pass);
+
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Host;
+        builder.runPasses(passManager, nullptr, passContext);
+    }
+
+    const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
+    {
+        uint32_t currentIndex = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (currentIndex == index)
+                return &inst;
+            ++currentIndex;
+        }
+
+        return nullptr;
+    }
+}
+
+SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
+{
+    MicroBuilder builder(ctx);
+    const MicroReg r8  = MicroReg::intReg(8);
+    const MicroReg r9  = MicroReg::intReg(9);
+    const MicroReg r10 = MicroReg::intReg(10);
+
+    builder.emitLoadRegImm(r8, ApInt(uint64_t{17}, 64), MicroOpBits::B64);
+    builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
+    builder.emitLoadRegImm(r10, ApInt(uint64_t{42}, 64), MicroOpBits::B64);
+    builder.emitCmpRegReg(r9, r10, MicroOpBits::B64);
+
+    runConstantPropagationPass(builder);
+
+    if (builder.instructions().count() != 4)
+        return Result::Error;
+
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst1    = instructionAt(builder, 1);
+    const MicroInstr*          inst3    = instructionAt(builder, 3);
+    if (!inst1 || !inst3)
+        return Result::Error;
+
+    const MicroInstrOperand* ops1 = inst1->ops(operands);
+    if (inst1->op != MicroInstrOpcode::LoadRegImm || ops1[2].valueU64 != 17)
+        return Result::Error;
+
+    const MicroInstrOperand* ops3 = inst3->ops(operands);
+    if (inst3->op != MicroInstrOpcode::CmpRegImm || ops3[2].valueU64 != 42)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
+{
+    MicroBuilder builder(ctx);
+    const MicroReg r8 = MicroReg::intReg(8);
+    const MicroReg r9 = MicroReg::intReg(9);
+
+    builder.emitLoadRegImm(r8, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(uint64_t{3}, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(r8, r9, MicroOp::Add, MicroOpBits::B64);
+
+    runConstantPropagationPass(builder);
+
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst2    = instructionAt(builder, 2);
+    if (!inst2)
+        return Result::Error;
+
+    const MicroInstrOperand* ops2 = inst2->ops(operands);
+    if (inst2->op != MicroInstrOpcode::LoadRegImm || ops2[2].valueU64 != 5)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+#endif
+
+SWC_END_NAMESPACE();

@@ -154,24 +154,20 @@ void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx)
     uint64_t currentOffset = 0;
     for (SymbolVariable* symVar : localVariables_)
     {
-        if (!symVar)
-            continue;
-
+        SWC_ASSERT(symVar != nullptr);
         const TypeRef typeRef = symVar->typeRef();
-        if (typeRef.isInvalid())
-            continue;
+        SWC_ASSERT(typeRef.isValid());
 
         const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
         uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
         uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(ctx), 1);
+        SWC_ASSERT(size > 0);
+
         if (isHandleBackedLocalType(typeInfo))
         {
             size      = sizeof(uint64_t);
             alignment = alignof(uint64_t);
         }
-
-        if (!size)
-            continue;
 
         currentOffset = Math::alignUpU64(currentOffset, alignment);
         SWC_ASSERT(currentOffset <= std::numeric_limits<uint32_t>::max());

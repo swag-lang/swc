@@ -12,36 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Ref findNextNonDebugInstructionRef(MicroStorage& storage, Ref startRef)
-    {
-        bool sawStart = false;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
-        {
-            if (!sawStart)
-            {
-                if (it.current != startRef)
-                    continue;
-                sawStart = true;
-            }
-            return it.current;
-        }
-
-        return INVALID_REF;
-    }
-
-    Ref findPreviousNonDebugInstructionRef(MicroStorage& storage, Ref beforeRef)
-    {
-        Ref previousRef = INVALID_REF;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
-        {
-            if (it.current == beforeRef)
-                return previousRef;
-            previousRef = it.current;
-        }
-
-        return INVALID_REF;
-    }
-
     bool tryMergeStackAdjustInstruction(const MicroPassContext& context, Ref targetRef, MicroReg stackPointerReg, MicroOp expectedOp, uint64_t additionalValue)
     {
         if (targetRef == INVALID_REF || !additionalValue)
@@ -227,8 +197,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     bool mergedStackSub = false;
     if (savedRegsStackSubSize_ && savedRegSlots_.empty())
     {
-        const Ref firstBodyRef = findNextNonDebugInstructionRef(instructions, insertBeforeRef);
-        mergedStackSub         = tryMergeStackAdjustInstruction(context, firstBodyRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
+        mergedStackSub = tryMergeStackAdjustInstruction(context, insertBeforeRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
     }
 
     if (savedRegsStackSubSize_ && !mergedStackSub)
@@ -275,7 +244,7 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     bool mergedStackAdd = false;
     if (savedRegsStackSubSize_ && savedRegSlots_.empty())
     {
-        const Ref previousBodyRef = findPreviousNonDebugInstructionRef(instructions, insertBeforeRef);
+        const Ref previousBodyRef = instructions.findPreviousInstructionRef(insertBeforeRef);
         mergedStackAdd            = tryMergeStackAdjustInstruction(context, previousBodyRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
     }
 

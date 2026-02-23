@@ -250,6 +250,21 @@ bool MicroStorage::erase(Ref ref)
     return true;
 }
 
+Ref MicroStorage::findPreviousInstructionRef(Ref beforeRef) const noexcept
+{
+    if (beforeRef == INVALID_REF)
+        return tail_;
+
+    if (beforeRef >= nodes_.size())
+        return INVALID_REF;
+
+    const Node& node = nodes_[beforeRef];
+    if (!node.alive)
+        return INVALID_REF;
+
+    return node.prev;
+}
+
 Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
 {
     SWC_ASSERT(beforeRef != INVALID_REF);

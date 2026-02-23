@@ -93,6 +93,7 @@ public:
     const MicroInstr*           ptr(Ref ref) const noexcept;
     std::pair<Ref, MicroInstr*> emplaceUninit();
     bool                        erase(Ref ref);
+    Ref                         findPreviousInstructionRef(Ref beforeRef) const noexcept;
     Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
     Ref                         insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     View                        view() noexcept;

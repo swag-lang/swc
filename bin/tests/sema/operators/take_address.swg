@@ -15,10 +15,10 @@
 
 #test
 {
-    let A = 10's32
-    let PA = &A
-    #assert(#typeof(PA) == const *s32)
-    let PB = &0 // swc-expected-error {{sema_err_take_address_constant}}
+    var A = 10's32
+    var PA = &A
+    #assert(#typeof(PA) == *s32)
+    var PB = &0 // swc-expected-error {{sema_err_take_address_constant}}
 }
 
 #test
@@ -68,9 +68,9 @@
 
 #test
 {
-    let A = 10's32
-    let PA = &A
-    let PB = &(A + 1) // swc-expected-error {{sema_err_take_address_not_lvalue}}
+    var A = 10's32
+    var PA = &A
+    var PB = &(A + 1) // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }
 
 #test
@@ -117,12 +117,12 @@
 
 #test
 {
-    let A = 10's32
-    let B = 20's32
-    let PA = &A
-    let PB = &B
-    #assert(#typeof(PA) == const *s32)
-    #assert(#typeof(PB) == const *s32)
+    var A = 10's32
+    var B = 20's32
+    var PA = &A
+    var PB = &B
+    #assert(#typeof(PA) == *s32)
+    #assert(#typeof(PB) == *s32)
 }
 
 #test

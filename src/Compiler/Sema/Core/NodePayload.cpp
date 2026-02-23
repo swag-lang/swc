@@ -13,6 +13,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool canFoldLetVariableOnNode(const AstNode& node)
+    {
+        return node.isNot(AstNodeId::SingleVarDecl) &&
+               node.isNot(AstNodeId::MultiVarDecl) &&
+               node.isNot(AstNodeId::VarDeclList) &&
+               node.isNot(AstNodeId::VarDeclDestructuring) &&
+               node.isNot(AstNodeId::IfVarDecl) &&
+               node.isNot(AstNodeId::WithVarDecl);
+    }
+
     bool isCallLikeNode(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
@@ -49,6 +59,17 @@ namespace
         }
 
         return typeRef;
+    }
+
+    bool canFoldLetVariable(const AstNode& node, const SymbolVariable& symVar)
+    {
+        if (!canFoldLetVariableOnNode(node))
+            return false;
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+            return false;
+        if (symVar.cstRef().isInvalid())
+            return false;
+        return symVar.typeRef().isValid();
     }
 }
 
@@ -93,6 +114,12 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
                 return sym.cast<SymbolConstant>().cstRef();
             if (sym.isEnumValue())
                 return sym.cast<SymbolEnumValue>().cstRef();
+            if (sym.isVariable())
+            {
+                const SymbolVariable& symVar = sym.cast<SymbolVariable>();
+                if (canFoldLetVariable(node, symVar))
+                    return symVar.cstRef();
+            }
             break;
         }
 
@@ -105,6 +132,12 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
                 return symList.front()->cast<SymbolConstant>().cstRef();
             if (symList.front()->isEnumValue())
                 return symList.front()->cast<SymbolEnumValue>().cstRef();
+            if (symList.front()->isVariable())
+            {
+                const SymbolVariable& symVar = symList.front()->cast<SymbolVariable>();
+                if (canFoldLetVariable(node, symVar))
+                    return symVar.cstRef();
+            }
             break;
         }
 

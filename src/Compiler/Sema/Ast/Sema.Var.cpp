@@ -238,6 +238,21 @@ namespace
         }
     }
 
+    void storeLetConstants(const std::span<Symbol*>& symbols, bool isLet, ConstantRef cstRef)
+    {
+        if (!isLet || cstRef.isInvalid())
+            return;
+
+        for (Symbol* s : symbols)
+        {
+            if (!s->isVariable())
+                continue;
+
+            SymbolVariable& symVar = s->cast<SymbolVariable>();
+            symVar.setCstRef(cstRef);
+        }
+    }
+
     struct SemaPostVarDeclArgs
     {
         const AstNode*              owner;
@@ -366,6 +381,8 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_let_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
+
+        storeLetConstants(symbols, isLet, context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

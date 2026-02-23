@@ -29,12 +29,15 @@ public:
     uint32_t    parameterIndex() const { return parameterIndex_; }
     bool        hasParameterIndex() const { return parameterIndex_ != K_INVALID_PARAMETER_INDEX; }
     void        setParameterIndex(uint32_t index) { parameterIndex_ = index; }
+    ConstantRef cstRef() const { return cstRef_; }
+    void        setCstRef(ConstantRef ref) { cstRef_ = ref; }
     ConstantRef defaultValueRef() const { return defaultValueRef_; }
     void        setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
 
 private:
     uint32_t    offset_          = 0;
     uint32_t    parameterIndex_  = K_INVALID_PARAMETER_INDEX;
+    ConstantRef cstRef_          = ConstantRef::invalid();
     ConstantRef defaultValueRef_ = ConstantRef::invalid();
 };
 

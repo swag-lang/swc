@@ -38,3 +38,23 @@ struct F
     let a = 1
     a = 2 // swc-expected-error {{sema_err_assign_to_let}}
 }
+
+#test
+{
+    let a = 5
+    const b = a + 7
+    #assert(b == 12)
+}
+
+#test
+{
+    var x = 1
+    let y = x
+    const z = y // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+#test
+{
+    let a = 1
+    var p = &a // swc-expected-error {{sema_err_take_address_constant}}
+}

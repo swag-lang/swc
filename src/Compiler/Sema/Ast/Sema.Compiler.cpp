@@ -436,8 +436,6 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 
         const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
-        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
-            currentFunc->computeLocalVariableOffsets(sema.ctx());
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return Result::Continue;
     }

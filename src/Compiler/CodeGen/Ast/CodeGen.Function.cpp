@@ -51,8 +51,6 @@ namespace
         if (localSymbols.empty())
             return;
 
-        codeGen.function().computeLocalVariableOffsets(codeGen.ctx());
-
         const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
         for (const SymbolVariable* symVar : localSymbols)

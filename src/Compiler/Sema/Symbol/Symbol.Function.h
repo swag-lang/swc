@@ -42,8 +42,7 @@ public:
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     void                                addParameter(SymbolVariable* sym);
-    void                                addLocalVariable(SymbolVariable* sym);
-    void                                computeLocalVariableOffsets(TaskContext& ctx) const;
+    void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();
@@ -89,6 +88,8 @@ private:
 
     std::vector<SymbolVariable*> parameters_;
     std::vector<SymbolVariable*> localVariables_;
+    size_t                       numComputedLocals_    = 0;
+    uint64_t                     localStackOffset_     = 0;
     RtAttributeFlags             rtAttributeFlags_    = RtAttributeFlagsE::Zero;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;

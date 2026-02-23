@@ -37,16 +37,30 @@ namespace
         }
     }
 
-    void completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
+    Result completeVar(Sema& sema, const std::span<Symbol*>& symbols, TypeRef typeRef)
     {
+        TaskContext& ctx = sema.ctx();
         for (Symbol* s : symbols)
         {
             SymbolVariable& symVar = s->cast<SymbolVariable>();
             if (symVar.typeRef().isInvalid())
                 symVar.setTypeRef(typeRef);
+
+            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            {
+                if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+                {
+                    const TypeInfo* symType = symVar.typeRef().isValid() ? &ctx.typeMgr().get(symVar.typeRef()) : nullptr;
+                    RESULT_VERIFY(sema.waitSemaCompleted(symType, sema.curNodeRef()));
+                    currentFunc->addLocalVariable(ctx, &symVar);
+                }
+            }
+
             symVar.setTyped(sema.ctx());
             symVar.setSemaCompleted(sema.ctx());
         }
+
+        return Result::Continue;
     }
 
     bool deduceArrayDimsFromType(Sema& sema, TypeRef typeRef, SmallVector4<uint64_t>& outDims)
@@ -359,7 +373,7 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
-        completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef());
+        RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {

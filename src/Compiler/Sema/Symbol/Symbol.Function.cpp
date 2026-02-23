@@ -2,6 +2,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Helpers.h"
@@ -71,6 +73,46 @@ namespace
             }
         }
     }
+
+    bool isLocalLayoutReady(TaskContext& ctx, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        if (typeInfo.isIntUnsized() || typeInfo.isFloatUnsized() || typeInfo.isVoid() || typeInfo.isUndefined() || typeInfo.isAnyVariadic())
+            return false;
+
+        if (typeInfo.isArray())
+        {
+            if (typeInfo.payloadArrayDims().empty())
+                return false;
+            return isLocalLayoutReady(ctx, typeInfo.payloadArrayElemTypeRef());
+        }
+
+        if (typeInfo.isAggregate())
+        {
+            const auto& aggregateTypes = typeInfo.payloadAggregate().types;
+            if (aggregateTypes.empty())
+                return false;
+            for (const TypeRef elemTypeRef : aggregateTypes)
+            {
+                if (!isLocalLayoutReady(ctx, elemTypeRef))
+                    return false;
+            }
+        }
+
+        if (typeInfo.isAlias())
+            return isLocalLayoutReady(ctx, typeInfo.payloadSymAlias().underlyingTypeRef());
+
+        if (typeInfo.isEnum())
+            return isLocalLayoutReady(ctx, typeInfo.payloadSymEnum().underlyingTypeRef());
+
+        if (typeInfo.isTypeValue())
+            return isLocalLayoutReady(ctx, typeInfo.payloadTypeRef());
+
+        return true;
+    }
 }
 
 Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
@@ -136,32 +178,33 @@ void SymbolFunction::addParameter(SymbolVariable* sym)
     parameters_.push_back(sym);
 }
 
-void SymbolFunction::addLocalVariable(SymbolVariable* sym)
+void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
     if (std::ranges::find(localVariables_, sym) != localVariables_.end())
         return;
-    localVariables_.push_back(sym);
-}
 
-void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx) const
-{
-    uint64_t currentOffset = 0;
-    for (SymbolVariable* symVar : localVariables_)
+    localVariables_.push_back(sym);
+    while (numComputedLocals_ < localVariables_.size())
     {
-        SWC_ASSERT(symVar != nullptr);
-        const TypeRef typeRef = symVar->typeRef();
-        SWC_ASSERT(typeRef.isValid());
+        SymbolVariable* const local = localVariables_[numComputedLocals_];
+        SWC_ASSERT(local != nullptr);
+
+        const TypeRef typeRef = local->typeRef();
+        if (!isLocalLayoutReady(ctx, typeRef))
+            return;
 
         const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-        const uint32_t  size      = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
-        const uint32_t  alignment = std::max<uint32_t>(typeInfo.alignOf(ctx), 1);
+        const uint64_t  size      = typeInfo.sizeOf(ctx);
+        const uint32_t  alignment = typeInfo.alignOf(ctx);
         SWC_ASSERT(size > 0);
+        SWC_ASSERT(alignment > 0);
 
-        currentOffset = Math::alignUpU64(currentOffset, alignment);
-        SWC_ASSERT(currentOffset <= std::numeric_limits<uint32_t>::max());
-        symVar->setOffset(static_cast<uint32_t>(currentOffset));
-        currentOffset += size;
+        localStackOffset_ = Math::alignUpU64(localStackOffset_, alignment);
+        SWC_ASSERT(localStackOffset_ <= std::numeric_limits<uint32_t>::max());
+        local->setOffset(static_cast<uint32_t>(localStackOffset_));
+        localStackOffset_ += size;
+        numComputedLocals_++;
     }
 }
 

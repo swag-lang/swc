@@ -112,6 +112,7 @@ struct LocalVarDirectDefaultNode
 
 #test
 {
+    #[Swag.PrintMicro]
     func structWithDefaults()->s32
     {
         let s: LocalVarState = {weight: 11}

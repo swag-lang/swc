@@ -10,6 +10,66 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Ref findNextNonDebugInstructionRef(MicroStorage& storage, Ref startRef)
+    {
+        bool sawStart = false;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (!sawStart)
+            {
+                if (it.current != startRef)
+                    continue;
+                sawStart = true;
+            }
+
+            if (it->op == MicroInstrOpcode::Debug)
+                continue;
+            return it.current;
+        }
+
+        return INVALID_REF;
+    }
+
+    Ref findPreviousNonDebugInstructionRef(MicroStorage& storage, Ref beforeRef)
+    {
+        Ref previousRef = INVALID_REF;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            if (it.current == beforeRef)
+                return previousRef;
+
+            if (it->op == MicroInstrOpcode::Debug)
+                continue;
+            previousRef = it.current;
+        }
+
+        return INVALID_REF;
+    }
+
+    bool tryMergeStackAdjustInstruction(const MicroPassContext& context, Ref targetRef, MicroReg stackPointerReg, MicroOp expectedOp, uint64_t additionalValue)
+    {
+        if (targetRef == INVALID_REF || !additionalValue)
+            return false;
+
+        MicroInstr* inst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(targetRef);
+        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+
+        MicroInstrOperand* ops = inst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+        if (!ops)
+            return false;
+        if (ops[0].reg != stackPointerReg || ops[1].opBits != MicroOpBits::B64 || ops[2].microOp != expectedOp)
+            return false;
+        if (ops[3].valueU64 > std::numeric_limits<uint64_t>::max() - additionalValue)
+            return false;
+
+        ops[3].valueU64 += additionalValue;
+        return true;
+    }
+}
+
 bool MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
@@ -170,7 +230,14 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps);
     }
 
-    if (savedRegsStackSubSize_)
+    bool mergedStackSub = false;
+    if (savedRegsStackSubSize_ && savedRegSlots_.empty())
+    {
+        const Ref firstBodyRef = findNextNonDebugInstructionRef(instructions, insertBeforeRef);
+        mergedStackSub         = tryMergeStackAdjustInstruction(context, firstBodyRef, conv.stackPointer, MicroOp::Subtract, savedRegsStackSubSize_);
+    }
+
+    if (savedRegsStackSubSize_ && !mergedStackSub)
     {
         MicroInstrOperand subOps[4];
         subOps[0].reg      = conv.stackPointer;
@@ -211,7 +278,14 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
         instructions.insertBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, loadOps);
     }
 
-    if (savedRegsStackSubSize_)
+    bool mergedStackAdd = false;
+    if (savedRegsStackSubSize_ && savedRegSlots_.empty())
+    {
+        const Ref previousBodyRef = findPreviousNonDebugInstructionRef(instructions, insertBeforeRef);
+        mergedStackAdd            = tryMergeStackAdjustInstruction(context, previousBodyRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
+    }
+
+    if (savedRegsStackSubSize_ && !mergedStackAdd)
     {
         MicroInstrOperand addOps[4];
         addOps[0].reg      = conv.stackPointer;

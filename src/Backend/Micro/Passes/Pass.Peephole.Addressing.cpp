@@ -263,14 +263,14 @@ namespace PeepholePass
                 return false;
             if (ops[2].opBits != nextOps[1].opBits)
                 return false;
-            if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
+            if (!isRegUnusedAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
                 return false;
 
             std::array<MicroInstrOperand, 4> newOps;
-            newOps[0].reg    = ops[1].reg;
-            newOps[1].opBits = ops[2].opBits;
+            newOps[0].reg      = ops[1].reg;
+            newOps[1].opBits   = ops[2].opBits;
             newOps[2].valueU64 = ops[3].valueU64;
-            newOps[3]        = nextOps[2];
+            newOps[3].setImmediateValue(ApInt(nextOps[2].valueU64, getNumBits(nextOps[1].opBits)));
 
             const Ref         newRef  = SWC_CHECK_NOT_NULL(context.instructions)->insertBefore(*SWC_CHECK_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::CmpMemImm, newOps);
             const MicroInstr* newInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(newRef);

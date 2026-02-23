@@ -271,6 +271,15 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             continue;
         }
 
+        if (useDef.isCall)
+        {
+            // Calls consume argument registers and clobber transient registers.
+            // The forward local-def map does not model ABI argument uses, so do not
+            // propagate pure defs across calls.
+            lastPureDefByReg.clear();
+            continue;
+        }
+
         for (const MicroReg useReg : useDef.uses)
             lastPureDefByReg.erase(useReg.packed);
 

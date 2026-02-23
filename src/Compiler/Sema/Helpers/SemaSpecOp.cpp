@@ -265,10 +265,9 @@ namespace
         const SymbolMap* symMap = sym.ownerSymMap();
         if (!symMap)
             return false;
-        const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>();
-        if (!symImpl)
+        if (!symMap->isImpl())
             return false;
-        return symImpl->isForInterface();
+        return symMap->cast<SymbolImpl>().isForInterface();
     }
 
 }

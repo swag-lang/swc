@@ -87,9 +87,11 @@ namespace
         nodeCallee.getSymbols(symbols);
 
         AstNodeRef ufcsArg = AstNodeRef::invalid();
-        if (const auto memberAccess = nodeCallee.node()->safeCast<AstMemberAccessExpr>())
+        SWC_ASSERT(nodeCallee.node() != nullptr);
+        if (nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
         {
-            const SemaNodeView nodeLeftView = sema.viewZero(memberAccess->nodeLeftRef);
+            const AstMemberAccessExpr& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
+            const SemaNodeView nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
             if (sema.isValue(nodeLeftView.nodeRef()))
                 ufcsArg = nodeLeftView.nodeRef();
         }

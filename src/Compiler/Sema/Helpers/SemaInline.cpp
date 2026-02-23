@@ -34,33 +34,38 @@ namespace
 
     AstNodeRef inlineExprRef(const Sema& sema, const SymbolFunction& fn)
     {
-        const AstFunctionDecl* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        if (!decl)
+        const AstNode* const declNode = fn.decl();
+        if (!declNode)
             return AstNodeRef::invalid();
-        if (decl->srcViewRef() != sema.ast().srcView().ref())
-            return AstNodeRef::invalid();
-
-        if (decl->hasFlag(AstFunctionFlagsE::Short))
-            return decl->nodeBodyRef;
-
-        if (decl->nodeBodyRef.isInvalid())
+        SWC_ASSERT(declNode->is(AstNodeId::FunctionDecl));
+        const AstFunctionDecl& decl = declNode->cast<AstFunctionDecl>();
+        if (decl.srcViewRef() != sema.ast().srcView().ref())
             return AstNodeRef::invalid();
 
-        const AstNode&          bodyNode = sema.node(decl->nodeBodyRef);
-        const AstEmbeddedBlock* block    = bodyNode.safeCast<AstEmbeddedBlock>();
-        if (!block)
+        if (decl.hasFlag(AstFunctionFlagsE::Short))
+            return decl.nodeBodyRef;
+
+        if (decl.nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
+
+        const AstNode& bodyNode = sema.node(decl.nodeBodyRef);
+        if (!bodyNode.is(AstNodeId::EmbeddedBlock))
+            return AstNodeRef::invalid();
+        const AstEmbeddedBlock& block = bodyNode.cast<AstEmbeddedBlock>();
 
         SmallVector<AstNodeRef> statements;
-        sema.ast().appendNodes(statements, block->spanChildrenRef);
+        sema.ast().appendNodes(statements, block.spanChildrenRef);
         if (statements.size() != 1)
             return AstNodeRef::invalid();
 
-        const AstReturnStmt* retStmt = sema.node(statements[0]).safeCast<AstReturnStmt>();
-        if (!retStmt || retStmt->nodeExprRef.isInvalid())
+        const AstNode& retNode = sema.node(statements[0]);
+        if (!retNode.is(AstNodeId::ReturnStmt))
+            return AstNodeRef::invalid();
+        const AstReturnStmt& retStmt = retNode.cast<AstReturnStmt>();
+        if (retStmt.nodeExprRef.isInvalid())
             return AstNodeRef::invalid();
 
-        return retStmt->nodeExprRef;
+        return retStmt.nodeExprRef;
     }
 
     bool mapArguments(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings)

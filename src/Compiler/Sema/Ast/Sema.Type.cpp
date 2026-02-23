@@ -255,10 +255,10 @@ Result AstNamedType::semaPostNode(Sema& sema)
 
     if (!view.sym()->isType())
     {
-        AstNodeRef                 nodeRef  = nodeIdentRef;
-        const AstMemberAccessExpr* nodeQual = view.node()->safeCast<AstMemberAccessExpr>();
-        if (nodeQual)
-            nodeRef = nodeQual->nodeRightRef;
+        AstNodeRef nodeRef = nodeIdentRef;
+        SWC_ASSERT(view.node() != nullptr);
+        if (view.node()->is(AstNodeId::MemberAccessExpr))
+            nodeRef = view.node()->cast<AstMemberAccessExpr>().nodeRightRef;
         SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
         return Result::Error;
     }

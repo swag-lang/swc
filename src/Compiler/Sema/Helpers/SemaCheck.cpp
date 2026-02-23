@@ -162,9 +162,10 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     // Disallow assignment to immutable lvalues:
     if (leftView.sym())
     {
-        if (const SymbolVariable* symVar = leftView.sym()->safeCast<SymbolVariable>())
+        if (leftView.sym()->isVariable())
         {
-            if (symVar->hasExtraFlag(SymbolVariableFlagsE::Let))
+            const SymbolVariable& symVar = leftView.sym()->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
             {
                 const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
                 diag.report(sema.ctx());

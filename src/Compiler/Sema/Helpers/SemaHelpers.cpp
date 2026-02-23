@@ -13,25 +13,30 @@ SWC_BEGIN_NAMESPACE();
 
 void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
 {
-    if (SymbolVariable* symVar = sym->safeCast<SymbolVariable>())
+    SWC_ASSERT(symbolMap != nullptr);
+    SWC_ASSERT(sym != nullptr);
+
+    if (sym->isVariable())
     {
-        if (const auto symStruct = symbolMap->safeCast<SymbolStruct>())
-            symStruct->addField(symVar);
+        SymbolVariable& symVar = sym->cast<SymbolVariable>();
+        if (symbolMap->isStruct())
+            symbolMap->cast<SymbolStruct>().addField(&symVar);
 
         if (sema.curScope().isParameters())
         {
-            symVar->addExtraFlag(SymbolVariableFlagsE::Parameter);
-            if (const auto symFunc = symbolMap->safeCast<SymbolFunction>())
-                symFunc->addParameter(symVar);
+            symVar.addExtraFlag(SymbolVariableFlagsE::Parameter);
+            if (symbolMap->isFunction())
+                symbolMap->cast<SymbolFunction>().addParameter(&symVar);
         }
     }
 
-    if (SymbolFunction* symFunc = sym->safeCast<SymbolFunction>())
+    if (sym->isFunction())
     {
-        if (const auto symInterface = symbolMap->safeCast<SymbolInterface>())
-            symInterface->addFunction(symFunc);
-        if (const auto symImpl = symbolMap->safeCast<SymbolImpl>())
-            symImpl->addFunction(sema.ctx(), symFunc);
+        SymbolFunction& symFunc = sym->cast<SymbolFunction>();
+        if (symbolMap->isInterface())
+            symbolMap->cast<SymbolInterface>().addFunction(&symFunc);
+        if (symbolMap->isImpl())
+            symbolMap->cast<SymbolImpl>().addFunction(sema.ctx(), &symFunc);
     }
 }
 

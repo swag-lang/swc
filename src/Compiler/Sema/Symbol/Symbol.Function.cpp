@@ -318,30 +318,28 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
 
 SymbolStruct* SymbolFunction::ownerStruct()
 {
-    SymbolStruct* ownerStruct = nullptr;
     if (SymbolMap* symMap = ownerSymMap())
     {
-        if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
-            ownerStruct = symImpl->symStruct();
-        else
-            ownerStruct = symMap->safeCast<SymbolStruct>();
+        if (symMap->isImpl())
+            return symMap->cast<SymbolImpl>().symStruct();
+        if (symMap->isStruct())
+            return &symMap->cast<SymbolStruct>();
     }
 
-    return ownerStruct;
+    return nullptr;
 }
 
 const SymbolStruct* SymbolFunction::ownerStruct() const
 {
-    const SymbolStruct* ownerStruct = nullptr;
     if (const SymbolMap* symMap = ownerSymMap())
     {
-        if (const SymbolImpl* symImpl = symMap->safeCast<SymbolImpl>())
-            ownerStruct = symImpl->symStruct();
-        else
-            ownerStruct = symMap->safeCast<SymbolStruct>();
+        if (symMap->isImpl())
+            return symMap->cast<SymbolImpl>().symStruct();
+        if (symMap->isStruct())
+            return &symMap->cast<SymbolStruct>();
     }
 
-    return ownerStruct;
+    return nullptr;
 }
 
 SWC_END_NAMESPACE();

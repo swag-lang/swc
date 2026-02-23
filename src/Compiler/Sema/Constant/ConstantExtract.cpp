@@ -80,17 +80,17 @@ namespace
 
     void extractAggregateStructMember(Sema& sema, const ConstantValue& cst, const SymbolVariable& symVar, AstNodeRef nodeRef, AstNodeRef nodeMemberRef)
     {
-        const auto&         values = cst.getAggregateStruct();
-        const SymbolMap*    owner  = symVar.ownerSymMap();
-        const SymbolStruct* sym    = owner ? owner->safeCast<SymbolStruct>() : nullptr;
-        if (!sym)
+        const auto&      values = cst.getAggregateStruct();
+        const SymbolMap* owner  = symVar.ownerSymMap();
+        if (!owner || !owner->isStruct())
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
+        const SymbolStruct& sym = owner->cast<SymbolStruct>();
 
         size_t      fieldIndex = 0;
-        const auto& fields     = sym->fields();
+        const auto& fields     = sym.fields();
         const auto  it         = std::ranges::find_if(fields, [&](const SymbolVariable* field) {
             return field == &symVar;
         });

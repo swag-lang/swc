@@ -909,12 +909,14 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     // `cast()` is an explicit user request to allow explicit casts later when the destination type becomes known.
     // Therefore, when we are about to apply a contextual cast on an `AutoCastExpr`, force the cast to be explicit
     // and apply its modifiers.
-    if (const AstAutoCastExpr* autoCast = view.node()->safeCast<AstAutoCastExpr>())
+    SWC_ASSERT(view.node() != nullptr);
+    if (view.node()->is(AstNodeId::AutoCastExpr))
     {
+        const AstAutoCastExpr& autoCast = view.node()->cast<AstAutoCastExpr>();
         effectiveKind = CastKind::Explicit;
-        if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
+        if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
             effectiveFlags.add(CastFlagsE::BitCast);
-        if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
+        if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
             effectiveFlags.add(CastFlagsE::UnConst);
     }
 

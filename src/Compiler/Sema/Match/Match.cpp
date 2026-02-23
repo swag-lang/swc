@@ -14,6 +14,7 @@ namespace
 {
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
     {
+        SWC_ASSERT(symMap != nullptr);
         for (const SymbolMap* existing : lookUpCxt.symMaps)
         {
             if (existing == symMap)
@@ -23,22 +24,25 @@ namespace
         lookUpCxt.symMaps.push_back(symMap);
         lookUpCxt.symMapPriorities.push_back(priority);
 
-        if (const SymbolStruct* structSym = symMap->safeCast<SymbolStruct>())
+        if (symMap->isStruct())
         {
-            for (const SymbolImpl* impl : structSym->impls())
+            const SymbolStruct& structSym = symMap->cast<SymbolStruct>();
+            for (const SymbolImpl* impl : structSym.impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
-        else if (const SymbolEnum* enumSym = symMap->safeCast<SymbolEnum>())
+        else if (symMap->isEnum())
         {
-            for (const SymbolImpl* impl : enumSym->impls())
+            const SymbolEnum& enumSym = symMap->cast<SymbolEnum>();
+            for (const SymbolImpl* impl : enumSym.impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
-        else if (const SymbolImpl* implSym = symMap->safeCast<SymbolImpl>())
+        else if (symMap->isImpl())
         {
-            if (implSym->isForStruct())
-                addSymMap(lookUpCxt, implSym->symStruct(), priority);
+            const SymbolImpl& implSym = symMap->cast<SymbolImpl>();
+            if (implSym.isForStruct())
+                addSymMap(lookUpCxt, implSym.symStruct(), priority);
             else
-                addSymMap(lookUpCxt, implSym->symEnum(), priority);
+                addSymMap(lookUpCxt, implSym.symEnum(), priority);
         }
     }
 
@@ -46,10 +50,10 @@ namespace
     {
         if (!decl)
             return false;
-        if (const AstSingleVarDecl* var = decl->safeCast<AstSingleVarDecl>())
-            return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const AstMultiVarDecl* varList = decl->safeCast<AstMultiVarDecl>())
-            return varList->hasFlag(AstVarDeclFlagsE::Using);
+        if (decl->is(AstNodeId::SingleVarDecl))
+            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+        if (decl->is(AstNodeId::MultiVarDecl))
+            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
         return false;
     }
 
@@ -124,11 +128,12 @@ namespace
             // block for that same struct, member lookup must also consider the current impl scope.
             // This keeps the rule centralized (all lookups benefit), instead of having ad-hoc fixes
             // in member-access/auto-member-access.
-            if (const SymbolStruct* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            if (lookUpCxt.symMapHint->isStruct())
             {
+                const SymbolStruct& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 if (const SymbolImpl* symImpl = sema.frame().currentImpl())
                 {
-                    if (symImpl->isForStruct() && symImpl->symStruct() == structSym && symImpl->idRef() != structSym->idRef())
+                    if (symImpl->isForStruct() && symImpl->symStruct() == &structSym && symImpl->idRef() != structSym.idRef())
                         addSymMap(lookUpCxt, symImpl->asSymMap(), priority);
                 }
             }
@@ -136,10 +141,11 @@ namespace
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
-            if (const SymbolStruct* structSym = lookUpCxt.symMapHint->safeCast<SymbolStruct>())
+            if (lookUpCxt.symMapHint->isStruct())
             {
+                const SymbolStruct& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 SmallVector<const SymbolStruct*> visited;
-                addUsingMemberSymMaps(sema, lookUpCxt, *structSym, searchOrder, visited);
+                addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited);
             }
 
             return;

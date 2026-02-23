@@ -435,12 +435,14 @@ namespace
         const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant);
         auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
-        if (const AstAutoCastExpr* autoCast = argNodeView.node()->safeCast<AstAutoCastExpr>())
+        SWC_ASSERT(argNodeView.node() != nullptr);
+        if (argNodeView.node()->is(AstNodeId::AutoCastExpr))
         {
+            const AstAutoCastExpr& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
             castKind = CastKind::Explicit;
-            if (autoCast->modifierFlags.has(AstModifierFlagsE::Bit))
+            if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
                 castFlags.add(CastFlagsE::BitCast);
-            if (autoCast->modifierFlags.has(AstModifierFlagsE::UnConst))
+            if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
                 castFlags.add(CastFlagsE::UnConst);
         }
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
@@ -469,12 +471,12 @@ namespace
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef               argSubRef   = sema.viewZero(argRef).nodeRef();
-        const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
-        const AstNode&                 argNode     = sema.node(finalArgRef);
-        const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
-        if (!autoMem)
+        const AstNodeRef argSubRef   = sema.viewZero(argRef).nodeRef();
+        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
+        const AstNode&   argNode     = sema.node(finalArgRef);
+        if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
             return Result::Continue;
+        const AstAutoMemberAccessExpr& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
         if (!paramTypeInfo.isEnum())
@@ -483,7 +485,7 @@ namespace
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
-        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
+        const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
 
@@ -512,12 +514,12 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef               argSubRef   = sema.viewZero(argRef).nodeRef();
-        const AstNodeRef               finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
-        const AstNode&                 argNode     = sema.node(finalArgRef);
-        const AstAutoMemberAccessExpr* autoMem     = argNode.safeCast<AstAutoMemberAccessExpr>();
-        if (!autoMem)
+        const AstNodeRef argSubRef   = sema.viewZero(argRef).nodeRef();
+        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
+        const AstNode&   argNode     = sema.node(finalArgRef);
+        if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
             return Result::Continue;
+        const AstAutoMemberAccessExpr& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
         if (!paramTypeInfo.isEnum())
@@ -526,7 +528,7 @@ namespace
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
         RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
-        const SemaNodeView  nodeRightView(sema, autoMem->nodeIdentRef, SemaNodeViewPartE::Node);
+        const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
         const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
 
@@ -546,10 +548,10 @@ namespace
         sema.setIsValue(*leftPtr);
 
         memberPtr->nodeLeftRef  = leftRef;
-        memberPtr->nodeRightRef = autoMem->nodeIdentRef;
+        memberPtr->nodeRightRef = autoMem.nodeIdentRef;
 
         sema.setSymbolList(memberRef, lookUpCxt.symbols());
-        sema.setSymbolList(autoMem->nodeIdentRef, lookUpCxt.symbols());
+        sema.setSymbolList(autoMem.nodeIdentRef, lookUpCxt.symbols());
         sema.setSubstitute(argRef, memberRef);
         sema.setIsValue(*memberPtr);
 
@@ -999,11 +1001,13 @@ namespace
 
     AstNodeRef findInterfaceReceiverArg(Sema& sema, const SemaNodeView& nodeCallee)
     {
-        const AstMemberAccessExpr* memberAccess = nodeCallee.node() ? nodeCallee.node()->safeCast<AstMemberAccessExpr>() : nullptr;
-        if (!memberAccess)
+        if (!nodeCallee.node())
             return AstNodeRef::invalid();
+        if (!nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
+            return AstNodeRef::invalid();
+        const AstMemberAccessExpr& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
 
-        const SemaNodeView receiverView = sema.viewNodeType(memberAccess->nodeLeftRef);
+        const SemaNodeView receiverView = sema.viewNodeType(memberAccess.nodeLeftRef);
         if (receiverView.type() && receiverView.type()->isInterface() && sema.isValue(*receiverView.node()))
             return receiverView.nodeRef();
 
@@ -1080,8 +1084,9 @@ namespace
                 continue;
 
             AstNodeRef finalArgRef = entry.argRef;
-            if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
-                finalArgRef = namedArg->nodeArgRef;
+            const AstNode& finalArgNode = sema.node(finalArgRef);
+            if (finalArgNode.is(AstNodeId::NamedArgument))
+                finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
 
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
@@ -1107,8 +1112,9 @@ namespace
             if (entry.argRef.isInvalid())
                 continue;
             AstNodeRef finalArgRef = entry.argRef;
-            if (const AstNamedArgument* namedArg = sema.node(finalArgRef).safeCast<AstNamedArgument>())
-                finalArgRef = namedArg->nodeArgRef;
+            const AstNode& finalArgNode = sema.node(finalArgRef);
+            if (finalArgNode.is(AstNodeId::NamedArgument))
+                finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
             ResolvedCallArgument resolvedArg{
                 .argRef   = finalArgRef,
                 .passKind = CallArgumentPassKind::Direct,
@@ -1136,8 +1142,9 @@ AstNodeRef Match::resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef)
 {
     const AstNodeRef finalRef = resolveCallArgumentRef(sema, argRef);
 
-    if (const AstNamedArgument* namedArg = sema.node(finalRef).safeCast<AstNamedArgument>())
-        return resolveCallArgumentRef(sema, namedArg->nodeArgRef);
+    const AstNode& finalNode = sema.node(finalRef);
+    if (finalNode.is(AstNodeId::NamedArgument))
+        return resolveCallArgumentRef(sema, finalNode.cast<AstNamedArgument>().nodeArgRef);
 
     return finalRef;
 }

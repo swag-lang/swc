@@ -236,12 +236,14 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            SymbolVariable* symVar = s->safeCast<SymbolVariable>();
-            if (!symVar)
+            if (!s->isVariable())
                 continue;
-            if (!symVar->ownerSymMap() || !symVar->ownerSymMap()->safeCast<SymbolStruct>())
+
+            SymbolVariable& symVar = s->cast<SymbolVariable>();
+            const SymbolMap* owner = symVar.ownerSymMap();
+            if (!owner || !owner->isStruct())
                 continue;
-            symVar->setDefaultValueRef(cstRef);
+            symVar.setDefaultValueRef(cstRef);
         }
     }
 

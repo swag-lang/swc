@@ -100,10 +100,10 @@ namespace
     {
         if (!decl)
             return false;
-        if (const AstSingleVarDecl* var = decl->safeCast<AstSingleVarDecl>())
-            return var->hasFlag(AstVarDeclFlagsE::Using);
-        if (const AstMultiVarDecl* varList = decl->safeCast<AstMultiVarDecl>())
-            return varList->hasFlag(AstVarDeclFlagsE::Using);
+        if (decl->is(AstNodeId::SingleVarDecl))
+            return decl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+        if (decl->is(AstNodeId::MultiVarDecl))
+            return decl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
         return false;
     }
 }
@@ -165,13 +165,15 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     {
         auto& symVar = field->cast<SymbolVariable>();
 
-        SWC_ASSERT(symVar.decl()->is(AstNodeId::SingleVarDecl) || symVar.decl()->is(AstNodeId::MultiVarDecl));
+        const AstNode* decl = symVar.decl();
+        SWC_ASSERT(decl != nullptr);
+        SWC_ASSERT(decl->is(AstNodeId::SingleVarDecl) || decl->is(AstNodeId::MultiVarDecl));
         auto&      type        = symVar.typeInfo(sema.ctx());
         AstNodeRef typeNodeRef = AstNodeRef::invalid();
-        if (const AstSingleVarDecl* varSingle = symVar.decl()->safeCast<AstSingleVarDecl>())
-            typeNodeRef = varSingle->typeOrInitRef();
-        else if (const AstMultiVarDecl* varMulti = symVar.decl()->safeCast<AstMultiVarDecl>())
-            typeNodeRef = varMulti->typeOrInitRef();
+        if (decl->is(AstNodeId::SingleVarDecl))
+            typeNodeRef = decl->cast<AstSingleVarDecl>().typeOrInitRef();
+        else if (decl->is(AstNodeId::MultiVarDecl))
+            typeNodeRef = decl->cast<AstMultiVarDecl>().typeOrInitRef();
         else
             SWC_UNREACHABLE();
 

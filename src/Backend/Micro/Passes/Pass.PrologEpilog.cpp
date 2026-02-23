@@ -53,7 +53,7 @@ namespace
         if (targetRef == INVALID_REF || !additionalValue)
             return false;
 
-        MicroInstr* inst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(targetRef);
+        const MicroInstr* inst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(targetRef);
         if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
 

@@ -86,8 +86,8 @@ namespace
             if (!isNamedArgument(argNode))
                 continue;
 
-            const AstNamedArgument* namedArg = argNode.cast<AstNamedArgument>();
-            const IdentifierRef     idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg->codeRef());
+            const AstNamedArgument& namedArg = argNode.cast<AstNamedArgument>();
+            const IdentifierRef     idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg.codeRef());
 
             size_t paramIndex = params.size();
             for (size_t i = 0; i < params.size(); i++)
@@ -104,7 +104,7 @@ namespace
             if (bound[paramIndex].isValid())
                 return false;
 
-            bound[paramIndex] = sema.viewZero(namedArg->nodeArgRef).nodeRef();
+            bound[paramIndex] = sema.viewZero(namedArg.nodeArgRef).nodeRef();
         }
 
         for (const auto argRef : args)

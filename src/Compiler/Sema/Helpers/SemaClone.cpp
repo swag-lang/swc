@@ -29,7 +29,7 @@ namespace
         visitAstNodeId(node.id(), [&]<AstNodeId ID>() {
             using NodeType            = AstTypeOf<ID>::type;
             auto [newRef, newNodePtr] = sema.ast().makeNode<ID>(node.tokRef());
-            *newNodePtr               = *node.cast<NodeType>();
+            *newNodePtr               = node.cast<NodeType>();
             clonedRef                 = newRef;
         });
 

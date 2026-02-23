@@ -181,17 +181,17 @@ struct AstNode
     AstNodeRef           nodeRef(const Ast& ast) const;
 
     template<typename T>
-    T* cast()
+    T& cast()
     {
         SWC_ASSERT(is(T::ID));
-        return reinterpret_cast<T*>(this);
+        return *reinterpret_cast<T*>(this);
     }
 
     template<typename T>
-    const T* cast() const
+    const T& cast() const
     {
         SWC_ASSERT(is(T::ID));
-        return reinterpret_cast<const T*>(this);
+        return *reinterpret_cast<const T*>(this);
     }
 
     template<typename T>

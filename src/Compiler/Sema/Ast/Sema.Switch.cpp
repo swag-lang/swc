@@ -212,16 +212,16 @@ namespace
 
     Result handleRangeCaseExpr(Sema& sema, const AstNodeRef& rangeRef, TypeRef switchTypeRef)
     {
-        const AstRangeExpr* range = sema.node(rangeRef).cast<AstRangeExpr>();
-        if (range->nodeExprDownRef.isValid())
-            RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprDownRef, switchTypeRef));
-        if (range->nodeExprUpRef.isValid())
-            RESULT_VERIFY(castCaseToSwitch(sema, range->nodeExprUpRef, switchTypeRef));
+        const AstRangeExpr& range = sema.node(rangeRef).cast<AstRangeExpr>();
+        if (range.nodeExprDownRef.isValid())
+            RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprDownRef, switchTypeRef));
+        if (range.nodeExprUpRef.isValid())
+            RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprUpRef, switchTypeRef));
 
-        if (range->nodeExprDownRef.isValid())
-            RESULT_VERIFY(checkCaseExprIsConst(sema, range->nodeExprDownRef));
-        if (range->nodeExprUpRef.isValid())
-            RESULT_VERIFY(checkCaseExprIsConst(sema, range->nodeExprUpRef));
+        if (range.nodeExprDownRef.isValid())
+            RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprDownRef));
+        if (range.nodeExprUpRef.isValid())
+            RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprUpRef));
 
         return Result::Continue;
     }
@@ -312,23 +312,23 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef>  stmts;
-    const AstSwitchCaseStmt* caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-    const AstSwitchCaseBody* caseBody = sema.node(caseStmt->nodeBodyRef).cast<AstSwitchCaseBody>();
+    const AstSwitchCaseStmt& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+    const AstSwitchCaseBody& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
 
-    sema.ast().appendNodes(stmts, caseBody->spanChildrenRef);
+    sema.ast().appendNodes(stmts, caseBody.spanChildrenRef);
     const auto itStmt = std::ranges::find(stmts, sema.curNodeRef());
     if (itStmt == stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
     if (itStmt + 1 != stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, sema.curNodeRef());
 
-    const AstNodeRef     switchRef  = sema.frame().currentSwitch();
-    const AstSwitchStmt* switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
-    if (!switchStmt->spanChildrenRef.isValid())
+    const AstNodeRef    switchRef  = sema.frame().currentSwitch();
+    const AstSwitchStmt& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
+    if (!switchStmt.spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
 
     SmallVector<AstNodeRef> cases;
-    sema.ast().appendNodes(cases, switchStmt->spanChildrenRef);
+    sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
     const auto itCase = std::ranges::find(cases, caseRef);
     if (itCase == cases.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());

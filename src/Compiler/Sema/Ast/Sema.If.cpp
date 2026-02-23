@@ -16,9 +16,9 @@ namespace
         const AstNode& varNode = sema.node(varDeclRef);
         if (varNode.is(AstNodeId::VarDeclList))
         {
-            const AstVarDeclList*   list = varNode.cast<AstVarDeclList>();
+            const AstVarDeclList&   list = varNode.cast<AstVarDeclList>();
             SmallVector<AstNodeRef> decls;
-            sema.ast().appendNodes(decls, list->spanChildrenRef);
+            sema.ast().appendNodes(decls, list.spanChildrenRef);
             if (decls.size() != 1)
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, varDeclRef);
             declRef = decls.front();

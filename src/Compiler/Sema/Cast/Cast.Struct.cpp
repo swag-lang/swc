@@ -49,14 +49,14 @@ namespace
         if (node.isNot(AstNodeId::StructLiteral))
             return AstNodeRef::invalid();
 
-        const AstStructLiteral* literal = node.cast<AstStructLiteral>();
-        if (literal->spanChildrenRef.isInvalid())
+        const AstStructLiteral& literal = node.cast<AstStructLiteral>();
+        if (literal.spanChildrenRef.isInvalid())
             return AstNodeRef::invalid();
 
-        if (args.sema->ast().spanSize(literal->spanChildrenRef) != expectedCount)
+        if (args.sema->ast().spanSize(literal.spanChildrenRef) != expectedCount)
             return AstNodeRef::invalid();
 
-        return args.sema->ast().nthNode(literal->spanChildrenRef, fieldIndex);
+        return args.sema->ast().nthNode(literal.spanChildrenRef, fieldIndex);
     }
 
     SourceCodeRef aggregateFieldRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)

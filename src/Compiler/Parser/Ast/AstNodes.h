@@ -405,42 +405,42 @@ template<AstNodeId ID>
 void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, const AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    node.cast<NodeType>()->collectChildren(out, ast);
+    node.cast<NodeType>().collectChildren(out, ast);
 }
 
 template<AstNodeId ID>
 Result semaPreDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPreDecl(sema);
+    return node.cast<NodeType>().semaPreDecl(sema);
 }
 
 template<AstNodeId ID>
 Result semaPreDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPreDeclChild(sema, childRef);
+    return node.cast<NodeType>().semaPreDeclChild(sema, childRef);
 }
 
 template<AstNodeId ID>
 Result semaPostDeclChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPostDeclChild(sema, childRef);
+    return node.cast<NodeType>().semaPostDeclChild(sema, childRef);
 }
 
 template<AstNodeId ID>
 Result semaPostDecl(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPostDecl(sema);
+    return node.cast<NodeType>().semaPostDecl(sema);
 }
 
 template<AstNodeId ID>
 Result semaPreNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPreNode(sema);
+    return node.cast<NodeType>().semaPreNode(sema);
 }
 
 template<AstNodeId ID>
@@ -448,7 +448,7 @@ Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPreNodeChild(sema, childRef);
+    return node.cast<NodeType>().semaPreNodeChild(sema, childRef);
 }
 
 template<AstNodeId ID>
@@ -456,35 +456,35 @@ Result semaPostNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPostNodeChild(sema, childRef);
+    return node.cast<NodeType>().semaPostNodeChild(sema, childRef);
 }
 
 template<AstNodeId ID>
 Result semaPostNode(Sema& sema, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaPostNode(sema);
+    return node.cast<NodeType>().semaPostNode(sema);
 }
 
 template<AstNodeId ID>
 void semaErrorCleanup(Sema& sema, AstNode& node, AstNodeRef nodeRef)
 {
     using NodeType = AstTypeOf<ID>::type;
-    node.cast<NodeType>()->semaErrorCleanup(sema, nodeRef);
+    node.cast<NodeType>().semaErrorCleanup(sema, nodeRef);
 }
 
 template<AstNodeId ID>
 AstNodeRef semaClone(Sema& sema, AstNode& node, const CloneContext& cloneContext)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->semaClone(sema, cloneContext);
+    return node.cast<NodeType>().semaClone(sema, cloneContext);
 }
 
 template<AstNodeId ID>
 Result codeGenPreNode(CodeGen& codeGen, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->codeGenPreNode(codeGen);
+    return node.cast<NodeType>().codeGenPreNode(codeGen);
 }
 
 template<AstNodeId ID>
@@ -492,7 +492,7 @@ Result codeGenPreNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRef
 {
     SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->codeGenPreNodeChild(codeGen, childRef);
+    return node.cast<NodeType>().codeGenPreNodeChild(codeGen, childRef);
 }
 
 template<AstNodeId ID>
@@ -500,14 +500,14 @@ Result codeGenPostNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRe
 {
     SWC_ASSERT(childRef.isValid());
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->codeGenPostNodeChild(codeGen, childRef);
+    return node.cast<NodeType>().codeGenPostNodeChild(codeGen, childRef);
 }
 
 template<AstNodeId ID>
 Result codeGenPostNode(CodeGen& codeGen, AstNode& node)
 {
     using NodeType = AstTypeOf<ID>::type;
-    return node.cast<NodeType>()->codeGenPostNode(codeGen);
+    return node.cast<NodeType>().codeGenPostNode(codeGen);
 }
 
 constexpr std::array AST_NODE_ID_INFOS = {

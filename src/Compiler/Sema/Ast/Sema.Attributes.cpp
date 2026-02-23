@@ -320,8 +320,8 @@ Result AstAttributeList::semaPreNode(Sema& sema)
     const AstNode* parentNode = sema.visit().parentNode();
     if (parentNode && parentNode->is(AstNodeId::CompilerGlobal))
     {
-        const AstCompilerGlobal* parentGlobal = parentNode->cast<AstCompilerGlobal>();
-        if (parentGlobal && parentGlobal->mode == AstCompilerGlobal::Mode::AttributeList)
+        const AstCompilerGlobal& parentGlobal = parentNode->cast<AstCompilerGlobal>();
+        if (parentGlobal.mode == AstCompilerGlobal::Mode::AttributeList)
             return Result::Continue;
     }
 
@@ -370,15 +370,14 @@ Result AstAttributeList::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
 
 Result AstAttribute::semaPostNode(Sema& sema) const
 {
-    const AstCallExpr* callNode = sema.node(nodeCallRef).cast<AstCallExpr>();
-    SWC_ASSERT(callNode != nullptr);
+    const AstCallExpr& callNode = sema.node(nodeCallRef).cast<AstCallExpr>();
 
     const SemaNodeView callView = sema.viewSymbol(nodeCallRef);
     SWC_ASSERT(callView.sym());
 
     AstNodeRef errorRef = nodeCallRef;
-    if (callNode->nodeExprRef.isValid())
-        errorRef = callNode->nodeExprRef;
+    if (callNode.nodeExprRef.isValid())
+        errorRef = callNode.nodeExprRef;
 
     if (!callView.sym()->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, errorRef);
@@ -386,7 +385,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const SymbolFunction& attrSym = callView.sym()->cast<SymbolFunction>();
 
     SmallVector<AstNodeRef> args;
-    callNode->collectArguments(args, sema.ast());
+    callNode.collectArguments(args, sema.ast());
     SmallVector<AstNodeRef> argValues;
     Match::resolveCallArgumentValues(sema, argValues, args.span());
     RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), attrSym, sema.frame().currentAttributes()));

@@ -11,20 +11,12 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint64_t alignUpU64(uint64_t value, uint32_t align)
-    {
-        SWC_ASSERT(align != 0);
-        if (align == 0)
-            return value;
-        const uint64_t alignValue = align;
-        return ((value + alignValue - 1) / alignValue) * alignValue;
-    }
-
     bool isHandleBackedLocalType(const TypeInfo& typeInfo)
     {
         return typeInfo.isString();
@@ -69,7 +61,7 @@ namespace
         }
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
-        frameSize                     = alignUpU64(frameSize, stackAlignment);
+        frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
@@ -280,11 +272,11 @@ namespace
         uint64_t totalStorageSize = 0;
         for (uint64_t i = 0; i < variadicCount; ++i)
         {
-            totalStorageSize = alignUpU64(totalStorageSize, elemAlign);
+            totalStorageSize = Math::alignUpU64(totalStorageSize, elemAlign);
             totalStorageSize += elemSize;
         }
         constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
-        const uint64_t     sliceOffset    = alignUpU64(totalStorageSize, sliceAlign);
+        const uint64_t     sliceOffset    = Math::alignUpU64(totalStorageSize, sliceAlign);
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
@@ -304,7 +296,7 @@ namespace
 
             const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
             SWC_ASSERT(argPayload != nullptr);
-            offset                 = alignUpU64(offset, elemAlign);
+            offset                 = Math::alignUpU64(offset, elemAlign);
             MicroReg dstAddressReg = frameBaseReg;
             if (offset)
             {
@@ -386,7 +378,7 @@ namespace
 
             if (info.needsSpill)
             {
-                spillStorageSize = alignUpU64(spillStorageSize, info.valueAlign);
+                spillStorageSize = Math::alignUpU64(spillStorageSize, info.valueAlign);
                 info.spillOffset = spillStorageSize;
                 spillStorageSize += info.valueSize;
             }
@@ -396,11 +388,11 @@ namespace
 
         const uint64_t     variadicCount = variadicInfos.size();
         constexpr uint64_t anyAlign      = alignof(Runtime::Any);
-        const uint64_t     anyOffset     = alignUpU64(spillStorageSize, anyAlign);
+        const uint64_t     anyOffset     = Math::alignUpU64(spillStorageSize, anyAlign);
         const uint64_t     anyStorage    = variadicCount * sizeof(Runtime::Any);
 
         constexpr uint64_t sliceAlign     = alignof(Runtime::Slice<std::byte>);
-        const uint64_t     sliceOffset    = alignUpU64(anyOffset + anyStorage, sliceAlign);
+        const uint64_t     sliceOffset    = Math::alignUpU64(anyOffset + anyStorage, sliceAlign);
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 

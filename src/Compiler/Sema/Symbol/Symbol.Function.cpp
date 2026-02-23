@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Math/Helpers.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -13,15 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint64_t alignUpU64(uint64_t value, uint32_t align)
-    {
-        SWC_ASSERT(align != 0);
-        if (align == 0)
-            return value;
-        const uint64_t alignValue = align;
-        return ((value + alignValue - 1) / alignValue) * alignValue;
-    }
-
     bool isHandleBackedLocalType(const TypeInfo& typeInfo)
     {
         return typeInfo.isString();
@@ -181,7 +173,7 @@ void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx)
         if (!size)
             continue;
 
-        currentOffset = alignUpU64(currentOffset, alignment);
+        currentOffset = Math::alignUpU64(currentOffset, alignment);
         SWC_ASSERT(currentOffset <= std::numeric_limits<uint32_t>::max());
         symVar->setOffset(static_cast<uint32_t>(currentOffset));
         currentOffset += size;

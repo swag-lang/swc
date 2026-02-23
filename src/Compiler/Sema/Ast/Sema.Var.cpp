@@ -230,8 +230,8 @@ namespace
             if (!s->isVariable())
                 continue;
 
-            SymbolVariable& symVar = s->cast<SymbolVariable>();
-            const SymbolMap* owner = symVar.ownerSymMap();
+            SymbolVariable&  symVar = s->cast<SymbolVariable>();
+            const SymbolMap* owner  = symVar.ownerSymMap();
             if (!owner || !owner->isStruct())
                 continue;
             symVar.setDefaultValueRef(cstRef);
@@ -269,10 +269,10 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool isConst     = context.flags.has(AstVarDeclFlagsE::Const);
-        const bool isLet       = context.flags.has(AstVarDeclFlagsE::Let);
-        const bool isParameter = context.flags.has(AstVarDeclFlagsE::Parameter);
-        const bool isUsing     = context.flags.has(AstVarDeclFlagsE::Using);
+        const bool isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
         bool       isExplicitUndefinedInit = false;
 
         // Initialized to 'undefined'
@@ -367,8 +367,6 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
-        RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
-
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {
             for (Symbol* s : symbols)
@@ -380,6 +378,7 @@ namespace
             }
         }
 
+        RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
         return Result::Continue;
     }
 }

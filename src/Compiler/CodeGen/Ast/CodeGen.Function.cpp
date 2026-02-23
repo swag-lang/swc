@@ -41,13 +41,13 @@ namespace
             const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
             uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
+            SWC_ASSERT(size > 0);
+
             if (isHandleBackedLocalType(typeInfo))
             {
                 size      = sizeof(uint64_t);
                 alignment = alignof(uint64_t);
             }
-            if (!size)
-                continue;
 
             const uint32_t symOffset = symVar->offset();
             codeGen.setLocalStackSlot(*symVar, {.offset = symOffset, .size = size, .align = alignment});

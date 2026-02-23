@@ -42,7 +42,7 @@ void Stats::print(const TaskContext& ctx) const
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrNoOptim", colorMsg, Utf8Helper::toNiceBigNumber(numMicroNoOptim));
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrFinal", colorMsg, Utf8Helper::toNiceBigNumber(numMicroFinal));
 
-    const int64_t numMicroPipelineDelta     = static_cast<int64_t>(numMicroNoOptim) - static_cast<int64_t>(numMicroFinal);
+    const int64_t numMicroPipelineDelta     = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroNoOptim);
     const char    numMicroPipelineDeltaSign = numMicroPipelineDelta >= 0 ? '+' : '-';
     Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDelta", colorMsg, std::format("{}{}", numMicroPipelineDeltaSign, Utf8Helper::toNiceBigNumber(static_cast<size_t>(std::abs(numMicroPipelineDelta)))));
 

@@ -64,6 +64,44 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
     relocations_.push_back(relocation);
 }
 
+bool MicroBuilder::invalidateRelocationForInstruction(Ref instructionRef)
+{
+    bool changed = false;
+    for (MicroRelocation& reloc : relocations_)
+    {
+        if (reloc.instructionRef != instructionRef)
+            continue;
+
+        reloc.instructionRef = INVALID_REF;
+        changed              = true;
+    }
+
+    return changed;
+}
+
+bool MicroBuilder::pruneDeadRelocations()
+{
+    bool changed = false;
+    for (MicroRelocation& reloc : relocations_)
+    {
+        if (reloc.instructionRef == INVALID_REF)
+            continue;
+
+        if (instructions_.ptr(reloc.instructionRef))
+            continue;
+
+        reloc.instructionRef = INVALID_REF;
+        changed              = true;
+    }
+
+    const auto beforeSize = relocations_.size();
+    std::erase_if(relocations_, [](const MicroRelocation& reloc) {
+        return reloc.instructionRef == INVALID_REF;
+    });
+
+    return changed || beforeSize != relocations_.size();
+}
+
 void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg)
 {
     SWC_ASSERT(virtualReg.isVirtual());

@@ -188,16 +188,13 @@ bool MicroEmitPass::run(MicroPassContext& context)
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    auto& encoder = *SWC_CHECK_NOT_NULL(context.encoder);
-    auto& relocations = context.builder->codeRelocations();
-    constexpr uint32_t kUnboundRelocationOffset = std::numeric_limits<uint32_t>::max();
+    auto&       encoder     = *SWC_CHECK_NOT_NULL(context.encoder);
+    const auto& relocations = context.builder->codeRelocations();
 
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();
-
-    for (MicroRelocation& reloc : relocations)
-        reloc.codeOffset = kUnboundRelocationOffset;
+    SWC_CHECK_NOT_NULL(context.builder)->pruneDeadRelocations();
 
     // Build instruction->relocation lookup once so LoadRegPtrImm can bind encoded offsets.
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
@@ -224,10 +221,6 @@ bool MicroEmitPass::run(MicroPassContext& context)
 
         encoder.encodePatchJump(pending.jump, it->second);
     }
-
-    std::erase_if(relocations, [kUnboundRelocationOffset](const MicroRelocation& reloc) {
-        return reloc.codeOffset == kUnboundRelocationOffset;
-    });
 
     return false;
 }

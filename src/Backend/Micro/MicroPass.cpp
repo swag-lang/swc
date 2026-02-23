@@ -153,7 +153,9 @@ namespace
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
-        const bool changed = pass.run(context);
+        bool changed = pass.run(context);
+        if (context.builder && SWC_CHECK_NOT_NULL(context.builder)->pruneDeadRelocations())
+            changed = true;
 
         if (shouldPrintPass(context, pass, false))
             printPassInstructions(context, pass, false);

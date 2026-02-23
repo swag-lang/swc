@@ -48,6 +48,12 @@ namespace
                 return isFullWidthIntegerWrite(ops[1].opBits);
             case MicroInstrOpcode::LoadRegPtrImm:
                 return isFullWidthIntegerWrite(ops[1].opBits);
+            case MicroInstrOpcode::LoadRegMem:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+                return isFullWidthIntegerWrite(ops[2].opBits);
+            case MicroInstrOpcode::LoadZeroExtRegMem:
+                return isFullWidthIntegerWrite(ops[2].opBits);
             case MicroInstrOpcode::LoadSignedExtRegReg:
                 return isFullWidthIntegerWrite(ops[2].opBits);
             case MicroInstrOpcode::LoadZeroExtRegReg:
@@ -80,6 +86,9 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
+            case MicroInstrOpcode::LoadRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegMem:
+            case MicroInstrOpcode::LoadZeroExtRegMem:
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:

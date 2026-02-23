@@ -91,7 +91,6 @@ struct LocalVarDirectDefaultNode
 
 #test
 {
-    #[Swag.PrintMicro]
     func nestedStructInit()->s32
     {
         let n: LocalVarNode = {

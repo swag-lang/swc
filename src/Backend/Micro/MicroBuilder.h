@@ -91,6 +91,8 @@ public:
     uint32_t                            printSourceLine() const { return printSourceLine_; }
     void                                clearRelocations() { relocations_.clear(); }
     void                                addRelocation(const MicroRelocation& relocation);
+    bool                                invalidateRelocationForInstruction(Ref instructionRef);
+    bool                                pruneDeadRelocations();
     std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
     void                                addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);

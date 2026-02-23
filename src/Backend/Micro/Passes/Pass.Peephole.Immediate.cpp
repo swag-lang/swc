@@ -644,6 +644,9 @@ namespace PeepholePass
                 return false;
             }
 
+            if (combinedImm == 0)
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+
             SWC_CHECK_NOT_NULL(context.instructions)->erase(secondAdjustIt.current);
             return true;
         }

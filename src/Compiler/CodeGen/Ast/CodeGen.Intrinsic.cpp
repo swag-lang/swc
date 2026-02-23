@@ -12,12 +12,8 @@ namespace
 {
     MicroReg materializeCountLikeBaseReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
     {
-        if (payload.isValue())
-            return payload.reg;
-
-        const MicroReg baseReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegMem(baseReg, payload.reg, 0, MicroOpBits::B64);
-        return baseReg;
+        SWC_UNUSED(codeGen);
+        return payload.reg;
     }
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)

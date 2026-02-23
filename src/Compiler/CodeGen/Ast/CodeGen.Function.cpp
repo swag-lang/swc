@@ -17,9 +17,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isHandleBackedLocalType(const TypeInfo& typeInfo)
+    bool shouldPassAddressAsValue(CodeGen& codeGen, TypeRef typeRef, const ABITypeNormalize::NormalizedType& normalizedType)
     {
-        return typeInfo.isString();
+        if (typeRef.isInvalid())
+            return false;
+        if (normalizedType.isIndirect)
+            return false;
+        if (normalizedType.isFloat)
+            return false;
+        if (normalizedType.numBits != 64)
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.ctx().typeMgr().get(typeRef);
+        return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+    }
+
+    MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
+    {
+        SWC_ASSERT(copySize > 0);
+        std::byte* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
+
+        MicroBuilder& builder   = codeGen.builder();
+        const MicroReg dstReg   = codeGen.nextVirtualIntRegister();
+        const uint64_t dstValue = reinterpret_cast<uint64_t>(storage);
+        builder.emitLoadRegPtrImm(dstReg, dstValue);
+        CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
+        return dstReg;
     }
 
     void buildLocalStackLayout(CodeGen& codeGen)
@@ -42,12 +65,6 @@ namespace
             uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
             SWC_ASSERT(size > 0);
-
-            if (isHandleBackedLocalType(typeInfo))
-            {
-                size      = sizeof(uint64_t);
-                alignment = alignof(uint64_t);
-            }
 
             const uint32_t symOffset = symVar->offset();
             codeGen.setLocalStackSlot(*symVar, {.offset = symOffset, .size = size, .align = alignment});
@@ -234,6 +251,12 @@ namespace
     {
         MicroBuilder& builder = codeGen.builder();
         if (srcPayload.isAddress())
+        {
+            CodeGenHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
+            return;
+        }
+
+        if (elemSize > 8)
         {
             CodeGenHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
             return;
@@ -541,10 +564,17 @@ namespace
             {
                 const TypeInfo&                        normalizedType     = codeGen.ctx().typeMgr().get(normalizedTypeRef);
                 const ABITypeNormalize::NormalizedType normalizedArg      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                const bool                             passAddressAsValue = normalizedType.isReference();
+                const bool                             handleBackedAddressValue = shouldPassAddressAsValue(codeGen, normalizedTypeRef, normalizedArg);
+                const bool                             passAddressAsValue       = normalizedType.isReference() || handleBackedAddressValue;
                 preparedArg.isFloat                                       = normalizedArg.isFloat;
                 preparedArg.numBits                                       = normalizedArg.numBits;
                 preparedArg.isAddressed                                   = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
+                if (handleBackedAddressValue && argPayload->isAddress())
+                {
+                    const uint64_t copySize = normalizedType.sizeOf(codeGen.ctx());
+                    SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
+                    preparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload->reg, static_cast<uint32_t>(copySize));
+                }
             }
 
             preparedArg.kind = abiPreparedArgKind(arg.passKind);
@@ -584,10 +614,17 @@ namespace
                 {
                     const TypeInfo&                        normalizedType     = codeGen.ctx().typeMgr().get(normalizedTypeRef);
                     const ABITypeNormalize::NormalizedType normalizedArg      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-                    const bool                             passAddressAsValue = normalizedType.isReference();
+                    const bool                             handleBackedAddressValue = shouldPassAddressAsValue(codeGen, normalizedTypeRef, normalizedArg);
+                    const bool                             passAddressAsValue       = normalizedType.isReference() || handleBackedAddressValue;
                     preparedArg.isFloat                                       = normalizedArg.isFloat;
                     preparedArg.numBits                                       = normalizedArg.numBits;
                     preparedArg.isAddressed                                   = argPayload->isAddress() && !normalizedArg.isIndirect && !passAddressAsValue;
+                    if (handleBackedAddressValue && argPayload->isAddress())
+                    {
+                        const uint64_t copySize = normalizedType.sizeOf(codeGen.ctx());
+                        SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
+                        preparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload->reg, static_cast<uint32_t>(copySize));
+                    }
                 }
 
                 preparedArg.kind = abiPreparedArgKind(arg.passKind);
@@ -644,8 +681,19 @@ namespace
         else
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
-            const bool isAddressed = exprPayload->isAddress();
-            ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload->reg, isAddressed, normalizedRet);
+            bool isAddressed = exprPayload->isAddress();
+            if (isAddressed && shouldPassAddressAsValue(codeGen, returnTypeRef, normalizedRet))
+            {
+                const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
+                const uint64_t  copySize       = returnTypeInfo.sizeOf(codeGen.ctx());
+                SWC_ASSERT(copySize > 0 && copySize <= std::numeric_limits<uint32_t>::max());
+                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload->reg, static_cast<uint32_t>(copySize));
+                ABICall::materializeValueToReturnRegs(builder, callConvKind, copiedValueReg, false, normalizedRet);
+            }
+            else
+            {
+                ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload->reg, isAddressed, normalizedRet);
+            }
         }
 
         emitLocalStackFrameEpilogue(codeGen, callConvKind);

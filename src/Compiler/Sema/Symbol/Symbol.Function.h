@@ -43,7 +43,7 @@ public:
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     void                                addParameter(SymbolVariable* sym);
     void                                addLocalVariable(SymbolVariable* sym);
-    void                                computeLocalVariableOffsets(TaskContext& ctx);
+    void                                computeLocalVariableOffsets(TaskContext& ctx) const;
     Utf8                                computeName(const TaskContext& ctx) const;
     bool                                deepCompare(const SymbolFunction& otherFunc) const noexcept;
     SymbolStruct*                       ownerStruct();

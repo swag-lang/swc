@@ -90,21 +90,7 @@ namespace
             return pointerReg;
         }
 
-        if (indexedType.isString())
-        {
-            MicroReg stringReg = indexedPayload.reg;
-            if (indexedPayload.isAddress())
-            {
-                stringReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(stringReg, indexedPayload.reg, 0, MicroOpBits::B64);
-            }
-
-            const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(pointerReg, stringReg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
-            return pointerReg;
-        }
-
-        if (indexedType.isSlice() || indexedType.isVariadic() || indexedType.isTypedVariadic())
+        if (indexedType.isString() || indexedType.isSlice() || indexedType.isVariadic() || indexedType.isTypedVariadic())
         {
             const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(pointerReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);

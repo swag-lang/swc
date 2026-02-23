@@ -14,11 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isHandleBackedLocalType(const TypeInfo& typeInfo)
-    {
-        return typeInfo.isString();
-    }
-
     enum class DepVisitState : uint8_t
     {
         Visiting,
@@ -149,7 +144,7 @@ void SymbolFunction::addLocalVariable(SymbolVariable* sym)
     localVariables_.push_back(sym);
 }
 
-void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx)
+void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx) const
 {
     uint64_t currentOffset = 0;
     for (SymbolVariable* symVar : localVariables_)
@@ -159,15 +154,9 @@ void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx)
         SWC_ASSERT(typeRef.isValid());
 
         const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
-        uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
-        uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(ctx), 1);
+        const uint32_t  size      = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
+        const uint32_t  alignment = std::max<uint32_t>(typeInfo.alignOf(ctx), 1);
         SWC_ASSERT(size > 0);
-
-        if (isHandleBackedLocalType(typeInfo))
-        {
-            size      = sizeof(uint64_t);
-            alignment = alignof(uint64_t);
-        }
 
         currentOffset = Math::alignUpU64(currentOffset, alignment);
         SWC_ASSERT(currentOffset <= std::numeric_limits<uint32_t>::max());

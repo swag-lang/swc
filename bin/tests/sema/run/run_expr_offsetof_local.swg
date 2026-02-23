@@ -38,13 +38,13 @@ struct OffPair
         }
 
         let tail: u16 = 7
-        #assert(#offsetof(tail) == 16)
+        #assert(#offsetof(tail) == 24)
 
         return cast(u64) #offsetof(head) + cast(u64) #offsetof(tail)
     }
 
     const V = #run stringAndNested()
-    #assert(V == 16'u64)
+    #assert(V == 24'u64)
 }
 
 #test

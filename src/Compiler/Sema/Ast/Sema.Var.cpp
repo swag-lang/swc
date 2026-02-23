@@ -15,15 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void markExplicitUndefined(const std::span<Symbol*>& symbols)
-    {
-        for (const auto& s : symbols)
-        {
-            SymbolVariable& symVar = s->cast<SymbolVariable>();
-            symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
-        }
-    }
-
     void completeConst(Sema& sema, const std::span<Symbol*>& symbols, ConstantRef cstRef, TypeRef typeRef)
     {
         for (Symbol* s : symbols)
@@ -282,6 +273,7 @@ namespace
         const bool isLet       = context.flags.has(AstVarDeclFlagsE::Let);
         const bool isParameter = context.flags.has(AstVarDeclFlagsE::Parameter);
         const bool isUsing     = context.flags.has(AstVarDeclFlagsE::Using);
+        bool       isExplicitUndefinedInit = false;
 
         // Initialized to 'undefined'
         if (context.nodeInitRef.isValid() && nodeInitView.cstRef() == sema.cstMgr().cstUndefined())
@@ -296,7 +288,7 @@ namespace
             if (!isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isReference())
                 return SemaError::raise(sema, DiagnosticId::sema_err_ref_missing_init, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
 
-            markExplicitUndefined(symbols);
+            isExplicitUndefinedInit = true;
         }
 
         // Implicit cast from initializer to the specified type
@@ -382,6 +374,8 @@ namespace
             for (Symbol* s : symbols)
             {
                 SymbolVariable& symVar = s->cast<SymbolVariable>();
+                if (isExplicitUndefinedInit)
+                    symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }

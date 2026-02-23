@@ -130,6 +130,48 @@ namespace
         return foundInit;
     }
 
+    bool isRegDefinedBeforeAnyUse(const MicroPassContext& context, MicroReg reg)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        if (!reg.isValid())
+            return false;
+
+        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        for (const auto& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(operands, refs, context.encoder);
+
+            bool hasUse = false;
+            bool hasDef = false;
+            for (const MicroInstrRegOperandRef& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg refReg = *SWC_CHECK_NOT_NULL(ref.reg);
+                if (refReg != reg)
+                    continue;
+
+                if (ref.use)
+                    hasUse = true;
+                if (ref.def)
+                    hasDef = true;
+            }
+
+            if (!hasUse && !hasDef)
+                continue;
+            if (hasUse)
+                return false;
+
+            return hasDef;
+        }
+
+        return false;
+    }
+
     bool isSafeTransientReplacementIntReg(const CallConv& conv, MicroReg reg)
     {
         if (!reg.isValid() || !reg.isInt())
@@ -171,18 +213,52 @@ namespace
         collectUsedConcreteRegs(context, usedRegs);
         if (usedRegs.empty())
             return false;
-        if (!conv.framePointer.isValid() || !conv.isIntPersistentReg(conv.framePointer))
-            return false;
-        if (!usedRegs.contains(conv.framePointer.packed))
-            return false;
-        if (!isFramePointerLocallyInitializedFromStackPointer(context, conv))
+
+        SmallVector<MicroReg> remapCandidates;
+        remapCandidates.reserve(conv.intPersistentRegs.size());
+
+        if (conv.framePointer.isValid() &&
+            conv.isIntPersistentReg(conv.framePointer) &&
+            usedRegs.contains(conv.framePointer.packed) &&
+            isFramePointerLocallyInitializedFromStackPointer(context, conv))
+        {
+            remapCandidates.push_back(conv.framePointer);
+        }
+
+        for (const MicroReg persistentReg : conv.intPersistentRegs)
+        {
+            if (!persistentReg.isValid())
+                continue;
+            if (persistentReg == conv.framePointer)
+                continue;
+            if (!usedRegs.contains(persistentReg.packed))
+                continue;
+            if (!isRegDefinedBeforeAnyUse(context, persistentReg))
+                continue;
+
+            remapCandidates.push_back(persistentReg);
+        }
+
+        if (remapCandidates.empty())
             return false;
 
-        std::unordered_set<uint32_t> pickedTransientRegs;
-        pickedTransientRegs.reserve(8);
+        std::unordered_set<uint32_t>           pickedTransientRegs;
+        std::unordered_map<uint32_t, MicroReg> remap;
+        pickedTransientRegs.reserve(remapCandidates.size() * 2 + 1);
+        remap.reserve(remapCandidates.size() * 2 + 1);
 
-        MicroReg replacementReg;
-        if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
+        for (const MicroReg persistentReg : remapCandidates)
+        {
+            MicroReg replacementReg;
+            if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
+                continue;
+
+            remap[persistentReg.packed] = replacementReg;
+            pickedTransientRegs.insert(replacementReg.packed);
+            usedRegs.insert(replacementReg.packed);
+        }
+
+        if (remap.empty())
             return false;
 
         bool  changed  = false;
@@ -199,10 +275,12 @@ namespace
                 const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
-                if (reg != conv.framePointer)
+
+                const auto mapIt = remap.find(reg.packed);
+                if (mapIt == remap.end())
                     continue;
 
-                *SWC_CHECK_NOT_NULL(ref.reg) = replacementReg;
+                *SWC_CHECK_NOT_NULL(ref.reg) = mapIt->second;
                 changed                      = true;
             }
         }

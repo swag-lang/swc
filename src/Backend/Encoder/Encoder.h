@@ -17,15 +17,6 @@ class MicroEmitPass;
 class MicroLegalizePass;
 class Symbol;
 
-enum class EncodeFlagsE : uint8_t
-{
-    Zero     = 0,
-    Overflow = 1 << 0,
-    Lock     = 1 << 1,
-    B64      = 1 << 2,
-};
-using EncodeFlags = EnumFlags<EncodeFlagsE>;
-
 enum class MicroConformanceIssueKind : uint8_t
 {
     None,

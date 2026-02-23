@@ -189,6 +189,7 @@
         <ClCompile Include="src\Backend\Backend.cpp"/>
         <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp" />
         <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -267,6 +268,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -345,6 +347,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -423,6 +426,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -501,6 +505,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -579,6 +584,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -657,6 +663,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -735,6 +742,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -813,6 +821,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -891,6 +900,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -969,6 +979,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
@@ -1047,6 +1058,7 @@
           <LinkCompiled>true</LinkCompiled>
         </ClCompile>
         <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp">
+          <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'!='DevMode|x64'">true</ExcludedFromBuild>
           <AssemblerOutput>NoListing</AssemblerOutput>
           <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
           <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>

@@ -8,6 +8,33 @@ namespace PeepholePass
 {
     namespace
     {
+        bool isFloatArgReg(const CallConv& conv, MicroReg reg)
+        {
+            if (!reg.isFloat())
+                return false;
+
+            for (const MicroReg argReg : conv.floatArgRegs)
+            {
+                if (argReg == reg)
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool isRegCallArgument(const CallConv& conv, MicroReg reg)
+        {
+            if (!reg.isValid() || reg.isNoBase())
+                return false;
+
+            if (reg.isInt())
+                return conv.isIntArgReg(reg);
+            if (reg.isFloat())
+                return isFloatArgReg(conv, reg);
+
+            return false;
+        }
+
         bool isRegPersistentAcrossCalls(const MicroPassContext& context, MicroReg reg)
         {
             if (!reg.isValid() || reg.isNoBase())
@@ -51,6 +78,18 @@ namespace PeepholePass
 
             if (scanInst.op == MicroInstrOpcode::Ret)
                 return true;
+
+            if (useDef.isCall)
+            {
+                const CallConv& callConv = CallConv::get(useDef.callConv);
+                if (isRegCallArgument(callConv, reg))
+                    return false;
+
+                if (!isRegPersistentAcrossCalls(context, reg))
+                    return true;
+
+                continue;
+            }
 
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return false;

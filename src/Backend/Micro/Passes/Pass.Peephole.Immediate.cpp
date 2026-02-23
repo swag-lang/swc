@@ -95,44 +95,69 @@ namespace PeepholePass
             if (!ops || nextIt == endIt)
                 return false;
 
-            MicroInstr& nextInst = *nextIt;
-            if (nextInst.op != MicroInstrOpcode::LoadRegReg)
-                return false;
-
-            MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            if (!nextOps)
-                return false;
-
             const MicroReg tmpReg = ops[0].reg;
-            if (nextOps[1].reg != tmpReg)
-                return false;
-            if (getNumBits(ops[1].opBits) < getNumBits(nextOps[2].opBits))
-                return false;
-            if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
-                return false;
-
-            const MicroInstrOpcode originalOp  = nextInst.op;
-            const std::array       originalOps = {nextOps[0], nextOps[1], nextOps[2]};
-
-            uint64_t          immValue = ops[2].valueU64;
-            const MicroOpBits opBits   = originalOps[2].opBits;
-            if (opBits != MicroOpBits::B64)
-                immValue &= getOpBitsMask(opBits);
-
-            nextInst.op         = MicroInstrOpcode::LoadRegImm;
-            nextOps[0]          = originalOps[0];
-            nextOps[1].opBits   = opBits;
-            nextOps[2].valueU64 = immValue;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                nextInst.op = originalOp;
-                for (uint32_t i = 0; i < 3; ++i)
-                    nextOps[i] = originalOps[i];
-                return false;
+                MicroInstr&            scanInst = *scanIt;
+                MicroInstrOperand*     scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                        continue;
+
+                    hasUse |= ref.use;
+                    hasDef |= ref.def;
+                }
+
+                if (hasDef)
+                    return false;
+
+                if (!hasUse)
+                {
+                    if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                        return false;
+                    continue;
+                }
+
+                if (scanInst.op != MicroInstrOpcode::LoadRegReg || !scanOps || scanOps[1].reg != tmpReg)
+                    return false;
+                if (getNumBits(ops[1].opBits) < getNumBits(scanOps[2].opBits))
+                    return false;
+                if (!isCopyDeadAfterInstruction(context, std::next(scanIt), endIt, tmpReg))
+                    return false;
+
+                const MicroInstrOpcode originalOp  = scanInst.op;
+                const std::array       originalOps = {scanOps[0], scanOps[1], scanOps[2]};
+
+                uint64_t          immValue = ops[2].valueU64;
+                const MicroOpBits opBits   = originalOps[2].opBits;
+                if (opBits != MicroOpBits::B64)
+                    immValue &= getOpBitsMask(opBits);
+
+                scanInst.op         = MicroInstrOpcode::LoadRegImm;
+                scanOps[0]          = originalOps[0];
+                scanOps[1].opBits   = opBits;
+                scanOps[2].valueU64 = immValue;
+                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    scanInst.op = originalOp;
+                    for (uint32_t i = 0; i < 3; ++i)
+                        scanOps[i] = originalOps[i];
+                    return false;
+                }
+
+                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                return true;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
-            return true;
+            return false;
         }
 
         bool foldLoadImmIntoNextBinary(const MicroPassContext& context, const Cursor& cursor)
@@ -531,34 +556,24 @@ namespace PeepholePass
             if (firstOp != MicroOp::Add && firstOp != MicroOp::Subtract)
                 return false;
 
-            const MicroInstr&        firstNextInst = *nextIt;
-            const MicroInstrOperand* firstNextOps  = firstNextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-
-            MicroStorage::Iterator   secondAdjustIt;
+            MicroStorage::Iterator   secondAdjustIt  = endIt;
             const MicroInstrOperand* secondAdjustOps = nullptr;
-            if (isMergeableRegImmArithmeticInstruction(firstNextInst, firstNextOps, mergedReg, opBits))
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                secondAdjustIt  = nextIt;
-                secondAdjustOps = firstNextOps;
-            }
-            else
-            {
-                if (!isRegImmMergeNeutralInstruction(context, firstNextInst, firstNextOps, mergedReg))
-                    return false;
+                const MicroInstr&        scanInst = *scanIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (isMergeableRegImmArithmeticInstruction(scanInst, scanOps, mergedReg, opBits))
+                {
+                    secondAdjustIt  = scanIt;
+                    secondAdjustOps = scanOps;
+                    break;
+                }
 
-                secondAdjustIt = std::next(nextIt);
-                if (secondAdjustIt == endIt)
+                if (!isRegImmMergeNeutralInstruction(context, scanInst, scanOps, mergedReg))
                     return false;
-
-                const MicroInstr&        secondInst = *secondAdjustIt;
-                const MicroInstrOperand* secondOps  = secondInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-                if (!isMergeableRegImmArithmeticInstruction(secondInst, secondOps, mergedReg, opBits))
-                    return false;
-
-                secondAdjustOps = secondOps;
             }
 
-            if (!secondAdjustOps)
+            if (secondAdjustIt == endIt || !secondAdjustOps)
                 return false;
 
             if (!areFlagsDeadAfterInstruction(context, secondAdjustIt, endIt))

@@ -9,6 +9,51 @@ namespace PeepholePass
 {
     namespace
     {
+        bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                instRef = cursor.instRef;
+            const MicroInstr*        inst    = cursor.inst;
+            const MicroInstrOperand* ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt = cursor.nextIt;
+            const MicroStorage::Iterator endIt  = cursor.endIt;
+            if (!inst || !ops)
+                return false;
+
+            if (inst->op != MicroInstrOpcode::LoadMemReg && inst->op != MicroInstrOpcode::LoadMemImm)
+                return false;
+
+            uint8_t baseIndex   = 0;
+            uint8_t offsetIndex = 0;
+            if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, *inst))
+                return false;
+
+            const MicroReg baseReg = ops[baseIndex].reg;
+            if (baseReg != MicroReg::intReg(4) && baseReg != MicroReg::intReg(5))
+                return false;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&      scanInst = *scanIt;
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+
+                if (scanInst.op == MicroInstrOpcode::Ret)
+                {
+                    SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                    return true;
+                }
+
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                uint8_t scanBaseIndex   = 0;
+                uint8_t scanOffsetIndex = 0;
+                if (MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
+                    return false;
+            }
+
+            return false;
+        }
+
         bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                instRef = cursor.instRef;
@@ -225,6 +270,11 @@ namespace PeepholePass
 
     void appendCleanupRules(RuleList& outRules)
     {
+        // Rule: remove_dead_stack_store_before_ret
+        // Purpose: remove stores to local stack slots that are never observed before returning.
+        // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret
+        outRules.push_back({RuleTarget::AnyInstruction, removeDeadStackStoreBeforeRet});
+
         // Rule: remove_dead_compare_instruction
         // Purpose: remove compare operations whose flags are never consumed.
         // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret

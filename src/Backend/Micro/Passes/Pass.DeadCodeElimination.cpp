@@ -11,6 +11,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void addCallArgumentRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
+    {
+        for (const MicroReg reg : conv.intArgRegs)
+            liveRegs.insert(reg.packed);
+        for (const MicroReg reg : conv.floatArgRegs)
+            liveRegs.insert(reg.packed);
+    }
+
+    void killCallClobberedRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
+    {
+        for (const MicroReg reg : conv.intTransientRegs)
+            liveRegs.erase(reg.packed);
+        for (const MicroReg reg : conv.floatTransientRegs)
+            liveRegs.erase(reg.packed);
+    }
+
     bool isFullWidthIntegerWrite(MicroOpBits opBits)
     {
         return opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64;
@@ -29,6 +45,8 @@ namespace
             case MicroInstrOpcode::LoadRegReg:
                 return isFullWidthIntegerWrite(ops[2].opBits);
             case MicroInstrOpcode::LoadRegImm:
+                return isFullWidthIntegerWrite(ops[1].opBits);
+            case MicroInstrOpcode::LoadRegPtrImm:
                 return isFullWidthIntegerWrite(ops[1].opBits);
             case MicroInstrOpcode::LoadSignedExtRegReg:
                 return isFullWidthIntegerWrite(ops[2].opBits);
@@ -61,6 +79,7 @@ namespace
         {
             case MicroInstrOpcode::LoadRegReg:
             case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
             case MicroInstrOpcode::LoadAddrRegMem:
@@ -100,9 +119,6 @@ namespace
 
     bool isControlFlowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
     {
-        if (useDef.isCall)
-            return true;
-
         switch (inst.op)
         {
             case MicroInstrOpcode::Label:
@@ -160,6 +176,20 @@ namespace
             const MicroInstr& inst    = *it;
 
             const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+            if (useDef.isCall)
+            {
+                if (!processRegion)
+                    continue;
+
+                const CallConv& convAtCall = CallConv::get(useDef.callConv);
+
+                killCallClobberedRegs(liveRegs, convAtCall);
+                addCallArgumentRegs(liveRegs, convAtCall);
+                for (const MicroReg useReg : useDef.uses)
+                    liveRegs.insert(useReg.packed);
+                continue;
+            }
+
             if (isControlFlowBarrier(inst, useDef))
             {
                 liveRegs.clear();

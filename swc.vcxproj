@@ -187,371 +187,1295 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Backend\Backend.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp"/>
+        <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp" />
+        <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
+        <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp">
+          <AssemblerOutput>NoListing</AssemblerOutput>
+          <AssemblerListingLocation>.tmp/x64/devmode/</AssemblerListingLocation>
+          <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+          <BrowseInformation>false</BrowseInformation>
+          <BrowseInformationFile>.tmp/x64/devmode/</BrowseInformationFile>
+          <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+          <CompileAs>Default</CompileAs>
+          <UseDynamicDebugging>false</UseDynamicDebugging>
+          <ConformanceMode>true</ConformanceMode>
+          <DiagnosticsFormat>Column</DiagnosticsFormat>
+          <DisableLanguageExtensions>false</DisableLanguageExtensions>
+          <ErrorReporting>Prompt</ErrorReporting>
+          <ExpandAttributedSource>false</ExpandAttributedSource>
+          <ExceptionHandling>Sync</ExceptionHandling>
+          <EnableASAN>false</EnableASAN>
+          <EnableFuzzer>false</EnableFuzzer>
+          <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+          <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+          <EnableVectorLength>NotSet</EnableVectorLength>
+          <FloatingPointModel>Precise</FloatingPointModel>
+          <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+          <GenerateModuleDependencies>false</GenerateModuleDependencies>
+          <GenerateSourceDependencies>false</GenerateSourceDependencies>
+          <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+          <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+          <IntrinsicFunctions>true</IntrinsicFunctions>
+          <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+          <LanguageStandard>stdcpplatest</LanguageStandard>
+          <LanguageStandard_C>Default</LanguageStandard_C>
+          <MinimalRebuild>false</MinimalRebuild>
+          <ModuleDependenciesFile>.tmp/x64/devmode/</ModuleDependenciesFile>
+          <ModuleOutputFile>.tmp/x64/devmode/</ModuleOutputFile>
+          <OmitDefaultLibName>false</OmitDefaultLibName>
+          <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+          <WholeProgramOptimization>true</WholeProgramOptimization>
+          <Optimization>MaxSpeed</Optimization>
+          <ObjectFileName>.tmp/x64/devmode/</ObjectFileName>
+          <CallingConvention>Cdecl</CallingConvention>
+          <ProgramDataBaseFileName>.tmp/x64/devmode/vc143.pdb</ProgramDataBaseFileName>
+          <PrecompiledHeader>Use</PrecompiledHeader>
+          <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+          <PrecompiledHeaderOutputFile>.tmp/x64/devmode/swc_devmode.pch</PrecompiledHeaderOutputFile>
+          <PreprocessToFile>false</PreprocessToFile>
+          <PreprocessKeepComments>false</PreprocessKeepComments>
+          <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+          <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+          <RuntimeLibrary>MultiThreadedDll</RuntimeLibrary>
+          <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+          <ShowIncludes>false</ShowIncludes>
+          <SourceDependenciesFile>.tmp/x64/devmode/</SourceDependenciesFile>
+          <SuppressStartupBanner>true</SuppressStartupBanner>
+          <BufferSecurityCheck>true</BufferSecurityCheck>
+          <SmallerTypeCheck>false</SmallerTypeCheck>
+          <SpectreMitigation>false</SpectreMitigation>
+          <StructMemberAlignment>Default</StructMemberAlignment>
+          <SupportJustMyCode>false</SupportJustMyCode>
+          <TrackerLogDirectory>.tmp/x64/devmode/swc.tlog\</TrackerLogDirectory>
+          <TranslateIncludes>false</TranslateIncludes>
+          <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+          <TreatWarningAsError>false</TreatWarningAsError>
+          <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+          <UseFullPaths>true</UseFullPaths>
+          <WarningLevel>Level3</WarningLevel>
+          <XMLDocumentationFileName>.tmp/x64/devmode/</XMLDocumentationFileName>
+          <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+          <IntelJCCErratum>false</IntelJCCErratum>
+          <BuildStlModules>false</BuildStlModules>
+          <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+          <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+          <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+          <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+          <PreprocessorDefinitions>NDEBUG;_CONSOLE;_UNICODE;UNICODE;;SWC_DEV_MODE</PreprocessorDefinitions>
+          <FunctionLevelLinking>true</FunctionLevelLinking>
+          <SDLCheck>true</SDLCheck>
+          <MultiProcessorCompilation>true</MultiProcessorCompilation>
+          <LinkCompiled>true</LinkCompiled>
+        </ClCompile>
         <ClCompile Include="src\Support\Unittest\Unittest.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeX64.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.FFI.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.BranchFolding.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.ConstantPropagation.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.ControlFlowSimplification.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.CopyPropagation.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.DeadCodeElimination.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.LoadStoreForwarding.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.Peephole.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp"/>
-        <ClCompile Include="src\Backend\Unittest\Tests\Test.StrengthReduction.cpp"/>
-        <ClCompile Include="src\Backend\JIT\JIT.cpp"/>
-        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp"/>
-        <ClCompile Include="src\Backend\JIT\JITMemory.cpp"/>
-        <ClCompile Include="src\Backend\\ABI\CallConv.cpp"/>
-        <ClCompile Include="src\Backend\\Encoder\Encoder.cpp"/>
-        <ClCompile Include="src\Backend\\ABI\ABICall.cpp"/>
-        <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroInstrStorage.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroReg.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroPass.cpp"/>
-        <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenHelpers.cpp"/>
-        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
-        <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
-        <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
-        <ClCompile Include="src\Support\Core\Utf8.cpp"/>
-        <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
-        <ClCompile Include="src\Support\Report\SyntaxColor.cpp"/>
-        <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
-        <ClCompile Include="src\main.cpp"/>
-        <ClCompile Include="src\Main\Command.Sema.cpp"/>
-        <ClCompile Include="src\Main\Command.Syntax.cpp"/>
-        <ClCompile Include="src\Main\CommandLineParser.cpp"/>
-        <ClCompile Include="src\Main\CommandLineParser.Help.cpp"/>
-        <ClCompile Include="src\Main\FileSystem.cpp"/>
-        <ClCompile Include="src\Main\Global.cpp"/>
-        <ClCompile Include="src\Main\CompilerInstance.cpp"/>
-        <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
-        <ClCompile Include="src\Main\Stats.cpp"/>
-        <ClCompile Include="src\Main\TakeContext.cpp"/>
-        <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
-        <ClCompile Include="src\Support\Math\ApInt.cpp"/>
-        <ClCompile Include="src\Support\Math\ApsInt.cpp"/>
-        <ClCompile Include="src\Support\Math\Hash.cpp"/>
-        <ClCompile Include="src\Support\Math\Helpers.cpp"/>
-        <ClCompile Include="src\Support\Memory\Allocator.cpp"/>
-        <ClCompile Include="src\Support\Memory\Arena.cpp"/>
-        <ClCompile Include="src\Support\Memory\Heap.cpp"/>
+        <ClCompile Include="src\Backend\JIT\JIT.cpp" />
+        <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp" />
+        <ClCompile Include="src\Backend\JIT\JITMemory.cpp" />
+        <ClCompile Include="src\Backend\\ABI\CallConv.cpp" />
+        <ClCompile Include="src\Backend\\Encoder\Encoder.cpp" />
+        <ClCompile Include="src\Backend\\ABI\ABICall.cpp" />
+        <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroInstrStorage.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroReg.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MachineCode.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp" />
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp" />
+        <ClCompile Include="src\Backend\\Micro\MicroPass.cpp" />
+        <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenHelpers.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp" />
+        <ClCompile Include="src\Support\Core\DataSegment.cpp" />
+        <ClCompile Include="src\Support\Core\PagedStore.cpp" />
+        <ClCompile Include="src\Support\Core\Utf8.cpp" />
+        <ClCompile Include="src\Support\Core\Utf8Helper.cpp" />
+        <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp" />
+        <ClCompile Include="src\Compiler\Lexer\Lexer.cpp" />
+        <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp" />
+        <ClCompile Include="src\Compiler\Lexer\SourceView.cpp" />
+        <ClCompile Include="src\Support\Report\SyntaxColor.cpp" />
+        <ClCompile Include="src\Compiler\Lexer\Token.cpp" />
+        <ClCompile Include="src\main.cpp" />
+        <ClCompile Include="src\Main\Command.Sema.cpp" />
+        <ClCompile Include="src\Main\Command.Syntax.cpp" />
+        <ClCompile Include="src\Main\CommandLineParser.cpp" />
+        <ClCompile Include="src\Main\CommandLineParser.Help.cpp" />
+        <ClCompile Include="src\Main\FileSystem.cpp" />
+        <ClCompile Include="src\Main\Global.cpp" />
+        <ClCompile Include="src\Main\CompilerInstance.cpp" />
+        <ClCompile Include="src\Main\ExternalModuleManager.cpp" />
+        <ClCompile Include="src\Main\Stats.cpp" />
+        <ClCompile Include="src\Main\TakeContext.cpp" />
+        <ClCompile Include="src\Support\Math\ApFloat.cpp" />
+        <ClCompile Include="src\Support\Math\ApInt.cpp" />
+        <ClCompile Include="src\Support\Math\ApsInt.cpp" />
+        <ClCompile Include="src\Support\Math\Hash.cpp" />
+        <ClCompile Include="src\Support\Math\Helpers.cpp" />
+        <ClCompile Include="src\Support\Memory\Allocator.cpp" />
+        <ClCompile Include="src\Support\Memory\Arena.cpp" />
+        <ClCompile Include="src\Support\Memory\Heap.cpp" />
         <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">NotUsing</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">NotUsing</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Support\Os\OsWin32.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
+        <ClCompile Include="src\Support\Os\OsWin32.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Ast\AstPrinter.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Ast\AstNode.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Ast\AstVisit.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Aggregate.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Call.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compiler.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Compound.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Enum.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Expression.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Func.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Literal.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Stmt.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp" />
+        <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp" />
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
         </ClCompile>
-        <ClCompile Include="src\Support\Report\Assert.cpp"/>
-        <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp"/>
-        <ClCompile Include="src\Support\Report\HardwareException.cpp"/>
-        <ClCompile Include="src\Support\Report\LogColor.cpp"/>
-        <ClCompile Include="src\Support\Report\Diagnostic.cpp"/>
-        <ClCompile Include="src\Support\Report\DiagnosticElement.cpp"/>
-        <ClCompile Include="src\Support\Report\Logger.cpp"/>
-        <ClCompile Include="src\Support\Report\LogSymbol.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Enum.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Binary.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Conditional.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Intrinsic.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Literal.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Struct.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Type.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Array.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantLower.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\NodePayload.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Match\Match.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Impl.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Interface.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Struct.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Layout.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Payload.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Process.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeInfo.cpp"/>
-        <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp"/>
-        <ClCompile Include="src\Support\Thread\JobManager.cpp"/>
-        <ClCompile Include="src\Support\Thread\RaceCondition.cpp"/>
-        <ClCompile Include="src\Wmf\SourceFile.cpp"/>
-        <ClCompile Include="src\Wmf\Verify.cpp"/>
+        <ClCompile Include="src\Support\Report\Assert.cpp" />
+        <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp" />
+        <ClCompile Include="src\Support\Report\HardwareException.cpp" />
+        <ClCompile Include="src\Support\Report\LogColor.cpp" />
+        <ClCompile Include="src\Support\Report\Diagnostic.cpp" />
+        <ClCompile Include="src\Support\Report\DiagnosticElement.cpp" />
+        <ClCompile Include="src\Support\Report\Logger.cpp" />
+        <ClCompile Include="src\Support\Report\LogSymbol.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Enum.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Binary.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Conditional.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Intrinsic.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Literal.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Struct.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Type.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Array.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantLower.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\NodePayload.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Match\Match.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Impl.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Interface.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Struct.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Layout.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Payload.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Process.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeInfo.cpp" />
+        <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp" />
+        <ClCompile Include="src\Support\Thread\JobManager.cpp" />
+        <ClCompile Include="src\Support\Thread\RaceCondition.cpp" />
+        <ClCompile Include="src\Wmf\SourceFile.cpp" />
+        <ClCompile Include="src\Wmf\Verify.cpp" />
     </ItemGroup>
     <ItemGroup>
-        <ClInclude Include="src\Backend\Backend.h"/>
+        <ClInclude Include="src\Backend\Backend.h" />
         <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h" />
-        <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
-        <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
-        <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h"/>
-        <ClInclude Include="src\Support\Unittest\Unittest.h"/>
-        <ClInclude Include="src\Backend\\ABI\CallConv.h"/>
-        <ClInclude Include="src\Backend\\Encoder\EncoderTypes.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroInstr.Def.inc"/>
-        <ClInclude Include="src\Backend\\ABI\ABICall.h"/>
-        <ClInclude Include="src\Backend\\ABI\ABITypeNormalize.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroTypes.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroInstr.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroPrinter.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroBuilder.h"/>
-        <ClInclude Include="src\Backend\\Micro\MachineCode.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.BranchFolding.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h"/>
-        <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroPass.h"/>
-        <ClInclude Include="src\Backend\JIT\JIT.h"/>
-        <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
-        <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
-        <ClInclude Include="src\Backend\\Encoder\Encoder.h"/>
-        <ClInclude Include="src\Backend\\Encoder\X64Encoder.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroReg.h"/>
-        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h"/>
-        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h"/>
-        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
-        <ClInclude Include="src\Main\ExitCodes.h"/>
-        <ClInclude Include="src\Support\Core\ByteSpan.h"/>
-        <ClInclude Include="src\Support\Core\DataSegment.h"/>
-        <ClInclude Include="src\Support\Core\Flags.h"/>
-        <ClInclude Include="src\Support\Core\Result.h"/>
-        <ClInclude Include="src\Support\Core\PagedStore.h"/>
-        <ClInclude Include="src\Support\Core\SmallVector.h"/>
-        <ClInclude Include="src\Support\Core\StringMap.h"/>
-        <ClInclude Include="src\Support\Core\Timer.h"/>
-        <ClInclude Include="src\Support\Core\StrongRef.h"/>
-        <ClInclude Include="src\Support\Core\Utf8.h"/>
-        <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
-        <ClInclude Include="src\Compiler\Lexer\LangSpec.h"/>
-        <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
-        <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h"/>
-        <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>
-        <ClInclude Include="src\Support\Report\SyntaxColor.h"/>
-        <ClInclude Include="src\Compiler\Lexer\Token.h"/>
-        <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
-        <ClInclude Include="src\Support\Core\RefTypes.h"/>
-        <ClInclude Include="src\Main\CommandLine.h"/>
-        <ClInclude Include="src\Main\CommandLineParser.h"/>
-        <ClInclude Include="src\Main\Command.h"/>
-        <ClInclude Include="src\Main\Stats.h"/>
-        <ClInclude Include="src\Main\TaskContext.h"/>
-        <ClInclude Include="src\Main\FileSystem.h"/>
-        <ClInclude Include="src\Main\Global.h"/>
-        <ClInclude Include="src\Main\CompilerInstance.h"/>
-        <ClInclude Include="src\Main\ExternalModuleManager.h"/>
-        <ClInclude Include="src\Main\Version.h"/>
-        <ClInclude Include="src\Support\Math\ApFloat.h"/>
-        <ClInclude Include="src\Support\Math\ApInt.h"/>
-        <ClInclude Include="src\Support\Math\ApsInt.h"/>
-        <ClInclude Include="src\Support\Math\Hash.h"/>
-        <ClInclude Include="src\Support\Math\Helpers.h"/>
-        <ClInclude Include="src\Support\Memory\Arena.h"/>
-        <ClInclude Include="src\Support\Memory\Heap.h"/>
-        <ClInclude Include="src\Support\Os\Os.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\Ast.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Def.inc"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstPrinter.h"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc"/>
-        <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h"/>
-        <ClInclude Include="src\Compiler\Parser\Parser\Parser.h"/>
-        <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h"/>
-        <ClInclude Include="src\pch.h"/>
-        <ClInclude Include="src\Support\Report\Assert.h"/>
-        <ClInclude Include="src\Support\Report\DiagnosticBuilder.h"/>
-        <ClInclude Include="src\Support\Report\DiagnosticDef.h"/>
-        <ClInclude Include="src\Support\Report\HardwareException.h"/>
-        <ClInclude Include="src\Support\Report\LogColor.h"/>
-        <ClInclude Include="src\Support\Report\Diagnostic.h"/>
-        <ClInclude Include="src\Support\Report\DiagnosticElement.h"/>
-        <ClInclude Include="src\Support\Report\Logger.h"/>
-        <ClInclude Include="src\Support\Report\LogSymbol.h"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Notes.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc"/>
-        <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
-        <ClInclude Include="src\\Backend\\Runtime.h"/>
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h"/>
-        <ClInclude Include="src\Compiler\Sema\Cast\Cast.h"/>
-        <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h"/>
-        <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h"/>
-        <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\Sema.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\NodePayload.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
-        <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
-        <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>
-        <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>
-        <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Enum.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Struct.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h"/>
-        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h"/>
-        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
-        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h"/>
-        <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h"/>
-        <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h"/>
-        <ClInclude Include="src\Support\Thread\Job.h"/>
-        <ClInclude Include="src\Support\Thread\JobManager.h"/>
-        <ClInclude Include="src\Support\Thread\RaceCondition.h"/>
-        <ClInclude Include="src\Wmf\SourceFile.h"/>
-        <ClInclude Include="src\Wmf\Verify.h"/>
+        <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h" />
+        <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroStorage.h" />
+        <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h" />
+        <ClInclude Include="src\Support\Unittest\Unittest.h" />
+        <ClInclude Include="src\Backend\\ABI\CallConv.h" />
+        <ClInclude Include="src\Backend\\Encoder\EncoderTypes.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroInstr.Def.inc" />
+        <ClInclude Include="src\Backend\\ABI\ABICall.h" />
+        <ClInclude Include="src\Backend\\ABI\ABITypeNormalize.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroTypes.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroInstr.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroPrinter.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroBuilder.h" />
+        <ClInclude Include="src\Backend\\Micro\MachineCode.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.BranchFolding.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h" />
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroPass.h" />
+        <ClInclude Include="src\Backend\JIT\JIT.h" />
+        <ClInclude Include="src\Backend\JIT\JITMemory.h" />
+        <ClInclude Include="src\Backend\JIT\JITMemoryManager.h" />
+        <ClInclude Include="src\Backend\\Encoder\Encoder.h" />
+        <ClInclude Include="src\Backend\\Encoder\X64Encoder.h" />
+        <ClInclude Include="src\Backend\\Micro\MicroReg.h" />
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h" />
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h" />
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h" />
+        <ClInclude Include="src\Main\ExitCodes.h" />
+        <ClInclude Include="src\Support\Core\ByteSpan.h" />
+        <ClInclude Include="src\Support\Core\DataSegment.h" />
+        <ClInclude Include="src\Support\Core\Flags.h" />
+        <ClInclude Include="src\Support\Core\Result.h" />
+        <ClInclude Include="src\Support\Core\PagedStore.h" />
+        <ClInclude Include="src\Support\Core\SmallVector.h" />
+        <ClInclude Include="src\Support\Core\StringMap.h" />
+        <ClInclude Include="src\Support\Core\Timer.h" />
+        <ClInclude Include="src\Support\Core\StrongRef.h" />
+        <ClInclude Include="src\Support\Core\Utf8.h" />
+        <ClInclude Include="src\Support\Core\Utf8Helper.h" />
+        <ClInclude Include="src\Compiler\Lexer\LangSpec.h" />
+        <ClInclude Include="src\Compiler\Lexer\Lexer.h" />
+        <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h" />
+        <ClInclude Include="src\Compiler\Lexer\SourceView.h" />
+        <ClInclude Include="src\Support\Report\SyntaxColor.h" />
+        <ClInclude Include="src\Compiler\Lexer\Token.h" />
+        <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc" />
+        <ClInclude Include="src\Support\Core\RefTypes.h" />
+        <ClInclude Include="src\Main\CommandLine.h" />
+        <ClInclude Include="src\Main\CommandLineParser.h" />
+        <ClInclude Include="src\Main\Command.h" />
+        <ClInclude Include="src\Main\Stats.h" />
+        <ClInclude Include="src\Main\TaskContext.h" />
+        <ClInclude Include="src\Main\FileSystem.h" />
+        <ClInclude Include="src\Main\Global.h" />
+        <ClInclude Include="src\Main\CompilerInstance.h" />
+        <ClInclude Include="src\Main\ExternalModuleManager.h" />
+        <ClInclude Include="src\Main\Version.h" />
+        <ClInclude Include="src\Support\Math\ApFloat.h" />
+        <ClInclude Include="src\Support\Math\ApInt.h" />
+        <ClInclude Include="src\Support\Math\ApsInt.h" />
+        <ClInclude Include="src\Support\Math\Hash.h" />
+        <ClInclude Include="src\Support\Math\Helpers.h" />
+        <ClInclude Include="src\Support\Memory\Arena.h" />
+        <ClInclude Include="src\Support\Memory\Heap.h" />
+        <ClInclude Include="src\Support\Os\Os.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\Ast.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNode.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodeId.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Def.inc" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstPrinter.h" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc" />
+        <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h" />
+        <ClInclude Include="src\Compiler\Parser\Parser\Parser.h" />
+        <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h" />
+        <ClInclude Include="src\pch.h" />
+        <ClInclude Include="src\Support\Report\Assert.h" />
+        <ClInclude Include="src\Support\Report\DiagnosticBuilder.h" />
+        <ClInclude Include="src\Support\Report\DiagnosticDef.h" />
+        <ClInclude Include="src\Support\Report\HardwareException.h" />
+        <ClInclude Include="src\Support\Report\LogColor.h" />
+        <ClInclude Include="src\Support\Report\Diagnostic.h" />
+        <ClInclude Include="src\Support\Report\DiagnosticElement.h" />
+        <ClInclude Include="src\Support\Report\Logger.h" />
+        <ClInclude Include="src\Support\Report\LogSymbol.h" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Notes.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc" />
+        <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc" />
+        <ClInclude Include="src\\Backend\\Runtime.h" />
+        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h" />
+        <ClInclude Include="src\Compiler\Sema\Cast\Cast.h" />
+        <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h" />
+        <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h" />
+        <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\Sema.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\NodePayload.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h" />
+        <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h" />
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h" />
+        <ClInclude Include="src\Compiler\Sema\Match\Match.h" />
+        <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Alias.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Constant.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Enum.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Interface.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Module.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Struct.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Variable.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h" />
+        <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h" />
+        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h" />
+        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h" />
+        <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h" />
+        <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h" />
+        <ClInclude Include="src\Support\Thread\Job.h" />
+        <ClInclude Include="src\Support\Thread\JobManager.h" />
+        <ClInclude Include="src\Support\Thread\RaceCondition.h" />
+        <ClInclude Include="src\Wmf\SourceFile.h" />
+        <ClInclude Include="src\Wmf\Verify.h" />
     </ItemGroup>
     <ItemGroup>
         <Folder Include="src\Compiler\"/>

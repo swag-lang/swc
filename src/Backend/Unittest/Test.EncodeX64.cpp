@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
-#include "Backend/Unittest/BackendUnittestHelpers.h"
+#include "Backend/Unittest/UnittestHelpers.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Unittest/Unittest.h"
 

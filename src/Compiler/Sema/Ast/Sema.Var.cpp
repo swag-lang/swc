@@ -19,8 +19,8 @@ namespace
     {
         for (const auto& s : symbols)
         {
-            if (SymbolVariable* symVar = s->safeCast<SymbolVariable>())
-                symVar->addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+            SymbolVariable& symVar = s->cast<SymbolVariable>();
+            symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         }
     }
 
@@ -379,8 +379,8 @@ namespace
         {
             for (Symbol* s : symbols)
             {
-                if (SymbolVariable* symVar = s->safeCast<SymbolVariable>())
-                    symVar->addExtraFlag(SymbolVariableFlagsE::Initialized);
+                SymbolVariable& symVar = s->cast<SymbolVariable>();
+                symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }
 

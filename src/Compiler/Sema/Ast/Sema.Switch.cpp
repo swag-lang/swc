@@ -42,7 +42,8 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
 Result AstSwitchStmt::semaPostNode(Sema& sema)
 {
     const SwitchPayload* payload = sema.payload<SwitchPayload>(sema.curNodeRef());
-    if (!payload || !payload->isComplete || payload->exprTypeRef.isInvalid())
+    SWC_ASSERT(payload != nullptr);
+    if (!payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 
     const TypeRef   enumTypeRef = sema.typeMgr().get(payload->exprTypeRef).unwrap(sema.ctx(), payload->exprTypeRef, TypeExpandE::Alias);
@@ -55,12 +56,11 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
 
     for (const Symbol* sym : symbols)
     {
-        if (!sym || !sym->isEnumValue())
+        SWC_ASSERT(sym != nullptr);
+        if (!sym->isEnumValue())
             continue;
-        const SymbolEnumValue* value = sym->safeCast<SymbolEnumValue>();
-        if (!value)
-            continue;
-        const ConstantRef cstRef = value->cstRef();
+        const SymbolEnumValue& value = sym->cast<SymbolEnumValue>();
+        const ConstantRef      cstRef = value.cstRef();
         if (cstRef.isInvalid())
             continue;
 
@@ -70,7 +70,7 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
             diag.addArgument(Diagnostic::ARG_TYPE, enumTypeRef);
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);
-            diag.last().addArgument(Diagnostic::ARG_VALUE, value->getFullScopedName(sema.ctx()));
+            diag.last().addArgument(Diagnostic::ARG_VALUE, value.getFullScopedName(sema.ctx()));
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -130,6 +130,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     SWC_ASSERT(switchRef.isValid());
 
     const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
+    SWC_ASSERT(payload != nullptr);
     const TypeRef        switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
         return Result::Continue;

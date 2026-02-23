@@ -50,13 +50,8 @@ namespace
             if (!size)
                 continue;
 
-            const uint64_t symOffset = symVar->offset();
-            const CodeGen::LocalStackSlot slot = {
-                .offset = static_cast<uint32_t>(symOffset),
-                .size   = size,
-                .align  = alignment,
-            };
-            codeGen.setLocalStackSlot(*symVar, slot);
+            const uint32_t symOffset = symVar->offset();
+            codeGen.setLocalStackSlot(*symVar, {.offset = symOffset, .size = size, .align = alignment});
             frameSize = std::max<uint64_t>(frameSize, symOffset + size);
         }
 
@@ -154,8 +149,8 @@ namespace
 
         outParamInfos.resize(params.size());
 
-        const CallConv&                        callConv            = CallConv::get(symbolFunc.callConvKind());
-        const ABITypeNormalize::NormalizedType normalizedRet       = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        const CallConv&                        callConv             = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet        = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
         const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
         for (size_t i = 0; i < params.size(); ++i)
         {
@@ -191,8 +186,8 @@ namespace
 
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
         {
-            const uint32_t               paramIndex = registerParamIndices[i];
-            const SymbolVariable* const  symVar     = params[paramIndex];
+            const uint32_t              paramIndex = registerParamIndices[i];
+            const SymbolVariable* const symVar     = params[paramIndex];
             SWC_ASSERT(symVar != nullptr);
             const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
 

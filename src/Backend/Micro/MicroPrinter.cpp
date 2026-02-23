@@ -1088,7 +1088,16 @@ namespace
     Utf8 relocationTargetDebugValue(const TaskContext& ctx, const MicroRelocation& relocation)
     {
         if (relocation.constantRef.isValid())
-            return ctx.cstMgr().get(relocation.constantRef).toString(ctx);
+        {
+            const ConstantValue& cst = ctx.cstMgr().get(relocation.constantRef);
+            if (cst.typeRef().isValid())
+            {
+                const TypeInfo& typeInfo = ctx.typeMgr().get(cst.typeRef());
+                return std::format("{} : {}", cst.toString(ctx), typeInfo.toName(ctx));
+            }
+
+            return cst.toString(ctx);
+        }
 
         if (relocation.targetSymbol)
             return relocation.targetSymbol->name(ctx);

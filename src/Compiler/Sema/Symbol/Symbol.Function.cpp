@@ -13,6 +13,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t alignUpU64(uint64_t value, uint32_t align)
+    {
+        SWC_ASSERT(align != 0);
+        if (align == 0)
+            return value;
+        const uint64_t alignValue = align;
+        return ((value + alignValue - 1) / alignValue) * alignValue;
+    }
+
+    bool isHandleBackedLocalType(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isString();
+    }
+
     enum class DepVisitState : uint8_t
     {
         Visiting,
@@ -141,6 +155,37 @@ void SymbolFunction::addLocalVariable(SymbolVariable* sym)
     if (std::ranges::find(localVariables_, sym) != localVariables_.end())
         return;
     localVariables_.push_back(sym);
+}
+
+void SymbolFunction::computeLocalVariableOffsets(TaskContext& ctx)
+{
+    uint64_t currentOffset = 0;
+    for (SymbolVariable* symVar : localVariables_)
+    {
+        if (!symVar)
+            continue;
+
+        const TypeRef typeRef = symVar->typeRef();
+        if (typeRef.isInvalid())
+            continue;
+
+        const TypeInfo& typeInfo  = ctx.typeMgr().get(typeRef);
+        uint32_t        size      = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
+        uint32_t        alignment = std::max<uint32_t>(typeInfo.alignOf(ctx), 1);
+        if (isHandleBackedLocalType(typeInfo))
+        {
+            size      = sizeof(uint64_t);
+            alignment = alignof(uint64_t);
+        }
+
+        if (!size)
+            continue;
+
+        currentOffset = alignUpU64(currentOffset, alignment);
+        SWC_ASSERT(currentOffset <= std::numeric_limits<uint32_t>::max());
+        symVar->setOffset(static_cast<uint32_t>(currentOffset));
+        currentOffset += size;
+    }
 }
 
 MicroBuilder& SymbolFunction::microInstrBuilder(TaskContext& ctx) noexcept

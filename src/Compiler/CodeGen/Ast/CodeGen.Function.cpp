@@ -30,23 +30,20 @@ namespace
         return typeInfo.isString();
     }
 
-    TypeRef resolveLocalVarTypeRef(const SymbolVariable& symVar)
-    {
-        return symVar.typeRef();
-    }
-
     void buildLocalStackLayout(CodeGen& codeGen)
     {
         const auto& localSymbols = codeGen.function().localVariables();
         if (localSymbols.empty())
             return;
 
+        codeGen.function().computeLocalVariableOffsets(codeGen.ctx());
+
         const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
         for (const SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
-            const TypeRef typeRef = resolveLocalVarTypeRef(*symVar);
+            const TypeRef typeRef = symVar->typeRef();
             if (typeRef.isInvalid())
                 continue;
 
@@ -61,14 +58,14 @@ namespace
             if (!size)
                 continue;
 
-            frameSize                          = alignUpU64(frameSize, alignment);
+            const uint64_t symOffset = symVar->offset();
             const CodeGen::LocalStackSlot slot = {
-                .offset = static_cast<uint32_t>(frameSize),
+                .offset = static_cast<uint32_t>(symOffset),
                 .size   = size,
                 .align  = alignment,
             };
             codeGen.setLocalStackSlot(*symVar, slot);
-            frameSize += size;
+            frameSize = std::max<uint64_t>(frameSize, symOffset + size);
         }
 
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;

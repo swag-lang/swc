@@ -37,7 +37,7 @@ namespace
 
 SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsRegisterStore)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg baseReg = MicroReg::intReg(5);
     const MicroReg srcReg  = MicroReg::intReg(8);
     const MicroReg dstReg  = MicroReg::intReg(9);
@@ -60,7 +60,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsImmediateStore)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg baseReg = MicroReg::intReg(5);
     const MicroReg dstReg  = MicroReg::intReg(10);
 

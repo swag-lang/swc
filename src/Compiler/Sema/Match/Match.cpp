@@ -143,7 +143,7 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
             {
-                const SymbolStruct& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                const SymbolStruct&              structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 SmallVector<const SymbolStruct*> visited;
                 addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited);
             }

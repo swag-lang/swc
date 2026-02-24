@@ -55,7 +55,7 @@ struct AttributeList
     SmallVector4<Utf8>              printMicroPassOptions;
     SmallVector4<Utf8>              printAstStageOptions;
     std::optional<bool>             backendOptimize;
-    bool                            hasForeign         = false;
+    bool                            hasForeign = false;
     Utf8                            foreignModuleName;
     Utf8                            foreignFunctionName;
 

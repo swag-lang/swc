@@ -37,7 +37,7 @@ namespace
 
 SWC_TEST_BEGIN(MicroCopyPropagation_ResolvesCopyChains)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8  = MicroReg::intReg(8);
     const MicroReg r9  = MicroReg::intReg(9);
     const MicroReg r10 = MicroReg::intReg(10);
@@ -68,7 +68,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8  = MicroReg::intReg(8);
     const MicroReg r9  = MicroReg::intReg(9);
     const MicroReg r10 = MicroReg::intReg(10);

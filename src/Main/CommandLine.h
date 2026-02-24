@@ -36,8 +36,8 @@ struct CommandLine
     Utf8 targetCpu = "unknown-cpu";
 #endif
 
-    Utf8 buildCfg       = "fast-debug";
-    Utf8 targetArchName = "x86_64";
+    Utf8                buildCfg       = "fast-debug";
+    Utf8                targetArchName = "x86_64";
     std::optional<bool> backendOptimizeOverride;
     std::optional<bool> backendOptimizeForSizeOverride;
 

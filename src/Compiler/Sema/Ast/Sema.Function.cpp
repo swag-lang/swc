@@ -91,7 +91,7 @@ namespace
         if (nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
         {
             const AstMemberAccessExpr& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
-            const SemaNodeView nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
+            const SemaNodeView         nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
             if (sema.isValue(nodeLeftView.nodeRef()))
                 ufcsArg = nodeLeftView.nodeRef();
         }

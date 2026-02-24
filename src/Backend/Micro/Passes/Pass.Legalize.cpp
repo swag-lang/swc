@@ -363,7 +363,7 @@ namespace
 
         const bool mustPreserveRequiredReg = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
         uint64_t   helperStackOffset       = stackScratchBaseOffset;
-        const bool shouldStoreRequiredReg = mustPreserveRequiredReg && requiredReg != originalDstReg;
+        const bool shouldStoreRequiredReg  = mustPreserveRequiredReg && requiredReg != originalDstReg;
         if (shouldStoreRequiredReg)
         {
             insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, requiredReg);

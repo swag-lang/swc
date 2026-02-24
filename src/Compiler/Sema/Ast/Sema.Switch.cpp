@@ -59,7 +59,7 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
         SWC_ASSERT(sym != nullptr);
         if (!sym->isEnumValue())
             continue;
-        const SymbolEnumValue& value = sym->cast<SymbolEnumValue>();
+        const SymbolEnumValue& value  = sym->cast<SymbolEnumValue>();
         const ConstantRef      cstRef = value.cstRef();
         if (cstRef.isInvalid())
             continue;
@@ -129,9 +129,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());
 
-    const SwitchPayload* payload       = sema.payload<SwitchPayload>(switchRef);
+    const SwitchPayload* payload = sema.payload<SwitchPayload>(switchRef);
     SWC_ASSERT(payload != nullptr);
-    const TypeRef        switchTypeRef = payload->exprTypeRef;
+    const TypeRef switchTypeRef = payload->exprTypeRef;
     if (switchTypeRef.isInvalid())
         return Result::Continue;
 
@@ -323,7 +323,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
     if (itStmt + 1 != stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, sema.curNodeRef());
 
-    const AstNodeRef    switchRef  = sema.frame().currentSwitch();
+    const AstNodeRef     switchRef  = sema.frame().currentSwitch();
     const AstSwitchStmt& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
     if (!switchStmt.spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());

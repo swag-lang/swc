@@ -13,8 +13,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT = 256;
-    constexpr uint32_t K_MEMCPY_LOOP_OVERHEAD_INSTR = 8;
+    constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT    = 256;
+    constexpr uint32_t K_MEMCPY_LOOP_OVERHEAD_INSTR  = 8;
     constexpr uint32_t K_MEMZERO_LOOP_OVERHEAD_INSTR = 6;
 
     MicroOpBits functionParameterLoadBits(bool isFloat, uint8_t numBits)
@@ -235,7 +235,7 @@ void CodeGenHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const Symb
 
 CodeGenNodePayload CodeGenHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    CodeGenNodePayload          outPayload;
+    CodeGenNodePayload outPayload;
 
     outPayload.typeRef = symVar.typeRef();
     outPayload.reg     = codeGen.nextVirtualRegisterForType(symVar.typeRef());
@@ -313,13 +313,13 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
     if (!sizeInBytes)
         return;
 
-    MicroBuilder&  builder       = codeGen.builder();
-    const auto&    buildCfg      = builder.backendBuildCfg();
-    const bool     optimize      = buildCfg.optimize;
-    const uint32_t unrollLimit   = getUnrollMemLimit(buildCfg);
+    MicroBuilder&  builder     = codeGen.builder();
+    const auto&    buildCfg    = builder.backendBuildCfg();
+    const bool     optimize    = buildCfg.optimize;
+    const uint32_t unrollLimit = getUnrollMemLimit(buildCfg);
 
-    const auto dstRegTmp = codeGen.nextVirtualIntRegister();
-    const auto zeroReg   = codeGen.nextVirtualIntRegister();
+    const auto dstRegTmp       = codeGen.nextVirtualIntRegister();
+    const auto zeroReg         = codeGen.nextVirtualIntRegister();
     const bool optimizeForSize = buildCfg.optimizeForSize;
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     builder.emitClearReg(zeroReg, MicroOpBits::B64);

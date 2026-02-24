@@ -570,7 +570,7 @@ namespace
             }
         }
 
-        auto&      victimState  = state.states[victimKey];
+        auto&      victimState   = state.states[victimKey];
         const bool victimLiveOut = isLiveOut(state, victimKey, stamp);
         if (victimLiveOut)
         {

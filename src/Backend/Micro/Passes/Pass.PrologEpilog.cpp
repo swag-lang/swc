@@ -303,7 +303,7 @@ bool MicroPrologEpilogPass::run(MicroPassContext& context)
         return false;
     }
 
-    const CallConv& conv = CallConv::get(context.callConvKind);
+    const CallConv& conv                              = CallConv::get(context.callConvKind);
     const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv);
     buildSavedRegsPlan(context, conv);
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)

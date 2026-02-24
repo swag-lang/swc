@@ -351,15 +351,15 @@ namespace Runtime
 
     struct BuildCfgBackend
     {
-        bool                 optimize;
-        bool                 optimizeForSize;
-        bool                 fpMathFma;
-        bool                 fpMathNoNaN;
-        bool                 fpMathNoInf;
-        bool                 fpMathNoSignedZero;
-        bool                 fpMathUnsafe;
-        bool                 fpMathApproxFunc;
-        uint32_t             unrollMemLimit;
+        bool     optimize;
+        bool     optimizeForSize;
+        bool     fpMathFma;
+        bool     fpMathNoNaN;
+        bool     fpMathNoInf;
+        bool     fpMathNoSignedZero;
+        bool     fpMathUnsafe;
+        bool     fpMathApproxFunc;
+        uint32_t unrollMemLimit;
     };
 
     enum class BuildCfgBackendKind

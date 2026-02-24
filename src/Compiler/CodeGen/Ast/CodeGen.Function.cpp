@@ -168,9 +168,9 @@ namespace
         const ABITypeNormalize::NormalizedType normalizedArg    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
         const bool                             passAddressValue = shouldMaterializeAddressBackedValue(codeGen, normalizedType, normalizedArg);
         const bool                             passAddressRef   = normalizedType.isReference() || passAddressValue;
-        outPreparedArg.isFloat                                   = normalizedArg.isFloat;
-        outPreparedArg.numBits                                   = normalizedArg.numBits;
-        outPreparedArg.isAddressed                               = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
+        outPreparedArg.isFloat                                  = normalizedArg.isFloat;
+        outPreparedArg.numBits                                  = normalizedArg.numBits;
+        outPreparedArg.isAddressed                              = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
         if (passAddressValue && argPayload.isAddress())
             outPreparedArg.srcReg = materializeAddressValueCopy(codeGen, argPayload.reg, checkedTypeSizeInBytes(codeGen, normalizedType));
     }
@@ -638,7 +638,7 @@ namespace
         else
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
-            const bool isAddressed = exprPayload->isAddress();
+            const bool      isAddressed    = exprPayload->isAddress();
             const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
             if (isAddressed && shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet))
             {

@@ -13,7 +13,7 @@ namespace
     void runConstantPropagationPass(MicroBuilder& builder)
     {
         MicroConstantPropagationPass pass;
-        MicroPassManager            passManager;
+        MicroPassManager             passManager;
         passManager.add(pass);
 
         MicroPassContext passContext;
@@ -37,7 +37,7 @@ namespace
 
 SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8  = MicroReg::intReg(8);
     const MicroReg r9  = MicroReg::intReg(9);
     const MicroReg r10 = MicroReg::intReg(10);
@@ -70,7 +70,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8 = MicroReg::intReg(8);
     const MicroReg r9 = MicroReg::intReg(9);
 

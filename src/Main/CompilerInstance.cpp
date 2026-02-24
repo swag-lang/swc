@@ -68,7 +68,7 @@ namespace
             buildCfg.sanity                     = false;
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
-            buildCfg.backend.optimize          = true;
+            buildCfg.backend.optimize           = true;
             buildCfg.backend.optimizeForSize    = false;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;

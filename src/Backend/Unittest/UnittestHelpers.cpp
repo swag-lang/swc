@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Backend/Unittest/UnittestHelpers.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
-#include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();

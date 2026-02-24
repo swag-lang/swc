@@ -88,8 +88,8 @@ private:
 
     std::vector<SymbolVariable*> parameters_;
     std::vector<SymbolVariable*> localVariables_;
-    size_t                       numComputedLocals_    = 0;
-    uint64_t                     localStackOffset_     = 0;
+    size_t                       numComputedLocals_   = 0;
+    uint64_t                     localStackOffset_    = 0;
     RtAttributeFlags             rtAttributeFlags_    = RtAttributeFlagsE::Zero;
     TypeRef                      returnType_          = TypeRef::invalid();
     SpecOpKind                   specOpKind_          = SpecOpKind::None;

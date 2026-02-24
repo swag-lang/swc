@@ -73,8 +73,8 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
 
-        const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*      methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
+        const SemaNodeView    rightView  = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*         methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
         const SymbolFunction& methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 

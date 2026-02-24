@@ -15,21 +15,21 @@ AstNodeRef Parser::parseAttributeValue()
         return nodeRef;
     }
 
-        AstNode& calleeNode = ast_->node(nodeIdentRef);
-        switch (calleeNode.id())
-        {
-            case AstNodeId::Identifier:
-                calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
-                break;
-            case AstNodeId::MemberAccessExpr:
-                calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
-                break;
-            case AstNodeId::AutoMemberAccessExpr:
-                calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-                break;
-            default:
-                break;
-        }
+    AstNode& calleeNode = ast_->node(nodeIdentRef);
+    switch (calleeNode.id())
+    {
+        case AstNodeId::Identifier:
+            calleeNode.cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::CallCallee);
+            break;
+        case AstNodeId::MemberAccessExpr:
+            calleeNode.cast<AstMemberAccessExpr>().addFlag(AstMemberAccessExprFlagsE::CallCallee);
+            break;
+        case AstNodeId::AutoMemberAccessExpr:
+            calleeNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+            break;
+        default:
+            break;
+    }
 
     auto [callRef, callPtr] = ast_->makeNode<AstNodeId::CallExpr>(ref());
     callPtr->nodeExprRef    = nodeIdentRef;

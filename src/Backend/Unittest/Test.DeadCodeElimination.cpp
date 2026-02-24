@@ -38,7 +38,7 @@ namespace
 
 SWC_TEST_BEGIN(MicroDeadCodeElimination_RemovesDeadDefinitions)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8 = MicroReg::intReg(8);
 
     builder.emitLoadRegImm(r8, ApInt(uint64_t{1}, 64), MicroOpBits::B64);
@@ -58,7 +58,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroDeadCodeElimination_PreservesReturnRegisterDefinition)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder    builder(ctx);
     const CallConv& conv = CallConv::get(CallConvKind::Host);
 
     builder.emitLoadRegImm(conv.intReturn, ApInt(uint64_t{99}, 64), MicroOpBits::B64);

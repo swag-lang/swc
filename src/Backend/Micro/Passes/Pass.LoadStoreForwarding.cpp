@@ -118,11 +118,11 @@ bool MicroLoadStoreForwardingPass::run(MicroPassContext& context)
 
                 if (first.op == MicroInstrOpcode::LoadMemImm && isSameMemoryAddressForImmediateStore(firstOps, scanOps))
                 {
-                    scanInst.op            = MicroInstrOpcode::LoadRegImm;
-                    scanInst.numOperands   = 3;
-                    scanOps[1].opBits      = firstOps[1].opBits;
-                    scanOps[2].valueU64    = firstOps[3].valueU64;
-                    changed                = true;
+                    scanInst.op          = MicroInstrOpcode::LoadRegImm;
+                    scanInst.numOperands = 3;
+                    scanOps[1].opBits    = firstOps[1].opBits;
+                    scanOps[2].valueU64  = firstOps[3].valueU64;
+                    changed              = true;
                     break;
                 }
             }

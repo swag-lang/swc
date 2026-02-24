@@ -326,7 +326,7 @@ namespace PeepholePass
                     return false;
 
                 const MicroReg originalBaseReg = scanOps[baseIndex].reg;
-                scanOps[baseIndex].reg          = copySrcReg;
+                scanOps[baseIndex].reg         = copySrcReg;
                 if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[baseIndex].reg = originalBaseReg;
@@ -442,7 +442,7 @@ namespace PeepholePass
             if (!retReg.isSameClass(accReg))
                 return false;
 
-            MicroStorage::Iterator retIt = endIt;
+            MicroStorage::Iterator retIt                 = endIt;
             bool                   accValueLiveAfterCopy = true;
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {

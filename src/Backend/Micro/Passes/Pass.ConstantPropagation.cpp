@@ -55,7 +55,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             const auto itKnownSrc = known.find(ops[1].reg.packed);
             if (itKnownSrc != known.end())
             {
-                const uint64_t immValue = MicroOptimization::normalizeToOpBits(itKnownSrc->second.value, ops[2].opBits);
+                const uint64_t immValue   = MicroOptimization::normalizeToOpBits(itKnownSrc->second.value, ops[2].opBits);
                 const auto     itKnownDst = known.find(ops[0].reg.packed);
 
                 if (itKnownDst != known.end())
@@ -98,14 +98,14 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             const auto itKnown = known.find(ops[1].reg.packed);
             if (itKnown != known.end())
             {
-                const uint64_t        immValue   = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
-                const MicroInstrOpcode originalOp = inst.op;
+                const uint64_t         immValue    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                const MicroInstrOpcode originalOp  = inst.op;
                 const std::array       originalOps = {ops[0], ops[1], ops[2]};
 
-                inst.op         = MicroInstrOpcode::CmpRegImm;
+                inst.op          = MicroInstrOpcode::CmpRegImm;
                 inst.numOperands = 3;
-                ops[1].opBits   = originalOps[2].opBits;
-                ops[2].valueU64 = immValue;
+                ops[1].opBits    = originalOps[2].opBits;
+                ops[2].valueU64  = immValue;
                 if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
                 {
                     inst.op = originalOp;

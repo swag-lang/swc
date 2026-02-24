@@ -16,11 +16,11 @@ namespace PeepholePass
 
         bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
-            const MicroInstr*        inst    = cursor.inst;
-            const MicroInstrOperand* ops     = cursor.ops;
-            const MicroStorage::Iterator nextIt = cursor.nextIt;
-            const MicroStorage::Iterator endIt  = cursor.endIt;
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstr*            inst    = cursor.inst;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
             if (!inst || !ops)
                 return false;
 

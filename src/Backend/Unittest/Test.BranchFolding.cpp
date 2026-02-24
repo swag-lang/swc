@@ -36,7 +36,7 @@ namespace
 
 SWC_TEST_BEGIN(MicroBranchFolding_ConstantConditions)
 {
-    MicroBuilder builder(ctx);
+    MicroBuilder   builder(ctx);
     const MicroReg r8         = MicroReg::intReg(8);
     const MicroReg r9         = MicroReg::intReg(9);
     const Ref      takenLabel = builder.createLabel();

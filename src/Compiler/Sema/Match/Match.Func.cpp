@@ -439,7 +439,7 @@ namespace
         if (argNodeView.node()->is(AstNodeId::AutoCastExpr))
         {
             const AstAutoCastExpr& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
-            castKind = CastKind::Explicit;
+            castKind                        = CastKind::Explicit;
             if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
                 castFlags.add(CastFlagsE::BitCast);
             if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
@@ -1083,7 +1083,7 @@ namespace
             if (entry.argRef.isInvalid())
                 continue;
 
-            AstNodeRef finalArgRef = entry.argRef;
+            AstNodeRef     finalArgRef  = entry.argRef;
             const AstNode& finalArgNode = sema.node(finalArgRef);
             if (finalArgNode.is(AstNodeId::NamedArgument))
                 finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;
@@ -1111,7 +1111,7 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            AstNodeRef finalArgRef = entry.argRef;
+            AstNodeRef     finalArgRef  = entry.argRef;
             const AstNode& finalArgNode = sema.node(finalArgRef);
             if (finalArgNode.is(AstNodeId::NamedArgument))
                 finalArgRef = finalArgNode.cast<AstNamedArgument>().nodeArgRef;

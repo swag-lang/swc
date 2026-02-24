@@ -3,10 +3,6 @@
 #test
 {
     const Cfg = #run dref @compiler.getBuildCfg()
-    #assert(Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.O0 or
-            Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.O1 or
-            Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.O2 or
-            Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.O3 or
-            Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.Os or
-            Cfg.backend.optimizeLevel == Swag.BuildCfgBackendOptim.Oz)
+    #assert(Cfg.backend.optimize == true or Cfg.backend.optimize == false)
+    #assert(Cfg.backend.optimizeForSize == true or Cfg.backend.optimizeForSize == false)
 }

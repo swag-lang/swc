@@ -188,7 +188,7 @@ struct BigCopy
     a8: u64
 }
 
-#[Swag.Optimize(Swag.Optimization.O0)]
+#[Swag.Optimize(false)]
 #test
 {
     func makeBigCopy()->BigCopy
@@ -218,7 +218,7 @@ struct BigCopy
     #assert(V.a8 == 0x8182_8384_8586_8788'u64)
 }
 
-#[Swag.Optimize(Swag.Optimization.O2)]
+#[Swag.Optimize(true)]
 #test
 {
     func makeBigCopy()->BigCopy
@@ -260,7 +260,7 @@ struct BigCopy
     #assert(V == 14)
 }
 
-#[Swag.Optimize(Swag.Optimization.O0)]
+#[Swag.Optimize(false)]
 #test
 {
     //#[Swag.PrintAst]

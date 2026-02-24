@@ -13,7 +13,7 @@ namespace
     void setPeepholeOptimizeLevel(MicroBuilder& builder)
     {
         Runtime::BuildCfgBackend backendCfg{};
-        backendCfg.optimizeLevel = Runtime::BuildCfgBackendOptim::O1;
+        backendCfg.optimize = true;
         builder.setBackendBuildCfg(backendCfg);
     }
 

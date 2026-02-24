@@ -18,7 +18,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O0)]
+    #[Swag.Optimize(false)]
     func subChainFloat(a: f64, b: f64, c: f64)->f64 { return a - b - c }
     const V = #run subChainFloat(50.0'f64, 4.0'f64, 4.0'f64)
     #assert(#typeof(V) == f64)

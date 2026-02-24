@@ -10,25 +10,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string_view backendOptimizeLevelName(Runtime::BuildCfgBackendOptim level)
+    std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
-        switch (level)
-        {
-            case Runtime::BuildCfgBackendOptim::O0:
-                return "O0";
-            case Runtime::BuildCfgBackendOptim::O1:
-                return "O1";
-            case Runtime::BuildCfgBackendOptim::O2:
-                return "O2";
-            case Runtime::BuildCfgBackendOptim::O3:
-                return "O3";
-            case Runtime::BuildCfgBackendOptim::Os:
-                return "Os";
-            case Runtime::BuildCfgBackendOptim::Oz:
-                return "Oz";
-            default:
-                SWC_UNREACHABLE();
-        }
+        if (!backendCfg.optimize)
+            return "off";
+        return backendCfg.optimizeForSize ? "on(size)" : "on(speed)";
     }
 
     std::string passStageName(const MicroPass& pass, bool before)
@@ -56,7 +42,7 @@ namespace
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
         const uint32_t         sourceLine = builder.printSourceLine();
-        const std::string_view optimize   = backendOptimizeLevelName(builder.backendBuildCfg().optimizeLevel);
+        const std::string      optimize   = backendOptimizeLevelName(builder.backendBuildCfg());
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[micro]");
@@ -116,25 +102,11 @@ namespace
         builder.printInstructions(printMode, encoder);
     }
 
-    uint32_t optimizationIterationLimit(Runtime::BuildCfgBackendOptim optimizeLevel)
+    uint32_t optimizationIterationLimit(const Runtime::BuildCfgBackend& backendCfg)
     {
-        switch (optimizeLevel)
-        {
-            case Runtime::BuildCfgBackendOptim::O0:
-                return 1;
-            case Runtime::BuildCfgBackendOptim::O1:
-                return 2;
-            case Runtime::BuildCfgBackendOptim::O2:
-                return 4;
-            case Runtime::BuildCfgBackendOptim::O3:
-                return 8;
-            case Runtime::BuildCfgBackendOptim::Os:
-                return 4;
-            case Runtime::BuildCfgBackendOptim::Oz:
-                return 6;
-            default:
-                SWC_UNREACHABLE();
-        }
+        if (!backendCfg.optimize)
+            return 1;
+        return backendCfg.optimizeForSize ? 6 : 4;
     }
 
     uint32_t optimizationIterationLimit(const MicroPassContext& context)
@@ -143,9 +115,9 @@ namespace
             return context.optimizationIterationLimit;
 
         if (context.builder)
-            return optimizationIterationLimit(context.builder->backendBuildCfg().optimizeLevel);
+            return optimizationIterationLimit(context.builder->backendBuildCfg());
 
-        return optimizationIterationLimit(Runtime::BuildCfgBackendOptim::O0);
+        return optimizationIterationLimit(Runtime::BuildCfgBackend{});
     }
 
     bool runPass(MicroPassContext& context, MicroPass& pass)

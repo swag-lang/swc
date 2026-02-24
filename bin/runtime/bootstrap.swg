@@ -190,19 +190,9 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Safety(context: SafetyContext, what: SafetyWhat, value: bool)
 
-    enum Optimization: u8
-    {
-        O0     // No optimization
-        O1     // Optimizations level 1
-        O2     // Optimizations level 2
-        O3     // Optimizations level 3
-        Os     // Optim for size level 1
-        Oz     // Optim for size level 2
-    }
-
-    // Set the optimization level for code generation.
+    // Set optimized code generation on/off.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]
-    attr Optimize(level: Optimization)
+    attr Optimize(level: bool)
 
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
     attr CanOverflow(value: bool)
@@ -731,21 +721,11 @@ namespace Swag
         MaxOSX      // MacOS (**unsupported**)
     }
 
-    // These are the optimization levels for the backend.
-    enum BuildCfgBackendOptim
-    {
-        O0     // No optimization
-        O1     // Optimizations level 1
-        O2     // Optimizations level 2
-        O3     // Optimizations level 3
-        Os     // Optim for size level 1
-        Oz     // Optim for size level 2
-    }
-
     // Backend options
     struct BuildCfgBackend
     {
-        optimizeLevel           = BuildCfgBackendOptim.O0
+        optimize:               bool
+        optimizeForSize:        bool     // If true, favor code size over speed
 
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'

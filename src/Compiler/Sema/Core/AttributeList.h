@@ -54,14 +54,15 @@ struct AttributeList
     SmallVector4<Utf8>              printMicroPassOptions;
     SmallVector4<Utf8>              printAstStageOptions;
     bool                            hasBackendOptimize = false;
-    Runtime::BuildCfgBackendOptim   backendOptimize    = Runtime::BuildCfgBackendOptim::O0;
+    bool                            backendOptimize    = false;
     bool                            hasForeign         = false;
     Utf8                            foreignModuleName;
     Utf8                            foreignFunctionName;
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
-    void setBackendOptimize(Runtime::BuildCfgBackendOptim value)
+    
+    void setBackendOptimize(bool value)
     {
         hasBackendOptimize = true;
         backendOptimize    = value;

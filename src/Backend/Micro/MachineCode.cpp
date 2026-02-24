@@ -49,11 +49,11 @@ namespace
         passManager.addFinal(emitPass);
     }
 
-    void registerOptimizationPassesO0(MicroPassManager&, const MicroOptimizationPasses&)
+    void registerOptimizationPassesOff(MicroPassManager&, const MicroOptimizationPasses&)
     {
     }
 
-    void registerOptimizationPassesO1(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
+    void registerOptimizationPassesOnSpeed(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
     {
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.strengthReductionPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
@@ -70,29 +70,7 @@ namespace
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
     }
 
-    void registerOptimizationPassesO2(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
-    {
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.strengthReductionPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.loadStoreForwardPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-    }
-
-    void registerOptimizationPassesO3(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
-    {
-        registerOptimizationPassesO2(passManager, passes);
-    }
-
-    void registerOptimizationPassesOs(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
+    void registerOptimizationPassesOnSize(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
     {
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
@@ -107,45 +85,18 @@ namespace
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
     }
 
-    void registerOptimizationPassesOz(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
+    void registerOptimizationPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
     {
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-    }
-
-    void registerOptimizationPasses(MicroPassManager& passManager, Runtime::BuildCfgBackendOptim optimizeLevel, const MicroOptimizationPasses& passes)
-    {
-        switch (optimizeLevel)
+        if (!backendCfg.optimize)
         {
-            case Runtime::BuildCfgBackendOptim::O0:
-                registerOptimizationPassesO0(passManager, passes);
-                return;
-            case Runtime::BuildCfgBackendOptim::O1:
-                registerOptimizationPassesO1(passManager, passes);
-                return;
-            case Runtime::BuildCfgBackendOptim::O2:
-                registerOptimizationPassesO2(passManager, passes);
-                return;
-            case Runtime::BuildCfgBackendOptim::O3:
-                registerOptimizationPassesO3(passManager, passes);
-                return;
-            case Runtime::BuildCfgBackendOptim::Os:
-                registerOptimizationPassesOs(passManager, passes);
-                return;
-            case Runtime::BuildCfgBackendOptim::Oz:
-                registerOptimizationPassesOz(passManager, passes);
-                return;
-            default:
-                SWC_UNREACHABLE();
+            registerOptimizationPassesOff(passManager, passes);
+            return;
         }
+
+        if (backendCfg.optimizeForSize)
+            registerOptimizationPassesOnSize(passManager, passes);
+        else
+            registerOptimizationPassesOnSpeed(passManager, passes);
     }
 }
 
@@ -186,7 +137,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     optimizationPasses.peepholePass            = &peepholePass;
 
     MicroPassManager passManager;
-    registerOptimizationPasses(passManager, builder.backendBuildCfg().optimizeLevel, optimizationPasses);
+    registerOptimizationPasses(passManager, builder.backendBuildCfg(), optimizationPasses);
     registerMandatoryPasses(passManager, regAllocPass, legalizePass);
     registerFinalPasses(passManager, prologEpilogPass, legalizePass, peepholePass, deadCodePass, emitPass);
 

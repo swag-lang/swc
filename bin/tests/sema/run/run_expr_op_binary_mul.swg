@@ -18,7 +18,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O2)]
+    #[Swag.Optimize(true)]
     func mulChain(a: s64, b: s64, c: s64)->s64 { return a * b * c }
     const V = #run mulChain(3's64, 2's64, 7's64)
     #assert(#typeof(V) == s64)

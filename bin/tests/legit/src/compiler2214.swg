@@ -42,7 +42,7 @@ func titi()->A
 #[Swag.Optimize(.All, true), Swag.Warning("Wrn0003", .Disable)]
 #test
 {
-    if @bytecode and @compiler.getBuildCfg().backend.optimizeLevel > Swag.BuildCfgBackendOptim.O1
+    if @bytecode and @compiler.getBuildCfg().backend.optimize
     {
         var x = titi()
         @assert(x.x == 1)

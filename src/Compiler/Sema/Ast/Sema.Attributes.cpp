@@ -174,12 +174,8 @@ namespace
 
         const SemaNodeView argView = sema.viewConstant(argValueRef);
         SWC_ASSERT(argView.cst() != nullptr);
-        SWC_ASSERT(argView.cst()->isEnumValue());
-
-        const ConstantValue& levelValue = sema.ctx().cstMgr().get(argView.cst()->getEnumValue());
-        SWC_ASSERT(levelValue.isInt());
-        const int64_t levelI64 = levelValue.getInt().asI64();
-        outAttributes.setBackendOptimize(static_cast<Runtime::BuildCfgBackendOptim>(levelI64));
+        SWC_ASSERT(argView.cst()->isBool());
+        outAttributes.setBackendOptimize(argView.cst()->getBool());
 
         return Result::Continue;
     }

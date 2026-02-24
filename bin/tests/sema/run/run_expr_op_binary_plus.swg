@@ -77,7 +77,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O0)]
+    #[Swag.Optimize(false)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
     const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
     #assert(#typeof(V) == f64)
@@ -86,7 +86,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O1)]
+    #[Swag.Optimize(true)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
     const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
     #assert(#typeof(V) == f64)
@@ -95,7 +95,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O2)]
+    #[Swag.Optimize(true)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
     const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
     #assert(#typeof(V) == f64)
@@ -104,34 +104,7 @@
 
 #test
 {
-    #[Swag.Optimize(.O3)]
-    func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
-    #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
-}
-
-#test
-{
-    #[Swag.Optimize(.Os)]
-    func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
-    #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
-}
-
-#test
-{
-    #[Swag.Optimize(.Oz)]
-    func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
-    #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
-}
-
-#test
-{
-    #[Swag.Optimize(.NotAnOptLevel)] // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
+    #[Swag.Optimize("bad")] // swc-expected-error {{sema_err_cannot_cast}}
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }
 

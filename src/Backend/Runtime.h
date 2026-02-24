@@ -349,19 +349,10 @@ namespace Runtime
         All         = 0xFFFF,
     };
 
-    enum class BuildCfgBackendOptim
-    {
-        O0,
-        O1,
-        O2,
-        O3,
-        Os,
-        Oz,
-    };
-
     struct BuildCfgBackend
     {
-        BuildCfgBackendOptim optimizeLevel;
+        bool                 optimize;
+        bool                 optimizeForSize;
         bool                 fpMathFma;
         bool                 fpMathNoNaN;
         bool                 fpMathNoInf;

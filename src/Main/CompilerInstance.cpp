@@ -26,20 +26,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Runtime::BuildCfgBackendOptim backendOptimizeLevelFromString(std::string_view value)
+    bool backendOptimizeFromString(std::string_view value)
     {
-        if (value == "O0")
-            return Runtime::BuildCfgBackendOptim::O0;
-        if (value == "O1")
-            return Runtime::BuildCfgBackendOptim::O1;
-        if (value == "O2")
-            return Runtime::BuildCfgBackendOptim::O2;
-        if (value == "O3")
-            return Runtime::BuildCfgBackendOptim::O3;
-        if (value == "Os")
-            return Runtime::BuildCfgBackendOptim::Os;
-        if (value == "Oz")
-            return Runtime::BuildCfgBackendOptim::Oz;
+        if (value == "off")
+            return false;
+        if (value == "on")
+            return true;
+
+        SWC_UNREACHABLE();
+    }
+
+    bool backendOptimizeFavorSizeFromString(std::string_view value)
+    {
+        if (value == "speed")
+            return false;
+        if (value == "size")
+            return true;
 
         SWC_UNREACHABLE();
     }
@@ -54,7 +56,8 @@ namespace
             buildCfg.sanity                   = false;
             buildCfg.errorStackTrace          = false;
             buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimizeLevel    = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backend.optimize         = false;
+            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = false;
             buildCfg.backendDebugInline       = false;
         }
@@ -64,7 +67,8 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimizeLevel    = Runtime::BuildCfgBackendOptim::O0;
+            buildCfg.backend.optimize         = false;
+            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
             buildCfg.backendDebugInline       = true;
         }
@@ -74,7 +78,8 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimizeLevel    = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backend.optimize         = true;
+            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
         }
         else if (cfgName == "release")
@@ -83,7 +88,8 @@ namespace
             buildCfg.sanity                     = false;
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
-            buildCfg.backend.optimizeLevel      = Runtime::BuildCfgBackendOptim::O3;
+            buildCfg.backend.optimize          = true;
+            buildCfg.backend.optimizeForSize    = false;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
@@ -96,12 +102,15 @@ namespace
             buildCfg.sanity                   = true;
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
-            buildCfg.backend.optimizeLevel    = Runtime::BuildCfgBackendOptim::O1;
+            buildCfg.backend.optimize         = true;
+            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
         }
 
         if (!cmdLine.backendOptimizeLevelOverride.empty())
-            buildCfg.backend.optimizeLevel = backendOptimizeLevelFromString(cmdLine.backendOptimizeLevelOverride);
+            buildCfg.backend.optimize = backendOptimizeFromString(cmdLine.backendOptimizeLevelOverride);
+        if (!cmdLine.backendOptimizeFavorOverride.empty())
+            buildCfg.backend.optimizeForSize = backendOptimizeFavorSizeFromString(cmdLine.backendOptimizeFavorOverride);
 
         if (cmdLine.debugInfo)
             buildCfg.backendDebugInformations = true;

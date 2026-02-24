@@ -277,6 +277,60 @@ namespace
         return op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight || op == MicroOp::ShiftArithmeticRight;
     }
 
+    bool requiresRegImmRewrite(MicroOp op)
+    {
+        return op == MicroOp::DivideUnsigned ||
+               op == MicroOp::DivideSigned ||
+               op == MicroOp::ModuloUnsigned ||
+               op == MicroOp::ModuloSigned ||
+               op == MicroOp::MultiplyUnsigned;
+    }
+
+    bool isOneOf(MicroReg reg, std::span<const MicroReg> regs)
+    {
+        for (const MicroReg value : regs)
+        {
+            if (value == reg)
+                return true;
+        }
+
+        return false;
+    }
+
+    MicroReg selectRewriteHelperReg(std::span<const MicroReg> avoidRegs)
+    {
+        static constexpr X64Reg CANDIDATES[] = {
+            X64Reg::Rax,
+            X64Reg::Rbx,
+            X64Reg::Rdx,
+            X64Reg::Rsi,
+            X64Reg::Rdi,
+            X64Reg::R8,
+            X64Reg::R9,
+            X64Reg::R10,
+            X64Reg::R11,
+            X64Reg::R12,
+            X64Reg::R13,
+            X64Reg::R14,
+            X64Reg::R15,
+        };
+
+        for (const X64Reg candidate : CANDIDATES)
+        {
+            const MicroReg candidateReg = x64RegToMicroReg(candidate);
+            if (!isOneOf(candidateReg, avoidRegs))
+                return candidateReg;
+        }
+
+        return MicroReg::invalid();
+    }
+
+    MicroReg selectRegImmRewriteScratchReg(MicroReg dstReg)
+    {
+        const std::array avoidRegs = {dstReg};
+        return selectRewriteHelperReg(avoidRegs);
+    }
+
     uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
@@ -728,10 +782,12 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
             {
+                const std::array avoidRegs = {rcxReg, ops[0].reg, ops[1].reg};
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
                 outIssue.operandIndex = 1;
                 outIssue.requiredReg  = rcxReg;
-                outIssue.helperReg    = x64RegToMicroReg(X64Reg::Rax);
+                outIssue.helperReg    = selectRewriteHelperReg(avoidRegs);
+                SWC_ASSERT(outIssue.helperReg.isValid());
                 return true;
             }
         }
@@ -819,6 +875,14 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
     {
+        if (requiresRegImmRewrite(ops[2].microOp))
+        {
+            outIssue.kind       = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            outIssue.scratchReg = selectRegImmRewriteScratchReg(ops[0].reg);
+            SWC_ASSERT(outIssue.scratchReg.isValid());
+            return true;
+        }
+
         if (!isShiftImmediateOp(ops[2].microOp))
             return false;
 

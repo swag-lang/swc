@@ -26,6 +26,7 @@ enum class MicroConformanceIssueKind : uint8_t
     SplitLoadAmcMemImm64,
     RewriteLoadAddrAmcScale,
     RewriteLoadFloatRegImm,
+    RewriteRegImmToRegReg,
     RewriteRegRegOperandToFixedReg,
     RewriteRegRegOperandAwayFromFixedReg,
 };

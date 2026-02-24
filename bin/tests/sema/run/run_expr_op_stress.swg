@@ -7,8 +7,6 @@ enum StressKind: u16
     C = 42
 }
 
-// BUG:
-/*
 #test
 {
     func stressMixed()->s32
@@ -72,8 +70,8 @@ enum StressKind: u16
 
     const V = #run stressMixed()
     #assert(#typeof(V) == s32)
-    #assert(V == 74)
-}*/
+    #assert(V == 92)
+}
 
 // BUG:
 /*

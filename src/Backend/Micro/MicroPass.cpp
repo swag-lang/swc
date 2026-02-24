@@ -42,7 +42,11 @@ namespace
 
     std::string backendOptimizeWithInstructionStats(MicroPassContext& context, const MicroBuilder& builder)
     {
-        const std::string optimize = backendOptimizeLevelName(builder.backendBuildCfg());
+        const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
+        const std::string               optimize   = backendOptimizeLevelName(backendCfg);
+        if (!backendCfg.optimize)
+            return optimize;
+
         if (!context.instructions || !context.hasPrintInstrCountBeforeAll)
             return optimize;
 

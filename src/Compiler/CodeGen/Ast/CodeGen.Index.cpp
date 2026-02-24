@@ -21,33 +21,33 @@ namespace
 
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
-        const CodeGenNodePayload* indexPayload = SWC_CHECK_NOT_NULL(codeGen.payload(indexRef));
+        const CodeGenNodePayload& indexPayload = codeGen.payload(indexRef);
         const SemaNodeView        indexView    = codeGen.viewType(indexRef);
         SWC_ASSERT(indexView.type());
 
         outIndexBits           = indexOpBits(*indexView.type());
         const bool indexSigned = indexView.type()->isIntSigned();
 
-        if (outIndexBits == MicroOpBits::B64 && indexPayload->isValue())
-            return indexPayload->reg;
+        if (outIndexBits == MicroOpBits::B64 && indexPayload.isValue())
+            return indexPayload.reg;
 
         const MicroReg indexReg     = codeGen.nextVirtualIntRegister();
         MicroBuilder&  microBuilder = codeGen.builder();
-        if (indexPayload->isAddress())
+        if (indexPayload.isAddress())
         {
             if (outIndexBits == MicroOpBits::B64)
-                microBuilder.emitLoadRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64);
+                microBuilder.emitLoadRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64);
             else if (indexSigned)
-                microBuilder.emitLoadSignedExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadSignedExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
             else
-                microBuilder.emitLoadZeroExtendRegMem(indexReg, indexPayload->reg, 0, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadZeroExtendRegMem(indexReg, indexPayload.reg, 0, MicroOpBits::B64, outIndexBits);
         }
         else
         {
             if (indexSigned)
-                microBuilder.emitLoadSignedExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadSignedExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
             else
-                microBuilder.emitLoadZeroExtendRegReg(indexReg, indexPayload->reg, MicroOpBits::B64, outIndexBits);
+                microBuilder.emitLoadZeroExtendRegReg(indexReg, indexPayload.reg, MicroOpBits::B64, outIndexBits);
         }
 
         outIndexBits = MicroOpBits::B64;
@@ -103,7 +103,7 @@ namespace
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const CodeGenNodePayload* indexedPayload = SWC_CHECK_NOT_NULL(codeGen.payload(nodeExprRef));
+    const CodeGenNodePayload& indexedPayload = codeGen.payload(nodeExprRef);
     const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
     const SemaNodeView        indexedView    = codeGen.viewType(nodeExprRef);
     const SemaNodeView        resultView     = codeGen.curViewType();
@@ -113,7 +113,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 
     auto           indexBits = MicroOpBits::B64;
     const MicroReg indexReg  = materializeIndexReg(codeGen, nodeArgRef, indexBits);
-    const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, *indexedView.type(), *indexedPayload);
+    const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, *indexedView.type(), indexedPayload);
 
     const uint64_t resultSize = resultView.type()->sizeOf(codeGen.ctx());
     SWC_ASSERT(resultSize > 0);

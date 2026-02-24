@@ -9,11 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
-    }
-
     MicroOpBits compareOpBits(const TypeInfo& typeInfo)
     {
         if (typeInfo.isFloat())
@@ -176,8 +171,8 @@ namespace
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        const CodeGenNodePayload& leftPayload         = ensureOperandPayload(codeGen, node.nodeLeftRef);
-        const CodeGenNodePayload& rightPayload        = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
+        const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
         const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
         const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
@@ -228,8 +223,8 @@ namespace
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        const CodeGenNodePayload& leftPayload         = ensureOperandPayload(codeGen, node.nodeLeftRef);
-        const CodeGenNodePayload& rightPayload        = ensureOperandPayload(codeGen, node.nodeRightRef);
+        const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
+        const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
         const TypeRef             leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
         const TypeRef             rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
@@ -287,20 +282,18 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const CodeGenNodePayload* leftPayload  = codeGen.payload(nodeLeftRef);
-    const CodeGenNodePayload* rightPayload = codeGen.payload(nodeRightRef);
-    SWC_ASSERT(leftPayload != nullptr);
-    SWC_ASSERT(rightPayload != nullptr);
+    const CodeGenNodePayload& leftPayload  = codeGen.payload(nodeLeftRef);
+    const CodeGenNodePayload& rightPayload = codeGen.payload(nodeRightRef);
 
     const SemaNodeView leftView  = codeGen.viewType(nodeLeftRef);
     const SemaNodeView rightView = codeGen.viewType(nodeRightRef);
-    const TypeRef      leftType  = leftPayload->typeRef.isValid() ? leftPayload->typeRef : leftView.typeRef();
-    const TypeRef      rightType = rightPayload->typeRef.isValid() ? rightPayload->typeRef : rightView.typeRef();
+    const TypeRef      leftType  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
+    const TypeRef      rightType = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
     MicroReg leftReg  = MicroReg::invalid();
     MicroReg rightReg = MicroReg::invalid();
-    materializeLogicalOperand(leftReg, codeGen, *leftPayload, leftType);
-    materializeLogicalOperand(rightReg, codeGen, *rightPayload, rightType);
+    materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);
+    materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
 
     const CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
     MicroBuilder&             builder     = codeGen.builder();
@@ -325,15 +318,14 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView resultView = codeGen.curViewType();
     SWC_ASSERT(condView.type() && trueView.type() && falseView.type() && resultView.type());
 
-    const CodeGenNodePayload* condPayload  = codeGen.payload(nodeCondRef);
-    const CodeGenNodePayload* truePayload  = codeGen.payload(nodeTrueRef);
-    const CodeGenNodePayload* falsePayload = codeGen.payload(nodeFalseRef);
-    SWC_ASSERT(condPayload && truePayload && falsePayload);
+    const CodeGenNodePayload& condPayload  = codeGen.payload(nodeCondRef);
+    const CodeGenNodePayload& truePayload  = codeGen.payload(nodeTrueRef);
+    const CodeGenNodePayload& falsePayload = codeGen.payload(nodeFalseRef);
 
-    const TypeRef condTypeRef   = condPayload->typeRef.isValid() ? condPayload->typeRef : condView.typeRef();
+    const TypeRef condTypeRef   = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
     const TypeRef resultTypeRef = resultView.typeRef();
-    const TypeRef trueTypeRef   = truePayload->typeRef.isValid() ? truePayload->typeRef : trueView.typeRef();
-    const TypeRef falseTypeRef  = falsePayload->typeRef.isValid() ? falsePayload->typeRef : falseView.typeRef();
+    const TypeRef trueTypeRef   = truePayload.typeRef.isValid() ? truePayload.typeRef : trueView.typeRef();
+    const TypeRef falseTypeRef  = falsePayload.typeRef.isValid() ? falsePayload.typeRef : falseView.typeRef();
 
     const MicroOpBits condBits   = compareOpBits(codeGen.typeMgr().get(condTypeRef));
     const MicroOpBits resultBits = compareOpBits(codeGen.typeMgr().get(resultTypeRef));
@@ -342,9 +334,9 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroReg condReg  = MicroReg::invalid();
     MicroReg trueReg  = MicroReg::invalid();
     MicroReg falseReg = MicroReg::invalid();
-    materializeScalarOperand(condReg, codeGen, *condPayload, condTypeRef, condBits);
-    materializeScalarOperand(trueReg, codeGen, *truePayload, trueTypeRef, resultBits);
-    materializeScalarOperand(falseReg, codeGen, *falsePayload, falseTypeRef, resultBits);
+    materializeScalarOperand(condReg, codeGen, condPayload, condTypeRef, condBits);
+    materializeScalarOperand(trueReg, codeGen, truePayload, trueTypeRef, resultBits);
+    materializeScalarOperand(falseReg, codeGen, falsePayload, falseTypeRef, resultBits);
 
     CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
     resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);

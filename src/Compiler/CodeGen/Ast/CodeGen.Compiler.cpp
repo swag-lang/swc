@@ -44,13 +44,11 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const auto      exprView     = codeGen.viewType(nodeExprRef);
     SWC_ASSERT(exprView.type());
 
-    const CodeGenNodePayload* payload = codeGen.payload(nodeExprRef);
-    SWC_ASSERT(payload != nullptr);
-    const MicroReg            payloadReg       = payload->reg;
-    const bool                payloadLValue    = payload->isAddress();
-    const CodeGenNodePayload* runExprPayload   = codeGen.payload(codeGen.curNodeRef());
-    const MicroReg            outputStorageReg = runExprPayload ? runExprPayload->reg : MicroReg::invalid();
-    SWC_ASSERT(outputStorageReg.isValid());
+    const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);
+    const MicroReg            payloadReg       = exprPayload.reg;
+    const bool                payloadLValue    = exprPayload.isAddress();
+    const CodeGenNodePayload& runExprPayload   = codeGen.payload(codeGen.curNodeRef());
+    const MicroReg            outputStorageReg = runExprPayload.reg;
     const AstNode& exprNode = codeGen.node(nodeExprRef);
 
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
@@ -58,7 +56,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     if (normalizedRet.isIndirect)
     {
         SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (payload->isAddress())
+        if (exprPayload.isAddress())
         {
             CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
         }
@@ -77,7 +75,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        if (canUseDirectCallReturnWriteBack(exprNode, *payload, normalizedRet))
+        if (canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet))
             ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
         else
             ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);

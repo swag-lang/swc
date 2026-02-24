@@ -124,17 +124,16 @@ namespace
             {
                 if (initRef.isValid())
                 {
-                    const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
-                    SWC_ASSERT(initPayload != nullptr);
-                    if (initPayload->isAddress())
+                    const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
+                    if (initPayload.isAddress())
                     {
-                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSlot->size);
                     }
                     else
                     {
                         if (localSlot->size > 8)
                         {
-                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload->reg, localSlot->size);
+                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSlot->size);
                             codeGen.setVariablePayload(symVar, symbolPayload);
                             return;
                         }
@@ -148,7 +147,7 @@ namespace
                             copyBits = MicroOpBits::B32;
                         else
                             copyBits = MicroOpBits::B64;
-                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload->reg, copyBits);
+                        builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
                     }
                 }
                 else
@@ -175,23 +174,22 @@ namespace
             return;
         }
 
-        const CodeGenNodePayload* initPayload = codeGen.payload(initRef);
-        SWC_ASSERT(initPayload != nullptr);
+        const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
 
         CodeGenNodePayload symbolPayload;
         symbolPayload.typeRef     = symVar.typeRef();
-        symbolPayload.storageKind = initPayload->storageKind;
+        symbolPayload.storageKind = initPayload.storageKind;
 
-        if (initPayload->isAddress())
+        if (initPayload.isAddress())
         {
             symbolPayload.reg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(symbolPayload.reg, initPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload.reg, MicroOpBits::B64);
         }
         else
         {
             const MicroOpBits copyBits = identifierPayloadCopyBits(codeGen, symVar.typeRef());
             symbolPayload.reg          = codeGen.nextVirtualRegisterForType(symVar.typeRef());
-            builder.emitLoadRegReg(symbolPayload.reg, initPayload->reg, copyBits);
+            builder.emitLoadRegReg(symbolPayload.reg, initPayload.reg, copyBits);
         }
 
         codeGen.setVariablePayload(symVar, symbolPayload);

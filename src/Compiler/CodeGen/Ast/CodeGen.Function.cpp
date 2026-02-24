@@ -181,15 +181,14 @@ namespace
         if (argRef.isInvalid())
             return;
 
-        const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
-        SWC_ASSERT(argPayload != nullptr);
+        const CodeGenNodePayload&       argPayload = codeGen.payload(argRef);
         const SemaNodeView argView = codeGen.viewType(argRef);
 
         ABICall::PreparedArg preparedArg;
-        preparedArg.srcReg = argPayload->reg;
+        preparedArg.srcReg = argPayload.reg;
 
         const TypeRef normalizedTypeRef = resolveNormalizedArgTypeRef(codeGen, params, argIndex, argView);
-        fillPreparedDirectArgType(preparedArg, codeGen, callConv, *argPayload, normalizedTypeRef);
+        fillPreparedDirectArgType(preparedArg, codeGen, callConv, argPayload, normalizedTypeRef);
         preparedArg.kind = abiPreparedArgKind(arg.passKind);
         outArgs.push_back(preparedArg);
     }
@@ -198,7 +197,7 @@ namespace
     {
         MicroBuilder&             builder       = codeGen.builder();
         const CallConvKind        callConvKind  = calledFunction.callConvKind();
-        const CodeGenNodePayload* calleePayload = codeGen.payload(calleeRef);
+        const CodeGenNodePayload* calleePayload = codeGen.safePayload(calleeRef);
 
         if (calleePayload)
         {
@@ -362,8 +361,7 @@ namespace
             if (argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload* const argPayload = codeGen.payload(argRef);
-            SWC_ASSERT(argPayload != nullptr);
+            const CodeGenNodePayload&       argPayload = codeGen.payload(argRef);
             offset                 = Math::alignUpU64(offset, elemAlign);
             MicroReg dstAddressReg = frameBaseReg;
             if (offset)
@@ -372,7 +370,7 @@ namespace
                 builder.emitLoadRegReg(dstAddressReg, frameBaseReg, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(dstAddressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
             }
-            storeTypedVariadicElement(codeGen, dstAddressReg, *argPayload, elemSize);
+            storeTypedVariadicElement(codeGen, dstAddressReg, argPayload, elemSize);
             offset += elemSize;
         }
 
@@ -424,8 +422,7 @@ namespace
             if (resolvedArg.argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload* const argPayload = codeGen.payload(resolvedArg.argRef);
-            SWC_ASSERT(argPayload != nullptr);
+            const CodeGenNodePayload&       argPayload = codeGen.payload(resolvedArg.argRef);
 
             const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
             SWC_ASSERT(argView.type());
@@ -436,12 +433,12 @@ namespace
 
             UntypedVariadicArgInfo info;
             info.argRef         = resolvedArg.argRef;
-            info.argPayload     = argPayload;
+            info.argPayload     = &argPayload;
             info.argTypeRef     = argView.typeRef();
             info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
             info.valueSize      = static_cast<uint32_t>(rawArgSize);
             info.valueAlign     = std::max<uint32_t>(argType.alignOf(ctx), 1);
-            info.needsSpill     = argPayload->isValue() && info.valueSize <= 8;
+            info.needsSpill     = argPayload.isValue() && info.valueSize <= 8;
             SWC_ASSERT(info.typeInfoCstRef.isValid());
 
             if (info.needsSpill)
@@ -620,34 +617,33 @@ namespace
 
         SWC_ASSERT(exprRef.isValid());
 
-        const CodeGenNodePayload* exprPayload = SWC_CHECK_NOT_NULL(codeGen.payload(exprRef));
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
             SWC_ASSERT(!callConv.intArgRegs.empty());
 
-            const CodeGenNodePayload* fnPayload = codeGen.payload(symbolFunc.declNodeRef());
-            SWC_ASSERT(fnPayload);
-            SWC_ASSERT(fnPayload->isAddress());
+            const CodeGenNodePayload& fnPayload = codeGen.payload(symbolFunc.declNodeRef());
+            SWC_ASSERT(fnPayload.isAddress());
 
-            const MicroReg outputStorageReg = fnPayload->reg;
-            SWC_ASSERT(exprPayload->isAddress());
-            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+            const MicroReg outputStorageReg = fnPayload.reg;
+            SWC_ASSERT(exprPayload.isAddress());
+            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
         {
             // Direct returns are normalized to ABI return registers (int/float lane).
-            const bool      isAddressed    = exprPayload->isAddress();
+            const bool      isAddressed    = exprPayload.isAddress();
             const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
             if (isAddressed && shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet))
             {
-                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload->reg, checkedTypeSizeInBytes(codeGen, returnTypeInfo));
+                const MicroReg copiedValueReg = materializeAddressValueCopy(codeGen, exprPayload.reg, checkedTypeSizeInBytes(codeGen, returnTypeInfo));
                 ABICall::materializeValueToReturnRegs(builder, callConvKind, copiedValueReg, false, normalizedRet);
             }
             else
             {
-                ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload->reg, isAddressed, normalizedRet);
+                ABICall::materializeValueToReturnRegs(builder, callConvKind, exprPayload.reg, isAddressed, normalizedRet);
             }
         }
 

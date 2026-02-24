@@ -49,36 +49,34 @@ namespace
 
     Result codeGenUnaryPlus(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
-        SWC_ASSERT(childPayload != nullptr);
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = resolveOperandTypeRef(*childPayload, childView.typeRef());
+        const TypeRef      operandTypeRef  = resolveOperandTypeRef(childPayload, childView.typeRef());
         const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
         const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits  opBits          = unaryOpBits(operandTypeInfo);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *childPayload, operandTypeRef, opBits);
+        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
         return Result::Continue;
     }
 
     Result codeGenUnaryMinus(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         MicroBuilder&             builder      = codeGen.builder();
-        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
-        SWC_ASSERT(childPayload != nullptr);
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = resolveOperandTypeRef(*childPayload, childView.typeRef());
+        const TypeRef      operandTypeRef  = resolveOperandTypeRef(childPayload, childView.typeRef());
         const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
         const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits  opBits          = unaryOpBits(operandTypeInfo);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *childPayload, operandTypeRef, opBits);
+        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
 
         if (operandTypeInfo.isFloat())
         {
@@ -95,17 +93,16 @@ namespace
 
     Result codeGenUnaryBang(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
-        SWC_ASSERT(childPayload != nullptr);
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView childView      = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef = resolveOperandTypeRef(*childPayload, childView.typeRef());
+        const TypeRef      operandTypeRef = resolveOperandTypeRef(childPayload, childView.typeRef());
         const TypeInfo&    operandType    = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits  opBits         = unaryOpBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg operandReg = MicroReg::invalid();
-        materializeUnaryOperand(operandReg, codeGen, *childPayload, operandTypeRef, opBits);
+        materializeUnaryOperand(operandReg, codeGen, childPayload, operandTypeRef, opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder       = codeGen.builder();
@@ -117,18 +114,17 @@ namespace
 
     Result codeGenUnaryBitwiseNot(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
-        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
-        SWC_ASSERT(childPayload != nullptr);
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView childView       = codeGen.viewType(nodeExprRef);
-        const TypeRef      operandTypeRef  = resolveOperandTypeRef(*childPayload, childView.typeRef());
+        const TypeRef      operandTypeRef  = resolveOperandTypeRef(childPayload, childView.typeRef());
         const TypeRef      resultTypeRef   = codeGen.curViewType().typeRef();
         const TypeInfo&    operandTypeInfo = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits  opBits          = unaryOpBits(operandTypeInfo);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeUnaryOperand(resultPayload.reg, codeGen, *childPayload, operandTypeRef, opBits);
+        materializeUnaryOperand(resultPayload.reg, codeGen, childPayload, operandTypeRef, opBits);
         codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, opBits);
         return Result::Continue;
     }
@@ -136,15 +132,14 @@ namespace
     Result codeGenUnaryDeref(CodeGen& codeGen, AstNodeRef nodeExprRef)
     {
         MicroBuilder&             builder      = codeGen.builder();
-        const CodeGenNodePayload* childPayload = codeGen.payload(nodeExprRef);
-        SWC_ASSERT(childPayload != nullptr);
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
 
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), view.typeRef());
-        if (childPayload->isAddress())
-            builder.emitLoadRegMem(payload.reg, childPayload->reg, 0, MicroOpBits::B64);
+        if (childPayload.isAddress())
+            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else
-            builder.emitLoadRegReg(payload.reg, childPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         return Result::Continue;
     }
 }

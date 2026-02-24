@@ -84,8 +84,7 @@ namespace
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
     {
         MicroBuilder&             builder    = codeGen.builder();
-        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        SWC_ASSERT(srcPayload != nullptr);
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
@@ -116,11 +115,11 @@ namespace
         const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);
 
-        MicroReg srcDataReg = srcPayload->reg;
-        if (!srcPayload->isAddress())
+        MicroReg srcDataReg = srcPayload.reg;
+        if (!srcPayload.isAddress())
         {
             srcDataReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(srcDataReg, srcPayload->reg, MicroOpBits::B64);
+            builder.emitLoadRegReg(srcDataReg, srcPayload.reg, MicroOpBits::B64);
         }
 
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, ptr), srcDataReg, MicroOpBits::B64);
@@ -142,8 +141,7 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        SWC_ASSERT(srcPayload != nullptr);
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
@@ -160,11 +158,11 @@ namespace
             return Result::Continue;
         }
 
-        SWC_ASSERT(srcPayload->isAddress());
+        SWC_ASSERT(srcPayload.isAddress());
 
         MicroBuilder&  builder      = codeGen.builder();
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(valueAddrReg, srcPayload->reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+        builder.emitLoadRegMem(valueAddrReg, srcPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
 
         if (dstType.isString() || dstType.isSlice() || dstType.isInterface() || dstType.isAnyVariadic())
         {
@@ -192,12 +190,11 @@ namespace
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder    = codeGen.builder();
-        const CodeGenNodePayload* srcPayload = codeGen.payload(srcNodeRef);
-        SWC_ASSERT(srcPayload != nullptr);
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
 
         TypeRef sourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
         if (!sourceTypeRef.isValid())
-            sourceTypeRef = srcPayload->typeRef;
+            sourceTypeRef = srcPayload.typeRef;
 
         if (dstTypeRef.isInvalid())
         {
@@ -225,11 +222,11 @@ namespace
 
         if (dstType.isBool() && (srcType.isPointerLike() || srcType.isReference() || srcType.isMoveReference() || srcType.isNull()))
         {
-            MicroReg srcReg = srcPayload->reg;
-            if (srcPayload->isAddress())
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
             {
                 srcReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, MicroOpBits::B64);
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, MicroOpBits::B64);
             }
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -246,11 +243,11 @@ namespace
             SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
             SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
 
-            MicroReg srcReg = srcPayload->reg;
-            if (srcPayload->isAddress())
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
             {
                 srcReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
             }
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -307,11 +304,11 @@ namespace
             return Result::Continue;
         }
 
-        MicroReg srcReg = srcPayload->reg;
-        if (srcPayload->isAddress())
+        MicroReg srcReg = srcPayload.reg;
+        if (srcPayload.isAddress())
         {
             srcReg = codeGen.nextVirtualRegisterForType(sourceTypeRef);
-            builder.emitLoadRegMem(srcReg, srcPayload->reg, 0, srcOpBits);
+            builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
         }
 
         if (srcIntLikeType && dstFloatType)

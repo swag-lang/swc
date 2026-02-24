@@ -25,11 +25,6 @@ namespace
         BinaryEncodingKind        encodingKind        = BinaryEncodingKind::IntLike;
     };
 
-    const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
-    }
-
     TypeRef resolveOperandTypeRef(const CodeGenNodePayload& payload, TypeRef fallbackTypeRef)
     {
         if (payload.typeRef.isValid())
@@ -73,8 +68,8 @@ namespace
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        ctx.leftPayload         = &ensureOperandPayload(codeGen, node.nodeLeftRef);
-        ctx.rightPayload        = &ensureOperandPayload(codeGen, node.nodeRightRef);
+        ctx.leftPayload         = &codeGen.payload(node.nodeLeftRef);
+        ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
         ctx.leftOperandTypeRef  = resolveOperandTypeRef(*ctx.leftPayload, leftView.typeRef());
         ctx.rightOperandTypeRef = resolveOperandTypeRef(*ctx.rightPayload, rightView.typeRef());
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();

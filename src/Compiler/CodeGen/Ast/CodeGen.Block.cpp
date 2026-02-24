@@ -50,15 +50,15 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
     if (childRef == nodeConditionRef)
     {
-        const CodeGenNodePayload* conditionPayload = SWC_CHECK_NOT_NULL(codeGen.payload(nodeConditionRef));
+        const CodeGenNodePayload& conditionPayload = codeGen.payload(nodeConditionRef);
         const SemaNodeView        conditionView    = codeGen.viewType(nodeConditionRef);
         const MicroOpBits         condBits         = conditionOpBits(conditionView.type(), codeGen.ctx());
         const MicroReg            condReg          = codeGen.nextVirtualIntRegister();
 
-        if (conditionPayload->isAddress())
-            builder.emitLoadRegMem(condReg, conditionPayload->reg, 0, condBits);
+        if (conditionPayload.isAddress())
+            builder.emitLoadRegMem(condReg, conditionPayload.reg, 0, condBits);
         else
-            builder.emitLoadRegReg(condReg, conditionPayload->reg, condBits);
+            builder.emitLoadRegReg(condReg, conditionPayload.reg, condBits);
 
         builder.emitCmpRegImm(condReg, ApInt(uint64_t{0}, 64), condBits);
 

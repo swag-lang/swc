@@ -37,7 +37,7 @@ namespace
 
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
-        const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
+        const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym    = SWC_CHECK_NOT_NULL(rightView.sym());
         const SymbolVariable&     symVar      = rightSym->cast<SymbolVariable>();
@@ -46,9 +46,9 @@ namespace
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
 
-        if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, *leftPayload))
+        if (!shouldTreatStructMemberLeftAsValue(codeGen, node.nodeLeftRef, leftPayload))
         {
-            builder.emitLoadAddressRegMem(payload.reg, leftPayload->reg, symVar.offset(), MicroOpBits::B64);
+            builder.emitLoadAddressRegMem(payload.reg, leftPayload.reg, symVar.offset(), MicroOpBits::B64);
             return Result::Continue;
         }
 
@@ -63,7 +63,7 @@ namespace
 
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
-        builder.emitLoadMemReg(spillAddrReg, 0, leftPayload->reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
+        builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(leftSize)));
         builder.emitLoadAddressRegMem(payload.reg, spillAddrReg, symVar.offset(), MicroOpBits::B64);
         return Result::Continue;
     }
@@ -71,7 +71,7 @@ namespace
     Result codeGenInterfaceMethodMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         MicroBuilder&             builder     = codeGen.builder();
-        const CodeGenNodePayload* leftPayload = SWC_CHECK_NOT_NULL(codeGen.payload(node.nodeLeftRef));
+        const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
         const SemaNodeView    rightView  = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*         methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
@@ -79,7 +79,7 @@ namespace
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());
-        const MicroReg            leftReg = leftPayload->reg;
+        const MicroReg            leftReg = leftPayload.reg;
         const MicroReg            dstReg  = payload.reg;
         builder.emitLoadRegMem(dstReg, leftReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
         builder.emitLoadRegMem(dstReg, dstReg, methodFunc.interfaceMethodSlot() * sizeof(void*), MicroOpBits::B64);
@@ -107,7 +107,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     if (rightView.sym() && rightView.sym()->isVariable())
         return codeGenStructMemberAccess(codeGen, *this);
 
-    if (codeGen.payload(nodeRightRef))
+    if (codeGen.safePayload(nodeRightRef))
     {
         codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
         return Result::Continue;

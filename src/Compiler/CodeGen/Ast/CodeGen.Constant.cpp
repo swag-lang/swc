@@ -181,7 +181,7 @@ namespace
 
 Result CodeGen::emitConstant(AstNodeRef nodeRef)
 {
-    if (payload(nodeRef))
+    if (safePayload(nodeRef))
         return Result::Continue;
 
     const SemaNodeView view = viewTypeConstant(nodeRef);

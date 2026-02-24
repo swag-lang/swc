@@ -32,11 +32,6 @@ namespace
         AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
     };
 
-    const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
-    }
-
     TypeRef resolveOperandTypeRef(const CodeGenNodePayload& payload, TypeRef fallbackTypeRef)
     {
         if (payload.typeRef.isValid())
@@ -158,7 +153,7 @@ namespace
     AssignLocalTarget resolveLocalAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)
     {
         AssignLocalTarget target;
-        target.payload = codeGen.payload(leftRef);
+        target.payload = codeGen.safePayload(leftRef);
         if (!target.payload)
             return target;
 
@@ -199,7 +194,7 @@ namespace
         encodeCtx.opBits           = scalarStoreOpBits(codeGen, targetType);
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
-        encodeCtx.rightPayload = &ensureOperandPayload(codeGen, node.nodeRightRef);
+        encodeCtx.rightPayload = &codeGen.payload(node.nodeRightRef);
 
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
         encodeCtx.rightTypeRef       = resolveOperandTypeRef(*encodeCtx.rightPayload, rightView.typeRef());

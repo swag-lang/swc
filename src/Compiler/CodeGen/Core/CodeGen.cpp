@@ -155,12 +155,17 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
     sema().appendResolvedCallArguments(nodeRef, out);
 }
 
-CodeGenNodePayload* CodeGen::payload(AstNodeRef nodeRef)
+CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 {
     nodeRef = resolvedNodeRef(nodeRef);
     if (nodeRef.isInvalid())
         return nullptr;
     return sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+}
+
+CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
+{
+    return *SWC_CHECK_NOT_NULL(safePayload(nodeRef));
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
@@ -193,9 +198,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 {
     srcNodeRef = resolvedNodeRef(srcNodeRef);
 
-    const CodeGenNodePayload* srcPayload = payload(srcNodeRef);
-    SWC_ASSERT(srcPayload != nullptr);
-    const CodeGenNodePayload srcPayloadCopy = *srcPayload;
+    const CodeGenNodePayload srcPayloadCopy = payload(srcNodeRef);
 
     if (typeRef.isInvalid())
         typeRef = srcPayloadCopy.typeRef;
@@ -211,7 +214,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodeRef = resolvedNodeRef(nodeRef);
     SWC_ASSERT(nodeRef.isValid());
 
-    CodeGenNodePayload* nodePayload = payload(nodeRef);
+    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
     if (!nodePayload)
     {
         nodePayload = compiler().allocate<CodeGenNodePayload>();

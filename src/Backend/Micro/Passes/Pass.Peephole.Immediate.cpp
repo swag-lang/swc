@@ -516,6 +516,8 @@ namespace PeepholePass
 
             switch (inst.op)
             {
+                case MicroInstrOpcode::Push:
+                case MicroInstrOpcode::Pop:
                 case MicroInstrOpcode::JumpCond:
                 case MicroInstrOpcode::JumpCondImm:
                 case MicroInstrOpcode::SetCondReg:

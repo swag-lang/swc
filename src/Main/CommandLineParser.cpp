@@ -236,6 +236,10 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     switch (info.type)
     {
         case CommandLineType::Bool:
+            if (info.target == &cmdLine_->backendOptimizeOverride)
+                cmdLine_->backendOptimizeOverrideSet = true;
+            else if (info.target == &cmdLine_->backendOptimizeForSizeOverride)
+                cmdLine_->backendOptimizeForSizeSet = true;
             *static_cast<bool*>(info.target) = !invertBoolean;
             return true;
 
@@ -433,8 +437,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Target, "all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
     addArg(HelpOptionGroup::Target, "all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
     addArg(HelpOptionGroup::Target, "all", "--debug-info", nullptr, CommandLineType::Bool, &cmdLine_->debugInfo, nullptr, "Enable backend micro-instruction debug information.");
-    addArg(HelpOptionGroup::Target, "all", "--backend-optimize", "-o", CommandLineType::EnumString, &cmdLine_->backendOptimizeLevelOverride, "off|on", "Override backend optimization on/off.");
-    addArg(HelpOptionGroup::Target, "all", "--backend-optimize-favor", nullptr, CommandLineType::EnumString, &cmdLine_->backendOptimizeFavorOverride, "speed|size", "Choose whether backend optimization favors speed or size.");
+    addArg(HelpOptionGroup::Target, "all", "--optimize", "-o", CommandLineType::Bool, &cmdLine_->backendOptimizeOverride, nullptr, "Enable backend optimization.");
+    addArg(HelpOptionGroup::Target, "all", "--opt-size", nullptr, CommandLineType::Bool, &cmdLine_->backendOptimizeForSizeOverride, nullptr, "Favor code size over speed when optimization is enabled.");
 
     addArg(HelpOptionGroup::Compiler, "all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg(HelpOptionGroup::Compiler, "all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");

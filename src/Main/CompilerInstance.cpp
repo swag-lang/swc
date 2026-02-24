@@ -26,26 +26,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool backendOptimizeFromString(std::string_view value)
-    {
-        if (value == "off")
-            return false;
-        if (value == "on")
-            return true;
-
-        SWC_UNREACHABLE();
-    }
-
-    bool backendOptimizeFavorSizeFromString(std::string_view value)
-    {
-        if (value == "speed")
-            return false;
-        if (value == "size")
-            return true;
-
-        SWC_UNREACHABLE();
-    }
-
     void applyPredefinedBuildCfg(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
     {
         const std::string_view cfgName = cmdLine.buildCfg;
@@ -107,10 +87,10 @@ namespace
             buildCfg.backendDebugInformations = true;
         }
 
-        if (!cmdLine.backendOptimizeLevelOverride.empty())
-            buildCfg.backend.optimize = backendOptimizeFromString(cmdLine.backendOptimizeLevelOverride);
-        if (!cmdLine.backendOptimizeFavorOverride.empty())
-            buildCfg.backend.optimizeForSize = backendOptimizeFavorSizeFromString(cmdLine.backendOptimizeFavorOverride);
+        if (cmdLine.backendOptimizeOverrideSet)
+            buildCfg.backend.optimize = cmdLine.backendOptimizeOverride;
+        if (cmdLine.backendOptimizeForSizeSet)
+            buildCfg.backend.optimizeForSize = cmdLine.backendOptimizeForSizeOverride;
 
         if (cmdLine.debugInfo)
             buildCfg.backendDebugInformations = true;

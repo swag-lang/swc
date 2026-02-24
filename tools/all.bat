@@ -3,11 +3,11 @@
 call "%~dp0_suite.bat" syntax swc %*
 if errorlevel 1 exit /b %errorlevel%
 
-call "%~dp0_suite.bat" sema swc --backend-optimize off %*
+call "%~dp0_suite.bat" sema swc --no-optimize %*
 if errorlevel 1 exit /b %errorlevel%
-call "%~dp0_suite.bat" sema swc --backend-optimize on --backend-optimize-favor speed %*
+call "%~dp0_suite.bat" sema swc --optimize --no-opt-size %*
 if errorlevel 1 exit /b %errorlevel%
-call "%~dp0_suite.bat" sema swc --backend-optimize on --backend-optimize-favor size %*
+call "%~dp0_suite.bat" sema swc --optimize --opt-size %*
 if errorlevel 1 exit /b %errorlevel%
 
 exit /b 0

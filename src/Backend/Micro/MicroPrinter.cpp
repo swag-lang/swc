@@ -1362,7 +1362,11 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadAmcRegMem:
-                appendAmcRegMemCastBits(out, ctx, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendMemAmc(out, ctx, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
                 break;
 
             case MicroInstrOpcode::LoadAmcMemReg:
@@ -1382,7 +1386,11 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::LoadAddrAmcRegMem:
-                appendAmcRegMemCastBits(out, ctx, ops, true, 0, 1, 2, 3, 4, 5, 6, regPrintMode, encoder);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendMemAmc(out, ctx, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[3].opBits);
                 break;
 
             case MicroInstrOpcode::LoadMemReg:

@@ -2,216 +2,264 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="src">
-      <UniqueIdentifier>{C202D925-8342-8C3B-BBAC-54DFA101AD31}</UniqueIdentifier>
+      <UniqueIdentifier>{C202D925-8342-8CAB-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Backend">
-      <UniqueIdentifier>{ADE7606A-DE46-5533-9777-E445672AF74F}</UniqueIdentifier>
+      <UniqueIdentifier>{ADE7606A-DE46-55A3-5777-E445672AF74F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\ABI">
+      <UniqueIdentifier>{7CB94ADB-6AE2-9D4B-1EB1-0442559BD315}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Backend\Encoder">
+      <UniqueIdentifier>{38B534E1-6BF1-CBEC-DA01-5D866F5E65DE}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Backend\JIT">
-      <UniqueIdentifier>{89C8AF00-175F-FF3C-A7C3-CB670F61F359}</UniqueIdentifier>
+      <UniqueIdentifier>{89C8AF00-175F-FFEC-A7C3-CB670F61F359}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Backend\MachineCode">
-      <UniqueIdentifier>{7B732E69-CB6C-BC37-925F-19F25409F3DE}</UniqueIdentifier>
+    <Filter Include="src\Backend\Micro">
+      <UniqueIdentifier>{E108B75C-05FF-2D5A-2A66-1839B9A66629}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Backend\MachineCode\Encoder">
-      <UniqueIdentifier>{D15CB4E4-95D0-3F32-B697-CD2E87A7941C}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Backend\MachineCode\Abi">
-      <UniqueIdentifier>{7C190AE0-26B8-4D43-A6D0-56877B150A3A}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Backend\MachineCode\Micro">
-      <UniqueIdentifier>{2915C3C7-F9BE-8A37-9A87-0E98AB798D11}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Backend\MachineCode\Micro\Passes">
-      <UniqueIdentifier>{FDAAD3B2-242B-9D36-B146-7B8057CEA20B}</UniqueIdentifier>
+    <Filter Include="src\Backend\Micro\Passes">
+      <UniqueIdentifier>{1C956B92-61CA-2CBB-434F-B2DEEB79547B}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Backend\Unittest">
-      <UniqueIdentifier>{65FDA6EC-601D-B439-BF22-D2D9C7201DF5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Backend\Unittest\Tests">
-      <UniqueIdentifier>{6D6D7F41-9E10-EB36-8D5A-9675F658BB45}</UniqueIdentifier>
+      <UniqueIdentifier>{65FDA6EC-601D-B489-7F22-D2D9C7201DF5}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler">
-      <UniqueIdentifier>{D75ADC24-606D-563F-90CA-323A7AC252E8}</UniqueIdentifier>
+      <UniqueIdentifier>{D75ADC24-606D-56FF-50CA-323A7AC252E8}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\CodeGen">
-      <UniqueIdentifier>{3659C457-CD19-C63C-A59A-7A09F227DEF6}</UniqueIdentifier>
+      <UniqueIdentifier>{3659C457-CD19-C64C-659A-7A09F227DEF6}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\CodeGen\Ast">
-      <UniqueIdentifier>{B048F6BD-780F-1138-8229-287C1F7EA2A9}</UniqueIdentifier>
+      <UniqueIdentifier>{B048F6BD-780F-1198-4229-287C1F7EA2A9}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\CodeGen\Core">
-      <UniqueIdentifier>{EFF337B9-854D-D737-9AA6-0C09791EB507}</UniqueIdentifier>
+      <UniqueIdentifier>{EFF337B9-854D-D7E7-5AA6-0C09791EB507}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Lexer">
-      <UniqueIdentifier>{27AFDAE9-FE6D-C738-9DDA-9ECC6F53A144}</UniqueIdentifier>
+      <UniqueIdentifier>{27AFDAE9-FE6D-C728-1DDA-9ECC6F53A144}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Parser">
-      <UniqueIdentifier>{4BE4EA94-C59F-8632-A3A5-12A11F5C00CC}</UniqueIdentifier>
+      <UniqueIdentifier>{4BE4EA94-C59F-8662-63A5-12A11F5C00CC}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Parser\Ast">
-      <UniqueIdentifier>{851ED7D1-07EF-2A37-9D61-FC252105D237}</UniqueIdentifier>
+      <UniqueIdentifier>{851ED7D1-07EF-2A17-9D61-FC252105D237}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Parser\Parser">
-      <UniqueIdentifier>{48C96C08-D93E-6B39-9B02-F6B61FEA32E9}</UniqueIdentifier>
+      <UniqueIdentifier>{48C96C08-D93E-6BD9-9B02-F6B61FEA32E9}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema">
-      <UniqueIdentifier>{89003AD2-083B-113D-B6C7-758CEAC03FC5}</UniqueIdentifier>
+      <UniqueIdentifier>{89003AD2-083B-110D-76C7-758CEAC03FC5}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Ast">
-      <UniqueIdentifier>{CD1DCC2E-9DF6-073F-8B8E-D34A308D5A38}</UniqueIdentifier>
+      <UniqueIdentifier>{CD1DCC2E-9DF6-07BF-8B8E-D34A308D5A38}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Cast">
-      <UniqueIdentifier>{D2D283AF-746A-883C-84EC-5934C5845C9B}</UniqueIdentifier>
+      <UniqueIdentifier>{D2D283AF-746A-887C-04EC-5934C5845C9B}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Constant">
-      <UniqueIdentifier>{3E78CEC0-D729-2132-A8F3-025E347D35F0}</UniqueIdentifier>
+      <UniqueIdentifier>{3E78CEC0-D729-21F2-A8F3-025E347D35F0}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Core">
-      <UniqueIdentifier>{B1750AB9-8A22-043F-BD56-2A876A947A3A}</UniqueIdentifier>
+      <UniqueIdentifier>{B1750AB9-8A22-041F-BD56-2A876A947A3A}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Helpers">
-      <UniqueIdentifier>{67CF5BE3-4FF5-8336-B251-8B2C79193503}</UniqueIdentifier>
+      <UniqueIdentifier>{67CF5BE3-4FF5-8346-7251-8B2C79193503}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Match">
-      <UniqueIdentifier>{BDA1B829-CBD3-3932-8D05-F4D963362924}</UniqueIdentifier>
+      <UniqueIdentifier>{BDA1B829-CBD3-39B2-8D05-F4D963362924}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Symbol">
-      <UniqueIdentifier>{D733130C-2169-DE3B-A0E2-04F94C58ADB6}</UniqueIdentifier>
+      <UniqueIdentifier>{D733130C-2169-DE2B-A0E2-04F94C58ADB6}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Compiler\Sema\Type">
-      <UniqueIdentifier>{E2F87E94-C66F-383E-8610-EC4BA857EE9F}</UniqueIdentifier>
+      <UniqueIdentifier>{E2F87E94-C66F-38CE-4610-EC4BA857EE9F}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Main">
-      <UniqueIdentifier>{02D740A7-ED97-7336-96A9-AB8C2FED7F50}</UniqueIdentifier>
+      <UniqueIdentifier>{02D740A7-ED97-73A6-16A9-AB8C2FED7F50}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support">
-      <UniqueIdentifier>{EDDB589F-BF56-6336-9625-5E55DCAEC999}</UniqueIdentifier>
+      <UniqueIdentifier>{EDDB589F-BF56-63F6-9625-5E55DCAEC999}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Core">
-      <UniqueIdentifier>{BB43DF49-DD58-5B38-BB4C-DD4AB0F1BBAF}</UniqueIdentifier>
+      <UniqueIdentifier>{BB43DF49-DD58-5B18-BB4C-DD4AB0F1BBAF}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Math">
-      <UniqueIdentifier>{E708394E-F0CE-3535-B69F-79885F9846AD}</UniqueIdentifier>
+      <UniqueIdentifier>{E708394E-F0CE-35D5-F69F-79885F9846AD}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Memory">
-      <UniqueIdentifier>{ACA3DF40-D866-1C36-8BB4-D3E81B8273FF}</UniqueIdentifier>
+      <UniqueIdentifier>{ACA3DF40-D866-1C46-0BB4-D3E81B8273FF}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Os">
-      <UniqueIdentifier>{201878D6-A61C-2233-8F86-E857812DC748}</UniqueIdentifier>
+      <UniqueIdentifier>{201878D6-A61C-2203-4F86-E857812DC748}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Report">
-      <UniqueIdentifier>{B356AFA4-F4AD-3835-BC66-64D06A98B92D}</UniqueIdentifier>
+      <UniqueIdentifier>{B356AFA4-F4AD-3815-7C66-64D06A98B92D}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Report\Msg">
-      <UniqueIdentifier>{EF0FD46B-2389-6235-BD11-4D4271DB708D}</UniqueIdentifier>
+      <UniqueIdentifier>{EF0FD46B-2389-62C5-3D11-4D4271DB708D}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Thread">
-      <UniqueIdentifier>{AB8199D3-24C3-4C39-B3E7-938BC7C10FCB}</UniqueIdentifier>
+      <UniqueIdentifier>{AB8199D3-24C3-4C19-33E7-938BC7C10FCB}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Support\Unittest">
-      <UniqueIdentifier>{D16A3976-D5C6-B437-9EF3-141765A379DC}</UniqueIdentifier>
+      <UniqueIdentifier>{D16A3976-D5C6-B417-DEF3-141765A379DC}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Wmf">
-      <UniqueIdentifier>{6595F4E4-E1E7-2B34-A187-15FB55DEC5B5}</UniqueIdentifier>
+      <UniqueIdentifier>{6595F4E4-E1E7-2B54-E187-15FB55DEC5B5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Backend\Backend.cpp">
       <Filter>src\Backend</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\JIT\FFI.cpp">
-      <Filter>src\Backend\JIT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\JIT\JitExecMemory.cpp">
-      <Filter>src\Backend\JIT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\JIT\JITExecMemoryManager.cpp">
-      <Filter>src\Backend\JIT</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Abi\CallConv.cpp">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Encoder\Encoder.cpp">
-      <Filter>src\Backend\MachineCode\Encoder</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Encoder\X64Encoder.cpp">
-      <Filter>src\Backend\MachineCode\Encoder</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Abi\ABICall.cpp">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Abi\ABITypeNormalize.cpp">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstr.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrStorage.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\\Micro\MicroLowerer.cpp">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.cpp">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\\Backend\\Micro\\MicroPass.cpp">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.cpp">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\MachineCode\Micro\Passes\MicroPersistentRegsPass.cpp">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\BackendUnittestHelpers.cpp">
+    <ClCompile Include="src\Backend\Unittest\UnittestHelpers.cpp">
       <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.EncodeX64.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.BranchFolding.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.FFI.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.ConstantPropagation.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.JIT.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.ControlFlowSimplification.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.BranchFolding.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.CopyPropagation.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.ConstantPropagation.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.DeadCodeElimination.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.ControlFlowSimplification.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.EncodeX64.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.CopyPropagation.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.FFI.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.DeadCodeElimination.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.JIT.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.LoadStoreForwarding.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.LoadStoreForwarding.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.Peephole.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.Peephole.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.RegAlloc.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.RegAlloc.cpp">
+      <Filter>src\Backend\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Unittest\Tests\Test.StrengthReduction.cpp">
-      <Filter>src\Backend\Unittest\Tests</Filter>
+    <ClCompile Include="src\Backend\Unittest\Test.StrengthReduction.cpp">
+      <Filter>src\Backend\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Unittest\Unittest.cpp">
+      <Filter>src\Support\Unittest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JIT.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JITMemoryManager.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\JIT\JITMemory.cpp">
+      <Filter>src\Backend\JIT</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\ABI\CallConv.cpp">
+      <Filter>src\Backend\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Encoder\Encoder.cpp">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\ABI\ABICall.cpp">
+      <Filter>src\Backend\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\ABI\ABITypeNormalize.cpp">
+      <Filter>src\Backend\ABI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroPrinter.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroStorage.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroBuilder.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroReg.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroInstr.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MachineCode.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Copy.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Immediate.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.Emit.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\MicroPass.cpp">
+      <Filter>src\Backend\Micro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp">
+      <Filter>src\Backend\Encoder</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
@@ -225,29 +273,68 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Relational.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Compiler.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp">
-      <Filter>src\Compiler\CodeGen\Ast</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp">
-      <Filter>src\Compiler\CodeGen\Core</Filter>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\DataSegment.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\PagedStore.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\Utf8.cpp">
+      <Filter>src\Support\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Core\Utf8Helper.cpp">
+      <Filter>src\Support\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp">
       <Filter>src\Compiler\Lexer</Filter>
@@ -266,6 +353,69 @@
     </ClCompile>
     <ClCompile Include="src\Compiler\Lexer\Token.cpp">
       <Filter>src\Compiler\Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command.Sema.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command.Syntax.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\CommandLineParser.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\CommandLineParser.Help.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\FileSystem.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Global.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\CompilerInstance.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\ExternalModuleManager.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Stats.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\TakeContext.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApFloat.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApInt.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\ApsInt.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\Hash.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Math\Helpers.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Allocator.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Arena.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Heap.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
+      <Filter>src\Support\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Os\OsWin32.cpp">
+      <Filter>src\Support\Os</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Parser\Ast\Ast.cpp">
       <Filter>src\Compiler\Parser\Ast</Filter>
@@ -318,13 +468,34 @@
     <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp">
       <Filter>src\Compiler\Parser\Parser</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Assert.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\HardwareException.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\LogColor.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Diagnostic.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\DiagnosticElement.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\Logger.cpp">
+      <Filter>src\Support\Report</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Support\Report\LogSymbol.cpp">
+      <Filter>src\Support\Report</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Attributes.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Binary.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp">
@@ -336,25 +507,49 @@
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Conditional.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Enum.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp">
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp">
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Binary.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Conditional.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Assign.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Impl.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Index.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Interface.cpp">
@@ -366,37 +561,16 @@
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Literal.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Logical.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Member.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.MemberAuto.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Relational.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Struct.cpp">
-      <Filter>src\Compiler\Sema\Ast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Switch.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Type.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Unary.cpp">
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Var.cpp">
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Loop.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Cast\Cast.Array.cpp">
@@ -411,29 +585,17 @@
     <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp">
-      <Filter>src\Compiler\Sema\Cast</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp">
+    <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp">
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Constant\ConstantLower.cpp">
-      <Filter>src\Compiler\Sema\Constant</Filter>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Constant\ConstantManager.cpp">
       <Filter>src\Compiler\Sema\Constant</Filter>
@@ -441,13 +603,22 @@
     <ClCompile Include="src\Compiler\Sema\Constant\ConstantValue.cpp">
       <Filter>src\Compiler\Sema\Constant</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantHelpers.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantLower.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Constant\ConstantExtract.cpp">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Core\Sema.cpp">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Core\NodePayloadContext.cpp">
+    <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Core\SemaFrame.cpp">
+    <ClCompile Include="src\Compiler\Sema\Core\NodePayload.cpp">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp">
@@ -459,25 +630,16 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Helpers\SemaJit.cpp">
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp">
@@ -493,9 +655,6 @@
       <Filter>src\Compiler\Sema\Match</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp">
-      <Filter>src\Compiler\Sema\Symbol</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp">
@@ -516,6 +675,9 @@
     <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Type\TypeGen.cpp">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClCompile>
@@ -534,116 +696,11 @@
     <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClCompile>
-    <ClCompile Include="src\main.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\Command.Sema.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\Command.Syntax.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\CommandLineParser.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\CommandLineParser.Help.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\CompilerInstance.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\ExternalModuleManager.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\FileSystem.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\Global.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\Stats.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Main\TakeContext.cpp">
-      <Filter>src\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pch.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Core\DataSegment.cpp">
-      <Filter>src\Support\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Core\PagedStore.cpp">
-      <Filter>src\Support\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Core\Utf8.cpp">
-      <Filter>src\Support\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Core\Utf8Helper.cpp">
-      <Filter>src\Support\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Math\ApFloat.cpp">
-      <Filter>src\Support\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Math\ApInt.cpp">
-      <Filter>src\Support\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Math\ApsInt.cpp">
-      <Filter>src\Support\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Math\Hash.cpp">
-      <Filter>src\Support\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Math\Helpers.cpp">
-      <Filter>src\Support\Math</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Memory\Allocator.cpp">
-      <Filter>src\Support\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Memory\Arena.cpp">
-      <Filter>src\Support\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Memory\Heap.cpp">
-      <Filter>src\Support\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Memory\Mimalloc.cpp">
-      <Filter>src\Support\Memory</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Os\OsWin32.cpp">
-      <Filter>src\Support\Os</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\Assert.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\Diagnostic.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\HardwareException.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\DiagnosticBuilder.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\DiagnosticElement.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\LogColor.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\Logger.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Report\LogSymbol.cpp">
-      <Filter>src\Support\Report</Filter>
-    </ClCompile>
     <ClCompile Include="src\Support\Thread\JobManager.cpp">
       <Filter>src\Support\Thread</Filter>
     </ClCompile>
     <ClCompile Include="src\Support\Thread\RaceCondition.cpp">
       <Filter>src\Support\Thread</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Support\Unittest\Unittest.cpp">
-      <Filter>src\Support\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Wmf\SourceFile.cpp">
       <Filter>src\Wmf</Filter>
@@ -653,86 +710,164 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Backend\Runtime.h">
-      <Filter>src\Backend</Filter>
-    </ClInclude>
     <ClInclude Include="src\Backend\Backend.h">
       <Filter>src\Backend</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\JIT\FFI.h">
-      <Filter>src\Backend\JIT</Filter>
+    <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\JIT\JITExecMemory.h">
-      <Filter>src\Backend\JIT</Filter>
+    <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h">
+      <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\JIT\JITExecMemoryManager.h">
-      <Filter>src\Backend\JIT</Filter>
+    <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h">
+      <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Abi\CallConv.h">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
+    <ClInclude Include="src\Backend\\Micro\MicroStorage.h">
+      <Filter>src\Backend\Micro</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Encoder\Encoder.h">
-      <Filter>src\Backend\MachineCode\Encoder</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Encoder\EncoderTypes.h">
-      <Filter>src\Backend\MachineCode\Encoder</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Encoder\X64Encoder.h">
-      <Filter>src\Backend\MachineCode\Encoder</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Abi\ABICall.h">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Abi\ABITypeNormalize.h">
-      <Filter>src\Backend\MachineCode\Abi</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrHelpers.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.Def.inc">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstr.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrStorage.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrPrinter.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroInstrBuilder.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\\Micro\MicroLowerer.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroReg.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\MicroTypes.h">
-      <Filter>src\Backend\MachineCode\Micro</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroEncodePass.h">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\\Backend\\Micro\\MicroPass.h">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroRegAllocPass.h">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\MachineCode\Micro\Passes\MicroPersistentRegsPass.h">
-      <Filter>src\Backend\MachineCode\Micro\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Backend\Unittest\BackendUnittestHelpers.h">
+    <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h">
       <Filter>src\Backend\Unittest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Unittest\Unittest.h">
+      <Filter>src\Support\Unittest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\ABI\CallConv.h">
+      <Filter>src\Backend\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Encoder\EncoderTypes.h">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroInstr.Def.inc">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\ABI\ABICall.h">
+      <Filter>src\Backend\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\ABI\ABITypeNormalize.h">
+      <Filter>src\Backend\ABI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroTypes.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroInstr.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroPrinter.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroBuilder.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MachineCode.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.BranchFolding.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.Peephole.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.Emit.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroPass.h">
+      <Filter>src\Backend\Micro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JIT.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITMemory.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\JIT\JITMemoryManager.h">
+      <Filter>src\Backend\JIT</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Encoder\Encoder.h">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Encoder\X64Encoder.h">
+      <Filter>src\Backend\Encoder</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\MicroReg.h">
+      <Filter>src\Backend\Micro</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\ExitCodes.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\ByteSpan.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\DataSegment.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Flags.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Result.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\PagedStore.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\SmallVector.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\StringMap.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Timer.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\StrongRef.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Utf8.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\Utf8Helper.h">
+      <Filter>src\Support\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\LangSpec.h">
       <Filter>src\Compiler\Lexer</Filter>
@@ -754,6 +889,63 @@
     </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc">
       <Filter>src\Compiler\Lexer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Core\RefTypes.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CommandLine.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CommandLineParser.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Command.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Stats.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\TaskContext.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\FileSystem.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Global.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\CompilerInstance.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\ExternalModuleManager.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\Version.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApFloat.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApInt.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\ApsInt.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\Hash.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\Helpers.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Memory\Arena.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Memory\Heap.h">
+      <Filter>src\Support\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Os\Os.h">
+      <Filter>src\Support\Os</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Parser\Ast\Ast.h">
       <Filter>src\Compiler\Parser\Ast</Filter>
@@ -785,34 +977,91 @@
     <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h">
       <Filter>src\Compiler\Parser\Parser</Filter>
     </ClInclude>
+    <ClInclude Include="src\pch.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Assert.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticBuilder.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticDef.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\HardwareException.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\LogColor.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Diagnostic.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\DiagnosticElement.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Logger.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\LogSymbol.h">
+      <Filter>src\Support\Report</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
+    <ClInclude Include="src\\Backend\\Runtime.h">
+      <Filter>src\Backend</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Ast\Sema.Payload.h">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Cast\Cast.h">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h">
-      <Filter>src\Compiler\Sema\Cast</Filter>
-    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Cast\CastRequest.h">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h">
-      <Filter>src\Compiler\Sema\Constant</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h">
-      <Filter>src\Compiler\Sema\Constant</Filter>
+    <ClInclude Include="src\Compiler\Sema\Cast\CastFailure.h">
+      <Filter>src\Compiler\Sema\Cast</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Constant\ConstantManager.h">
       <Filter>src\Compiler\Sema\Constant</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Constant\ConstantValue.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantHelpers.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantLower.h">
+      <Filter>src\Compiler\Sema\Constant</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Constant\ConstantExtract.h">
       <Filter>src\Compiler\Sema\Constant</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Core\AttributeList.h">
@@ -821,10 +1070,10 @@
     <ClInclude Include="src\Compiler\Sema\Core\Sema.h">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Core\NodePayloadContext.h">
+    <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Core\SemaFrame.h">
+    <ClInclude Include="src\Compiler\Sema\Core\NodePayload.h">
       <Filter>src\Compiler\Sema\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h">
@@ -839,9 +1088,6 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
@@ -851,13 +1097,16 @@
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaHelpers.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h">
-      <Filter>src\Compiler\Sema\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Helpers\SemaJit.h">
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaJIT.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Match\Match.h">
@@ -881,9 +1130,6 @@
     <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Function.h">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h">
-      <Filter>src\Compiler\Sema\Symbol</Filter>
-    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.Impl.h">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClInclude>
@@ -902,6 +1148,9 @@
     <ClInclude Include="src\Compiler\Sema\Symbol\SymbolMap.h">
       <Filter>src\Compiler\Sema\Symbol</Filter>
     </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Symbol\Symbol.h">
+      <Filter>src\Compiler\Sema\Symbol</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>
@@ -914,159 +1163,6 @@
     <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>
-    <ClInclude Include="src\Main\Command.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\CommandLine.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\CommandLineParser.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\CompilerInstance.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\ExternalModuleManager.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\ExitCodes.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\FileSystem.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\Global.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\Stats.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\TaskContext.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Main\Version.h">
-      <Filter>src\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="src\pch.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\ByteSpan.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\DataSegment.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\Flags.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\PagedStore.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\PagedStoreTyped.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\RefTypes.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\Result.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\SmallVector.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\StringMap.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\StrongRef.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\Timer.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\Utf8.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Core\Utf8Helper.h">
-      <Filter>src\Support\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Math\ApFloat.h">
-      <Filter>src\Support\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Math\ApInt.h">
-      <Filter>src\Support\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Math\ApsInt.h">
-      <Filter>src\Support\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Math\Hash.h">
-      <Filter>src\Support\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Math\Helpers.h">
-      <Filter>src\Support\Math</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Memory\Arena.h">
-      <Filter>src\Support\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Memory\Heap.h">
-      <Filter>src\Support\Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Os\Os.h">
-      <Filter>src\Support\Os</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Assert.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Diagnostic.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\DiagnosticBuilder.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\DiagnosticDef.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\DiagnosticElement.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\HardwareException.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\LogColor.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Logger.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\LogSymbol.h">
-      <Filter>src\Support\Report</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.Cmd.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.Lex.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Notes.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc">
-      <Filter>src\Support\Report\Msg</Filter>
-    </ClInclude>
     <ClInclude Include="src\Support\Thread\Job.h">
       <Filter>src\Support\Thread</Filter>
     </ClInclude>
@@ -1075,9 +1171,6 @@
     </ClInclude>
     <ClInclude Include="src\Support\Thread\RaceCondition.h">
       <Filter>src\Support\Thread</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Support\Unittest\Unittest.h">
-      <Filter>src\Support\Unittest</Filter>
     </ClInclude>
     <ClInclude Include="src\Wmf\SourceFile.h">
       <Filter>src\Wmf</Filter>
@@ -1116,8 +1209,3 @@
     </Content>
   </ItemGroup>
 </Project>
-
-
-
-
-

@@ -76,9 +76,9 @@ namespace
         Logger::print(ctx, "\n");
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Keyword));
-        Logger::print(ctx, "  opt");
+        Logger::print(ctx, "  optimize");
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Code));
-        Logger::print(ctx, "      : ");
+        Logger::print(ctx, " : ");
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Number));
         Logger::print(ctx, optimize);
         Logger::print(ctx, "\n");

@@ -159,6 +159,7 @@ struct LocalVarDirectDefaultNode
 
 #test
 {
+    #[Swag.PrintMicro]
     func bigStructLiteralInit()->u64
     {
         var v: LocalVarBig = {

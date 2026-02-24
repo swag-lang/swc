@@ -1,7 +1,5 @@
 ﻿#pragma once
-#include "Backend/Runtime.h"
 #include "Support/Core/SmallVector.h"
-#include <optional>
 
 SWC_BEGIN_NAMESPACE();
 

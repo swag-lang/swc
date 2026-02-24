@@ -45,7 +45,7 @@ public:
     void           appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const;
 
     template<AstNodeId ID>
-    typename AstTypeOf<ID>::type* node(AstNodeRef nodeRef)
+    AstTypeOf<ID>::type* node(AstNodeRef nodeRef)
     {
         SWC_ASSERT(nodeRef.isValid());
         using NodeType = AstTypeOf<ID>::type;
@@ -53,7 +53,7 @@ public:
     }
 
     template<AstNodeId ID>
-    const typename AstTypeOf<ID>::type* node(AstNodeRef nodeRef) const
+    const AstTypeOf<ID>::type* node(AstNodeRef nodeRef) const
     {
         SWC_ASSERT(nodeRef.isValid());
         using NodeType = AstTypeOf<ID>::type;

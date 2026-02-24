@@ -189,7 +189,7 @@ namespace
 
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
+    const Token&              tok       = codeGen.token(codeRef());
     const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this);
     switch (encodeCtx.encodingKind)
     {

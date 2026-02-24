@@ -9,6 +9,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class BinaryEncodingKind : uint8_t
+    {
+        IntLike,
+        Float,
+    };
+
+    struct BinaryEncodeContext
+    {
+        const CodeGenNodePayload* leftPayload         = nullptr;
+        const CodeGenNodePayload* rightPayload        = nullptr;
+        TypeRef                   leftOperandTypeRef  = TypeRef::invalid();
+        TypeRef                   rightOperandTypeRef = TypeRef::invalid();
+        TypeRef                   resultTypeRef       = TypeRef::invalid();
+        BinaryEncodingKind        encodingKind        = BinaryEncodingKind::IntLike;
+    };
+
     const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return *SWC_CHECK_NOT_NULL(codeGen.payload(nodeRef));
@@ -36,6 +52,34 @@ namespace
         }
 
         return MicroOpBits::Zero;
+    }
+
+    BinaryEncodingKind resolveBinaryEncodingKind(const TypeInfo& leftType, const TypeInfo& rightType)
+    {
+        if (leftType.isIntLike() && rightType.isIntLike())
+            return BinaryEncodingKind::IntLike;
+
+        if (leftType.isFloat() && rightType.isFloat())
+            return BinaryEncodingKind::Float;
+
+        SWC_UNREACHABLE();
+    }
+
+    BinaryEncodeContext buildBinaryEncodeContext(CodeGen& codeGen, const AstBinaryExpr& node)
+    {
+        BinaryEncodeContext ctx;
+
+        const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
+        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
+        SWC_ASSERT(leftView.type() && rightView.type());
+
+        ctx.leftPayload         = &ensureOperandPayload(codeGen, node.nodeLeftRef);
+        ctx.rightPayload        = &ensureOperandPayload(codeGen, node.nodeRightRef);
+        ctx.leftOperandTypeRef  = resolveOperandTypeRef(*ctx.leftPayload, leftView.typeRef());
+        ctx.rightOperandTypeRef = resolveOperandTypeRef(*ctx.rightPayload, rightView.typeRef());
+        ctx.resultTypeRef       = codeGen.curViewType().typeRef();
+        ctx.encodingKind        = resolveBinaryEncodingKind(*leftView.type(), *rightView.type());
+        return ctx;
     }
 
     void materializeBinaryOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
@@ -96,47 +140,47 @@ namespace
         }
     }
 
-    Result emitIntBinaryGeneral(CodeGen&                  codeGen,
-                                TokenId                   tokId,
-                                const CodeGenNodePayload& leftPayload,
-                                const CodeGenNodePayload& rightPayload,
-                                TypeRef                   leftOperandTypeRef,
-                                TypeRef                   rightOperandTypeRef,
-                                TypeRef                   resultTypeRef)
+    Result emitBinaryIntLike(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
-        const TypeInfo&   leftType = codeGen.typeMgr().get(leftOperandTypeRef);
+        SWC_ASSERT(encodeCtx.leftPayload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.leftOperandTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.rightOperandTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.resultTypeRef.isValid());
+
+        const TypeInfo&   leftType = codeGen.typeMgr().get(encodeCtx.leftOperandTypeRef);
         const MicroOp     op       = intBinaryMicroOp(tokId, !leftType.isIntLikeUnsigned());
         const MicroOpBits opBits   = arithmeticOpBits(leftType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        materializeBinaryOperand(nodePayload.reg, codeGen, leftPayload, leftOperandTypeRef, opBits);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
+        materializeBinaryOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, opBits);
 
         MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, opBits);
+        materializeBinaryOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
         return Result::Continue;
     }
 
-    Result emitFloatBinary(CodeGen&                  codeGen,
-                           TokenId                   tokId,
-                           const CodeGenNodePayload& leftPayload,
-                           const CodeGenNodePayload& rightPayload,
-                           TypeRef                   leftOperandTypeRef,
-                           TypeRef                   rightOperandTypeRef,
-                           TypeRef                   resultTypeRef)
+    Result emitBinaryFloat(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
     {
-        const TypeInfo&   leftType = codeGen.typeMgr().get(leftOperandTypeRef);
+        SWC_ASSERT(encodeCtx.leftPayload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.leftOperandTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.rightOperandTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.resultTypeRef.isValid());
+
+        const TypeInfo&   leftType = codeGen.typeMgr().get(encodeCtx.leftOperandTypeRef);
         const MicroOp     op       = floatBinaryMicroOp(tokId);
         const MicroOpBits opBits   = arithmeticOpBits(leftType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
 
-        materializeBinaryOperand(nodePayload.reg, codeGen, leftPayload, leftOperandTypeRef, opBits);
+        materializeBinaryOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, opBits);
         MicroReg rightReg = MicroReg::invalid();
-        materializeBinaryOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, opBits);
+        materializeBinaryOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
         return Result::Continue;
@@ -144,23 +188,15 @@ namespace
 
     Result codeGenBinaryNumeric(CodeGen& codeGen, const AstBinaryExpr& node, TokenId tokId)
     {
-        const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
-        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
-        SWC_ASSERT(leftView.type() && rightView.type());
+        const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, node);
+        switch (encodeCtx.encodingKind)
+        {
+            case BinaryEncodingKind::IntLike:
+                return emitBinaryIntLike(codeGen, encodeCtx, tokId);
+            case BinaryEncodingKind::Float:
+                return emitBinaryFloat(codeGen, encodeCtx, tokId);
+        }
 
-        const CodeGenNodePayload& leftPayload         = ensureOperandPayload(codeGen, node.nodeLeftRef);
-        const CodeGenNodePayload& rightPayload        = ensureOperandPayload(codeGen, node.nodeRightRef);
-        const TypeRef             leftOperandTypeRef  = resolveOperandTypeRef(leftPayload, leftView.typeRef());
-        const TypeRef             rightOperandTypeRef = resolveOperandTypeRef(rightPayload, rightView.typeRef());
-        const TypeRef             resultTypeRef       = codeGen.curViewType().typeRef();
-
-        if (leftView.type()->isIntLike() && rightView.type()->isIntLike())
-            return emitIntBinaryGeneral(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);
-
-        if (leftView.type()->isFloat() && rightView.type()->isFloat())
-            return emitFloatBinary(codeGen, tokId, leftPayload, rightPayload, leftOperandTypeRef, rightOperandTypeRef, resultTypeRef);
-
-        // TODO
         SWC_UNREACHABLE();
     }
 }
@@ -168,23 +204,7 @@ namespace
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const Token& tok = codeGen.token(codeRef());
-    switch (tok.id)
-    {
-        case TokenId::SymPlus:
-        case TokenId::SymMinus:
-        case TokenId::SymAsterisk:
-        case TokenId::SymSlash:
-        case TokenId::SymPercent:
-        case TokenId::SymAmpersand:
-        case TokenId::SymPipe:
-        case TokenId::SymCircumflex:
-        case TokenId::SymGreaterGreater:
-        case TokenId::SymLowerLower:
-            return codeGenBinaryNumeric(codeGen, *this, tok.id);
-
-        default:
-            SWC_UNREACHABLE();
-    }
+    return codeGenBinaryNumeric(codeGen, *this, tok.id);
 }
 
 SWC_END_NAMESPACE();

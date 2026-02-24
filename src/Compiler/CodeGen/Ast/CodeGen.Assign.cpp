@@ -10,10 +10,26 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class AssignEncodingKind : uint8_t
+    {
+        EqualStore,
+        IntLikeCompound,
+        FloatCompound,
+    };
+
     struct AssignLocalTarget
     {
         const CodeGenNodePayload* payload = nullptr;
         TypeRef                   typeRef = TypeRef::invalid();
+    };
+
+    struct AssignEncodeContext
+    {
+        AssignLocalTarget         target;
+        const CodeGenNodePayload* rightPayload = nullptr;
+        TypeRef                   rightTypeRef = TypeRef::invalid();
+        MicroOpBits               opBits       = MicroOpBits::Zero;
+        AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
     };
 
     const CodeGenNodePayload& ensureOperandPayload(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -53,6 +69,20 @@ namespace
         }
 
         return MicroOpBits::Zero;
+    }
+
+    AssignEncodingKind resolveAssignEncodingKind(const TypeInfo& targetType, TokenId assignOp)
+    {
+        if (assignOp == TokenId::SymEqual)
+            return AssignEncodingKind::EqualStore;
+
+        if (targetType.isIntLike())
+            return AssignEncodingKind::IntLikeCompound;
+
+        if (targetType.isFloat())
+            return AssignEncodingKind::FloatCompound;
+
+        SWC_UNREACHABLE();
     }
 
     bool isScalarAssignmentType(CodeGen& codeGen, TypeRef typeRef)
@@ -155,55 +185,106 @@ namespace
         return target;
     }
 
+    AssignEncodeContext buildAssignEncodeContext(CodeGen& codeGen, const AstAssignStmt& node, TokenId assignOp)
+    {
+        AssignEncodeContext encodeCtx;
+        encodeCtx.target = resolveLocalAssignTarget(codeGen, node.nodeLeftRef);
+        SWC_ASSERT(encodeCtx.target.payload != nullptr);
+        SWC_ASSERT(encodeCtx.target.typeRef.isValid());
+
+        if (!isScalarAssignmentType(codeGen, encodeCtx.target.typeRef))
+            SWC_UNREACHABLE();
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
+        encodeCtx.opBits           = scalarStoreOpBits(codeGen, targetType);
+        SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+
+        encodeCtx.rightPayload = &ensureOperandPayload(codeGen, node.nodeRightRef);
+
+        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
+        encodeCtx.rightTypeRef       = resolveOperandTypeRef(*encodeCtx.rightPayload, rightView.typeRef());
+        if (!encodeCtx.rightTypeRef.isValid())
+            encodeCtx.rightTypeRef = encodeCtx.target.typeRef;
+
+        encodeCtx.encodingKind = resolveAssignEncodingKind(targetType, assignOp);
+        return encodeCtx;
+    }
+
+    Result emitAssignEqualStore(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
+    {
+        SWC_ASSERT(encodeCtx.target.payload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.target.typeRef.isValid());
+        SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+
+        const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
+        codeGen.builder().emitLoadMemReg(encodeCtx.target.payload->reg, 0, rightReg, encodeCtx.opBits);
+        return Result::Continue;
+    }
+
+    Result emitAssignCompoundIntLike(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
+    {
+        SWC_ASSERT(encodeCtx.target.payload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.target.typeRef.isValid());
+        SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
+        SWC_ASSERT(targetType.isIntLike());
+
+        const TokenId  binaryOp = Token::assignToBinary(assignOp);
+        const MicroOp  op       = intBinaryMicroOp(binaryOp, !targetType.isIntLikeUnsigned());
+        MicroBuilder&  builder  = codeGen.builder();
+        const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
+        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, encodeCtx.opBits);
+
+        const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
+        builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
+        builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, encodeCtx.opBits);
+        return Result::Continue;
+    }
+
+    Result emitAssignCompoundFloat(CodeGen& codeGen, const AssignEncodeContext& encodeCtx, TokenId assignOp)
+    {
+        SWC_ASSERT(encodeCtx.target.payload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.target.typeRef.isValid());
+        SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
+        SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
+        SWC_ASSERT(targetType.isFloat());
+
+        const TokenId  binaryOp = Token::assignToBinary(assignOp);
+        const MicroOp  op       = floatBinaryMicroOp(binaryOp);
+        MicroBuilder&  builder  = codeGen.builder();
+        const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
+        builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, encodeCtx.opBits);
+
+        const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);
+        builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
+        builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, encodeCtx.opBits);
+        return Result::Continue;
+    }
+
     Result codeGenAssignToLocalScalar(CodeGen& codeGen, const AstAssignStmt& node, TokenId assignOp)
     {
         SWC_UNUSED(node.modifierFlags);
 
-        const AssignLocalTarget target = resolveLocalAssignTarget(codeGen, node.nodeLeftRef);
-        SWC_ASSERT(target.payload != nullptr);
-        SWC_ASSERT(target.typeRef.isValid());
-
-        if (!isScalarAssignmentType(codeGen, target.typeRef))
-            SWC_UNREACHABLE();
-
-        const TypeInfo&   targetType = codeGen.typeMgr().get(target.typeRef);
-        const MicroOpBits opBits     = scalarStoreOpBits(codeGen, targetType);
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-
-        const CodeGenNodePayload& rightPayload = ensureOperandPayload(codeGen, node.nodeRightRef);
-        const SemaNodeView        rightView    = codeGen.viewType(node.nodeRightRef);
-        TypeRef                   rightTypeRef = resolveOperandTypeRef(rightPayload, rightView.typeRef());
-        if (!rightTypeRef.isValid())
-            rightTypeRef = target.typeRef;
-
-        MicroBuilder& builder = codeGen.builder();
-        if (assignOp == TokenId::SymEqual)
+        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, node, assignOp);
+        switch (encodeCtx.encodingKind)
         {
-            const MicroReg rightReg = materializeAssignOperand(codeGen, rightPayload, rightTypeRef, opBits);
-            builder.emitLoadMemReg(target.payload->reg, 0, rightReg, opBits);
-            return Result::Continue;
+            case AssignEncodingKind::EqualStore:
+                return emitAssignEqualStore(codeGen, encodeCtx);
+            case AssignEncodingKind::IntLikeCompound:
+                return emitAssignCompoundIntLike(codeGen, encodeCtx, assignOp);
+            case AssignEncodingKind::FloatCompound:
+                return emitAssignCompoundFloat(codeGen, encodeCtx, assignOp);
         }
 
-        if (!targetType.isIntLike() && !targetType.isFloat())
-            SWC_UNREACHABLE();
-
-        const TokenId  binaryOp = Token::assignToBinary(assignOp);
-        const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(target.typeRef);
-        builder.emitLoadRegMem(leftReg, target.payload->reg, 0, opBits);
-
-        const MicroReg rightReg = materializeAssignOperand(codeGen, rightPayload, rightTypeRef, opBits);
-        if (targetType.isFloat())
-        {
-            const MicroOp op = floatBinaryMicroOp(binaryOp);
-            builder.emitOpBinaryRegReg(leftReg, rightReg, op, opBits);
-        }
-        else
-        {
-            const MicroOp op = intBinaryMicroOp(binaryOp, !targetType.isIntLikeUnsigned());
-            builder.emitOpBinaryRegReg(leftReg, rightReg, op, opBits);
-        }
-
-        builder.emitLoadMemReg(target.payload->reg, 0, leftReg, opBits);
+        SWC_UNREACHABLE();
         return Result::Continue;
     }
 }
@@ -211,24 +292,7 @@ namespace
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
 {
     const Token& tok = codeGen.token(codeRef());
-    switch (tok.id)
-    {
-        case TokenId::SymEqual:
-        case TokenId::SymPlusEqual:
-        case TokenId::SymMinusEqual:
-        case TokenId::SymAsteriskEqual:
-        case TokenId::SymSlashEqual:
-        case TokenId::SymAmpersandEqual:
-        case TokenId::SymPipeEqual:
-        case TokenId::SymCircumflexEqual:
-        case TokenId::SymPercentEqual:
-        case TokenId::SymLowerLowerEqual:
-        case TokenId::SymGreaterGreaterEqual:
-            return codeGenAssignToLocalScalar(codeGen, *this, tok.id);
-
-        default:
-            SWC_UNREACHABLE();
-    }
+    return codeGenAssignToLocalScalar(codeGen, *this, tok.id);
 }
 
 SWC_END_NAMESPACE();

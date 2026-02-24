@@ -114,11 +114,11 @@ namespace
             return params.size() >= count;
         };
 
-        auto requireReturnVoid = [&] -> bool {
+        auto requireReturnVoid = [&]() -> bool {
             return returnType.isVoid();
         };
 
-        auto requireReturnNotVoid = [&] -> bool {
+        auto requireReturnNotVoid = [&]() -> bool {
             return !returnType.isVoid();
         };
 
@@ -126,15 +126,15 @@ namespace
             return unwrapAlias(ctx, typeRef) == returnTypeRef;
         };
 
-        auto requireReturnStruct = [&] -> bool {
+        auto requireReturnStruct = [&]() -> bool {
             return returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
         };
 
-        auto requireReturnPointer = [&] -> bool {
+        auto requireReturnPointer = [&]() -> bool {
             return returnType.isAnyPointer();
         };
 
-        auto requireReturnStringOrSlice = [&] -> bool {
+        auto requireReturnStringOrSlice = [&]() -> bool {
             return returnType.isString() || returnType.isSlice();
         };
 
@@ -142,7 +142,7 @@ namespace
             return unwrapAlias(ctx, params[index]->typeRef()) == unwrapAlias(ctx, typeMgr.typeU64());
         };
 
-        auto requireSecondNotStruct = [&] -> bool {
+        auto requireSecondNotStruct = [&]() -> bool {
             if (params.size() < 2)
                 return false;
             const TypeRef   underlying = unwrapPointerOrRef(ctx, params[1]->typeRef());

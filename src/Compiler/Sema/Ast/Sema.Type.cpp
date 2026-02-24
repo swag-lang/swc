@@ -395,7 +395,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     for (const auto& paramRef : params)
     {
         const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
-        TypeRef               paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
+        const TypeRef         paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();

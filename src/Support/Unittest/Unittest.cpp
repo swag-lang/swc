@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Support/Unittest/Unittest.h"
+#if SWC_HAS_UNITTEST
 #include "Main/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
+#endif
 
 SWC_BEGIN_NAMESPACE();
 

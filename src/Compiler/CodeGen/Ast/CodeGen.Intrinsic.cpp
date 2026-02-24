@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroReg materializeCountLikeBaseReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
+    MicroReg materializeCountLikeBaseReg(const CodeGen& codeGen, const CodeGenNodePayload& payload)
     {
         SWC_UNUSED(codeGen);
         return payload.reg;

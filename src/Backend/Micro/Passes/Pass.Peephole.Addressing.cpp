@@ -351,7 +351,7 @@ namespace PeepholePass
             if (!ops || nextIt == endIt)
                 return false;
 
-            MicroInstr&        nextInst = *nextIt;
+            const MicroInstr&  nextInst = *nextIt;
             MicroInstrOperand* nextOps  = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
             if (nextInst.op != MicroInstrOpcode::LoadAddrRegMem || !nextOps)
                 return false;

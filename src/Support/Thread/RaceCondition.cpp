@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Support/Thread/RaceCondition.h"
+#if SWC_HAS_RACE_CONDITION
 #include "Support/Report/Assert.h"
+#endif
 
 SWC_BEGIN_NAMESPACE();
 

@@ -128,6 +128,7 @@ namespace
 
     bool isControlFlowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef)
     {
+        SWC_UNUSED(useDef);
         switch (inst.op)
         {
             case MicroInstrOpcode::Label:

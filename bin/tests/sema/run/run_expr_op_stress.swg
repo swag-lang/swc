@@ -75,6 +75,7 @@ enum StressKind: u16
 
 #test
 {
+    #[Swag.PrintMicro]
     func stressEnumAndWidths()->s64
     {
         var k: StressKind = StressKind.A

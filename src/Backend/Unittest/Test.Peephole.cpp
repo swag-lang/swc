@@ -120,6 +120,59 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_RemovesRedundantStackSaveRestoreAroundImmediateShift)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    builder.emitLoadMemReg(rsp, 32, rcx, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
+    builder.emitRet();
+
+    runPeepholePass(builder);
+
+    if (instructionCount(builder) != 2)
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::LoadMemReg))
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::OpBinaryRegImm))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::Ret))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_KeepsStackSaveRestoreWhenShiftWritesSavedReg)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+
+    builder.emitLoadMemReg(rsp, 32, rcx, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(1, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
+    builder.emitRet();
+
+    runPeepholePass(builder);
+
+    if (instructionCount(builder) != 4)
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::LoadMemReg))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #endif
 
 SWC_END_NAMESPACE();

@@ -14,6 +14,16 @@ namespace PeepholePass
             return reg == MicroReg::intReg(4) || reg == MicroReg::intReg(5);
         }
 
+        bool isShiftLikeImmediateOp(MicroOp op)
+        {
+            return op == MicroOp::ShiftLeft ||
+                   op == MicroOp::ShiftRight ||
+                   op == MicroOp::ShiftArithmeticLeft ||
+                   op == MicroOp::ShiftArithmeticRight ||
+                   op == MicroOp::RotateLeft ||
+                   op == MicroOp::RotateRight;
+        }
+
         bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -69,6 +79,66 @@ namespace PeepholePass
             }
 
             return false;
+        }
+
+        bool removeRedundantStackSaveRestoreAroundImmediateShift(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstr*        saveInst = cursor.inst;
+            const MicroInstrOperand* saveOps  = cursor.ops;
+            if (!saveInst || !saveOps)
+                return false;
+
+            if (saveInst->op != MicroInstrOpcode::LoadMemReg)
+                return false;
+            if (saveOps[2].opBits != MicroOpBits::B64)
+                return false;
+            if (!isStackBaseRegister(saveOps[0].reg))
+                return false;
+
+            const MicroReg savedReg = saveOps[1].reg;
+            if (!savedReg.isValid() || !savedReg.isInt())
+                return false;
+
+            const MicroStorage::Iterator shiftIt = cursor.nextIt;
+            if (shiftIt == cursor.endIt)
+                return false;
+
+            const MicroStorage::Iterator restoreIt = std::next(shiftIt);
+            if (restoreIt == cursor.endIt)
+                return false;
+
+            const MicroInstr&    shiftInst = *shiftIt;
+            MicroInstrOperand*   shiftOps  = shiftInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!shiftOps)
+                return false;
+            if (shiftInst.op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+            if (!isShiftLikeImmediateOp(shiftOps[2].microOp))
+                return false;
+            if (shiftOps[0].reg == savedReg)
+                return false;
+
+            const MicroInstr&        restoreInst = *restoreIt;
+            const MicroInstrOperand* restoreOps  = restoreInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!restoreOps)
+                return false;
+            if (restoreInst.op != MicroInstrOpcode::LoadRegMem)
+                return false;
+            if (restoreOps[2].opBits != MicroOpBits::B64)
+                return false;
+            if (restoreOps[0].reg != savedReg)
+                return false;
+            if (restoreOps[1].reg != saveOps[0].reg)
+                return false;
+
+            if (saveOps[3].hasWideImmediateValue() || restoreOps[3].hasWideImmediateValue())
+                return false;
+            if (saveOps[3].valueU64 != restoreOps[3].valueU64)
+                return false;
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(restoreIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(cursor.instRef);
+            return true;
         }
 
         bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
@@ -306,6 +376,11 @@ namespace PeepholePass
         // Purpose: store zero immediate directly to memory instead of through a cleared temp register.
         // Example: xor rdx, rdx; mov [rsp], rdx -> mov [rsp], 0
         outRules.push_back({RuleTarget::AnyInstruction, foldClearRegIntoNextMemStoreZero});
+
+        // Rule: remove_redundant_stack_save_restore_around_immediate_shift
+        // Purpose: remove save/restore pairs that became unnecessary after shift-count folding.
+        // Example: mov [rsp+32], rcx; shl r8, 1; mov rcx, [rsp+32] -> shl r8, 1
+        outRules.push_back({RuleTarget::AnyInstruction, removeRedundantStackSaveRestoreAroundImmediateShift});
 
         // Rule: remove_no_op_instruction
         // Purpose: remove encoder-level no-op instructions.

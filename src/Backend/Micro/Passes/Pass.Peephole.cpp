@@ -34,7 +34,7 @@ namespace
     PeepholePass::RuleList buildPeepholeRules()
     {
         PeepholePass::RuleList rules;
-        rules.reserve(18);
+        rules.reserve(19);
 
         PeepholePass::appendAddressingRules(rules);
         PeepholePass::appendImmediateRules(rules);

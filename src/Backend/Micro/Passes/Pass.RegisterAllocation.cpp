@@ -10,7 +10,7 @@
 // Assigns physical registers to virtual registers and handles spills.
 // Example: v3 -> rax when a free compatible register exists.
 // Example: under pressure, v7 lives on stack: store v7 before conflict, reload before use.
-// This pass converts virtual micro code into concrete register form.
+// This pass converts virtual microcode into concrete register form.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -154,8 +154,6 @@ namespace
 
     bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, const PassState& state, uint32_t virtKey, MicroReg& outPhys)
     {
-        outPhys;
-
         for (size_t index = pool.size(); index > 0; --index)
         {
             const size_t candidateIndex = index - 1;
@@ -212,7 +210,7 @@ namespace
 
     void analyzeLiveness(PassState& state)
     {
-        // Backward liveness: capture live-out set per instruction and detect values live across calls.
+        // Backward liveness: capture live-outset per instruction and detect values live across calls.
         state.liveOut.clear();
         state.liveOut.resize(state.instructionCount);
         state.vregsLiveAcrossCall.clear();
@@ -446,7 +444,6 @@ namespace
     {
         // Choose mapped virtual reg that is cheapest to evict under current constraints.
         outVirtKey = 0;
-        outPhys;
 
         for (const auto& [virtKey, physReg] : state.mapping)
         {
@@ -483,17 +480,12 @@ namespace
 
     bool tryTakeFreePhysical(PassState& state, const AllocRequest& request, MicroReg& outPhys)
     {
-        outPhys;
-
         if (request.virtReg.isVirtualInt())
         {
             if (request.needsPersistent)
                 return tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, outPhys);
 
             if (tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, outPhys))
-                return true;
-
-            if (tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, outPhys))
                 return true;
 
             return false;
@@ -505,9 +497,6 @@ namespace
             return tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, outPhys);
 
         if (tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, outPhys))
-            return true;
-
-        if (tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, outPhys))
             return true;
 
         return false;
@@ -525,10 +514,7 @@ namespace
 
         const auto stateIt = state.states.find(virtKey);
         if (stateIt != state.states.end())
-        {
             stateIt->second.mapped = false;
-            stateIt->second.phys;
-        }
     }
 
     void mapVirtReg(PassState& state, uint32_t virtKey, MicroReg physReg)
@@ -642,7 +628,6 @@ namespace
             }
 
             regState.mapped = false;
-            regState.phys;
             state.physToVirt.erase(physReg.packed);
             it = state.mapping.erase(it);
             returnToFreePool(state, physReg);
@@ -666,10 +651,7 @@ namespace
             const auto deadReg = it->second;
             auto       stateIt = state.states.find(it->first);
             if (stateIt != state.states.end())
-            {
                 stateIt->second.mapped = false;
-                stateIt->second.phys;
-            }
 
             state.physToVirt.erase(deadReg.packed);
             it = state.mapping.erase(it);

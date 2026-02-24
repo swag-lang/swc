@@ -50,7 +50,14 @@ public:
     Ref pushBack(const T& v)
     {
         auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
-        *static_cast<T*>(p) = v;
+        if constexpr (std::is_trivially_copyable_v<T>)
+        {
+            std::memcpy(p, &v, sizeof(T));
+        }
+        else
+        {
+            std::construct_at(static_cast<T*>(p), v);
+        }
         return r;
     }
 

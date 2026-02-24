@@ -268,31 +268,23 @@ namespace
         builder.emitLoadMemReg(encodeCtx.target.payload->reg, 0, leftReg, encodeCtx.opBits);
         return Result::Continue;
     }
-
-    Result codeGenAssignToLocalScalar(CodeGen& codeGen, const AstAssignStmt& node, TokenId assignOp)
-    {
-        SWC_UNUSED(node.modifierFlags);
-
-        const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, node, assignOp);
-        switch (encodeCtx.encodingKind)
-        {
-            case AssignEncodingKind::EqualStore:
-                return emitAssignEqualStore(codeGen, encodeCtx);
-            case AssignEncodingKind::IntLikeCompound:
-                return emitAssignCompoundIntLike(codeGen, encodeCtx, assignOp);
-            case AssignEncodingKind::FloatCompound:
-                return emitAssignCompoundFloat(codeGen, encodeCtx, assignOp);
-        }
-
-        SWC_UNREACHABLE();
-        return Result::Continue;
-    }
 }
 
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
-    return codeGenAssignToLocalScalar(codeGen, *this, tok.id);
+    const Token&              tok       = codeGen.token(codeRef());
+    const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, *this, tok.id);
+    switch (encodeCtx.encodingKind)
+    {
+        case AssignEncodingKind::EqualStore:
+            return emitAssignEqualStore(codeGen, encodeCtx);
+        case AssignEncodingKind::IntLikeCompound:
+            return emitAssignCompoundIntLike(codeGen, encodeCtx, tok.id);
+        case AssignEncodingKind::FloatCompound:
+            return emitAssignCompoundFloat(codeGen, encodeCtx, tok.id);
+    }
+
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE();

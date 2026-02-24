@@ -185,26 +185,21 @@ namespace
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
         return Result::Continue;
     }
-
-    Result codeGenBinaryNumeric(CodeGen& codeGen, const AstBinaryExpr& node, TokenId tokId)
-    {
-        const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, node);
-        switch (encodeCtx.encodingKind)
-        {
-            case BinaryEncodingKind::IntLike:
-                return emitBinaryIntLike(codeGen, encodeCtx, tokId);
-            case BinaryEncodingKind::Float:
-                return emitBinaryFloat(codeGen, encodeCtx, tokId);
-        }
-
-        SWC_UNREACHABLE();
-    }
 }
 
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const Token& tok = codeGen.token(codeRef());
-    return codeGenBinaryNumeric(codeGen, *this, tok.id);
+    const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this);
+    switch (encodeCtx.encodingKind)
+    {
+        case BinaryEncodingKind::IntLike:
+            return emitBinaryIntLike(codeGen, encodeCtx, tok.id);
+        case BinaryEncodingKind::Float:
+            return emitBinaryFloat(codeGen, encodeCtx, tok.id);
+    }
+
+    SWC_UNREACHABLE();
 }
 
 SWC_END_NAMESPACE();

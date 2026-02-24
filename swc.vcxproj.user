@@ -4,6 +4,7 @@
     <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 0 --runtime --devmode --no-internal-unittest</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>tools/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArgumentsHistory>sema --verify -d ../bin/tests/sema --num-cores 0 --runtime --devmode --no-internal-unittest|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerCommandArguments>sema --verify -d ../bin/tests/sema --num-cores 1 --runtime --devmode ---no-internal-unittest</LocalDebuggerCommandArguments>

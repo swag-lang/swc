@@ -120,6 +120,38 @@ namespace
         return true;
     }
 
+    bool tryRewriteMemoryBaseToStack(const MicroPassContext& context, MicroInstr& inst, MicroInstrOperand* ops, MicroReg stackPointerReg, const KnownAddressMap& knownAddresses)
+    {
+        if (!ops || !stackPointerReg.isValid())
+            return false;
+
+        uint8_t memBaseIndex   = 0;
+        uint8_t memOffsetIndex = 0;
+        if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
+            return false;
+
+        const MicroReg baseReg = ops[memBaseIndex].reg;
+        if (!baseReg.isInt() || baseReg == stackPointerReg)
+            return false;
+
+        uint64_t stackOffset = 0;
+        if (!tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, baseReg, ops[memOffsetIndex].valueU64))
+            return false;
+
+        const MicroReg originalBase   = ops[memBaseIndex].reg;
+        const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
+        ops[memBaseIndex].reg         = stackPointerReg;
+        ops[memOffsetIndex].valueU64  = stackOffset;
+        if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+        {
+            ops[memBaseIndex].reg        = originalBase;
+            ops[memOffsetIndex].valueU64 = originalOffset;
+            return false;
+        }
+
+        return true;
+    }
+
     bool definesRegister(std::span<const MicroReg> defs, MicroReg reg)
     {
         for (const MicroReg defReg : defs)
@@ -207,6 +239,10 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
     for (MicroInstr& inst : context.instructions->view())
     {
         MicroInstrOperand* ops = inst.ops(operands);
+
+        if (tryRewriteMemoryBaseToStack(context, inst, ops, stackPointerReg, knownAddresses))
+            changed = true;
+
         if (inst.op == MicroInstrOpcode::LoadRegMem && ops[0].reg.isInt())
         {
             uint64_t stackOffset = 0;

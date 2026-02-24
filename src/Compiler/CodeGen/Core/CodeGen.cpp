@@ -33,8 +33,8 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();
     Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
-    if (attributes.hasBackendOptimize)
-        backendBuildCfg.optimize = attributes.backendOptimize;
+    if (attributes.backendOptimize.has_value())
+        backendBuildCfg.optimize = attributes.backendOptimize.value();
 
     builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
     builder_->setBackendBuildCfg(backendBuildCfg);

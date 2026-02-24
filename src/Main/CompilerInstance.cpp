@@ -87,10 +87,10 @@ namespace
             buildCfg.backendDebugInformations = true;
         }
 
-        if (cmdLine.backendOptimizeOverrideSet)
-            buildCfg.backend.optimize = cmdLine.backendOptimizeOverride;
-        if (cmdLine.backendOptimizeForSizeSet)
-            buildCfg.backend.optimizeForSize = cmdLine.backendOptimizeForSizeOverride;
+        if (cmdLine.backendOptimizeOverride.has_value())
+            buildCfg.backend.optimize = cmdLine.backendOptimizeOverride.value();
+        if (cmdLine.backendOptimizeForSizeOverride.has_value())
+            buildCfg.backend.optimizeForSize = cmdLine.backendOptimizeForSizeOverride.value();
 
         if (cmdLine.debugInfo)
             buildCfg.backendDebugInformations = true;

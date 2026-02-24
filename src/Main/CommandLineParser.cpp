@@ -237,9 +237,17 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     {
         case CommandLineType::Bool:
             if (info.target == &cmdLine_->backendOptimizeOverride)
-                cmdLine_->backendOptimizeOverrideSet = true;
-            else if (info.target == &cmdLine_->backendOptimizeForSizeOverride)
-                cmdLine_->backendOptimizeForSizeSet = true;
+            {
+                cmdLine_->backendOptimizeOverride = !invertBoolean;
+                return true;
+            }
+
+            if (info.target == &cmdLine_->backendOptimizeForSizeOverride)
+            {
+                cmdLine_->backendOptimizeForSizeOverride = !invertBoolean;
+                return true;
+            }
+
             *static_cast<bool*>(info.target) = !invertBoolean;
             return true;
 

@@ -38,10 +38,8 @@ struct CommandLine
 
     Utf8 buildCfg       = "fast-debug";
     Utf8 targetArchName = "x86_64";
-    bool backendOptimizeOverride         = false;
-    bool backendOptimizeOverrideSet      = false;
-    bool backendOptimizeForSizeOverride  = false;
-    bool backendOptimizeForSizeSet       = false;
+    std::optional<bool> backendOptimizeOverride;
+    std::optional<bool> backendOptimizeForSizeOverride;
 
     bool logColor                = true;
     bool logAscii                = false;

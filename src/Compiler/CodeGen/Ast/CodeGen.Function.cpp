@@ -488,7 +488,7 @@ namespace
                 builder.emitOpBinaryRegImm(anyEntryReg, ApInt(i * sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
             }
 
-            MicroReg valuePtrReg = MicroReg::invalid();
+            MicroReg valuePtrReg;
             if (info.needsSpill)
             {
                 valuePtrReg = frameBaseReg;
@@ -724,3 +724,4 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

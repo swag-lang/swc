@@ -107,7 +107,7 @@ namespace
 
     bool definesSpecialRegister(std::span<const MicroReg> defs, const Encoder* encoder)
     {
-        MicroReg stackPointerReg = MicroReg::invalid();
+        MicroReg stackPointerReg;
         if (encoder)
             stackPointerReg = encoder->stackPointerReg();
 
@@ -311,3 +311,4 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
+

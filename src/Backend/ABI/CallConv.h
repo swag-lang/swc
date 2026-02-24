@@ -34,10 +34,10 @@ struct CallConv
     // Concrete ABI contract used by lowering, register allocation, and final encoding.
     std::string_view name = "?";
 
-    MicroReg stackPointer = MicroReg::invalid();
-    MicroReg framePointer = MicroReg::invalid();
-    MicroReg intReturn    = MicroReg::invalid();
-    MicroReg floatReturn  = MicroReg::invalid();
+    MicroReg stackPointer;
+    MicroReg framePointer;
+    MicroReg intReturn;
+    MicroReg floatReturn;
 
     SmallVector<MicroReg> intRegs;
     SmallVector<MicroReg> floatRegs;
@@ -79,3 +79,4 @@ struct CallConv
 };
 
 SWC_END_NAMESPACE();
+

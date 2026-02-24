@@ -185,7 +185,7 @@ namespace
 
     bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<uint32_t>& usedRegs, const std::unordered_set<uint32_t>& pickedTransientRegs, MicroReg& outReg)
     {
-        outReg = MicroReg::invalid();
+        outReg;
         for (const MicroReg reg : conv.intTransientRegs)
         {
             if (!reg.isValid())
@@ -530,3 +530,4 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
 }
 
 SWC_END_NAMESPACE();
+

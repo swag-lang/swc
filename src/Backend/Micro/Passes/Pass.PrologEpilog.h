@@ -12,7 +12,7 @@ public:
 private:
     struct SavedRegSlot
     {
-        MicroReg    reg      = MicroReg::invalid();
+        MicroReg    reg;
         uint64_t    offset   = 0;
         MicroOpBits slotBits = MicroOpBits::Zero;
     };
@@ -30,3 +30,4 @@ private:
 };
 
 SWC_END_NAMESPACE();
+

@@ -212,8 +212,8 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::
         return false;
     };
 
-    outReg0 = MicroReg::invalid();
-    outReg1 = MicroReg::invalid();
+    outReg0;
+    outReg1;
 
     auto pickFrom = [&](std::span<const MicroReg> regs) {
         for (const auto reg : regs)
@@ -254,8 +254,8 @@ bool CallConv::tryPickIntScratchRegs(MicroReg& outReg0, MicroReg& outReg1, std::
 
     if (!outReg1.isValid())
     {
-        outReg0 = MicroReg::invalid();
-        outReg1 = MicroReg::invalid();
+        outReg0;
+        outReg1;
         return false;
     }
 
@@ -286,3 +286,4 @@ const CallConv& CallConv::host()
 }
 
 SWC_END_NAMESPACE();
+

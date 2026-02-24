@@ -24,9 +24,12 @@ struct MicroReg
     static constexpr uint32_t K_INDEX_MASK = 0x00FFFFFF;
     static constexpr uint32_t K_MAX_INDEX  = K_INDEX_MASK;
 
-    uint32_t packed = 0;
+    uint32_t packed = (static_cast<uint32_t>(MicroRegKind::Invalid) << K_KIND_SHIFT);
 
-    constexpr MicroReg() = default;
+    constexpr MicroReg() :
+        packed((static_cast<uint32_t>(MicroRegKind::Invalid) << K_KIND_SHIFT) | 0)
+    {
+    }
     constexpr MicroReg(MicroRegKind kind, uint32_t index) :
         packed((static_cast<uint32_t>(kind) << K_KIND_SHIFT) | (index & K_INDEX_MASK))
     {

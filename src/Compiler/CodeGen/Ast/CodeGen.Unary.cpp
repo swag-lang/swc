@@ -101,7 +101,7 @@ namespace
         const MicroOpBits  opBits         = unaryOpBits(operandType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        MicroReg operandReg = MicroReg::invalid();
+        MicroReg operandReg;
         materializeUnaryOperand(operandReg, codeGen, childPayload, operandTypeRef, opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
@@ -166,3 +166,4 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

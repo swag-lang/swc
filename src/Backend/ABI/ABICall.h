@@ -33,7 +33,7 @@ namespace ABICall
     struct PreparedArg
     {
         // Source register holds either a lowered value or an address, depending on isAddressed.
-        MicroReg        srcReg      = MicroReg::invalid();
+        MicroReg        srcReg;
         PreparedArgKind kind        = PreparedArgKind::Direct;
         bool            isFloat     = false;
         bool            isAddressed = false;
@@ -78,3 +78,4 @@ namespace ABICall
 }
 
 SWC_END_NAMESPACE();
+

@@ -40,7 +40,7 @@ namespace
 
     struct VRegState
     {
-        MicroReg    phys        = MicroReg::invalid();
+        MicroReg    phys;
         uint64_t    spillOffset = 0;
         MicroOpBits spillBits   = MicroOpBits::B64;
         bool        mapped      = false;
@@ -57,7 +57,7 @@ namespace
 
     struct AllocRequest
     {
-        MicroReg virtReg          = MicroReg::invalid();
+        MicroReg virtReg;
         uint32_t virtKey          = 0;
         bool     needsPersistent  = false;
         bool     isUse            = false;
@@ -154,7 +154,7 @@ namespace
 
     bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, const PassState& state, uint32_t virtKey, MicroReg& outPhys)
     {
-        outPhys = MicroReg::invalid();
+        outPhys;
 
         for (size_t index = pool.size(); index > 0; --index)
         {
@@ -446,7 +446,7 @@ namespace
     {
         // Choose mapped virtual reg that is cheapest to evict under current constraints.
         outVirtKey = 0;
-        outPhys    = MicroReg::invalid();
+        outPhys;
 
         for (const auto& [virtKey, physReg] : state.mapping)
         {
@@ -483,7 +483,7 @@ namespace
 
     bool tryTakeFreePhysical(PassState& state, const AllocRequest& request, MicroReg& outPhys)
     {
-        outPhys = MicroReg::invalid();
+        outPhys;
 
         if (request.virtReg.isVirtualInt())
         {
@@ -527,7 +527,7 @@ namespace
         if (stateIt != state.states.end())
         {
             stateIt->second.mapped = false;
-            stateIt->second.phys   = MicroReg::invalid();
+            stateIt->second.phys;
         }
     }
 
@@ -554,7 +554,7 @@ namespace
             return physReg;
 
         uint32_t victimKey = 0;
-        MicroReg victimReg = MicroReg::invalid();
+        MicroReg victimReg;
 
         const bool isFloatReg = request.virtReg.isVirtualFloat();
 
@@ -642,7 +642,7 @@ namespace
             }
 
             regState.mapped = false;
-            regState.phys   = MicroReg::invalid();
+            regState.phys;
             state.physToVirt.erase(physReg.packed);
             it = state.mapping.erase(it);
             returnToFreePool(state, physReg);
@@ -668,7 +668,7 @@ namespace
             if (stateIt != state.states.end())
             {
                 stateIt->second.mapped = false;
-                stateIt->second.phys   = MicroReg::invalid();
+                stateIt->second.phys;
             }
 
             state.physToVirt.erase(deadReg.packed);
@@ -858,3 +858,4 @@ bool MicroRegisterAllocationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
+

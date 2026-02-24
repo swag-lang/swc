@@ -151,7 +151,7 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
         materializeBinaryOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, opBits);
 
-        MicroReg rightReg = MicroReg::invalid();
+        MicroReg rightReg;
         materializeBinaryOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
@@ -174,7 +174,7 @@ namespace
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
 
         materializeBinaryOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, opBits);
-        MicroReg rightReg = MicroReg::invalid();
+        MicroReg rightReg;
         materializeBinaryOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, opBits);
 
         codeGen.builder().emitOpBinaryRegReg(nodePayload.reg, rightReg, op, opBits);
@@ -198,3 +198,4 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+

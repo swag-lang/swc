@@ -26,7 +26,7 @@ struct CodeGenNodePayload
         Address,
     };
 
-    MicroReg    reg         = MicroReg::invalid();
+    MicroReg    reg;
     TypeRef     typeRef     = TypeRef::invalid();
     StorageKind storageKind = StorageKind::Value;
 
@@ -175,8 +175,9 @@ private:
     std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
     std::unordered_map<const SymbolVariable*, LocalStackSlot>     localStackSlots_;
     uint32_t                                                      localStackFrameSize_ = 0;
-    MicroReg                                                      localStackBaseReg_   = MicroReg::invalid();
+    MicroReg                                                      localStackBaseReg_;
     std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
 };
 
 SWC_END_NAMESPACE();
+

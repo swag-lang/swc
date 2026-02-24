@@ -36,10 +36,10 @@ struct MicroConformanceIssue
     uint8_t                   operandIndex     = 0;
     uint64_t                  valueLimitU64    = 0;
     MicroOpBits               normalizedOpBits = MicroOpBits::Zero;
-    MicroReg                  requiredReg      = MicroReg::invalid();
-    MicroReg                  forbiddenReg     = MicroReg::invalid();
-    MicroReg                  helperReg        = MicroReg::invalid();
-    MicroReg                  scratchReg       = MicroReg::invalid();
+    MicroReg                  requiredReg;
+    MicroReg                  forbiddenReg;
+    MicroReg                  helperReg;
+    MicroReg                  scratchReg;
 };
 
 class Encoder
@@ -138,3 +138,4 @@ protected:
 };
 
 SWC_END_NAMESPACE();
+

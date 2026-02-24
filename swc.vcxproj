@@ -1174,6 +1174,7 @@
         <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Binary.cpp" />
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Assign.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp" />
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp" />

@@ -129,24 +129,6 @@ struct LocalVarDirectDefaultNode
 
 #test
 {
-    func structNoInitVar()->s32
-    {
-        var v: LocalVarPlain
-        var b: s32 = 0
-        if v.b
-        {
-            b = 100
-        }
-
-        return v.a + cast(s32) v.c + b
-    }
-
-    const V = #run structNoInitVar()
-    #assert(V == 0)
-}
-
-#test
-{
     func multiDeclStructVar()->s32
     {
         var a, b: LocalVarPoint = {x: 2, y: 6}

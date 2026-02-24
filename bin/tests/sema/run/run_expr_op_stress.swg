@@ -132,3 +132,79 @@ enum StressKind: u16
     #assert(#typeof(V) == s32)
     #assert(V == 109)
 }
+
+#test
+{
+    func stressBlend(a: s32, b: s32, c: s32)->s32
+    {
+        var x: s32 = a * b + c
+        x ^= 0x2D
+        x |= 0x80
+        x &= 0xFF
+        x -= 17
+        x <<= 1
+        x >>= 2
+        return x
+    }
+
+    func stressWideCoverage()->s32
+    {
+        var arr: [5] s32 = [2, 4, 6, 8, 10]
+        var acc: s32 = 0
+
+        acc += stressBlend(arr[0], arr[1], arr[2])
+        acc += stressBlend(arr[3], arr[4], arr[0])
+        acc -= stressBlend(arr[1], arr[2], arr[3])
+        acc += cast(s32) cast(u16) StressKind.B
+
+        var neg: s32 = -arr[0]
+        acc += neg
+        var plusVal: u32 = +cast(u32) arr[1]
+        acc += cast(s32) plusVal
+        var mask: s32 = ~0x3's32
+        acc -= mask
+
+        var cond = acc > 120 and arr[4] == 10 or arr[0] == 1
+        if cond
+        {
+            acc += 1
+        }
+        else
+        {
+            acc -= 1
+        }
+
+        var bits: u32 = cast(u32) acc
+        bits = (bits << 3'u32) ^ 0x55'u32
+        bits = (bits >> 2'u32) | 0x11'u32
+        bits &= 0x7F'u32
+
+        var f: f32 = 5.5'f32
+        f *= 3.0'f32
+        f -= 2.5'f32
+        f /= 2.0'f32
+
+        var p: *void = null
+        if (bits & 1'u32) != 0'u32
+        {
+            p = cast(*void) 0x111'u64
+        }
+
+        if p != null and acc > 0
+        {
+            acc += 7
+        }
+        else
+        {
+            acc -= 4
+        }
+
+        acc += cast(s32) bits
+        acc += cast(s32) f
+        return acc
+    }
+
+    const V = #run stressWideCoverage()
+    #assert(#typeof(V) == s32)
+    #assert(V == 209)
+}

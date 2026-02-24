@@ -91,7 +91,34 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownSignAndZeroExtend)
+{
+    MicroBuilder   builder(ctx);
+    const MicroReg r8  = MicroReg::intReg(8);
+    const MicroReg r9  = MicroReg::intReg(9);
+    const MicroReg r10 = MicroReg::intReg(10);
+
+    builder.emitLoadRegImm(r8, ApInt(0xF6, 8), MicroOpBits::B8);
+    builder.emitLoadSignedExtendRegReg(r9, r8, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadZeroExtendRegReg(r10, r8, MicroOpBits::B64, MicroOpBits::B8);
+
+    runConstantPropagationPass(builder);
+
+    const MicroOperandStorage& operands = builder.operands();
+    const MicroInstr*          inst1    = instructionAt(builder, 1);
+    const MicroInstr*          inst2    = instructionAt(builder, 2);
+    if (!inst1 || !inst2)
+        return Result::Error;
+
+    const MicroInstrOperand* ops1 = inst1->ops(operands);
+    const MicroInstrOperand* ops2 = inst2->ops(operands);
+    if (inst1->op != MicroInstrOpcode::LoadRegImm || ops1[2].valueU64 != 0xFFFFFFFFFFFFFFF6ull)
+        return Result::Error;
+    if (inst2->op != MicroInstrOpcode::LoadRegImm || ops2[2].valueU64 != 0xF6ull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #endif
 
 SWC_END_NAMESPACE();
-

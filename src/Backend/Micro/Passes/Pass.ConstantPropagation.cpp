@@ -24,6 +24,25 @@ namespace
             known.erase(reg.packed);
         }
     }
+
+    uint64_t signExtendToBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits)
+    {
+        const uint64_t normalizedSrc = MicroOptimization::normalizeToOpBits(value, srcBits);
+
+        switch (srcBits)
+        {
+            case MicroOpBits::B8:
+                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(normalizedSrc))), dstBits);
+            case MicroOpBits::B16:
+                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(normalizedSrc))), dstBits);
+            case MicroOpBits::B32:
+                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(normalizedSrc))), dstBits);
+            case MicroOpBits::B64:
+                return MicroOptimization::normalizeToOpBits(normalizedSrc, dstBits);
+            default:
+                return MicroOptimization::normalizeToOpBits(normalizedSrc, dstBits);
+        }
+    }
 }
 
 bool MicroConstantPropagationPass::run(MicroPassContext& context)
@@ -48,6 +67,24 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
                 ops[1].opBits   = ops[2].opBits;
                 ops[2].valueU64 = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                 changed         = true;
+            }
+        }
+        else if ((inst.op == MicroInstrOpcode::LoadSignedExtRegReg || inst.op == MicroInstrOpcode::LoadZeroExtRegReg) && ops[0].reg.isInt() && ops[1].reg.isInt())
+        {
+            const auto itKnown = known.find(ops[1].reg.packed);
+            if (itKnown != known.end())
+            {
+                uint64_t immValue = 0;
+                if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg)
+                    immValue = signExtendToBits(itKnown->second.value, ops[3].opBits, ops[2].opBits);
+                else
+                    immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+
+                inst.op          = MicroInstrOpcode::LoadRegImm;
+                inst.numOperands = 3;
+                ops[1].opBits    = ops[2].opBits;
+                ops[2].valueU64  = immValue;
+                changed          = true;
             }
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())

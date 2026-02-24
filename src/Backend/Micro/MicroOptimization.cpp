@@ -14,6 +14,118 @@ uint64_t MicroOptimization::normalizeToOpBits(uint64_t value, MicroOpBits opBits
     return value & mask;
 }
 
+namespace
+{
+    bool foldSignedDivideOrModulo(uint64_t& outValue, uint64_t value, uint64_t immediate, MicroOpBits opBits, bool isModulo)
+    {
+        switch (opBits)
+        {
+            case MicroOpBits::B8:
+            {
+                const int8_t lhs = static_cast<int8_t>(value);
+                const int8_t rhs = static_cast<int8_t>(immediate);
+                if (!rhs)
+                    return false;
+                if (lhs == std::numeric_limits<int8_t>::min() && rhs == -1)
+                    return false;
+                const int8_t result = isModulo ? static_cast<int8_t>(lhs % rhs) : static_cast<int8_t>(lhs / rhs);
+                outValue            = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
+                return true;
+            }
+            case MicroOpBits::B16:
+            {
+                const int16_t lhs = static_cast<int16_t>(value);
+                const int16_t rhs = static_cast<int16_t>(immediate);
+                if (!rhs)
+                    return false;
+                if (lhs == std::numeric_limits<int16_t>::min() && rhs == -1)
+                    return false;
+                const int16_t result = isModulo ? static_cast<int16_t>(lhs % rhs) : static_cast<int16_t>(lhs / rhs);
+                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
+                return true;
+            }
+            case MicroOpBits::B32:
+            {
+                const int32_t lhs = static_cast<int32_t>(value);
+                const int32_t rhs = static_cast<int32_t>(immediate);
+                if (!rhs)
+                    return false;
+                if (lhs == std::numeric_limits<int32_t>::min() && rhs == -1)
+                    return false;
+                const int32_t result = isModulo ? static_cast<int32_t>(lhs % rhs) : static_cast<int32_t>(lhs / rhs);
+                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
+                return true;
+            }
+            case MicroOpBits::B64:
+            {
+                const int64_t lhs = static_cast<int64_t>(value);
+                const int64_t rhs = static_cast<int64_t>(immediate);
+                if (!rhs)
+                    return false;
+                if (lhs == std::numeric_limits<int64_t>::min() && rhs == -1)
+                    return false;
+                const int64_t result = isModulo ? lhs % rhs : lhs / rhs;
+                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
+    bool foldUnsignedDivideOrModulo(uint64_t& outValue, uint64_t value, uint64_t immediate, MicroOpBits opBits, bool isModulo)
+    {
+        if (!immediate)
+            return false;
+
+        switch (opBits)
+        {
+            case MicroOpBits::B8:
+            {
+                const uint8_t lhs = static_cast<uint8_t>(value);
+                const uint8_t rhs = static_cast<uint8_t>(immediate);
+                if (!rhs)
+                    return false;
+                const uint8_t result = isModulo ? static_cast<uint8_t>(lhs % rhs) : static_cast<uint8_t>(lhs / rhs);
+                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                return true;
+            }
+            case MicroOpBits::B16:
+            {
+                const uint16_t lhs = static_cast<uint16_t>(value);
+                const uint16_t rhs = static_cast<uint16_t>(immediate);
+                if (!rhs)
+                    return false;
+                const uint16_t result = isModulo ? static_cast<uint16_t>(lhs % rhs) : static_cast<uint16_t>(lhs / rhs);
+                outValue              = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                return true;
+            }
+            case MicroOpBits::B32:
+            {
+                const uint32_t lhs = static_cast<uint32_t>(value);
+                const uint32_t rhs = static_cast<uint32_t>(immediate);
+                if (!rhs)
+                    return false;
+                const uint32_t result = isModulo ? static_cast<uint32_t>(lhs % rhs) : static_cast<uint32_t>(lhs / rhs);
+                outValue              = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                return true;
+            }
+            case MicroOpBits::B64:
+            {
+                const uint64_t lhs = value;
+                const uint64_t rhs = immediate;
+                if (!rhs)
+                    return false;
+                const uint64_t result = isModulo ? lhs % rhs : lhs / rhs;
+                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+}
+
 bool MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
 {
     const uint64_t value = normalizeToOpBits(inValue, opBits);
@@ -63,6 +175,18 @@ bool MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue
             outValue = normalizeToOpBits(outValue, opBits);
             return true;
         }
+        case MicroOp::MultiplySigned:
+        case MicroOp::MultiplyUnsigned:
+            outValue = normalizeToOpBits(value * imm, opBits);
+            return true;
+        case MicroOp::DivideSigned:
+            return foldSignedDivideOrModulo(outValue, value, imm, opBits, false);
+        case MicroOp::DivideUnsigned:
+            return foldUnsignedDivideOrModulo(outValue, value, imm, opBits, false);
+        case MicroOp::ModuloSigned:
+            return foldSignedDivideOrModulo(outValue, value, imm, opBits, true);
+        case MicroOp::ModuloUnsigned:
+            return foldUnsignedDivideOrModulo(outValue, value, imm, opBits, true);
         default:
             return false;
     }

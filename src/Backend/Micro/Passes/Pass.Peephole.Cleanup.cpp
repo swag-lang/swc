@@ -24,6 +24,84 @@ namespace PeepholePass
                    op == MicroOp::RotateRight;
         }
 
+        bool getStoreLocation(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg& outBaseReg, uint64_t& outOffset, MicroOpBits& outOpBits)
+        {
+            if (!ops)
+                return false;
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                    outBaseReg = ops[0].reg;
+                    outOffset  = ops[3].valueU64;
+                    outOpBits  = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::LoadMemImm:
+                    outBaseReg = ops[0].reg;
+                    outOffset  = ops[2].valueU64;
+                    outOpBits  = ops[1].opBits;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool removeOverwrittenStoreToSameSlot(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstr*            inst    = cursor.inst;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!inst || !ops)
+                return false;
+
+            MicroReg    baseReg;
+            uint64_t    offset = 0;
+            MicroOpBits opBits = MicroOpBits::Zero;
+            if (!getStoreLocation(*inst, ops, baseReg, offset, opBits))
+                return false;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&      scanInst = *scanIt;
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                for (const MicroReg defReg : useDef.defs)
+                {
+                    if (defReg == baseReg)
+                        return false;
+                }
+
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                MicroReg    scanBaseReg;
+                uint64_t    scanOffset = 0;
+                MicroOpBits scanBits   = MicroOpBits::Zero;
+                if (getStoreLocation(scanInst, scanOps, scanBaseReg, scanOffset, scanBits))
+                {
+                    if (scanBaseReg == baseReg && scanOffset == offset && scanBits == opBits)
+                    {
+                        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                uint8_t memBaseIndex   = 0;
+                uint8_t memOffsetIndex = 0;
+                if (MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, scanInst))
+                    return false;
+            }
+
+            return false;
+        }
+
         bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                    instRef = cursor.instRef;
@@ -357,6 +435,11 @@ namespace PeepholePass
 
     void appendCleanupRules(RuleList& outRules)
     {
+        // Rule: remove_overwritten_store_to_same_slot
+        // Purpose: remove an earlier store when a later store overwrites the exact same address before any read.
+        // Example: mov [rsp], 3; mov r10, 42; mov [rsp], r10 -> mov r10, 42; mov [rsp], r10
+        outRules.push_back({RuleTarget::AnyInstruction, removeOverwrittenStoreToSameSlot});
+
         // Rule: remove_dead_stack_store_before_ret
         // Purpose: remove stores to local stack slots that are never observed before returning.
         // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret

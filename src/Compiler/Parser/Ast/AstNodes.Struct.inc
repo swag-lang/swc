@@ -1507,6 +1507,7 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
 
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;

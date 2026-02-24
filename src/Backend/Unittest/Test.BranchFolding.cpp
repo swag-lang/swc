@@ -42,13 +42,13 @@ SWC_TEST_BEGIN(MicroBranchFolding_ConstantConditions)
     const Ref      takenLabel = builder.createLabel();
     const Ref      doneLabel  = builder.createLabel();
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
-    builder.emitCmpRegImm(r8, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(4, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(r8, ApInt(4, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, takenLabel);
 
     builder.placeLabel(takenLabel);
-    builder.emitLoadRegImm(r9, ApInt(uint64_t{1}, 64), MicroOpBits::B64);
-    builder.emitCmpRegImm(r9, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(doneLabel);
@@ -75,3 +75,7 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+
+
+
+

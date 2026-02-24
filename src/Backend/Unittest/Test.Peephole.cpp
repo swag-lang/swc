@@ -67,14 +67,14 @@ SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
     builder.emitLoadAddressRegMem(r9, r9, 0, MicroOpBits::B64);
     builder.emitLoadCondRegReg(r10, r10, MicroCond::Greater, MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r11, r11, MicroOp::Exchange, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Or, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::Xor, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::Or, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::Xor, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(r12, ApInt(0xFFFFFFFFFFFFFFFF, 64), MicroOp::And, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftRight, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(r12, ApInt(uint64_t{0}, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
     builder.emitRet();
 
     runPeepholePass(builder);
@@ -123,3 +123,8 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+
+
+
+
+

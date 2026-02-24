@@ -45,9 +45,9 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, bodyLabel);
     builder.placeLabel(bodyLabel);
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{1}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
-    builder.emitLoadRegImm(r9, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
     builder.placeLabel(deadLabel);
 
     runControlFlowSimplificationPass(builder);
@@ -68,3 +68,7 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+
+
+
+

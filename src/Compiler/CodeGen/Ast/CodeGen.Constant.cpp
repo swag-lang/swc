@@ -101,7 +101,7 @@ namespace
 
             case ConstantKind::Null:
             {
-                builder.emitLoadRegImm(payload.reg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
                 payload.setIsValue();
                 return;
             }
@@ -200,8 +200,13 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
 Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 {
     const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-    codeGen.builder().emitLoadRegImm(payload.reg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    codeGen.builder().emitLoadRegImm(payload.reg, ApInt(0, 64), MicroOpBits::B64);
     return Result::Continue;
 }
 
 SWC_END_NAMESPACE();
+
+
+
+
+

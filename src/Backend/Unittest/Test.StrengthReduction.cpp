@@ -40,9 +40,9 @@ SWC_TEST_BEGIN(MicroStrengthReduction_RewritesPowerOfTwoOps)
     MicroBuilder   builder(ctx);
     const MicroReg reg = MicroReg::intReg(8);
 
-    builder.emitOpBinaryRegImm(reg, ApInt(uint64_t{8}, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(reg, ApInt(uint64_t{4}, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(reg, ApInt(uint64_t{16}, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(reg, ApInt(8, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(reg, ApInt(4, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(reg, ApInt(16, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
 
     runStrengthReductionPass(builder);
 
@@ -73,3 +73,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

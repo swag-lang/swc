@@ -170,7 +170,7 @@ namespace
         ENCODE_CASE("cmp_reg_imm_r8_neg2147483648_b64", "49 81 F8 00 00 00 80", b.emitCmpRegImm(R8, ApInt(0xFFFFFFFF80000000, 64), MicroOpBits::B64););
         ENCODE_CASE("cmp_reg_imm_r10_b32", "41 81 FA 34 12 00 00", b.emitCmpRegImm(R10, ApInt(0x1234, 64), MicroOpBits::B32););
         ENCODE_CASE("cmp_reg_imm_r10_80000000_b32", "41 81 FA 00 00 00 80", b.emitCmpRegImm(R10, ApInt(0x80000000, 64), MicroOpBits::B32););
-        ENCODE_CASE("cmp_reg_imm_r8_zero_b64", "4D 85 C0", b.emitCmpRegImm(R8, ApInt(uint64_t{0}, 64), MicroOpBits::B64););
+        ENCODE_CASE("cmp_reg_imm_r8_zero_b64", "4D 85 C0", b.emitCmpRegImm(R8, ApInt(0, 64), MicroOpBits::B64););
         ENCODE_CASE("cmp_mem_reg_r12_r11_b64", "4D 39 5C 24 40", b.emitCmpMemReg(R12, 0x40, R11, MicroOpBits::B64););
         ENCODE_CASE("cmp_mem_imm_r12_12345678_b8", "41 80 BC 24 78 56 34 12 12", b.emitCmpMemImm(R12, 0x12345678, ApInt(0x12, 64), MicroOpBits::B8););
         ENCODE_CASE("cmp_mem_imm_r13_b8", "41 80 7D 44 55", b.emitCmpMemImm(R13, 0x44, ApInt(0x55, 64), MicroOpBits::B8););
@@ -265,7 +265,7 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_or_r11", "49 83 CB 7F", b.emitOpBinaryRegImm(R11, ApInt(0x7F, 64), MicroOp::Or, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_xor_r12", "49 83 F4 7F", b.emitOpBinaryRegImm(R12, ApInt(0x7F, 64), MicroOp::Xor, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_mul", "4D 6B ED 07", b.emitOpBinaryRegImm(R13, ApInt(7, 64), MicroOp::MultiplySigned, MicroOpBits::B64););
-        ENCODE_CASE("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", b.emitOpBinaryRegImm(R8, ApInt(uint64_t{0}, 64), MicroOp::ShiftLeft, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_imm_shl_0_b64", "49 C1 E0 00", b.emitOpBinaryRegImm(R8, ApInt(0, 64), MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_shl_1", "49 D1 E0", b.emitOpBinaryRegImm(R8, ApInt(1, 64), MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_shl_80_b64_conform", "49 C1 E0 3F", b.emitOpBinaryRegImm(R8, ApInt(0x80, 64), MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_imm_shr_5", "49 C1 E9 05", b.emitOpBinaryRegImm(R9, ApInt(5, 64), MicroOp::ShiftRight, MicroOpBits::B64););
@@ -394,3 +394,8 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+
+
+
+
+

@@ -41,8 +41,8 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_RemovesDeadDefinitions)
     MicroBuilder   builder(ctx);
     const MicroReg r8 = MicroReg::intReg(8);
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{1}, 64), MicroOpBits::B64);
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B64);
     builder.emitRet();
 
     runDeadCodeEliminationPass(builder);
@@ -61,7 +61,7 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_PreservesReturnRegisterDefinition)
     MicroBuilder    builder(ctx);
     const CallConv& conv = CallConv::get(CallConvKind::Host);
 
-    builder.emitLoadRegImm(conv.intReturn, ApInt(uint64_t{99}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(conv.intReturn, ApInt(99, 64), MicroOpBits::B64);
     builder.emitRet();
 
     runDeadCodeEliminationPass(builder);
@@ -82,3 +82,7 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+
+
+
+

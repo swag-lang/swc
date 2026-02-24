@@ -267,7 +267,7 @@ namespace PeepholePass
                 scanOps[0]          = originalOps[0];
                 scanOps[1].opBits   = originalOps[2].opBits;
                 scanOps[2].valueU64 = originalOps[3].valueU64;
-                scanOps[3].setImmediateValue(ApInt(uint64_t{0}, getNumBits(originalOps[2].opBits)));
+                scanOps[3].setImmediateValue(ApInt(0, getNumBits(originalOps[2].opBits)));
                 if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;

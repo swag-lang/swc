@@ -60,7 +60,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         else
             builder.emitLoadRegReg(condReg, conditionPayload.reg, condBits);
 
-        builder.emitCmpRegImm(condReg, ApInt(uint64_t{0}, 64), condBits);
+        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
 
         CodeGen::IfStmtCodeGenState state;
         state.falseLabel   = builder.createLabel();

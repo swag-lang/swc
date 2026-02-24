@@ -121,7 +121,7 @@ namespace
         builder.emitOpBinaryRegImm(srcReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)
@@ -176,7 +176,7 @@ namespace
         emitMemZeroChunk(builder, dstReg, 0, chunkSize, zeroReg);
         builder.emitOpBinaryRegImm(dstReg, ApInt(chunkSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(countReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)

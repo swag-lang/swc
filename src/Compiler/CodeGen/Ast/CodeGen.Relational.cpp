@@ -129,7 +129,7 @@ namespace
         if (operandType.isBool())
             return;
 
-        builder.emitCmpRegImm(outReg, ApInt(uint64_t{0}, 64), operandBits);
+        builder.emitCmpRegImm(outReg, ApInt(0, 64), operandBits);
 
         const MicroReg boolReg = codeGen.nextVirtualIntRegister();
         builder.emitSetCondReg(boolReg, MicroCond::NotEqual);
@@ -340,7 +340,7 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     const Ref     falseLabel = builder.createLabel();
     const Ref     doneLabel  = builder.createLabel();
 
-    builder.emitCmpRegImm(condReg, ApInt(uint64_t{0}, 64), condBits);
+    builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
     builder.emitLoadRegReg(resultPayload.reg, trueReg, resultBits);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
@@ -352,4 +352,9 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
+
+
+
+
+
 

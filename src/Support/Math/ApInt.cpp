@@ -739,8 +739,7 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
 
     const ApInt minVal = minValueSigned(bitWidth_);
 
-    ApInt negOne(bitWidth_);
-    negOne.setAllBits();
+    const ApInt negOne = maxValue(bitWidth_);
 
     if (same(minVal) && rhs.same(negOne))
     {

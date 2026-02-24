@@ -42,9 +42,9 @@ SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
     const MicroReg r9  = MicroReg::intReg(9);
     const MicroReg r10 = MicroReg::intReg(10);
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{17}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(17, 64), MicroOpBits::B64);
     builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
-    builder.emitLoadRegImm(r10, ApInt(uint64_t{42}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r10, ApInt(42, 64), MicroOpBits::B64);
     builder.emitCmpRegReg(r9, r10, MicroOpBits::B64);
 
     runConstantPropagationPass(builder);
@@ -74,8 +74,8 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
     const MicroReg r8 = MicroReg::intReg(8);
     const MicroReg r9 = MicroReg::intReg(9);
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{2}, 64), MicroOpBits::B64);
-    builder.emitLoadRegImm(r9, ApInt(uint64_t{3}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r9, ApInt(3, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r8, r9, MicroOp::Add, MicroOpBits::B64);
 
     runConstantPropagationPass(builder);
@@ -94,3 +94,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

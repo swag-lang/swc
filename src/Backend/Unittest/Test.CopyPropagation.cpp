@@ -43,7 +43,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_ResolvesCopyChains)
     const MicroReg r10 = MicroReg::intReg(10);
     const MicroReg r11 = MicroReg::intReg(11);
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{7}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(7, 64), MicroOpBits::B64);
     builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
     builder.emitLoadRegReg(r10, r9, MicroOpBits::B64);
     builder.emitCmpRegReg(r11, r10, MicroOpBits::B64);
@@ -74,7 +74,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
     const MicroReg r10 = MicroReg::intReg(10);
     const Ref      mid = builder.createLabel();
 
-    builder.emitLoadRegImm(r8, ApInt(uint64_t{3}, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(3, 64), MicroOpBits::B64);
     builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
     builder.placeLabel(mid);
     builder.emitCmpRegReg(r10, r9, MicroOpBits::B64);
@@ -95,3 +95,4 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
+

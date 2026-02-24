@@ -47,9 +47,10 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
         }                                           \
     } while (0)
 #else
-#define SWC_ASSERT(__expr) \
-    do                     \
-    {                      \
+#define SWC_ASSERT(__expr)                      \
+    do                                          \
+    {                                           \
+        (void) sizeof((__expr) ? true : false); \
     } while (0)
 #endif // SWC_HAS_ASSERT
 

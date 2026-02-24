@@ -53,28 +53,13 @@ namespace
     {
     }
 
-    void registerOptimizationPassesOnSpeed(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
+    void registerOptimizationPassesOn(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
     {
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.strengthReductionPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.loadStoreForwardPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.deadCodePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.peepholePass));
-        passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
-    }
-
-    void registerOptimizationPassesOnSize(MicroPassManager& passManager, const MicroOptimizationPasses& passes)
-    {
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.instructionCombinePass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.copyPropagationPass));
-        passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.constantPropagationPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
         passManager.addPreOptimization(*SWC_CHECK_NOT_NULL(passes.cfgSimplifyPass));
         passManager.addPostOptimization(*SWC_CHECK_NOT_NULL(passes.branchFoldingPass));
@@ -93,10 +78,7 @@ namespace
             return;
         }
 
-        if (backendCfg.optimizeForSize)
-            registerOptimizationPassesOnSize(passManager, passes);
-        else
-            registerOptimizationPassesOnSpeed(passManager, passes);
+        registerOptimizationPassesOn(passManager, passes);
     }
 }
 

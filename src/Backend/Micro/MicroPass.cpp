@@ -10,6 +10,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_OPT_ITERATION_OFF = 1;
+    constexpr uint32_t K_OPT_ITERATION_ON  = 4;
+
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimize)
@@ -105,8 +108,8 @@ namespace
     uint32_t optimizationIterationLimit(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimize)
-            return 1;
-        return backendCfg.optimizeForSize ? 6 : 4;
+            return K_OPT_ITERATION_OFF;
+        return K_OPT_ITERATION_ON;
     }
 
     uint32_t optimizationIterationLimit(const MicroPassContext& context)

@@ -8,13 +8,14 @@ public:
     ApInt();
     explicit ApInt(uint32_t bitWidth);
     explicit ApInt(uint64_t value, uint32_t bitWidth);
+    explicit ApInt(const void* data, uint32_t bitWidth);
+
     template<typename T>
         requires(std::is_integral_v<T> && !std::is_same_v<T, uint64_t>)
     explicit ApInt(T value, uint32_t bitWidth) :
         ApInt(static_cast<uint64_t>(value), bitWidth)
     {
     }
-    explicit ApInt(const void* data, uint32_t bitWidth);
 
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }

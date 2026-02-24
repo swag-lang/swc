@@ -181,8 +181,7 @@ namespace
         const MicroOpBits opBits         = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        MicroReg leftReg;
-        MicroReg rightReg;
+        MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
@@ -233,8 +232,7 @@ namespace
         const MicroOpBits opBits         = compareOpBits(compareType);
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
-        MicroReg leftReg;
-        MicroReg rightReg;
+        MicroReg leftReg, rightReg;
         materializeCompareOperand(leftReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         materializeCompareOperand(rightReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
@@ -290,8 +288,7 @@ Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen) const
     const TypeRef      leftType  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
     const TypeRef      rightType = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
 
-    MicroReg leftReg;
-    MicroReg rightReg;
+    MicroReg leftReg, rightReg;
     materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);
     materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
 
@@ -331,9 +328,7 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroOpBits resultBits = compareOpBits(codeGen.typeMgr().get(resultTypeRef));
     SWC_ASSERT(condBits != MicroOpBits::Zero && resultBits != MicroOpBits::Zero);
 
-    MicroReg condReg;
-    MicroReg trueReg;
-    MicroReg falseReg;
+    MicroReg condReg, trueReg, falseReg;
     materializeScalarOperand(condReg, codeGen, condPayload, condTypeRef, condBits);
     materializeScalarOperand(trueReg, codeGen, truePayload, trueTypeRef, resultBits);
     materializeScalarOperand(falseReg, codeGen, falsePayload, falseTypeRef, resultBits);

@@ -263,8 +263,8 @@ namespace
                 return Result::Continue;
             }
 
-            const uint32_t srcWidth = static_cast<uint32_t>(srcOpBits);
-            const uint32_t dstWidth = static_cast<uint32_t>(dstOpBits);
+            const uint32_t srcWidth = getNumBits(srcOpBits);
+            const uint32_t dstWidth = getNumBits(dstOpBits);
             if (srcWidth == dstWidth)
             {
                 builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);

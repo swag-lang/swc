@@ -77,7 +77,7 @@ namespace
                 return;
             }
 
-            if (static_cast<uint32_t>(srcBits) > static_cast<uint32_t>(dstBits))
+            if (getNumBits(srcBits) > getNumBits(dstBits))
             {
                 builder.emitLoadRegReg(dstReg, outReg, dstBits);
                 outReg = dstReg;

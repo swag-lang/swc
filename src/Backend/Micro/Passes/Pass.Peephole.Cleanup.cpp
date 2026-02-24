@@ -9,6 +9,231 @@ namespace PeepholePass
 {
     namespace
     {
+        bool tryInvertCondition(MicroCond& outCond, MicroCond cond)
+        {
+            switch (cond)
+            {
+                case MicroCond::Equal:
+                case MicroCond::Zero:
+                    outCond = MicroCond::NotEqual;
+                    return true;
+                case MicroCond::NotEqual:
+                case MicroCond::NotZero:
+                    outCond = MicroCond::Equal;
+                    return true;
+                case MicroCond::Below:
+                    outCond = MicroCond::AboveOrEqual;
+                    return true;
+                case MicroCond::BelowOrEqual:
+                    outCond = MicroCond::Above;
+                    return true;
+                case MicroCond::Above:
+                    outCond = MicroCond::BelowOrEqual;
+                    return true;
+                case MicroCond::AboveOrEqual:
+                    outCond = MicroCond::Below;
+                    return true;
+                case MicroCond::Less:
+                    outCond = MicroCond::GreaterOrEqual;
+                    return true;
+                case MicroCond::LessOrEqual:
+                    outCond = MicroCond::Greater;
+                    return true;
+                case MicroCond::Greater:
+                    outCond = MicroCond::LessOrEqual;
+                    return true;
+                case MicroCond::GreaterOrEqual:
+                    outCond = MicroCond::Less;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool foldBoolAndChainIntoDirectJumps(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstr*        cmp1Inst = cursor.inst;
+            const MicroInstrOperand* cmp1Ops  = cursor.ops;
+            if (!cmp1Inst || cmp1Inst->op != MicroInstrOpcode::CmpRegImm || !cmp1Ops)
+                return false;
+
+            const MicroStorage::Iterator set1It = cursor.nextIt;
+            if (set1It == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator zext1It = std::next(set1It);
+            if (zext1It == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator cmp2It = std::next(zext1It);
+            if (cmp2It == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator set2It = std::next(cmp2It);
+            if (set2It == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator zext2It = std::next(set2It);
+            if (zext2It == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator copyAIt = std::next(zext2It);
+            if (copyAIt == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator copyBIt = std::next(copyAIt);
+            if (copyBIt == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator copyCIt = std::next(copyBIt);
+            if (copyCIt == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator andIt = std::next(copyCIt);
+            if (andIt == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator cmpZeroIt = std::next(andIt);
+            if (cmpZeroIt == cursor.endIt)
+                return false;
+            const MicroStorage::Iterator jumpIt = std::next(cmpZeroIt);
+            if (jumpIt == cursor.endIt)
+                return false;
+
+            const MicroInstr& set1Inst    = *set1It;
+            const MicroInstr& zext1Inst   = *zext1It;
+            const MicroInstr& cmp2Inst    = *cmp2It;
+            const MicroInstr& set2Inst    = *set2It;
+            const MicroInstr& zext2Inst   = *zext2It;
+            const MicroInstr& copyAInst   = *copyAIt;
+            const MicroInstr& copyBInst   = *copyBIt;
+            const MicroInstr& copyCInst   = *copyCIt;
+            const MicroInstr& andInst     = *andIt;
+            const MicroInstr& cmpZeroInst = *cmpZeroIt;
+            const MicroInstr& jumpInst    = *jumpIt;
+
+            const MicroInstrOperand* set1Ops    = set1Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* zext1Ops   = zext1Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* cmp2Ops    = cmp2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* set2Ops    = set2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* zext2Ops   = zext2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyAOps   = copyAInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyBOps   = copyBInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyCOps   = copyCInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* andOps     = andInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* cmpZeroOps = cmpZeroInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* jumpOps    = jumpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!set1Ops || !zext1Ops || !cmp2Ops || !set2Ops || !zext2Ops || !copyAOps || !copyBOps || !copyCOps || !andOps || !cmpZeroOps || !jumpOps)
+                return false;
+
+            if (set1Inst.op != MicroInstrOpcode::SetCondReg ||
+                zext1Inst.op != MicroInstrOpcode::LoadZeroExtRegReg ||
+                cmp2Inst.op != MicroInstrOpcode::CmpRegImm ||
+                set2Inst.op != MicroInstrOpcode::SetCondReg ||
+                zext2Inst.op != MicroInstrOpcode::LoadZeroExtRegReg ||
+                copyAInst.op != MicroInstrOpcode::LoadRegReg ||
+                copyBInst.op != MicroInstrOpcode::LoadRegReg ||
+                copyCInst.op != MicroInstrOpcode::LoadRegReg ||
+                andInst.op != MicroInstrOpcode::OpBinaryRegReg ||
+                cmpZeroInst.op != MicroInstrOpcode::CmpRegImm ||
+                jumpInst.op != MicroInstrOpcode::JumpCond)
+            {
+                return false;
+            }
+
+            if (zext1Ops[2].opBits != MicroOpBits::B32 || zext1Ops[3].opBits != MicroOpBits::B8 ||
+                zext2Ops[2].opBits != MicroOpBits::B32 || zext2Ops[3].opBits != MicroOpBits::B8)
+            {
+                return false;
+            }
+
+            if (andOps[3].microOp != MicroOp::And || andOps[2].opBits != MicroOpBits::B8)
+                return false;
+            if (cmpZeroOps[1].opBits != MicroOpBits::B8 || cmpZeroOps[2].valueU64 != 0)
+                return false;
+            if (jumpOps[0].cpuCond != MicroCond::Equal && jumpOps[0].cpuCond != MicroCond::Zero)
+                return false;
+
+            const MicroReg cond1Reg = set1Ops[0].reg;
+            const MicroReg cond2Reg = set2Ops[0].reg;
+            if (zext1Ops[0].reg != cond1Reg || zext1Ops[1].reg != cond1Reg ||
+                zext2Ops[0].reg != cond2Reg || zext2Ops[1].reg != cond2Reg)
+            {
+                return false;
+            }
+
+            if (copyAOps[1].reg != cond1Reg || copyBOps[1].reg != cond2Reg)
+                return false;
+            if (copyCOps[1].reg != copyAOps[0].reg)
+                return false;
+            if (andOps[0].reg != copyCOps[0].reg || andOps[1].reg != copyBOps[0].reg)
+                return false;
+            if (cmpZeroOps[0].reg != andOps[0].reg)
+                return false;
+            if (copyAOps[2].opBits != MicroOpBits::B8 || copyBOps[2].opBits != MicroOpBits::B8 || copyCOps[2].opBits != MicroOpBits::B8)
+                return false;
+
+            const MicroReg cmp1Reg = cmp1Ops[0].reg;
+            if (cmp2Ops[0].reg != cmp1Reg || cmp2Ops[1].opBits != cmp1Ops[1].opBits)
+                return false;
+
+            if (!areFlagsDeadAfterInstruction(context, jumpIt, cursor.endIt))
+                return false;
+
+            MicroCond invertedCond1;
+            MicroCond invertedCond2;
+            if (!tryInvertCondition(invertedCond1, set1Ops[1].cpuCond) || !tryInvertCondition(invertedCond2, set2Ops[1].cpuCond))
+                return false;
+
+            const Ref                set1Ref        = set1It.current;
+            const Ref                set2Ref        = set2It.current;
+            MicroInstr*              set1Mutable    = SWC_CHECK_NOT_NULL(context.instructions)->ptr(set1Ref);
+            MicroInstr*              set2Mutable    = SWC_CHECK_NOT_NULL(context.instructions)->ptr(set2Ref);
+            MicroInstrOperand*       set1MutableOps = set1Mutable ? set1Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+            MicroInstrOperand*       set2MutableOps = set2Mutable ? set2Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+            const MicroInstrOperand* jumpMutableOps = jumpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            if (!set1Mutable || !set2Mutable || !set1MutableOps || !set2MutableOps || !jumpMutableOps)
+                return false;
+
+            const MicroInstr originalSet1    = *set1Mutable;
+            const MicroInstr originalSet2    = *set2Mutable;
+            const std::array originalSet1Ops = {set1MutableOps[0], set1MutableOps[1], set1MutableOps[2]};
+            const std::array originalSet2Ops = {set2MutableOps[0], set2MutableOps[1], set2MutableOps[2]};
+
+            set1Mutable->op            = MicroInstrOpcode::JumpCond;
+            set1Mutable->numOperands   = 3;
+            set1MutableOps[0].cpuCond  = invertedCond1;
+            set1MutableOps[1].opBits   = MicroOpBits::B32;
+            set1MutableOps[2].valueU64 = jumpOps[2].valueU64;
+
+            set2Mutable->op            = MicroInstrOpcode::JumpCond;
+            set2Mutable->numOperands   = 3;
+            set2MutableOps[0].cpuCond  = invertedCond2;
+            set2MutableOps[1].opBits   = MicroOpBits::B32;
+            set2MutableOps[2].valueU64 = jumpOps[2].valueU64;
+
+            if (MicroOptimization::violatesEncoderConformance(context, *set1Mutable, set1MutableOps) ||
+                MicroOptimization::violatesEncoderConformance(context, *set2Mutable, set2MutableOps))
+            {
+                *set1Mutable   = originalSet1;
+                *set2Mutable   = originalSet2;
+                set1MutableOps = set1Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                set2MutableOps = set2Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                if (set1MutableOps)
+                {
+                    for (uint32_t i = 0; i < 3; ++i)
+                        set1MutableOps[i] = originalSet1Ops[i];
+                }
+                if (set2MutableOps)
+                {
+                    for (uint32_t i = 0; i < 3; ++i)
+                        set2MutableOps[i] = originalSet2Ops[i];
+                }
+                return false;
+            }
+
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(zext1It.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(zext2It.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyAIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyBIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyCIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(andIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(cmpZeroIt.current);
+            SWC_CHECK_NOT_NULL(context.instructions)->erase(jumpIt.current);
+            return true;
+        }
+
         bool isStackBaseRegister(const MicroReg reg)
         {
             return reg == MicroReg::intReg(4) || reg == MicroReg::intReg(5);
@@ -449,6 +674,11 @@ namespace PeepholePass
         // Purpose: remove compare operations whose flags are never consumed.
         // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
         outRules.push_back({RuleTarget::AnyInstruction, removeDeadCompareInstruction});
+
+        // Rule: fold_bool_and_chain_into_direct_jumps
+        // Purpose: replace materialized bool-and chains with direct conditional branches.
+        // Example: cmp/setcc/.../and/cmp/jz L0 -> cmp/jcc L0; cmp/jcc L0
+        outRules.push_back({RuleTarget::AnyInstruction, foldBoolAndChainIntoDirectJumps});
 
         // Rule: fold_setcond_zeroext_copy
         // Purpose: route setcc and zero-extend directly to final destination register.

@@ -11,12 +11,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct InstructionIndexData
+    {
+        std::vector<Ref>             refs;
+        std::unordered_map<Ref, Ref> labelRefToInstructionRef;
+        std::unordered_map<Ref, Ref> instructionRefToIndex;
+    };
+
+    struct ControlFlowData
+    {
+        std::vector<std::vector<Ref>> successors;
+    };
+
     void addCallArgumentRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
     {
         for (const MicroReg reg : conv.intArgRegs)
             liveRegs.insert(reg.packed);
         for (const MicroReg reg : conv.floatArgRegs)
             liveRegs.insert(reg.packed);
+    }
+
+    void addHiddenIndirectReturnArgReg(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
+    {
+        if (!conv.intArgRegs.empty())
+            liveRegs.insert(conv.intArgRegs.front().packed);
     }
 
     void killCallClobberedRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
@@ -166,7 +184,224 @@ namespace
         liveRegs.insert(reg.packed);
     }
 
-    bool eliminateDeadPureDefsByBackwardLiveness(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    bool isUnsupportedControlFlowForCfgLiveness(const MicroInstr& inst)
+    {
+        switch (inst.op)
+        {
+            case MicroInstrOpcode::JumpReg:
+            case MicroInstrOpcode::JumpTable:
+            case MicroInstrOpcode::JumpCondImm:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool buildInstructionIndexData(const MicroStorage& storage, const MicroOperandStorage& operands, InstructionIndexData& outData)
+    {
+        outData.refs.clear();
+        outData.labelRefToInstructionRef.clear();
+        outData.instructionRefToIndex.clear();
+
+        outData.refs.reserve(storage.count());
+        outData.labelRefToInstructionRef.reserve(storage.count());
+        outData.instructionRefToIndex.reserve(storage.count());
+
+        Ref index = 0;
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const Ref instructionRef = it.current;
+            outData.refs.push_back(instructionRef);
+            outData.instructionRefToIndex[instructionRef] = index;
+            ++index;
+
+            if (it->op != MicroInstrOpcode::Label)
+                continue;
+
+            const MicroInstrOperand* labelOps = it->ops(operands);
+            if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<Ref>::max())
+                return false;
+
+            const Ref labelRef = static_cast<Ref>(labelOps[0].valueU64);
+            outData.labelRefToInstructionRef[labelRef] = instructionRef;
+        }
+
+        return true;
+    }
+
+    bool buildControlFlowData(const MicroStorage& storage, const MicroOperandStorage& operands, const InstructionIndexData& indexData, ControlFlowData& outData)
+    {
+        outData.successors.clear();
+        outData.successors.resize(indexData.refs.size());
+
+        const size_t instructionCount = indexData.refs.size();
+        for (size_t i = 0; i < instructionCount; ++i)
+        {
+            const Ref         instructionRef = indexData.refs[i];
+            const MicroInstr* inst           = storage.ptr(instructionRef);
+            if (!inst)
+                return false;
+
+            const bool hasFallthrough = i + 1 < instructionCount;
+            if (inst->op == MicroInstrOpcode::JumpCond)
+            {
+                const MicroInstrOperand* jumpOps = inst->ops(operands);
+                if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<Ref>::max())
+                    return false;
+
+                const Ref targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
+                const auto targetRefIt   = indexData.labelRefToInstructionRef.find(targetLabelRef);
+                if (targetRefIt == indexData.labelRefToInstructionRef.end())
+                    return false;
+
+                const auto targetIndexIt = indexData.instructionRefToIndex.find(targetRefIt->second);
+                if (targetIndexIt == indexData.instructionRefToIndex.end())
+                    return false;
+
+                std::vector<Ref>& successors = outData.successors[i];
+                successors.push_back(targetIndexIt->second);
+                if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, jumpOps) && hasFallthrough)
+                    successors.push_back(static_cast<Ref>(i + 1));
+                continue;
+            }
+
+            if (inst->op == MicroInstrOpcode::Ret)
+                continue;
+
+            if (MicroInstrInfo::isTerminatorInstruction(*inst))
+                return false;
+
+            if (hasFallthrough)
+                outData.successors[i].push_back(static_cast<Ref>(i + 1));
+        }
+
+        return true;
+    }
+
+    void transferInstructionLiveness(std::unordered_set<uint32_t>& outLiveIn,
+                                     const std::unordered_set<uint32_t>& liveOut,
+                                     const MicroInstr& inst,
+                                     const MicroInstrUseDef& useDef,
+                                     CallConvKind callConvKind)
+    {
+        outLiveIn = liveOut;
+
+        if (inst.op == MicroInstrOpcode::Ret)
+        {
+            const CallConv& conv = CallConv::get(callConvKind);
+            addLiveReg(outLiveIn, conv.intReturn);
+            addLiveReg(outLiveIn, conv.floatReturn);
+            addHiddenIndirectReturnArgReg(outLiveIn, conv);
+        }
+
+        if (useDef.isCall)
+        {
+            const CallConv& callConv = CallConv::get(useDef.callConv);
+            killCallClobberedRegs(outLiveIn, callConv);
+            addCallArgumentRegs(outLiveIn, callConv);
+
+            // Calls clobber transient regs and consume argument regs.
+            // Do not apply generic def-kill here: call defs can overlap arg regs.
+            for (const MicroReg useReg : useDef.uses)
+                outLiveIn.insert(useReg.packed);
+            return;
+        }
+
+        for (const MicroReg defReg : useDef.defs)
+            outLiveIn.erase(defReg.packed);
+
+        for (const MicroReg useReg : useDef.uses)
+            outLiveIn.insert(useReg.packed);
+    }
+
+    bool eliminateDeadPureDefsByBackwardLivenessCfg(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    {
+        InstructionIndexData indexData;
+        if (!buildInstructionIndexData(storage, operands, indexData))
+            return false;
+
+        if (indexData.refs.empty())
+            return false;
+
+        ControlFlowData controlFlowData;
+        if (!buildControlFlowData(storage, operands, indexData, controlFlowData))
+            return false;
+
+        const size_t instructionCount = indexData.refs.size();
+        std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
+        std::vector<std::unordered_set<uint32_t>> liveOut(instructionCount);
+        bool                                       changed = true;
+        while (changed)
+        {
+            changed = false;
+
+            for (size_t i = instructionCount; i > 0; --i)
+            {
+                const size_t           idx            = i - 1;
+                const Ref              instructionRef = indexData.refs[idx];
+                const MicroInstr*      inst           = storage.ptr(instructionRef);
+                if (!inst)
+                    continue;
+
+                const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
+
+                std::unordered_set<uint32_t> newLiveOut;
+                const std::vector<Ref>&      successors = controlFlowData.successors[idx];
+                for (const Ref successorIndexRef : successors)
+                {
+                    const size_t successorIndex = static_cast<size_t>(successorIndexRef);
+                    if (successorIndex >= liveIn.size())
+                        continue;
+
+                    const std::unordered_set<uint32_t>& successorLiveIn = liveIn[successorIndex];
+                    for (const uint32_t regKey : successorLiveIn)
+                        newLiveOut.insert(regKey);
+                }
+
+                std::unordered_set<uint32_t> newLiveIn;
+                transferInstructionLiveness(newLiveIn, newLiveOut, *inst, useDef, callConvKind);
+
+                if (newLiveOut != liveOut[idx] || newLiveIn != liveIn[idx])
+                {
+                    liveOut[idx] = std::move(newLiveOut);
+                    liveIn[idx]  = std::move(newLiveIn);
+                    changed      = true;
+                }
+            }
+        }
+
+        bool             removedAny = false;
+        std::vector<Ref> eraseList;
+        eraseList.reserve(64);
+
+        for (size_t i = 0; i < instructionCount; ++i)
+        {
+            const Ref         instructionRef = indexData.refs[i];
+            const MicroInstr* inst           = storage.ptr(instructionRef);
+            if (!inst)
+                continue;
+
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
+            if (!isBackwardDeadDefRemovableInstruction(*inst) || !isPureDefCandidate(*inst, useDef, encoder))
+                continue;
+
+            const uint32_t defRegKey = useDef.defs.front().packed;
+            if (liveOut[i].contains(defRegKey))
+                continue;
+
+            eraseList.push_back(instructionRef);
+        }
+
+        for (const Ref eraseRef : eraseList)
+        {
+            storage.erase(eraseRef);
+            removedAny = true;
+        }
+
+        return removedAny;
+    }
+
+    bool eliminateDeadPureDefsByBackwardLivenessLinearTail(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
     {
         bool                         changed = false;
         std::unordered_set<uint32_t> liveRegs;
@@ -208,6 +443,7 @@ namespace
                     processRegion = true;
                     addLiveReg(liveRegs, conv.intReturn);
                     addLiveReg(liveRegs, conv.floatReturn);
+                    addHiddenIndirectReturnArgReg(liveRegs, conv);
                     continue;
                 }
 
@@ -245,6 +481,27 @@ namespace
             storage.erase(ref);
 
         return changed;
+    }
+
+    bool eliminateDeadPureDefsByBackwardLiveness(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
+    {
+        bool hasUnsupportedControlFlow = false;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (!isUnsupportedControlFlowForCfgLiveness(inst))
+                continue;
+            hasUnsupportedControlFlow = true;
+            break;
+        }
+
+        if (!hasUnsupportedControlFlow)
+        {
+            if (eliminateDeadPureDefsByBackwardLivenessCfg(storage, operands, encoder, callConvKind))
+                return true;
+            return eliminateDeadPureDefsByBackwardLivenessLinearTail(storage, operands, encoder, callConvKind);
+        }
+
+        return eliminateDeadPureDefsByBackwardLivenessLinearTail(storage, operands, encoder, callConvKind);
     }
 }
 
@@ -311,4 +568,3 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-

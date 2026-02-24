@@ -73,7 +73,6 @@ enum StressKind: u16
     #assert(V == 92)
 }
 
-// BUG:
 #test
 {
     func stressEnumAndWidths()->s64
@@ -102,8 +101,6 @@ enum StressKind: u16
     #assert(V == 208's64)
 }
 
-// BUG:
-/*
 #test
 {
     func stressHelper(a: s32, b: s32)->s32
@@ -133,6 +130,5 @@ enum StressKind: u16
 
     const V = #run stressCallAndIndex()
     #assert(#typeof(V) == s32)
-    #assert(V == 92)
+    #assert(V == 109)
 }
-*/

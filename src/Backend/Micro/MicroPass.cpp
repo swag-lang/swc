@@ -40,12 +40,30 @@ namespace
         return false;
     }
 
-    void printPassHeader(const TaskContext& ctx, const MicroBuilder& builder, std::string_view stageName)
+    std::string backendOptimizeWithInstructionStats(MicroPassContext& context, const MicroBuilder& builder)
+    {
+        const std::string optimize = backendOptimizeLevelName(builder.backendBuildCfg());
+        if (!context.instructions || !context.hasPrintInstrCountBeforeAll)
+            return optimize;
+
+        const size_t countAfter = context.instructions->count();
+        const size_t countBefore = context.printInstrCountBeforeAll;
+        double       gainPercent = 0.0;
+        if (countBefore)
+        {
+            const double delta = static_cast<double>(countBefore) - static_cast<double>(countAfter);
+            gainPercent        = (delta * 100.0) / static_cast<double>(countBefore);
+        }
+
+        return std::format("{} (instr: {} -> {}, gain: {:.2f}%)", optimize, countBefore, countAfter, gainPercent);
+    }
+
+    void printPassHeader(MicroPassContext& context, const TaskContext& ctx, const MicroBuilder& builder, std::string_view stageName)
     {
         const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
         const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
         const uint32_t         sourceLine = builder.printSourceLine();
-        const std::string      optimize   = backendOptimizeLevelName(builder.backendBuildCfg());
+        const std::string      optimize   = backendOptimizeWithInstructionStats(context, builder);
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[micro]");
@@ -86,7 +104,7 @@ namespace
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
     }
 
-    void printPassInstructions(const MicroPassContext& context, const MicroPass& pass, bool before)
+    void printPassInstructions(MicroPassContext& context, const MicroPass& pass, bool before)
     {
         if (!context.taskContext || !context.builder)
             return;
@@ -98,7 +116,7 @@ namespace
         const std::string stageName = passStageName(pass, before);
 
         Logger::print(ctx, "\n");
-        printPassHeader(ctx, builder, stageName);
+        printPassHeader(context, ctx, builder, stageName);
 
         const MicroRegPrintMode printMode = before ? pass.printModeBefore() : pass.printModeAfter();
         const Encoder*          encoder   = printMode == MicroRegPrintMode::Concrete ? context.encoder : nullptr;
@@ -207,6 +225,14 @@ void MicroPassManager::addFinal(MicroPass& pass)
 
 void MicroPassManager::run(MicroPassContext& context) const
 {
+    context.printInstrCountBeforeAll    = 0;
+    context.hasPrintInstrCountBeforeAll = false;
+    if (context.instructions)
+    {
+        context.printInstrCountBeforeAll    = context.instructions->count();
+        context.hasPrintInstrCountBeforeAll = true;
+    }
+
     runOptimizationPasses(context, preOptimizationPasses_);
     runLinearPasses(context, mandatoryPasses_);
     runOptimizationPasses(context, postOptimizationPasses_);

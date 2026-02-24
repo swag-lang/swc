@@ -75,7 +75,6 @@ enum StressKind: u16
 
 #test
 {
-    #[Swag.PrintMicro]
     func stressEnumAndWidths()->s64
     {
         var k: StressKind = StressKind.A
@@ -104,6 +103,7 @@ enum StressKind: u16
 
 #test
 {
+    #[Swag.PrintMicro]
     func stressHelper(a: s32, b: s32)->s32
     {
         return a * b + b - a

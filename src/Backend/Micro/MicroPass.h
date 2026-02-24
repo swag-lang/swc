@@ -26,6 +26,8 @@ struct MicroPassContext
     bool                  preservePersistentRegs = false;
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;
+    size_t   printInstrCountBeforeAll   = 0;
+    bool     hasPrintInstrCountBeforeAll = false;
 #if SWC_HAS_STATS
     size_t optimizationInstrRemoved = 0;
     size_t optimizationInstrAdded   = 0;

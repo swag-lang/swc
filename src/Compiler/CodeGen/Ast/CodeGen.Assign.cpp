@@ -143,7 +143,7 @@ namespace
             return target;
 
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        TypeRef            leftTypeRef  = resolveOperandTypeRef(*target.payload, leftTypeView.typeRef());
+        const TypeRef      leftTypeRef  = resolveOperandTypeRef(*target.payload, leftTypeView.typeRef());
         if (!leftTypeRef.isValid())
             return target;
 
@@ -187,8 +187,8 @@ namespace
         if (!targetType.isIntLike() && !targetType.isFloat())
             SWC_UNREACHABLE();
 
-        const TokenId binaryOp = Token::assignToBinary(assignOp);
-        const MicroReg leftReg = codeGen.nextVirtualRegisterForType(target.typeRef);
+        const TokenId  binaryOp = Token::assignToBinary(assignOp);
+        const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(target.typeRef);
         builder.emitLoadRegMem(leftReg, target.payload->reg, 0, opBits);
 
         const MicroReg rightReg = materializeAssignOperand(codeGen, rightPayload, rightTypeRef, opBits);

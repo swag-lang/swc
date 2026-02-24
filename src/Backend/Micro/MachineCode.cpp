@@ -76,12 +76,9 @@ namespace
     void registerOptimizationPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
     {
         if (!backendCfg.optimize)
-        {
             registerOptimizationPassesOff(passManager, passes);
-            return;
-        }
-
-        registerOptimizationPassesOn(passManager, passes);
+        else
+            registerOptimizationPassesOn(passManager, passes);
     }
 }
 

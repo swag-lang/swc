@@ -103,12 +103,12 @@ enum StressKind: u16
 
 #test
 {
-    #[Swag.PrintMicro]
     func stressHelper(a: s32, b: s32)->s32
     {
         return a * b + b - a
     }
 
+    #[Swag.PrintMicro]
     func stressCallAndIndex()->s32
     {
         var arr: [4] s32 = [3, 5, 7, 11]

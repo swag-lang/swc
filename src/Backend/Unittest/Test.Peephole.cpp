@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
@@ -10,20 +11,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void setPeepholeOptimizeLevel(MicroBuilder& builder)
+    void setPeepholeOptimizeLevel(MicroBuilder& builder, bool optimizeForSize = false)
     {
         Runtime::BuildCfgBackend backendCfg{};
         backendCfg.optimize = true;
+        backendCfg.optimizeForSize = optimizeForSize;
         builder.setBackendBuildCfg(backendCfg);
     }
 
     void runPeepholePass(MicroBuilder& builder)
     {
+        CallConv::setup();
+
         MicroPeepholePass peepholePass;
         MicroPassManager  passes;
         passes.add(peepholePass);
 
         MicroPassContext passCtx;
+        passCtx.callConvKind = CallConvKind::Host;
         builder.runPasses(passes, nullptr, passCtx);
     }
 
@@ -169,6 +174,101 @@ SWC_TEST_BEGIN(Peephole_KeepsStackSaveRestoreWhenShiftWritesSavedReg)
     if (!hasInstruction(builder, MicroInstrOpcode::LoadMemReg))
         return Result::Error;
     if (!hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder, true);
+
+    constexpr MicroReg rbp = MicroReg::intReg(5);
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rdx = MicroReg::intReg(2);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r13 = MicroReg::intReg(13);
+    constexpr MicroReg r14 = MicroReg::intReg(14);
+    constexpr MicroReg r15 = MicroReg::intReg(15);
+    const Ref          loopLabel = builder.createLabel();
+
+    builder.emitPush(rbp);
+    builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);
+    builder.emitPush(r15);
+    builder.emitPush(r14);
+    builder.emitPush(r13);
+    builder.emitLoadRegMem(rdx, rbp, 0x30, MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, rbp, 0x38, MicroOpBits::B64);
+    builder.emitLoadRegMem(rax, rbp, 0x40, MicroOpBits::B64);
+    builder.placeLabel(loopLabel);
+    builder.emitRet();
+
+    runPeepholePass(builder);
+
+    bool hasFrameCopy          = false;
+    bool hasLoadFromFrameBase0 = false;
+    bool hasLoadFromFrameBase1 = false;
+    bool hasLoadFromFrameBase2 = false;
+    bool hasLoadFromStackBase  = false;
+    const MicroOperandStorage& operands = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::LoadRegReg &&
+            ops[0].reg == rbp &&
+            ops[1].reg == rsp &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            hasFrameCopy = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadRegMem &&
+            ops[0].reg == rdx &&
+            ops[3].valueU64 == 0x30 &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            if (ops[1].reg == rbp)
+                hasLoadFromFrameBase0 = true;
+            if (ops[1].reg == rsp)
+                hasLoadFromStackBase = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadRegMem &&
+            ops[0].reg == rcx &&
+            ops[3].valueU64 == 0x38 &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            if (ops[1].reg == rbp)
+                hasLoadFromFrameBase1 = true;
+            if (ops[1].reg == rsp)
+                hasLoadFromStackBase = true;
+        }
+
+        if (inst.op == MicroInstrOpcode::LoadRegMem &&
+            ops[0].reg == rax &&
+            ops[3].valueU64 == 0x40 &&
+            ops[2].opBits == MicroOpBits::B64)
+        {
+            if (ops[1].reg == rbp)
+                hasLoadFromFrameBase2 = true;
+            if (ops[1].reg == rsp)
+                hasLoadFromStackBase = true;
+        }
+    }
+
+    if (!hasFrameCopy)
+        return Result::Error;
+    if (!hasLoadFromFrameBase0)
+        return Result::Error;
+    if (!hasLoadFromFrameBase1)
+        return Result::Error;
+    if (!hasLoadFromFrameBase2)
+        return Result::Error;
+    if (hasLoadFromStackBase)
         return Result::Error;
 }
 SWC_TEST_END()

@@ -184,12 +184,13 @@ namespace PeepholePass
             const MicroStorage::Iterator endIt   = cursor.endIt;
             if (!ops || nextIt == endIt)
                 return false;
-            if (!context.builder || context.builder->backendBuildCfg().optimizeForSize)
-                return false;
 
             const MicroReg copyDstReg = ops[0].reg;
             const MicroReg copySrcReg = ops[1].reg;
             if (!copyDstReg.isSameClass(copySrcReg))
+                return false;
+            const MicroReg stackPointerReg = CallConv::get(context.callConvKind).stackPointer;
+            if (copyDstReg == stackPointerReg || copySrcReg == stackPointerReg)
                 return false;
             if (ops[2].opBits != MicroOpBits::B64)
                 return false;
@@ -199,8 +200,8 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
-                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                MicroInstr&              scanInst = *scanIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
 
@@ -1253,7 +1254,7 @@ namespace PeepholePass
         outRules.push_back({RuleTarget::LoadRegReg, coalesceCopyInstruction});
 
         // Rule: remove_unused_copy_destination
-        // Purpose: remove a copy when the destination register is never used afterwards.
+        // Purpose: remove a copy when the destination register is never used afterward.
         // Example: mov r9, r11; add rax, rcx -> add rax, rcx
         outRules.push_back({RuleTarget::LoadRegReg, removeUnusedCopyDestination});
 

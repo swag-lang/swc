@@ -56,9 +56,9 @@ namespace PeepholePass
             if (!inst || !ops)
                 return false;
 
-            MicroReg    baseReg;
-            uint64_t    offset = 0;
-            MicroOpBits opBits = MicroOpBits::Zero;
+            MicroReg baseReg;
+            uint64_t offset = 0;
+            auto     opBits = MicroOpBits::Zero;
             if (!getStoreLocation(*inst, ops, baseReg, offset, opBits))
                 return false;
 
@@ -79,9 +79,9 @@ namespace PeepholePass
                 if (!scanOps)
                     return false;
 
-                MicroReg    scanBaseReg;
-                uint64_t    scanOffset = 0;
-                MicroOpBits scanBits   = MicroOpBits::Zero;
+                MicroReg scanBaseReg;
+                uint64_t scanOffset = 0;
+                auto     scanBits   = MicroOpBits::Zero;
                 if (getStoreLocation(scanInst, scanOps, scanBaseReg, scanOffset, scanBits))
                 {
                     if (scanBaseReg == baseReg && scanOffset == offset && scanBits == opBits)
@@ -185,8 +185,8 @@ namespace PeepholePass
             if (restoreIt == cursor.endIt)
                 return false;
 
-            const MicroInstr&    shiftInst = *shiftIt;
-            MicroInstrOperand*   shiftOps  = shiftInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstr&        shiftInst = *shiftIt;
+            const MicroInstrOperand* shiftOps  = shiftInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
             if (!shiftOps)
                 return false;
             if (shiftInst.op != MicroInstrOpcode::OpBinaryRegImm)

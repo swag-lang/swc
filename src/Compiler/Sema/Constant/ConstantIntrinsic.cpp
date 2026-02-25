@@ -86,8 +86,6 @@ namespace
     {
         const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
         SWC_ASSERT(diagId != DiagnosticId::None);
-        if (diagId == DiagnosticId::None)
-            return Result::Error;
         const auto diag = SemaError::report(sema, diagId, argRef);
         diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
         diag.report(sema.ctx());
@@ -295,8 +293,6 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             Math::FoldIntrinsicUnaryFloatOp foldOp;
             const bool                      mapped = mapTokenToUnaryIntrinsicFoldOp(foldOp, tok.id);
             SWC_ASSERT(mapped);
-            if (!mapped)
-                return Result::Error;
 
             double                 foldedValue = 0.0;
             const Math::FoldStatus foldStatus  = Math::foldIntrinsicUnaryFloat(foldedValue, x, foldOp);

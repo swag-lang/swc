@@ -7,19 +7,21 @@
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    JITCallErrorKind toCallErrorKind(uint32_t exceptionCode)
+    JITCallErrorKind toCallErrorKind(const uint32_t exceptionCode)
     {
         if (!exceptionCode)
             return JITCallErrorKind::None;
@@ -27,15 +29,102 @@ namespace
         return JITCallErrorKind::HardwareException;
     }
 
-    int exceptionHandler(const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args, JITCallErrorKind& outErrorKind)
+    bool isAssertTrapExceptionCode(const uint32_t exceptionCode)
     {
-        uint32_t exceptionCode = 0;
 #ifdef _WIN32
-        if (args && args->ExceptionRecord)
-            exceptionCode = args->ExceptionRecord->ExceptionCode;
+        return exceptionCode == EXCEPTION_ILLEGAL_INSTRUCTION;
+#else
+        SWC_UNUSED(exceptionCode);
+        return false;
 #endif
+    }
 
-        outErrorKind = toCallErrorKind(exceptionCode);
+    bool shouldHandleAsRunJitAssertTrap(const TaskContext& ctx)
+    {
+        return ctx.state().kind == TaskStateKind::RunJit && ctx.state().runJitFunction != nullptr;
+    }
+
+    void reportRunJitAssertTrapDiagnostic(TaskContext& ctx, const SourceCodeRef& sourceCodeRef)
+    {
+        SWC_ASSERT(sourceCodeRef.isValid());
+        if (!sourceCodeRef.isValid())
+            return;
+
+        const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
+        Diagnostic        diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
+        diag.last().addSpan(srcView.tokenCodeRange(ctx, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
+        diag.report(ctx);
+    }
+
+    void decodePlatformException(const void* platformExceptionPointers, uint32_t& outExceptionCode, const void*& outExceptionAddress)
+    {
+        outExceptionCode    = 0;
+        outExceptionAddress = nullptr;
+#ifdef _WIN32
+        const auto args = reinterpret_cast<SWC_LP_EXCEPTION_POINTERS>(const_cast<void*>(platformExceptionPointers));
+        if (args && args->ExceptionRecord)
+        {
+            outExceptionCode    = args->ExceptionRecord->ExceptionCode;
+            outExceptionAddress = args->ExceptionRecord->ExceptionAddress;
+        }
+#else
+        SWC_UNUSED(platformExceptionPointers);
+#endif
+    }
+
+    bool isIntrinsicAssertSourceRef(const TaskContext& ctx, const SourceCodeRef& sourceCodeRef)
+    {
+        if (!sourceCodeRef.isValid())
+            return false;
+
+        const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
+        const Token&      token   = srcView.token(sourceCodeRef.tokRef);
+        return token.id == TokenId::IntrinsicAssert;
+    }
+
+    bool resolveRunJitAssertSourceRef(SourceCodeRef& outSourceCodeRef, TaskContext& ctx, const void* exceptionAddress)
+    {
+        outSourceCodeRef = SourceCodeRef::invalid();
+        if (!exceptionAddress)
+            return false;
+
+        const SymbolFunction* const runJitFunction = ctx.state().runJitFunction;
+        if (!runJitFunction)
+            return false;
+
+        if (!runJitFunction->resolveJitSourceCodeRefForAddress(outSourceCodeRef, exceptionAddress))
+            return false;
+
+        if (!isIntrinsicAssertSourceRef(ctx, outSourceCodeRef))
+        {
+            outSourceCodeRef = SourceCodeRef::invalid();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool tryHandleRunJitAssertTrap(TaskContext& ctx, const uint32_t exceptionCode, const void* exceptionAddress, JITCallErrorKind* outErrorKind)
+    {
+        if (!shouldHandleAsRunJitAssertTrap(ctx) || !isAssertTrapExceptionCode(exceptionCode))
+            return false;
+
+        SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+        if (!resolveRunJitAssertSourceRef(sourceCodeRef, ctx, exceptionAddress))
+            return false;
+
+        if (outErrorKind)
+            *outErrorKind = JITCallErrorKind::AssertTrap;
+
+        reportRunJitAssertTrapDiagnostic(ctx, sourceCodeRef);
+        return true;
+    }
+
+    int exceptionHandler(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args, JITCallErrorKind& outErrorKind)
+    {
+        if (JIT::tryHandleRuntimeException(ctx, args, &outErrorKind))
+            return SWC_EXCEPTION_EXECUTE_HANDLER;
+
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
 
         return SWC_EXCEPTION_EXECUTE_HANDLER;
@@ -319,6 +408,21 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     void* const invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);
     (void) call(ctx, invoker);
+}
+
+bool JIT::tryHandleRuntimeException(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind)
+{
+    uint32_t    exceptionCode    = 0;
+    const void* exceptionAddress = nullptr;
+    decodePlatformException(platformExceptionPointers, exceptionCode, exceptionAddress);
+
+    if (tryHandleRunJitAssertTrap(ctx, exceptionCode, exceptionAddress, outErrorKind))
+        return true;
+
+    if (outErrorKind)
+        *outErrorKind = toCallErrorKind(exceptionCode);
+
+    return false;
 }
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)

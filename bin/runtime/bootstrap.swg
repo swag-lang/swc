@@ -725,6 +725,7 @@ namespace Swag
     struct BuildCfgBackend
     {
         optimize:               bool
+        emitAssert:             bool     // Generate runtime code for @assert
 
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'

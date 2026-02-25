@@ -21,6 +21,22 @@ void Encoder::copyTo(ByteSpanRW dst) const
     store_.copyTo(dst);
 }
 
+void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef)
+{
+    SWC_ASSERT(codeEndOffset >= codeStartOffset);
+    if (codeEndOffset <= codeStartOffset)
+        return;
+
+    if (!sourceCodeRef.isValid())
+        return;
+
+    debugSourceRanges_.push_back({
+        .codeStartOffset = codeStartOffset,
+        .codeEndOffset   = codeEndOffset,
+        .sourceCodeRef   = sourceCodeRef,
+    });
+}
+
 std::string Encoder::formatRegisterName(MicroReg reg) const
 {
     if (!reg.isValid())

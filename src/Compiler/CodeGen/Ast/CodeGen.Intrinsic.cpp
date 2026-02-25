@@ -92,6 +92,36 @@ namespace
         builder.emitLoadRegMem(result.reg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
         return Result::Continue;
     }
+
+    Result codeGenAssert(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        MicroBuilder&                     builder    = codeGen.builder();
+        const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
+        if (!backendCfg.emitAssert)
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        if (children.empty())
+            return Result::Continue;
+
+        const AstNodeRef          exprRef     = children[0];
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const MicroReg            condReg     = codeGen.nextVirtualIntRegister();
+        constexpr MicroOpBits     condBits    = MicroOpBits::B8;
+
+        if (exprPayload.isAddress())
+            builder.emitLoadRegMem(condReg, exprPayload.reg, 0, condBits);
+        else
+            builder.emitLoadRegReg(condReg, exprPayload.reg, condBits);
+
+        const Ref doneLabel = builder.createLabel();
+        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
+        builder.emitAssertTrap();
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -120,7 +150,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     switch (tok.id)
     {
         case TokenId::IntrinsicAssert:
-            return Result::Continue;
+            return codeGenAssert(codeGen, *this);
 
         case TokenId::IntrinsicBcBreakpoint:
             codeGen.builder().emitBreakpoint();

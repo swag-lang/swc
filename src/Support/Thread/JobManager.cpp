@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
+#include "Backend/JIT/JIT.h"
 #include "Main/CommandLine.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
@@ -418,6 +419,10 @@ namespace
 
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
+        TaskContext& ctx = const_cast<TaskContext&>(job.ctx());
+        if (JIT::tryHandleRuntimeException(ctx, args))
+            return SWC_EXCEPTION_EXECUTE_HANDLER;
+
         exceptionMessage(job, args);
         Os::panicBox("hardware exception raised!");
         return SWC_EXCEPTION_EXECUTE_HANDLER;

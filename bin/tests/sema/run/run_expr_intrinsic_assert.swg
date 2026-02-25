@@ -1,0 +1,24 @@
+#global internal
+
+#test
+{
+    func passAssert()->s32
+    {
+        @assert(true)
+        return 42
+    }
+
+    const V = #run passAssert()
+    #assert(V == 42)
+}
+
+#test
+{
+    func failAssert()->s32
+    {
+        @assert(false) // swc-expected-error {{sema_err_assert_failed}}
+        return 7
+    }
+
+    const V = #run failAssert()
+}

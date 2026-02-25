@@ -82,6 +82,37 @@ namespace
     }
 }
 
+bool MachineCode::resolveSourceCodeRefAtOffset(SourceCodeRef& outSourceCodeRef, const uint32_t codeOffset) const
+{
+    const DebugSourceRange* bestBefore = nullptr;
+    for (const DebugSourceRange& range : debugSourceRanges)
+    {
+        if (!range.sourceCodeRef.isValid())
+            continue;
+
+        if (codeOffset >= range.codeStartOffset && codeOffset < range.codeEndOffset)
+        {
+            outSourceCodeRef = range.sourceCodeRef;
+            return true;
+        }
+
+        if (range.codeStartOffset > codeOffset)
+            continue;
+
+        if (!bestBefore || bestBefore->codeStartOffset < range.codeStartOffset)
+            bestBefore = &range;
+    }
+
+    if (bestBefore)
+    {
+        outSourceCodeRef = bestBefore->sourceCodeRef;
+        return true;
+    }
+
+    outSourceCodeRef = SourceCodeRef::invalid();
+    return false;
+}
+
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
     MicroControlFlowSimplificationPass cfgSimplifyPass;
@@ -105,6 +136,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 #ifdef _M_X64
     X64Encoder encoder(ctx);
     encoder.setBackendBuildCfg(builder.backendBuildCfg());
+    encoder.clearDebugSourceRanges();
 #endif
 
     MicroOptimizationPasses optimizationPasses;
@@ -150,6 +182,16 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
     codeRelocations = builder.codeRelocations();
+    debugSourceRanges.clear();
+    debugSourceRanges.reserve(encoder.debugSourceRanges().size());
+    for (const EncoderDebugSourceRange& range : encoder.debugSourceRanges())
+    {
+        debugSourceRanges.push_back({
+            .codeStartOffset = range.codeStartOffset,
+            .codeEndOffset   = range.codeEndOffset,
+            .sourceCodeRef   = range.sourceCodeRef,
+        });
+    }
     return Result::Continue;
 }
 

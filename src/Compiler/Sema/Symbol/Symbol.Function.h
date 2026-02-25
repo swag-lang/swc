@@ -76,6 +76,7 @@ public:
     void                addCallDependency(SymbolFunction* sym);
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    bool                resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceCodeRef, const void* address) const;
     Result              emit(TaskContext& ctx);
     void                jit(TaskContext& ctx);
 

@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroTypes.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Math/ApInt.h"
 
@@ -43,6 +44,13 @@ struct MicroConformanceIssue
     MicroReg                  scratchReg;
 };
 
+struct EncoderDebugSourceRange
+{
+    uint32_t      codeStartOffset = 0;
+    uint32_t      codeEndOffset   = 0;
+    SourceCodeRef sourceCodeRef   = SourceCodeRef::invalid();
+};
+
 class Encoder
 {
     friend class MicroBuilder;
@@ -55,6 +63,9 @@ public:
     const uint8_t*                  data() const;
     uint8_t                         byteAt(uint32_t index) const;
     void                            copyTo(ByteSpanRW dst) const;
+    void                            clearDebugSourceRanges() { debugSourceRanges_.clear(); }
+    void                            addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef);
+    const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
     virtual std::string             formatRegisterName(MicroReg reg) const;
@@ -72,6 +83,7 @@ protected:
     virtual void encodePop(MicroReg reg)                                                                                                                                              = 0;
     virtual void encodeNop()                                                                                                                                                          = 0;
     virtual void encodeBreakpoint()                                                                                                                                                   = 0;
+    virtual void encodeAssertTrap()                                                                                                                                                   = 0;
     virtual void encodeRet()                                                                                                                                                          = 0;
     virtual void encodeCallLocal(Symbol* targetSymbol, CallConvKind callConv)                                                                                                         = 0;
     virtual void encodeCallExtern(Symbol* targetSymbol, uint64_t targetAddress, CallConvKind callConv)                                                                                = 0;
@@ -136,6 +148,7 @@ protected:
     uint32_t                 symCsIndex_        = 0;
     EncoderFunction*         cpuFct_            = nullptr;
     Runtime::BuildCfgBackend backendBuildCfg_{};
+    std::vector<EncoderDebugSourceRange> debugSourceRanges_;
 };
 
 SWC_END_NAMESPACE();

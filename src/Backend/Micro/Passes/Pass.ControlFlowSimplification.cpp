@@ -11,37 +11,26 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isJumpToImmediateNextLabel(const MicroStorage& storage, const MicroOperandStorage& operands, Ref jumpRef)
+    bool isJumpToImmediateNextLabel(const MicroInstrOperand* jumpOps, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroOperandStorage& operands)
     {
-        for (auto jumpIt = storage.view().begin(); jumpIt != storage.view().end(); ++jumpIt)
+        SWC_ASSERT(jumpOps != nullptr);
+        if (jumpOps[2].valueU64 > std::numeric_limits<Ref>::max())
+            return false;
+
+        const Ref targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
+        for (; scanIt != endIt; ++scanIt)
         {
-            if (jumpIt.current != jumpRef)
-                continue;
-
-            const MicroInstr& jumpInst = *jumpIt;
-            if (jumpInst.op != MicroInstrOpcode::JumpCond)
-                return false;
-
-            const MicroInstrOperand* jumpOps = jumpInst.ops(operands);
-            SWC_ASSERT(jumpOps != nullptr);
-            SWC_ASSERT(jumpOps[2].valueU64 <= std::numeric_limits<Ref>::max());
-            const Ref targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
-
-            auto scanIt = jumpIt;
-            ++scanIt;
-            for (; scanIt != storage.view().end(); ++scanIt)
+            const MicroInstr& inst = *scanIt;
+            if (inst.op == MicroInstrOpcode::Label)
             {
-                const MicroInstr& inst = *scanIt;
-                if (inst.op == MicroInstrOpcode::Label)
-                {
-                    const MicroInstrOperand* labelOps = inst.ops(operands);
-                    SWC_ASSERT(labelOps != nullptr);
-                    if (labelOps[0].valueU64 <= std::numeric_limits<Ref>::max() && static_cast<Ref>(labelOps[0].valueU64) == targetLabelRef)
-                        return true;
+                const MicroInstrOperand* labelOps = inst.ops(operands);
+                SWC_ASSERT(labelOps != nullptr);
+                if (labelOps[0].valueU64 > std::numeric_limits<Ref>::max())
                     continue;
-                }
 
-                return false;
+                if (static_cast<Ref>(labelOps[0].valueU64) == targetLabelRef)
+                    return true;
+                continue;
             }
 
             return false;
@@ -72,28 +61,36 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                 changed  = false;
-    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
+    bool                     changed  = false;
+    MicroStorage&            storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage&     operands = *SWC_NOT_NULL(context.operands);
+    const MicroStorage::View view     = storage.view();
+    const auto               endIt    = view.end();
+    const auto               beginIt  = view.begin();
 
-    for (auto it = storage.view().begin(); it != storage.view().end();)
+    for (auto it = beginIt; it != endIt;)
     {
         const Ref         instRef = it.current;
         const MicroInstr& inst    = *it;
         ++it;
 
-        if (inst.op == MicroInstrOpcode::JumpCond && isJumpToImmediateNextLabel(storage, operands, instRef))
+        if (inst.op == MicroInstrOpcode::JumpCond)
         {
-            storage.erase(instRef);
-            changed = true;
-            continue;
+            const MicroInstrOperand* jumpOps = inst.ops(operands);
+            SWC_ASSERT(jumpOps != nullptr);
+            if (isJumpToImmediateNextLabel(jumpOps, it, endIt, operands))
+            {
+                storage.erase(instRef);
+                changed = true;
+                continue;
+            }
         }
 
         if (inst.op != MicroInstrOpcode::Ret && !MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(operands)))
             continue;
 
         auto scanIt = it;
-        while (scanIt != storage.view().end())
+        while (scanIt != endIt)
         {
             if (scanIt->op == MicroInstrOpcode::Label)
                 break;
@@ -106,6 +103,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
     }
 
     std::unordered_set<Ref> referencedLabels;
+    referencedLabels.reserve(storage.count());
     collectReferencedLabels(storage, operands, referencedLabels);
 
     for (auto it = storage.view().begin(); it != storage.view().end();)

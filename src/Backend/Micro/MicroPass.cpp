@@ -154,7 +154,7 @@ namespace
         SWC_RESULT_VERIFY(pass.run(context));
 
         bool changed = context.passChanged;
-        if (context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
+        if (changed && context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
             changed = true;
 
         if (shouldPrintPass(context, pass, false))

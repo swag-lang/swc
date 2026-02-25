@@ -88,6 +88,9 @@ bool MicroBuilder::invalidateRelocationForInstruction(Ref instructionRef)
 
 bool MicroBuilder::pruneDeadRelocations()
 {
+    if (relocations_.empty())
+        return false;
+
     bool changed = false;
     for (MicroRelocation& reloc : relocations_)
     {

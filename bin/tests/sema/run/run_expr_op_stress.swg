@@ -108,6 +108,7 @@ enum StressKind: u16
         return a * b + b - a
     }
 
+    //#[Swag.PrintMicro]
     func stressCallAndIndex()->s32
     {
         var arr: [4] s32 = [3, 5, 7, 11]

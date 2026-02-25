@@ -351,23 +351,18 @@ namespace PeepholePass
             if (!storeInst || !storeOps || storeInst->op != MicroInstrOpcode::LoadMemReg)
                 return false;
 
-            Ref               prevRef      = INVALID_REF;
-            Ref               prevPrevRef  = INVALID_REF;
-            const MicroInstr* prevInst     = nullptr;
-            const MicroInstr* prevPrevInst = nullptr;
-            const auto        view         = SWC_NOT_NULL(context.instructions)->view();
-            for (auto it = view.begin(); it != view.end(); ++it)
-            {
-                if (it.current == storeRef)
-                    break;
+            MicroStorage* const instructions = SWC_NOT_NULL(context.instructions);
+            const Ref           prevRef      = instructions->findPreviousInstructionRef(storeRef);
+            if (prevRef == INVALID_REF)
+                return false;
 
-                prevPrevRef  = prevRef;
-                prevPrevInst = prevInst;
-                prevRef      = it.current;
-                prevInst     = &*it;
-            }
+            const Ref prevPrevRef = instructions->findPreviousInstructionRef(prevRef);
+            if (prevPrevRef == INVALID_REF)
+                return false;
 
-            if (prevRef == INVALID_REF || prevPrevRef == INVALID_REF || !prevInst || !prevPrevInst)
+            const MicroInstr* const prevInst     = instructions->ptr(prevRef);
+            const MicroInstr* const prevPrevInst = instructions->ptr(prevPrevRef);
+            if (!prevInst || !prevPrevInst)
                 return false;
             if (prevPrevInst->op != MicroInstrOpcode::LoadRegMem)
                 return false;
@@ -421,30 +416,30 @@ namespace PeepholePass
                 return false;
             }
 
-            const Ref         newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
-            const MicroInstr* newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+            const Ref         newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
+            const MicroInstr* newInst = instructions->ptr(newRef);
             if (!newInst)
             {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
+                instructions->erase(newRef);
                 return false;
             }
 
             const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
             if (!newInstOps)
             {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
+                instructions->erase(newRef);
                 return false;
             }
 
             if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
             {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
+                instructions->erase(newRef);
                 return false;
             }
 
-            SWC_NOT_NULL(context.instructions)->erase(prevPrevRef);
-            SWC_NOT_NULL(context.instructions)->erase(prevRef);
-            SWC_NOT_NULL(context.instructions)->erase(storeRef);
+            instructions->erase(prevPrevRef);
+            instructions->erase(prevRef);
+            instructions->erase(storeRef);
             return true;
         }
 

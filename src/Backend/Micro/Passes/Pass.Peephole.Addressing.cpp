@@ -61,7 +61,7 @@ namespace PeepholePass
 
                 const MicroInstrOpcode           originalOp = scanInst.op;
                 std::array<MicroInstrOperand, 8> originalOps{};
-                const uint32_t                   numSnapshotOps = std::min<uint32_t>(scanInst.numOperands, static_cast<uint8_t>(originalOps.size()));
+                const uint32_t                   numSnapshotOps = std::min(static_cast<uint32_t>(scanInst.numOperands), static_cast<uint32_t>(originalOps.size()));
                 for (uint32_t i = 0; i < numSnapshotOps; ++i)
                     originalOps[i] = scanOps[i];
 

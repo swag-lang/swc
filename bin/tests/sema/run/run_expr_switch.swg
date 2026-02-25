@@ -56,7 +56,6 @@ enum RunSwitchEnum: s32
 
 #test
 {
-    #[Swag.PrintMicro]
     func switchRange(v: s32)->s32
     {
         switch v

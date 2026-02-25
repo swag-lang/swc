@@ -170,25 +170,144 @@ namespace
         return type.isBool() || type.isInt() || type.isFloat() || type.isRune() || type.isChar() || type.isEnum();
     }
 
-    bool isPureInlineExpressionNode(AstNodeId id)
+    struct InlineExpressionScanEntry
     {
-        switch (id)
+        AstNodeRef nodeRef = AstNodeRef::invalid();
+    };
+
+    void pushInlineExpressionChild(SmallVector<InlineExpressionScanEntry>& out, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return;
+
+        out.push_back({.nodeRef = nodeRef});
+    }
+
+    bool appendInlineExpressionChildren(const AstNode& node, SmallVector<InlineExpressionScanEntry>& out)
+    {
+        switch (node.id())
         {
-            case AstNodeId::Identifier:
-            case AstNodeId::AncestorIdentifier:
-            case AstNodeId::ParenExpr:
             case AstNodeId::BinaryExpr:
+            {
+                const auto& expr = node.cast<AstBinaryExpr>();
+                pushInlineExpressionChild(out, expr.nodeRightRef);
+                pushInlineExpressionChild(out, expr.nodeLeftRef);
+                return true;
+            }
+
             case AstNodeId::LogicalExpr:
+            {
+                const auto& expr = node.cast<AstLogicalExpr>();
+                pushInlineExpressionChild(out, expr.nodeRightRef);
+                pushInlineExpressionChild(out, expr.nodeLeftRef);
+                return true;
+            }
+
             case AstNodeId::RelationalExpr:
+            {
+                const auto& expr = node.cast<AstRelationalExpr>();
+                pushInlineExpressionChild(out, expr.nodeRightRef);
+                pushInlineExpressionChild(out, expr.nodeLeftRef);
+                return true;
+            }
+
             case AstNodeId::NullCoalescingExpr:
+            {
+                const auto& expr = node.cast<AstNullCoalescingExpr>();
+                pushInlineExpressionChild(out, expr.nodeRightRef);
+                pushInlineExpressionChild(out, expr.nodeLeftRef);
+                return true;
+            }
+
             case AstNodeId::ConditionalExpr:
+            {
+                const auto& expr = node.cast<AstConditionalExpr>();
+                pushInlineExpressionChild(out, expr.nodeFalseRef);
+                pushInlineExpressionChild(out, expr.nodeTrueRef);
+                pushInlineExpressionChild(out, expr.nodeCondRef);
+                return true;
+            }
+
             case AstNodeId::IndexExpr:
+            {
+                const auto& expr = node.cast<AstIndexExpr>();
+                pushInlineExpressionChild(out, expr.nodeArgRef);
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                return true;
+            }
+
             case AstNodeId::MemberAccessExpr:
+            {
+                const auto& expr = node.cast<AstMemberAccessExpr>();
+                pushInlineExpressionChild(out, expr.nodeRightRef);
+                pushInlineExpressionChild(out, expr.nodeLeftRef);
+                return true;
+            }
+
             case AstNodeId::AutoMemberAccessExpr:
+            {
+                const auto& expr = node.cast<AstAutoMemberAccessExpr>();
+                pushInlineExpressionChild(out, expr.nodeIdentRef);
+                return true;
+            }
+
+            case AstNodeId::Identifier:
+                return true;
+
+            case AstNodeId::AncestorIdentifier:
+            {
+                const auto& expr = node.cast<AstAncestorIdentifier>();
+                pushInlineExpressionChild(out, expr.nodeIdentRef);
+                pushInlineExpressionChild(out, expr.nodeValueRef);
+                return true;
+            }
+
+            case AstNodeId::ParenExpr:
+            {
+                const auto& expr = node.cast<AstParenExpr>();
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                return true;
+            }
+
             case AstNodeId::CastExpr:
+            {
+                const auto& expr = node.cast<AstCastExpr>();
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                pushInlineExpressionChild(out, expr.nodeTypeRef);
+                return true;
+            }
+
             case AstNodeId::AutoCastExpr:
+            {
+                const auto& expr = node.cast<AstAutoCastExpr>();
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                return true;
+            }
+
             case AstNodeId::AsCastExpr:
+            {
+                const auto& expr = node.cast<AstAsCastExpr>();
+                pushInlineExpressionChild(out, expr.nodeTypeRef);
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                return true;
+            }
+
             case AstNodeId::IsTypeExpr:
+            {
+                const auto& expr = node.cast<AstIsTypeExpr>();
+                pushInlineExpressionChild(out, expr.nodeTypeRef);
+                pushInlineExpressionChild(out, expr.nodeExprRef);
+                return true;
+            }
+
+            case AstNodeId::SuffixLiteral:
+            {
+                const auto& expr = node.cast<AstSuffixLiteral>();
+                pushInlineExpressionChild(out, expr.nodeSuffixRef);
+                pushInlineExpressionChild(out, expr.nodeLiteralRef);
+                return true;
+            }
+
             case AstNodeId::BoolLiteral:
             case AstNodeId::CharacterLiteral:
             case AstNodeId::FloatLiteral:
@@ -196,8 +315,8 @@ namespace
             case AstNodeId::BinaryLiteral:
             case AstNodeId::HexaLiteral:
             case AstNodeId::NullLiteral:
-            case AstNodeId::SuffixLiteral:
                 return true;
+
             default:
                 return false;
         }
@@ -207,26 +326,27 @@ namespace
     {
         if (rootRef.isInvalid())
             return false;
-        if (!budget)
-            return false;
-        budget--;
 
-        const AstNode& node = sema.node(rootRef);
-        if (!isPureInlineExpressionNode(node.id()))
-            return false;
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
-        for (const AstNodeRef childRef : children)
+        SmallVector<InlineExpressionScanEntry> toScan;
+        pushInlineExpressionChild(toScan, rootRef);
+        while (!toScan.empty())
         {
-            if (!isPureInlineExpressionTree(sema, childRef, budget))
+            if (!budget)
+                return false;
+            budget--;
+
+            const InlineExpressionScanEntry entry = toScan.back();
+            toScan.pop_back();
+
+            const AstNode& node = sema.node(entry.nodeRef);
+            if (!appendInlineExpressionChildren(node, toScan))
                 return false;
         }
 
         return true;
     }
 
-    bool canAutoInlineFunction(Sema& sema, const SymbolFunction& fn)
+    bool canAutoInlineFunction(const Sema& sema, const SymbolFunction& fn)
     {
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
             return false;
@@ -235,6 +355,9 @@ namespace
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
             return true;
         if (!isAutoInlineEnabled(sema))
+            return false;
+
+        if (!fn.isPureExpression())
             return false;
 
         const TypeInfo& returnType = sema.typeMgr().get(fn.returnTypeRef());
@@ -249,12 +372,7 @@ namespace
                 return false;
         }
 
-        const AstNodeRef srcExprRef = inlineExprRef(sema, fn);
-        if (srcExprRef.isInvalid())
-            return false;
-
-        uint32_t expressionBudget = 64;
-        return isPureInlineExpressionTree(sema, srcExprRef, expressionBudget);
+        return true;
     }
 
     bool canAutoInlineArguments(Sema& sema, std::span<AstNodeRef> args, AstNodeRef ufcsArg)

@@ -175,12 +175,12 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     auto& shard = shards_[shardIndex];
 
     {
-        std::shared_lock const lk(shard.mutex);
+        const std::shared_lock lk(shard.mutex);
         if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
             return it->second;
     }
 
-    std::unique_lock const lk(shard.mutex);
+    const std::unique_lock lk(shard.mutex);
     const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
     if (!inserted)
         return it->second;
@@ -265,7 +265,7 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
-    std::unique_lock const lk(mutexRt_);
+    const std::unique_lock lk(mutexRt_);
     const auto             it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
@@ -274,7 +274,7 @@ void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 
 TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
 {
-    std::shared_lock const lk(mutexRt_);
+    const std::shared_lock lk(mutexRt_);
     return runtimeTypes_[static_cast<uint32_t>(kind)];
 }
 

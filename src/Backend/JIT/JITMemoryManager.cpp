@@ -26,7 +26,7 @@ namespace
 
 JITMemoryManager::~JITMemoryManager()
 {
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
     for (const auto& block : blocks_)
     {
         if (block.ptr)
@@ -46,7 +46,7 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     const uint32_t requestSize      = size;
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
 
     Block* targetBlock = nullptr;
     for (auto& block : blocks_)

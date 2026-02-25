@@ -153,7 +153,7 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 
 Result AstStringLiteral::semaPreNode(Sema& sema) const
 {
-    TaskContext const& ctx     = sema.ctx();
+    const TaskContext& ctx     = sema.ctx();
     const Token&       tok     = sema.token(codeRef());
     const SourceView&  srcView = sema.compiler().srcView(srcViewRef());
     std::string_view   str     = tok.string(srcView);

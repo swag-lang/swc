@@ -175,7 +175,7 @@ namespace
             if (initDims.size() > 1)
             {
                 TypeRef elemTypeRef = baseTypeRef;
-                for (uint64_t const& initDim : std::ranges::reverse_view(initDims))
+                for (const uint64_t& initDim : std::ranges::reverse_view(initDims))
                 {
                     SmallVector4<uint64_t> oneDim;
                     oneDim.push_back(initDim);
@@ -456,12 +456,12 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
     {
         if (hasFlag(AstVarDeclFlagsE::Const))
         {
-            Symbol const& sym = SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
+            const Symbol& sym = SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
             symbols.push_back(&sym);
         }
         else
         {
-            Symbol const& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+            const Symbol& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symbols.push_back(&sym);
             if (hasFlag(AstVarDeclFlagsE::Let))
             {

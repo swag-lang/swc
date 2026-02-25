@@ -519,7 +519,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
         const Ref         currentRef = it.current;
-        MicroInstr const& inst       = *it;
+        const MicroInstr& inst       = *it;
         const auto*       ops        = inst.ops(operands);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);

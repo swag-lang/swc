@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
-    std::scoped_lock const lk(cachesMutex_);
+    const std::scoped_lock lk(cachesMutex_);
     auto&                  ptr = caches_[&storage];
     if (!ptr)
         ptr = std::make_unique<TypeGenCache>();
@@ -17,14 +17,14 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
     auto&                  cache = cacheFor(storage);
-    std::scoped_lock const lk(cache.mutex);
+    const std::scoped_lock lk(cache.mutex);
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
     const auto res = TypeGenInternal::processTypeInfo(sema, storage, typeRef, ownerNodeRef, result, cache);
     if (res == Result::Continue)
     {
-        std::scoped_lock const lk2(ptrToTypeMutex_);
+        const std::scoped_lock lk2(ptrToTypeMutex_);
         ptrToType_[result.span.data()] = typeRef;
     }
 
@@ -33,7 +33,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
 TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 {
-    std::scoped_lock const lk(ptrToTypeMutex_);
+    const std::scoped_lock lk(ptrToTypeMutex_);
     const auto             it = ptrToType_.find(ptr);
     if (it != ptrToType_.end())
         return it->second;

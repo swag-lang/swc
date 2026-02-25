@@ -162,7 +162,7 @@ void CompilerInstance::logBefore()
 {
     const TaskContext ctx(*this);
 
-    Logger::ScopedLock const loggerLock(ctx.global().logger());
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
 
 #if SWC_DEBUG
     Logger::printHeaderCentered(ctx, LogColor::Magenta, "[Debug]", LogColor::Magenta, "ON");
@@ -183,7 +183,7 @@ void CompilerInstance::logAfter()
     const TaskContext ctx(*this);
 
     const Utf8               timeSrc = Utf8Helper::toNiceTime(Timer::toSeconds(Stats::get().timeTotal));
-    Logger::ScopedLock const loggerLock(ctx.global().logger());
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
     if (Stats::get().numErrors.load() == 1)
         Logger::printHeaderCentered(ctx, LogColor::Green, "Done", LogColor::BrightRed, "1 error");
     else if (Stats::get().numErrors.load() > 1)
@@ -207,7 +207,7 @@ void CompilerInstance::logStats()
 
 void CompilerInstance::processCommand()
 {
-    Timer const time(&Stats::get().timeTotal);
+    const Timer time(&Stats::get().timeTotal);
     switch (cmdLine().command)
     {
         case CommandKind::Syntax:
@@ -241,7 +241,7 @@ ExitCode CompilerInstance::run()
 
 SourceView& CompilerInstance::addSourceView()
 {
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
     auto                   srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
 #if SWC_HAS_REF_DEBUG_INFO
@@ -255,7 +255,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     SWC_ASSERT(fileRef.isValid());
     SWC_RACE_CONDITION_READ(rcFiles_);
 
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
     auto                   srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
 #if SWC_HAS_REF_DEBUG_INFO
@@ -266,7 +266,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 
 SourceView& CompilerInstance::srcView(SourceViewRef ref)
 {
-    std::shared_lock const lock(mutex_);
+    const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     SourceView* const view = srcViews_[ref.get()].get();
@@ -275,7 +275,7 @@ SourceView& CompilerInstance::srcView(SourceViewRef ref)
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 {
-    std::shared_lock const lock(mutex_);
+    const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     const SourceView* const view = srcViews_[ref.get()].get();
@@ -284,7 +284,7 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
 {
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
     if (mainFunc_)
         return false;
     mainFunc_ = node;
@@ -293,7 +293,7 @@ bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
 
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
-    std::unique_lock const lock(mutex_);
+    const std::unique_lock lock(mutex_);
     for (const Utf8& lib : foreignLibs_)
     {
         if (lib == name)

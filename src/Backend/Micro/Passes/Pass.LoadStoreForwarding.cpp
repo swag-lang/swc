@@ -89,7 +89,7 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        MicroInstr const& first = *it;
+        const MicroInstr& first = *it;
         if (first.op != MicroInstrOpcode::LoadMemReg && first.op != MicroInstrOpcode::LoadMemImm)
             continue;
 

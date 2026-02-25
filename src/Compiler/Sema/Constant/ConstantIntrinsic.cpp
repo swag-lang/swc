@@ -41,7 +41,7 @@ namespace
             return 0;
 
         SmallVector<std::byte> storage(sizeOf);
-        ByteSpanRW const       storageSpan{storage.data(), storage.size()};
+        const ByteSpanRW       storageSpan{storage.data(), storage.size()};
         std::memset(storageSpan.data(), 0, storageSpan.size());
         ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), view.typeRef());
 
@@ -70,7 +70,7 @@ namespace
         if (!resultTy.isFloat())
             return Result::Continue;
 
-        ApFloat const af(value);
+        const ApFloat af(value);
         ConstantValue cv;
         if (resultTy.isFloatUnsized())
             cv = ConstantValue::makeFloatUnsized(sema.ctx(), af);

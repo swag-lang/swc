@@ -162,19 +162,19 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, codeRef()))
             return Result::Error;
 
-        ConstantValue const val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
+        const ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
         valueCst                = sema.cstMgr().addConstant(ctx, val);
         symEnum.setHasNextValue();
     }
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
-    SymbolFlags const   flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
+    const SymbolFlags   flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
     auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 
-    ConstantValue const enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
-    ConstantRef const   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
+    const ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
+    const ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
     symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
     symValue->setTyped(ctx);

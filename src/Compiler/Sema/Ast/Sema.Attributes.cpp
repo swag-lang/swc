@@ -44,7 +44,7 @@ namespace
         const SourceFile*     srcFile  = srcView.file();
         const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&ctx, srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
 
-        Logger::ScopedLock const lock(ctx.global().logger());
+        const Logger::ScopedLock lock(ctx.global().logger());
         Logger::print(ctx, "\n");
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[ast]");

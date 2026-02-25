@@ -67,7 +67,7 @@ namespace
 
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        TaskContext const& ctx         = sema.ctx();
+        const TaskContext& ctx         = sema.ctx();
         ConstantRef        leftCstRef  = nodeLeftView.cstRef();
         ConstantRef        rightCstRef = nodeRightView.cstRef();
         const bool         keepEnumRes = keepEnumFlagsResult(nodeLeftView, nodeRightView, op);
@@ -177,7 +177,7 @@ namespace
                 return Result::Error;
             }
 
-            ConstantRef const intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, type.payloadIntBits(), type.payloadIntSign()));
+            const ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, type.payloadIntBits(), type.payloadIntSign()));
             if (keepEnumRes)
             {
                 const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef());

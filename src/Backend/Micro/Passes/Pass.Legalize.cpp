@@ -634,7 +634,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         MicroInstr* const instPtr = context.instructions->ptr(instRef);
         if (!instPtr)
             continue;
-        MicroInstr const&        inst = *instPtr;
+        const MicroInstr&        inst = *instPtr;
         MicroInstrOperand* const ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;

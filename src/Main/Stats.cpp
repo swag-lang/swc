@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 void Stats::print(const TaskContext& ctx) const
 {
-    Logger::ScopedLock const loggerLock(ctx.global().logger());
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
 
     constexpr auto colorHeader = LogColor::Yellow;
     constexpr auto colorMsg    = LogColor::White;

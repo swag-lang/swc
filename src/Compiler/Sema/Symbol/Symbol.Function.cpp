@@ -225,7 +225,7 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
     if (!sym || sym == this)
         return;
 
-    std::scoped_lock const lock(callDepsMutex_);
+    const std::scoped_lock lock(callDepsMutex_);
     if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())
         return;
     callDependencies_.push_back(sym);
@@ -233,7 +233,7 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
 {
-    std::scoped_lock const lock(callDepsMutex_);
+    const std::scoped_lock lock(callDepsMutex_);
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
@@ -298,7 +298,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    std::scoped_lock const lock(emitMutex_);
+    const std::scoped_lock lock(emitMutex_);
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
@@ -343,7 +343,7 @@ void SymbolFunction::jit(TaskContext& ctx)
 
 void SymbolFunction::jitEmit(TaskContext& ctx)
 {
-    std::scoped_lock const lock(emitMutex_);
+    const std::scoped_lock lock(emitMutex_);
     if (ctx.state().jitEmissionError)
         return;
 

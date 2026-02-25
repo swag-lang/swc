@@ -145,7 +145,7 @@ AstNodeRef Parser::parseVarDecl()
         AstNodeRef nodeType = AstNodeRef::invalid();
         if (consumeIf(TokenId::SymColon).isValid())
         {
-            PushContextFlags const scopedContext{this, ParserContextFlagsE::InVarDeclType};
+            const PushContextFlags scopedContext{this, ParserContextFlagsE::InVarDeclType};
             nodeType = parseType();
         }
 

@@ -390,7 +390,7 @@ AstNodeRef Parser::parseForeach()
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
-        TokenRef const tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
     }
 
@@ -490,7 +490,7 @@ AstNodeRef Parser::parseSwitch()
 
                 nodeStmts.clear();
 
-                AstNodeRef const caseRef = parseSwitchCaseDefault();
+                const AstNodeRef caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
                 currentCase = ast_->node<AstNodeId::SwitchCaseStmt>(caseRef);
 
@@ -509,7 +509,7 @@ AstNodeRef Parser::parseSwitch()
                     break;
                 }
 
-                AstNodeRef const stmtRef = parseEmbeddedStmt();
+                const AstNodeRef stmtRef = parseEmbeddedStmt();
                 nodeStmts.push_back(stmtRef);
                 break;
             }
@@ -540,7 +540,7 @@ AstNodeRef Parser::parseFile()
     SmallVector<AstNodeRef> globals;
     while (is(TokenId::CompilerGlobal))
     {
-        AstNodeRef const one = parseCompilerGlobal();
+        const AstNodeRef one = parseCompilerGlobal();
         if (ast_->hasFlag(AstFlagsE::GlobalSkip))
         {
             nodePtr->spanGlobalsRef.setInvalid();
@@ -558,7 +558,7 @@ AstNodeRef Parser::parseFile()
     SmallVector<AstNodeRef> usings;
     while (is(TokenId::KwdUsing))
     {
-        AstNodeRef const one = parseUsing();
+        const AstNodeRef one = parseUsing();
         if (one.isValid())
             usings.push_back(one);
     }

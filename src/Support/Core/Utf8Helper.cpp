@@ -32,7 +32,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
         const uint8_t b1 = u[1];
         if (b0 < 0xC2 || (b1 & 0xC0) != 0x80)
             return {nullptr, 0, 0};
-        uint32_t const wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
+        const uint32_t wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
         return {u + 2, wc, 2};
     }
 
@@ -49,7 +49,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 == 0xED && b1 >= 0xA0)
             return {nullptr, 0, 0}; // surrogates
-        uint32_t const wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
+        const uint32_t wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
         return {u + 3, wc, 3};
     }
 
@@ -67,7 +67,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 > 0xF4 || (b0 == 0xF4 && b1 > 0x8F))
             return {nullptr, 0, 0}; // > U+10FFFF
-        uint32_t const wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
+        const uint32_t wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
         return {u + 4, wc, 4};
     }
 

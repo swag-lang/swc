@@ -133,7 +133,7 @@ namespace
         if (typeField.isEnum())
             valueTypeRef = typeField.payloadSymEnum().underlyingTypeRef();
 
-        ConstantValue const cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        const ConstantValue cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (!cv.isValid())
             return failStructMemberType(sema, symVar, nodeMemberRef);
 
@@ -227,7 +227,7 @@ namespace
             if (elemType.isEnum())
                 valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
 
-            ConstantValue const cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            const ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
             if (!cv.isValid())
                 return Result::Continue;
 

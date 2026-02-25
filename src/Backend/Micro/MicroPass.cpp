@@ -115,7 +115,7 @@ namespace
 
         const TaskContext&       ctx     = *context.taskContext;
         const MicroBuilder&      builder = *context.builder;
-        Logger::ScopedLock const loggerLock(ctx.global().logger());
+        const Logger::ScopedLock loggerLock(ctx.global().logger());
 
         const std::string stageName = passStageName(pass, before);
 

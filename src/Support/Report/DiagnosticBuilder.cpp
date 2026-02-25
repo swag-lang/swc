@@ -818,7 +818,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
         size_t insertPos = idx + 1;
         for (const auto& p : parts)
         {
-            DiagnosticSeverity const sev = p.tag.value_or(DiagnosticSeverity::Note);
+            const DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
 
             auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
             extra->setMessage(Utf8(p.text));

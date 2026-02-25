@@ -320,14 +320,14 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     for (size_t i = 0; i < caseRefs.size(); ++i)
     {
         const AstNodeRef caseRef = caseRefs[i];
-        auto const       itCase  = switchState.caseStates.find(caseRef);
+        const auto       itCase  = switchState.caseStates.find(caseRef);
         SWC_ASSERT(itCase != switchState.caseStates.end());
 
         SwitchCaseCodeGenPayload& caseState = itCase->second;
         if (i + 1 < caseRefs.size())
         {
             const AstNodeRef nextCaseRef = caseRefs[i + 1];
-            auto const       itNextCase  = switchState.caseStates.find(nextCaseRef);
+            const auto       itNextCase  = switchState.caseStates.find(nextCaseRef);
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
             caseState.hasNextCase   = true;
@@ -353,7 +353,7 @@ Result AstSwitchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(switchState != nullptr);
 
-    auto const itCase = switchState->caseStates.find(childRef);
+    const auto itCase = switchState->caseStates.find(childRef);
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     codeGen.builder().placeLabel(itCase->second.testLabel);
@@ -420,7 +420,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
 
-    auto const itCase = switchState->caseStates.find(codeGen.curNodeRef());
+    const auto itCase = switchState->caseStates.find(codeGen.curNodeRef());
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
@@ -558,7 +558,7 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
 
-    auto const itCase = switchState->caseStates.find(caseRef);
+    const auto itCase = switchState->caseStates.find(caseRef);
     SWC_ASSERT(itCase != switchState->caseStates.end());
     if (!itCase->second.hasNextCase)
         return Result::Continue;

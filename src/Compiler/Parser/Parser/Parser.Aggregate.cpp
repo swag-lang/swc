@@ -99,7 +99,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdUsing:
         {
             consume();
-            PushContextFlags const _{this, ParserContextFlagsE::InUsingMemberDecl};
+            const PushContextFlags _{this, ParserContextFlagsE::InUsingMemberDecl};
             return parseVarDecl();
         }
 
@@ -143,7 +143,7 @@ AstNodeRef Parser::parseAggregateDecl()
     while (is(TokenId::KwdWhere))
     {
         const Token*     loopStartToken = curToken_;
-        AstNodeRef const whereRef       = parseConstraint();
+        const AstNodeRef whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
 

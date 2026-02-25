@@ -35,7 +35,7 @@ JobRecord* JobManager::allocRecord()
     }
 
     // Slow path: global pool
-    std::scoped_lock const lk(RecordPool::mtx);
+    const std::scoped_lock lk(RecordPool::mtx);
     if (!RecordPool::freeList.empty())
     {
         JobRecord* r = RecordPool::freeList.back();
@@ -63,7 +63,7 @@ void JobManager::freeRecord(JobRecord* r)
         return;
     }
 
-    std::scoped_lock const lk(RecordPool::mtx);
+    const std::scoped_lock lk(RecordPool::mtx);
     RecordPool::freeList.push_back(r);
 }
 
@@ -118,7 +118,7 @@ JobClientId JobManager::newClientId()
 
 void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
 {
-    std::unique_lock const lk(mtx_);
+    const std::unique_lock lk(mtx_);
     SWC_ASSERT(accepting_);
 
     // If already scheduled on this manager, refuse (simplifies invariants).
@@ -145,7 +145,7 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
 {
     waiting.clear();
 
-    std::unique_lock const lk(mtx_);
+    const std::unique_lock lk(mtx_);
     if (liveRecs_.empty())
         return;
 
@@ -262,7 +262,7 @@ void JobManager::waitAll()
         JobRecord* rec = nullptr;
 
         {
-            std::unique_lock const lk(mtx_);
+            const std::unique_lock lk(mtx_);
             rec = popReadyLocked();
             if (!rec)
                 break;
@@ -282,7 +282,7 @@ void JobManager::waitAll()
 
 bool JobManager::wakeAll(JobClientId client)
 {
-    std::unique_lock const lk(mtx_);
+    const std::unique_lock lk(mtx_);
 
     if (liveRecs_.empty())
         return false;
@@ -358,7 +358,7 @@ void JobManager::waitAll(JobClientId client)
         JobRecord* rec = nullptr;
 
         {
-            std::unique_lock const lk(mtx_);
+            const std::unique_lock lk(mtx_);
 
             const std::unordered_map<JobClientId, std::size_t>::const_iterator it = clientReadyRunning_.find(client);
             const std::size_t                                                  n  = (it == clientReadyRunning_.end()) ? 0 : it->second;
@@ -385,7 +385,7 @@ void JobManager::waitAll(JobClientId client)
 void JobManager::shutdown() noexcept
 {
     {
-        std::unique_lock const lk(mtx_);
+        const std::unique_lock lk(mtx_);
         if (joined_)
             return;
         accepting_ = false;
@@ -447,7 +447,7 @@ JobResult JobManager::executeJob(const Job& job)
 
 void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
 {
-    std::unique_lock const lk(mtx_);
+    const std::unique_lock lk(mtx_);
 
     switch (res)
     {
@@ -524,7 +524,7 @@ void JobManager::workerLoop()
         // If the spin loop did not acquire a job yet, but we observed ready work, do a short locked pop.
         if (!rec)
         {
-            std::unique_lock const lk(mtx_);
+            const std::unique_lock lk(mtx_);
             if (maybeExitIfDrainedLocked())
                 return;
             rec = popReadyAndMarkRunningLocked();
@@ -547,7 +547,7 @@ void JobManager::workerLoop()
             }
         };
 
-        ActiveGuard const activeGuard{.ref = &activeWorkers_, .ready = &readyCount_, .idleCv = &idleCv_};
+        const ActiveGuard activeGuard{.ref = &activeWorkers_, .ready = &readyCount_, .idleCv = &idleCv_};
 
         const JobResult res = executeJob(*rec->job);
         handleJobResult(rec, res);

@@ -148,7 +148,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
         const Token* loopStartToken = curToken_;
 
         // One block element
-        AstNodeRef const childRef = parseCompoundValue(blockNodeId);
+        const AstNodeRef childRef = parseCompoundValue(blockNodeId);
         if (childRef.isValid())
             childrenRefs.push_back(childRef);
 

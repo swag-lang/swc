@@ -246,7 +246,7 @@ namespace
 
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 {
-    Logger::ScopedLock const loggerLock(ctx.global().logger());
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
     Logger::printDim(ctx, std::format("swc: swag compiler version {}.{}.{}\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
     Logger::printDim(ctx, "Usage:\n");
 

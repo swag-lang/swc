@@ -98,7 +98,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
         const Ref         instRef = it.current;
-        MicroInstr const& inst    = *it;
+        const MicroInstr& inst    = *it;
         ++it;
 
         MicroInstrOperand* ops = inst.ops(operands);

@@ -8,7 +8,7 @@ namespace Math
     void mul64X64(uint64_t a, uint64_t b, uint64_t& lo, uint64_t& hi)
     {
 #ifdef __SIZEOF_INT128__
-        __uint128_t const r = (__uint128_t) a * b;
+        const __uint128_t r = (__uint128_t) a * b;
         lo                  = (uint64_t) r;
         hi                  = (uint64_t) (r >> 64);
 
@@ -42,9 +42,9 @@ namespace Math
 
 #ifdef __SIZEOF_INT128__
         // Fast path using native 128-bit integer.
-        __uint128_t const num  = (static_cast<__uint128_t>(hi) << 64) | lo;
-        __uint128_t const q128 = num / d;
-        __uint128_t const r128 = num % d;
+        const __uint128_t num  = (static_cast<__uint128_t>(hi) << 64) | lo;
+        const __uint128_t q128 = num / d;
+        const __uint128_t r128 = num % d;
 
         // For (2^128-1) / (2^64) the quotient is < 2^64, so it fits.
         q = static_cast<uint64_t>(q128);

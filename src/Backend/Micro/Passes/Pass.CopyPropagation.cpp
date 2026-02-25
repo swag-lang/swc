@@ -53,7 +53,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
     aliases.reserve(64);
 
     MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
-    for (MicroInstr const& inst : context.instructions->view())
+    for (const MicroInstr& inst : context.instructions->view())
     {
         if (inst.op == MicroInstrOpcode::Label)
         {
@@ -69,7 +69,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
                 continue;
 
             MicroReg&      reg         = *SWC_NOT_NULL(ref.reg);
-            MicroReg const resolvedReg = resolveAlias(aliases, reg);
+            const MicroReg resolvedReg = resolveAlias(aliases, reg);
             if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {
                 reg     = resolvedReg;

@@ -127,7 +127,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         return Result::Error;
 
     {
-        TaskScopedState const scopedState(ctx);
+        const TaskScopedState scopedState(ctx);
         ctx.state().setRunJit(&symFn, nodeExprRef, sema.node(nodeExprRef).codeRef());
 
         auto         callErrorKind = JITCallErrorKind::None;

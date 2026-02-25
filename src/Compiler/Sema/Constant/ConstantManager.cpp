@@ -58,7 +58,7 @@ namespace
         SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
         stored.setPayloadStruct(view);
 
@@ -73,7 +73,7 @@ namespace
         SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
         stored.setPayloadArray(view);
 
@@ -88,7 +88,7 @@ namespace
         SWC_UNUSED(ctx);
         ConstantValue stored = value;
 
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
         stored.setPayloadSlice(view);
 
@@ -101,12 +101,12 @@ namespace
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
         {
-            std::shared_lock const lk(shard.mutex);
+            const std::shared_lock lk(shard.mutex);
             if (const auto it = shard.map.find(value); it != shard.map.end())
                 return it->second;
         }
 
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         if (const auto it = shard.map.find(value); it != shard.map.end())
             return it->second;
 
@@ -114,7 +114,7 @@ namespace
         const ConstantValue                    strValue   = ConstantValue::makeString(ctx, res.first);
         const uint32_t                         localIndex = shard.dataSegment.add(strValue);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        ConstantRef const result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
         shard.map.emplace(strValue, result);
         return addCstFinalize(manager, result);
     }
@@ -123,12 +123,12 @@ namespace
     {
         SWC_UNUSED(ctx);
         {
-            std::shared_lock const lk(shard.mutex);
+            const std::shared_lock lk(shard.mutex);
             if (const auto it = shard.map.find(value); it != shard.map.end())
                 return it->second;
         }
 
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         auto [it, inserted] = shard.map.try_emplace(value, ConstantRef{});
         if (!inserted)
             return it->second;
@@ -213,7 +213,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     TypeGen::TypeGenResult infoResult;
 
     {
-        std::unique_lock const lk(shard.mutex);
+        const std::unique_lock lk(shard.mutex);
         SWC_RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
     }
 

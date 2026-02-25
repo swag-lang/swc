@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
-    std::unique_lock const lk(mutexImpls_);
+    const std::unique_lock lk(mutexImpls_);
     symImpl.setSymStruct(this);
     impls_.push_back(&symImpl);
     sema.compiler().notifyAlive();
@@ -23,20 +23,20 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 std::vector<SymbolImpl*> SymbolStruct::impls() const
 {
-    std::shared_lock const lk(mutexImpls_);
+    const std::shared_lock lk(mutexImpls_);
     return impls_;
 }
 
 void SymbolStruct::addInterface(SymbolImpl& symImpl)
 {
-    std::unique_lock const lk(mutexInterfaces_);
+    const std::unique_lock lk(mutexInterfaces_);
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
 }
 
 Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 {
-    std::unique_lock const lk(mutexInterfaces_);
+    const std::unique_lock lk(mutexInterfaces_);
     for (auto* const itf : interfaces_)
     {
         if (itf->idRef() == symImpl.idRef())
@@ -65,7 +65,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
 std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 {
-    std::shared_lock const lk(mutexInterfaces_);
+    const std::shared_lock lk(mutexInterfaces_);
     return interfaces_;
 }
 
@@ -240,7 +240,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 {
     SmallVector<SymbolFunction*> result;
 
-    std::shared_lock const lk(mutexSpecOps_);
+    const std::shared_lock lk(mutexSpecOps_);
     for (SymbolFunction* symFunc : specOps_)
     {
         if (symFunc->idRef() == identifierRef)
@@ -252,7 +252,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
-    std::unique_lock const lk(mutexSpecOps_);
+    const std::unique_lock lk(mutexSpecOps_);
     specOps_.push_back(&symFunc);
 
     switch (kind)

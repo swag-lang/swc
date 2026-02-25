@@ -48,7 +48,7 @@ namespace
     bool ensureSymbolEngineInitialized()
     {
         SymbolEngineState&     state = symbolEngineState();
-        std::scoped_lock const lock(state.mutex);
+        const std::scoped_lock lock(state.mutex);
 
         if (!state.attempted)
         {
@@ -188,7 +188,7 @@ namespace
             return false;
 
         SymbolEngineState&     state = symbolEngineState();
-        std::scoped_lock const lock(state.mutex);
+        const std::scoped_lock lock(state.mutex);
         bool                   hasInfo = false;
 
         const HANDLE                                            process = GetCurrentProcess();

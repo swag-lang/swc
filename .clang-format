@@ -46,6 +46,7 @@ MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
 PackConstructorInitializers: Never
 PointerAlignment: Left
+QualifierAlignment: Left
 ReferenceAlignment: Left
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false

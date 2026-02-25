@@ -226,7 +226,7 @@ namespace
             auto& out = state.liveOut[idx];
             out.clear();
             out.reserve(live.size());
-            for (uint32_t const regKey : live)
+            for (const uint32_t regKey : live)
                 out.push_back(regKey);
 
             const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);

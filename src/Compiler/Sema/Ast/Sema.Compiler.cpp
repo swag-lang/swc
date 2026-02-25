@@ -188,7 +188,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
-    TaskContext const& ctx     = sema.ctx();
+    const TaskContext& ctx     = sema.ctx();
     const Token&       tok     = sema.token(codeRef());
     const SourceView&  srcView = sema.ast().srcView();
 
@@ -454,7 +454,7 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext const& ctx      = sema.ctx();
+        const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         SemaNodeView       view     = sema.viewTypeSymbol(childRef);
 

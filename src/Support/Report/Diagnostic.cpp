@@ -258,7 +258,7 @@ void Diagnostic::report(TaskContext& ctx) const
     if (!dismiss)
     {
         {
-            Logger::ScopedLock const loggerLock(ctx.global().logger());
+            const Logger::ScopedLock loggerLock(ctx.global().logger());
             Logger::print(ctx, msg);
         }
 

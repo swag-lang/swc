@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runBranchFoldingPass(MicroBuilder& builder)
+    Result runBranchFoldingPass(MicroBuilder& builder)
     {
         MicroBranchFoldingPass pass;
         MicroPassManager       passManager;
@@ -18,7 +18,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     uint32_t instructionCount(const MicroBuilder& builder, MicroInstrOpcode opcode)
@@ -54,7 +54,7 @@ SWC_TEST_BEGIN(MicroBranchFolding_ConstantConditions)
     builder.placeLabel(doneLabel);
     builder.emitRet();
 
-    runBranchFoldingPass(builder);
+    RESULT_VERIFY(runBranchFoldingPass(builder));
 
     if (instructionCount(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;

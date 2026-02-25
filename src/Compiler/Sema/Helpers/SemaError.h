@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -44,6 +45,8 @@ namespace SemaError
     Result     raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
     Result     raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
     Result     raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
+    Diagnostic reportFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Token);
+    Result     raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, AstNodeRef nodeValueRef = AstNodeRef::invalid(), ReportLocation location = ReportLocation::Token);
     Result     raiseDivZero(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef);
     Result     raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
     Result     raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);

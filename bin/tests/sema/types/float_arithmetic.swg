@@ -97,15 +97,15 @@
 #assert(1.0'f32 * 1.000000000'f32 == 1.0'f32)
 #assert(1.0'f64 * 1.000000000'f64 == 1.0'f64)
 
-#print(1.0 / 0.0)      // swc-expected-error {{sema_err_division_zero}}
-#print(1.0'f32 / 0.0)  // swc-expected-error {{sema_err_division_zero}}
-#print(1.0'f64 / 0.0)  // swc-expected-error {{sema_err_division_zero}}
-#print(-1.0 / 0.0)     // swc-expected-error {{sema_err_division_zero}}
-#print(-1.0'f32 / 0.0) // swc-expected-error {{sema_err_division_zero}}
-#print(-1.0'f64 / 0.0) // swc-expected-error {{sema_err_division_zero}}
-#print(0.0 / 0.0)      // swc-expected-error {{sema_err_division_zero}}
-#print(0.0'f32 / 0.0)  // swc-expected-error {{sema_err_division_zero}}
-#print(0.0'f64 / 0.0)  // swc-expected-error {{sema_err_division_zero}}
+#print(1.0 / 0.0)      // swc-expected-error {{safety_err_division_zero}}
+#print(1.0'f32 / 0.0)  // swc-expected-error {{safety_err_division_zero}}
+#print(1.0'f64 / 0.0)  // swc-expected-error {{safety_err_division_zero}}
+#print(-1.0 / 0.0)     // swc-expected-error {{safety_err_division_zero}}
+#print(-1.0'f32 / 0.0) // swc-expected-error {{safety_err_division_zero}}
+#print(-1.0'f64 / 0.0) // swc-expected-error {{safety_err_division_zero}}
+#print(0.0 / 0.0)      // swc-expected-error {{safety_err_division_zero}}
+#print(0.0'f32 / 0.0)  // swc-expected-error {{safety_err_division_zero}}
+#print(0.0'f64 / 0.0)  // swc-expected-error {{safety_err_division_zero}}
 
 #assert(1.0 - 1.0 == 0.0)
 #assert(1.0 * 0.0 == 0.0)

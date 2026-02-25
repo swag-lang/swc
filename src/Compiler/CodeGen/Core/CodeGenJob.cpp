@@ -86,7 +86,9 @@ JobResult CodeGenJob::exec()
 
         // Lowered microcode persisted on the symbol for later materialization.
         ///////////////////////////////////////////
-        symbolFunc_->emit(ctx());
+        const Result emitResult = symbolFunc_->emit(ctx());
+        if (emitResult != Result::Continue)
+            return toJobResult(emitResult);
     }
 
     // Finalize only when dependency codegen is already pre-solved or completed.

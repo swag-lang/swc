@@ -239,20 +239,21 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
         out.push_back(dep);
 }
 
-void SymbolFunction::emit(TaskContext& ctx)
+Result SymbolFunction::emit(TaskContext& ctx)
 {
     std::scoped_lock lock(emitMutex_);
     if (hasLoweredCode())
-        return;
+        return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
 #if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);
 #endif
-    loweredMicroCode_.emit(ctx, builder);
+    RESULT_VERIFY(loweredMicroCode_.emit(ctx, builder));
 #if SWC_HAS_STATS
     Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
 #endif
     ctx.compiler().notifyAlive();
+    return Result::Continue;
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept

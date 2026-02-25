@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runControlFlowSimplificationPass(MicroBuilder& builder)
+    Result runControlFlowSimplificationPass(MicroBuilder& builder)
     {
         MicroControlFlowSimplificationPass pass;
         MicroPassManager                   passManager;
@@ -18,7 +18,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -50,7 +50,7 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
     builder.emitLoadRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
     builder.placeLabel(deadLabel);
 
-    runControlFlowSimplificationPass(builder);
+    RESULT_VERIFY(runControlFlowSimplificationPass(builder));
 
     if (builder.instructions().count() != 2)
         return Result::Error;

@@ -19,7 +19,7 @@ namespace
         builder.setBackendBuildCfg(backendCfg);
     }
 
-    void runPeepholePass(MicroBuilder& builder)
+    Result runPeepholePass(MicroBuilder& builder)
     {
         CallConv::setup();
 
@@ -29,7 +29,7 @@ namespace
 
         MicroPassContext passCtx;
         passCtx.callConvKind = CallConvKind::Host;
-        builder.runPasses(passes, nullptr, passCtx);
+        return builder.runPasses(passes, nullptr, passCtx);
     }
 
     uint32_t instructionCount(const MicroBuilder& builder)
@@ -82,7 +82,7 @@ SWC_TEST_BEGIN(Peephole_EliminatesNoOps)
     builder.emitOpBinaryRegImm(r12, ApInt(0, 64), MicroOp::ShiftArithmeticRight, MicroOpBits::B64);
     builder.emitRet();
 
-    runPeepholePass(builder);
+    RESULT_VERIFY(runPeepholePass(builder));
 
     if (instructionCount(builder) != 1)
         return Result::Error;
@@ -114,7 +114,7 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     builder.emitOpBinaryRegImm(r14, ApInt(0x7F, 64), MicroOp::And, MicroOpBits::B64);
     builder.emitRet();
 
-    runPeepholePass(builder);
+    RESULT_VERIFY(runPeepholePass(builder));
 
     if (instructionCount(builder) != 8)
         return Result::Error;
@@ -138,7 +138,7 @@ SWC_TEST_BEGIN(Peephole_RemovesRedundantStackSaveRestoreAroundImmediateShift)
     builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
     builder.emitRet();
 
-    runPeepholePass(builder);
+    RESULT_VERIFY(runPeepholePass(builder));
 
     if (instructionCount(builder) != 2)
         return Result::Error;
@@ -166,7 +166,7 @@ SWC_TEST_BEGIN(Peephole_KeepsStackSaveRestoreWhenShiftWritesSavedReg)
     builder.emitLoadRegMem(rcx, rsp, 32, MicroOpBits::B64);
     builder.emitRet();
 
-    runPeepholePass(builder);
+    RESULT_VERIFY(runPeepholePass(builder));
 
     if (instructionCount(builder) != 4)
         return Result::Error;
@@ -203,7 +203,7 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
     builder.placeLabel(loopLabel);
     builder.emitRet();
 
-    runPeepholePass(builder);
+    RESULT_VERIFY(runPeepholePass(builder));
 
     bool                       hasFrameCopy          = false;
     bool                       hasLoadFromFrameBase0 = false;

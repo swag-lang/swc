@@ -1,7 +1,13 @@
 #include "pch.h"
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPass.h"
+#include "Compiler/Lexer/SourceView.h"
+#include "Main/CompilerInstance.h"
+#include "Main/TaskContext.h"
+#include "Support/Math/Helpers.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -16,180 +22,126 @@ uint64_t MicroOptimization::normalizeToOpBits(uint64_t value, MicroOpBits opBits
 
 namespace
 {
-    bool foldSignedDivideOrModulo(uint64_t& outValue, uint64_t value, uint64_t immediate, MicroOpBits opBits, bool isModulo)
+    bool mapMicroOpToFold(MicroOp microOp, Math::FoldBinaryOp& outOp, bool& outSignedLeft, bool& outSignedRight)
     {
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-            {
-                const int8_t lhs = static_cast<int8_t>(value);
-                const int8_t rhs = static_cast<int8_t>(immediate);
-                if (!rhs)
-                    return false;
-                if (lhs == std::numeric_limits<int8_t>::min() && rhs == -1)
-                    return false;
-                const int8_t result = isModulo ? static_cast<int8_t>(lhs % rhs) : static_cast<int8_t>(lhs / rhs);
-                outValue            = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
-                return true;
-            }
-            case MicroOpBits::B16:
-            {
-                const int16_t lhs = static_cast<int16_t>(value);
-                const int16_t rhs = static_cast<int16_t>(immediate);
-                if (!rhs)
-                    return false;
-                if (lhs == std::numeric_limits<int16_t>::min() && rhs == -1)
-                    return false;
-                const int16_t result = isModulo ? static_cast<int16_t>(lhs % rhs) : static_cast<int16_t>(lhs / rhs);
-                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
-                return true;
-            }
-            case MicroOpBits::B32:
-            {
-                const int32_t lhs = static_cast<int32_t>(value);
-                const int32_t rhs = static_cast<int32_t>(immediate);
-                if (!rhs)
-                    return false;
-                if (lhs == std::numeric_limits<int32_t>::min() && rhs == -1)
-                    return false;
-                const int32_t result = isModulo ? lhs % rhs : lhs / rhs;
-                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
-                return true;
-            }
-            case MicroOpBits::B64:
-            {
-                const int64_t lhs = static_cast<int64_t>(value);
-                const int64_t rhs = static_cast<int64_t>(immediate);
-                if (!rhs)
-                    return false;
-                if (lhs == std::numeric_limits<int64_t>::min() && rhs == -1)
-                    return false;
-                const int64_t result = isModulo ? lhs % rhs : lhs / rhs;
-                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
-                return true;
-            }
-            default:
-                return false;
-        }
-    }
+        outSignedLeft  = false;
+        outSignedRight = false;
 
-    bool foldUnsignedDivideOrModulo(uint64_t& outValue, uint64_t value, uint64_t immediate, MicroOpBits opBits, bool isModulo)
-    {
-        if (!immediate)
-            return false;
-
-        switch (opBits)
+        switch (microOp)
         {
-            case MicroOpBits::B8:
-            {
-                const uint8_t lhs = static_cast<uint8_t>(value);
-                const uint8_t rhs = static_cast<uint8_t>(immediate);
-                if (!rhs)
-                    return false;
-                const uint8_t result = isModulo ? static_cast<uint8_t>(lhs % rhs) : static_cast<uint8_t>(lhs / rhs);
-                outValue             = MicroOptimization::normalizeToOpBits(result, opBits);
+            case MicroOp::Add:
+                outOp = Math::FoldBinaryOp::Add;
                 return true;
-            }
-            case MicroOpBits::B16:
-            {
-                const uint16_t lhs = static_cast<uint16_t>(value);
-                const uint16_t rhs = static_cast<uint16_t>(immediate);
-                if (!rhs)
-                    return false;
-                const uint16_t result = isModulo ? static_cast<uint16_t>(lhs % rhs) : static_cast<uint16_t>(lhs / rhs);
-                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
+            case MicroOp::Subtract:
+                outOp = Math::FoldBinaryOp::Subtract;
                 return true;
-            }
-            case MicroOpBits::B32:
-            {
-                const uint32_t lhs = static_cast<uint32_t>(value);
-                const uint32_t rhs = static_cast<uint32_t>(immediate);
-                if (!rhs)
-                    return false;
-                const uint32_t result = isModulo ? lhs % rhs : lhs / rhs;
-                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
+            case MicroOp::And:
+                outOp = Math::FoldBinaryOp::BitwiseAnd;
                 return true;
-            }
-            case MicroOpBits::B64:
-            {
-                const uint64_t lhs = value;
-                const uint64_t rhs = immediate;
-                if (!rhs)
-                    return false;
-                const uint64_t result = isModulo ? lhs % rhs : lhs / rhs;
-                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
+            case MicroOp::Or:
+                outOp = Math::FoldBinaryOp::BitwiseOr;
                 return true;
-            }
+            case MicroOp::Xor:
+                outOp = Math::FoldBinaryOp::BitwiseXor;
+                return true;
+            case MicroOp::ShiftLeft:
+                outOp = Math::FoldBinaryOp::ShiftLeft;
+                return true;
+            case MicroOp::ShiftRight:
+                outOp = Math::FoldBinaryOp::ShiftRight;
+                return true;
+            case MicroOp::ShiftArithmeticRight:
+                outOp         = Math::FoldBinaryOp::ShiftArithmeticRight;
+                outSignedLeft = true;
+                return true;
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
+                outOp = Math::FoldBinaryOp::Multiply;
+                return true;
+            case MicroOp::DivideSigned:
+                outOp          = Math::FoldBinaryOp::Divide;
+                outSignedLeft  = true;
+                outSignedRight = true;
+                return true;
+            case MicroOp::DivideUnsigned:
+                outOp = Math::FoldBinaryOp::Divide;
+                return true;
+            case MicroOp::ModuloSigned:
+                outOp          = Math::FoldBinaryOp::Modulo;
+                outSignedLeft  = true;
+                outSignedRight = true;
+                return true;
+            case MicroOp::ModuloUnsigned:
+                outOp = Math::FoldBinaryOp::Modulo;
+                return true;
             default:
                 return false;
         }
     }
 }
 
-bool MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
+Math::FoldStatus MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
 {
-    const uint64_t value = normalizeToOpBits(inValue, opBits);
-    const uint64_t imm   = normalizeToOpBits(immediate, opBits);
+    const uint64_t value    = normalizeToOpBits(inValue, opBits);
+    const uint64_t imm      = normalizeToOpBits(immediate, opBits);
+    const uint32_t bitWidth = getNumBits(opBits);
+    if (!bitWidth)
+        return Math::FoldStatus::Unsupported;
 
-    switch (microOp)
+    Math::FoldBinaryOp foldOp;
+    bool               signedLeft  = false;
+    bool               signedRight = false;
+    if (!mapMicroOpToFold(microOp, foldOp, signedLeft, signedRight))
+        return Math::FoldStatus::Unsupported;
+
+    const ApsInt leftInt(&value, bitWidth, !signedLeft);
+    const ApsInt rightInt(&imm, bitWidth, !signedRight);
+
+    Math::FoldBinaryIntOptions options;
+    if (foldOp == Math::FoldBinaryOp::ShiftLeft || foldOp == Math::FoldBinaryOp::ShiftRight || foldOp == Math::FoldBinaryOp::ShiftArithmeticRight)
     {
-        case MicroOp::Add:
-            outValue = normalizeToOpBits(value + imm, opBits);
-            return true;
-        case MicroOp::Subtract:
-            outValue = normalizeToOpBits(value - imm, opBits);
-            return true;
-        case MicroOp::And:
-            outValue = normalizeToOpBits(value & imm, opBits);
-            return true;
-        case MicroOp::Or:
-            outValue = normalizeToOpBits(value | imm, opBits);
-            return true;
-        case MicroOp::Xor:
-            outValue = normalizeToOpBits(value ^ imm, opBits);
-            return true;
-        case MicroOp::ShiftLeft:
-        case MicroOp::ShiftRight:
-        case MicroOp::ShiftArithmeticRight:
-        {
-            const uint32_t numBits = getNumBits(opBits);
-            if (!numBits)
-                return false;
-
-            const uint64_t shiftAmount = std::min<uint64_t>(imm, numBits - 1);
-            if (microOp == MicroOp::ShiftLeft)
-                outValue = normalizeToOpBits(value << shiftAmount, opBits);
-            else if (microOp == MicroOp::ShiftRight)
-                outValue = normalizeToOpBits(value >> shiftAmount, opBits);
-            else if (opBits == MicroOpBits::B8)
-                outValue = static_cast<uint8_t>(static_cast<int8_t>(value) >> shiftAmount);
-            else if (opBits == MicroOpBits::B16)
-                outValue = static_cast<uint16_t>(static_cast<int16_t>(value) >> shiftAmount);
-            else if (opBits == MicroOpBits::B32)
-                outValue = static_cast<uint32_t>(static_cast<int32_t>(value) >> shiftAmount);
-            else if (opBits == MicroOpBits::B64)
-                outValue = static_cast<uint64_t>(static_cast<int64_t>(value) >> shiftAmount);
-            else
-                return false;
-
-            outValue = normalizeToOpBits(outValue, opBits);
-            return true;
-        }
-        case MicroOp::MultiplySigned:
-        case MicroOp::MultiplyUnsigned:
-            outValue = normalizeToOpBits(value * imm, opBits);
-            return true;
-        case MicroOp::DivideSigned:
-            return foldSignedDivideOrModulo(outValue, value, imm, opBits, false);
-        case MicroOp::DivideUnsigned:
-            return foldUnsignedDivideOrModulo(outValue, value, imm, opBits, false);
-        case MicroOp::ModuloSigned:
-            return foldSignedDivideOrModulo(outValue, value, imm, opBits, true);
-        case MicroOp::ModuloUnsigned:
-            return foldUnsignedDivideOrModulo(outValue, value, imm, opBits, true);
-        default:
-            return false;
+        options.clampShiftCount     = true;
+        options.ignoreShiftOverflow = true;
+        options.shiftBitWidth       = bitWidth;
     }
+
+    ApsInt                 foldedInt;
+    const Math::FoldStatus status = Math::foldBinaryInt(foldedInt, leftInt, rightInt, foldOp, options);
+    if (status != Math::FoldStatus::Ok)
+        return status;
+
+    outValue = normalizeToOpBits(foldedInt.as64(), opBits);
+    return Math::FoldStatus::Ok;
+}
+
+Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref instructionRef, Math::FoldStatus status)
+{
+    const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
+    if (diagId == DiagnosticId::None)
+        return Result::Continue;
+
+    TaskContext* const taskContext = context.taskContext;
+    if (!taskContext)
+        return Result::Error;
+
+    Diagnostic diag;
+    if (context.builder && instructionRef != INVALID_REF)
+    {
+        const MicroDebugInfo* debugInfo = context.builder->debugInfo(instructionRef);
+        if (debugInfo && debugInfo->sourceCodeRef.isValid())
+        {
+            const SourceCodeRef sourceCodeRef = debugInfo->sourceCodeRef;
+            const SourceView&   srcView       = taskContext->compiler().srcView(sourceCodeRef.srcViewRef);
+            diag                             = Diagnostic::get(diagId, srcView.fileRef());
+            diag.last().addSpan(srcView.tokenCodeRange(*taskContext, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
+        }
+    }
+
+    if (diag.elements().empty())
+        diag = Diagnostic::get(diagId);
+
+    diag.report(*taskContext);
+    return Result::Error;
 }
 
 namespace

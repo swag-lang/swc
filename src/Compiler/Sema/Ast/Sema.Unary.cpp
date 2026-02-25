@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,9 +20,13 @@ namespace
 
         if (view.type()->isInt())
         {
-            ApsInt value = view.cst()->getInt();
-            value.setUnsigned(true);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, view.type()->payloadIntBits(), TypeInfo::Sign::Unsigned));
+            ApsInt                 foldedValue;
+            const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Plus);
+            SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return Result::Error;
+
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Unsigned));
             return Result::Continue;
         }
 
@@ -42,23 +47,30 @@ namespace
         const TaskContext& ctx = sema.ctx();
         if (view.type()->isInt())
         {
-            ApsInt value = view.cst()->getInt();
-
-            bool overflow = false;
-            value.negate(overflow);
-            if (overflow)
+            ApsInt                 foldedValue;
+            const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Minus);
+            if (foldStatus == Math::FoldStatus::Overflow)
                 return SemaError::raiseLiteralOverflow(sema, view.nodeRef(), *view.cst(), view.typeRef());
+            if (foldStatus != Math::FoldStatus::Ok)
+            {
+                if (Math::isSafetyError(foldStatus))
+                    return SemaError::raiseFoldSafety(sema, foldStatus, sema.curNodeRef(), view.nodeRef(), SemaError::ReportLocation::Token);
+                return Result::Error;
+            }
 
-            value.setUnsigned(false);
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, view.type()->payloadIntBits(), TypeInfo::Sign::Signed));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Signed));
             return Result::Continue;
         }
 
         if (view.type()->isFloat())
         {
-            ApFloat value = view.cst()->getFloat();
-            value.negate();
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, value, view.type()->payloadFloatBits()));
+            ApFloat                foldedValue;
+            const Math::FoldStatus foldStatus = Math::foldUnaryFloat(foldedValue, view.cst()->getFloat(), Math::FoldUnaryOp::Minus);
+            SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return Result::Error;
+
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, foldedValue, view.type()->payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -106,9 +118,13 @@ namespace
     {
         SWC_UNUSED(expr);
         const TaskContext& ctx   = sema.ctx();
-        ApsInt             value = view.cst()->getInt();
-        value.invertAllBits();
-        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, value, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
+        ApsInt             foldedValue;
+        const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
+        SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
+        if (foldStatus != Math::FoldStatus::Ok)
+            return Result::Error;
+
+        result = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
         return Result::Continue;
     }
 

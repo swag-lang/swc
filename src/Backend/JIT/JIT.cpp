@@ -308,7 +308,10 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     builder.emitRet();
 
     MachineCode loweredCode;
-    loweredCode.emit(ctx, builder);
+    const Result lowerResult = loweredCode.emit(ctx, builder);
+    SWC_ASSERT(lowerResult == Result::Continue);
+    if (lowerResult != Result::Continue)
+        return;
 
     JITMemory executableMemory;
     emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);

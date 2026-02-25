@@ -2,6 +2,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -32,6 +33,7 @@ struct MicroPassContext
     size_t optimizationInstrRemoved = 0;
     size_t optimizationInstrAdded   = 0;
 #endif
+    bool passChanged = false;
 };
 
 class MicroPass
@@ -41,19 +43,19 @@ public:
     virtual std::string_view  name() const = 0;
     virtual MicroRegPrintMode printModeBefore() const { return MicroRegPrintMode::Concrete; }
     virtual MicroRegPrintMode printModeAfter() const { return MicroRegPrintMode::Concrete; }
-    virtual bool              run(MicroPassContext& context) = 0;
+    virtual Result            run(MicroPassContext& context) = 0;
 };
 
 class MicroPassManager
 {
 public:
     // Legacy API: append to mandatory pipeline stage.
-    void add(MicroPass& pass);
-    void addMandatory(MicroPass& pass);
-    void addPreOptimization(MicroPass& pass);
-    void addPostOptimization(MicroPass& pass);
-    void addFinal(MicroPass& pass);
-    void run(MicroPassContext& context) const;
+    void   add(MicroPass& pass);
+    void   addMandatory(MicroPass& pass);
+    void   addPreOptimization(MicroPass& pass);
+    void   addPostOptimization(MicroPass& pass);
+    void   addFinal(MicroPass& pass);
+    Result run(MicroPassContext& context) const;
 
 private:
     std::vector<MicroPass*> preOptimizationPasses_;

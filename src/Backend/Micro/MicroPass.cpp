@@ -108,7 +108,7 @@ namespace
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default));
     }
 
-    void printPassInstructions(MicroPassContext& context, const MicroPass& pass, bool before)
+    void printPassInstructions(const MicroPassContext& context, const MicroPass& pass, bool before)
     {
         if (!context.taskContext || !context.builder)
             return;
@@ -145,34 +145,41 @@ namespace
         return optimizationIterationLimit(Runtime::BuildCfgBackend{});
     }
 
-    bool runPass(MicroPassContext& context, MicroPass& pass)
+    Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
     {
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
-        bool changed = pass.run(context);
+        context.passChanged = false;
+        RESULT_VERIFY(pass.run(context));
+
+        bool changed = context.passChanged;
         if (context.builder && SWC_CHECK_NOT_NULL(context.builder)->pruneDeadRelocations())
             changed = true;
 
         if (shouldPrintPass(context, pass, false))
             printPassInstructions(context, pass, false);
 
-        return changed;
+        outChanged = changed;
+        return Result::Continue;
     }
 
-    void runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
+    Result runLinearPasses(MicroPassContext& context, std::span<MicroPass* const> passes)
     {
         for (MicroPass* pass : passes)
         {
             SWC_ASSERT(pass != nullptr);
-            runPass(context, *SWC_CHECK_NOT_NULL(pass));
+            bool changed = false;
+            RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), changed));
         }
+
+        return Result::Continue;
     }
 
-    void runOptimizationPasses(MicroPassContext& context, std::span<MicroPass* const> optimizationPasses)
+    Result runOptimizationPasses(MicroPassContext& context, std::span<MicroPass* const> optimizationPasses)
     {
         if (optimizationPasses.empty())
-            return;
+            return Result::Continue;
 
 #if SWC_HAS_STATS
         const size_t countBefore = context.instructions ? context.instructions->count() : 0;
@@ -184,7 +191,9 @@ namespace
             for (MicroPass* pass : optimizationPasses)
             {
                 SWC_ASSERT(pass != nullptr);
-                if (runPass(context, *SWC_CHECK_NOT_NULL(pass)))
+                bool passChanged = false;
+                RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), passChanged));
+                if (passChanged)
                     changed = true;
             }
 
@@ -199,6 +208,8 @@ namespace
         else
             context.optimizationInstrAdded += countAfter - countBefore;
 #endif
+
+        return Result::Continue;
     }
 }
 
@@ -227,7 +238,7 @@ void MicroPassManager::addFinal(MicroPass& pass)
     finalPasses_.push_back(&pass);
 }
 
-void MicroPassManager::run(MicroPassContext& context) const
+Result MicroPassManager::run(MicroPassContext& context) const
 {
     context.printInstrCountBeforeAll    = 0;
     context.hasPrintInstrCountBeforeAll = false;
@@ -237,10 +248,11 @@ void MicroPassManager::run(MicroPassContext& context) const
         context.hasPrintInstrCountBeforeAll = true;
     }
 
-    runOptimizationPasses(context, preOptimizationPasses_);
-    runLinearPasses(context, mandatoryPasses_);
-    runOptimizationPasses(context, postOptimizationPasses_);
-    runLinearPasses(context, finalPasses_);
+    RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
+    RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
+    RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));
+    RESULT_VERIFY(runLinearPasses(context, finalPasses_));
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

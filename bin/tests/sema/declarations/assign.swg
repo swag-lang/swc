@@ -3,13 +3,13 @@
 #test
 {
     var a: s32
-    a /= 0 // swc-expected-error {{sema_err_division_zero}}
+    a /= 0 // swc-expected-error {{safety_err_division_zero}}
 }
 
 #test
 {
     var a: s32
-    a %= (1-1) // swc-expected-error {{sema_err_division_zero}}
+    a %= (1-1) // swc-expected-error {{safety_err_division_zero}}
 }
 
 #test

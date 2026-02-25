@@ -100,7 +100,7 @@ public:
     bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
     bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
 
-    void runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
+    Result runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
     Ref  createLabel();
     void placeLabel(Ref labelRef);

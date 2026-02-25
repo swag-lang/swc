@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runConstantPropagationPass(MicroBuilder& builder)
+    Result runConstantPropagationPass(MicroBuilder& builder)
     {
         MicroConstantPropagationPass pass;
         MicroPassManager             passManager;
@@ -18,7 +18,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -47,7 +47,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
     builder.emitLoadRegImm(r10, ApInt(42, 64), MicroOpBits::B64);
     builder.emitCmpRegReg(r9, r10, MicroOpBits::B64);
 
-    runConstantPropagationPass(builder);
+    RESULT_VERIFY(runConstantPropagationPass(builder));
 
     if (builder.instructions().count() != 4)
         return Result::Error;
@@ -78,7 +78,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
     builder.emitLoadRegImm(r9, ApInt(3, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegReg(r8, r9, MicroOp::Add, MicroOpBits::B64);
 
-    runConstantPropagationPass(builder);
+    RESULT_VERIFY(runConstantPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst2    = instructionAt(builder, 2);
@@ -102,7 +102,7 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownSignAndZeroExtend)
     builder.emitLoadSignedExtendRegReg(r9, r8, MicroOpBits::B64, MicroOpBits::B8);
     builder.emitLoadZeroExtendRegReg(r10, r8, MicroOpBits::B64, MicroOpBits::B8);
 
-    runConstantPropagationPass(builder);
+    RESULT_VERIFY(runConstantPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst1    = instructionAt(builder, 1);

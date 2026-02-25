@@ -110,7 +110,7 @@ const A: s32 = 10
 #assert(#typeof(0x1_0000 + 1'u16) == u32)
 #assert(#typeof(0b1_0000_0000 + 1'u8) == u16)
 
-#assert(#typeof(-1 + 1'u8) == u8)   // swc-expected-error {{sema_err_integer_overflow}}
-#assert(#typeof(-1 + 1'u16) == u16) // swc-expected-error {{sema_err_integer_overflow}}
-#assert(#typeof(-1 + 1'u32) == u32) // swc-expected-error {{sema_err_integer_overflow}}
-#assert(#typeof(-1 + 1'u64) == u64) // swc-expected-error {{sema_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u8) == u8)   // swc-expected-error {{safety_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u16) == u16) // swc-expected-error {{safety_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u32) == u32) // swc-expected-error {{safety_err_integer_overflow}}
+#assert(#typeof(-1 + 1'u64) == u64) // swc-expected-error {{safety_err_integer_overflow}}

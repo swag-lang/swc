@@ -9,7 +9,7 @@ class MicroEmitPass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "emit"; }
-    bool             run(MicroPassContext& context) override;
+    Result           run(MicroPassContext& context) override;
 
 private:
     struct PendingLabelJump

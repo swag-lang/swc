@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runStrengthReductionPass(MicroBuilder& builder)
+    Result runStrengthReductionPass(MicroBuilder& builder)
     {
         MicroStrengthReductionPass pass;
         MicroPassManager           passManager;
@@ -18,7 +18,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -44,7 +44,7 @@ SWC_TEST_BEGIN(MicroStrengthReduction_RewritesPowerOfTwoOps)
     builder.emitOpBinaryRegImm(reg, ApInt(4, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(reg, ApInt(16, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
 
-    runStrengthReductionPass(builder);
+    RESULT_VERIFY(runStrengthReductionPass(builder));
 
     if (builder.instructions().count() != 3)
         return Result::Error;

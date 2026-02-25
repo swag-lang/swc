@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runCopyPropagationPass(MicroBuilder& builder)
+    Result runCopyPropagationPass(MicroBuilder& builder)
     {
         MicroCopyPropagationPass pass;
         MicroPassManager         passManager;
@@ -18,7 +18,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -48,7 +48,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_ResolvesCopyChains)
     builder.emitLoadRegReg(r10, r9, MicroOpBits::B64);
     builder.emitCmpRegReg(r11, r10, MicroOpBits::B64);
 
-    runCopyPropagationPass(builder);
+    RESULT_VERIFY(runCopyPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst2    = instructionAt(builder, 2);
@@ -79,7 +79,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
     builder.placeLabel(mid);
     builder.emitCmpRegReg(r10, r9, MicroOpBits::B64);
 
-    runCopyPropagationPass(builder);
+    RESULT_VERIFY(runCopyPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst3    = instructionAt(builder, 3);

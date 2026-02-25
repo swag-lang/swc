@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -81,12 +82,85 @@ namespace
         return Result::Continue;
     }
 
-    Result raiseInvalidIntrinsicArg(Sema& sema, const SymbolFunction& fn, AstNodeRef argRef)
+    Result raiseIntrinsicFoldError(Sema& sema, const SymbolFunction& fn, AstNodeRef argRef, Math::FoldStatus status)
     {
-        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_intrinsic_invalid_argument, argRef);
+        const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
+        SWC_ASSERT(diagId != DiagnosticId::None);
+        if (diagId == DiagnosticId::None)
+            return Result::Error;
+        const auto diag = SemaError::report(sema, diagId, argRef);
         diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;
+    }
+
+    bool mapTokenToUnaryIntrinsicFoldOp(Math::FoldIntrinsicUnaryFloatOp& outOp, TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::IntrinsicSqrt:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Sqrt;
+                return true;
+            case TokenId::IntrinsicSin:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Sin;
+                return true;
+            case TokenId::IntrinsicCos:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Cos;
+                return true;
+            case TokenId::IntrinsicTan:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Tan;
+                return true;
+            case TokenId::IntrinsicSinh:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Sinh;
+                return true;
+            case TokenId::IntrinsicCosh:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Cosh;
+                return true;
+            case TokenId::IntrinsicTanh:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Tanh;
+                return true;
+            case TokenId::IntrinsicASin:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::ASin;
+                return true;
+            case TokenId::IntrinsicACos:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::ACos;
+                return true;
+            case TokenId::IntrinsicATan:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::ATan;
+                return true;
+            case TokenId::IntrinsicLog:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Log;
+                return true;
+            case TokenId::IntrinsicLog2:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Log2;
+                return true;
+            case TokenId::IntrinsicLog10:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Log10;
+                return true;
+            case TokenId::IntrinsicFloor:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Floor;
+                return true;
+            case TokenId::IntrinsicCeil:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Ceil;
+                return true;
+            case TokenId::IntrinsicTrunc:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Trunc;
+                return true;
+            case TokenId::IntrinsicRound:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Round;
+                return true;
+            case TokenId::IntrinsicAbs:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Abs;
+                return true;
+            case TokenId::IntrinsicExp:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Exp;
+                return true;
+            case TokenId::IntrinsicExp2:
+                outOp = Math::FoldIntrinsicUnaryFloatOp::Exp2;
+                return true;
+            default:
+                return false;
+        }
     }
 }
 
@@ -183,10 +257,13 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             double x;
             if (!getFloatArgAsDouble(sema, args[0], x))
                 return Result::Continue;
-            if (x < 0.0)
-                return raiseInvalidIntrinsicArg(sema, selectedFn, args[0]);
 
-            return makeFloatResult(sema, sema.curNodeRef(), std::sqrt(x));
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicUnaryFloat(foldedValue, x, Math::FoldIntrinsicUnaryFloatOp::Sqrt);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
         case TokenId::IntrinsicSin:
@@ -215,41 +292,18 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getFloatArgAsDouble(sema, args[0], x))
                 return Result::Continue;
 
-            // Domain checks for known restricted functions (only when constant folding).
-            if ((tok.id == TokenId::IntrinsicLog || tok.id == TokenId::IntrinsicLog2 || tok.id == TokenId::IntrinsicLog10) && x <= 0.0)
-                return raiseInvalidIntrinsicArg(sema, selectedFn, args[0]);
-            if ((tok.id == TokenId::IntrinsicASin || tok.id == TokenId::IntrinsicACos) && (x < -1.0 || x > 1.0))
-                return raiseInvalidIntrinsicArg(sema, selectedFn, args[0]);
+            Math::FoldIntrinsicUnaryFloatOp foldOp;
+            const bool                      mapped = mapTokenToUnaryIntrinsicFoldOp(foldOp, tok.id);
+            SWC_ASSERT(mapped);
+            if (!mapped)
+                return Result::Error;
 
-            double r = 0.0;
-            switch (tok.id)
-            {
-                case TokenId::IntrinsicSin: r = std::sin(x); break;
-                case TokenId::IntrinsicCos: r = std::cos(x); break;
-                case TokenId::IntrinsicTan: r = std::tan(x); break;
-                case TokenId::IntrinsicSinh: r = std::sinh(x); break;
-                case TokenId::IntrinsicCosh: r = std::cosh(x); break;
-                case TokenId::IntrinsicTanh: r = std::tanh(x); break;
-                case TokenId::IntrinsicASin: r = std::asin(x); break;
-                case TokenId::IntrinsicACos: r = std::acos(x); break;
-                case TokenId::IntrinsicATan: r = std::atan(x); break;
-                case TokenId::IntrinsicLog: r = std::log(x); break;
-                case TokenId::IntrinsicLog2: r = std::log2(x); break;
-                case TokenId::IntrinsicLog10: r = std::log10(x); break;
-                case TokenId::IntrinsicFloor: r = std::floor(x); break;
-                case TokenId::IntrinsicCeil: r = std::ceil(x); break;
-                case TokenId::IntrinsicTrunc: r = std::trunc(x); break;
-                case TokenId::IntrinsicRound: r = std::round(x); break;
-                case TokenId::IntrinsicAbs: r = std::fabs(x); break;
-                case TokenId::IntrinsicExp: r = std::exp(x); break;
-                case TokenId::IntrinsicExp2: r = std::exp2(x); break;
-                default: SWC_INTERNAL_ERROR();
-            }
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicUnaryFloat(foldedValue, x, foldOp);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
 
-            if (std::isnan(r))
-                return raiseInvalidIntrinsicArg(sema, selectedFn, args[0]);
-
-            return makeFloatResult(sema, sema.curNodeRef(), r);
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
         case TokenId::IntrinsicATan2:
@@ -260,7 +314,12 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getFloatArgAsDouble(sema, args[0], y) || !getFloatArgAsDouble(sema, args[1], x))
                 return Result::Continue;
 
-            return makeFloatResult(sema, sema.curNodeRef(), std::atan2(y, x));
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicBinaryFloat(foldedValue, y, x, Math::FoldIntrinsicBinaryFloatOp::ATan2);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
         case TokenId::IntrinsicPow:
@@ -271,10 +330,12 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getFloatArgAsDouble(sema, args[0], a) || !getFloatArgAsDouble(sema, args[1], b))
                 return Result::Continue;
 
-            const double r = std::pow(a, b);
-            if (std::isnan(r))
-                return raiseInvalidIntrinsicArg(sema, selectedFn, args[0]);
-            return makeFloatResult(sema, sema.curNodeRef(), r);
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicBinaryFloat(foldedValue, a, b, Math::FoldIntrinsicBinaryFloatOp::Pow);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
         case TokenId::IntrinsicMulAdd:
@@ -284,7 +345,12 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getFloatArgAsDouble(sema, args[0], a) || !getFloatArgAsDouble(sema, args[1], b) || !getFloatArgAsDouble(sema, args[2], c))
                 return Result::Continue;
 
-            return makeFloatResult(sema, sema.curNodeRef(), std::fma(a, b, c));
+            double                 foldedValue = 0.0;
+            const Math::FoldStatus foldStatus  = Math::foldIntrinsicTernaryFloat(foldedValue, a, b, c, Math::FoldIntrinsicTernaryFloatOp::MulAdd);
+            if (foldStatus != Math::FoldStatus::Ok)
+                return raiseIntrinsicFoldError(sema, selectedFn, args[0], foldStatus);
+
+            return makeFloatResult(sema, sema.curNodeRef(), foldedValue);
         }
 
         default:

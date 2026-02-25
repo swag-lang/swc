@@ -288,7 +288,7 @@ namespace
     }
 }
 
-bool MicroPrologEpilogPass::run(MicroPassContext& context)
+Result MicroPrologEpilogPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
@@ -299,14 +299,18 @@ bool MicroPrologEpilogPass::run(MicroPassContext& context)
         savedRegSlots_.clear();
         savedRegsStackSubSize_ = 0;
         useFramePointer_       = false;
-        return false;
+        context.passChanged    = false;
+        return Result::Continue;
     }
 
     const CallConv& conv                              = CallConv::get(context.callConvKind);
     const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv);
     buildSavedRegsPlan(context, conv);
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
-        return remappedPersistentRegsToTransient;
+    {
+        context.passChanged = remappedPersistentRegsToTransient;
+        return Result::Continue;
+    }
 
     Ref              firstRef = INVALID_REF;
     SmallVector<Ref> retRefs;
@@ -323,7 +327,8 @@ bool MicroPrologEpilogPass::run(MicroPassContext& context)
     for (const Ref retRef : retRefs)
         insertSavedRegsEpilogue(context, conv, retRef);
 
-    return firstRef != INVALID_REF || remappedPersistentRegsToTransient;
+    context.passChanged = firstRef != INVALID_REF || remappedPersistentRegsToTransient;
+    return Result::Continue;
 }
 
 bool MicroPrologEpilogPass::containsSavedSlot(MicroReg reg) const

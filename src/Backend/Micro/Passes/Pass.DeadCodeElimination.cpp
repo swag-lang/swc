@@ -505,7 +505,7 @@ namespace
     }
 }
 
-bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
+Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
@@ -564,7 +564,8 @@ bool MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     if (eliminateDeadPureDefsByBackwardLiveness(storage, operands, context.encoder, context.callConvKind))
         changed = true;
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -817,7 +817,7 @@ namespace
     }
 }
 
-bool MicroRegisterAllocationPass::run(MicroPassContext& context)
+Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
@@ -826,7 +826,10 @@ bool MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(state, context);
 
     if (!state.instructionCount)
-        return false;
+    {
+        context.passChanged = false;
+        return Result::Continue;
+    }
 
     const bool hadVirtualRegisters = hasVirtualRegisters(context);
 
@@ -836,7 +839,8 @@ bool MicroRegisterAllocationPass::run(MicroPassContext& context)
     rewriteInstructions(state);
     insertSpillFrame(state);
 
-    return hadVirtualRegisters || state.spillFrameUsed != 0;
+    context.passChanged = hadVirtualRegisters || state.spillFrameUsed != 0;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

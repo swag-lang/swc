@@ -82,7 +82,7 @@ namespace
     }
 }
 
-void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
+Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
     MicroControlFlowSimplificationPass cfgSimplifyPass;
     MicroInstructionCombinePass        instructionCombinePass;
@@ -128,7 +128,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     const size_t numMicroOperandsNoOptim = builder.operands().count();
     const size_t memMicroStorageNoOptim  = builder.instructions().allocatedBytes() + builder.operands().allocatedBytes();
 #endif
-    builder.runPasses(passManager, &encoder, passContext);
+    RESULT_VERIFY(builder.runPasses(passManager, &encoder, passContext));
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrFinal    = builder.instructions().count();
@@ -150,6 +150,7 @@ void MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
     codeRelocations = builder.codeRelocations();
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

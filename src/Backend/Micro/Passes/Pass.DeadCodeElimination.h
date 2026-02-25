@@ -7,7 +7,7 @@ class MicroDeadCodeEliminationPass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "dce"; }
-    bool             run(MicroPassContext& context) override;
+    Result           run(MicroPassContext& context) override;
 };
 
 SWC_END_NAMESPACE();

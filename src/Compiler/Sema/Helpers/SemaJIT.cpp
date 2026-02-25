@@ -115,7 +115,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
-    symFn.emit(ctx);
+    RESULT_VERIFY(symFn.emit(ctx));
     symFn.jit(ctx);
 
     {

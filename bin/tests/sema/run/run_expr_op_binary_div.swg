@@ -27,7 +27,7 @@
 #test
 {
     var a, b: s32
-    a = b / 0 // swc-expected-error {{sema_err_division_zero}}
+    a = b / 0 // swc-expected-error {{safety_err_division_zero}}
 }
 
 #test

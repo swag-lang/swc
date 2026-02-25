@@ -7,7 +7,7 @@ class MicroPrologEpilogPass final : public MicroPass
 {
 public:
     std::string_view name() const override { return "prolog-epilog"; }
-    bool             run(MicroPassContext& context) override;
+    Result           run(MicroPassContext& context) override;
 
 private:
     struct SavedRegSlot

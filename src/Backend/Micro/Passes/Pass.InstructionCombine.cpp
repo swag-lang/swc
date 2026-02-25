@@ -91,7 +91,7 @@ namespace
     }
 }
 
-bool MicroInstructionCombinePass::run(MicroPassContext& context)
+Result MicroInstructionCombinePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
@@ -145,7 +145,8 @@ bool MicroInstructionCombinePass::run(MicroPassContext& context)
         changed = true;
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void runDeadCodeEliminationPass(MicroBuilder& builder)
+    Result runDeadCodeEliminationPass(MicroBuilder& builder)
     {
         MicroDeadCodeEliminationPass pass;
         MicroPassManager             passManager;
@@ -19,7 +19,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;
-        builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     const MicroInstr* instructionAt(const MicroBuilder& builder, uint32_t index)
@@ -45,7 +45,7 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_RemovesDeadDefinitions)
     builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    runDeadCodeEliminationPass(builder);
+    RESULT_VERIFY(runDeadCodeEliminationPass(builder));
 
     if (builder.instructions().count() != 1)
         return Result::Error;
@@ -64,7 +64,7 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_PreservesReturnRegisterDefinition)
     builder.emitLoadRegImm(conv.intReturn, ApInt(99, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    runDeadCodeEliminationPass(builder);
+    RESULT_VERIFY(runDeadCodeEliminationPass(builder));
 
     if (builder.instructions().count() != 2)
         return Result::Error;

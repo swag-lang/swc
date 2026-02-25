@@ -218,7 +218,7 @@ namespace
     }
 }
 
-bool MicroConstantPropagationPass::run(MicroPassContext& context)
+Result MicroConstantPropagationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
@@ -235,9 +235,12 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
     if (context.encoder)
         stackPointerReg = context.encoder->stackPointerReg();
 
+    MicroStorage&        storage  = *SWC_CHECK_NOT_NULL(context.instructions);
     MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
-    for (MicroInstr& inst : context.instructions->view())
+    for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
+        const Ref   instRef = it.current;
+        MicroInstr& inst    = *it;
         MicroInstrOperand* ops = inst.ops(operands);
 
         if (tryRewriteMemoryBaseToStack(context, inst, ops, stackPointerReg, knownAddresses))
@@ -313,13 +316,18 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (itKnownDst != known.end())
                 {
                     uint64_t foldedValue = 0;
-                    if (MicroOptimization::foldBinaryImmediate(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits))
+                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits);
+                    if (foldStatus == Math::FoldStatus::Ok)
                     {
                         inst.op          = MicroInstrOpcode::LoadRegImm;
                         inst.numOperands = 3;
                         ops[1].opBits    = ops[2].opBits;
                         ops[2].valueU64  = foldedValue;
                         changed          = true;
+                    }
+                    else if (Math::isSafetyError(foldStatus))
+                    {
+                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                     }
                 }
                 else
@@ -376,12 +384,17 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 uint64_t foldedValue = 0;
-                if (MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                if (foldStatus == Math::FoldStatus::Ok)
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
                     ops[2].valueU64  = foldedValue;
                     changed          = true;
+                }
+                else if (Math::isSafetyError(foldStatus))
+                {
+                    return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                 }
             }
         }
@@ -436,8 +449,11 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[1].opBits))
                 {
                     uint64_t foldedValue = 0;
-                    if (MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, ops[4].valueU64, ops[2].microOp, ops[1].opBits))
+                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, ops[4].valueU64, ops[2].microOp, ops[1].opBits);
+                    if (foldStatus == Math::FoldStatus::Ok)
                         setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, foldedValue);
+                    else if (Math::isSafetyError(foldStatus))
+                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                     else
                         eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
                 }
@@ -459,8 +475,11 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits) && itKnownReg != known.end())
                 {
                     uint64_t foldedValue = 0;
-                    if (MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, itKnownReg->second.value, ops[3].microOp, ops[2].opBits))
+                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, itKnownReg->second.value, ops[3].microOp, ops[2].opBits);
+                    if (foldStatus == Math::FoldStatus::Ok)
                         setKnownStackSlot(knownStackSlots, stackOffset, ops[2].opBits, foldedValue);
+                    else if (Math::isSafetyError(foldStatus))
+                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                     else
                         eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
                 }
@@ -513,11 +532,16 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             if (itKnown != known.end())
             {
                 uint64_t foldedValue = 0;
-                if (MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                if (foldStatus == Math::FoldStatus::Ok)
                 {
                     known[ops[0].reg.packed] = {
                         .value = foldedValue,
                     };
+                }
+                else if (Math::isSafetyError(foldStatus))
+                {
+                    return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                 }
             }
         }
@@ -554,7 +578,8 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
         }
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

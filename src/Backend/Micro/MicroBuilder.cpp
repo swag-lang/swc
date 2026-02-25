@@ -627,7 +627,7 @@ void MicroBuilder::emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     return;
 }
 
-void MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
+Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
     context.encoder          = encoder;
     context.taskContext      = ctx_;
@@ -636,7 +636,7 @@ void MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, M
     context.operands         = &operands_;
     context.passPrintOptions = printPassOptions_;
 
-    passes.run(context);
+    return passes.run(context);
 }
 
 Utf8 MicroBuilder::formatInstructions(MicroRegPrintMode regPrintMode, const Encoder* encoder) const

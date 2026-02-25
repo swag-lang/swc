@@ -78,7 +78,7 @@ namespace
     }
 }
 
-bool MicroLoadStoreForwardingPass::run(MicroPassContext& context)
+Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
@@ -132,7 +132,8 @@ bool MicroLoadStoreForwardingPass::run(MicroPassContext& context)
         }
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

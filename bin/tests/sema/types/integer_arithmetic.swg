@@ -70,23 +70,23 @@
 #assert(-4's16 / 2 == -2)
 #assert(-4's64 / 2 == -2)
 
-#print(127's8 + 1)      // swc-expected-error {{sema_err_integer_overflow}}
-#print(255'u8 + 1)      // swc-expected-error {{sema_err_integer_overflow}}
-#print(0'u8 - 1)        // swc-expected-error {{sema_err_integer_overflow}}
-#print(-128's8 - 1)     // swc-expected-error {{sema_err_integer_overflow}}
-#print(32767's16 * 2)   // swc-expected-error {{sema_err_integer_overflow}}
-#print(65535'u16 * 2)   // swc-expected-error {{sema_err_integer_overflow}}
+#print(127's8 + 1)      // swc-expected-error {{safety_err_integer_overflow}}
+#print(255'u8 + 1)      // swc-expected-error {{safety_err_integer_overflow}}
+#print(0'u8 - 1)        // swc-expected-error {{safety_err_integer_overflow}}
+#print(-128's8 - 1)     // swc-expected-error {{safety_err_integer_overflow}}
+#print(32767's16 * 2)   // swc-expected-error {{safety_err_integer_overflow}}
+#print(65535'u16 * 2)   // swc-expected-error {{safety_err_integer_overflow}}
 
-#print(1 / 0)           // swc-expected-error {{sema_err_division_zero}}
-#print(1's8 / 0)        // swc-expected-error {{sema_err_division_zero}}
-#print(1's16 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(1's32 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(1's64 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(1'u8 / 0)        // swc-expected-error {{sema_err_division_zero}}
-#print(1'u16 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(1'u32 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(1'u64 / 0)       // swc-expected-error {{sema_err_division_zero}}
-#print(0 / 0)           // swc-expected-error {{sema_err_division_zero}}
+#print(1 / 0)           // swc-expected-error {{safety_err_division_zero}}
+#print(1's8 / 0)        // swc-expected-error {{safety_err_division_zero}}
+#print(1's16 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(1's32 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(1's64 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(1'u8 / 0)        // swc-expected-error {{safety_err_division_zero}}
+#print(1'u16 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(1'u32 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(1'u64 / 0)       // swc-expected-error {{safety_err_division_zero}}
+#print(0 / 0)           // swc-expected-error {{safety_err_division_zero}}
 
 #print(127.0 + #wrap 1)         // swc-expected-error {{sema_err_modifier_only_integer}}
 #print(127.0 + #prom 1)         // swc-expected-error {{sema_err_modifier_only_integer}}
@@ -185,7 +185,7 @@
 #assert(7 % -3 == 1)
 #assert(-7 % -3 == -1)
 #assert(0 % 5 == 0)
-#print(5 % 0) // swc-expected-error {{sema_err_division_zero}}
+#print(5 % 0) // swc-expected-error {{safety_err_division_zero}}
 #assert(10 % 3 == 1)
 #assert(10's8 % 3 == 1)
 #assert(10's16 % 3 == 1)
@@ -204,10 +204,10 @@
 #assert(true | 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 #assert(true ^ 1)   // swc-expected-error {{sema_err_binary_operand_type}}
 
-#assert(1 << -1)    // swc-expected-error {{sema_err_negative_shift}}
-#assert(1 >> -1)    // swc-expected-error {{sema_err_negative_shift}}
+#assert(1 << -1)    // swc-expected-error {{safety_err_negative_shift}}
+#assert(1 >> -1)    // swc-expected-error {{safety_err_negative_shift}}
 
-#print(-128's8 / -1)                    // swc-expected-error {{sema_err_integer_overflow}}
-#print(-32768's16 / -1)                 // swc-expected-error {{sema_err_integer_overflow}}
-#print(-2147483648's32 / -1)            // swc-expected-error {{sema_err_integer_overflow}}
-#print(-9223372036854775808's64 / -1)   // swc-expected-error {{sema_err_integer_overflow}}
+#print(-128's8 / -1)                    // swc-expected-error {{safety_err_integer_overflow}}
+#print(-32768's16 / -1)                 // swc-expected-error {{safety_err_integer_overflow}}
+#print(-2147483648's32 / -1)            // swc-expected-error {{safety_err_integer_overflow}}
+#print(-9223372036854775808's64 / -1)   // swc-expected-error {{safety_err_integer_overflow}}

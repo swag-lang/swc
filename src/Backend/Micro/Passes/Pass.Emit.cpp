@@ -183,7 +183,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
     }
 }
 
-bool MicroEmitPass::run(MicroPassContext& context)
+Result MicroEmitPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
@@ -222,7 +222,8 @@ bool MicroEmitPass::run(MicroPassContext& context)
         encoder.encodePatchJump(pending.jump, it->second);
     }
 
-    return false;
+    context.passChanged = false;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

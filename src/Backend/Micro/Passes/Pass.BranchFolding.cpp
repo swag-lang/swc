@@ -83,7 +83,7 @@ namespace
     }
 }
 
-bool MicroBranchFoldingPass::run(MicroPassContext& context)
+Result MicroBranchFoldingPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
@@ -204,11 +204,16 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
             if (valueIt != known.end())
             {
                 uint64_t folded = 0;
-                if (MicroOptimization::foldBinaryImmediate(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                if (foldStatus == Math::FoldStatus::Ok)
                 {
                     known[ops[0].reg.packed] = {
                         .value = folded,
                     };
+                }
+                else if (Math::isSafetyError(foldStatus))
+                {
+                    return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
                 }
             }
         }
@@ -220,7 +225,8 @@ bool MicroBranchFoldingPass::run(MicroPassContext& context)
         }
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

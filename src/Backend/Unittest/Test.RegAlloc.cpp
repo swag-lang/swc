@@ -73,7 +73,7 @@ namespace
 
             MicroPassContext passCtx;
             passCtx.callConvKind = callConvKind;
-            builder.runPasses(passes, nullptr, passCtx);
+            RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
             RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
             RESULT_VERIFY(verifyCallConvConformity(builder, CallConv::get(passCtx.callConvKind)));
         }
@@ -429,7 +429,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
         passCtx.preservePersistentRegs = true;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
         if (!hasFrameOps)
@@ -454,7 +454,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
         passCtx.preservePersistentRegs = false;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
         if (hasFrameOps)
@@ -479,7 +479,7 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
         passCtx.preservePersistentRegs = true;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         const bool hasFrameOps = hasPersistentFrameOps(builder, CallConv::get(callConvKind));
         if (hasFrameOps)
@@ -501,7 +501,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
 
@@ -524,7 +524,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
 
@@ -547,7 +547,7 @@ SWC_TEST_BEGIN(RegAlloc_VirtualRegForbiddenPhysRegs)
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
         if (containsIntArgRegs(builder, CallConv::get(callConvKind)))
@@ -569,7 +569,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_BalancedControlFlow)
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
-        builder.runPasses(passes, nullptr, passCtx);
+        RESULT_VERIFY(builder.runPasses(passes, nullptr, passCtx));
 
         RESULT_VERIFY(Backend::Unittest::assertNoVirtualRegs(builder));
 

@@ -59,7 +59,7 @@ namespace
     }
 }
 
-bool MicroPeepholePass::run(MicroPassContext& context)
+Result MicroPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
@@ -104,7 +104,8 @@ bool MicroPeepholePass::run(MicroPassContext& context)
         it = nextIt;
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

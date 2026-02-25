@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 
@@ -16,6 +17,45 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool mapTokenToFoldBinaryOp(Math::FoldBinaryOp& outOp, TokenId op)
+    {
+        switch (op)
+        {
+            case TokenId::SymPlus:
+                outOp = Math::FoldBinaryOp::Add;
+                return true;
+            case TokenId::SymMinus:
+                outOp = Math::FoldBinaryOp::Subtract;
+                return true;
+            case TokenId::SymAsterisk:
+                outOp = Math::FoldBinaryOp::Multiply;
+                return true;
+            case TokenId::SymSlash:
+                outOp = Math::FoldBinaryOp::Divide;
+                return true;
+            case TokenId::SymPercent:
+                outOp = Math::FoldBinaryOp::Modulo;
+                return true;
+            case TokenId::SymAmpersand:
+                outOp = Math::FoldBinaryOp::BitwiseAnd;
+                return true;
+            case TokenId::SymPipe:
+                outOp = Math::FoldBinaryOp::BitwiseOr;
+                return true;
+            case TokenId::SymCircumflex:
+                outOp = Math::FoldBinaryOp::BitwiseXor;
+                return true;
+            case TokenId::SymGreaterGreater:
+                outOp = Math::FoldBinaryOp::ShiftRight;
+                return true;
+            case TokenId::SymLowerLower:
+                outOp = Math::FoldBinaryOp::ShiftLeft;
+                return true;
+            default:
+                return false;
+        }
+    }
+
     bool keepEnumFlagsResult(const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, TokenId op)
     {
         if (op != TokenId::SymPipe && op != TokenId::SymAmpersand && op != TokenId::SymCircumflex)
@@ -65,27 +105,22 @@ namespace
 
         if (type.isFloat())
         {
-            auto val1 = leftCst.getFloat();
-            switch (op)
-            {
-                case TokenId::SymPlus:
-                    val1.add(rightCst.getFloat());
-                    break;
-                case TokenId::SymMinus:
-                    val1.sub(rightCst.getFloat());
-                    break;
-                case TokenId::SymAsterisk:
-                    val1.mul(rightCst.getFloat());
-                    break;
-                case TokenId::SymSlash:
-                    val1.div(rightCst.getFloat());
-                    break;
+            Math::FoldBinaryOp foldOp;
+            const bool         mapped = mapTokenToFoldBinaryOp(foldOp, op);
+            SWC_ASSERT(mapped);
+            if (!mapped)
+                return Result::Error;
 
-                default:
-                    SWC_UNREACHABLE();
+            ApFloat                 foldedValue;
+            const Math::FoldStatus foldStatus = Math::foldBinaryFloat(foldedValue, leftCst.getFloat(), rightCst.getFloat(), foldOp);
+            if (foldStatus != Math::FoldStatus::Ok)
+            {
+                if (Math::isSafetyError(foldStatus))
+                    return SemaError::raiseFoldSafety(sema, foldStatus, sema.curNodeRef(), node.nodeRightRef, SemaError::ReportLocation::Token);
+                return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, val1, type.payloadFloatBits()));
+            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, foldedValue, type.payloadFloatBits()));
             return Result::Continue;
         }
 
@@ -93,9 +128,7 @@ namespace
         {
             ApsInt val1 = leftCst.getInt();
             ApsInt val2 = rightCst.getInt();
-
-            const bool wrap     = node.modifierFlags.has(AstModifierFlagsE::Wrap);
-            bool       overflow = false;
+            const bool wrap = node.modifierFlags.has(AstModifierFlagsE::Wrap);
 
             if (type.isIntUnsized())
             {
@@ -103,82 +136,48 @@ namespace
                 val2.setSigned(true);
             }
 
-            switch (op)
+            Math::FoldBinaryOp foldOp;
+            const bool         mapped = mapTokenToFoldBinaryOp(foldOp, op);
+            SWC_ASSERT(mapped);
+            if (!mapped)
+                return Result::Error;
+
+            Math::FoldBinaryIntOptions foldOptions;
+            if (op == TokenId::SymLowerLower)
+                foldOptions.ignoreShiftOverflow = true;
+
+            ApsInt                 foldedValue;
+            Math::FoldStatus foldStatus = Math::foldBinaryInt(foldedValue, val1, val2, foldOp, foldOptions);
+            if (foldStatus == Math::FoldStatus::Overflow && (wrap || type.payloadIntBits() == 0))
+                foldStatus = Math::FoldStatus::Ok;
+
+            if (foldStatus != Math::FoldStatus::Ok)
             {
-                case TokenId::SymPlus:
-                    val1.add(val2, overflow);
-                    break;
-                case TokenId::SymMinus:
-                    val1.sub(val2, overflow);
-                    break;
-                case TokenId::SymAsterisk:
-                    val1.mul(val2, overflow);
-                    break;
+                if (foldStatus == Math::FoldStatus::Overflow)
+                {
+                    auto diag = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Children);
+                    diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                    diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
+                    diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
 
-                case TokenId::SymSlash:
-                    val1.div(val2, overflow);
-                    break;
-
-                case TokenId::SymPercent:
-                    val1.mod(val2, overflow);
-                    break;
-
-                case TokenId::SymAmpersand:
-                    val1.bitwiseAnd(val2);
-                    break;
-                case TokenId::SymPipe:
-                    val1.bitwiseOr(val2);
-                    break;
-                case TokenId::SymCircumflex:
-                    val1.bitwiseXor(val2);
-                    break;
-
-                case TokenId::SymGreaterGreater:
-                    if (val2.isNegative())
-                    {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
+                if (Math::isSafetyError(foldStatus))
+                {
+                    auto diag = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Token);
+                    if (foldStatus == Math::FoldStatus::NegativeShift)
                         diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                        diag.report(sema.ctx());
-                        return Result::Error;
-                    }
+                    if (foldStatus == Math::FoldStatus::DivisionByZero || foldStatus == Math::FoldStatus::NegativeShift)
+                        SemaError::addSpan(sema, diag.last(), node.nodeRightRef, "", DiagnosticSeverity::Note);
+                    diag.report(sema.ctx());
+                    return Result::Error;
+                }
 
-                    if (!val2.fits64())
-                        overflow = true;
-                    else
-                        val1.shiftRight(val2.asI64());
-                    break;
-
-                case TokenId::SymLowerLower:
-                    if (val2.isNegative())
-                    {
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_negative_shift, node.nodeRightRef);
-                        diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                        diag.report(sema.ctx());
-                        return Result::Error;
-                    }
-
-                    if (!val2.fits64())
-                        overflow = true;
-                    else
-                        val1.shiftLeft(val2.asI64(), overflow);
-                    overflow = false;
-                    break;
-
-                default:
-                    SWC_UNREACHABLE();
-            }
-
-            if (!wrap && type.payloadIntBits() != 0 && overflow)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_integer_overflow, node);
-                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
-                diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
-                diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
-                diag.report(sema.ctx());
                 return Result::Error;
             }
 
-            ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, val1, type.payloadIntBits(), type.payloadIntSign()));
+            ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeInt(ctx, foldedValue, type.payloadIntBits(), type.payloadIntSign()));
             if (keepEnumRes)
             {
                 const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef());

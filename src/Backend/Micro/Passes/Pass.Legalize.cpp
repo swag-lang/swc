@@ -596,7 +596,7 @@ namespace
     }
 }
 
-bool MicroLegalizePass::run(MicroPassContext& context)
+Result MicroLegalizePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
@@ -657,7 +657,8 @@ bool MicroLegalizePass::run(MicroPassContext& context)
         }
     }
 
-    return changed;
+    context.passChanged = changed;
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -102,7 +102,6 @@ SWC_TEST_BEGIN(Peephole_PreservesNonNoOps)
     constexpr MicroReg r10 = MicroReg::intReg(10);
     constexpr MicroReg r11 = MicroReg::intReg(11);
     constexpr MicroReg r12 = MicroReg::intReg(12);
-    constexpr MicroReg r13 = MicroReg::intReg(13);
     constexpr MicroReg r14 = MicroReg::intReg(14);
 
     builder.emitNop();

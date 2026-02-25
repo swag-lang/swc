@@ -37,8 +37,8 @@ namespace
 
 SWC_TEST_BEGIN(MicroStrengthReduction_RewritesPowerOfTwoOps)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg reg = MicroReg::intReg(8);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg reg = MicroReg::intReg(8);
 
     builder.emitOpBinaryRegImm(reg, ApInt(8, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(reg, ApInt(4, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);

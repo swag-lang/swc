@@ -61,7 +61,7 @@ namespace PeepholePass
 
                 const MicroInstrOpcode           originalOp = scanInst.op;
                 std::array<MicroInstrOperand, 8> originalOps{};
-                const uint32_t                   numSnapshotOps = std::min<uint32_t>(scanInst.numOperands, static_cast<uint32_t>(originalOps.size()));
+                const uint32_t                   numSnapshotOps = std::min<uint32_t>(scanInst.numOperands, static_cast<uint8_t>(originalOps.size()));
                 for (uint32_t i = 0; i < numSnapshotOps; ++i)
                     originalOps[i] = scanOps[i];
 
@@ -666,7 +666,7 @@ namespace PeepholePass
             if (!frameMatchesStack)
                 return false;
 
-            MicroInstr* rewriteInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr* rewriteInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
             if (!rewriteInst)
                 return false;
 
@@ -972,7 +972,7 @@ namespace PeepholePass
 
             for (const RewriteCandidate& candidate : candidates)
             {
-                MicroInstr* rewriteInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(candidate.ref);
+                const MicroInstr* rewriteInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(candidate.ref);
                 if (!rewriteInst)
                     return false;
                 MicroInstrOperand* rewriteOps = rewriteInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
@@ -992,7 +992,7 @@ namespace PeepholePass
                         if (rollback.ref == INVALID_REF)
                             continue;
 
-                        MicroInstr* rollbackInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(rollback.ref);
+                        const MicroInstr* rollbackInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(rollback.ref);
                         if (!rollbackInst)
                             continue;
                         MicroInstrOperand* rollbackOps = rollbackInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
@@ -1142,8 +1142,8 @@ namespace PeepholePass
             const MicroReg indexReg = ops[2].reg;
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
-                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                MicroInstr&              scanInst = *scanIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
 

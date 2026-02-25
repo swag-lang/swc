@@ -120,7 +120,7 @@ namespace
         return true;
     }
 
-    bool tryRewriteMemoryBaseToStack(const MicroPassContext& context, MicroInstr& inst, MicroInstrOperand* ops, MicroReg stackPointerReg, const KnownAddressMap& knownAddresses)
+    bool tryRewriteMemoryBaseToStack(const MicroPassContext& context, const MicroInstr& inst, MicroInstrOperand* ops, MicroReg stackPointerReg, const KnownAddressMap& knownAddresses)
     {
         if (!ops || !stackPointerReg.isValid())
             return false;

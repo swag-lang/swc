@@ -40,10 +40,10 @@ namespace
         return false;
     }
 
-    std::string backendOptimizeWithInstructionStats(MicroPassContext& context, const MicroBuilder& builder)
+    std::string backendOptimizeWithInstructionStats(const MicroPassContext& context, const MicroBuilder& builder)
     {
         const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
-        const std::string               optimize   = backendOptimizeLevelName(backendCfg);
+        std::string                     optimize   = backendOptimizeLevelName(backendCfg);
         if (!backendCfg.optimize)
             return optimize;
 

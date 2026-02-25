@@ -52,7 +52,7 @@ namespace
                     return false;
                 if (lhs == std::numeric_limits<int32_t>::min() && rhs == -1)
                     return false;
-                const int32_t result = isModulo ? static_cast<int32_t>(lhs % rhs) : static_cast<int32_t>(lhs / rhs);
+                const int32_t result = isModulo ? lhs % rhs : lhs / rhs;
                 outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(result)), opBits);
                 return true;
             }
@@ -87,7 +87,7 @@ namespace
                 if (!rhs)
                     return false;
                 const uint8_t result = isModulo ? static_cast<uint8_t>(lhs % rhs) : static_cast<uint8_t>(lhs / rhs);
-                outValue             = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                outValue             = MicroOptimization::normalizeToOpBits(result, opBits);
                 return true;
             }
             case MicroOpBits::B16:
@@ -97,7 +97,7 @@ namespace
                 if (!rhs)
                     return false;
                 const uint16_t result = isModulo ? static_cast<uint16_t>(lhs % rhs) : static_cast<uint16_t>(lhs / rhs);
-                outValue              = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
                 return true;
             }
             case MicroOpBits::B32:
@@ -106,8 +106,8 @@ namespace
                 const uint32_t rhs = static_cast<uint32_t>(immediate);
                 if (!rhs)
                     return false;
-                const uint32_t result = isModulo ? static_cast<uint32_t>(lhs % rhs) : static_cast<uint32_t>(lhs / rhs);
-                outValue              = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(result), opBits);
+                const uint32_t result = isModulo ? lhs % rhs : lhs / rhs;
+                outValue              = MicroOptimization::normalizeToOpBits(result, opBits);
                 return true;
             }
             case MicroOpBits::B64:

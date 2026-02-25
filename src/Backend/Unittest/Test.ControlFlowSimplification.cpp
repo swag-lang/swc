@@ -37,11 +37,11 @@ namespace
 
 SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg r8        = MicroReg::intReg(8);
-    const MicroReg r9        = MicroReg::intReg(9);
-    const Ref      bodyLabel = builder.createLabel();
-    const Ref      deadLabel = builder.createLabel();
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8        = MicroReg::intReg(8);
+    constexpr MicroReg r9        = MicroReg::intReg(9);
+    const Ref          bodyLabel = builder.createLabel();
+    const Ref          deadLabel = builder.createLabel();
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, bodyLabel);
     builder.placeLabel(bodyLabel);

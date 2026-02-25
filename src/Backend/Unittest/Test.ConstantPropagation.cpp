@@ -37,10 +37,10 @@ namespace
 
 SWC_TEST_BEGIN(MicroConstantPropagation_RewritesLoadAndCompare)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg r8  = MicroReg::intReg(8);
-    const MicroReg r9  = MicroReg::intReg(9);
-    const MicroReg r10 = MicroReg::intReg(10);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
 
     builder.emitLoadRegImm(r8, ApInt(17, 64), MicroOpBits::B64);
     builder.emitLoadRegReg(r9, r8, MicroOpBits::B64);
@@ -70,9 +70,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownBinaryOperation)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg r8 = MicroReg::intReg(8);
-    const MicroReg r9 = MicroReg::intReg(9);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8 = MicroReg::intReg(8);
+    constexpr MicroReg r9 = MicroReg::intReg(9);
 
     builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B64);
     builder.emitLoadRegImm(r9, ApInt(3, 64), MicroOpBits::B64);
@@ -93,10 +93,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownSignAndZeroExtend)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg r8  = MicroReg::intReg(8);
-    const MicroReg r9  = MicroReg::intReg(9);
-    const MicroReg r10 = MicroReg::intReg(10);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
 
     builder.emitLoadRegImm(r8, ApInt(0xF6, 8), MicroOpBits::B8);
     builder.emitLoadSignedExtendRegReg(r9, r8, MicroOpBits::B64, MicroOpBits::B8);

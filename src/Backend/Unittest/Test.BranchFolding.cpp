@@ -36,11 +36,11 @@ namespace
 
 SWC_TEST_BEGIN(MicroBranchFolding_ConstantConditions)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg r8         = MicroReg::intReg(8);
-    const MicroReg r9         = MicroReg::intReg(9);
-    const Ref      takenLabel = builder.createLabel();
-    const Ref      doneLabel  = builder.createLabel();
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8         = MicroReg::intReg(8);
+    constexpr MicroReg r9         = MicroReg::intReg(9);
+    const Ref          takenLabel = builder.createLabel();
+    const Ref          doneLabel  = builder.createLabel();
 
     builder.emitLoadRegImm(r8, ApInt(4, 64), MicroOpBits::B64);
     builder.emitCmpRegImm(r8, ApInt(4, 64), MicroOpBits::B64);

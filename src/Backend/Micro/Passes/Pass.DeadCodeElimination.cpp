@@ -349,7 +349,7 @@ namespace
                 const std::vector<Ref>&      successors = controlFlowData.successors[idx];
                 for (const Ref successorIndexRef : successors)
                 {
-                    const size_t successorIndex = static_cast<size_t>(successorIndexRef);
+                    const size_t successorIndex = successorIndexRef;
                     if (successorIndex >= liveIn.size())
                         continue;
 

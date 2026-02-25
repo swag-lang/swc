@@ -1,9 +1,7 @@
-#include <utility>
-
 #include "pch.h"
+#include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Support/Math/Helpers.h"
 
 // Rewrites non-encodable instruction forms into legal encoder forms.

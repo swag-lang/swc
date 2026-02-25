@@ -37,10 +37,10 @@ namespace
 
 SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsRegisterStore)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg baseReg = MicroReg::intReg(5);
-    const MicroReg srcReg  = MicroReg::intReg(8);
-    const MicroReg dstReg  = MicroReg::intReg(9);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg baseReg = MicroReg::intReg(5);
+    constexpr MicroReg srcReg  = MicroReg::intReg(8);
+    constexpr MicroReg dstReg  = MicroReg::intReg(9);
 
     builder.emitLoadMemReg(baseReg, 16, srcReg, MicroOpBits::B64);
     builder.emitLoadRegMem(dstReg, baseReg, 16, MicroOpBits::B64);
@@ -60,9 +60,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsImmediateStore)
 {
-    MicroBuilder   builder(ctx);
-    const MicroReg baseReg = MicroReg::intReg(5);
-    const MicroReg dstReg  = MicroReg::intReg(10);
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg baseReg = MicroReg::intReg(5);
+    constexpr MicroReg dstReg  = MicroReg::intReg(10);
 
     builder.emitLoadMemImm(baseReg, 24, ApInt(123, 64), MicroOpBits::B64);
     builder.emitLoadRegMem(dstReg, baseReg, 24, MicroOpBits::B64);

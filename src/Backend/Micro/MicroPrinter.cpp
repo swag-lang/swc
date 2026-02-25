@@ -1029,19 +1029,6 @@ namespace
         appendTypeBitsCast(out, ctx, ops[dstBits].opBits, ops[srcBits].opBits);
     }
 
-    void appendAmcRegMemCastBits(Utf8& out, const TaskContext& ctx, const MicroInstrOperand* ops, bool withDestReg, uint32_t dstReg, uint32_t baseReg, uint32_t mulReg, uint32_t dstBits, uint32_t srcBits, uint32_t mulValue, uint32_t addValue, MicroRegPrintMode regPrintMode, const Encoder* encoder)
-    {
-        if (withDestReg)
-        {
-            appendRegister(out, ctx, ops[dstReg].reg, regPrintMode, encoder);
-            appendSep(out);
-        }
-
-        appendMemAmc(out, ctx, ops[baseReg].reg, ops[mulReg].reg, ops[mulValue].valueU64, ops[addValue].valueU64, regPrintMode, encoder);
-        appendSep(out);
-        appendTypeBitsCast(out, ctx, ops[dstBits].opBits, ops[srcBits].opBits);
-    }
-
     uint32_t computeInstructionIndexWidth(uint32_t numInstructions)
     {
         uint32_t width = 1;

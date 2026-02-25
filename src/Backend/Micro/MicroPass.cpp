@@ -151,10 +151,10 @@ namespace
             printPassInstructions(context, pass, true);
 
         context.passChanged = false;
-        RESULT_VERIFY(pass.run(context));
+        SWC_RESULT_VERIFY(pass.run(context));
 
         bool changed = context.passChanged;
-        if (context.builder && SWC_CHECK_NOT_NULL(context.builder)->pruneDeadRelocations())
+        if (context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
             changed = true;
 
         if (shouldPrintPass(context, pass, false))
@@ -170,7 +170,7 @@ namespace
         {
             SWC_ASSERT(pass != nullptr);
             bool changed = false;
-            RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), changed));
+            SWC_RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), changed));
         }
 
         return Result::Continue;
@@ -192,7 +192,7 @@ namespace
             {
                 SWC_ASSERT(pass != nullptr);
                 bool passChanged = false;
-                RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), passChanged));
+                SWC_RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), passChanged));
                 if (passChanged)
                     changed = true;
             }
@@ -248,10 +248,10 @@ Result MicroPassManager::run(MicroPassContext& context) const
         context.hasPrintInstrCountBeforeAll = true;
     }
 
-    RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
-    RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
-    RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));
-    RESULT_VERIFY(runLinearPasses(context, finalPasses_));
+    SWC_RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
+    SWC_RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
+    SWC_RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));
+    SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
     return Result::Continue;
 }
 

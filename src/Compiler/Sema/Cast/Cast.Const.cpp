@@ -408,20 +408,20 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
         if (!leftConcrete)
         {
             const TypeInfo::Sign hintSign = rightType->isInt() ? rightType->payloadIntSign() : TypeInfo::Sign::Signed;
-            RESULT_VERIFY(concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef(), leftCstRef, hintSign));
+            SWC_RESULT_VERIFY(concretizeConstant(sema, leftCstRef, nodeLeftView.nodeRef(), leftCstRef, hintSign));
             leftTypeRef = sema.cstMgr().get(leftCstRef).typeRef();
         }
         else if (!rightConcrete)
         {
             const TypeInfo::Sign hintSign = leftType->isInt() ? leftType->payloadIntSign() : TypeInfo::Sign::Signed;
-            RESULT_VERIFY(concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef(), rightCstRef, hintSign));
+            SWC_RESULT_VERIFY(concretizeConstant(sema, rightCstRef, nodeRightView.nodeRef(), rightCstRef, hintSign));
             rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
         }
     }
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
-    RESULT_VERIFY(castConstant(sema, leftCstRef, leftCstRef, promotedTypeRef, nodeLeftView.nodeRef(), CastKind::Promotion));
-    RESULT_VERIFY(castConstant(sema, rightCstRef, rightCstRef, promotedTypeRef, nodeRightView.nodeRef(), CastKind::Promotion));
+    SWC_RESULT_VERIFY(castConstant(sema, leftCstRef, leftCstRef, promotedTypeRef, nodeLeftView.nodeRef(), CastKind::Promotion));
+    SWC_RESULT_VERIFY(castConstant(sema, rightCstRef, rightCstRef, promotedTypeRef, nodeRightView.nodeRef(), CastKind::Promotion));
 
     return Result::Continue;
 }

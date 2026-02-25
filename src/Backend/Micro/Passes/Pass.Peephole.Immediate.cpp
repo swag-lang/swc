@@ -26,17 +26,17 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 MicroInstr&            scanInst = *scanIt;
-                MicroInstrOperand*     scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                MicroInstrOperand*     scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
 
                 SmallVector<MicroInstrRegOperandRef> refs;
-                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
                 bool hasUse = false;
                 bool hasDef = false;
                 for (const MicroInstrRegOperandRef& ref : refs)
                 {
-                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
                         continue;
 
                     hasUse |= ref.use;
@@ -79,7 +79,7 @@ namespace PeepholePass
                     return false;
                 }
 
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                SWC_NOT_NULL(context.instructions)->erase(instRef);
                 return true;
             }
 
@@ -99,17 +99,17 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 MicroInstr&            scanInst = *scanIt;
-                MicroInstrOperand*     scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                MicroInstrOperand*     scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
 
                 SmallVector<MicroInstrRegOperandRef> refs;
-                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
                 bool hasUse = false;
                 bool hasDef = false;
                 for (const MicroInstrRegOperandRef& ref : refs)
                 {
-                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
                         continue;
 
                     hasUse |= ref.use;
@@ -153,7 +153,7 @@ namespace PeepholePass
                     return false;
                 }
 
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                SWC_NOT_NULL(context.instructions)->erase(instRef);
                 return true;
             }
 
@@ -173,7 +173,7 @@ namespace PeepholePass
             if (nextInst.op != MicroInstrOpcode::OpBinaryRegReg)
                 return false;
 
-            MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* nextOps = nextInst.ops(*SWC_NOT_NULL(context.operands));
             if (!nextOps)
                 return false;
 
@@ -206,7 +206,7 @@ namespace PeepholePass
                 return false;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
             return true;
         }
 
@@ -223,7 +223,7 @@ namespace PeepholePass
             if (nextInst.op != MicroInstrOpcode::CmpRegReg)
                 return false;
 
-            MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* nextOps = nextInst.ops(*SWC_NOT_NULL(context.operands));
             if (!nextOps)
                 return false;
 
@@ -255,7 +255,7 @@ namespace PeepholePass
                 return false;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
             return true;
         }
 
@@ -276,7 +276,7 @@ namespace PeepholePass
             const MicroInstrOperand* copyOps = nullptr;
 
             const MicroInstr&        firstNextInst = *nextIt;
-            const MicroInstrOperand* firstNextOps  = firstNextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* firstNextOps  = firstNextInst.ops(*SWC_NOT_NULL(context.operands));
             if (!firstNextOps)
                 return false;
 
@@ -287,15 +287,15 @@ namespace PeepholePass
             }
             else
             {
-                const MicroInstrUseDef firstUseDef = firstNextInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                const MicroInstrUseDef firstUseDef = firstNextInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
                 if (firstUseDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(firstNextInst, firstUseDef))
                     return false;
 
                 SmallVector<MicroInstrRegOperandRef> firstRefs;
-                firstNextInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), firstRefs, context.encoder);
+                firstNextInst.collectRegOperands(*SWC_NOT_NULL(context.operands), firstRefs, context.encoder);
                 for (const MicroInstrRegOperandRef& ref : firstRefs)
                 {
-                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != immReg)
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != immReg)
                         continue;
                     return false;
                 }
@@ -308,7 +308,7 @@ namespace PeepholePass
                 if (copyInst.op != MicroInstrOpcode::LoadRegReg)
                     return false;
 
-                copyOps = copyInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                copyOps = copyInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!copyOps)
                     return false;
                 if (copyOps[1].reg != immReg)
@@ -321,7 +321,7 @@ namespace PeepholePass
             const MicroInstr& mulInst = *mulIt;
             if (mulInst.op != MicroInstrOpcode::OpBinaryRegImm)
                 return false;
-            const MicroInstrOperand* mulOps = mulInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* mulOps = mulInst.ops(*SWC_NOT_NULL(context.operands));
             if (!mulOps)
                 return false;
 
@@ -331,7 +331,7 @@ namespace PeepholePass
             MicroInstr& addInst = *addIt;
             if (addInst.op != MicroInstrOpcode::OpBinaryRegReg)
                 return false;
-            MicroInstrOperand* addOps = addInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* addOps = addInst.ops(*SWC_NOT_NULL(context.operands));
             if (!addOps)
                 return false;
 
@@ -371,13 +371,13 @@ namespace PeepholePass
                     return false;
                 }
 
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(mulIt.current);
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(copyIt.current);
+                SWC_NOT_NULL(context.instructions)->erase(mulIt.current);
+                SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
 
                 if (copyIt != nextIt)
                 {
-                    const MicroInstr*  midInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(nextIt.current);
-                    MicroInstrOperand* midOps  = midInst ? midInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+                    const MicroInstr*  midInst = SWC_NOT_NULL(context.instructions)->ptr(nextIt.current);
+                    MicroInstrOperand* midOps  = midInst ? midInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
                     if (midInst && midOps && midInst->op == MicroInstrOpcode::LoadRegMem)
                     {
                         const MicroReg midDstReg = midOps[0].reg;
@@ -391,7 +391,7 @@ namespace PeepholePass
                             }
                             else
                             {
-                                SWC_CHECK_NOT_NULL(context.instructions)->erase(addIt.current);
+                                SWC_NOT_NULL(context.instructions)->erase(addIt.current);
                             }
                         }
                     }
@@ -417,12 +417,12 @@ namespace PeepholePass
                     return false;
                 }
 
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(mulIt.current);
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(copyIt.current);
+                SWC_NOT_NULL(context.instructions)->erase(mulIt.current);
+                SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
             }
 
             if (canEraseLoadImm)
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                SWC_NOT_NULL(context.instructions)->erase(instRef);
 
             return true;
         }
@@ -440,7 +440,7 @@ namespace PeepholePass
             if (nextInst.op != MicroInstrOpcode::LoadMemImm)
                 return false;
 
-            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_NOT_NULL(context.operands));
             if (!nextOps)
                 return false;
 
@@ -456,11 +456,11 @@ namespace PeepholePass
             if (firstOffset + 4 != nextOffset)
                 return false;
 
-            MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            MicroInstr* firstInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
             if (!firstInst)
                 return false;
 
-            MicroInstrOperand* firstOps = firstInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* firstOps = firstInst->ops(*SWC_NOT_NULL(context.operands));
             if (!firstOps)
                 return false;
 
@@ -482,7 +482,7 @@ namespace PeepholePass
                 return false;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(nextIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
             return true;
         }
 
@@ -510,7 +510,7 @@ namespace PeepholePass
             if (!ops)
                 return false;
 
-            const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
             if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
                 return false;
 
@@ -528,13 +528,13 @@ namespace PeepholePass
             }
 
             SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            inst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
             for (const MicroInstrRegOperandRef& ref : refs)
             {
                 if (!ref.reg)
                     continue;
 
-                if (*SWC_CHECK_NOT_NULL(ref.reg) == mergedReg)
+                if (*SWC_NOT_NULL(ref.reg) == mergedReg)
                     return false;
             }
 
@@ -563,7 +563,7 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 const MicroInstr&        scanInst = *scanIt;
-                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (isMergeableRegImmArithmeticInstruction(scanInst, scanOps, mergedReg, opBits))
                 {
                     secondAdjustIt  = scanIt;
@@ -581,11 +581,11 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, secondAdjustIt, endIt))
                 return false;
 
-            const MicroInstr* firstInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
+            const MicroInstr* firstInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
             if (!firstInst)
                 return false;
 
-            MicroInstrOperand* firstOps = firstInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* firstOps = firstInst->ops(*SWC_NOT_NULL(context.operands));
             if (!firstOps)
                 return false;
 
@@ -647,9 +647,9 @@ namespace PeepholePass
             }
 
             if (combinedImm == 0)
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                SWC_NOT_NULL(context.instructions)->erase(instRef);
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(secondAdjustIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(secondAdjustIt.current);
             return true;
         }
 

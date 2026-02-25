@@ -48,7 +48,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_ResolvesCopyChains)
     builder.emitLoadRegReg(r10, r9, MicroOpBits::B64);
     builder.emitCmpRegReg(r11, r10, MicroOpBits::B64);
 
-    RESULT_VERIFY(runCopyPropagationPass(builder));
+    SWC_RESULT_VERIFY(runCopyPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst2    = instructionAt(builder, 2);
@@ -79,7 +79,7 @@ SWC_TEST_BEGIN(MicroCopyPropagation_StopsAtLabel)
     builder.placeLabel(mid);
     builder.emitCmpRegReg(r10, r9, MicroOpBits::B64);
 
-    RESULT_VERIFY(runCopyPropagationPass(builder));
+    SWC_RESULT_VERIFY(runCopyPropagationPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst3    = instructionAt(builder, 3);

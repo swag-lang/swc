@@ -427,7 +427,7 @@ Result Sema::postNode(AstNode& node)
     {
         processDeferredPopsPostNode(nodeRef);
         if (nodeRef == curNodeRef())
-            RESULT_VERIFY(processDeferredPostNodeActions(nodeRef));
+            SWC_RESULT_VERIFY(processDeferredPostNodeActions(nodeRef));
     }
     return result;
 }
@@ -444,7 +444,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    RESULT_VERIFY(info.semaPreNodeChild(*this, node, childRef));
+    SWC_RESULT_VERIFY(info.semaPreNodeChild(*this, node, childRef));
 
     if (curScope_->isTopLevel())
     {

@@ -105,14 +105,14 @@ public:
     T& at(Ref ref) noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
+        return *SWC_NOT_NULL(ptr<T>(ref));
     }
 
     template<class T>
     const T& at(Ref ref) const noexcept
     {
         SWC_ASSERT(ref != INVALID_REF);
-        return *SWC_CHECK_NOT_NULL(ptr<T>(ref));
+        return *SWC_NOT_NULL(ptr<T>(ref));
     }
 
     template<class T>

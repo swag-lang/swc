@@ -57,7 +57,7 @@ namespace
 
     bool canCrossInstruction(const MicroPassContext& context, const MicroInstr& store, const MicroInstrOperand* storeOps, const MicroInstr& scanInst)
     {
-        const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+        const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
         if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
             return false;
         if (writesMemory(scanInst))
@@ -84,8 +84,8 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     bool                 changed  = false;
-    MicroStorage&        storage  = *SWC_CHECK_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
+    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {

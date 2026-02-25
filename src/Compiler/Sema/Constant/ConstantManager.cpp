@@ -200,7 +200,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     const uint32_t shardIndex = constantRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const uint32_t localIndex = constantRef.get() & LOCAL_MASK;
-    return *SWC_CHECK_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
+    return *SWC_NOT_NULL(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
 Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
@@ -214,7 +214,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
 
     {
         std::unique_lock lk(shard.mutex);
-        RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+        SWC_RESULT_VERIFY(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
     }
 
     // 'typeinfo(T)' produces a value of the built-in 'TypeInfo' type.

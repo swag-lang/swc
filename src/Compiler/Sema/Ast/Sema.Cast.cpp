@@ -50,7 +50,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     sema.setConstant(nodeLiteralView.nodeRef(), cstRef);
     nodeLiteralView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-    RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
+    SWC_RESULT_VERIFY(Cast::cast(sema, nodeLiteralView, typeRef, CastKind::LiteralSuffix));
     sema.setConstant(sema.curNodeRef(), nodeLiteralView.cstRef());
 
     return Result::Continue;
@@ -65,10 +65,10 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+    SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
     // Cast kind
     CastFlags castFlags = CastFlagsE::Zero;
@@ -81,7 +81,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     sema.inheritPayload(*this, nodeExprView.nodeRef());
     SemaNodeView view = sema.curViewNodeTypeConstant();
     view.typeRef()    = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Function);
-    RESULT_VERIFY(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
+    SWC_RESULT_VERIFY(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
     return Result::Continue;
 }
@@ -91,10 +91,10 @@ Result AstAutoCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeExprView = sema.viewZero(nodeExprRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprView.nodeRef()));
 
     // Check cast modifiers
-    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
+    SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, AstModifierFlagsE::Bit | AstModifierFlagsE::UnConst));
 
     // We do not know the destination type here (it comes from context).
     // Keep the node and inherit the child payload; the cast will be applied later.

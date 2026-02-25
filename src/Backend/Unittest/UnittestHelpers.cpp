@@ -82,7 +82,7 @@ namespace Backend::Unittest
         passes.add(encodePass);
 
         MicroPassContext passCtx;
-        RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
+        SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));
 
         if (encoder.size() == 0)
         {

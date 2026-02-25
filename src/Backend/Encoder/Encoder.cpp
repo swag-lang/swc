@@ -13,7 +13,7 @@ const uint8_t* Encoder::data() const
 uint8_t Encoder::byteAt(uint32_t index) const
 {
     SWC_ASSERT(index < store_.size());
-    return *SWC_CHECK_NOT_NULL(store_.ptr<uint8_t>(index));
+    return *SWC_NOT_NULL(store_.ptr<uint8_t>(index));
 }
 
 void Encoder::copyTo(ByteSpanRW dst) const

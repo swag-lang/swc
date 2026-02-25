@@ -39,7 +39,7 @@ namespace
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym    = SWC_CHECK_NOT_NULL(rightView.sym());
+        const Symbol*             rightSym    = SWC_NOT_NULL(rightView.sym());
         const SymbolVariable&     symVar      = rightSym->cast<SymbolVariable>();
 
         const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
@@ -74,7 +74,7 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
         const SemaNodeView    rightView  = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*         methodSym  = SWC_CHECK_NOT_NULL(rightView.sym());
+        const Symbol*         methodSym  = SWC_NOT_NULL(rightView.sym());
         const SymbolFunction& methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 

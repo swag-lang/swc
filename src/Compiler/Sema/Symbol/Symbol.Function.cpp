@@ -248,7 +248,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);
 #endif
-    RESULT_VERIFY(loweredMicroCode_.emit(ctx, builder));
+    SWC_RESULT_VERIFY(loweredMicroCode_.emit(ctx, builder));
 #if SWC_HAS_STATS
     Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
 #endif

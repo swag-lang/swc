@@ -54,7 +54,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
-    RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
+    SWC_RESULT_VERIFY(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
 
     if (nodeExprView.type()->isAggregateArray())
     {
@@ -130,7 +130,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     // Constant extract
     if (nodeExprView.cst() && hasConstIndex)
     {
-        RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst(), constIndex, nodeArgRef));
+        SWC_RESULT_VERIFY(ConstantExtract::atIndex(sema, *nodeExprView.cst(), constIndex, nodeArgRef));
     }
     else
     {
@@ -173,7 +173,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
-            RESULT_VERIFY(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
+            SWC_RESULT_VERIFY(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
 
             if (hasConstIndex)
             {
@@ -236,7 +236,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             const SemaNodeView nodeArgView   = sema.viewTypeConstant(children[0]);
             int64_t            constIndex    = 0;
             bool               hasConstIndex = false;
-            RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
+            SWC_RESULT_VERIFY(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
         }
 
         if (nodeExprView.type()->isVariadic())

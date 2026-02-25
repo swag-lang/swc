@@ -97,7 +97,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeExprRef)
     {
         SemaNodeView exprView = sema.viewTypeConstant(nodeExprRef);
-        RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
+        SWC_RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
         const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
@@ -215,14 +215,14 @@ namespace
     {
         const AstRangeExpr& range = sema.node(rangeRef).cast<AstRangeExpr>();
         if (range.nodeExprDownRef.isValid())
-            RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprDownRef, switchTypeRef));
+            SWC_RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprDownRef, switchTypeRef));
         if (range.nodeExprUpRef.isValid())
-            RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprUpRef, switchTypeRef));
+            SWC_RESULT_VERIFY(castCaseToSwitch(sema, range.nodeExprUpRef, switchTypeRef));
 
         if (range.nodeExprDownRef.isValid())
-            RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprDownRef));
+            SWC_RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprDownRef));
         if (range.nodeExprUpRef.isValid())
-            RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprUpRef));
+            SWC_RESULT_VERIFY(checkCaseExprIsConst(sema, range.nodeExprUpRef));
 
         return Result::Continue;
     }
@@ -284,7 +284,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (switchTypeRef.isInvalid())
     {
         SemaNodeView view = sema.viewNodeTypeConstant(childRef);
-        RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
         return Result::Continue;
     }
 
@@ -294,11 +294,11 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
     // Be sure it's a value
     SemaNodeView exprView = sema.viewTypeConstant(childRef);
-    RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
+    SWC_RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
-    RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));
-    RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
-    RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
+    SWC_RESULT_VERIFY(castCaseToSwitch(sema, childRef, switchTypeRef));
+    SWC_RESULT_VERIFY(checkCaseExprIsConst(sema, childRef));
+    SWC_RESULT_VERIFY(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
 
     return Result::Continue;
 }

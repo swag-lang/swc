@@ -45,7 +45,7 @@ SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsRegisterStore)
     builder.emitLoadMemReg(baseReg, 16, srcReg, MicroOpBits::B64);
     builder.emitLoadRegMem(dstReg, baseReg, 16, MicroOpBits::B64);
 
-    RESULT_VERIFY(runLoadStoreForwardingPass(builder));
+    SWC_RESULT_VERIFY(runLoadStoreForwardingPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst1    = instructionAt(builder, 1);
@@ -67,7 +67,7 @@ SWC_TEST_BEGIN(MicroLoadStoreForwarding_ForwardsImmediateStore)
     builder.emitLoadMemImm(baseReg, 24, ApInt(123, 64), MicroOpBits::B64);
     builder.emitLoadRegMem(dstReg, baseReg, 24, MicroOpBits::B64);
 
-    RESULT_VERIFY(runLoadStoreForwardingPass(builder));
+    SWC_RESULT_VERIFY(runLoadStoreForwardingPass(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     const MicroInstr*          inst1    = instructionAt(builder, 1);

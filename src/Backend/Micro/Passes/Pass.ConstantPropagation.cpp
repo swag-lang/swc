@@ -235,8 +235,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     if (context.encoder)
         stackPointerReg = context.encoder->stackPointerReg();
 
-    MicroStorage&        storage  = *SWC_CHECK_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
+    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
         const Ref          instRef = it.current;

@@ -25,8 +25,8 @@ public:
     JobResult exec();
     Result    execResult();
 
-    TaskContext&            ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
-    const TaskContext&      ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
+    TaskContext&            ctx() { return *SWC_NOT_NULL(ctx_); }
+    const TaskContext&      ctx() const { return *SWC_NOT_NULL(ctx_); }
     CompilerInstance&       compiler() { return ctx().compiler(); }
     const CompilerInstance& compiler() const { return ctx().compiler(); }
     bool                    isDeclPass() const { return declPass_; }
@@ -55,8 +55,8 @@ public:
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
-    SemaScope&                 curScope() { return *SWC_CHECK_NOT_NULL(curScope_); }
-    const SemaScope&           curScope() const { return *SWC_CHECK_NOT_NULL(curScope_); }
+    SemaScope&                 curScope() { return *SWC_NOT_NULL(curScope_); }
+    const SemaScope&           curScope() const { return *SWC_NOT_NULL(curScope_); }
     AstVisit&                  visit() { return visit_; }
     const AstVisit&            visit() const { return visit_; }
     AstNodeRef                 curNodeRef() const { return visit_.currentNodeRef(); }
@@ -229,8 +229,8 @@ private:
     void               popScope();
     void               pushFrame(const SemaFrame& frame);
     void               popFrame();
-    NodePayload&       nodePayloadContext() { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
-    const NodePayload& nodePayloadContext() const { return *SWC_CHECK_NOT_NULL(nodePayloadContext_); }
+    NodePayload&       nodePayloadContext() { return *SWC_NOT_NULL(nodePayloadContext_); }
+    const NodePayload& nodePayloadContext() const { return *SWC_NOT_NULL(nodePayloadContext_); }
 
     void   setVisitors();
     Result preDecl(AstNode& node);

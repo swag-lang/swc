@@ -65,8 +65,8 @@ public:
     MicroBuilder& operator=(MicroBuilder&&) noexcept = default;
 
     void               setContext(TaskContext& ctx) { ctx_ = &ctx; }
-    TaskContext&       ctx() { return *SWC_CHECK_NOT_NULL(ctx_); }
-    const TaskContext& ctx() const { return *SWC_CHECK_NOT_NULL(ctx_); }
+    TaskContext&       ctx() { return *SWC_NOT_NULL(ctx_); }
+    const TaskContext& ctx() const { return *SWC_NOT_NULL(ctx_); }
 
     MicroStorage&              instructions() { return instructions_; }
     const MicroStorage&        instructions() const { return instructions_; }

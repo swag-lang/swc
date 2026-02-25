@@ -38,7 +38,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
-        Symbol&            sym       = *SWC_CHECK_NOT_NULL(identView.sym());
+        Symbol&            sym       = *SWC_NOT_NULL(identView.sym());
         if (hasFlag(AstImplFlagsE::Enum))
         {
             if (!sym.isEnum())
@@ -70,7 +70,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         if (!forView.sym()->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
 
-        RESULT_VERIFY(forView.sym()->cast<SymbolStruct>().addInterface(sema, symImpl));
+        SWC_RESULT_VERIFY(forView.sym()->cast<SymbolStruct>().addInterface(sema, symImpl));
 
         symImpl.addExtraFlag(SymbolImplFlagsE::ForInterface);
         symImpl.setTypeRef(identView.typeRef());

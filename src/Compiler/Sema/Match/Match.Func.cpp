@@ -411,7 +411,7 @@ namespace
             }
 
             count++;
-            const Attempt& a = *SWC_CHECK_NOT_NULL(sa.a);
+            const Attempt& a = *SWC_NOT_NULL(sa.a);
 
             diag.addNote(DiagnosticId::sema_note_overload_candidate_failed);
             diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->type(ctx).toName(ctx));
@@ -483,7 +483,7 @@ namespace
             return Result::Continue;
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
@@ -494,7 +494,7 @@ namespace
         lookUpCxt.symMapHint    = &enumSym;
         lookUpCxt.noWaitOnEmpty = true;
 
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
         if (!lookUpCxt.empty())
         {
             out.matched = true;
@@ -526,7 +526,7 @@ namespace
             return Result::Continue;
 
         const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
@@ -537,7 +537,7 @@ namespace
         lookUpCxt.symMapHint = &enumSym;
 
         // Keep normal wait semantics here (noWaitOnEmpty = false) to behave like `Enum.Value`.
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
         if (lookUpCxt.empty())
             return SemaError::raise(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, argRef);
 
@@ -631,7 +631,7 @@ namespace
             if (argTy.isInvalid())
             {
                 AutoEnumArgProbe probe;
-                RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
+                SWC_RESULT_VERIFY(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
                 if (probe.matched)
                     argTy = probe.typeRef;
             }
@@ -652,7 +652,7 @@ namespace
 
             const bool isUfcsArgument = ufcsArg.isValid() && i == 0;
             auto       r              = ConvRank::Bad;
-            RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
+            SWC_RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -686,7 +686,7 @@ namespace
                     const TypeRef    argTy  = sema.viewType(argRef).typeRef();
                     CastFailure      cf{};
                     auto             r = ConvRank::Bad;
-                    RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
+                    SWC_RESULT_VERIFY(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false));
                     if (r == ConvRank::Bad)
                     {
                         if (cf.diagId == DiagnosticId::None)
@@ -771,7 +771,7 @@ namespace
             Candidate    candidate;
 
             // First: non-UFCS call shape.
-            RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
+            SWC_RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
             if (candidate.viable)
             {
                 a.viable    = true;
@@ -782,7 +782,7 @@ namespace
                 // Second: UFCS call shape (implicit arg0).
                 candidate = {};
                 fail      = {};
-                RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
+                SWC_RESULT_VERIFY(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -841,7 +841,7 @@ namespace
             const AstNodeRef argRef  = mapping.paramArgs[i].argRef;
             const TypeRef    paramTy = params[i]->typeRef();
             if (argRef.isValid())
-                RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+                SWC_RESULT_VERIFY(resolveAutoEnumArgFinal(sema, argRef, paramTy));
         }
 
         return Result::Continue;
@@ -924,7 +924,7 @@ namespace
             CastFlags    flags = CastFlagsE::Zero;
             if (appliedUfcsArg.isValid() && i == 0)
                 flags.add(CastFlagsE::UfcsArgument);
-            RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
+            SWC_RESULT_VERIFY(Cast::cast(sema, argView, params[i]->typeRef(), CastKind::Parameter, flags));
         }
 
         return Result::Continue;
@@ -949,13 +949,13 @@ namespace
         if (fixedVariadicArg.argRef.isValid())
         {
             SemaNodeView argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            SWC_RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
         }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
             SemaNodeView argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
+            SWC_RESULT_VERIFY(Cast::cast(sema, argView, variadicTy, CastKind::Implicit));
         }
 
         return Result::Continue;
@@ -973,7 +973,7 @@ namespace
             return Result::Continue;
 
         ConstantRef newCstRef = ConstantRef::invalid();
-        RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
+        SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
         sema.setConstant(argView.nodeRef(), newCstRef);
         return Result::Continue;
     }
@@ -991,10 +991,10 @@ namespace
             return Result::Continue;
 
         const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
-        RESULT_VERIFY(concretizeUntypedVariadicArg(sema, fixedVariadicArg.argRef));
+        SWC_RESULT_VERIFY(concretizeUntypedVariadicArg(sema, fixedVariadicArg.argRef));
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
-            RESULT_VERIFY(concretizeUntypedVariadicArg(sema, entry.argRef));
+            SWC_RESULT_VERIFY(concretizeUntypedVariadicArg(sema, entry.argRef));
 
         return Result::Continue;
     }
@@ -1055,7 +1055,7 @@ namespace
         SWC_ASSERT(argView.typeRef().isValid());
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
+        SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
         outResolvedArg.typeInfoCstRef = typeInfoCstRef;
         return Result::Continue;
     }
@@ -1102,7 +1102,7 @@ namespace
             };
 
             if (hasUntypedVariadic && i == variadicParamIdx)
-                RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
+                SWC_RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
 
             outResolvedArgs.push_back(resolvedArg);
         }
@@ -1121,7 +1121,7 @@ namespace
             };
 
             if (hasUntypedVariadic)
-                RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
+                SWC_RESULT_VERIFY(assignUntypedVariadicTypeInfo(sema, resolvedArg));
 
             outResolvedArgs.push_back(resolvedArg);
         }
@@ -1175,7 +1175,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
-    RESULT_VERIFY(collectAttempts(sema, attempts, functions, filteredSymbols.span(), args, ufcsArg));
+    SWC_RESULT_VERIFY(collectAttempts(sema, attempts, functions, filteredSymbols.span(), args, ufcsArg));
 
     // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;
@@ -1184,7 +1184,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // From the viable ones, find the single best candidate.
     // This will raise an error if there are no viable candidates or if the best choice is ambiguous.
     const Attempt* selectedAttempt = nullptr;
-    RESULT_VERIFY(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
+    SWC_RESULT_VERIFY(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
 
     // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();
@@ -1194,12 +1194,12 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
-    RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
-    RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
-    RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
-    RESULT_VERIFY(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
+    SWC_RESULT_VERIFY(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
+    SWC_RESULT_VERIFY(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
+    SWC_RESULT_VERIFY(applyTypedVariadicCasts(sema, *selectedFn, mapping));
+    SWC_RESULT_VERIFY(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
     if (outResolvedArgs)
-        RESULT_VERIFY(buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg));
+        SWC_RESULT_VERIFY(buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg));
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
     sema.setIsValue(sema.curNode());

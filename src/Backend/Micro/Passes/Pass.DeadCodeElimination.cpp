@@ -514,8 +514,8 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     std::unordered_map<uint32_t, Ref> lastPureDefByReg;
     lastPureDefByReg.reserve(64);
 
-    MicroStorage&              storage  = *SWC_CHECK_NOT_NULL(context.instructions);
-    const MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
+    MicroStorage&              storage  = *SWC_NOT_NULL(context.instructions);
+    const MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
         const Ref   currentRef = it.current;

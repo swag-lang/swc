@@ -54,7 +54,7 @@ SWC_TEST_BEGIN(MicroBranchFolding_ConstantConditions)
     builder.placeLabel(doneLabel);
     builder.emitRet();
 
-    RESULT_VERIFY(runBranchFoldingPass(builder));
+    SWC_RESULT_VERIFY(runBranchFoldingPass(builder));
 
     if (instructionCount(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;

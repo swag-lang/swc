@@ -211,7 +211,7 @@ const TypeInfo& TypeManager::get(TypeRef typeRef) const
     const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     const uint32_t localIndex = typeRef.get() & LOCAL_MASK;
-    return *SWC_CHECK_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
+    return *SWC_NOT_NULL(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
 
 TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const

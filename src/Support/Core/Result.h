@@ -10,7 +10,7 @@ enum class Result
     Error
 };
 
-#define RESULT_VERIFY(__expr)                                     \
+#define SWC_RESULT_VERIFY(__expr)                                 \
     do                                                            \
     {                                                             \
         if (const auto __ret = __expr; __ret != Result::Continue) \

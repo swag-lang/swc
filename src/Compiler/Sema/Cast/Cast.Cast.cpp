@@ -648,7 +648,7 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
         if (castRequest.isConstantFolding())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
-            RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+            SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
         }
 
         return Result::Continue;
@@ -740,7 +740,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     Runtime::Any         anyValue{};
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT_VERIFY(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
     anyValue.type = reinterpret_cast<const Runtime::TypeInfo*>(typeInfoCst.getValuePointer());
@@ -789,7 +789,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     if (srcType.isStruct())
     {
         const SymbolStruct& fromStruct = srcType.payloadSymStruct();
-        RESULT_VERIFY(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
             return Result::Continue;
@@ -980,8 +980,8 @@ Result Cast::castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& n
         return Result::Continue;
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), false);
-    RESULT_VERIFY(castIfNeeded(sema, nodeLeftView, promotedTypeRef, castKind));
-    RESULT_VERIFY(castIfNeeded(sema, nodeRightView, promotedTypeRef, castKind));
+    SWC_RESULT_VERIFY(castIfNeeded(sema, nodeLeftView, promotedTypeRef, castKind));
+    SWC_RESULT_VERIFY(castIfNeeded(sema, nodeRightView, promotedTypeRef, castKind));
     return Result::Continue;
 }
 

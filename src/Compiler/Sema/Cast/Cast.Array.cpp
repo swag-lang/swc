@@ -124,7 +124,7 @@ namespace
         for (const auto& valueRef : values)
         {
             ConstantRef castedRef;
-            RESULT_VERIFY(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
+            SWC_RESULT_VERIFY(foldElemCast(args, srcElemTypeRef, dstElemTypeRef, valueRef, castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -148,7 +148,7 @@ namespace
 
         for (const auto srcElemTypeRef : srcTypes)
         {
-            RESULT_VERIFY(checkElemCast(args, srcElemTypeRef, dstElemTypeRef));
+            SWC_RESULT_VERIFY(checkElemCast(args, srcElemTypeRef, dstElemTypeRef));
         }
 
         if (!args.castRequest->isConstantFolding())
@@ -165,7 +165,7 @@ namespace
         for (size_t i = 0; i < values.size(); ++i)
         {
             ConstantRef castedRef;
-            RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstElemTypeRef, values[i], castedRef));
+            SWC_RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstElemTypeRef, values[i], castedRef));
             newValues.push_back(castedRef);
         }
 

@@ -55,15 +55,15 @@ namespace PeepholePass
         for (; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
             SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
             bool hasUse = false;
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
                     continue;
 
                 hasUse |= ref.use;
@@ -108,15 +108,15 @@ namespace PeepholePass
         for (; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
             SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
             bool hasUse = false;
             bool hasDef = false;
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
                     continue;
 
                 hasUse |= ref.use;
@@ -155,13 +155,13 @@ namespace PeepholePass
         for (; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&                    scanInst = *scanIt;
-            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
             SmallVector<MicroInstrRegOperandRef> refs;
-            scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+            scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
             for (const MicroInstrRegOperandRef& ref : refs)
             {
-                if (!ref.use || !ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != reg)
+                if (!ref.use || !ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
                     continue;
 
                 return false;
@@ -190,7 +190,7 @@ namespace PeepholePass
         for (; scanIt != endIt; ++scanIt)
         {
             const MicroInstr&      scanInst = *scanIt;
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
 
             if (MicroInstrInfo::usesCpuFlags(scanInst))
                 return false;

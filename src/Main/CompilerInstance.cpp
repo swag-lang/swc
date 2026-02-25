@@ -275,7 +275,7 @@ SourceView& CompilerInstance::srcView(SourceViewRef ref)
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     SourceView* const view = srcViews_[ref.get()].get();
-    return *SWC_CHECK_NOT_NULL(view);
+    return *SWC_NOT_NULL(view);
 }
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
@@ -284,7 +284,7 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     const SourceView* const view = srcViews_[ref.get()].get();
-    return *SWC_CHECK_NOT_NULL(view);
+    return *SWC_NOT_NULL(view);
 }
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
@@ -362,11 +362,11 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (!cmdLine.modulePath.empty())
     {
         modulePathFile_ = cmdLine.modulePath / "module.swg";
-        RESULT_VERIFY(FileSystem::resolveFile(ctx, modulePathFile_));
+        SWC_RESULT_VERIFY(FileSystem::resolveFile(ctx, modulePathFile_));
         addFile(modulePathFile_, FileFlagsE::Module);
 
         modulePathSrc_ = cmdLine.modulePath / "src";
-        RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
+        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
         paths.clear();
         FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
@@ -379,7 +379,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (cmdLine.runtime)
     {
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
-        RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
+        SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
         paths.clear();
         FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
         if (cmdLine.numCores == 1)

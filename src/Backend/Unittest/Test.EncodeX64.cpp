@@ -333,61 +333,61 @@ namespace
 
 SWC_TEST_BEGIN(EncodeX64_Flow)
 {
-    RESULT_VERIFY(runCase(ctx, buildFlow));
+    SWC_RESULT_VERIFY(runCase(ctx, buildFlow));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_Load)
 {
-    RESULT_VERIFY(runCase(ctx, buildLoad));
+    SWC_RESULT_VERIFY(runCase(ctx, buildLoad));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_CmpAndCond)
 {
-    RESULT_VERIFY(runCase(ctx, buildCmpAndCond));
+    SWC_RESULT_VERIFY(runCase(ctx, buildCmpAndCond));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_UnaryOps)
 {
-    RESULT_VERIFY(runCase(ctx, buildUnaryOps));
+    SWC_RESULT_VERIFY(runCase(ctx, buildUnaryOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegRegOps)
 {
-    RESULT_VERIFY(runCase(ctx, buildBinaryRegRegOps));
+    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryRegRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryRegMemOps)
 {
-    RESULT_VERIFY(runCase(ctx, buildBinaryRegMemOps));
+    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryRegMemOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryMemRegOps)
 {
-    RESULT_VERIFY(runCase(ctx, buildBinaryMemRegOps));
+    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryMemRegOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_BinaryImmOps)
 {
-    RESULT_VERIFY(runCase(ctx, buildBinaryImmOps));
+    SWC_RESULT_VERIFY(runCase(ctx, buildBinaryImmOps));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
-    RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
+    SWC_RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(EncodeX64_JumpTable)
 {
-    RESULT_VERIFY(buildJumpTable(ctx));
+    SWC_RESULT_VERIFY(buildJumpTable(ctx));
 }
 SWC_TEST_END()
 

@@ -71,7 +71,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
     if (childRef == nodeConditionRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
-        RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;
@@ -94,12 +94,12 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeVarRef)
-        RESULT_VERIFY(checkIfVarDeclCondition(sema, nodeVarRef));
+        SWC_RESULT_VERIFY(checkIfVarDeclCondition(sema, nodeVarRef));
 
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT_VERIFY(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::Condition));
     }
 
     return Result::Continue;

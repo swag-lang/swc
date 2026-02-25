@@ -97,8 +97,8 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     bool                 changed  = false;
-    MicroStorage&        storage  = *SWC_CHECK_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
+    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
         MicroInstr& first = *it;

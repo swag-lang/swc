@@ -21,7 +21,7 @@ namespace
         SWC_ASSERT(context.instructions != nullptr);
         SWC_ASSERT(context.operands != nullptr);
 
-        MicroOperandStorage& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
+        MicroOperandStorage& storeOps = *SWC_NOT_NULL(context.operands);
         for (const MicroInstr& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -99,8 +99,8 @@ namespace
     {
         state.context          = &context;
         state.conv             = &CallConv::get(context.callConvKind);
-        state.instructions     = SWC_CHECK_NOT_NULL(context.instructions);
-        state.operands         = SWC_CHECK_NOT_NULL(context.operands);
+        state.instructions     = SWC_NOT_NULL(context.instructions);
+        state.operands         = SWC_NOT_NULL(context.operands);
         state.instructionCount = state.instructions->count();
         state.hasControlFlow   = false;
 
@@ -744,8 +744,8 @@ namespace
                 if (liveAcrossCall && !request.needsPersistent)
                     state.callSpillVregs.insert(request.virtKey);
 
-                const auto physReg              = assignVirtReg(state, request, protectedKeys, stamp, stackDepth, pending);
-                *SWC_CHECK_NOT_NULL(regRef.reg) = physReg;
+                const auto physReg        = assignVirtReg(state, request, protectedKeys, stamp, stackDepth, pending);
+                *SWC_NOT_NULL(regRef.reg) = physReg;
 
                 if (request.isDef)
                     state.states[request.virtKey].dirty = true;

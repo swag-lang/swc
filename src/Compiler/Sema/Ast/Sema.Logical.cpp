@@ -60,24 +60,24 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     SemaNodeView     nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
     // Type-check
     const Token& tok = sema.token(codeRef());
-    RESULT_VERIFY(check(sema, nodeRef, *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(check(sema, nodeRef, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
-    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::Condition));
-    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeBool(), CastKind::Condition));
+    SWC_RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::Condition));
+    SWC_RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeBool(), CastKind::Condition));
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
     // Constant folding
     if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
     {
         ConstantRef result;
-        RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+        SWC_RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
         sema.setConstant(sema.curNodeRef(), result);
     }
 

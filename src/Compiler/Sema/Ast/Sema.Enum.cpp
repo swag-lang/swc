@@ -90,7 +90,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
     if (nodeTypeRef.isValid())
     {
-        RESULT_VERIFY(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
+        SWC_RESULT_VERIFY(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
     }
 
     const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
@@ -139,7 +139,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
             return SemaError::raiseExprNotConst(sema, nodeInitRef);
 
         // Cast initializer constant to the underlying type
-        RESULT_VERIFY(Cast::cast(sema, nodeInitView, underlyingTypeRef, CastKind::Initialization));
+        SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, underlyingTypeRef, CastKind::Initialization));
         valueCst = nodeInitView.cstRef();
         if (underlyingType.isInt())
         {

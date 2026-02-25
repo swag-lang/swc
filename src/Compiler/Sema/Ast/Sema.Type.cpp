@@ -290,8 +290,8 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     {
         SemaNodeView dimView = sema.viewTypeConstant(dimRef);
 
-        RESULT_VERIFY(SemaCheck::isValue(sema, dimView.nodeRef()));
-        RESULT_VERIFY(SemaCheck::isConstant(sema, dimView.nodeRef()));
+        SWC_RESULT_VERIFY(SemaCheck::isValue(sema, dimView.nodeRef()));
+        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, dimView.nodeRef()));
 
         if (!dimView.cst()->isInt())
         {
@@ -310,7 +310,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         }
 
         ConstantRef newCstRef;
-        RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, dimView.nodeRef(), dimView.cstRef(), TypeInfo::Sign::Unsigned));
+        SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, dimView.nodeRef(), dimView.cstRef(), TypeInfo::Sign::Unsigned));
 
         const ConstantValue& newCst = sema.cstMgr().get(newCstRef);
         const int64_t        dim    = newCst.getInt().asI64();

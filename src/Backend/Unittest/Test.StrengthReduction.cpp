@@ -44,7 +44,7 @@ SWC_TEST_BEGIN(MicroStrengthReduction_RewritesPowerOfTwoOps)
     builder.emitOpBinaryRegImm(reg, ApInt(4, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(reg, ApInt(16, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
 
-    RESULT_VERIFY(runStrengthReductionPass(builder));
+    SWC_RESULT_VERIFY(runStrengthReductionPass(builder));
 
     if (builder.instructions().count() != 3)
         return Result::Error;

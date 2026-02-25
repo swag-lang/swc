@@ -141,7 +141,7 @@ namespace
 
         for (const auto argValueRef : args)
         {
-            RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
         }
@@ -159,7 +159,7 @@ namespace
 
         for (const auto argValueRef : args)
         {
-            RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
             outAttributes.printAstStageOptions.push_back(Utf8{argView.cst()->getString()});
         }
@@ -170,7 +170,7 @@ namespace
     Result collectOptimizeLevel(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
     {
         const AstNodeRef argValueRef = args[0];
-        RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
+        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, argValueRef));
 
         const SemaNodeView argView = sema.viewConstant(argValueRef);
         SWC_ASSERT(argView.cst() != nullptr);
@@ -185,7 +185,7 @@ namespace
         SWC_ASSERT(!args.empty());
 
         const AstNodeRef moduleValueRef = args[0];
-        RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
+        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, moduleValueRef));
         const SemaNodeView moduleView = sema.viewConstant(moduleValueRef);
         SWC_ASSERT(moduleView.cst() != nullptr);
         if (!moduleView.cst()->isString())
@@ -195,7 +195,7 @@ namespace
         if (args.size() > 1)
         {
             const AstNodeRef functionValueRef = args[1];
-            RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
+            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, functionValueRef));
             const SemaNodeView functionView = sema.viewConstant(functionValueRef);
             SWC_ASSERT(functionView.cst() != nullptr);
             if (!functionView.cst()->isString())
@@ -304,9 +304,9 @@ Result AstAttrDecl::semaPostNode(Sema& sema)
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
     sym.setTypeRef(typeRef);
-    RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
+    SWC_RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), true));
     sym.setTyped(sema.ctx());
-    RESULT_VERIFY(Match::ghosting(sema, sym));
+    SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }
@@ -384,7 +384,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     callNode.collectArguments(args, sema.ast());
     SmallVector<AstNodeRef> argValues;
     Match::resolveCallArgumentValues(sema, argValues, args.span());
-    RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), attrSym, sema.frame().currentAttributes()));
+    SWC_RESULT_VERIFY(collectPredefinedAttributeData(sema, argValues.span(), attrSym, sema.frame().currentAttributes()));
 
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)

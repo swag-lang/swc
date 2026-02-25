@@ -92,7 +92,7 @@ namespace TypeGenInternal
             // Be sure the type is completed.
             const LayoutKind kind = layoutKindOf(type);
             if (const Symbol* sym = type.getSymbol())
-                RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
+                SWC_RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
 
             auto it = cache.entries.find(key);
             if (it == cache.entries.end())
@@ -105,7 +105,7 @@ namespace TypeGenInternal
 
                 // Make sure the runtime TypeInfo struct definition exists before we write
                 // an instance of it into the 'DataSegment'.
-                RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, kind, entry.rtTypeRef, node));
+                SWC_RESULT_VERIFY(ensureTypeInfoStructReady(sema, tm, kind, entry.rtTypeRef, node));
 
                 // Allocate the concrete runtime payload (TypeInfoStruct/TypeInfoPtr/...) in
                 // the target storage and remember its offset.

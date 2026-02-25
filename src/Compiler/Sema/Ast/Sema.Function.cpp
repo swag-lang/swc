@@ -98,7 +98,7 @@ namespace
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
         const auto                        resolveMode = node.hasFlag(AstCallExprFlagsE::AttributeContext) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
-        RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
+        SWC_RESULT_VERIFY(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
@@ -111,11 +111,11 @@ namespace
 
         if (tryIntrinsicFold)
         {
-            RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
+            SWC_RESULT_VERIFY(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
         }
         else
         {
-            RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+            SWC_RESULT_VERIFY(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
         }
 
         return Result::Continue;
@@ -190,10 +190,10 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         sym.setTypeRef(typeRef);
         sym.setTyped(sema.ctx());
 
-        RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
-        RESULT_VERIFY(SemaSpecOp::validateSymbol(sema, sym));
+        SWC_RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));
+        SWC_RESULT_VERIFY(SemaSpecOp::validateSymbol(sema, sym));
         if (!sym.isEmpty())
-            RESULT_VERIFY(Match::ghosting(sema, sym));
+            SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
     }
 
     return Result::Continue;
@@ -249,7 +249,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
             return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_void, nodeExprRef);
 
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        RESULT_VERIFY(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
+        SWC_RESULT_VERIFY(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit));
     }
     else if (!returnType.isVoid())
     {

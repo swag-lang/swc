@@ -58,9 +58,9 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
-    RESULT_VERIFY(sym.canBeCompleted(sema));
-    RESULT_VERIFY(sym.registerSpecOps(sema));
-    RESULT_VERIFY(sym.computeLayout(sema.ctx()));
+    SWC_RESULT_VERIFY(sym.canBeCompleted(sema));
+    SWC_RESULT_VERIFY(sym.registerSpecOps(sema));
+    SWC_RESULT_VERIFY(sym.computeLayout(sema.ctx()));
 
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
@@ -114,8 +114,8 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
-    RESULT_VERIFY(sym.canBeCompleted(sema));
-    RESULT_VERIFY(sym.computeLayout(sema.ctx()));
+    SWC_RESULT_VERIFY(sym.canBeCompleted(sema));
+    SWC_RESULT_VERIFY(sym.computeLayout(sema.ctx()));
     sym.setSemaCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;
@@ -126,11 +126,11 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
-    RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
+    SWC_RESULT_VERIFY(SemaHelpers::finalizeAggregateStruct(sema, children));
 
     const SemaNodeView nodeWhatView = sema.viewType(nodeWhatRef);
     SemaNodeView       initView     = sema.curViewNodeTypeConstant();
-    RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
+    SWC_RESULT_VERIFY(Cast::cast(sema, initView, nodeWhatView.typeRef(), CastKind::Initialization));
 
     return Result::Continue;
 }

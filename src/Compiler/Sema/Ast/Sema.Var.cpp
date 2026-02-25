@@ -42,7 +42,7 @@ namespace
                 if (SymbolFunction* currentFunc = sema.frame().currentFunction())
                 {
                     const TypeInfo* symType = symVar.typeRef().isValid() ? &ctx.typeMgr().get(symVar.typeRef()) : nullptr;
-                    RESULT_VERIFY(sema.waitSemaCompleted(symType, sema.curNodeRef()));
+                    SWC_RESULT_VERIFY(sema.waitSemaCompleted(symType, sema.curNodeRef()));
                     currentFunc->addLocalVariable(ctx, &symVar);
                 }
             }
@@ -266,7 +266,7 @@ namespace
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
         if (context.nodeInitRef.isValid())
-            RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
+            SWC_RESULT_VERIFY(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
         const SemaNodeView nodeTypeView    = sema.viewType(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef();
@@ -309,19 +309,19 @@ namespace
         // Implicit cast from initializer to the specified type
         if (nodeInitView.typeRef().isValid() && explicitTypeRef.isValid())
         {
-            RESULT_VERIFY(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
+            SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, explicitTypeRef, CastKind::Initialization));
         }
         else if (nodeInitView.cstRef().isValid())
         {
             ConstantRef newCstRef;
-            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
+            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, nodeInitView.nodeRef(), nodeInitView.cstRef(), TypeInfo::Sign::Unknown));
             sema.setConstant(nodeInitView.nodeRef(), newCstRef);
             nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 
             if (nodeInitView.type()->isInt())
             {
                 const TypeRef newTypeRef = sema.typeMgr().promote(nodeInitView.typeRef(), nodeInitView.typeRef(), false);
-                RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
+                SWC_RESULT_VERIFY(Cast::cast(sema, nodeInitView, newTypeRef, CastKind::Implicit));
             }
         }
 
@@ -329,7 +329,7 @@ namespace
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
 
         if (!sema.curScope().isLocal() && !sema.curScope().isParameters() && !isConst && context.nodeInitRef.isValid())
-            RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
+            SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, nodeInitView.nodeRef()));
 
         const TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
         const bool    isRefType    = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
@@ -354,7 +354,7 @@ namespace
         ConstantRef implicitStructCstRef = ConstantRef::invalid();
         if (context.nodeInitRef.isInvalid() && explicitTypeRef.isValid() && explicitType && explicitType->isStruct() && (isConst || isLet))
         {
-            RESULT_VERIFY(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
         }
         const bool hasImplicitStructInit = implicitStructCstRef.isValid();
@@ -395,7 +395,7 @@ namespace
             }
         }
 
-        RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
+        SWC_RESULT_VERIFY(completeVar(sema, symbols, explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef()));
         return Result::Continue;
     }
 }
@@ -494,7 +494,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
     const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
     for (const Symbol* sym : symbols)
     {
-        RESULT_VERIFY(Match::ghosting(sema, *sym));
+        SWC_RESULT_VERIFY(Match::ghosting(sema, *sym));
     }
 
     return Result::Continue;
@@ -572,7 +572,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         sym.setTyped(sema.ctx());
         sym.setSemaCompleted(sema.ctx());
 
-        RESULT_VERIFY(Match::ghosting(sema, sym));
+        SWC_RESULT_VERIFY(Match::ghosting(sema, sym));
     }
 
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
@@ -587,7 +587,7 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
                                          AstModifierFlagsE::ConstRef |
                                          AstModifierFlagsE::Move |
                                          AstModifierFlagsE::MoveRaw;
-    RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+    SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
     sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;

@@ -13,19 +13,19 @@ namespace
             case PeepholePass::RuleTarget::AnyInstruction:
                 return true;
             case PeepholePass::RuleTarget::LoadRegReg:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegReg;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegReg;
             case PeepholePass::RuleTarget::LoadRegImm:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegImm;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegImm;
             case PeepholePass::RuleTarget::LoadRegMem:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegMem;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadRegMem;
             case PeepholePass::RuleTarget::OpBinaryRegImm:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::OpBinaryRegImm;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::OpBinaryRegImm;
             case PeepholePass::RuleTarget::LoadAddrRegMem:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadAddrRegMem;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadAddrRegMem;
             case PeepholePass::RuleTarget::LoadAddrAmcRegMem:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadAddrAmcRegMem;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadAddrAmcRegMem;
             case PeepholePass::RuleTarget::LoadMemImm:
-                return SWC_CHECK_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadMemImm;
+                return SWC_NOT_NULL(cursor.inst)->op == MicroInstrOpcode::LoadMemImm;
             default:
                 return false;
         }
@@ -55,7 +55,7 @@ namespace
         if (!isRuleApplicable(rule, cursor))
             return false;
 
-        return SWC_CHECK_NOT_NULL(rule.apply)(context, cursor);
+        return SWC_NOT_NULL(rule.apply)(context, cursor);
     }
 }
 

@@ -17,11 +17,11 @@ namespace
         if (targetRef == INVALID_REF || !additionalValue)
             return false;
 
-        const MicroInstr* inst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(targetRef);
+        const MicroInstr* inst = SWC_NOT_NULL(context.instructions)->ptr(targetRef);
         if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
 
-        MicroInstrOperand* ops = inst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+        MicroInstrOperand* ops = inst->ops(*SWC_NOT_NULL(context.operands));
         if (!ops)
             return false;
         if (ops[0].reg != stackPointerReg || ops[1].opBits != MicroOpBits::B64 || ops[2].microOp != expectedOp)
@@ -38,7 +38,7 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        const auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        const auto& operands = *SWC_NOT_NULL(context.operands);
         for (const auto& inst : context.instructions->view())
         {
             const auto useDef = inst.collectUseDef(operands, context.encoder);
@@ -55,7 +55,7 @@ namespace
         SWC_ASSERT(context.operands);
 
         outUsedRegs.clear();
-        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        auto& operands = *SWC_NOT_NULL(context.operands);
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -65,7 +65,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -83,7 +83,7 @@ namespace
             return false;
 
         bool  foundInit = false;
-        auto& operands  = *SWC_CHECK_NOT_NULL(context.operands);
+        auto& operands  = *SWC_NOT_NULL(context.operands);
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -96,7 +96,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
                 if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
                     continue;
 
@@ -138,7 +138,7 @@ namespace
         if (!reg.isValid())
             return false;
 
-        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        auto& operands = *SWC_NOT_NULL(context.operands);
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -151,7 +151,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg refReg = *SWC_CHECK_NOT_NULL(ref.reg);
+                const MicroReg refReg = *SWC_NOT_NULL(ref.reg);
                 if (refReg != reg)
                     continue;
 
@@ -261,7 +261,7 @@ namespace
             return false;
 
         bool  changed  = false;
-        auto& operands = *SWC_CHECK_NOT_NULL(context.operands);
+        auto& operands = *SWC_NOT_NULL(context.operands);
         for (const auto& inst : context.instructions->view())
         {
             SmallVector<MicroInstrRegOperandRef> refs;
@@ -271,7 +271,7 @@ namespace
                 if (!ref.reg)
                     continue;
 
-                const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -279,8 +279,8 @@ namespace
                 if (mapIt == remap.end())
                     continue;
 
-                *SWC_CHECK_NOT_NULL(ref.reg) = mapIt->second;
-                changed                      = true;
+                *SWC_NOT_NULL(ref.reg) = mapIt->second;
+                changed                = true;
             }
         }
 
@@ -363,7 +363,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     useFramePointer_       = false;
 
     // Scan concrete register operands and collect only ABI-persistent regs that are used.
-    auto& storeOps = *SWC_CHECK_NOT_NULL(context.operands);
+    auto& storeOps = *SWC_NOT_NULL(context.operands);
     for (const auto& inst : context.instructions->view())
     {
         SmallVector<MicroInstrRegOperandRef> refs;
@@ -373,7 +373,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
             if (!ref.reg)
                 continue;
 
-            const MicroReg reg = *SWC_CHECK_NOT_NULL(ref.reg);
+            const MicroReg reg = *SWC_NOT_NULL(ref.reg);
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 
@@ -430,8 +430,8 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
         return;
 
-    auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
-    auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
+    auto& instructions = *SWC_NOT_NULL(context.instructions);
+    auto& operands     = *SWC_NOT_NULL(context.operands);
 
     if (useFramePointer_)
     {
@@ -487,8 +487,8 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
         return;
 
-    auto& instructions = *SWC_CHECK_NOT_NULL(context.instructions);
-    auto& operands     = *SWC_CHECK_NOT_NULL(context.operands);
+    auto& instructions = *SWC_NOT_NULL(context.instructions);
+    auto& operands     = *SWC_NOT_NULL(context.operands);
 
     // Restore in reverse: load slot-backed regs, undo stack allocation, then pop integer regs.
     for (const SavedRegSlot& slot : savedRegSlots_)

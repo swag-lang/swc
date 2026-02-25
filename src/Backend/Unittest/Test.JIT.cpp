@@ -21,7 +21,7 @@ namespace
         buildFn(builder, callConv);
 
         MachineCode loweredCode;
-        RESULT_VERIFY(loweredCode.emit(ctx, builder));
+        SWC_RESULT_VERIFY(loweredCode.emit(ctx, builder));
 
         JITMemory executableMemory;
         JIT::emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations);
@@ -45,7 +45,7 @@ namespace
 
 SWC_TEST_BEGIN(JIT_Return42)
 {
-    RESULT_VERIFY(runCase(ctx, &buildReturn42, 42));
+    SWC_RESULT_VERIFY(runCase(ctx, &buildReturn42, 42));
 }
 SWC_TEST_END()
 
@@ -59,7 +59,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     calleeBuilder.emitRet();
 
     MachineCode loweredCalleeCode;
-    RESULT_VERIFY(loweredCalleeCode.emit(ctx, calleeBuilder));
+    SWC_RESULT_VERIFY(loweredCalleeCode.emit(ctx, calleeBuilder));
 
     JITMemory calleeExecMemory;
     JIT::emit(ctx, calleeExecMemory, asByteSpan(loweredCalleeCode.bytes), loweredCalleeCode.codeRelocations);
@@ -77,7 +77,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     callerBuilder.emitRet();
 
     MachineCode loweredCallerCode;
-    RESULT_VERIFY(loweredCallerCode.emit(ctx, callerBuilder));
+    SWC_RESULT_VERIFY(loweredCallerCode.emit(ctx, callerBuilder));
 
     JITMemory callerExecMemory;
     JIT::emit(ctx, callerExecMemory, asByteSpan(loweredCallerCode.bytes), loweredCallerCode.codeRelocations);

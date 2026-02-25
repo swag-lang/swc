@@ -89,6 +89,6 @@ constexpr T* swcCheckNotNull(T* value, const char* expr, const char* file, int l
 
 #define SWC_CHECK(__expr)                   swcCheck((__expr), #__expr, __FILE__, __LINE__)
 #define SWC_CHECK_NOT(__expr, __pass_value) swcCheckNot((__expr), (__pass_value), #__expr " != " #__pass_value, __FILE__, __LINE__)
-#define SWC_CHECK_NOT_NULL(__expr)          swcCheckNotNull((__expr), #__expr " != nullptr", __FILE__, __LINE__)
+#define SWC_NOT_NULL(__expr)                swcCheckNotNull((__expr), #__expr " != nullptr", __FILE__, __LINE__)
 
 SWC_END_NAMESPACE();

@@ -187,31 +187,31 @@ public:
     SymbolEnum& payloadSymEnum() const noexcept
     {
         SWC_ASSERT(isEnum());
-        return *SWC_CHECK_NOT_NULL(payloadEnum_.sym);
+        return *SWC_NOT_NULL(payloadEnum_.sym);
     }
 
     SymbolStruct& payloadSymStruct() const noexcept
     {
         SWC_ASSERT(isStruct());
-        return *SWC_CHECK_NOT_NULL(payloadStruct_.sym);
+        return *SWC_NOT_NULL(payloadStruct_.sym);
     }
 
     SymbolInterface& payloadSymInterface() const noexcept
     {
         SWC_ASSERT(isInterface());
-        return *SWC_CHECK_NOT_NULL(payloadInterface_.sym);
+        return *SWC_NOT_NULL(payloadInterface_.sym);
     }
 
     SymbolAlias& payloadSymAlias() const noexcept
     {
         SWC_ASSERT(isAlias());
-        return *SWC_CHECK_NOT_NULL(payloadAlias_.sym);
+        return *SWC_NOT_NULL(payloadAlias_.sym);
     }
 
     SymbolFunction& payloadSymFunction() const noexcept
     {
         SWC_ASSERT(isFunction());
-        return *SWC_CHECK_NOT_NULL(payloadFunction_.sym);
+        return *SWC_NOT_NULL(payloadFunction_.sym);
     }
 
     TypeRef payloadTypeRef() const noexcept

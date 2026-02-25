@@ -82,17 +82,17 @@ namespace
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
 {
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeExprRef));
     if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
     const SemaNodeView initialView = sema.viewType(nodeExprRef);
-    RESULT_VERIFY(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
+    SWC_RESULT_VERIFY(sema.waitSemaCompleted(initialView.type(), nodeExprRef));
 
     const TypeRef exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     SWC_ASSERT(exprTypeRef.isValid());
 
     scheduleCodeGen(sema, symFn);
-    RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
+    SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
 
     TaskContext&                           ctx            = sema.ctx();
     const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
@@ -115,7 +115,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
-    RESULT_VERIFY(symFn.emit(ctx));
+    SWC_RESULT_VERIFY(symFn.emit(ctx));
     symFn.jit(ctx);
 
     {

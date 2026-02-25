@@ -221,7 +221,7 @@ namespace
             const size_t        dstIndex  = srcToDst[i];
             const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, srcTypes.size());
             const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, srcTypes.size());
-            RESULT_VERIFY(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef));
+            SWC_RESULT_VERIFY(checkElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef));
         }
 
         return Result::Continue;
@@ -244,7 +244,7 @@ namespace
             ConstantRef         castedRef;
             const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, values.size());
             const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, values.size());
-            RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef, values[i], castedRef));
+            SWC_RESULT_VERIFY(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef, values[i], castedRef));
             castedByDst[dstIndex] = castedRef;
         }
 
@@ -289,11 +289,11 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const CastStructArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
 
-    RESULT_VERIFY(sema.waitSemaCompleted(&dstType, castRequest.errorNodeRef));
+    SWC_RESULT_VERIFY(sema.waitSemaCompleted(&dstType, castRequest.errorNodeRef));
 
     if (srcType.isStruct())
     {
-        RESULT_VERIFY(ctx.sema->waitSemaCompleted(ctx.srcType, ctx.castRequest->errorNodeRef));
+        SWC_RESULT_VERIFY(ctx.sema->waitSemaCompleted(ctx.srcType, ctx.castRequest->errorNodeRef));
         return castStructToStruct(ctx);
     }
 
@@ -303,9 +303,9 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         const auto&         srcTypes  = srcType.payloadAggregate().types;
         const auto&         dstFields = dstType.payloadSymStruct().fields();
 
-        RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
-        RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
-        RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst));
+        SWC_RESULT_VERIFY(mapAggregateStructFields(ctx, srcToDst));
+        SWC_RESULT_VERIFY(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
+        SWC_RESULT_VERIFY(foldAggregateStructConstant(ctx, srcToDst));
         return Result::Continue;
     }
 

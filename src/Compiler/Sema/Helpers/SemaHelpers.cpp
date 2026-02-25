@@ -132,7 +132,7 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
         case TokenId::SymMinus:
             if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
             {
-                RESULT_VERIFY(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                SWC_RESULT_VERIFY(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                 return Result::Continue;
             }
             if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
@@ -149,7 +149,7 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
             break;
     }
 
-    RESULT_VERIFY(Cast::cast(sema, rightView, leftView.typeRef(), castKind));
+    SWC_RESULT_VERIFY(Cast::cast(sema, rightView, leftView.typeRef(), castKind));
     return Result::Continue;
 }
 
@@ -186,7 +186,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
             }
 
             ConstantRef newCstRef;
-            RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
+            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unsigned));
             sema.setConstant(targetRef, newCstRef);
             return Result::Continue;
         }
@@ -194,7 +194,7 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
 
     if (view.type()->isEnum())
     {
-        RESULT_VERIFY(sema.waitSemaCompleted(view.type(), view.nodeRef()));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(view.type(), view.nodeRef()));
         sema.setConstant(targetRef, sema.cstMgr().addInt(ctx, view.type()->payloadSymEnum().count()));
         return Result::Continue;
     }

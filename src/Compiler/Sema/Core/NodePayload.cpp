@@ -282,8 +282,8 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     const auto           info     = payloadInfo(node);
     const uint32_t       shardIdx = info.shardIdx;
     auto&                shard    = shards_[shardIdx];
-    const Symbol* const* slot     = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    const Symbol&        value    = *SWC_CHECK_NOT_NULL(*slot);
+    const Symbol* const* slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    const Symbol&        value    = *SWC_NOT_NULL(*slot);
     return value;
 }
 
@@ -295,8 +295,8 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    Symbol**       slot     = SWC_CHECK_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    Symbol&        value    = *SWC_CHECK_NOT_NULL(*slot);
+    Symbol**       slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    Symbol&        value    = *SWC_NOT_NULL(*slot);
     return value;
 }
 
@@ -453,7 +453,7 @@ void* NodePayload::getPayload(AstNodeRef nodeRef) const
     const auto     info     = payloadInfo(node);
     const uint32_t shardIdx = info.shardIdx;
     auto&          shard    = shards_[shardIdx];
-    return *SWC_CHECK_NOT_NULL(shard.store.ptr<void*>(info.ref));
+    return *SWC_NOT_NULL(shard.store.ptr<void*>(info.ref));
 }
 
 void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args)

@@ -93,8 +93,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     known.reserve(64);
     CompareState compareState{};
 
-    MicroStorage&        storage  = *SWC_CHECK_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
+    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
         const Ref   instRef = it.current;

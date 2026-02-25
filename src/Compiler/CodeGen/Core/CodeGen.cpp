@@ -34,7 +34,7 @@ namespace
             sym.setCodeGenPayload(payload);
         }
 
-        return *SWC_CHECK_NOT_NULL(payload);
+        return *SWC_NOT_NULL(payload);
     }
 }
 
@@ -229,7 +229,7 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
-    return *SWC_CHECK_NOT_NULL(safePayload(nodeRef));
+    return *SWC_NOT_NULL(safePayload(nodeRef));
 }
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
@@ -277,7 +277,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload->reg         = nextVirtualRegister();
     nodePayload->typeRef     = typeRef;
     nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
-    return *SWC_CHECK_NOT_NULL(nodePayload);
+    return *SWC_NOT_NULL(nodePayload);
 }
 
 CodeGenNodePayload& CodeGen::setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef)
@@ -331,7 +331,7 @@ Result CodeGen::preNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    RESULT_VERIFY(info.codeGenPreNode(*this, node));
+    SWC_RESULT_VERIFY(info.codeGenPreNode(*this, node));
 
     if (curViewConstant().hasConstant())
         return Result::SkipChildren;
@@ -346,7 +346,7 @@ Result CodeGen::postNode(AstNode& node)
         return emitConstant(curNodeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    RESULT_VERIFY(info.codeGenPostNode(*this, node));
+    SWC_RESULT_VERIFY(info.codeGenPostNode(*this, node));
     return Result::Continue;
 }
 

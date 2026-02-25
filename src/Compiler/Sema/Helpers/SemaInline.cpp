@@ -16,7 +16,7 @@ namespace
     {
         SemaNodeView inlineView(sema, inlinedRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (returnTypeRef != sema.typeMgr().typeVoid())
-            RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
+            SWC_RESULT_VERIFY(Cast::cast(sema, inlineView, returnTypeRef, CastKind::Implicit));
 
         if (inlineView.cstRef().isValid())
         {

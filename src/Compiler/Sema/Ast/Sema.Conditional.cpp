@@ -64,17 +64,17 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondView.nodeRef()));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeTrueView.nodeRef()));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeCondView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeTrueView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeFalseView.nodeRef()));
     sema.setIsValue(*this);
 
     // Condition must be bool
-    RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::Condition));
+    SWC_RESULT_VERIFY(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::Condition));
 
     // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();
-    RESULT_VERIFY(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
+    SWC_RESULT_VERIFY(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
 
     if (!typeRef.isValid())
     {
@@ -93,7 +93,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     {
         AstNodeRef   selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
         SemaNodeView selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);
-        RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
+        SWC_RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
         sema.setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef());
         if (selectedBranchView.cstRef().isValid())
             sema.setConstant(sema.curNodeRef(), selectedBranchView.cstRef());
@@ -102,8 +102,8 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     {
         SemaNodeView mutableTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
         SemaNodeView mutableFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
-        RESULT_VERIFY(Cast::cast(sema, mutableTrueView, typeRef, CastKind::Implicit));
-        RESULT_VERIFY(Cast::cast(sema, mutableFalseView, typeRef, CastKind::Implicit));
+        SWC_RESULT_VERIFY(Cast::cast(sema, mutableTrueView, typeRef, CastKind::Implicit));
+        SWC_RESULT_VERIFY(Cast::cast(sema, mutableFalseView, typeRef, CastKind::Implicit));
     }
 
     return Result::Continue;
@@ -115,21 +115,21 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     SemaNodeView       nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
     if (!nodeLeftView.type()->isConvertibleToBool())
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
 
-    RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef(), CastKind::Implicit));
+    SWC_RESULT_VERIFY(Cast::cast(sema, nodeRightView, nodeLeftView.typeRef(), CastKind::Implicit));
     sema.setType(sema.curNodeRef(), nodeLeftView.typeRef());
 
     // Constant folding
     if (nodeLeftView.cstRef().isValid())
     {
         SemaNodeView nodeBoolView = sema.viewNodeTypeConstant(nodeLeftRef);
-        RESULT_VERIFY(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
+        SWC_RESULT_VERIFY(Cast::cast(sema, nodeBoolView, sema.typeMgr().typeBool(), CastKind::Condition));
 
         const bool        leftIsFalse = nodeBoolView.cstRef() == sema.cstMgr().cstFalse();
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();

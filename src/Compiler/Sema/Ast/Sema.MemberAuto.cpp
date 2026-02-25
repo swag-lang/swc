@@ -79,12 +79,12 @@ namespace
         auto addCandidate = [&](const TypeInfo* typeInfo, const SymbolVariable* symVar) -> Result {
             if (typeInfo->isStruct())
             {
-                RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
+                SWC_RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymStruct(), .symVar = symVar});
             }
             else if (typeInfo->isEnum())
             {
-                RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
+                SWC_RESULT_VERIFY(sema.waitSemaCompleted(typeInfo, sema.curNodeRef()));
                 outCandidates.push_back({.symMap = &typeInfo->payloadSymEnum(), .symVar = symVar});
             }
             return Result::Continue;
@@ -100,7 +100,7 @@ namespace
                     continue;
 
                 const TypeInfo& pointeeType = sema.typeMgr().get(typeInfo.payloadTypeRef());
-                RESULT_VERIFY(addCandidate(&pointeeType, symVar));
+                SWC_RESULT_VERIFY(addCandidate(&pointeeType, symVar));
             }
 
             // Binding types.
@@ -110,7 +110,7 @@ namespace
                     continue;
 
                 const TypeInfo& typeInfo = sema.typeMgr().get(hintType);
-                RESULT_VERIFY(addCandidate(&typeInfo, nullptr));
+                SWC_RESULT_VERIFY(addCandidate(&typeInfo, nullptr));
             }
         }
 
@@ -139,7 +139,7 @@ namespace
             lookUpCxt.noWaitOnEmpty = true;
             lookUpCxt.symMapHint    = candidate.symMap;
 
-            RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+            SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
             if (!lookUpCxt.empty())
             {
                 AutoMemberMatch m;
@@ -170,7 +170,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const bool allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
 
     SmallVector4<AutoMemberCandidate> candidates;
-    RESULT_VERIFY(collectAutoMemberCandidates(sema, candidates));
+    SWC_RESULT_VERIFY(collectAutoMemberCandidates(sema, candidates));
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's
@@ -188,7 +188,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     // Probe candidates without pausing on empty results.
     SmallVector2<AutoMemberMatch> matches;
-    RESULT_VERIFY(probeAutoMemberCandidates(sema, codeRef, idRef, candidates, matches));
+    SWC_RESULT_VERIFY(probeAutoMemberCandidates(sema, codeRef, idRef, candidates, matches));
 
     // If nothing matched, report a smart error.
     if (matches.empty())
@@ -238,7 +238,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const std::span            foundSymbols = matches.front().symbols;
 
     // Bind the symbol list to the auto-member-access node (it gets substituted below).
-    RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
+    SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
     // Substitute with an AstMemberAccessExpr
     auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef());

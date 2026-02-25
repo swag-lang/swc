@@ -50,7 +50,7 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
     builder.emitLoadRegImm(r9, ApInt(2, 64), MicroOpBits::B64);
     builder.placeLabel(deadLabel);
 
-    RESULT_VERIFY(runControlFlowSimplificationPass(builder));
+    SWC_RESULT_VERIFY(runControlFlowSimplificationPass(builder));
 
     if (builder.instructions().count() != 2)
         return Result::Error;

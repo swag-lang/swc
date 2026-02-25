@@ -90,9 +90,9 @@ namespace
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &namespaceSym;
 
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         return Result::SkipChildren;
@@ -101,14 +101,14 @@ namespace
     Result memberEnum(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolEnum& enumSym = nodeLeftView.type()->payloadSymEnum();
-        RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&enumSym, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &enumSym;
 
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         return Result::SkipChildren;
@@ -117,7 +117,7 @@ namespace
     Result memberInterface(Sema& sema, const AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type()->payloadSymInterface();
-        RESULT_VERIFY(sema.waitSemaCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symInterface, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef = SourceCodeRef{node->srcViewRef(), tokNameRef};
@@ -127,8 +127,8 @@ namespace
         else
             lookUpCxt.symMapHint = &symInterface;
 
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         return Result::SkipChildren;
@@ -137,16 +137,16 @@ namespace
     Result memberStruct(Sema& sema, AstMemberAccessExpr* node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo* typeInfo)
     {
         const SymbolStruct& symStruct = typeInfo->payloadSymStruct();
-        RESULT_VERIFY(sema.waitSemaCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symStruct, {node->srcViewRef(), tokNameRef}));
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{node->srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint = &symStruct;
 
-        RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+        SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
 
         // Bind member-access node (curNodeRef) and RHS identifier.
-        RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
+        SWC_RESULT_VERIFY(checkAmbiguityAndBindSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols()));
         bindMemberSymbols(sema, node->nodeRightRef, allowOverloadSet, lookUpCxt.symbols());
 
         // Constant struct member access
@@ -156,7 +156,7 @@ namespace
         if (nodeLeftView.cst() && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
-            RESULT_VERIFY(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, sema.curNodeRef(), node->nodeRightRef));
+            SWC_RESULT_VERIFY(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, sema.curNodeRef(), node->nodeRightRef));
             return Result::SkipChildren;
         }
 
@@ -253,13 +253,13 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (typeInfo->isTypeValue())
     {
         const TypeRef typeInfoRef = sema.typeMgr().typeTypeInfo();
-        RESULT_VERIFY(Cast::cast(sema, nodeLeftView, typeInfoRef, CastKind::Explicit));
+        SWC_RESULT_VERIFY(Cast::cast(sema, nodeLeftView, typeInfoRef, CastKind::Explicit));
         typeInfo = &sema.typeMgr().get(sema.typeMgr().structTypeInfo());
     }
     else if (typeInfo->isTypeInfo())
     {
         TypeRef typeInfoRef = TypeRef::invalid();
-        RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, typeInfoRef, {srcViewRef(), tokNameRef}));
+        SWC_RESULT_VERIFY(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, typeInfoRef, {srcViewRef(), tokNameRef}));
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())

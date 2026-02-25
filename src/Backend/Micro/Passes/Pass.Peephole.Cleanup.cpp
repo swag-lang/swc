@@ -103,17 +103,17 @@ namespace PeepholePass
             const MicroInstr& cmpZeroInst = *cmpZeroIt;
             const MicroInstr& jumpInst    = *jumpIt;
 
-            const MicroInstrOperand* set1Ops    = set1Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* zext1Ops   = zext1Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* cmp2Ops    = cmp2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* set2Ops    = set2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* zext2Ops   = zext2Inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* copyAOps   = copyAInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* copyBOps   = copyBInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* copyCOps   = copyCInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* andOps     = andInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* cmpZeroOps = cmpZeroInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
-            const MicroInstrOperand* jumpOps    = jumpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* set1Ops    = set1Inst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* zext1Ops   = zext1Inst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* cmp2Ops    = cmp2Inst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* set2Ops    = set2Inst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* zext2Ops   = zext2Inst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyAOps   = copyAInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyBOps   = copyBInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyCOps   = copyCInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* andOps     = andInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* cmpZeroOps = cmpZeroInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* jumpOps    = jumpInst.ops(*SWC_NOT_NULL(context.operands));
             if (!set1Ops || !zext1Ops || !cmp2Ops || !set2Ops || !zext2Ops || !copyAOps || !copyBOps || !copyCOps || !andOps || !cmpZeroOps || !jumpOps)
                 return false;
 
@@ -178,11 +178,11 @@ namespace PeepholePass
 
             const Ref                set1Ref        = set1It.current;
             const Ref                set2Ref        = set2It.current;
-            MicroInstr*              set1Mutable    = SWC_CHECK_NOT_NULL(context.instructions)->ptr(set1Ref);
-            MicroInstr*              set2Mutable    = SWC_CHECK_NOT_NULL(context.instructions)->ptr(set2Ref);
-            MicroInstrOperand*       set1MutableOps = set1Mutable ? set1Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
-            MicroInstrOperand*       set2MutableOps = set2Mutable ? set2Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
-            const MicroInstrOperand* jumpMutableOps = jumpInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstr*              set1Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set1Ref);
+            MicroInstr*              set2Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set2Ref);
+            MicroInstrOperand*       set1MutableOps = set1Mutable ? set1Mutable->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
+            MicroInstrOperand*       set2MutableOps = set2Mutable ? set2Mutable->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
+            const MicroInstrOperand* jumpMutableOps = jumpInst.ops(*SWC_NOT_NULL(context.operands));
             if (!set1Mutable || !set2Mutable || !set1MutableOps || !set2MutableOps || !jumpMutableOps)
                 return false;
 
@@ -208,8 +208,8 @@ namespace PeepholePass
             {
                 *set1Mutable   = originalSet1;
                 *set2Mutable   = originalSet2;
-                set1MutableOps = set1Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands));
-                set2MutableOps = set2Mutable->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                set1MutableOps = set1Mutable->ops(*SWC_NOT_NULL(context.operands));
+                set2MutableOps = set2Mutable->ops(*SWC_NOT_NULL(context.operands));
                 if (set1MutableOps)
                 {
                     for (uint32_t i = 0; i < 3; ++i)
@@ -223,14 +223,14 @@ namespace PeepholePass
                 return false;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(zext1It.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(zext2It.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyAIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyBIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyCIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(andIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(cmpZeroIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(jumpIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(zext1It.current);
+            SWC_NOT_NULL(context.instructions)->erase(zext2It.current);
+            SWC_NOT_NULL(context.instructions)->erase(copyAIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(copyBIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(copyCIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(andIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(cmpZeroIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(jumpIt.current);
             return true;
         }
 
@@ -290,7 +290,7 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 const MicroInstr&      scanInst = *scanIt;
-                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
                 if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                     return false;
 
@@ -300,7 +300,7 @@ namespace PeepholePass
                         return false;
                 }
 
-                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
 
@@ -311,7 +311,7 @@ namespace PeepholePass
                 {
                     if (scanBaseReg == baseReg && scanOffset == offset && scanBits == opBits)
                     {
-                        SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                        SWC_NOT_NULL(context.instructions)->erase(instRef);
                         return true;
                     }
 
@@ -352,11 +352,11 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 const MicroInstr&      scanInst = *scanIt;
-                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
 
                 if (scanInst.op == MicroInstrOpcode::Ret)
                 {
-                    SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                    SWC_NOT_NULL(context.instructions)->erase(instRef);
                     return true;
                 }
 
@@ -367,7 +367,7 @@ namespace PeepholePass
                 uint8_t scanOffsetIndex = 0;
                 if (MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
                 {
-                    const MicroInstrOperand* scanOps = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                    const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
                     if (!scanOps)
                         return false;
 
@@ -411,7 +411,7 @@ namespace PeepholePass
                 return false;
 
             const MicroInstr&        shiftInst = *shiftIt;
-            const MicroInstrOperand* shiftOps  = shiftInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* shiftOps  = shiftInst.ops(*SWC_NOT_NULL(context.operands));
             if (!shiftOps)
                 return false;
             if (shiftInst.op != MicroInstrOpcode::OpBinaryRegImm)
@@ -422,7 +422,7 @@ namespace PeepholePass
                 return false;
 
             const MicroInstr&        restoreInst = *restoreIt;
-            const MicroInstrOperand* restoreOps  = restoreInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* restoreOps  = restoreInst.ops(*SWC_NOT_NULL(context.operands));
             if (!restoreOps)
                 return false;
             if (restoreInst.op != MicroInstrOpcode::LoadRegMem)
@@ -439,34 +439,34 @@ namespace PeepholePass
             if (saveOps[3].valueU64 != restoreOps[3].valueU64)
                 return false;
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(restoreIt.current);
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(cursor.instRef);
+            SWC_NOT_NULL(context.instructions)->erase(restoreIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
             return true;
         }
 
         bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                instRef = cursor.instRef;
-            const MicroInstr&        inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
+            const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
             if (!MicroOptimization::isNoOpEncoderInstruction(inst, ops))
                 return false;
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
             return true;
         }
 
         bool removeDeadCompareInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                instRef = cursor.instRef;
-            const MicroInstr&        inst    = *SWC_CHECK_NOT_NULL(cursor.inst);
+            const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
             if (inst.op != MicroInstrOpcode::CmpRegImm && inst.op != MicroInstrOpcode::CmpRegReg)
                 return false;
             if (!ops)
                 return false;
 
-            const MicroStorage::View view        = SWC_CHECK_NOT_NULL(context.instructions)->view();
+            const MicroStorage::View view        = SWC_NOT_NULL(context.instructions)->view();
             auto                     it          = view.begin();
             Ref                      previousRef = INVALID_REF;
             for (; it != view.end(); ++it)
@@ -484,16 +484,16 @@ namespace PeepholePass
             const MicroReg compareLhsReg = ops[0].reg;
             if (previousRef != INVALID_REF && compareLhsReg.isValid() && compareLhsReg.isInt())
             {
-                const MicroInstr* prevInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(previousRef);
+                const MicroInstr* prevInst = SWC_NOT_NULL(context.instructions)->ptr(previousRef);
                 if (prevInst && prevInst->op == MicroInstrOpcode::LoadRegImm)
                 {
-                    const MicroInstrOperand* prevOps = prevInst->ops(*SWC_CHECK_NOT_NULL(context.operands));
+                    const MicroInstrOperand* prevOps = prevInst->ops(*SWC_NOT_NULL(context.operands));
                     if (prevOps && prevOps[0].reg == compareLhsReg && isCopyDeadAfterInstruction(context, cursor.nextIt, cursor.endIt, compareLhsReg))
-                        SWC_CHECK_NOT_NULL(context.instructions)->erase(previousRef);
+                        SWC_NOT_NULL(context.instructions)->erase(previousRef);
                 }
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
             return true;
         }
 
@@ -503,7 +503,7 @@ namespace PeepholePass
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
-            if (SWC_CHECK_NOT_NULL(cursor.inst)->op != MicroInstrOpcode::SetCondReg)
+            if (SWC_NOT_NULL(cursor.inst)->op != MicroInstrOpcode::SetCondReg)
                 return false;
             if (!ops || nextIt == endIt)
                 return false;
@@ -517,7 +517,7 @@ namespace PeepholePass
             if (zeroExtInst.op != MicroInstrOpcode::LoadZeroExtRegReg)
                 return false;
 
-            MicroInstrOperand* zeroExtOps = zeroExtInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            MicroInstrOperand* zeroExtOps = zeroExtInst.ops(*SWC_NOT_NULL(context.operands));
             if (!zeroExtOps)
                 return false;
 
@@ -525,7 +525,7 @@ namespace PeepholePass
             if (copyInst.op != MicroInstrOpcode::LoadRegReg)
                 return false;
 
-            const MicroInstrOperand* copyOps = copyInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* copyOps = copyInst.ops(*SWC_NOT_NULL(context.operands));
             if (!copyOps)
                 return false;
 
@@ -544,8 +544,8 @@ namespace PeepholePass
 
             const MicroReg dstReg = copyOps[0].reg;
 
-            const MicroInstr*  setCondInst = SWC_CHECK_NOT_NULL(context.instructions)->ptr(instRef);
-            MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_CHECK_NOT_NULL(context.operands)) : nullptr;
+            const MicroInstr*  setCondInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+            MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
             if (!setCondOps)
                 return false;
 
@@ -569,7 +569,7 @@ namespace PeepholePass
                 return false;
             }
 
-            SWC_CHECK_NOT_NULL(context.instructions)->erase(copyIt.current);
+            SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
             return true;
         }
 
@@ -591,20 +591,20 @@ namespace PeepholePass
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
                 MicroInstr&        scanInst = *scanIt;
-                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+                MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
 
-                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
 
                 SmallVector<MicroInstrRegOperandRef> refs;
-                scanInst.collectRegOperands(*SWC_CHECK_NOT_NULL(context.operands), refs, context.encoder);
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
 
                 bool hasUse = false;
                 bool hasDef = false;
                 for (const MicroInstrRegOperandRef& ref : refs)
                 {
-                    if (!ref.reg || *SWC_CHECK_NOT_NULL(ref.reg) != tmpReg)
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != tmpReg)
                         continue;
 
                     hasUse |= ref.use;
@@ -649,7 +649,7 @@ namespace PeepholePass
                     return false;
                 }
 
-                SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+                SWC_NOT_NULL(context.instructions)->erase(instRef);
                 return true;
             }
 

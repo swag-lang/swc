@@ -27,7 +27,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
-    auto&                    encoder = *SWC_CHECK_NOT_NULL(context.encoder);
+    auto&                    encoder = *SWC_NOT_NULL(context.encoder);
     const MicroInstrOperand* ops     = inst.ops(*context.operands);
     switch (inst.op)
     {
@@ -188,13 +188,13 @@ Result MicroEmitPass::run(MicroPassContext& context)
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    auto&       encoder     = *SWC_CHECK_NOT_NULL(context.encoder);
+    auto&       encoder     = *SWC_NOT_NULL(context.encoder);
     const auto& relocations = context.builder->codeRelocations();
 
     labelOffsets_.clear();
     pendingLabelJumps_.clear();
     relocationByInstructionRef_.clear();
-    SWC_CHECK_NOT_NULL(context.builder)->pruneDeadRelocations();
+    SWC_NOT_NULL(context.builder)->pruneDeadRelocations();
 
     // Build instruction->relocation lookup once so LoadRegPtrImm can bind encoded offsets.
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)

@@ -87,14 +87,14 @@ namespace TypeGenInternal
             MatchContext lookUpCxt;
             lookUpCxt.codeRef         = node.codeRef();
             const IdentifierRef idRef = typeInfoIdentifierFor(kind, sema.idMgr());
-            RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
+            SWC_RESULT_VERIFY(Match::match(sema, lookUpCxt, idRef));
             for (const Symbol* sym : lookUpCxt.symbols())
-                RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
+                SWC_RESULT_VERIFY(sema.waitSemaCompleted(sym, node.codeRef()));
             return Result::Pause;
         }
 
         const auto& structType = tm.get(rtTypeRef);
-        RESULT_VERIFY(sema.waitSemaCompleted(&structType.payloadSymStruct(), node.codeRef()));
+        SWC_RESULT_VERIFY(sema.waitSemaCompleted(&structType.payloadSymStruct(), node.codeRef()));
 
         return Result::Continue;
     }

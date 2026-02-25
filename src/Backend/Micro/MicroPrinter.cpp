@@ -1114,7 +1114,7 @@ namespace
         if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
             return false;
 
-        const MicroDebugInfo* dbgInfo  = SWC_CHECK_NOT_NULL(builder->debugInfo(instRef));
+        const MicroDebugInfo* dbgInfo  = SWC_NOT_NULL(builder->debugInfo(instRef));
         const SourceView&     srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
         const uint64_t        debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))

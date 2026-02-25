@@ -45,7 +45,7 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_RemovesDeadDefinitions)
     builder.emitLoadRegImm(r8, ApInt(2, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    RESULT_VERIFY(runDeadCodeEliminationPass(builder));
+    SWC_RESULT_VERIFY(runDeadCodeEliminationPass(builder));
 
     if (builder.instructions().count() != 1)
         return Result::Error;
@@ -64,7 +64,7 @@ SWC_TEST_BEGIN(MicroDeadCodeElimination_PreservesReturnRegisterDefinition)
     builder.emitLoadRegImm(conv.intReturn, ApInt(99, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    RESULT_VERIFY(runDeadCodeEliminationPass(builder));
+    SWC_RESULT_VERIFY(runDeadCodeEliminationPass(builder));
 
     if (builder.instructions().count() != 2)
         return Result::Error;

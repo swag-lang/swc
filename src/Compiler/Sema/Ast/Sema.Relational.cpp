@@ -22,7 +22,7 @@ namespace
 
         if (nodeLeftView.type()->isTypeValue() && nodeRightView.type()->isTypeValue())
         {
-            result = sema.cstMgr().cstBool(*SWC_CHECK_NOT_NULL(nodeLeftView.type()) == *SWC_CHECK_NOT_NULL(nodeRightView.type()));
+            result = sema.cstMgr().cstBool(*SWC_NOT_NULL(nodeLeftView.type()) == *SWC_NOT_NULL(nodeRightView.type()));
             return Result::Continue;
         }
 
@@ -42,7 +42,7 @@ namespace
 
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -70,7 +70,7 @@ namespace
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -95,7 +95,7 @@ namespace
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -114,7 +114,7 @@ namespace
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstFalse();
@@ -139,7 +139,7 @@ namespace
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         if (leftCstRef == rightCstRef)
         {
             result = sema.cstMgr().cstTrue();
@@ -158,7 +158,7 @@ namespace
         ConstantRef leftCstRef  = nodeLeftView.cstRef();
         ConstantRef rightCstRef = nodeRightView.cstRef();
 
-        RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
+        SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef));
         const ConstantValue& left  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& right = sema.cstMgr().get(rightCstRef);
 
@@ -184,7 +184,7 @@ namespace
                 return constantFoldEqual(sema, result, nodeLeftView, nodeRightView);
 
             case TokenId::SymBangEqual:
-                RESULT_VERIFY(constantFoldEqual(sema, result, nodeLeftView, nodeRightView));
+                SWC_RESULT_VERIFY(constantFoldEqual(sema, result, nodeLeftView, nodeRightView));
                 result = sema.cstMgr().cstNegBool(result);
                 return Result::Continue;
 
@@ -270,7 +270,7 @@ namespace
                 return Result::Continue;
             if (self.type()->isTypeValue() && other.type()->isAnyTypeInfo(sema.ctx()))
             {
-                RESULT_VERIFY(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+                SWC_RESULT_VERIFY(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
                 return Result::Continue;
             }
 
@@ -282,7 +282,7 @@ namespace
     {
         SWC_UNUSED(node);
 
-        RESULT_VERIFY(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
+        SWC_RESULT_VERIFY(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
 
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {
@@ -290,8 +290,8 @@ namespace
             enumForEquality(sema, nodeRightView, nodeLeftView);
             nullForEquality(sema, nodeLeftView, nodeRightView);
             nullForEquality(sema, nodeRightView, nodeLeftView);
-            RESULT_VERIFY(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
-            RESULT_VERIFY(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
+            SWC_RESULT_VERIFY(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
+            SWC_RESULT_VERIFY(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
         }
 
         return Result::Continue;
@@ -337,15 +337,15 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
     const Token& tok           = sema.token({srcViewRef(), tokRef()});
 
-    RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
-    RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
+    SWC_RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeLeftView));
+    SWC_RESULT_VERIFY(SemaCheck::isValueOrType(sema, nodeRightView));
     sema.setIsValue(*this);
 
     // Force types
-    RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Type-check
-    RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     // Set the result type
     if (tok.id == TokenId::SymLessEqualGreater)
@@ -357,7 +357,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
     {
         ConstantRef result;
-        RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+        SWC_RESULT_VERIFY(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
         sema.setConstant(sema.curNodeRef(), result);
     }
 

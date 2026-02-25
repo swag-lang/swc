@@ -53,7 +53,7 @@ namespace
         for (; it != view.end(); ++it)
         {
             const MicroInstr&      scanInst = *it;
-            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_CHECK_NOT_NULL(context.operands), context.encoder);
+            const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
             if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                 return true;
 
@@ -132,7 +132,7 @@ namespace
         for (auto it = view.begin(); it != view.end() && it.current != instRef; ++it)
         {
             const MicroInstr&        scanInst = *it;
-            const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+            const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
             if (!scanOps)
                 continue;
 
@@ -205,7 +205,7 @@ namespace
     void removeInstruction(const MicroPassContext& context, Ref instRef)
     {
         // Remove instruction after replacements have been inserted before its position.
-        const bool erased = SWC_CHECK_NOT_NULL(context.instructions)->erase(instRef);
+        const bool erased = SWC_NOT_NULL(context.instructions)->erase(instRef);
         SWC_ASSERT(erased);
     }
 
@@ -601,13 +601,13 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    const auto& encoder               = *SWC_CHECK_NOT_NULL(context.encoder);
+    const auto& encoder               = *SWC_NOT_NULL(context.encoder);
     uint64_t    stackScratchFrameSize = 0;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const Ref                instRef = it.current;
         const MicroInstr&        inst    = *it;
-        const MicroInstrOperand* ops     = inst.ops(*SWC_CHECK_NOT_NULL(context.operands));
+        const MicroInstrOperand* ops     = inst.ops(*SWC_NOT_NULL(context.operands));
 
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))

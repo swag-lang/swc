@@ -50,7 +50,7 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstInterfaceDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolInterface>();
-    RESULT_VERIFY(sym.canBeCompleted(sema));
+    SWC_RESULT_VERIFY(sym.canBeCompleted(sema));
     sym.setSemaCompleted(sema.ctx());
     return Result::Continue;
 }

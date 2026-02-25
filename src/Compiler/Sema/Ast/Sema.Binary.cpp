@@ -83,7 +83,7 @@ namespace
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
         if (!keepEnumRes)
-            RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+            SWC_RESULT_VERIFY(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -233,27 +233,27 @@ namespace
     {
         SWC_UNUSED(nodeLeftView);
         SWC_UNUSED(nodeRightView);
-        RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
-        RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeLeftRef));
-        RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeRightRef));
+        SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
+        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeLeftRef));
+        SWC_RESULT_VERIFY(SemaCheck::isConstant(sema, node.nodeRightRef));
         return Result::Continue;
     }
 
     Result checkOp(Sema& sema, AstNodeRef nodeRef, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
-        RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, nodeRef, op, node.nodeLeftRef, node.nodeRightRef, nodeLeftView, nodeRightView));
+        SWC_RESULT_VERIFY(SemaHelpers::checkBinaryOperandTypes(sema, nodeRef, op, node.nodeLeftRef, node.nodeRightRef, nodeLeftView, nodeRightView));
 
         switch (op)
         {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
-                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Promote));
+                SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Promote));
                 break;
 
             case TokenId::SymPlus:
             case TokenId::SymMinus:
             case TokenId::SymAsterisk:
-                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote));
+                SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Wrap | AstModifierFlagsE::Promote));
                 break;
 
             case TokenId::SymAmpersand:
@@ -261,7 +261,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
+                SWC_RESULT_VERIFY(SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero));
                 break;
 
             default:
@@ -308,7 +308,7 @@ namespace
         if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
         {
             ConstantRef result;
-            RESULT_VERIFY(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
+            SWC_RESULT_VERIFY(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
             sema.setConstant(sema.curNodeRef(), result);
             return Result::Continue;
         }
@@ -319,13 +319,13 @@ namespace
             case TokenId::SymPlus:
                 if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isBlockPointer())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                    SWC_RESULT_VERIFY(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeRightView.typeRef();
                 }
                 else if (nodeLeftView.type()->isBlockPointer() && nodeRightView.type()->isScalarNumeric())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                    SWC_RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeLeftView.typeRef();
                 }
@@ -334,7 +334,7 @@ namespace
             case TokenId::SymMinus:
                 if (nodeLeftView.type()->isBlockPointer() && nodeRightView.type()->isScalarNumeric())
                 {
-                    RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                    SWC_RESULT_VERIFY(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeLeftView.typeRef();
                 }
@@ -363,7 +363,7 @@ namespace
             case TokenId::SymCircumflex:
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
-                RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
+                SWC_RESULT_VERIFY(SemaHelpers::castBinaryRightToLeft(sema, op, sema.curNodeRef(), nodeLeftView, nodeRightView, CastKind::Implicit));
                 break;
 
             default:
@@ -396,7 +396,7 @@ namespace
     Result check(Sema& sema, TokenId op, AstNodeRef nodeRef, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (nodeRightView.cstRef().isValid())
-            RESULT_VERIFY(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
+            SWC_RESULT_VERIFY(checkRightConstant(sema, op, sema.curNodeRef(), nodeRightView));
 
         switch (op)
         {
@@ -440,15 +440,15 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
-    RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
+    SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
     const Token& tok = sema.token(codeRef());
 
-    RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-    RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-    RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
     return Result::Continue;
 }

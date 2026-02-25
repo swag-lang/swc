@@ -41,7 +41,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     localStackBaseReg_   = MicroReg::invalid();
     runId_               = nextCodeGenRunId();
     frames_.clear();
-    frames_.push_back({});
+    frames_.emplace_back();
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();
@@ -181,7 +181,7 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     return *SWC_CHECK_NOT_NULL(safePayload(nodeRef));
 }
 
-CodeGen::VariableSymbolCodeGenPayload* CodeGen::safeVariableSymbolPayload(const SymbolVariable& sym) const
+CodeGen::VariableSymbolCodeGenPayload* CodeGen::safeVariableSymbolPayload(const SymbolVariable& sym)
 {
     return static_cast<VariableSymbolCodeGenPayload*>(sym.codeGenPayload());
 }

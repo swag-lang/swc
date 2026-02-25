@@ -209,15 +209,15 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    AstNodeRef                    resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
-    VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym) const;
-    VariableSymbolCodeGenPayload& ensureVariableSymbolPayload(const SymbolVariable& sym);
-    void                          setVisitors();
-    Result                        preNode(AstNode& node);
-    Result                        postNode(AstNode& node);
-    Result                        preNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result                        postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result                        emitConstant(AstNodeRef nodeRef);
+    AstNodeRef                           resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
+    static VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym);
+    VariableSymbolCodeGenPayload&        ensureVariableSymbolPayload(const SymbolVariable& sym);
+    void                                 setVisitors();
+    Result                               preNode(AstNode& node);
+    Result                               postNode(AstNode& node);
+    Result                               preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result                               postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result                               emitConstant(AstNodeRef nodeRef);
 
     Sema*                     sema_ = nullptr;
     AstVisit                  visit_;

@@ -14,8 +14,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT    = 256;
-    constexpr uint32_t K_MEMCPY_LOOP_OVERHEAD_INSTR  = 8;
-    constexpr uint32_t K_MEMZERO_LOOP_OVERHEAD_INSTR = 6;
 
     MicroOpBits functionParameterLoadBits(bool isFloat, uint8_t numBits)
     {
@@ -29,28 +27,6 @@ namespace
         if (buildCfg.unrollMemLimit)
             return buildCfg.unrollMemLimit;
         return K_DEFAULT_UNROLL_MEM_LIMIT;
-    }
-
-    bool shouldPreferLoopForSizeMemCopy(uint32_t sizeInBytes, uint32_t chunkSize)
-    {
-        const uint32_t chunkCount = sizeInBytes / chunkSize;
-        if (chunkCount == 0)
-            return false;
-
-        const uint32_t tailSize           = sizeInBytes % chunkSize;
-        const uint32_t unrolledInstrCount = chunkCount * 2 + (tailSize ? 2 : 0);
-        return unrolledInstrCount > K_MEMCPY_LOOP_OVERHEAD_INSTR;
-    }
-
-    bool shouldPreferLoopForSizeMemZero(uint32_t sizeInBytes, uint32_t chunkSize)
-    {
-        const uint32_t chunkCount = sizeInBytes / chunkSize;
-        if (chunkCount == 0)
-            return false;
-
-        const uint32_t tailSize           = sizeInBytes % chunkSize;
-        const uint32_t unrolledInstrCount = chunkCount + (tailSize ? 1 : 0);
-        return unrolledInstrCount > K_MEMZERO_LOOP_OVERHEAD_INSTR;
     }
 
     void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg)
@@ -264,8 +240,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     MicroBuilder&  builder         = codeGen.builder();
     const auto&    buildCfg        = builder.backendBuildCfg();
     const bool     optimize        = buildCfg.optimize;
-    const bool     optimizeForSize = buildCfg.optimizeForSize;
-    const bool     allow128        = optimize && !optimizeForSize && sizeInBytes >= 16;
+    const bool     allow128        = optimize && sizeInBytes >= 16;
     const uint32_t unrollLimit     = getUnrollMemLimit(buildCfg);
 
     const auto dstRegTmp   = codeGen.nextVirtualIntRegister();
@@ -291,14 +266,6 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
 
     if (sizeInBytes <= unrollLimit)
     {
-        const uint32_t chunkSize = allow128 ? 16 : 8;
-        if (optimizeForSize && shouldPreferLoopForSizeMemCopy(sizeInBytes, chunkSize))
-        {
-            const auto countReg = codeGen.nextVirtualIntRegister();
-            emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg);
-            return;
-        }
-
         emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, allow128, tmpIntReg, tmpFloatReg);
         return;
     }
@@ -320,7 +287,6 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
 
     const auto dstRegTmp       = codeGen.nextVirtualIntRegister();
     const auto zeroReg         = codeGen.nextVirtualIntRegister();
-    const bool optimizeForSize = buildCfg.optimizeForSize;
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     builder.emitClearReg(zeroReg, MicroOpBits::B64);
 
@@ -339,13 +305,6 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
 
     if (sizeInBytes <= unrollLimit)
     {
-        if (optimizeForSize && shouldPreferLoopForSizeMemZero(sizeInBytes, 8))
-        {
-            const auto countReg = codeGen.nextVirtualIntRegister();
-            emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 8, zeroReg, countReg);
-            return;
-        }
-
         emitMemZeroUnrolled(builder, dstRegTmp, sizeInBytes, zeroReg);
         return;
     }

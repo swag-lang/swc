@@ -17,7 +17,7 @@ namespace
     {
         if (!backendCfg.optimize)
             return "off";
-        return backendCfg.optimizeForSize ? "on(size)" : "on(speed)";
+        return "on";
     }
 
     std::string passStageName(const MicroPass& pass, bool before)

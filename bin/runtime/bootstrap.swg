@@ -725,7 +725,6 @@ namespace Swag
     struct BuildCfgBackend
     {
         optimize:               bool
-        optimizeForSize:        bool     // If true, favor code size over speed
 
         fpMathFma:              bool     // true in 'release'
         fpMathNoNaN:            bool     // true in 'release'

@@ -352,7 +352,6 @@ namespace Runtime
     struct BuildCfgBackend
     {
         bool     optimize;
-        bool     optimizeForSize;
         bool     fpMathFma;
         bool     fpMathNoNaN;
         bool     fpMathNoInf;

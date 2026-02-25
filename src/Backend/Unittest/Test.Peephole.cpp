@@ -11,11 +11,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void setPeepholeOptimizeLevel(MicroBuilder& builder, bool optimizeForSize = false)
+    void setPeepholeOptimizeLevel(MicroBuilder& builder)
     {
         Runtime::BuildCfgBackend backendCfg{};
-        backendCfg.optimize        = true;
-        backendCfg.optimizeForSize = optimizeForSize;
+        backendCfg.optimize = true;
         builder.setBackendBuildCfg(backendCfg);
     }
 
@@ -180,7 +179,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 {
     MicroBuilder builder(ctx);
-    setPeepholeOptimizeLevel(builder, true);
+    setPeepholeOptimizeLevel(builder);
 
     constexpr MicroReg rbp       = MicroReg::intReg(5);
     constexpr MicroReg rsp       = MicroReg::intReg(4);

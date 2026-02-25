@@ -88,8 +88,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setBackendBuildCfg(backendBuildCfg);
-        if (compiler().buildCfg().backendDebugInformations)
-            builderFlags.add(MicroBuilderFlagsE::DebugInfo);
+        builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
         builder_->setCurrentDebugInfo({});
 

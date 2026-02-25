@@ -37,7 +37,6 @@ namespace
             buildCfg.errorStackTrace          = false;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = false;
-            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = false;
             buildCfg.backendDebugInline       = false;
         }
@@ -48,7 +47,6 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = false;
-            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
             buildCfg.backendDebugInline       = true;
         }
@@ -59,7 +57,6 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = true;
-            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
         }
         else if (cfgName == "release")
@@ -69,7 +66,6 @@ namespace
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
             buildCfg.backend.optimize           = true;
-            buildCfg.backend.optimizeForSize    = false;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;
@@ -83,17 +79,11 @@ namespace
             buildCfg.errorStackTrace          = true;
             buildCfg.debugAllocator           = true;
             buildCfg.backend.optimize         = true;
-            buildCfg.backend.optimizeForSize  = false;
             buildCfg.backendDebugInformations = true;
         }
 
         if (cmdLine.backendOptimizeOverride.has_value())
             buildCfg.backend.optimize = cmdLine.backendOptimizeOverride.value();
-        if (cmdLine.backendOptimizeForSizeOverride.has_value())
-            buildCfg.backend.optimizeForSize = cmdLine.backendOptimizeForSizeOverride.value();
-
-        if (cmdLine.debugInfo)
-            buildCfg.backendDebugInformations = true;
     }
 
     const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)

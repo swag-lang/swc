@@ -1031,6 +1031,9 @@
     <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc">
       <Filter>src\Support\Report\Msg</Filter>
     </ClInclude>
+    <ClInclude Include="src\Support\Report\Msg\Errors.Safety.inc">
+      <Filter>src\Support\Report\Msg</Filter>
+    </ClInclude>
     <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc">
       <Filter>src\Support\Report\Msg</Filter>
     </ClInclude>
@@ -1199,6 +1202,9 @@
       <Filter>src\Support\Report\Msg</Filter>
     </Content>
     <Content Include="src\Support\Report\Msg\Errors.Parser.msg">
+      <Filter>src\Support\Report\Msg</Filter>
+    </Content>
+    <Content Include="src\Support\Report\Msg\Errors.Safety.msg">
       <Filter>src\Support\Report\Msg</Filter>
     </Content>
     <Content Include="src\Support\Report\Msg\Errors.Sema.msg">

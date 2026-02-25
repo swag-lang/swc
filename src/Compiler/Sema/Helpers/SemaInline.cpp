@@ -37,7 +37,13 @@ namespace
         const AstNode* const declNode = fn.decl();
         if (!declNode)
             return AstNodeRef::invalid();
-        SWC_ASSERT(declNode->is(AstNodeId::FunctionDecl));
+        if (!declNode->is(AstNodeId::FunctionDecl))
+            return AstNodeRef::invalid();
+
+        const Ast* const declAst = declNode->sourceAst(sema.ctx());
+        if (!declAst || declAst != &sema.ast())
+            return AstNodeRef::invalid();
+
         const auto& decl = declNode->cast<AstFunctionDecl>();
         if (decl.srcViewRef() != sema.ast().srcView().ref())
             return AstNodeRef::invalid();
@@ -48,17 +54,17 @@ namespace
         if (decl.nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& bodyNode = sema.node(decl.nodeBodyRef);
+        const AstNode& bodyNode = declAst->node(decl.nodeBodyRef);
         if (!bodyNode.is(AstNodeId::EmbeddedBlock))
             return AstNodeRef::invalid();
         const auto& block = bodyNode.cast<AstEmbeddedBlock>();
 
         SmallVector<AstNodeRef> statements;
-        sema.ast().appendNodes(statements, block.spanChildrenRef);
+        declAst->appendNodes(statements, block.spanChildrenRef);
         if (statements.size() != 1)
             return AstNodeRef::invalid();
 
-        const AstNode& retNode = sema.node(statements[0]);
+        const AstNode& retNode = declAst->node(statements[0]);
         if (!retNode.is(AstNodeId::ReturnStmt))
             return AstNodeRef::invalid();
         const auto& retStmt = retNode.cast<AstReturnStmt>();
@@ -153,6 +159,128 @@ namespace
 
         return false;
     }
+
+    bool isAutoInlineEnabled(const Sema& sema)
+    {
+        return sema.compiler().buildCfg().backend.optimize;
+    }
+
+    bool isAutoInlineScalarType(const TypeInfo& type)
+    {
+        return type.isBool() || type.isInt() || type.isFloat() || type.isRune() || type.isChar() || type.isEnum();
+    }
+
+    bool isPureInlineExpressionNode(AstNodeId id)
+    {
+        switch (id)
+        {
+            case AstNodeId::Identifier:
+            case AstNodeId::AncestorIdentifier:
+            case AstNodeId::ParenExpr:
+            case AstNodeId::BinaryExpr:
+            case AstNodeId::LogicalExpr:
+            case AstNodeId::RelationalExpr:
+            case AstNodeId::NullCoalescingExpr:
+            case AstNodeId::ConditionalExpr:
+            case AstNodeId::IndexExpr:
+            case AstNodeId::MemberAccessExpr:
+            case AstNodeId::AutoMemberAccessExpr:
+            case AstNodeId::CastExpr:
+            case AstNodeId::AutoCastExpr:
+            case AstNodeId::AsCastExpr:
+            case AstNodeId::IsTypeExpr:
+            case AstNodeId::BoolLiteral:
+            case AstNodeId::CharacterLiteral:
+            case AstNodeId::FloatLiteral:
+            case AstNodeId::IntegerLiteral:
+            case AstNodeId::BinaryLiteral:
+            case AstNodeId::HexaLiteral:
+            case AstNodeId::NullLiteral:
+            case AstNodeId::SuffixLiteral:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool isPureInlineExpressionTree(const Sema& sema, AstNodeRef rootRef, uint32_t& budget)
+    {
+        if (rootRef.isInvalid())
+            return false;
+        if (!budget)
+            return false;
+        budget--;
+
+        const AstNode& node = sema.node(rootRef);
+        if (!isPureInlineExpressionNode(node.id()))
+            return false;
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (!isPureInlineExpressionTree(sema, childRef, budget))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool canAutoInlineFunction(Sema& sema, const SymbolFunction& fn)
+    {
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::NoInline))
+            return false;
+        if (fn.isForeign())
+            return false;
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+            return true;
+        if (!isAutoInlineEnabled(sema))
+            return false;
+
+        const TypeInfo& returnType = sema.typeMgr().get(fn.returnTypeRef());
+        if (!isAutoInlineScalarType(returnType))
+            return false;
+
+        for (const SymbolVariable* const param : fn.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            const TypeInfo& paramType = sema.typeMgr().get(param->typeRef());
+            if (!isAutoInlineScalarType(paramType))
+                return false;
+        }
+
+        const AstNodeRef srcExprRef = inlineExprRef(sema, fn);
+        if (srcExprRef.isInvalid())
+            return false;
+
+        uint32_t expressionBudget = 64;
+        return isPureInlineExpressionTree(sema, srcExprRef, expressionBudget);
+    }
+
+    bool canAutoInlineArguments(Sema& sema, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isValid())
+        {
+            const AstNodeRef ufcsNodeRef = sema.viewZero(ufcsArg).nodeRef();
+            uint32_t         argBudget   = 64;
+            if (ufcsNodeRef.isInvalid() || !isPureInlineExpressionTree(sema, ufcsNodeRef, argBudget))
+                return false;
+        }
+
+        for (const AstNodeRef argRef : args)
+        {
+            const AstNode& argNode = sema.node(argRef);
+            if (isNamedArgument(argNode))
+                continue;
+
+            const AstNodeRef argNodeRef = sema.viewZero(argRef).nodeRef();
+            uint32_t         argBudget  = 64;
+            if (argNodeRef.isInvalid() || !isPureInlineExpressionTree(sema, argNodeRef, argBudget))
+                return false;
+        }
+
+        return true;
+    }
 }
 
 bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
@@ -161,14 +289,14 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
         return false;
     if (hasVariadicParam(sema, fn))
         return false;
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
-        return false;
-    return true;
+    return canAutoInlineFunction(sema, fn);
 }
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
     if (!canInlineCall(sema, fn))
+        return Result::Continue;
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline) && !canAutoInlineArguments(sema, args, ufcsArg))
         return Result::Continue;
 
     // TODO

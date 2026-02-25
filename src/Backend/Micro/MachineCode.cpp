@@ -40,14 +40,35 @@ namespace
         passManager.addMandatory(legalizePass);
     }
 
-    void registerFinalPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, MicroPrologEpilogPass& prologEpilogPass, MicroLegalizePass& legalizePass, MicroPeepholePass& peepholePass, MicroDeadCodeEliminationPass& deadCodePass, MicroEmitPass& emitPass)
+    void registerLateOptimizationFinalPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
     {
+        if (!backendCfg.optimize)
+            return;
+
+        passManager.addFinal(*SWC_NOT_NULL(passes.constantPropagationPass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.loadStoreForwardPass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.branchFoldingPass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.cfgSimplifyPass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.deadCodePass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.peepholePass));
+        passManager.addFinal(*SWC_NOT_NULL(passes.cfgSimplifyPass));
+    }
+
+    void registerFinalPasses(MicroPassManager&               passManager,
+                             const Runtime::BuildCfgBackend& backendCfg,
+                             const MicroOptimizationPasses&  optimizationPasses,
+                             MicroPrologEpilogPass&          prologEpilogPass,
+                             MicroLegalizePass&              legalizePass,
+                             MicroEmitPass&                  emitPass)
+    {
+        registerLateOptimizationFinalPasses(passManager, backendCfg, optimizationPasses);
+
         passManager.addFinal(prologEpilogPass);
         passManager.addFinal(legalizePass);
         if (backendCfg.optimize)
         {
-            passManager.addFinal(peepholePass);
-            passManager.addFinal(deadCodePass);
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.peepholePass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.deadCodePass));
         }
         passManager.addFinal(emitPass);
     }
@@ -153,7 +174,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     MicroPassManager passManager;
     registerOptimizationPasses(passManager, builder.backendBuildCfg(), optimizationPasses);
     registerMandatoryPasses(passManager, regAllocPass, legalizePass);
-    registerFinalPasses(passManager, builder.backendBuildCfg(), prologEpilogPass, legalizePass, peepholePass, deadCodePass, emitPass);
+    registerFinalPasses(passManager, builder.backendBuildCfg(), optimizationPasses, prologEpilogPass, legalizePass, emitPass);
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim    = builder.instructions().count();

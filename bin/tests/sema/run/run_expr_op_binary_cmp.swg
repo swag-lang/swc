@@ -199,7 +199,7 @@ enum CmpEnum: u16
     }
 
     const V0 = #run cmpLogicalPointer(cast(*void) 0x1'u64, true)
-    const V1 = #run cmpLogicalPointer(null, true)
+    const V1 = #run cmpLogicalPointer(cast(*void) 0'u64, true)
     const V2 = #run cmpLogicalPointer(cast(*void) 0x1'u64, false)
     #assert(V0)
     #assert(!V1)

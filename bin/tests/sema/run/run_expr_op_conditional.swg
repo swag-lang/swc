@@ -118,7 +118,7 @@ struct CondPair
     }
 
     const V0 = #run ternaryCondPointer(cast(*void) 0x1'u64)
-    const V1 = #run ternaryCondPointer(null)
+    const V1 = #run ternaryCondPointer(cast(*void) 0'u64)
     #assert(V0 == 7)
     #assert(V1 == 9)
 }

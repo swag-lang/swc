@@ -119,6 +119,71 @@ SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownSignAndZeroExtend)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroConstantPropagation_ReadsSubRangeFromKnownStackSlot)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg r8       = MicroReg::intReg(8);
+
+    builder.emitLoadMemImm(stackPtr, 40, ApInt(0x1122334455667788ull, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(r8, stackPtr, 44, MicroOpBits::B32);
+
+    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst1 = instructionAt(builder, 1);
+    if (!inst1)
+        return Result::Error;
+
+    const MicroInstrOperand* ops1 = inst1->ops(builder.operands());
+    if (inst1->op != MicroInstrOpcode::LoadRegImm || ops1[2].valueU64 != 0x11223344ull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownStackSignExtendLoad)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg r8       = MicroReg::intReg(8);
+
+    builder.emitLoadMemImm(stackPtr, 16, ApInt(0xFFFFFFFEull, 32), MicroOpBits::B32);
+    builder.emitLoadSignedExtendRegMem(r8, stackPtr, 16, MicroOpBits::B64, MicroOpBits::B32);
+
+    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst1 = instructionAt(builder, 1);
+    if (!inst1)
+        return Result::Error;
+
+    const MicroInstrOperand* ops1 = inst1->ops(builder.operands());
+    if (inst1->op != MicroInstrOpcode::LoadRegImm || ops1[2].valueU64 != 0xFFFFFFFFFFFFFFFEull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroConstantPropagation_FoldsKnownIndexedStackLoad)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg stackPtr = MicroReg::intReg(4);
+    constexpr MicroReg idxReg   = MicroReg::intReg(9);
+    constexpr MicroReg dstReg   = MicroReg::intReg(10);
+
+    builder.emitLoadRegImm(idxReg, ApInt(2, 64), MicroOpBits::B64);
+    builder.emitLoadMemImm(stackPtr, 24, ApInt(0x1234, 32), MicroOpBits::B32);
+    builder.emitLoadAmcRegMem(dstReg, MicroOpBits::B32, stackPtr, idxReg, 4, 16, MicroOpBits::B32);
+
+    SWC_RESULT_VERIFY(runConstantPropagationPass(builder));
+
+    const MicroInstr* inst2 = instructionAt(builder, 2);
+    if (!inst2)
+        return Result::Error;
+
+    const MicroInstrOperand* ops2 = inst2->ops(builder.operands());
+    if (inst2->op != MicroInstrOpcode::LoadRegImm || ops2[2].valueU64 != 0x1234ull)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #endif
 
 SWC_END_NAMESPACE();

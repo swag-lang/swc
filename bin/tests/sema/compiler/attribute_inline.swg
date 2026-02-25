@@ -1,5 +1,7 @@
 #global internal
 
+const Cfg = #run dref @compiler.getBuildCfg()
+
 func add(a: s32, b: s32)->s32 => a + b
 
 #[Swag.Inline]
@@ -21,7 +23,12 @@ func inlineCallsNonConst(a: s32)->s32 => helper(a)
 
 #test
 {
-    #assert(add(2, 3) == 5) // swc-expected-error {{sema_err_expr_not_const}}
+    #if Cfg.backend.optimize {
+        #assert(add(2, 3) == 5)
+    } #else {
+        const V = #run add(2, 3)
+        #assert(V == 5)
+    }
 }
 
 #test
@@ -32,5 +39,10 @@ func inlineCallsNonConst(a: s32)->s32 => helper(a)
 
 #test
 {
-    #assert(inlineCallsNonConst(2) == 3) // swc-expected-error {{sema_err_expr_not_const}}
+    #if Cfg.backend.optimize {
+        #assert(inlineCallsNonConst(2) == 3)
+    } #else {
+        const V = #run inlineCallsNonConst(2)
+        #assert(V == 3)
+    }
 }

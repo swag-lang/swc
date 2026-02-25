@@ -27,9 +27,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
-    auto&                    encoder = *SWC_NOT_NULL(context.encoder);
-    const MicroInstrOperand* ops     = inst.ops(*context.operands);
+    auto&                    encoder                    = *SWC_NOT_NULL(context.encoder);
+    const MicroInstrOperand* ops                        = inst.ops(*context.operands);
     const uint32_t           instructionCodeStartOffset = encoder.size();
+    const bool               emitDebugInfo              = context.builder && context.builder->hasFlag(MicroBuilderFlagsE::DebugInfo);
     switch (inst.op)
     {
         case MicroInstrOpcode::End:
@@ -186,7 +187,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             SWC_UNREACHABLE();
     }
 
-    encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.sourceCodeRef);
+    if (emitDebugInfo)
+        encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.sourceCodeRef);
 }
 
 Result MicroEmitPass::run(MicroPassContext& context)

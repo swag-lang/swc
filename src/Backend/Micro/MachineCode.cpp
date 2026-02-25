@@ -182,16 +182,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
     codeRelocations = builder.codeRelocations();
-    debugSourceRanges.clear();
-    debugSourceRanges.reserve(encoder.debugSourceRanges().size());
-    for (const EncoderDebugSourceRange& range : encoder.debugSourceRanges())
-    {
-        debugSourceRanges.push_back({
-            .codeStartOffset = range.codeStartOffset,
-            .codeEndOffset   = range.codeEndOffset,
-            .sourceCodeRef   = range.sourceCodeRef,
-        });
-    }
+    debugSourceRanges = encoder.debugSourceRanges();
     return Result::Continue;
 }
 

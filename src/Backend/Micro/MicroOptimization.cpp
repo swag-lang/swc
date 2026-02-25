@@ -132,13 +132,6 @@ Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref in
             sourceCodeRef = inst->sourceCodeRef;
     }
 
-    if (!sourceCodeRef.isValid() && context.builder && instructionRef != INVALID_REF)
-    {
-        const MicroDebugInfo* debugInfo = context.builder->debugInfo(instructionRef);
-        if (debugInfo && debugInfo->sourceCodeRef.isValid())
-            sourceCodeRef = debugInfo->sourceCodeRef;
-    }
-
     if (sourceCodeRef.isValid())
     {
         const SourceView& srcView = taskContext->compiler().srcView(sourceCodeRef.srcViewRef);

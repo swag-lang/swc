@@ -20,16 +20,6 @@ enum class MicroBuilderFlagsE : uint8_t
 };
 using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
 
-struct MicroDebugInfo
-{
-    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-
-    bool hasData() const
-    {
-        return sourceCodeRef.isValid();
-    }
-};
-
 struct MicroRelocation
 {
     static constexpr uint64_t K_SELF_ADDRESS = std::numeric_limits<uint64_t>::max();
@@ -78,10 +68,8 @@ public:
     void                                setFlags(MicroBuilderFlags flags) { flags_ = flags; }
     MicroBuilderFlags                   flags() const { return flags_; }
     bool                                hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                                setCurrentDebugInfo(const MicroDebugInfo& debugInfo) { currentDebugInfo_ = debugInfo; }
-    const MicroDebugInfo&               currentDebugInfo() const { return currentDebugInfo_; }
-    void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef) { currentDebugInfo_.sourceCodeRef = sourceCodeRef; }
-    const MicroDebugInfo*               debugInfo(Ref instructionRef) const;
+    void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
+    SourceCodeRef                       instructionSourceCodeRef(Ref instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&     backendBuildCfg() const { return backendBuildCfg_; }
@@ -158,8 +146,7 @@ private:
     MicroStorage                                        instructions_;
     MicroOperandStorage                                 operands_;
     MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
-    MicroDebugInfo                                      currentDebugInfo_;
-    mutable MicroDebugInfo                              debugInfoScratch_;
+    SourceCodeRef                                       currentDebugSourceCodeRef_ = SourceCodeRef::invalid();
     Utf8                                                printSymbolName_;
     Utf8                                                printFilePath_;
     uint32_t                                            printSourceLine_ = 0;

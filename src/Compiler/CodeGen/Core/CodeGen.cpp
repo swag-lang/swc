@@ -88,9 +88,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
         builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setBackendBuildCfg(backendBuildCfg);
-        builderFlags.add(MicroBuilderFlagsE::DebugInfo);
+        if (compiler().buildCfg().backendDebugInformations || backendBuildCfg.emitAssert)
+            builderFlags.add(MicroBuilderFlagsE::DebugInfo);
         builder_->setFlags(builderFlags);
-        builder_->setCurrentDebugInfo({});
+        builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());
 
         const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
         const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());

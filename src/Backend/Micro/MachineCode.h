@@ -8,12 +8,7 @@ class TaskContext;
 
 struct MachineCode
 {
-    struct DebugSourceRange
-    {
-        uint32_t      codeStartOffset = 0;
-        uint32_t      codeEndOffset   = 0;
-        SourceCodeRef sourceCodeRef   = SourceCodeRef::invalid();
-    };
+    using DebugSourceRange = EncoderDebugSourceRange;
 
     std::vector<std::byte>       bytes;
     std::vector<MicroRelocation> codeRelocations;

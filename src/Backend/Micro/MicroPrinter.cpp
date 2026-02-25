@@ -38,18 +38,19 @@ namespace
         return WIDTH;
     }
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t& outSourceLine)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, SourceCodeRef& outSourceCodeRef, uint32_t& outSourceLine)
     {
+        outSourceCodeRef = SourceCodeRef::invalid();
         outSourceLine = 0;
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
-        const MicroDebugInfo* dbgInfo = builder->debugInfo(instRef);
-        if (!dbgInfo || !dbgInfo->sourceCodeRef.isValid())
+        outSourceCodeRef = builder->instructionSourceCodeRef(instRef);
+        if (!outSourceCodeRef.isValid())
             return false;
 
-        const SourceView& srcView = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
-        const auto        range   = srcView.tokenCodeRange(ctx, dbgInfo->sourceCodeRef.tokRef);
+        const SourceView& srcView = ctx.compiler().srcView(outSourceCodeRef.srcViewRef);
+        const auto        range   = srcView.tokenCodeRange(ctx, outSourceCodeRef.tokRef);
         if (range.line == 0)
             return false;
 
@@ -1112,13 +1113,13 @@ namespace
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
+        SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
         uint32_t sourceLine = 0;
-        if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceLine))
+        if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceCodeRef, sourceLine))
             return false;
 
-        const MicroDebugInfo* dbgInfo  = SWC_NOT_NULL(builder->debugInfo(instRef));
-        const SourceView&     srcView  = ctx.compiler().srcView(dbgInfo->sourceCodeRef.srcViewRef);
-        const uint64_t        debugKey = (static_cast<uint64_t>(dbgInfo->sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
+        const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
+        const uint64_t debugKey = (static_cast<uint64_t>(sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;
         seenDebugLines.insert(debugKey);

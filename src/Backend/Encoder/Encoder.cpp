@@ -23,12 +23,23 @@ void Encoder::copyTo(ByteSpanRW dst) const
 
 void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef)
 {
-    SWC_ASSERT(codeEndOffset >= codeStartOffset);
     if (codeEndOffset <= codeStartOffset)
         return;
 
     if (!sourceCodeRef.isValid())
         return;
+
+    if (!debugSourceRanges_.empty())
+    {
+        EncoderDebugSourceRange& previous = debugSourceRanges_.back();
+        if (previous.codeEndOffset == codeStartOffset &&
+            previous.sourceCodeRef.srcViewRef == sourceCodeRef.srcViewRef &&
+            previous.sourceCodeRef.tokRef == sourceCodeRef.tokRef)
+        {
+            previous.codeEndOffset = codeEndOffset;
+            return;
+        }
+    }
 
     debugSourceRanges_.push_back({
         .codeStartOffset = codeStartOffset,

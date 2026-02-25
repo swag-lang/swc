@@ -46,7 +46,7 @@ namespace
             return;
 
         const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        Diagnostic        diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
+        const Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
         diag.last().addSpan(srcView.tokenCodeRange(ctx, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
         diag.report(ctx);
     }

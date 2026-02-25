@@ -19,6 +19,16 @@
 - Do not put defensive code after asserts.
 - Declare local variables and reference parameters as const whenever they are not modified.
 
+## Formating code
+
+- When you are done with coding, and everything is working fine (after the tests), run clang-format.exe on modified files.
+
+  ````bash
+  C:\Program Files\JetBrains\JetBrains Rider 2025.3.1\lib\ReSharperHost\windows-x64\clang-format.exe
+  ````
+
+  If you can't find the executable there, look for new rider versions.
+
 ## Refactoring Compliance Rules
 
 - All modified or touched code must be brought into compliance with this document.

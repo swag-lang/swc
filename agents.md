@@ -18,6 +18,7 @@
   parameters (e.g. managers).
 - Do not overuse "auto". When it's clearer, use the real type.
 - Do not put defensive code after asserts.
+- When a local variable, or a reference parameter, can be made "const", do it.
 
 ## Refactoring Compliance Rules
 

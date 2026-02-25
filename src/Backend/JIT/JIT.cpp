@@ -31,12 +31,7 @@ namespace
 
     bool isAssertTrapExceptionCode(const uint32_t exceptionCode)
     {
-#ifdef _WIN32
-        return exceptionCode == EXCEPTION_ILLEGAL_INSTRUCTION;
-#else
-        SWC_UNUSED(exceptionCode);
-        return false;
-#endif
+        return Os::isHostIllegalInstructionException(exceptionCode);
     }
 
     bool shouldHandleAsRunJitAssertTrap(const TaskContext& ctx)
@@ -51,25 +46,14 @@ namespace
             return;
 
         const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        const Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
+        Diagnostic        diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
         diag.last().addSpan(srcView.tokenCodeRange(ctx, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
         diag.report(ctx);
     }
 
     void decodePlatformException(const void* platformExceptionPointers, uint32_t& outExceptionCode, const void*& outExceptionAddress)
     {
-        outExceptionCode    = 0;
-        outExceptionAddress = nullptr;
-#ifdef _WIN32
-        const auto args = static_cast<SWC_LP_EXCEPTION_POINTERS>(const_cast<void*>(platformExceptionPointers));
-        if (args && args->ExceptionRecord)
-        {
-            outExceptionCode    = args->ExceptionRecord->ExceptionCode;
-            outExceptionAddress = args->ExceptionRecord->ExceptionAddress;
-        }
-#else
-        SWC_UNUSED(platformExceptionPointers);
-#endif
+        Os::decodeHostException(outExceptionCode, outExceptionAddress, platformExceptionPointers);
     }
 
     bool isIntrinsicAssertSourceRef(const TaskContext& ctx, const SourceCodeRef& sourceCodeRef)

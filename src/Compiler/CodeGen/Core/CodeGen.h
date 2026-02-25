@@ -37,6 +37,19 @@ struct CodeGenNodePayload
     bool isAddress() const { return storageKind == StorageKind::Address; }
 };
 
+class CodeGenFrame
+{
+public:
+    AstNodeRef currentSwitch() const { return currentSwitch_; }
+    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
+    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
+private:
+    AstNodeRef currentSwitch_     = AstNodeRef::invalid();
+    AstNodeRef currentSwitchCase_ = AstNodeRef::invalid();
+};
+
 class CodeGen
 {
 public:
@@ -67,11 +80,32 @@ public:
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenState> caseStates;
     };
 
+    struct IfStmtCodeGenPayload
+    {
+        uint64_t            runId = 0;
+        IfStmtCodeGenState state;
+    };
+
+    struct SwitchStmtCodeGenPayload
+    {
+        uint64_t                runId = 0;
+        SwitchStmtCodeGenState state;
+    };
+
     struct LocalStackSlot
     {
         uint32_t offset = 0;
         uint32_t size   = 0;
         uint32_t align  = 1;
+    };
+
+    struct VariableSymbolCodeGenPayload
+    {
+        uint64_t           runId = 0;
+        CodeGenNodePayload payload;
+        LocalStackSlot     localSlot;
+        bool               hasPayload   = false;
+        bool               hasLocalSlot = false;
     };
 
     explicit CodeGen(Sema& sema);
@@ -106,6 +140,9 @@ public:
     AstNode&          curNode() { return node(curNodeRef()); }
     const AstNode&    curNode() const { return node(curNodeRef()); }
     const Token&      token(const SourceCodeRef& codeRef) const;
+    CodeGenFrame&       frame() { return frames_.back(); }
+    const CodeGenFrame& frame() const { return frames_.back(); }
+    std::span<const CodeGenFrame> frames() const { return frames_; }
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
@@ -157,71 +194,14 @@ public:
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    IfStmtCodeGenState&       setIfStmtCodeGenState(AstNodeRef nodeRef, const IfStmtCodeGenState& value)
-    {
-        const auto it = ifStmtCodeGenStates_.insert_or_assign(nodeRef, value).first;
-        return it->second;
-    }
-    IfStmtCodeGenState* ifStmtCodeGenState(AstNodeRef nodeRef)
-    {
-        const auto it = ifStmtCodeGenStates_.find(nodeRef);
-        if (it == ifStmtCodeGenStates_.end())
-            return nullptr;
-        return &it->second;
-    }
-    void eraseIfStmtCodeGenState(AstNodeRef nodeRef)
-    {
-        ifStmtCodeGenStates_.erase(nodeRef);
-    }
-
-    SwitchStmtCodeGenState& setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value)
-    {
-        const auto it = switchStmtCodeGenStates_.insert_or_assign(nodeRef, value).first;
-        return it->second;
-    }
-    SwitchStmtCodeGenState* switchStmtCodeGenState(AstNodeRef nodeRef)
-    {
-        const auto it = switchStmtCodeGenStates_.find(nodeRef);
-        if (it == switchStmtCodeGenStates_.end())
-            return nullptr;
-        return &it->second;
-    }
-    void eraseSwitchStmtCodeGenState(AstNodeRef nodeRef)
-    {
-        switchStmtCodeGenStates_.erase(nodeRef);
-    }
-
-    void pushActiveSwitch(AstNodeRef nodeRef)
-    {
-        activeSwitchStack_.push_back(nodeRef);
-    }
-    void popActiveSwitch()
-    {
-        if (!activeSwitchStack_.empty())
-            activeSwitchStack_.pop_back();
-    }
-    AstNodeRef currentSwitchRef() const
-    {
-        if (activeSwitchStack_.empty())
-            return AstNodeRef::invalid();
-        return activeSwitchStack_.back();
-    }
-
-    void pushActiveSwitchCase(AstNodeRef nodeRef)
-    {
-        activeSwitchCaseStack_.push_back(nodeRef);
-    }
-    void popActiveSwitchCase()
-    {
-        if (!activeSwitchCaseStack_.empty())
-            activeSwitchCaseStack_.pop_back();
-    }
-    AstNodeRef currentSwitchCaseRef() const
-    {
-        if (activeSwitchCaseStack_.empty())
-            return AstNodeRef::invalid();
-        return activeSwitchCaseStack_.back();
-    }
+    IfStmtCodeGenState&       setIfStmtCodeGenState(AstNodeRef nodeRef, const IfStmtCodeGenState& value);
+    IfStmtCodeGenState*       ifStmtCodeGenState(AstNodeRef nodeRef);
+    void                      eraseIfStmtCodeGenState(AstNodeRef nodeRef);
+    SwitchStmtCodeGenState&   setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value);
+    SwitchStmtCodeGenState*   switchStmtCodeGenState(AstNodeRef nodeRef);
+    void                      eraseSwitchStmtCodeGenState(AstNodeRef nodeRef);
+    void                      pushFrame(const CodeGenFrame& frame);
+    void                      popFrame();
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
@@ -230,6 +210,8 @@ public:
 
 private:
     AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
+    VariableSymbolCodeGenPayload*       safeVariableSymbolPayload(const SymbolVariable& sym) const;
+    VariableSymbolCodeGenPayload&       ensureVariableSymbolPayload(const SymbolVariable& sym);
     void       setVisitors();
     Result     preNode(AstNode& node);
     Result     postNode(AstNode& node);
@@ -239,17 +221,13 @@ private:
 
     Sema*                                                         sema_ = nullptr;
     AstVisit                                                      visit_;
+    std::vector<CodeGenFrame>                                    frames_;
     SymbolFunction*                                               function_            = nullptr;
     MicroBuilder*                                                 builder_             = nullptr;
     uint32_t                                                      nextVirtualRegister_ = 1;
-    std::unordered_map<const SymbolVariable*, CodeGenNodePayload> variablePayloads_;
-    std::unordered_map<const SymbolVariable*, LocalStackSlot>     localStackSlots_;
     uint32_t                                                      localStackFrameSize_ = 0;
     MicroReg                                                      localStackBaseReg_;
-    std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
-    std::unordered_map<AstNodeRef, SwitchStmtCodeGenState>        switchStmtCodeGenStates_;
-    SmallVector<AstNodeRef>                                       activeSwitchStack_;
-    SmallVector<AstNodeRef>                                       activeSwitchCaseStack_;
+    uint64_t                                                      runId_               = 0;
 };
 
 SWC_END_NAMESPACE();

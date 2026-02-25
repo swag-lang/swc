@@ -33,12 +33,15 @@ public:
     void        setCstRef(ConstantRef ref) { cstRef_ = ref; }
     ConstantRef defaultValueRef() const { return defaultValueRef_; }
     void        setDefaultValueRef(ConstantRef ref) { defaultValueRef_ = ref; }
+    void*       codeGenPayload() const { return codeGenPayload_; }
+    void        setCodeGenPayload(void* payload) { codeGenPayload_ = payload; }
 
 private:
     uint32_t    offset_          = 0;
     uint32_t    parameterIndex_  = K_INVALID_PARAMETER_INDEX;
     ConstantRef cstRef_          = ConstantRef::invalid();
     ConstantRef defaultValueRef_ = ConstantRef::invalid();
+    void*       codeGenPayload_  = nullptr;
 };
 
 SWC_END_NAMESPACE();

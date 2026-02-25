@@ -243,7 +243,11 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     }
 
     codeGen.setSwitchStmtCodeGenState(codeGen.curNodeRef(), switchState);
-    codeGen.pushActiveSwitch(codeGen.curNodeRef());
+
+    CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentSwitch(codeGen.curNodeRef());
+    frame.setCurrentSwitchCase(AstNodeRef::invalid());
+    codeGen.pushFrame(frame);
     return Result::Continue;
 }
 
@@ -259,7 +263,10 @@ Result AstSwitchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     codeGen.builder().placeLabel(itCase->second.testLabel);
-    codeGen.pushActiveSwitchCase(childRef);
+
+    CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentSwitchCase(childRef);
+    codeGen.pushFrame(frame);
     return Result::Continue;
 }
 
@@ -291,7 +298,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     }
 
     if (codeGen.node(childRef).is(AstNodeId::SwitchCaseStmt))
-        codeGen.popActiveSwitchCase();
+        codeGen.popFrame();
 
     return Result::Continue;
 }
@@ -302,7 +309,7 @@ Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
     SWC_ASSERT(switchState != nullptr);
 
     codeGen.builder().placeLabel(switchState->doneLabel);
-    codeGen.popActiveSwitch();
+    codeGen.popFrame();
     codeGen.eraseSwitchStmtCodeGenState(codeGen.curNodeRef());
     return Result::Continue;
 }
@@ -312,7 +319,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    const AstNodeRef switchRef = codeGen.currentSwitchRef();
+    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
     if (switchRef.isInvalid())
         return Result::Continue;
 
@@ -423,7 +430,7 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
     if (caseBodyEndsWithFallthrough(codeGen, *this))
         return Result::Continue;
 
-    const AstNodeRef switchRef = codeGen.currentSwitchRef();
+    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
     if (switchRef.isInvalid())
         return Result::Continue;
 
@@ -436,7 +443,7 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
 
 Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const AstNodeRef switchRef = codeGen.currentSwitchRef();
+    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
     if (switchRef.isInvalid())
         return Result::Continue;
 
@@ -449,8 +456,8 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const AstNodeRef switchRef = codeGen.currentSwitchRef();
-    const AstNodeRef caseRef   = codeGen.currentSwitchCaseRef();
+    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
+    const AstNodeRef caseRef   = codeGen.frame().currentSwitchCase();
     if (switchRef.isInvalid() || caseRef.isInvalid())
         return Result::Continue;
 

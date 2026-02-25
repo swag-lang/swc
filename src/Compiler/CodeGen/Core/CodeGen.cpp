@@ -4,12 +4,25 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Wmf/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    std::atomic<uint64_t> CODE_GEN_RUN_ID = 1;
+
+    uint64_t nextCodeGenRunId()
+    {
+        const uint64_t runId = CODE_GEN_RUN_ID.fetch_add(1, std::memory_order_relaxed);
+        SWC_ASSERT(runId != 0);
+        return runId;
+    }
+}
 
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
@@ -23,17 +36,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     function_ = &symbolFunc;
     builder_  = &symbolFunc.microInstrBuilder(ctx());
 
-    SWC_ASSERT(nextVirtualRegister_ == 1);
-    SWC_ASSERT(variablePayloads_.empty());
-    SWC_ASSERT(localStackSlots_.empty());
-    SWC_ASSERT(localStackFrameSize_ == 0);
-    SWC_ASSERT(!localStackBaseReg_.isValid());
-    ifStmtCodeGenStates_.clear();
-    switchStmtCodeGenStates_.clear();
-    SWC_ASSERT(activeSwitchStack_.empty());
-    SWC_ASSERT(activeSwitchCaseStack_.empty());
-    activeSwitchStack_.clear();
-    activeSwitchCaseStack_.clear();
+    nextVirtualRegister_ = 1;
+    localStackFrameSize_ = 0;
+    localStackBaseReg_   = MicroReg::invalid();
+    runId_               = nextCodeGenRunId();
+    frames_.clear();
+    frames_.push_back({});
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();
@@ -173,30 +181,53 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     return *SWC_CHECK_NOT_NULL(safePayload(nodeRef));
 }
 
+CodeGen::VariableSymbolCodeGenPayload* CodeGen::safeVariableSymbolPayload(const SymbolVariable& sym) const
+{
+    return static_cast<VariableSymbolCodeGenPayload*>(sym.codeGenPayload());
+}
+
+CodeGen::VariableSymbolCodeGenPayload& CodeGen::ensureVariableSymbolPayload(const SymbolVariable& sym)
+{
+    VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(sym);
+    if (!payload)
+    {
+        payload = compiler().allocate<VariableSymbolCodeGenPayload>();
+        const_cast<SymbolVariable&>(sym).setCodeGenPayload(payload);
+    }
+
+    return *SWC_CHECK_NOT_NULL(payload);
+}
+
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
-    variablePayloads_[&sym] = payload;
+    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
+    symbolPayload.runId                         = runId_;
+    symbolPayload.payload                       = payload;
+    symbolPayload.hasPayload                    = true;
 }
 
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
 {
-    const auto it = variablePayloads_.find(&sym);
-    if (it == variablePayloads_.end())
+    const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
+    if (!symbolPayload || symbolPayload->runId != runId_ || !symbolPayload->hasPayload)
         return nullptr;
-    return &it->second;
+    return &symbolPayload->payload;
 }
 
 void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot)
 {
-    localStackSlots_[&sym] = slot;
+    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
+    symbolPayload.runId                         = runId_;
+    symbolPayload.localSlot                     = slot;
+    symbolPayload.hasLocalSlot                  = true;
 }
 
 const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym) const
 {
-    const auto it = localStackSlots_.find(&sym);
-    if (it == localStackSlots_.end())
+    const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
+    if (!symbolPayload || symbolPayload->runId != runId_ || !symbolPayload->hasLocalSlot)
         return nullptr;
-    return &it->second;
+    return &symbolPayload->localSlot;
 }
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)
@@ -244,6 +275,103 @@ CodeGenNodePayload& CodeGen::setPayloadAddress(AstNodeRef nodeRef, TypeRef typeR
     CodeGenNodePayload& nodePayload = setPayload(nodeRef, typeRef);
     nodePayload.setIsAddress();
     return nodePayload;
+}
+
+CodeGen::IfStmtCodeGenState& CodeGen::setIfStmtCodeGenState(AstNodeRef nodeRef, const IfStmtCodeGenState& value)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    SWC_ASSERT(nodeRef.isValid());
+
+    IfStmtCodeGenPayload* payload = sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
+    if (!payload)
+    {
+        payload = compiler().allocate<IfStmtCodeGenPayload>();
+        sema().setCodeGenPayload(nodeRef, payload);
+    }
+
+    payload->runId = runId_;
+    payload->state = value;
+    return payload->state;
+}
+
+CodeGen::IfStmtCodeGenState* CodeGen::ifStmtCodeGenState(AstNodeRef nodeRef)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return nullptr;
+
+    IfStmtCodeGenPayload* payload = sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
+    if (!payload || payload->runId != runId_)
+        return nullptr;
+    return &payload->state;
+}
+
+void CodeGen::eraseIfStmtCodeGenState(AstNodeRef nodeRef)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return;
+
+    IfStmtCodeGenPayload* payload = sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
+    if (!payload || payload->runId != runId_)
+        return;
+
+    payload->state = {};
+    payload->runId = 0;
+}
+
+CodeGen::SwitchStmtCodeGenState& CodeGen::setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    SWC_ASSERT(nodeRef.isValid());
+
+    SwitchStmtCodeGenPayload* payload = sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
+    if (!payload)
+    {
+        payload = compiler().allocate<SwitchStmtCodeGenPayload>();
+        sema().setCodeGenPayload(nodeRef, payload);
+    }
+
+    payload->runId = runId_;
+    payload->state = value;
+    return payload->state;
+}
+
+CodeGen::SwitchStmtCodeGenState* CodeGen::switchStmtCodeGenState(AstNodeRef nodeRef)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return nullptr;
+
+    SwitchStmtCodeGenPayload* payload = sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
+    if (!payload || payload->runId != runId_)
+        return nullptr;
+    return &payload->state;
+}
+
+void CodeGen::eraseSwitchStmtCodeGenState(AstNodeRef nodeRef)
+{
+    nodeRef = resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return;
+
+    SwitchStmtCodeGenPayload* payload = sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
+    if (!payload || payload->runId != runId_)
+        return;
+
+    payload->state = {};
+    payload->runId = 0;
+}
+
+void CodeGen::pushFrame(const CodeGenFrame& frame)
+{
+    frames_.push_back(frame);
+}
+
+void CodeGen::popFrame()
+{
+    SWC_ASSERT(!frames_.empty());
+    frames_.pop_back();
 }
 
 MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)

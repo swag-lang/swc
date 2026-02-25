@@ -32,46 +32,65 @@ namespace
         return node.is(AstNodeId::NamedArgument);
     }
 
-    AstNodeRef inlineExprRef(const Sema& sema, const SymbolFunction& fn)
+    bool resolveFunctionDeclInCurrentAst(const Sema& sema, const SymbolFunction& fn, const AstFunctionDecl*& outDecl)
     {
+        outDecl = nullptr;
+
         const AstNode* const declNode = fn.decl();
-        if (!declNode)
-            return AstNodeRef::invalid();
-        if (!declNode->is(AstNodeId::FunctionDecl))
-            return AstNodeRef::invalid();
+        if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
+            return false;
 
         const Ast* const declAst = declNode->sourceAst(sema.ctx());
         if (!declAst || declAst != &sema.ast())
-            return AstNodeRef::invalid();
+            return false;
 
-        const auto& decl = declNode->cast<AstFunctionDecl>();
-        if (decl.srcViewRef() != sema.ast().srcView().ref())
-            return AstNodeRef::invalid();
+        outDecl = &declNode->cast<AstFunctionDecl>();
+        return true;
+    }
 
+    AstNodeRef inlineExprRefFromDecl(const Sema& sema, const AstFunctionDecl& decl)
+    {
         if (decl.hasFlag(AstFunctionFlagsE::Short))
             return decl.nodeBodyRef;
 
         if (decl.nodeBodyRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& bodyNode = declAst->node(decl.nodeBodyRef);
+        const AstNode& bodyNode = sema.ast().node(decl.nodeBodyRef);
         if (!bodyNode.is(AstNodeId::EmbeddedBlock))
             return AstNodeRef::invalid();
-        const auto& block = bodyNode.cast<AstEmbeddedBlock>();
 
         SmallVector<AstNodeRef> statements;
-        declAst->appendNodes(statements, block.spanChildrenRef);
+        sema.ast().appendNodes(statements, bodyNode.cast<AstEmbeddedBlock>().spanChildrenRef);
         if (statements.size() != 1)
             return AstNodeRef::invalid();
 
-        const AstNode& retNode = declAst->node(statements[0]);
+        const AstNode& retNode = sema.ast().node(statements[0]);
         if (!retNode.is(AstNodeId::ReturnStmt))
             return AstNodeRef::invalid();
-        const auto& retStmt = retNode.cast<AstReturnStmt>();
-        if (retStmt.nodeExprRef.isInvalid())
+
+        const AstNodeRef retExprRef = retNode.cast<AstReturnStmt>().nodeExprRef;
+        if (retExprRef.isInvalid())
             return AstNodeRef::invalid();
 
-        return retStmt.nodeExprRef;
+        return retExprRef;
+    }
+
+    AstNodeRef inlineExprRef(const Sema& sema, const SymbolFunction& fn)
+    {
+        const AstFunctionDecl* decl = nullptr;
+        if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
+            return AstNodeRef::invalid();
+
+        const AstNodeRef pureExprRef = fn.pureExpressionRef();
+        if (pureExprRef.isValid())
+            return pureExprRef;
+
+        // Explicit #[Inline] keeps previous behavior even when purity precompute is unavailable.
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Inline))
+            return inlineExprRefFromDecl(sema, *decl);
+
+        return AstNodeRef::invalid();
     }
 
     bool mapArguments(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -357,7 +376,7 @@ namespace
         if (!isAutoInlineEnabled(sema))
             return false;
 
-        if (!fn.isPureExpression())
+        if (!fn.isPureExpression() || fn.pureExpressionRef().isInvalid())
             return false;
 
         const TypeInfo& returnType = sema.typeMgr().get(fn.returnTypeRef());

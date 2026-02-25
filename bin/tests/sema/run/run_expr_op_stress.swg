@@ -147,6 +147,7 @@ enum StressKind: u16
         return x
     }
 
+    //#[Swag.PrintMicro]
     func stressWideCoverage()->s32
     {
         var arr: [5] s32 = [2, 4, 6, 8, 10]

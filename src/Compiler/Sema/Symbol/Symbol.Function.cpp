@@ -148,6 +148,14 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     return out;
 }
 
+void SymbolFunction::setPureExpression(bool value) noexcept
+{
+    if (value)
+        addExtraFlag(SymbolFunctionFlagsE::PureExpression);
+    else
+        removeExtraFlag(SymbolFunctionFlagsE::PureExpression);
+}
+
 Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
 {
     if (!isForeign())

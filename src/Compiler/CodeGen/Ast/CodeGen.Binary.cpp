@@ -9,6 +9,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TokenId canonicalBinaryToken(TokenId tokId)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymPlusEqual:
+            case TokenId::SymMinusEqual:
+            case TokenId::SymAsteriskEqual:
+            case TokenId::SymSlashEqual:
+            case TokenId::SymAmpersandEqual:
+            case TokenId::SymPipeEqual:
+            case TokenId::SymCircumflexEqual:
+            case TokenId::SymPercentEqual:
+            case TokenId::SymLowerLowerEqual:
+            case TokenId::SymGreaterGreaterEqual:
+                return Token::assignToBinary(tokId);
+
+            default:
+                break;
+        }
+
+        return tokId;
+    }
+
     enum class BinaryEncodingKind : uint8_t
     {
         IntLike,
@@ -184,14 +207,14 @@ namespace
 
 Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token&              tok       = codeGen.token(codeRef());
+    const TokenId             tokId     = canonicalBinaryToken(codeGen.token(codeRef()).id);
     const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this);
     switch (encodeCtx.encodingKind)
     {
         case BinaryEncodingKind::IntLike:
-            return emitBinaryIntLike(codeGen, encodeCtx, tok.id);
+            return emitBinaryIntLike(codeGen, encodeCtx, tokId);
         case BinaryEncodingKind::Float:
-            return emitBinaryFloat(codeGen, encodeCtx, tok.id);
+            return emitBinaryFloat(codeGen, encodeCtx, tokId);
     }
 
     SWC_UNREACHABLE();

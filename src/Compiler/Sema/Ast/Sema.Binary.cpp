@@ -17,6 +17,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TokenId canonicalBinaryToken(TokenId op)
+    {
+        switch (op)
+        {
+            case TokenId::SymPlusEqual:
+            case TokenId::SymMinusEqual:
+            case TokenId::SymAsteriskEqual:
+            case TokenId::SymSlashEqual:
+            case TokenId::SymAmpersandEqual:
+            case TokenId::SymPipeEqual:
+            case TokenId::SymCircumflexEqual:
+            case TokenId::SymPercentEqual:
+            case TokenId::SymLowerLowerEqual:
+            case TokenId::SymGreaterGreaterEqual:
+                return Token::assignToBinary(op);
+
+            default:
+                break;
+        }
+
+        return op;
+    }
+
     bool mapTokenToFoldBinaryOp(Math::FoldBinaryOp& outOp, TokenId op)
     {
         switch (op)
@@ -444,11 +467,11 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT_VERIFY(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
-    const Token& tok = sema.token(codeRef());
+    const TokenId op = canonicalBinaryToken(sema.token(codeRef()).id);
 
-    SWC_RESULT_VERIFY(promote(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-    SWC_RESULT_VERIFY(check(sema, tok.id, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
-    SWC_RESULT_VERIFY(castAndResultType(sema, tok.id, *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
+    SWC_RESULT_VERIFY(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
 
     return Result::Continue;
 }

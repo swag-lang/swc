@@ -49,21 +49,17 @@ public:
     SymbolStruct*                       ownerStruct();
     const SymbolStruct*                 ownerStruct() const;
 
-    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
-    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
-    bool isPureExpression() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::PureExpression); }
-    void setPureExpression(bool value) noexcept
-    {
-        if (value)
-            addExtraFlag(SymbolFunctionFlagsE::PureExpression);
-        else
-            removeExtraFlag(SymbolFunctionFlagsE::PureExpression);
-    }
+    void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+    bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool             isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool             isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
+    bool             isPureExpression() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::PureExpression); }
+    void             setPureExpression(bool value) noexcept;
+    AstNodeRef       pureExpressionRef() const noexcept { return pureExpressionRef_; }
+    void             setPureExpressionRef(AstNodeRef nodeRef) noexcept { pureExpressionRef_ = nodeRef; }
     bool             isForeign() const noexcept { return attributes().hasForeign; }
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
@@ -105,6 +101,7 @@ private:
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
+    AstNodeRef                   pureExpressionRef_   = AstNodeRef::invalid();
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
 
     MicroBuilder                 microInstrBuilder_;

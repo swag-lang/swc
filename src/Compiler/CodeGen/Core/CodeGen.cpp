@@ -16,10 +16,10 @@ namespace
 {
     struct VariableSymbolCodeGenPayload
     {
-        CodeGenNodePayload   payload;
+        CodeGenNodePayload      payload;
         CodeGen::LocalStackSlot localSlot;
-        bool                 hasPayload   = false;
-        bool                 hasLocalSlot = false;
+        bool                    hasPayload   = false;
+        bool                    hasLocalSlot = false;
     };
 
     VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym)
@@ -245,7 +245,7 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     symbolPayload.hasPayload                    = true;
 }
 
-const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
+const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym)
 {
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
     if (!symbolPayload || !symbolPayload->hasPayload)
@@ -260,7 +260,7 @@ void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot&
     symbolPayload.hasLocalSlot                  = true;
 }
 
-const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym) const
+const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym)
 {
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
     if (!symbolPayload || !symbolPayload->hasLocalSlot)

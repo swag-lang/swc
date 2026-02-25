@@ -131,23 +131,23 @@ public:
     SymbolFunction&       function() { return *SWC_CHECK_NOT_NULL(function_); }
     const SymbolFunction& function() const { return *SWC_CHECK_NOT_NULL(function_); }
 
-    CodeGenNodePayload&       payload(AstNodeRef nodeRef);
-    CodeGenNodePayload*       safePayload(AstNodeRef nodeRef);
-    void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
-    const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
-    void                      setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot);
-    const LocalStackSlot*     localStackSlot(const SymbolVariable& sym) const;
-    void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
-    uint32_t                  localStackFrameSize() const { return localStackFrameSize_; }
-    bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
-    void                      setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
-    MicroReg                  localStackBaseReg() const { return localStackBaseReg_; }
-    CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    void                      pushFrame(const CodeGenFrame& frame);
-    void                      popFrame();
+    CodeGenNodePayload&              payload(AstNodeRef nodeRef);
+    CodeGenNodePayload*              safePayload(AstNodeRef nodeRef);
+    void                             setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
+    static const CodeGenNodePayload* variablePayload(const SymbolVariable& sym);
+    void                             setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot);
+    static const LocalStackSlot*     localStackSlot(const SymbolVariable& sym);
+    void                             setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
+    uint32_t                         localStackFrameSize() const { return localStackFrameSize_; }
+    bool                             hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
+    void                             setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
+    MicroReg                         localStackBaseReg() const { return localStackBaseReg_; }
+    CodeGenNodePayload&              inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&              setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&              setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload&              setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    void                             pushFrame(const CodeGenFrame& frame);
+    void                             popFrame();
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }

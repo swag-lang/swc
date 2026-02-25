@@ -424,7 +424,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
-    const Ref                              failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
+    const Ref                       failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
 
     MicroBuilder& builder = codeGen.builder();
 

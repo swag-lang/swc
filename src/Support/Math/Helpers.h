@@ -1,7 +1,6 @@
 #pragma once
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
-#include "Support/Math/Fold.h"
 
 SWC_BEGIN_NAMESPACE();
 

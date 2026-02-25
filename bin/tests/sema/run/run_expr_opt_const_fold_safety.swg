@@ -27,3 +27,16 @@
 
     const V = #run foldModZeroCipher()
 }
+
+#test
+{
+    #[Swag.Optimize(true)]
+    func foldDivOverflowCipher()->s32
+    {
+        var lhs: s32 = -2147483648's32
+        var rhs: s32 = -1
+        return lhs / rhs // swc-expected-error {{safety_err_integer_overflow}}
+    }
+
+    const V = #run foldDivOverflowCipher()
+}

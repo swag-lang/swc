@@ -12,6 +12,7 @@ namespace
 {
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
     constexpr uint32_t K_OPT_ITERATION_ON  = 4;
+    size_t             countNonLabelInstructions(const MicroStorage* instructions);
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
@@ -50,7 +51,7 @@ namespace
         if (!context.instructions || !context.hasPrintInstrCountBeforeAll)
             return optimize;
 
-        const size_t countAfter  = context.instructions->count();
+        const size_t countAfter  = countNonLabelInstructions(context.instructions);
         const size_t countBefore = context.printInstrCountBeforeAll;
         double       gainPercent = 0.0;
         if (countBefore)
@@ -145,6 +146,25 @@ namespace
         return optimizationIterationLimit(Runtime::BuildCfgBackend{});
     }
 
+    size_t countNonLabelInstructions(const MicroStorage* instructions)
+    {
+        if (!instructions)
+            return 0;
+
+        size_t count = 0;
+        auto   view  = instructions->view();
+        for (auto it = view.begin(); it != view.end(); ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::Label)
+                continue;
+
+            ++count;
+        }
+
+        return count;
+    }
+
     Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
     {
         if (shouldPrintPass(context, pass, true))
@@ -182,7 +202,7 @@ namespace
             return Result::Continue;
 
 #if SWC_HAS_STATS
-        const size_t countBefore = context.instructions ? context.instructions->count() : 0;
+        const size_t countBefore = countNonLabelInstructions(context.instructions);
 #endif
         const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
@@ -202,7 +222,7 @@ namespace
         }
 
 #if SWC_HAS_STATS
-        const size_t countAfter = context.instructions ? context.instructions->count() : 0;
+        const size_t countAfter = countNonLabelInstructions(context.instructions);
         if (countAfter <= countBefore)
             context.optimizationInstrRemoved += countBefore - countAfter;
         else
@@ -244,7 +264,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.hasPrintInstrCountBeforeAll = false;
     if (context.instructions)
     {
-        context.printInstrCountBeforeAll    = context.instructions->count();
+        context.printInstrCountBeforeAll    = countNonLabelInstructions(context.instructions);
         context.hasPrintInstrCountBeforeAll = true;
     }
 

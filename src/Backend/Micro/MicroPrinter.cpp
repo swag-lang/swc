@@ -1136,9 +1136,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     const auto&                                     storeOps = operands;
     auto                                            view     = instructions.view();
     std::unordered_set<uint64_t>                    seenDebugLines;
-    std::unordered_map<Ref, uint32_t>               instIndexByRef;
-    std::unordered_map<Ref, uint32_t>               labelIndexByRef;
-    std::unordered_set<uint32_t>                    jumpDestinationIndices;
+    std::unordered_map<Ref, Ref>                    labelInstructionIndexByRef;
     std::unordered_map<Ref, const MicroRelocation*> relocationByInstructionRef;
 
     if (builder)
@@ -1156,42 +1154,17 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         }
     }
 
-    uint32_t         scanIdx = 0;
-    std::vector<Ref> pendingLabelRefs;
-    for (auto it = view.begin(); it != view.end(); ++it)
-    {
-        const MicroInstr& inst = *it;
-        if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
-        {
-            const MicroInstrOperand* ops = inst.ops(storeOps);
-            pendingLabelRefs.push_back(static_cast<Ref>(ops[0].valueU64));
-        }
-        else
-        {
-            instIndexByRef[it.current] = scanIdx;
-            if (!pendingLabelRefs.empty())
-            {
-                for (const auto labelRef : pendingLabelRefs)
-                    labelIndexByRef[labelRef] = scanIdx;
-                pendingLabelRefs.clear();
-            }
-            ++scanIdx;
-        }
-    }
-
-    const uint32_t indexWidth = computeInstructionIndexWidth(scanIdx);
+    const uint32_t indexWidth = computeInstructionIndexWidth(instructions.count());
 
     for (auto it = view.begin(); it != view.end(); ++it)
     {
         const MicroInstr& inst = *it;
-        if (inst.op != MicroInstrOpcode::JumpCond || inst.numOperands < 3)
+        if (inst.op != MicroInstrOpcode::Label || inst.numOperands < 1)
             continue;
 
         const MicroInstrOperand* ops      = inst.ops(storeOps);
-        const Ref                labelRef = static_cast<Ref>(ops[2].valueU64);
-        const auto               labelIt  = labelIndexByRef.find(labelRef);
-        if (labelIt != labelIndexByRef.end())
-            jumpDestinationIndices.insert(labelIt->second);
+        const Ref                labelRef = static_cast<Ref>(ops[0].valueU64);
+        labelInstructionIndexByRef[labelRef] = it.current;
     }
 
     if (builder)
@@ -1208,13 +1181,6 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const Ref                instRef = it.current;
         const MicroInstr&        inst    = *it;
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
-        if (inst.op == MicroInstrOpcode::Label)
-            continue;
-
-        const auto instIndexIt = instIndexByRef.find(instRef);
-        SWC_ASSERT(instIndexIt != instIndexByRef.end());
-        const uint32_t instIndex = instIndexIt->second;
-
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto               relocIt                = relocationByInstructionRef.find(instRef);
         const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
@@ -1248,16 +1214,23 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
         {
             const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
-            auto      labelIt  = labelIndexByRef.find(labelRef);
-            if (labelIt != labelIndexByRef.end())
+            const auto labelIt  = labelInstructionIndexByRef.find(labelRef);
+            if (labelIt != labelInstructionIndexByRef.end())
                 naturalJumpTargetIndex = formatInstructionIndex(labelIt->second, indexWidth);
             else
                 naturalJumpTargetIndex = unknownInstructionIndex(indexWidth);
         }
 
-        appendColored(out, ctx, jumpDestinationIndices.contains(instIndex) ? SyntaxColor::Function : SyntaxColor::InstructionIndex, formatInstructionIndex(instIndex, indexWidth));
+        const bool isLabelLine = inst.op == MicroInstrOpcode::Label;
+        appendColored(out, ctx, isLabelLine ? SyntaxColor::Function : SyntaxColor::InstructionIndex, formatInstructionIndex(instRef, indexWidth));
         out += "  ";
         const size_t leftColumnStart = out.size();
+
+        if (isLabelLine)
+        {
+            out += '\n';
+            continue;
+        }
 
         appendColored(out, ctx, SyntaxColor::MicroInstruction, std::format("{:>{}}", opcodeName(inst.op), opcodeColumnWidth()));
         out += " ";
@@ -1309,15 +1282,11 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 {
                     const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
                     out += " ";
-                    auto labelIt = labelIndexByRef.find(labelRef);
-                    if (labelIt != labelIndexByRef.end())
-                    {
+                    const auto labelIt = labelInstructionIndexByRef.find(labelRef);
+                    if (labelIt != labelInstructionIndexByRef.end())
                         appendColored(out, ctx, SyntaxColor::Function, formatInstructionIndex(labelIt->second, indexWidth));
-                    }
                     else
-                    {
                         appendColored(out, ctx, SyntaxColor::Function, unknownInstructionIndex(indexWidth));
-                    }
                 }
                 break;
 

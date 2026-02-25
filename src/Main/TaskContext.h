@@ -42,6 +42,7 @@ struct TaskState
     SourceCodeRef         codeRef         = SourceCodeRef::invalid();
     IdentifierRef         idRef           = IdentifierRef::invalid();
     TaskStateKind         kind            = TaskStateKind::None;
+    bool                  jitEmissionError = false;
 
     static const char* kindName(TaskStateKind kind)
     {
@@ -93,6 +94,7 @@ struct TaskState
         idRef           = IdentifierRef::invalid();
         symbol          = nullptr;
         waiterSymbol    = nullptr;
+        jitEmissionError = false;
     }
 
     void setRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)

@@ -27,37 +27,6 @@ namespace
         }
     }
 
-    Result ensureJitReady(SymbolFunction& root)
-    {
-        std::unordered_set<SymbolFunction*> visited;
-        SmallVector<SymbolFunction*>        stack;
-        stack.push_back(&root);
-
-        while (!stack.empty())
-        {
-            SymbolFunction* const function = stack.back();
-            stack.pop_back();
-            if (!function)
-                continue;
-            if (!visited.insert(function).second)
-                continue;
-
-            if (!function->hasLoweredCode())
-                return Result::Error;
-
-            SmallVector<SymbolFunction*> dependencies;
-            function->appendCallDependencies(dependencies);
-            for (SymbolFunction* dependency : dependencies)
-            {
-                if (!dependency || dependency == function)
-                    continue;
-                stack.push_back(dependency);
-            }
-        }
-
-        return Result::Continue;
-    }
-
     TypeRef computeRunExprStorageTypeRef(Sema& sema, TypeRef exprTypeRef)
     {
         const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
@@ -122,8 +91,11 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const TypeRef exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     SWC_ASSERT(exprTypeRef.isValid());
 
+    sema.ctx().state().jitEmissionError = false;
     scheduleCodeGen(sema, symFn);
     SWC_RESULT_VERIFY(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
+    if (sema.ctx().state().jitEmissionError)
+        return Result::Error;
 
     TaskContext&                           ctx            = sema.ctx();
     const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
@@ -146,9 +118,12 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
-    SWC_RESULT_VERIFY(ensureJitReady(symFn));
+    SWC_RESULT_VERIFY(symFn.emit(ctx));
+    if (ctx.state().jitEmissionError)
+        return Result::Error;
+
     symFn.jit(ctx);
-    if (!symFn.jitEntryAddress())
+    if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
         return Result::Error;
 
     {

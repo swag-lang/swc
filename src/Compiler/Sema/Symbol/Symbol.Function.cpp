@@ -241,6 +241,9 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
 
 Result SymbolFunction::emit(TaskContext& ctx)
 {
+    if (ctx.state().jitEmissionError)
+        return Result::Error;
+
     std::scoped_lock lock(emitMutex_);
     if (hasLoweredCode())
         return Result::Continue;
@@ -248,7 +251,12 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(&Stats::get().timeMicroLower);
 #endif
-    SWC_RESULT_VERIFY(loweredMicroCode_.emit(ctx, builder));
+    const Result emitResult = loweredMicroCode_.emit(ctx, builder);
+    if (emitResult != Result::Continue)
+    {
+        ctx.state().jitEmissionError = true;
+        return emitResult;
+    }
 #if SWC_HAS_STATS
     Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
 #endif
@@ -263,25 +271,45 @@ bool SymbolFunction::hasLoweredCode() const noexcept
 
 void SymbolFunction::jit(TaskContext& ctx)
 {
+    if (ctx.state().jitEmissionError)
+        return;
+
     if (hasJitEntryAddress())
         return;
 
     SmallVector<SymbolFunction*> jitOrder;
     appendDepOrder(jitOrder, *this);
     for (SymbolFunction* function : jitOrder)
+    {
+        if (ctx.state().jitEmissionError)
+            return;
         function->jitEmit(ctx);
+    }
 }
 
 void SymbolFunction::jitEmit(TaskContext& ctx)
 {
     std::scoped_lock lock(emitMutex_);
+    if (ctx.state().jitEmissionError)
+        return;
+
     if (hasJitEntryAddress())
         return;
 
-    SWC_ASSERT(hasLoweredCode());
+    if (!hasLoweredCode())
+    {
+        ctx.state().jitEmissionError = true;
+        return;
+    }
+
     JIT::emit(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.codeRelocations);
     void* const entry = jitExecMemory_.entryPoint();
-    SWC_FORCE_ASSERT(entry != nullptr);
+    if (!entry)
+    {
+        ctx.state().jitEmissionError = true;
+        return;
+    }
+
     jitEntryAddress_.store(entry, std::memory_order_release);
 
     ctx.compiler().notifyAlive();

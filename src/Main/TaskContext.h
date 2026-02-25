@@ -34,14 +34,14 @@ enum class TaskStateKind : uint8_t
 
 struct TaskState
 {
-    const SymbolFunction* runJitFunction  = nullptr;
-    const SymbolFunction* codeGenFunction = nullptr;
-    const Symbol*         symbol          = nullptr;
-    const Symbol*         waiterSymbol    = nullptr;
-    AstNodeRef            nodeRef         = AstNodeRef::invalid();
-    SourceCodeRef         codeRef         = SourceCodeRef::invalid();
-    IdentifierRef         idRef           = IdentifierRef::invalid();
-    TaskStateKind         kind            = TaskStateKind::None;
+    const SymbolFunction* runJitFunction   = nullptr;
+    const SymbolFunction* codeGenFunction  = nullptr;
+    const Symbol*         symbol           = nullptr;
+    const Symbol*         waiterSymbol     = nullptr;
+    AstNodeRef            nodeRef          = AstNodeRef::invalid();
+    SourceCodeRef         codeRef          = SourceCodeRef::invalid();
+    IdentifierRef         idRef            = IdentifierRef::invalid();
+    TaskStateKind         kind             = TaskStateKind::None;
     bool                  jitEmissionError = false;
 
     static const char* kindName(TaskStateKind kind)
@@ -86,14 +86,14 @@ struct TaskState
 
     void setNone()
     {
-        kind            = TaskStateKind::None;
-        runJitFunction  = nullptr;
-        codeGenFunction = nullptr;
-        nodeRef         = AstNodeRef::invalid();
-        codeRef         = SourceCodeRef::invalid();
-        idRef           = IdentifierRef::invalid();
-        symbol          = nullptr;
-        waiterSymbol    = nullptr;
+        kind             = TaskStateKind::None;
+        runJitFunction   = nullptr;
+        codeGenFunction  = nullptr;
+        nodeRef          = AstNodeRef::invalid();
+        codeRef          = SourceCodeRef::invalid();
+        idRef            = IdentifierRef::invalid();
+        symbol           = nullptr;
+        waiterSymbol     = nullptr;
         jitEmissionError = false;
     }
 

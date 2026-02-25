@@ -124,7 +124,7 @@ Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref in
     if (!taskContext)
         return Result::Error;
 
-    Diagnostic diag;
+    Diagnostic    diag;
     SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
     if (context.instructions && instructionRef != INVALID_REF)
     {

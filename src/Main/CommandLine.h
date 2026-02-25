@@ -40,18 +40,18 @@ struct CommandLine
     Utf8                targetArchName = "x86_64";
     std::optional<bool> backendOptimize;
 
-    bool logColor                = true;
-    bool logAscii                = false;
-    bool syntaxColor             = true;
-    bool diagOneLine             = false;
-    bool errorId                 = false;
-    bool silent                  = false;
-    bool stats                   = false;
-    bool verboseVerify           = false;
-    bool verify                  = true;
+    bool logColor        = true;
+    bool logAscii        = false;
+    bool syntaxColor     = true;
+    bool diagOneLine     = false;
+    bool errorId         = false;
+    bool silent          = false;
+    bool stats           = false;
+    bool verboseVerify   = false;
+    bool verify          = true;
     bool unittest        = true;
     bool verboseUnittest = false;
-    bool runtime                 = true;
+    bool runtime         = true;
 
     static inline bool dbgDevMode = false;
 

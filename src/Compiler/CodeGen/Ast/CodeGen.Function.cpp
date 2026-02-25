@@ -63,8 +63,8 @@ namespace
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
 
-            const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
-            const uint32_t  size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+            const uint32_t  size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             SWC_ASSERT(size > 0);
 
             const uint32_t symOffset = symVar->offset();

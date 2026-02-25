@@ -99,8 +99,8 @@ namespace
 
     void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
-        MicroBuilder&                  builder   = codeGen.builder();
-        const bool                     skipInit  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        MicroBuilder& builder  = codeGen.builder();
+        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
         {
             const uint32_t localSize = symVar.codeGenLocalSize();

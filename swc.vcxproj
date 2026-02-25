@@ -281,6 +281,7 @@
         <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
         <ClCompile Include="src\Support\Math\ApInt.cpp"/>
         <ClCompile Include="src\Support\Math\ApsInt.cpp"/>
+        <ClCompile Include="src\Support\Math\Fold.cpp"/>
         <ClCompile Include="src\Support\Math\Hash.cpp"/>
         <ClCompile Include="src\Support\Math\Helpers.cpp"/>
         <ClCompile Include="src\Support\Memory\Allocator.cpp"/>
@@ -471,6 +472,7 @@
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
         <ClInclude Include="src\Support\Math\ApInt.h"/>
         <ClInclude Include="src\Support\Math\ApsInt.h"/>
+        <ClInclude Include="src\Support\Math\Fold.h"/>
         <ClInclude Include="src\Support\Math\Hash.h"/>
         <ClInclude Include="src\Support\Math\Helpers.h"/>
         <ClInclude Include="src\Support\Memory\Arena.h"/>

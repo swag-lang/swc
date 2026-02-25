@@ -396,6 +396,9 @@
     <ClCompile Include="src\Support\Math\ApsInt.cpp">
       <Filter>src\Support\Math</Filter>
     </ClCompile>
+    <ClCompile Include="src\Support\Math\Fold.cpp">
+      <Filter>src\Support\Math</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Math\Hash.cpp">
       <Filter>src\Support\Math</Filter>
     </ClCompile>
@@ -930,6 +933,9 @@
       <Filter>src\Support\Math</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Math\ApsInt.h">
+      <Filter>src\Support\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Support\Math\Fold.h">
       <Filter>src\Support\Math</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Math\Hash.h">

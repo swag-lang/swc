@@ -8,6 +8,7 @@ enum RunSwitchEnum: s32
 
 #test
 {
+    #[Swag.PrintMicro]
     func switchScalar(v: s32)->s32
     {
         switch v

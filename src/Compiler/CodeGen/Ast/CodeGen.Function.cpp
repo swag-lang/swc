@@ -181,8 +181,8 @@ namespace
         if (argRef.isInvalid())
             return;
 
-        const CodeGenNodePayload&       argPayload = codeGen.payload(argRef);
-        const SemaNodeView argView = codeGen.viewType(argRef);
+        const CodeGenNodePayload& argPayload = codeGen.payload(argRef);
+        const SemaNodeView        argView    = codeGen.viewType(argRef);
 
         ABICall::PreparedArg preparedArg;
         preparedArg.srcReg = argPayload.reg;
@@ -361,9 +361,9 @@ namespace
             if (argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload&       argPayload = codeGen.payload(argRef);
-            offset                 = Math::alignUpU64(offset, elemAlign);
-            MicroReg dstAddressReg = frameBaseReg;
+            const CodeGenNodePayload& argPayload = codeGen.payload(argRef);
+            offset                               = Math::alignUpU64(offset, elemAlign);
+            MicroReg dstAddressReg               = frameBaseReg;
             if (offset)
             {
                 dstAddressReg = codeGen.nextVirtualIntRegister();
@@ -422,7 +422,7 @@ namespace
             if (resolvedArg.argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload&       argPayload = codeGen.payload(resolvedArg.argRef);
+            const CodeGenNodePayload& argPayload = codeGen.payload(resolvedArg.argRef);
 
             const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
             SWC_ASSERT(argView.type());
@@ -724,4 +724,3 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 }
 
 SWC_END_NAMESPACE();
-

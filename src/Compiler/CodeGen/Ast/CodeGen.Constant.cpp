@@ -205,8 +205,3 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 }
 
 SWC_END_NAMESPACE();
-
-
-
-
-

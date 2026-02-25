@@ -49,7 +49,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const bool                payloadLValue    = exprPayload.isAddress();
     const CodeGenNodePayload& runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg            outputStorageReg = runExprPayload.reg;
-    const AstNode& exprNode = codeGen.node(nodeExprRef);
+    const AstNode&            exprNode         = codeGen.node(nodeExprRef);
 
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, exprView.typeRef(), ABITypeNormalize::Usage::Return);
 

@@ -124,16 +124,14 @@ namespace
             loadPayloadToRegister(upperReg, codeGen, upperPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, upperReg, switchState.compareOpBits);
-            const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ?
-                                           (unsignedOrFloat ? MicroCond::Above : MicroCond::Greater) :
-                                           (unsignedOrFloat ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual);
+            const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? (unsignedOrFloat ? MicroCond::Above : MicroCond::Greater) : (unsignedOrFloat ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual);
             codeGen.builder().emitJumpToLabel(failCond, MicroOpBits::B32, failLabel);
         }
     }
 
     bool caseBodyEndsWithFallthrough(CodeGen& codeGen, const AstSwitchCaseStmt& node)
     {
-        SmallVector<AstNodeRef> statements;
+        SmallVector<AstNodeRef>  statements;
         const AstSwitchCaseBody& caseBody = codeGen.node(node.nodeBodyRef).cast<AstSwitchCaseBody>();
         codeGen.ast().appendNodes(statements, caseBody.spanChildrenRef);
         if (statements.empty())
@@ -217,9 +215,8 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
 
     SmallVector<AstNodeRef> caseRefs;
     codeGen.ast().appendNodes(caseRefs, spanChildrenRef);
-    for (size_t i = 0; i < caseRefs.size(); ++i)
+    for (auto caseRef : caseRefs)
     {
-        const AstNodeRef caseRef = caseRefs[i];
         CodeGen::SwitchCaseCodeGenState caseState;
         caseState.testLabel = codeGen.builder().createLabel();
         caseState.bodyLabel = codeGen.builder().createLabel();
@@ -250,7 +247,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     return Result::Continue;
 }
 
-Result AstSwitchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstSwitchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef)
 {
     if (!codeGen.node(childRef).is(AstNodeId::SwitchCaseStmt))
         return Result::Continue;
@@ -273,14 +270,14 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
     if (childRef == nodeExprRef)
     {
-        const SemaNodeView        exprView    = codeGen.viewType(nodeExprRef);
-        const CodeGenNodePayload& exprPayload = codeGen.payload(nodeExprRef);
-        const TypeInfo&           exprType    = codeGen.typeMgr().get(exprView.typeRef());
+        const SemaNodeView        exprView       = codeGen.viewType(nodeExprRef);
+        const CodeGenNodePayload& exprPayload    = codeGen.payload(nodeExprRef);
+        const TypeInfo&           exprType       = codeGen.typeMgr().get(exprView.typeRef());
         const TypeRef             compareTypeRef = exprType.unwrap(codeGen.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
         const MicroOpBits         compareBits    = switchCompareOpBits(compareType, codeGen.ctx());
 
-        MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
+        const MicroReg switchValueReg = codeGen.nextVirtualRegisterForType(compareTypeRef);
         if (exprPayload.isAddress())
             codeGen.builder().emitLoadRegMem(switchValueReg, exprPayload.reg, 0, compareBits);
         else
@@ -299,9 +296,9 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     return Result::Continue;
 }
 
-Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen) const
+Result AstSwitchStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(codeGen.curNodeRef());
+    const CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(codeGen.curNodeRef());
     SWC_ASSERT(switchState != nullptr);
 
     codeGen.builder().placeLabel(switchState->doneLabel);
@@ -339,9 +336,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
             const bool hasWhere   = nodeWhereRef.isValid();
             const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (size_t i = 0; i < caseExprRefs.size(); ++i)
+            for (auto caseExprRef : caseExprRefs)
             {
-                const AstNodeRef caseExprRef = caseExprRefs[i];
                 if (codeGen.node(caseExprRef).is(AstNodeId::RangeExpr))
                 {
                     const AstRangeExpr& rangeExpr = codeGen.node(caseExprRef).cast<AstRangeExpr>();
@@ -385,9 +381,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
             const bool hasWhere   = nodeWhereRef.isValid();
             const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (size_t i = 0; i < caseExprRefs.size(); ++i)
+            for (auto caseExprRef : caseExprRefs)
             {
-                const AstNodeRef          caseExprRef = caseExprRefs[i];
                 const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);
                 const SemaNodeView        exprView    = codeGen.viewType(caseExprRef);
                 emitConditionTrueJump(codeGen, exprPayload, exprView.typeRef(), matchLabel);
@@ -432,7 +427,7 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
     if (switchRef.isInvalid())
         return Result::Continue;
 
-    CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(switchRef);
+    const CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(switchRef);
     SWC_ASSERT(switchState != nullptr);
 
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, switchState->doneLabel);
@@ -445,7 +440,7 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
     if (switchRef.isInvalid())
         return Result::Continue;
 
-    CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(switchRef);
+    const CodeGen::SwitchStmtCodeGenState* switchState = codeGen.switchStmtCodeGenState(switchRef);
     SWC_ASSERT(switchState != nullptr);
 
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, switchState->doneLabel);

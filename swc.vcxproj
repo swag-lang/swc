@@ -504,6 +504,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.Parser.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.Sema.inc"/>
+        <ClInclude Include="src\Support\Report\Msg\Errors.Safety.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Errors.Misc.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
@@ -567,6 +568,7 @@
         <Content Include="src\Support\Report\Msg\Errors.Misc.msg"/>
         <Content Include="src\Support\Report\Msg\Errors.msg"/>
         <Content Include="src\Support\Report\Msg\Errors.Parser.msg"/>
+        <Content Include="src\Support\Report\Msg\Errors.Safety.msg"/>
         <Content Include="src\Support\Report\Msg\Errors.Sema.msg"/>
         <Content Include="src\Support\Report\Msg\Notes.msg"/>
         <Content Include="src\Support\Report\Msg\Notes.Parser.msg"/>

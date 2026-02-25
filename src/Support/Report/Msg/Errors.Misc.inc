@@ -1,9 +1,4 @@
 SWC_DIAG_DEF(io_err_open_file)
 SWC_DIAG_DEF(io_err_read_file)
 
-SWC_DIAG_DEF(safety_err_division_zero)
-SWC_DIAG_DEF(safety_err_integer_overflow)
-SWC_DIAG_DEF(safety_err_negative_shift)
-SWC_DIAG_DEF(safety_err_invalid_argument)
-
 SWC_DIAG_DEF(unittest_err_not_raised)

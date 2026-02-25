@@ -1,5 +1,6 @@
 #include "Support/Report/Msg/Errors.Cmd.inc"
 #include "Support/Report/Msg/Errors.Misc.inc"
+#include "Support/Report/Msg/Errors.Safety.inc"
 #include "Support/Report/Msg/Errors.Lex.inc"
 #include "Support/Report/Msg/Errors.Parser.inc"
 #include "Support/Report/Msg/Errors.Sema.inc"

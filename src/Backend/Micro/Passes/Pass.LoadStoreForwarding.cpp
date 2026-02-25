@@ -116,7 +116,9 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
                     break;
                 }
 
-                if (first.op == MicroInstrOpcode::LoadMemImm && isSameMemoryAddressForImmediateStore(firstOps, scanOps))
+                if (first.op == MicroInstrOpcode::LoadMemImm &&
+                    scanOps[0].reg.isInt() &&
+                    isSameMemoryAddressForImmediateStore(firstOps, scanOps))
                 {
                     scanInst.op          = MicroInstrOpcode::LoadRegImm;
                     scanInst.numOperands = 3;

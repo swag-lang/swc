@@ -1141,6 +1141,114 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             }
         }
 
+        if (inst.op == MicroInstrOpcode::LoadMemReg && ops[1].reg.isInt())
+        {
+            const auto itKnown = known.find(ops[1].reg.packed);
+            if (itKnown != known.end())
+            {
+                const uint64_t         immValue    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                const MicroInstrOpcode originalOp  = inst.op;
+                const std::array       originalOps = {ops[0], ops[1], ops[2], ops[3]};
+
+                inst.op          = MicroInstrOpcode::LoadMemImm;
+                inst.numOperands = 4;
+                ops[1].opBits    = originalOps[2].opBits;
+                ops[2].valueU64  = originalOps[3].valueU64;
+                ops[3].valueU64  = immValue;
+                if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+                {
+                    inst.op = originalOp;
+                    for (uint32_t opIdx = 0; opIdx < originalOps.size(); ++opIdx)
+                        ops[opIdx] = originalOps[opIdx];
+                }
+                else
+                {
+                    changed = true;
+                }
+            }
+        }
+        else if (inst.op == MicroInstrOpcode::LoadAmcMemReg && ops[2].reg.isInt())
+        {
+            const auto itKnown = known.find(ops[2].reg.packed);
+            if (itKnown != known.end())
+            {
+                const uint64_t         immValue    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[4].opBits);
+                const MicroInstrOpcode originalOp  = inst.op;
+                const std::array       originalOps = {ops[0], ops[1], ops[2], ops[3], ops[4], ops[5], ops[6], ops[7]};
+
+                inst.op          = MicroInstrOpcode::LoadAmcMemImm;
+                inst.numOperands = 8;
+                ops[3].opBits    = originalOps[3].opBits;
+                ops[4].opBits    = originalOps[4].opBits;
+                ops[5].valueU64  = originalOps[5].valueU64;
+                ops[6].valueU64  = originalOps[6].valueU64;
+                ops[7].valueU64  = immValue;
+                if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+                {
+                    inst.op = originalOp;
+                    for (uint32_t opIdx = 0; opIdx < originalOps.size(); ++opIdx)
+                        ops[opIdx] = originalOps[opIdx];
+                }
+                else
+                {
+                    changed = true;
+                }
+            }
+        }
+        else if (inst.op == MicroInstrOpcode::OpBinaryMemReg && ops[1].reg.isInt())
+        {
+            const auto itKnown = known.find(ops[1].reg.packed);
+            if (itKnown != known.end())
+            {
+                const uint64_t         immValue    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                const MicroInstrOpcode originalOp  = inst.op;
+                const std::array       originalOps = {ops[0], ops[1], ops[2], ops[3], ops[4]};
+
+                inst.op          = MicroInstrOpcode::OpBinaryMemImm;
+                inst.numOperands = 5;
+                ops[1].opBits    = originalOps[2].opBits;
+                ops[2].microOp   = originalOps[3].microOp;
+                ops[3].valueU64  = originalOps[4].valueU64;
+                ops[4].valueU64  = immValue;
+                if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+                {
+                    inst.op = originalOp;
+                    for (uint32_t opIdx = 0; opIdx < originalOps.size(); ++opIdx)
+                        ops[opIdx] = originalOps[opIdx];
+                }
+                else
+                {
+                    changed = true;
+                }
+            }
+        }
+        else if (inst.op == MicroInstrOpcode::CmpMemReg && ops[1].reg.isInt())
+        {
+            const auto itKnown = known.find(ops[1].reg.packed);
+            if (itKnown != known.end())
+            {
+                const uint64_t         immValue    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                const MicroInstrOpcode originalOp  = inst.op;
+                const std::array       originalOps = {ops[0], ops[1], ops[2], ops[3]};
+
+                inst.op          = MicroInstrOpcode::CmpMemImm;
+                inst.numOperands = 4;
+                ops[1].opBits    = originalOps[2].opBits;
+                ops[2].valueU64  = originalOps[3].valueU64;
+                ops[3].valueU64  = immValue;
+                if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+                {
+                    inst.op = originalOp;
+                    for (uint32_t opIdx = 0; opIdx < originalOps.size(); ++opIdx)
+                        ops[opIdx] = originalOps[opIdx];
+                }
+                else
+                {
+                    changed = true;
+                }
+            }
+        }
+
         if (inst.op == MicroInstrOpcode::CmpRegImm && ops[0].reg.isInt())
         {
             const auto itKnown = known.find(ops[0].reg.packed);

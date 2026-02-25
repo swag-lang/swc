@@ -1117,7 +1117,7 @@ namespace
         seenDebugLines.insert(debugKey);
 
         appendColored(out, ctx, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
-        out += "  ";
+        out += " ";
         Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
         codeLine.trim();
         out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, true);
@@ -1150,7 +1150,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         }
     }
 
-    const uint32_t indexWidth = computeInstructionIndexWidth(instructions.count());
+    const uint32_t indexWidth        = computeInstructionIndexWidth(instructions.count());
+    const uint32_t printedIndexWidth = computeInstructionIndexWidth(instructions.count());
 
     for (auto it = view.begin(); it != view.end(); ++it)
     {
@@ -1172,8 +1173,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         }
     }
 
+    uint32_t printedIndex = 0;
     for (auto it = view.begin(); it != view.end(); ++it)
     {
+        ++printedIndex;
         const Ref                instRef = it.current;
         const MicroInstr&        inst    = *it;
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
@@ -1218,6 +1221,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         }
 
         const bool isLabelLine = inst.op == MicroInstrOpcode::Label;
+        appendColored(out, ctx, SyntaxColor::Comment, formatInstructionIndex(printedIndex, printedIndexWidth));
+        out += " ";
         appendColored(out, ctx, isLabelLine ? SyntaxColor::Function : SyntaxColor::InstructionIndex, formatInstructionIndex(instRef, indexWidth));
         out += "  ";
         const size_t leftColumnStart = out.size();

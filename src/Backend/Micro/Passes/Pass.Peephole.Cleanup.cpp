@@ -641,6 +641,38 @@ namespace PeepholePass
             return true;
         }
 
+        bool removeRedundantClearBeforeConvertFloatToInt(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstr*            inst   = cursor.inst;
+            const MicroInstrOperand*     ops    = cursor.ops;
+            const MicroStorage::Iterator nextIt = cursor.nextIt;
+            const MicroStorage::Iterator endIt  = cursor.endIt;
+            if (!inst || inst->op != MicroInstrOpcode::ClearReg || !ops || nextIt == endIt)
+                return false;
+
+            const MicroInstr& nextInst = *nextIt;
+            if (nextInst.op != MicroInstrOpcode::OpBinaryRegReg)
+                return false;
+
+            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!nextOps)
+                return false;
+            if (nextOps[3].microOp != MicroOp::ConvertFloatToInt)
+                return false;
+
+            const MicroReg clearReg = ops[0].reg;
+            if (nextOps[0].reg != clearReg)
+                return false;
+            if (!clearReg.isInt())
+                return false;
+
+            if (getNumBits(ops[1].opBits) < getNumBits(nextOps[2].opBits))
+                return false;
+
+            SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+            return true;
+        }
+
         bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
             const Ref                instRef = cursor.instRef;
@@ -658,7 +690,10 @@ namespace PeepholePass
             const Ref                instRef = cursor.instRef;
             const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
-            if (inst.op != MicroInstrOpcode::CmpRegImm && inst.op != MicroInstrOpcode::CmpRegReg)
+            if (inst.op != MicroInstrOpcode::CmpRegImm &&
+                inst.op != MicroInstrOpcode::CmpRegReg &&
+                inst.op != MicroInstrOpcode::CmpMemImm &&
+                inst.op != MicroInstrOpcode::CmpMemReg)
                 return false;
             if (!ops)
                 return false;
@@ -678,8 +713,9 @@ namespace PeepholePass
             if (!areFlagsDeadAfterInstruction(context, it, view.end()))
                 return false;
 
-            const MicroReg compareLhsReg = ops[0].reg;
-            if (previousRef != INVALID_REF && compareLhsReg.isValid() && compareLhsReg.isInt())
+            const bool     compareUsesRegisterLhs = inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpRegReg;
+            const MicroReg compareLhsReg          = compareUsesRegisterLhs ? ops[0].reg : MicroReg{};
+            if (compareUsesRegisterLhs && previousRef != INVALID_REF && compareLhsReg.isValid() && compareLhsReg.isInt())
             {
                 const MicroInstr* prevInst = SWC_NOT_NULL(context.instructions)->ptr(previousRef);
                 if (prevInst && prevInst->op == MicroInstrOpcode::LoadRegImm)
@@ -891,6 +927,11 @@ namespace PeepholePass
         // Purpose: remove save/restore pairs that became unnecessary after shift-count folding.
         // Example: mov [rsp+32], rcx; shl r8, 1; mov rcx, [rsp+32] -> shl r8, 1
         outRules.push_back({RuleTarget::AnyInstruction, removeRedundantStackSaveRestoreAroundImmediateShift});
+
+        // Rule: remove_redundant_clear_before_convert_float_to_int
+        // Purpose: remove clears of a destination register that is fully overwritten by cvtf2i.
+        // Example: xor r10, r10; cvtf2i r10, xmm0 -> cvtf2i r10, xmm0
+        outRules.push_back({RuleTarget::AnyInstruction, removeRedundantClearBeforeConvertFloatToInt});
 
         // Rule: remove_no_op_instruction
         // Purpose: remove encoder-level no-op instructions.

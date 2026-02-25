@@ -914,6 +914,148 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldTailCopyBinaryIntoSource(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const Ref                    instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroReg copyDstReg = ops[0].reg;
+            const MicroReg copySrcReg = ops[1].reg;
+            if (copyDstReg == copySrcReg || !copyDstReg.isSameClass(copySrcReg))
+                return false;
+            if (copyDstReg.isInstructionPointer() || copySrcReg.isInstructionPointer())
+                return false;
+
+            const MicroReg stackPointerReg = context.encoder ? context.encoder->stackPointerReg() : MicroReg::invalid();
+            if (stackPointerReg.isValid() && (copyDstReg == stackPointerReg || copySrcReg == stackPointerReg))
+                return false;
+
+            const CallConv& functionConv = CallConv::get(context.callConvKind);
+            if (copySrcReg == functionConv.intReturn || copySrcReg == functionConv.floatReturn)
+                return false;
+
+            const MicroInstr& nextInst = *nextIt;
+            if (nextInst.op != MicroInstrOpcode::OpBinaryRegReg)
+                return false;
+
+            const MicroInstrOperand* nextOps = nextInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!nextOps)
+                return false;
+            if (nextOps[0].reg != copyDstReg)
+                return false;
+            if (getNumBits(ops[2].opBits) < getNumBits(nextOps[2].opBits))
+                return false;
+
+            struct RegisterRewrite
+            {
+                MicroReg* reg;
+                MicroReg  original;
+            };
+
+            SmallVector<RegisterRewrite> rewrites;
+            bool                         reachedRet  = false;
+            bool                         replacedAny = false;
+            bool                         failed      = false;
+
+            const auto rollback = [&rewrites]() {
+                for (auto itRewrite = rewrites.rbegin(); itRewrite != rewrites.rend(); ++itRewrite)
+                    SWC_NOT_NULL(itRewrite->reg)->packed = itRewrite->original.packed;
+            };
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&      scanInst = *scanIt;
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                {
+                    if (scanInst.op == MicroInstrOpcode::Ret)
+                    {
+                        reachedRet = true;
+                        break;
+                    }
+
+                    failed = true;
+                    break;
+                }
+
+                const bool isBinaryMutation = scanIt.current == nextIt.current;
+
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                {
+                    failed = true;
+                    break;
+                }
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool changedInstruction = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg)
+                        continue;
+
+                    MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                    if (reg == copySrcReg && !isBinaryMutation)
+                    {
+                        failed = true;
+                        break;
+                    }
+
+                    if (reg != copyDstReg)
+                        continue;
+
+                    if (!ref.use)
+                    {
+                        failed = true;
+                        break;
+                    }
+
+                    if (ref.def && !isBinaryMutation)
+                    {
+                        failed = true;
+                        break;
+                    }
+
+                    rewrites.push_back({&reg, reg});
+                    reg                = copySrcReg;
+                    changedInstruction = true;
+                }
+
+                if (failed)
+                    break;
+
+                if (!isBinaryMutation && changedInstruction)
+                    replacedAny = true;
+
+                if (changedInstruction && MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                {
+                    failed = true;
+                    break;
+                }
+            }
+
+            if (!reachedRet || failed || rewrites.empty())
+            {
+                rollback();
+                return false;
+            }
+
+            if (!replacedAny)
+            {
+                rollback();
+                return false;
+            }
+
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            return true;
+        }
+
         bool analyzeCopyCoalescing(const MicroPassContext& context, bool& outSawMutation, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg dstReg, MicroReg srcReg)
         {
             bool canCoalesce       = true;
@@ -1242,6 +1384,11 @@ namespace PeepholePass
         // Purpose: fold copy-to-temp + unary-op + copy-back into direct unary-op on source.
         // Example: mov r8, r11; neg r8; mov r11, r8 -> neg r11
         outRules.push_back({RuleTarget::LoadRegReg, foldCopyUnaryCopyBack});
+
+        // Rule: fold_tail_copy_binary_into_source
+        // Purpose: fold a copy + binary accumulator mutation near function tail into source register.
+        // Example: mov r9, r8; add r9, r10; mov [rax], r9; mov rax, r9; ret -> add r8, r10; mov [rax], r8; mov rax, r8; ret
+        outRules.push_back({RuleTarget::LoadRegReg, foldTailCopyBinaryIntoSource});
 
         // Rule: fold_copy_back_with_previous_op
         // Purpose: same fold as above, detected from trailing copy-back instruction.

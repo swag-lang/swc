@@ -11,7 +11,7 @@
 
 ## Coding Rules
 
-- Do not add standard library includes in source files; they must be provided via the precompiled header `pch.h`.
+- Do not add standard library includes in source files; they must be provided via the precompiled header `pch.h`. Exception for OsWin32.
 - Avoid excessive use of lambdas. Prioritize clarity and readability.
 - When designing a function which returns something by argument, place that output parameter first, right after global
   parameters (e.g. managers).

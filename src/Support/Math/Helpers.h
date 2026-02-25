@@ -76,9 +76,9 @@ namespace Math
 
     struct FoldBinaryIntOptions
     {
-        bool     clampShiftCount    = false;
+        bool     clampShiftCount     = false;
         bool     ignoreShiftOverflow = false;
-        uint32_t shiftBitWidth      = 0;
+        uint32_t shiftBitWidth       = 0;
     };
 
     void mul64X64(uint64_t a, uint64_t b, uint64_t& lo, uint64_t& hi);
@@ -89,14 +89,14 @@ namespace Math
 
     DiagnosticId foldStatusDiagnosticId(FoldStatus status);
     bool         isSafetyError(FoldStatus status);
-    bool       requiresNonZeroRhs(FoldBinaryOp op);
-    FoldStatus foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op);
-    FoldStatus foldUnaryFloat(ApFloat& outResult, const ApFloat& value, FoldUnaryOp op);
-    FoldStatus foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options = {});
-    FoldStatus foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op);
-    FoldStatus foldIntrinsicUnaryFloat(double& outResult, double value, FoldIntrinsicUnaryFloatOp op);
-    FoldStatus foldIntrinsicBinaryFloat(double& outResult, double left, double right, FoldIntrinsicBinaryFloatOp op);
-    FoldStatus foldIntrinsicTernaryFloat(double& outResult, double first, double second, double third, FoldIntrinsicTernaryFloatOp op);
+    bool         requiresNonZeroRhs(FoldBinaryOp op);
+    FoldStatus   foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op);
+    FoldStatus   foldUnaryFloat(ApFloat& outResult, const ApFloat& value, FoldUnaryOp op);
+    FoldStatus   foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options = {});
+    FoldStatus   foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op);
+    FoldStatus   foldIntrinsicUnaryFloat(double& outResult, double value, FoldIntrinsicUnaryFloatOp op);
+    FoldStatus   foldIntrinsicBinaryFloat(double& outResult, double left, double right, FoldIntrinsicBinaryFloatOp op);
+    FoldStatus   foldIntrinsicTernaryFloat(double& outResult, double first, double second, double third, FoldIntrinsicTernaryFloatOp op);
 
     static constexpr uint32_t alignUpU32(uint32_t v, uint32_t a) noexcept
     {

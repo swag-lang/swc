@@ -239,9 +239,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     MicroOperandStorage& operands = *SWC_CHECK_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        const Ref   instRef = it.current;
-        MicroInstr& inst    = *it;
-        MicroInstrOperand* ops = inst.ops(operands);
+        const Ref          instRef = it.current;
+        MicroInstr&        inst    = *it;
+        MicroInstrOperand* ops     = inst.ops(operands);
 
         if (tryRewriteMemoryBaseToStack(context, inst, ops, stackPointerReg, knownAddresses))
             changed = true;
@@ -315,8 +315,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                 if (itKnownDst != known.end())
                 {
-                    uint64_t foldedValue = 0;
-                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits);
+                    uint64_t               foldedValue = 0;
+                    const Math::FoldStatus foldStatus  = MicroOptimization::foldBinaryImmediate(foldedValue, itKnownDst->second.value, immValue, ops[3].microOp, ops[2].opBits);
                     if (foldStatus == Math::FoldStatus::Ok)
                     {
                         inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -383,8 +383,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             const auto itKnown = known.find(ops[0].reg.packed);
             if (itKnown != known.end())
             {
-                uint64_t foldedValue = 0;
-                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                uint64_t               foldedValue = 0;
+                const Math::FoldStatus foldStatus  = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
                     inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -448,8 +448,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[1].opBits))
                 {
-                    uint64_t foldedValue = 0;
-                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, ops[4].valueU64, ops[2].microOp, ops[1].opBits);
+                    uint64_t               foldedValue = 0;
+                    const Math::FoldStatus foldStatus  = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, ops[4].valueU64, ops[2].microOp, ops[1].opBits);
                     if (foldStatus == Math::FoldStatus::Ok)
                         setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, foldedValue);
                     else if (Math::isSafetyError(foldStatus))
@@ -474,8 +474,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnownReg = known.find(ops[1].reg.packed);
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits) && itKnownReg != known.end())
                 {
-                    uint64_t foldedValue = 0;
-                    const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, itKnownReg->second.value, ops[3].microOp, ops[2].opBits);
+                    uint64_t               foldedValue = 0;
+                    const Math::FoldStatus foldStatus  = MicroOptimization::foldBinaryImmediate(foldedValue, knownValue, itKnownReg->second.value, ops[3].microOp, ops[2].opBits);
                     if (foldStatus == Math::FoldStatus::Ok)
                         setKnownStackSlot(knownStackSlots, stackOffset, ops[2].opBits, foldedValue);
                     else if (Math::isSafetyError(foldStatus))
@@ -531,8 +531,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             const auto itKnown = known.find(ops[0].reg.packed);
             if (itKnown != known.end())
             {
-                uint64_t foldedValue = 0;
-                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                uint64_t               foldedValue = 0;
+                const Math::FoldStatus foldStatus  = MicroOptimization::foldBinaryImmediate(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
                     known[ops[0].reg.packed] = {

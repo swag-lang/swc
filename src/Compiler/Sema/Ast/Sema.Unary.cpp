@@ -117,8 +117,8 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        const TaskContext& ctx   = sema.ctx();
-        ApsInt             foldedValue;
+        const TaskContext&     ctx = sema.ctx();
+        ApsInt                 foldedValue;
         const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
         if (foldStatus != Math::FoldStatus::Ok)

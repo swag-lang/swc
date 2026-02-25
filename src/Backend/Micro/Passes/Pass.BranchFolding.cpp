@@ -203,7 +203,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             const auto valueIt = known.find(ops[0].reg.packed);
             if (valueIt != known.end())
             {
-                uint64_t folded = 0;
+                uint64_t               folded     = 0;
                 const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {

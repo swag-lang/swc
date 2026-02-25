@@ -40,12 +40,12 @@ public:
     void        setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
 
 private:
-    uint32_t    offset_           = 0;
-    uint32_t    parameterIndex_   = K_INVALID_PARAMETER_INDEX;
-    ConstantRef cstRef_           = ConstantRef::invalid();
-    ConstantRef defaultValueRef_  = ConstantRef::invalid();
-    uint32_t    codeGenLocalSize_ = 0;
-    mutable void* codeGenPayload_ = nullptr;
+    uint32_t      offset_           = 0;
+    uint32_t      parameterIndex_   = K_INVALID_PARAMETER_INDEX;
+    ConstantRef   cstRef_           = ConstantRef::invalid();
+    ConstantRef   defaultValueRef_  = ConstantRef::invalid();
+    uint32_t      codeGenLocalSize_ = 0;
+    mutable void* codeGenPayload_   = nullptr;
 };
 
 SWC_END_NAMESPACE();

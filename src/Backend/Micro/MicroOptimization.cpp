@@ -132,7 +132,7 @@ Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref in
         {
             const SourceCodeRef sourceCodeRef = debugInfo->sourceCodeRef;
             const SourceView&   srcView       = taskContext->compiler().srcView(sourceCodeRef.srcViewRef);
-            diag                             = Diagnostic::get(diagId, srcView.fileRef());
+            diag                              = Diagnostic::get(diagId, srcView.fileRef());
             diag.last().addSpan(srcView.tokenCodeRange(*taskContext, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
         }
     }

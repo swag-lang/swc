@@ -111,7 +111,7 @@ namespace
             if (!mapped)
                 return Result::Error;
 
-            ApFloat                 foldedValue;
+            ApFloat                foldedValue;
             const Math::FoldStatus foldStatus = Math::foldBinaryFloat(foldedValue, leftCst.getFloat(), rightCst.getFloat(), foldOp);
             if (foldStatus != Math::FoldStatus::Ok)
             {
@@ -126,8 +126,8 @@ namespace
 
         if (type.isInt())
         {
-            ApsInt val1 = leftCst.getInt();
-            ApsInt val2 = rightCst.getInt();
+            ApsInt     val1 = leftCst.getInt();
+            ApsInt     val2 = rightCst.getInt();
             const bool wrap = node.modifierFlags.has(AstModifierFlagsE::Wrap);
 
             if (type.isIntUnsized())
@@ -146,7 +146,7 @@ namespace
             if (op == TokenId::SymLowerLower)
                 foldOptions.ignoreShiftOverflow = true;
 
-            ApsInt                 foldedValue;
+            ApsInt           foldedValue;
             Math::FoldStatus foldStatus = Math::foldBinaryInt(foldedValue, val1, val2, foldOp, foldOptions);
             if (foldStatus == Math::FoldStatus::Overflow && (wrap || type.payloadIntBits() == 0))
                 foldStatus = Math::FoldStatus::Ok;

@@ -307,7 +307,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
     ABICall::callAddress(builder, callConvKind, reinterpret_cast<uint64_t>(targetFn), packedArgs, retMeta);
     builder.emitRet();
 
-    MachineCode loweredCode;
+    MachineCode  loweredCode;
     const Result lowerResult = loweredCode.emit(ctx, builder);
     SWC_ASSERT(lowerResult == Result::Continue);
     if (lowerResult != Result::Continue)

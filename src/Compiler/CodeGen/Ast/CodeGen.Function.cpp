@@ -57,7 +57,7 @@ namespace
 
         const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
-        for (const SymbolVariable* symVar : localSymbols)
+        for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
             const TypeRef typeRef = symVar->typeRef();
@@ -65,11 +65,11 @@ namespace
 
             const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
             const uint32_t  size      = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
-            const uint32_t  alignment = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
             SWC_ASSERT(size > 0);
 
             const uint32_t symOffset = symVar->offset();
-            codeGen.setLocalStackSlot(*symVar, {.offset = symOffset, .size = size, .align = alignment});
+            symVar->setCodeGenLocalSize(size);
+            symVar->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
             frameSize = std::max<uint64_t>(frameSize, symOffset + size);
         }
 

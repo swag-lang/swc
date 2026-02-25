@@ -53,13 +53,6 @@ private:
 class CodeGen
 {
 public:
-    struct LocalStackSlot
-    {
-        uint32_t offset = 0;
-        uint32_t size   = 0;
-        uint32_t align  = 1;
-    };
-
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
@@ -135,8 +128,6 @@ public:
     CodeGenNodePayload*              safePayload(AstNodeRef nodeRef);
     void                             setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     static const CodeGenNodePayload* variablePayload(const SymbolVariable& sym);
-    void                             setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot);
-    static const LocalStackSlot*     localStackSlot(const SymbolVariable& sym);
     void                             setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
     uint32_t                         localStackFrameSize() const { return localStackFrameSize_; }
     bool                             hasLocalStackFrame() const { return localStackFrameSize_ != 0; }

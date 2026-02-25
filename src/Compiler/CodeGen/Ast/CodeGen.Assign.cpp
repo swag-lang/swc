@@ -162,7 +162,7 @@ namespace
             return target;
 
         const SymbolVariable& symVar = leftSymView.sym()->cast<SymbolVariable>();
-        if (!codeGen.localStackSlot(symVar))
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             return target;
         if (!target.payload->isAddress())
             return target;

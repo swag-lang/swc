@@ -16,10 +16,8 @@ namespace
 {
     struct VariableSymbolCodeGenPayload
     {
-        CodeGenNodePayload      payload;
-        CodeGen::LocalStackSlot localSlot;
-        bool                    hasPayload   = false;
-        bool                    hasLocalSlot = false;
+        CodeGenNodePayload payload;
+        bool               hasPayload = false;
     };
 
     VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym)
@@ -33,7 +31,7 @@ namespace
         if (!payload)
         {
             payload = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
-            const_cast<SymbolVariable&>(sym).setCodeGenPayload(payload);
+            sym.setCodeGenPayload(payload);
         }
 
         return *SWC_CHECK_NOT_NULL(payload);
@@ -64,26 +62,22 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         frames_.clear();
         frames_.emplace_back();
 
-        for (const SymbolVariable* symVar : symbolFunc.parameters())
+        for (SymbolVariable* symVar : symbolFunc.parameters())
         {
             if (!symVar)
                 continue;
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
-            {
-                payload->hasPayload   = false;
-                payload->hasLocalSlot = false;
-            }
+                payload->hasPayload = false;
+            symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
-        for (const SymbolVariable* symVar : symbolFunc.localVariables())
+        for (SymbolVariable* symVar : symbolFunc.localVariables())
         {
             if (!symVar)
                 continue;
             if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
-            {
-                payload->hasPayload   = false;
-                payload->hasLocalSlot = false;
-            }
+                payload->hasPayload = false;
+            symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
         MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
@@ -251,21 +245,6 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym)
     if (!symbolPayload || !symbolPayload->hasPayload)
         return nullptr;
     return &symbolPayload->payload;
-}
-
-void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot)
-{
-    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
-    symbolPayload.localSlot                     = slot;
-    symbolPayload.hasLocalSlot                  = true;
-}
-
-const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym)
-{
-    const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
-    if (!symbolPayload || !symbolPayload->hasLocalSlot)
-        return nullptr;
-    return &symbolPayload->localSlot;
 }
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)

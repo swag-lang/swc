@@ -45,14 +45,14 @@ namespace
             return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
-        if (const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar))
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
             SWC_ASSERT(codeGen.localStackBaseReg().isValid());
 
             CodeGenNodePayload localPayload;
             localPayload.typeRef = symVar.typeRef();
             localPayload.setIsAddress();
-            if (!localSlot->offset)
+            if (!symVar.offset())
             {
                 localPayload.reg = codeGen.localStackBaseReg();
             }
@@ -61,7 +61,7 @@ namespace
                 MicroBuilder& builder = codeGen.builder();
                 localPayload.reg      = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(localSlot->offset, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
             }
 
             codeGen.setVariablePayload(symVar, localPayload);
@@ -101,15 +101,15 @@ namespace
     {
         MicroBuilder&                  builder   = codeGen.builder();
         const bool                     skipInit  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
-        const CodeGen::LocalStackSlot* localSlot = codeGen.localStackSlot(symVar);
-
-        if (localSlot && codeGen.localStackBaseReg().isValid())
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
         {
+            const uint32_t localSize = symVar.codeGenLocalSize();
+            SWC_ASSERT(localSize > 0);
             CodeGenNodePayload symbolPayload;
             symbolPayload.typeRef = symVar.typeRef();
             symbolPayload.setIsAddress();
 
-            if (!localSlot->offset)
+            if (!symVar.offset())
             {
                 symbolPayload.reg = codeGen.localStackBaseReg();
             }
@@ -117,7 +117,7 @@ namespace
             {
                 symbolPayload.reg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(symbolPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(symbolPayload.reg, ApInt(localSlot->offset, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(symbolPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
             }
 
             if (!skipInit)
@@ -127,23 +127,23 @@ namespace
                     const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
                     if (initPayload.isAddress())
                     {
-                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSlot->size);
+                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
                     }
                     else
                     {
-                        if (localSlot->size > 8)
+                        if (localSize > 8)
                         {
-                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSlot->size);
+                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
                             codeGen.setVariablePayload(symVar, symbolPayload);
                             return;
                         }
 
                         auto copyBits = MicroOpBits::Zero;
-                        if (localSlot->size == 1)
+                        if (localSize == 1)
                             copyBits = MicroOpBits::B8;
-                        else if (localSlot->size == 2)
+                        else if (localSize == 2)
                             copyBits = MicroOpBits::B16;
-                        else if (localSlot->size == 4)
+                        else if (localSize == 4)
                             copyBits = MicroOpBits::B32;
                         else
                             copyBits = MicroOpBits::B64;
@@ -152,7 +152,7 @@ namespace
                 }
                 else
                 {
-                    CodeGenHelpers::emitMemZero(codeGen, symbolPayload.reg, localSlot->size);
+                    CodeGenHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }
 

@@ -81,7 +81,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         }
 
         MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
-        const auto&              attributes      = symbolFunc.attributes();
+        const AttributeList&     attributes      = symbolFunc.attributes();
         Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
         if (attributes.backendOptimize.has_value())
             backendBuildCfg.optimize = attributes.backendOptimize.value();
@@ -256,9 +256,9 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     if (typeRef.isInvalid())
         typeRef = srcPayloadCopy.typeRef;
 
-    auto& dstPayload       = setPayload(dstNodeRef, typeRef);
-    dstPayload.reg         = srcPayloadCopy.reg;
-    dstPayload.storageKind = srcPayloadCopy.storageKind;
+    CodeGenNodePayload& dstPayload = setPayload(dstNodeRef, typeRef);
+    dstPayload.reg                 = srcPayloadCopy.reg;
+    dstPayload.storageKind         = srcPayloadCopy.storageKind;
     return dstPayload;
 }
 

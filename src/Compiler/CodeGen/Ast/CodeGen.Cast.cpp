@@ -172,7 +172,7 @@ namespace
             return Result::Continue;
         }
 
-        auto valueBits = MicroOpBits::Zero;
+        MicroOpBits valueBits = MicroOpBits::Zero;
         if (anyCastAsValueBits(codeGen, dstType, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

@@ -138,7 +138,7 @@ namespace
                             return;
                         }
 
-                        auto copyBits = MicroOpBits::Zero;
+                        MicroOpBits copyBits = MicroOpBits::Zero;
                         if (localSize == 1)
                             copyBits = MicroOpBits::B8;
                         else if (localSize == 2)

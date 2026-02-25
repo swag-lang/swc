@@ -309,7 +309,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
 
     SmallVector<AstNodeRef> caseRefs;
     codeGen.ast().appendNodes(caseRefs, spanChildrenRef);
-    for (auto caseRef : caseRefs)
+    for (const AstNodeRef caseRef : caseRefs)
     {
         SwitchCaseCodeGenPayload caseState;
         caseState.testLabel = codeGen.builder().createLabel();
@@ -319,15 +319,15 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
 
     for (size_t i = 0; i < caseRefs.size(); ++i)
     {
-        const AstNodeRef caseRef = caseRefs[i];
-        auto             itCase  = switchState.caseStates.find(caseRef);
+        const AstNodeRef                                                 caseRef = caseRefs[i];
+        std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload>::iterator itCase  = switchState.caseStates.find(caseRef);
         SWC_ASSERT(itCase != switchState.caseStates.end());
 
         SwitchCaseCodeGenPayload& caseState = itCase->second;
         if (i + 1 < caseRefs.size())
         {
-            const AstNodeRef nextCaseRef = caseRefs[i + 1];
-            auto             itNextCase  = switchState.caseStates.find(nextCaseRef);
+            const AstNodeRef                                                 nextCaseRef = caseRefs[i + 1];
+            std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload>::iterator itNextCase  = switchState.caseStates.find(nextCaseRef);
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
             caseState.hasNextCase   = true;
@@ -353,7 +353,7 @@ Result AstSwitchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(switchState != nullptr);
 
-    const auto itCase = switchState->caseStates.find(childRef);
+    std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload>::iterator itCase = switchState->caseStates.find(childRef);
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     codeGen.builder().placeLabel(itCase->second.testLabel);
@@ -420,7 +420,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
 
-    const auto itCase = switchState->caseStates.find(codeGen.curNodeRef());
+    std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload>::iterator itCase = switchState->caseStates.find(codeGen.curNodeRef());
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
@@ -437,7 +437,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
             const bool hasWhere   = nodeWhereRef.isValid();
             const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (auto caseExprRef : caseExprRefs)
+            for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 if (codeGen.node(caseExprRef).is(AstNodeId::RangeExpr))
                 {
@@ -482,7 +482,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
             const bool hasWhere   = nodeWhereRef.isValid();
             const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (auto caseExprRef : caseExprRefs)
+            for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);
                 const SemaNodeView        exprView    = codeGen.viewType(caseExprRef);
@@ -558,7 +558,7 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
     SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
 
-    const auto itCase = switchState->caseStates.find(caseRef);
+    std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload>::iterator itCase = switchState->caseStates.find(caseRef);
     SWC_ASSERT(itCase != switchState->caseStates.end());
     if (!itCase->second.hasNextCase)
         return Result::Continue;

@@ -45,7 +45,7 @@ namespace
 
             case ConstantKind::Int:
             {
-                const auto& val = cst.getInt();
+                const ApsInt& val = cst.getInt();
                 SWC_ASSERT(val.fits64());
                 builder.emitLoadRegImm(payload.reg, ApInt(static_cast<uint64_t>(val.asI64()), 64), MicroOpBits::B64);
                 payload.setIsValue();
@@ -54,7 +54,7 @@ namespace
 
             case ConstantKind::Float:
             {
-                const auto& value = cst.getFloat();
+                const ApFloat& value = cst.getFloat();
                 if (value.bitWidth() == 32)
                 {
                     const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());

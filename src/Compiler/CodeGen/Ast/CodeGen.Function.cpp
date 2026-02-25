@@ -51,7 +51,7 @@ namespace
 
     void buildLocalStackLayout(CodeGen& codeGen)
     {
-        const auto& localSymbols = codeGen.function().localVariables();
+        const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         if (localSymbols.empty())
             return;
 

@@ -89,7 +89,7 @@ namespace
         const uint32_t tailSize   = sizeInBytes % chunkSize;
         SWC_ASSERT(chunkCount > 0);
 
-        const auto loopLabel = builder.createLabel();
+        const Ref loopLabel = builder.createLabel();
 
         builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
@@ -145,7 +145,7 @@ namespace
         const uint32_t tailSize   = sizeInBytes % chunkSize;
         SWC_ASSERT(chunkCount > 0);
 
-        const auto loopLabel = builder.createLabel();
+        const Ref loopLabel = builder.createLabel();
 
         builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
@@ -237,16 +237,16 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
     if (!sizeInBytes)
         return;
 
-    MicroBuilder&  builder     = codeGen.builder();
-    const auto&    buildCfg    = builder.backendBuildCfg();
-    const bool     optimize    = buildCfg.optimize;
-    const bool     allow128    = optimize && sizeInBytes >= 16;
-    const uint32_t unrollLimit = getUnrollMemLimit(buildCfg);
+    MicroBuilder&                    builder     = codeGen.builder();
+    const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
+    const bool                       optimize    = buildCfg.optimize;
+    const bool                       allow128    = optimize && sizeInBytes >= 16;
+    const uint32_t                   unrollLimit = getUnrollMemLimit(buildCfg);
 
-    const auto dstRegTmp   = codeGen.nextVirtualIntRegister();
-    const auto srcReg      = codeGen.nextVirtualIntRegister();
-    const auto tmpIntReg   = codeGen.nextVirtualIntRegister();
-    const auto tmpFloatReg = allow128 ? codeGen.nextVirtualFloatRegister() : MicroReg::invalid();
+    const MicroReg dstRegTmp   = codeGen.nextVirtualIntRegister();
+    const MicroReg srcReg      = codeGen.nextVirtualIntRegister();
+    const MicroReg tmpIntReg   = codeGen.nextVirtualIntRegister();
+    const MicroReg tmpFloatReg = allow128 ? codeGen.nextVirtualFloatRegister() : MicroReg::invalid();
 
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     builder.emitLoadRegReg(srcReg, srcAddressReg, MicroOpBits::B64);
@@ -259,7 +259,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
             return;
         }
 
-        const auto countReg = codeGen.nextVirtualIntRegister();
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
         emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, 8, tmpIntReg, tmpFloatReg, countReg);
         return;
     }
@@ -270,7 +270,7 @@ void CodeGenHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg src
         return;
     }
 
-    const auto     countReg  = codeGen.nextVirtualIntRegister();
+    const MicroReg countReg  = codeGen.nextVirtualIntRegister();
     const uint32_t chunkSize = allow128 ? 16 : 8;
     emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg);
 }
@@ -280,13 +280,13 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
     if (!sizeInBytes)
         return;
 
-    MicroBuilder&  builder     = codeGen.builder();
-    const auto&    buildCfg    = builder.backendBuildCfg();
-    const bool     optimize    = buildCfg.optimize;
-    const uint32_t unrollLimit = getUnrollMemLimit(buildCfg);
+    MicroBuilder&                    builder     = codeGen.builder();
+    const Runtime::BuildCfgBackend& buildCfg    = builder.backendBuildCfg();
+    const bool                       optimize    = buildCfg.optimize;
+    const uint32_t                   unrollLimit = getUnrollMemLimit(buildCfg);
 
-    const auto dstRegTmp = codeGen.nextVirtualIntRegister();
-    const auto zeroReg   = codeGen.nextVirtualIntRegister();
+    const MicroReg dstRegTmp = codeGen.nextVirtualIntRegister();
+    const MicroReg zeroReg   = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(dstRegTmp, dstReg, MicroOpBits::B64);
     builder.emitClearReg(zeroReg, MicroOpBits::B64);
 
@@ -298,7 +298,7 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
             return;
         }
 
-        const auto countReg = codeGen.nextVirtualIntRegister();
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
         emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 8, zeroReg, countReg);
         return;
     }
@@ -309,7 +309,7 @@ void CodeGenHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t siz
         return;
     }
 
-    const auto countReg = codeGen.nextVirtualIntRegister();
+    const MicroReg countReg = codeGen.nextVirtualIntRegister();
     emitMemZeroLoop(builder, dstRegTmp, sizeInBytes, 8, zeroReg, countReg);
 }
 

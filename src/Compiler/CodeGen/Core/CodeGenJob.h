@@ -9,7 +9,7 @@ class Sema;
 class CodeGenJob : public Job
 {
 public:
-    static constexpr auto K = JobKind::CodeGen;
+    static constexpr JobKind K = JobKind::CodeGen;
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
     JobResult   exec();

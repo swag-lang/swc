@@ -3,7 +3,7 @@
 ## Hard Rules
 
 - After any change, always run a full build and full test; if either fails, fix it.
-- Once everything is working, run 'tools/all.bat' and 'tools/all_dm.bat' script to ensure no regression.
+- Once everything is working, run 'tools/all.bat' and 'tools/all_dm.bat' scripts to ensure no regression.
 - When doing a change in codegen, run it 10x times in a row, to detect non deterministic behavior.
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
@@ -11,14 +11,13 @@
 
 ## Coding Rules
 
-- Do not add standard library includes in source files; they are already provided (or must be) via the precompiled
-  header `pch.h`.
+- Do not add standard library includes in source files; they must be provided via the precompiled header `pch.h`.
 - Avoid excessive use of lambdas. Prioritize clarity and readability.
 - When designing a function which returns something by argument, place that output parameter first, right after global
   parameters (e.g. managers).
-- Do not overuse "auto". When it's clearer, use the real type.
+- Use auto for variable declarations when it makes the code clearer, reduces redundancy, or avoids repeating complex types. Use the explicit (real) type when it better communicates intent or improves readability.
 - Do not put defensive code after asserts.
-- When a local variable, or a reference parameter, can be made "const", do it.
+- Declare local variables and reference parameters as const whenever they are not modified.
 
 ## Refactoring Compliance Rules
 

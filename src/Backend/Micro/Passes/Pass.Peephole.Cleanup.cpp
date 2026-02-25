@@ -239,6 +239,141 @@ namespace PeepholePass
             return reg == MicroReg::intReg(4) || reg == MicroReg::intReg(5);
         }
 
+        uint32_t opBitsNumBytes(const MicroOpBits opBits)
+        {
+            switch (opBits)
+            {
+                case MicroOpBits::B8:
+                    return 1;
+                case MicroOpBits::B16:
+                    return 2;
+                case MicroOpBits::B32:
+                    return 4;
+                case MicroOpBits::B64:
+                    return 8;
+                case MicroOpBits::B128:
+                    return 16;
+                default:
+                    return 0;
+            }
+        }
+
+        bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
+        {
+            if (!lhsSize || !rhsSize)
+                return false;
+
+            const uint64_t lhsEnd = lhsOffset + lhsSize;
+            const uint64_t rhsEnd = rhsOffset + rhsSize;
+            return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
+        }
+
+        bool getMemAccessOpBits(MicroOpBits& outOpBits, const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            if (!ops)
+                return false;
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                    outOpBits = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::LoadMemReg:
+                    outOpBits = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::LoadMemImm:
+                    outOpBits = ops[1].opBits;
+                    return true;
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                    outOpBits = ops[3].opBits;
+                    return true;
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    outOpBits = ops[3].opBits;
+                    return true;
+                case MicroInstrOpcode::CmpMemReg:
+                    outOpBits = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::CmpMemImm:
+                    outOpBits = ops[1].opBits;
+                    return true;
+                case MicroInstrOpcode::OpUnaryMem:
+                    outOpBits = ops[1].opBits;
+                    return true;
+                case MicroInstrOpcode::OpBinaryRegMem:
+                    outOpBits = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::OpBinaryMemReg:
+                    outOpBits = ops[2].opBits;
+                    return true;
+                case MicroInstrOpcode::OpBinaryMemImm:
+                    outOpBits = ops[1].opBits;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool isAddressOnlyInstruction(const MicroInstr& inst)
+        {
+            return inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
+        }
+
+        bool isMemoryReadInstruction(const MicroInstr& inst)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                case MicroInstrOpcode::CmpMemReg:
+                case MicroInstrOpcode::CmpMemImm:
+                case MicroInstrOpcode::OpUnaryMem:
+                case MicroInstrOpcode::OpBinaryRegMem:
+                case MicroInstrOpcode::OpBinaryMemReg:
+                case MicroInstrOpcode::OpBinaryMemImm:
+                case MicroInstrOpcode::Push:
+                case MicroInstrOpcode::Pop:
+                case MicroInstrOpcode::LoadAmcRegMem:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool isMemoryWriteInstruction(const MicroInstr& inst)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::LoadMemImm:
+                case MicroInstrOpcode::OpUnaryMem:
+                case MicroInstrOpcode::OpBinaryMemReg:
+                case MicroInstrOpcode::OpBinaryMemImm:
+                case MicroInstrOpcode::Push:
+                case MicroInstrOpcode::Pop:
+                case MicroInstrOpcode::LoadAmcMemReg:
+                case MicroInstrOpcode::LoadAmcMemImm:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        bool isStackWriteCandidate(const MicroInstr& inst)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::LoadMemImm:
+                case MicroInstrOpcode::OpUnaryMem:
+                case MicroInstrOpcode::OpBinaryMemReg:
+                case MicroInstrOpcode::OpBinaryMemImm:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         bool isShiftLikeImmediateOp(MicroOp op)
         {
             return op == MicroOp::ShiftLeft ||
@@ -337,7 +472,7 @@ namespace PeepholePass
             if (!inst || !ops)
                 return false;
 
-            if (inst->op != MicroInstrOpcode::LoadMemReg && inst->op != MicroInstrOpcode::LoadMemImm)
+            if (!isStackWriteCandidate(*inst))
                 return false;
 
             uint8_t baseIndex   = 0;
@@ -348,6 +483,31 @@ namespace PeepholePass
             const MicroReg baseReg = ops[baseIndex].reg;
             if (!isStackBaseRegister(baseReg))
                 return false;
+
+            MicroOpBits opBits = MicroOpBits::Zero;
+            if (!getMemAccessOpBits(opBits, *inst, ops))
+                return false;
+
+            const uint32_t slotSize = opBitsNumBytes(opBits);
+            if (!slotSize)
+                return false;
+            const uint64_t slotOffset = ops[offsetIndex].valueU64;
+
+            if (MicroInstrInfo::definesCpuFlags(*inst))
+            {
+                const MicroStorage::View view = SWC_NOT_NULL(context.instructions)->view();
+                auto                     it   = view.begin();
+                for (; it != view.end(); ++it)
+                {
+                    if (it.current == instRef)
+                        break;
+                }
+
+                if (it == view.end())
+                    return false;
+                if (!areFlagsDeadAfterInstruction(context, it, view.end()))
+                    return false;
+            }
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
@@ -363,22 +523,59 @@ namespace PeepholePass
                 if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
                     return false;
 
-                uint8_t scanBaseIndex   = 0;
-                uint8_t scanOffsetIndex = 0;
-                if (MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
-                {
-                    const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
-                    if (!scanOps)
-                        return false;
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
 
-                    if ((scanInst.op == MicroInstrOpcode::LoadMemReg || scanInst.op == MicroInstrOpcode::LoadMemImm) &&
-                        isStackBaseRegister(scanOps[scanBaseIndex].reg))
+                bool baseRegDefined = false;
+                for (const MicroReg defReg : useDef.defs)
+                {
+                    if (defReg == baseReg)
+                    {
+                        baseRegDefined = true;
+                        break;
+                    }
+                }
+
+                if (baseRegDefined)
+                {
+                    if (scanInst.op == MicroInstrOpcode::OpBinaryRegImm &&
+                        scanOps[0].reg == baseReg &&
+                        std::next(scanIt) != endIt &&
+                        std::next(scanIt)->op == MicroInstrOpcode::Ret)
                     {
                         continue;
                     }
 
                     return false;
                 }
+
+                if (isAddressOnlyInstruction(scanInst))
+                    continue;
+
+                if (!isMemoryReadInstruction(scanInst) && !isMemoryWriteInstruction(scanInst))
+                    continue;
+
+                uint8_t scanBaseIndex   = 0;
+                uint8_t scanOffsetIndex = 0;
+                if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
+                    return false;
+
+                const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
+                if (!isStackBaseRegister(scanBaseReg))
+                    return false;
+
+                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                    return false;
+
+                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                if (!scanSlotSize)
+                    return false;
+
+                const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
+                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
+                    return false;
             }
 
             return false;

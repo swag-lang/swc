@@ -239,7 +239,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 
             auto aCstRef = aView.cstRef();
             auto bCstRef = bView.cstRef();
-            RESULT_VERIFY(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
+            SWC_RESULT_VERIFY(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
 
             const ConstantValue& aCst  = sema.cstMgr().get(aCstRef);
             const ConstantValue& bCst  = sema.cstMgr().get(bCstRef);

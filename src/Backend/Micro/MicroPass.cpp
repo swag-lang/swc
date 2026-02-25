@@ -170,7 +170,7 @@ namespace
         {
             SWC_ASSERT(pass != nullptr);
             bool changed = false;
-            SWC_RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), changed));
+            SWC_RESULT_VERIFY(runPass(context, *SWC_NOT_NULL(pass), changed));
         }
 
         return Result::Continue;
@@ -192,7 +192,7 @@ namespace
             {
                 SWC_ASSERT(pass != nullptr);
                 bool passChanged = false;
-                SWC_RESULT_VERIFY(runPass(context, *SWC_CHECK_NOT_NULL(pass), passChanged));
+                SWC_RESULT_VERIFY(runPass(context, *SWC_NOT_NULL(pass), passChanged));
                 if (passChanged)
                     changed = true;
             }

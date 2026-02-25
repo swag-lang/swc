@@ -47,10 +47,10 @@ namespace
     constexpr MicroReg XMM2 = MicroReg::floatReg(2);
     constexpr MicroReg XMM3 = MicroReg::floatReg(3);
 
-#define ENCODE_CASE(__name, __hex, ...)                                        \
-    do                                                                         \
-    {                                                                          \
-        RESULT_VERIFY(runCase(__name, __hex, [&](MicroBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
+#define ENCODE_CASE(__name, __hex, ...)                                            \
+    do                                                                             \
+    {                                                                              \
+        SWC_RESULT_VERIFY(runCase(__name, __hex, [&](MicroBuilder& builder) { auto& b = builder; __VA_ARGS__; })); \
     } while (false)
 
     Result buildFlow(const RunCaseFn& runCase)

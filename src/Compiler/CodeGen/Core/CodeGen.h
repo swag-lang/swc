@@ -82,13 +82,11 @@ public:
 
     struct IfStmtCodeGenPayload
     {
-        uint64_t           runId = 0;
         IfStmtCodeGenState state;
     };
 
     struct SwitchStmtCodeGenPayload
     {
-        uint64_t               runId = 0;
         SwitchStmtCodeGenState state;
     };
 
@@ -101,7 +99,6 @@ public:
 
     struct VariableSymbolCodeGenPayload
     {
-        uint64_t           runId = 0;
         CodeGenNodePayload payload;
         LocalStackSlot     localSlot;
         bool               hasPayload   = false;
@@ -227,7 +224,9 @@ private:
     uint32_t                  nextVirtualRegister_ = 1;
     uint32_t                  localStackFrameSize_ = 0;
     MicroReg                  localStackBaseReg_;
-    uint64_t                  runId_ = 0;
+    AstNodeRef                root_      = AstNodeRef::invalid();
+    bool                      started_   = false;
+    bool                      completed_ = false;
 };
 
 SWC_END_NAMESPACE();

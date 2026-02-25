@@ -28,7 +28,7 @@ namespace
 
 CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) :
     Job(ctx, JobKind::CodeGen),
-    sema_(&sema),
+    codeGen_(sema),
     symbolFunc_(&symbolFunc),
     root_(root)
 {
@@ -39,7 +39,6 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
 
 JobResult CodeGenJob::exec()
 {
-    SWC_ASSERT(sema_);
     SWC_ASSERT(symbolFunc_);
     ctx().state().reset();
     if (symbolFunc_->isCodeGenCompleted())
@@ -50,12 +49,12 @@ JobResult CodeGenJob::exec()
 
     // Wait for sema completion on this function and all direct codegen dependencies.
     ///////////////////////////////////////////
-    const Result selfWaitResult = sema_->waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
+    const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
         return toJobResult(selfWaitResult);
     for (const SymbolFunction* dep : deps)
     {
-        const Result depWaitResult = sema_->waitSemaCompleted(dep, dep->codeRef());
+        const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
             return toJobResult(depWaitResult);
     }
@@ -68,8 +67,8 @@ JobResult CodeGenJob::exec()
             continue;
         const AstNodeRef depRoot = dep->declNodeRef();
         SWC_ASSERT(depRoot.isValid());
-        CodeGenJob* depJob = heapNew<CodeGenJob>(ctx(), *sema_, *dep, depRoot);
-        sema_->compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema_->compiler().jobClientId());
+        CodeGenJob* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
+        sema().compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema().compiler().jobClientId());
     }
 
     // Generate micro instructions only once and mark codegen as pre-solved.
@@ -77,11 +76,10 @@ JobResult CodeGenJob::exec()
     if (!symbolFunc_->isCodeGenPreSolved())
     {
         SWC_ASSERT(root_.isValid());
-        CodeGen codeGen(*sema_);
 #if SWC_HAS_STATS
         Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif
-        const Result codeGenResult = codeGen.exec(*symbolFunc_, root_);
+        const Result codeGenResult = codeGen_.exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
             return toJobResult(codeGenResult);
         symbolFunc_->setCodeGenPreSolved(ctx());

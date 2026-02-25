@@ -12,18 +12,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    std::atomic<uint64_t> CODE_GEN_RUN_ID = 1;
-
-    uint64_t nextCodeGenRunId()
-    {
-        const uint64_t runId = CODE_GEN_RUN_ID.fetch_add(1, std::memory_order_relaxed);
-        SWC_ASSERT(runId != 0);
-        return runId;
-    }
-}
-
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -32,35 +20,70 @@ CodeGen::CodeGen(Sema& sema) :
 
 Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 {
-    visit_.start(ast(), root);
-    function_ = &symbolFunc;
-    builder_  = &symbolFunc.microInstrBuilder(ctx());
+    if (completed_)
+        return Result::Continue;
 
-    nextVirtualRegister_ = 1;
-    localStackFrameSize_ = 0;
-    localStackBaseReg_   = MicroReg::invalid();
-    runId_               = nextCodeGenRunId();
-    frames_.clear();
-    frames_.emplace_back();
+    if (!started_)
+    {
+        root_     = root;
+        function_ = &symbolFunc;
+        builder_  = &symbolFunc.microInstrBuilder(ctx());
+        visit_.start(ast(), root);
 
-    MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
-    const auto&              attributes      = symbolFunc.attributes();
-    Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
-    if (attributes.backendOptimize.has_value())
-        backendBuildCfg.optimize = attributes.backendOptimize.value();
+        nextVirtualRegister_ = 1;
+        localStackFrameSize_ = 0;
+        localStackBaseReg_   = MicroReg::invalid();
+        frames_.clear();
+        frames_.emplace_back();
 
-    builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
-    builder_->setBackendBuildCfg(backendBuildCfg);
-    if (compiler().buildCfg().backendDebugInformations)
-        builderFlags.add(MicroBuilderFlagsE::DebugInfo);
-    builder_->setFlags(builderFlags);
-    builder_->setCurrentDebugInfo({});
+        for (const SymbolVariable* symVar : symbolFunc.parameters())
+        {
+            if (!symVar)
+                continue;
+            if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
+            {
+                payload->hasPayload   = false;
+                payload->hasLocalSlot = false;
+            }
+        }
 
-    const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
-    const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
-    const SourceFile*     file      = srcView.file();
-    const Utf8            fileName  = file ? FileSystem::formatFileName(&ctx(), file->path()) : Utf8{};
-    builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
+        for (const SymbolVariable* symVar : symbolFunc.localVariables())
+        {
+            if (!symVar)
+                continue;
+            if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
+            {
+                payload->hasPayload   = false;
+                payload->hasLocalSlot = false;
+            }
+        }
+
+        MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
+        const auto&              attributes      = symbolFunc.attributes();
+        Runtime::BuildCfgBackend backendBuildCfg = compiler().buildCfg().backend;
+        if (attributes.backendOptimize.has_value())
+            backendBuildCfg.optimize = attributes.backendOptimize.value();
+
+        builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
+        builder_->setBackendBuildCfg(backendBuildCfg);
+        if (compiler().buildCfg().backendDebugInformations)
+            builderFlags.add(MicroBuilderFlagsE::DebugInfo);
+        builder_->setFlags(builderFlags);
+        builder_->setCurrentDebugInfo({});
+
+        const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
+        const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
+        const SourceFile*     file      = srcView.file();
+        const Utf8            fileName  = file ? FileSystem::formatFileName(&ctx(), file->path()) : Utf8{};
+        builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
+
+        started_ = true;
+    }
+    else
+    {
+        SWC_ASSERT(function_ == &symbolFunc);
+        SWC_ASSERT(root_ == root);
+    }
 
     while (true)
     {
@@ -72,9 +95,15 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         if (result == AstVisitResult::Pause)
             return Result::Pause;
         if (result == AstVisitResult::Error)
+        {
+            completed_ = true;
             return Result::Error;
+        }
         if (result == AstVisitResult::Stop)
+        {
+            completed_ = true;
             return Result::Continue;
+        }
     }
 }
 
@@ -201,7 +230,6 @@ CodeGen::VariableSymbolCodeGenPayload& CodeGen::ensureVariableSymbolPayload(cons
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
     VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
-    symbolPayload.runId                         = runId_;
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
 }
@@ -209,7 +237,7 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
 {
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
-    if (!symbolPayload || symbolPayload->runId != runId_ || !symbolPayload->hasPayload)
+    if (!symbolPayload || !symbolPayload->hasPayload)
         return nullptr;
     return &symbolPayload->payload;
 }
@@ -217,7 +245,6 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
 void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot)
 {
     VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
-    symbolPayload.runId                         = runId_;
     symbolPayload.localSlot                     = slot;
     symbolPayload.hasLocalSlot                  = true;
 }
@@ -225,7 +252,7 @@ void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot&
 const CodeGen::LocalStackSlot* CodeGen::localStackSlot(const SymbolVariable& sym) const
 {
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
-    if (!symbolPayload || symbolPayload->runId != runId_ || !symbolPayload->hasLocalSlot)
+    if (!symbolPayload || !symbolPayload->hasLocalSlot)
         return nullptr;
     return &symbolPayload->localSlot;
 }
@@ -289,7 +316,6 @@ CodeGen::IfStmtCodeGenState& CodeGen::setIfStmtCodeGenState(AstNodeRef nodeRef, 
         sema().setCodeGenPayload(nodeRef, payload);
     }
 
-    payload->runId = runId_;
     payload->state = value;
     return payload->state;
 }
@@ -301,7 +327,7 @@ CodeGen::IfStmtCodeGenState* CodeGen::ifStmtCodeGenState(AstNodeRef nodeRef)
         return nullptr;
 
     IfStmtCodeGenPayload* payload = sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
-    if (!payload || payload->runId != runId_)
+    if (!payload)
         return nullptr;
     return &payload->state;
 }
@@ -313,11 +339,10 @@ void CodeGen::eraseIfStmtCodeGenState(AstNodeRef nodeRef)
         return;
 
     IfStmtCodeGenPayload* payload = sema().codeGenPayload<IfStmtCodeGenPayload>(nodeRef);
-    if (!payload || payload->runId != runId_)
+    if (!payload)
         return;
 
     payload->state = {};
-    payload->runId = 0;
 }
 
 CodeGen::SwitchStmtCodeGenState& CodeGen::setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value)
@@ -332,7 +357,6 @@ CodeGen::SwitchStmtCodeGenState& CodeGen::setSwitchStmtCodeGenState(AstNodeRef n
         sema().setCodeGenPayload(nodeRef, payload);
     }
 
-    payload->runId = runId_;
     payload->state = value;
     return payload->state;
 }
@@ -344,7 +368,7 @@ CodeGen::SwitchStmtCodeGenState* CodeGen::switchStmtCodeGenState(AstNodeRef node
         return nullptr;
 
     SwitchStmtCodeGenPayload* payload = sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
-    if (!payload || payload->runId != runId_)
+    if (!payload)
         return nullptr;
     return &payload->state;
 }
@@ -356,11 +380,10 @@ void CodeGen::eraseSwitchStmtCodeGenState(AstNodeRef nodeRef)
         return;
 
     SwitchStmtCodeGenPayload* payload = sema().codeGenPayload<SwitchStmtCodeGenPayload>(nodeRef);
-    if (!payload || payload->runId != runId_)
+    if (!payload)
         return;
 
     payload->state = {};
-    payload->runId = 0;
 }
 
 void CodeGen::pushFrame(const CodeGenFrame& frame)

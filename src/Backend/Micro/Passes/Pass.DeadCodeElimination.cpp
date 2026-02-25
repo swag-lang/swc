@@ -31,12 +31,6 @@ namespace
             liveRegs.insert(reg.packed);
     }
 
-    void addHiddenIndirectReturnArgReg(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
-    {
-        if (!conv.intArgRegs.empty())
-            liveRegs.insert(conv.intArgRegs.front().packed);
-    }
-
     void killCallClobberedRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
     {
         for (const MicroReg reg : conv.intTransientRegs)
@@ -291,7 +285,6 @@ namespace
             const CallConv& conv = CallConv::get(callConvKind);
             addLiveReg(outLiveIn, conv.intReturn);
             addLiveReg(outLiveIn, conv.floatReturn);
-            addHiddenIndirectReturnArgReg(outLiveIn, conv);
         }
 
         if (useDef.isCall)
@@ -443,7 +436,6 @@ namespace
                     processRegion = true;
                     addLiveReg(liveRegs, conv.intReturn);
                     addLiveReg(liveRegs, conv.floatReturn);
-                    addHiddenIndirectReturnArgReg(liveRegs, conv);
                     continue;
                 }
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
-#include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"

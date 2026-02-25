@@ -35,7 +35,7 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
+        const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar);
         if (symbolPayload)
             return *symbolPayload;
 

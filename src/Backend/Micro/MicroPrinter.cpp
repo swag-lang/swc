@@ -534,7 +534,20 @@ namespace
         const auto assignOp = binaryAssignOperator(op);
         if (!assignOp.empty())
             return std::format("{} {} {}", lhs, assignOp, rhs);
-        return std::format("{} = {}({}, {})", lhs, microOpName(op), lhs, rhs);
+
+        const Utf8 opName = tagInstructionToken(microOpName(op));
+        switch (op)
+        {
+            case MicroOp::ConvertFloatToFloat:
+            case MicroOp::ConvertFloatToInt:
+            case MicroOp::ConvertIntToFloat:
+            case MicroOp::ConvertUIntToFloat64:
+                return std::format("{} = {}({})", lhs, opName, rhs);
+            default:
+                break;
+        }
+
+        return std::format("{} = {}({}, {})", lhs, opName, lhs, rhs);
     }
 
     Utf8 naturalExtendInstruction(std::string_view dst, std::string_view src, bool isSigned, MicroOpBits dstBits, MicroOpBits srcBits)
@@ -582,9 +595,9 @@ namespace
                 return std::format("{} = 0", regName(ops[0].reg, regPrintMode, encoder));
 
             case MicroInstrOpcode::OpUnaryReg:
-                return std::format("{} = {} {}", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[2].microOp), regName(ops[0].reg, regPrintMode, encoder));
+                return std::format("{} = {} {}", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[2].microOp)), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::OpUnaryMem:
-                return std::format("{} {}", microOpName(ops[2].microOp), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
+                return std::format("{} {}", tagInstructionToken(microOpName(ops[2].microOp)), memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder));
 
             case MicroInstrOpcode::OpBinaryRegImm:
             {
@@ -626,7 +639,7 @@ namespace
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
                 if (!infixOp.empty())
                     return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
-                return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), microOpName(ops[4].microOp), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), std::format("b{}", opBitsName(ops[3].opBits)));
+                return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder), std::format("b{}", opBitsName(ops[3].opBits)));
             }
 
             case MicroInstrOpcode::CmpRegReg:

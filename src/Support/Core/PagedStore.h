@@ -49,7 +49,7 @@ public:
     template<class T>
     Ref pushBack(const T& v)
     {
-        auto [r, p]         = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        auto [r, p] = allocate(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         if constexpr (std::is_trivially_copyable_v<T>)
         {
             std::memcpy(p, &v, sizeof(T));

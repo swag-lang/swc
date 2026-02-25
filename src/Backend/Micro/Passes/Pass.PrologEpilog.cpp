@@ -530,4 +530,3 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
 }
 
 SWC_END_NAMESPACE();
-

@@ -20,7 +20,7 @@ namespace
 
     struct StackSlotKey
     {
-        uint64_t   offset = 0;
+        uint64_t    offset = 0;
         MicroOpBits opBits = MicroOpBits::Zero;
 
         bool operator==(const StackSlotKey&) const = default;
@@ -223,10 +223,10 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool            changed = false;
-    KnownRegMap     known;
+    bool              changed = false;
+    KnownRegMap       known;
     KnownStackSlotMap knownStackSlots;
-    KnownAddressMap knownAddresses;
+    KnownAddressMap   knownAddresses;
     known.reserve(64);
     knownStackSlots.reserve(64);
     knownAddresses.reserve(32);
@@ -454,7 +454,7 @@ bool MicroConstantPropagationPass::run(MicroPassContext& context)
             uint64_t stackOffset = 0;
             if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[4].valueU64))
             {
-                uint64_t knownValue = 0;
+                uint64_t   knownValue = 0;
                 const auto itKnownReg = known.find(ops[1].reg.packed);
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits) && itKnownReg != known.end())
                 {

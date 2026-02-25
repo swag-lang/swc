@@ -50,7 +50,7 @@ namespace
         if (!context.instructions || !context.hasPrintInstrCountBeforeAll)
             return optimize;
 
-        const size_t countAfter = context.instructions->count();
+        const size_t countAfter  = context.instructions->count();
         const size_t countBefore = context.printInstrCountBeforeAll;
         double       gainPercent = 0.0;
         if (countBefore)

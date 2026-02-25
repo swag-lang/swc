@@ -222,7 +222,7 @@ namespace
             if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<Ref>::max())
                 return false;
 
-            const Ref labelRef = static_cast<Ref>(labelOps[0].valueU64);
+            const Ref labelRef                         = static_cast<Ref>(labelOps[0].valueU64);
             outData.labelRefToInstructionRef[labelRef] = instructionRef;
         }
 
@@ -249,8 +249,8 @@ namespace
                 if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<Ref>::max())
                     return false;
 
-                const Ref targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
-                const auto targetRefIt   = indexData.labelRefToInstructionRef.find(targetLabelRef);
+                const Ref  targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
+                const auto targetRefIt    = indexData.labelRefToInstructionRef.find(targetLabelRef);
                 if (targetRefIt == indexData.labelRefToInstructionRef.end())
                     return false;
 
@@ -278,11 +278,11 @@ namespace
         return true;
     }
 
-    void transferInstructionLiveness(std::unordered_set<uint32_t>& outLiveIn,
+    void transferInstructionLiveness(std::unordered_set<uint32_t>&       outLiveIn,
                                      const std::unordered_set<uint32_t>& liveOut,
-                                     const MicroInstr& inst,
-                                     const MicroInstrUseDef& useDef,
-                                     CallConvKind callConvKind)
+                                     const MicroInstr&                   inst,
+                                     const MicroInstrUseDef&             useDef,
+                                     CallConvKind                        callConvKind)
     {
         outLiveIn = liveOut;
 
@@ -327,19 +327,19 @@ namespace
         if (!buildControlFlowData(storage, operands, indexData, controlFlowData))
             return false;
 
-        const size_t instructionCount = indexData.refs.size();
+        const size_t                              instructionCount = indexData.refs.size();
         std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
         std::vector<std::unordered_set<uint32_t>> liveOut(instructionCount);
-        bool                                       changed = true;
+        bool                                      changed = true;
         while (changed)
         {
             changed = false;
 
             for (size_t i = instructionCount; i > 0; --i)
             {
-                const size_t           idx            = i - 1;
-                const Ref              instructionRef = indexData.refs[idx];
-                const MicroInstr*      inst           = storage.ptr(instructionRef);
+                const size_t      idx            = i - 1;
+                const Ref         instructionRef = indexData.refs[idx];
+                const MicroInstr* inst           = storage.ptr(instructionRef);
                 if (!inst)
                     continue;
 

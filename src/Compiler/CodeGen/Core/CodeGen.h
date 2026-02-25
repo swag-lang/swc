@@ -58,12 +58,12 @@ public:
 
     struct SwitchStmtCodeGenState
     {
-        Ref                                           doneLabel       = INVALID_REF;
-        TypeRef                                       compareTypeRef  = TypeRef::invalid();
-        MicroReg                                      switchValueReg;
-        MicroOpBits                                   compareOpBits   = MicroOpBits::B64;
-        bool                                          hasExpression   = false;
-        bool                                          useUnsignedCond = false;
+        Ref                                                    doneLabel      = INVALID_REF;
+        TypeRef                                                compareTypeRef = TypeRef::invalid();
+        MicroReg                                               switchValueReg;
+        MicroOpBits                                            compareOpBits   = MicroOpBits::B64;
+        bool                                                   hasExpression   = false;
+        bool                                                   useUnsignedCond = false;
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenState> caseStates;
     };
 
@@ -253,4 +253,3 @@ private:
 };
 
 SWC_END_NAMESPACE();
-

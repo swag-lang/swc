@@ -1429,9 +1429,9 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        codeGenPreNode(CodeGen& codeGen) const;
-    static Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    static Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    static Result        codeGenPostNode(CodeGen& codeGen);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------

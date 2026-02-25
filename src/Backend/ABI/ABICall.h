@@ -78,4 +78,3 @@ namespace ABICall
 }
 
 SWC_END_NAMESPACE();
-

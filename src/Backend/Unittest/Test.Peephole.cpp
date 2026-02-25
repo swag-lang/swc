@@ -14,7 +14,7 @@ namespace
     void setPeepholeOptimizeLevel(MicroBuilder& builder, bool optimizeForSize = false)
     {
         Runtime::BuildCfgBackend backendCfg{};
-        backendCfg.optimize = true;
+        backendCfg.optimize        = true;
         backendCfg.optimizeForSize = optimizeForSize;
         builder.setBackendBuildCfg(backendCfg);
     }
@@ -183,14 +183,14 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder, true);
 
-    constexpr MicroReg rbp = MicroReg::intReg(5);
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rdx = MicroReg::intReg(2);
-    constexpr MicroReg rcx = MicroReg::intReg(1);
-    constexpr MicroReg rax = MicroReg::intReg(0);
-    constexpr MicroReg r13 = MicroReg::intReg(13);
-    constexpr MicroReg r14 = MicroReg::intReg(14);
-    constexpr MicroReg r15 = MicroReg::intReg(15);
+    constexpr MicroReg rbp       = MicroReg::intReg(5);
+    constexpr MicroReg rsp       = MicroReg::intReg(4);
+    constexpr MicroReg rdx       = MicroReg::intReg(2);
+    constexpr MicroReg rcx       = MicroReg::intReg(1);
+    constexpr MicroReg rax       = MicroReg::intReg(0);
+    constexpr MicroReg r13       = MicroReg::intReg(13);
+    constexpr MicroReg r14       = MicroReg::intReg(14);
+    constexpr MicroReg r15       = MicroReg::intReg(15);
     const Ref          loopLabel = builder.createLabel();
 
     builder.emitPush(rbp);
@@ -206,12 +206,12 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 
     runPeepholePass(builder);
 
-    bool hasFrameCopy          = false;
-    bool hasLoadFromFrameBase0 = false;
-    bool hasLoadFromFrameBase1 = false;
-    bool hasLoadFromFrameBase2 = false;
-    bool hasLoadFromStackBase  = false;
-    const MicroOperandStorage& operands = builder.operands();
+    bool                       hasFrameCopy          = false;
+    bool                       hasLoadFromFrameBase0 = false;
+    bool                       hasLoadFromFrameBase1 = false;
+    bool                       hasLoadFromFrameBase2 = false;
+    bool                       hasLoadFromStackBase  = false;
+    const MicroOperandStorage& operands              = builder.operands();
     for (const MicroInstr& inst : builder.instructions().view())
     {
         const MicroInstrOperand* ops = inst.ops(operands);
@@ -276,8 +276,3 @@ SWC_TEST_END()
 #endif
 
 SWC_END_NAMESPACE();
-
-
-
-
-

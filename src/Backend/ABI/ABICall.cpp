@@ -99,7 +99,7 @@ namespace
         if (ret.isVoid || ret.isIndirect)
             return;
 
-        MicroReg regBase, regTmp;
+        MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
         SWC_INTERNAL_CHECK(hasScratchRegs);
         SWC_INTERNAL_CHECK(regBase.isValid());
@@ -171,7 +171,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     if (hasStackArgs)
     {
-        MicroReg regBase, regTmp;
+        MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
         SWC_INTERNAL_CHECK(hasScratchRegs);
 
@@ -341,8 +341,8 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
     void* indirectRetStorage = builder.ctx().compiler().allocateArray<uint8_t>(ret.indirectSize);
 
-    MicroReg hiddenRetArgSrcReg, hiddenRetArgTmpReg;
-    const bool hasScratchRegs     = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
+    MicroReg   hiddenRetArgSrcReg, hiddenRetArgTmpReg;
+    const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
     SWC_INTERNAL_CHECK(hasScratchRegs);
     builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
 
@@ -442,7 +442,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     const uint32_t  numArgs     = static_cast<uint32_t>(args.size());
     const uint32_t  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
-    MicroReg regBase, regTmp;
+    MicroReg   regBase, regTmp;
     const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
     SWC_INTERNAL_CHECK(hasScratchRegs);
 
@@ -545,4 +545,3 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 }
 
 SWC_END_NAMESPACE();
-

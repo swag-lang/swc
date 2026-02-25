@@ -840,4 +840,3 @@ bool MicroRegisterAllocationPass::run(MicroPassContext& context)
 }
 
 SWC_END_NAMESPACE();
-

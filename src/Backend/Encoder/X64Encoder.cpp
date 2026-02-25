@@ -783,10 +783,10 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             if (ops[1].reg != rcxReg)
             {
                 const std::array avoidRegs = {rcxReg, ops[0].reg, ops[1].reg};
-                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
-                outIssue.operandIndex = 1;
-                outIssue.requiredReg  = rcxReg;
-                outIssue.helperReg    = selectRewriteHelperReg(avoidRegs);
+                outIssue.kind              = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex      = 1;
+                outIssue.requiredReg       = rcxReg;
+                outIssue.helperReg         = selectRewriteHelperReg(avoidRegs);
                 SWC_ASSERT(outIssue.helperReg.isValid());
                 return true;
             }

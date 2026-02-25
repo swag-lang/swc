@@ -286,4 +286,3 @@ const CallConv& CallConv::host()
 }
 
 SWC_END_NAMESPACE();
-

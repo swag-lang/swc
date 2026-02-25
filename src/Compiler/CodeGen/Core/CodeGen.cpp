@@ -12,6 +12,34 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    struct VariableSymbolCodeGenPayload
+    {
+        CodeGenNodePayload   payload;
+        CodeGen::LocalStackSlot localSlot;
+        bool                 hasPayload   = false;
+        bool                 hasLocalSlot = false;
+    };
+
+    VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym)
+    {
+        return static_cast<VariableSymbolCodeGenPayload*>(sym.codeGenPayload());
+    }
+
+    VariableSymbolCodeGenPayload& ensureVariableSymbolPayload(CodeGen& codeGen, const SymbolVariable& sym)
+    {
+        VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(sym);
+        if (!payload)
+        {
+            payload = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
+            const_cast<SymbolVariable&>(sym).setCodeGenPayload(payload);
+        }
+
+        return *SWC_CHECK_NOT_NULL(payload);
+    }
+}
+
 CodeGen::CodeGen(Sema& sema) :
     sema_(&sema)
 {
@@ -210,26 +238,9 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     return *SWC_CHECK_NOT_NULL(safePayload(nodeRef));
 }
 
-CodeGen::VariableSymbolCodeGenPayload* CodeGen::safeVariableSymbolPayload(const SymbolVariable& sym)
-{
-    return static_cast<VariableSymbolCodeGenPayload*>(sym.codeGenPayload());
-}
-
-CodeGen::VariableSymbolCodeGenPayload& CodeGen::ensureVariableSymbolPayload(const SymbolVariable& sym)
-{
-    VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(sym);
-    if (!payload)
-    {
-        payload = compiler().allocate<VariableSymbolCodeGenPayload>();
-        const_cast<SymbolVariable&>(sym).setCodeGenPayload(payload);
-    }
-
-    return *SWC_CHECK_NOT_NULL(payload);
-}
-
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
-    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
+    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
 }
@@ -244,7 +255,7 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
 
 void CodeGen::setLocalStackSlot(const SymbolVariable& sym, const LocalStackSlot& slot)
 {
-    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(sym);
+    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
     symbolPayload.localSlot                     = slot;
     symbolPayload.hasLocalSlot                  = true;
 }

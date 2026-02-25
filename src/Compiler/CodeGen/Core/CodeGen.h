@@ -60,14 +60,6 @@ public:
         uint32_t align  = 1;
     };
 
-    struct VariableSymbolCodeGenPayload
-    {
-        CodeGenNodePayload payload;
-        LocalStackSlot     localSlot;
-        bool               hasPayload   = false;
-        bool               hasLocalSlot = false;
-    };
-
     explicit CodeGen(Sema& sema);
     Result exec(SymbolFunction& symbolFunc, AstNodeRef root);
 
@@ -163,15 +155,13 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    AstNodeRef                           resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
-    static VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym);
-    VariableSymbolCodeGenPayload&        ensureVariableSymbolPayload(const SymbolVariable& sym);
-    void                                 setVisitors();
-    Result                               preNode(AstNode& node);
-    Result                               postNode(AstNode& node);
-    Result                               preNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result                               postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result                               emitConstant(AstNodeRef nodeRef);
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
+    void       setVisitors();
+    Result     preNode(AstNode& node);
+    Result     postNode(AstNode& node);
+    Result     preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result     postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result     emitConstant(AstNodeRef nodeRef);
 
     Sema*                     sema_ = nullptr;
     AstVisit                  visit_;

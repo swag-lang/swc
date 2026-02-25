@@ -67,9 +67,9 @@ namespace
 #include "Backend/Micro/MicroInstr.Def.inc"
 
 #undef SWC_MICRO_INSTR_DEF
-            default:
-                return "Unknown";
         }
+
+        SWC_UNREACHABLE();
     }
 
     Utf8 opcodeName(MicroInstrOpcode op)
@@ -93,9 +93,8 @@ namespace
                 return "64";
             case MicroOpBits::B128:
                 return "128";
-            default:
-                return "?";
         }
+        SWC_UNREACHABLE();
     }
 
     std::string_view microOpName(MicroOp op)
@@ -190,9 +189,8 @@ namespace
                 return "test";
             case MicroOp::Xor:
                 return "xor";
-            default:
-                return "?";
         }
+        SWC_UNREACHABLE();
     }
 
     std::string_view condName(MicroCond cond)
@@ -241,9 +239,8 @@ namespace
                 return "jmp";
             case MicroCond::Zero:
                 return "z";
-            default:
-                return "?";
         }
+        SWC_UNREACHABLE();
     }
 
     bool isUnconditionalJump(MicroCond cond)
@@ -1066,9 +1063,8 @@ namespace
                 return "constant";
             case MicroRelocation::Kind::LocalFunctionAddress:
                 return "local";
-            default:
-                return "unknown";
         }
+        SWC_UNREACHABLE();
     }
 
     Utf8 relocationTargetDebugValue(const TaskContext& ctx, const MicroRelocation& relocation)
@@ -1162,8 +1158,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         if (inst.op != MicroInstrOpcode::Label || inst.numOperands < 1)
             continue;
 
-        const MicroInstrOperand* ops      = inst.ops(storeOps);
-        const Ref                labelRef = static_cast<Ref>(ops[0].valueU64);
+        const MicroInstrOperand* ops         = inst.ops(storeOps);
+        const Ref                labelRef    = static_cast<Ref>(ops[0].valueU64);
         labelInstructionIndexByRef[labelRef] = it.current;
     }
 
@@ -1213,7 +1209,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
         if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
         {
-            const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
+            const Ref  labelRef = static_cast<Ref>(ops[2].valueU64);
             const auto labelIt  = labelInstructionIndexByRef.find(labelRef);
             if (labelIt != labelInstructionIndexByRef.end())
                 naturalJumpTargetIndex = formatInstructionIndex(labelIt->second, indexWidth);

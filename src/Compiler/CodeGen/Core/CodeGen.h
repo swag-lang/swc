@@ -82,13 +82,13 @@ public:
 
     struct IfStmtCodeGenPayload
     {
-        uint64_t            runId = 0;
+        uint64_t           runId = 0;
         IfStmtCodeGenState state;
     };
 
     struct SwitchStmtCodeGenPayload
     {
-        uint64_t                runId = 0;
+        uint64_t               runId = 0;
         SwitchStmtCodeGenState state;
     };
 
@@ -128,20 +128,20 @@ public:
     MicroBuilder&            builder() { return *SWC_CHECK_NOT_NULL(builder_); }
     const MicroBuilder&      builder() const { return *SWC_CHECK_NOT_NULL(builder_); }
 
-    Ast&              ast();
-    const Ast&        ast() const;
-    SourceView&       srcView(SourceViewRef srcViewRef);
-    const SourceView& srcView(SourceViewRef srcViewRef) const;
-    AstNode&          node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&    node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    AstVisit&         visit() { return visit_; }
-    const AstVisit&   visit() const { return visit_; }
-    AstNodeRef        curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&          curNode() { return node(curNodeRef()); }
-    const AstNode&    curNode() const { return node(curNodeRef()); }
-    const Token&      token(const SourceCodeRef& codeRef) const;
-    CodeGenFrame&       frame() { return frames_.back(); }
-    const CodeGenFrame& frame() const { return frames_.back(); }
+    Ast&                          ast();
+    const Ast&                    ast() const;
+    SourceView&                   srcView(SourceViewRef srcViewRef);
+    const SourceView&             srcView(SourceViewRef srcViewRef) const;
+    AstNode&                      node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&                node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    AstVisit&                     visit() { return visit_; }
+    const AstVisit&               visit() const { return visit_; }
+    AstNodeRef                    curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&                      curNode() { return node(curNodeRef()); }
+    const AstNode&                curNode() const { return node(curNodeRef()); }
+    const Token&                  token(const SourceCodeRef& codeRef) const;
+    CodeGenFrame&                 frame() { return frames_.back(); }
+    const CodeGenFrame&           frame() const { return frames_.back(); }
     std::span<const CodeGenFrame> frames() const { return frames_; }
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
@@ -209,25 +209,25 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
-    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
-    VariableSymbolCodeGenPayload*       safeVariableSymbolPayload(const SymbolVariable& sym) const;
-    VariableSymbolCodeGenPayload&       ensureVariableSymbolPayload(const SymbolVariable& sym);
-    void       setVisitors();
-    Result     preNode(AstNode& node);
-    Result     postNode(AstNode& node);
-    Result     preNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result     postNodeChild(AstNode& node, AstNodeRef& childRef);
-    Result     emitConstant(AstNodeRef nodeRef);
+    AstNodeRef                    resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
+    VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym) const;
+    VariableSymbolCodeGenPayload& ensureVariableSymbolPayload(const SymbolVariable& sym);
+    void                          setVisitors();
+    Result                        preNode(AstNode& node);
+    Result                        postNode(AstNode& node);
+    Result                        preNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result                        postNodeChild(AstNode& node, AstNodeRef& childRef);
+    Result                        emitConstant(AstNodeRef nodeRef);
 
-    Sema*                                                         sema_ = nullptr;
-    AstVisit                                                      visit_;
-    std::vector<CodeGenFrame>                                    frames_;
-    SymbolFunction*                                               function_            = nullptr;
-    MicroBuilder*                                                 builder_             = nullptr;
-    uint32_t                                                      nextVirtualRegister_ = 1;
-    uint32_t                                                      localStackFrameSize_ = 0;
-    MicroReg                                                      localStackBaseReg_;
-    uint64_t                                                      runId_               = 0;
+    Sema*                     sema_ = nullptr;
+    AstVisit                  visit_;
+    std::vector<CodeGenFrame> frames_;
+    SymbolFunction*           function_            = nullptr;
+    MicroBuilder*             builder_             = nullptr;
+    uint32_t                  nextVirtualRegister_ = 1;
+    uint32_t                  localStackFrameSize_ = 0;
+    MicroReg                  localStackBaseReg_;
+    uint64_t                  runId_ = 0;
 };
 
 SWC_END_NAMESPACE();

@@ -898,6 +898,55 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::CmpRegImm)
+    {
+        if (ops[1].opBits != MicroOpBits::B8 &&
+            ops[1].opBits != MicroOpBits::B16 &&
+            ops[1].opBits != MicroOpBits::B32 &&
+            ops[1].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 1;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
+        const bool immediateIsEncodable = !ops[2].hasWideImmediateValue() ? canEncodeOpImmediate(ops[2].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[2].wideImmediateValue(), ops[1].opBits);
+        if (!immediateIsEncodable)
+        {
+            outIssue.kind       = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            outIssue.scratchReg = selectRegImmRewriteScratchReg(ops[0].reg);
+            SWC_ASSERT(outIssue.scratchReg.isValid());
+            return true;
+        }
+    }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::CmpMemImm)
+    {
+        if (ops[1].opBits != MicroOpBits::B8 &&
+            ops[1].opBits != MicroOpBits::B16 &&
+            ops[1].opBits != MicroOpBits::B32 &&
+            ops[1].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 1;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
+        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        if (!immediateIsEncodable)
+        {
+            const std::array avoidRegs = {ops[0].reg};
+            outIssue.kind              = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            outIssue.scratchReg        = selectRewriteHelperReg(avoidRegs);
+            SWC_ASSERT(outIssue.scratchReg.isValid());
+            return true;
+        }
+    }
+
+    ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
     {
         if (!isShiftImmediateOp(ops[2].microOp))

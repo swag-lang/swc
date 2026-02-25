@@ -81,6 +81,68 @@ namespace
                 return std::nullopt;
         }
     }
+
+    bool tryFoldAddSubSignedNoOverflow(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
+    {
+        if (op != MicroOp::Add && op != MicroOp::Subtract)
+            return false;
+
+        const int64_t lhsSigned = toSigned(lhs, opBits);
+        const int64_t rhsSigned = toSigned(rhs, opBits);
+        int64_t       minValue  = std::numeric_limits<int64_t>::min();
+        int64_t       maxValue  = std::numeric_limits<int64_t>::max();
+        switch (opBits)
+        {
+            case MicroOpBits::B8:
+                minValue = std::numeric_limits<int8_t>::min();
+                maxValue = std::numeric_limits<int8_t>::max();
+                break;
+            case MicroOpBits::B16:
+                minValue = std::numeric_limits<int16_t>::min();
+                maxValue = std::numeric_limits<int16_t>::max();
+                break;
+            case MicroOpBits::B32:
+                minValue = std::numeric_limits<int32_t>::min();
+                maxValue = std::numeric_limits<int32_t>::max();
+                break;
+            case MicroOpBits::B64:
+                minValue = std::numeric_limits<int64_t>::min();
+                maxValue = std::numeric_limits<int64_t>::max();
+                break;
+            default:
+                return false;
+        }
+
+        int64_t resultSigned = 0;
+        if (op == MicroOp::Add)
+        {
+            if ((rhsSigned > 0 && lhsSigned > maxValue - rhsSigned) ||
+                (rhsSigned < 0 && lhsSigned < minValue - rhsSigned))
+            {
+                return false;
+            }
+
+            resultSigned = lhsSigned + rhsSigned;
+        }
+        else
+        {
+            if ((rhsSigned < 0 && lhsSigned > maxValue + rhsSigned) ||
+                (rhsSigned > 0 && lhsSigned < minValue + rhsSigned))
+            {
+                return false;
+            }
+
+            resultSigned = lhsSigned - rhsSigned;
+        }
+
+        outValue = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
+        return true;
+    }
+
+    bool isAddOrSub(MicroOp op)
+    {
+        return op == MicroOp::Add || op == MicroOp::Subtract;
+    }
 }
 
 Result MicroBranchFoldingPass::run(MicroPassContext& context)
@@ -95,6 +157,18 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
 
     MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
     MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
+    std::unordered_set<Ref> referencedLabels;
+    referencedLabels.reserve(storage.count());
+    for (const MicroInstr& scanInst : storage.view())
+    {
+        if ((scanInst.op == MicroInstrOpcode::JumpCond || scanInst.op == MicroInstrOpcode::JumpCondImm) && scanInst.numOperands >= 3)
+        {
+            const auto* scanOps = scanInst.ops(operands);
+            if (scanOps)
+                referencedLabels.insert(static_cast<Ref>(scanOps[2].valueU64));
+        }
+    }
+
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
         const Ref         instRef = it.current;
@@ -213,12 +287,39 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {
-                    return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
+                    if (tryFoldAddSubSignedNoOverflow(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                    {
+                        known[ops[0].reg.packed] = {
+                            .value = folded,
+                        };
+                    }
+                    else if (!isAddOrSub(ops[2].microOp))
+                    {
+                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
+                    }
                 }
             }
         }
 
-        if (inst.op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(inst))
+        bool clearForControlFlowBoundary = false;
+        if (inst.op == MicroInstrOpcode::Label)
+        {
+            if (ops && inst.numOperands >= 1)
+            {
+                const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
+                clearForControlFlowBoundary = referencedLabels.contains(labelRef);
+            }
+            else
+            {
+                clearForControlFlowBoundary = true;
+            }
+        }
+        else if (MicroInstrInfo::isTerminatorInstruction(inst))
+        {
+            clearForControlFlowBoundary = true;
+        }
+
+        if (clearForControlFlowBoundary)
         {
             known.clear();
             compareState.valid = false;

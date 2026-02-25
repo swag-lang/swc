@@ -409,6 +409,25 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
     }
 
+    void insertCmpRegReg(const MicroPassContext& context, Ref instRef, MicroReg lhsReg, MicroReg rhsReg, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 3> ops;
+        ops[0].reg    = lhsReg;
+        ops[1].reg    = rhsReg;
+        ops[2].opBits = opBits;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::CmpRegReg, ops);
+    }
+
+    void insertCmpMemReg(const MicroPassContext& context, Ref instRef, MicroReg memReg, uint64_t memOffset, MicroReg rhsReg, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 4> ops;
+        ops[0].reg      = memReg;
+        ops[1].reg      = rhsReg;
+        ops[2].opBits   = opBits;
+        ops[3].valueU64 = memOffset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::CmpMemReg, ops);
+    }
+
     void insertLoadRegImm(const MicroPassContext& context, Ref instRef, MicroReg dstReg, MicroOpBits opBits, const MicroInstrOperand& immOperand)
     {
         std::array<MicroInstrOperand, 3> ops;
@@ -421,25 +440,38 @@ namespace
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, const Encoder& encoder, Ref instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
         SWC_ASSERT(issue.scratchReg.isValid());
 
-        const MicroReg          originalDstReg = ops[0].reg;
-        const MicroOpBits       opBits         = ops[1].opBits;
-        const MicroOp           op             = ops[2].microOp;
-        const MicroInstrOperand immOperand     = ops[3];
-
         const MicroReg scratchReg = issue.scratchReg;
-        SWC_ASSERT(scratchReg.isValid() && scratchReg != originalDstReg);
+        SWC_ASSERT(scratchReg.isValid() && scratchReg != ops[0].reg);
+
+        const MicroOpBits       opBits = ops[1].opBits;
+        const MicroInstrOperand immOperand =
+            inst.op == MicroInstrOpcode::OpBinaryRegImm ? ops[3] :
+            inst.op == MicroInstrOpcode::CmpRegImm      ? ops[2] :
+                                                           ops[3];
 
         const MicroReg stackPointerReg       = encoder.stackPointerReg();
-        const bool     shouldStoreScratchReg = scratchReg != originalDstReg;
+        const bool     shouldStoreScratchReg = scratchReg != ops[0].reg;
 
         if (shouldStoreScratchReg)
             insertStoreRegToStack(context, instRef, stackPointerReg, stackScratchBaseOffset, scratchReg);
 
         insertLoadRegImm(context, instRef, scratchReg, opBits, immOperand);
-        insertBinaryRegReg(context, instRef, originalDstReg, scratchReg, op, opBits);
+
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
+        {
+            insertBinaryRegReg(context, instRef, ops[0].reg, scratchReg, ops[2].microOp, opBits);
+        }
+        else if (inst.op == MicroInstrOpcode::CmpRegImm)
+        {
+            insertCmpRegReg(context, instRef, ops[0].reg, scratchReg, opBits);
+        }
+        else
+        {
+            insertCmpMemReg(context, instRef, ops[0].reg, ops[2].valueU64, scratchReg, opBits);
+        }
 
         if (shouldStoreScratchReg)
             insertLoadRegFromStack(context, instRef, scratchReg, stackPointerReg, stackScratchBaseOffset);

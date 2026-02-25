@@ -65,6 +65,45 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroControlFlowSimplification_MergesJumpChain)
+{
+    MicroBuilder       builder(ctx);
+    constexpr MicroReg r8             = MicroReg::intReg(8);
+    const Ref          fallthroughRef = builder.createLabel();
+    const Ref          targetRef      = builder.createLabel();
+
+    builder.emitCmpRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, fallthroughRef);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetRef);
+    builder.placeLabel(fallthroughRef);
+    builder.emitRet();
+    builder.placeLabel(targetRef);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runControlFlowSimplificationPass(builder));
+
+    uint32_t jumpCount = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            continue;
+
+        ++jumpCount;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (!ops)
+            return Result::Error;
+
+        if (ops[0].cpuCond != MicroCond::NotEqual)
+            return Result::Error;
+        if (ops[2].valueU64 != targetRef)
+            return Result::Error;
+    }
+
+    if (jumpCount != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #endif
 
 SWC_END_NAMESPACE();

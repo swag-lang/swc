@@ -11,6 +11,62 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool tryInvertCondition(MicroCond& outCond, MicroCond cond)
+    {
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::Zero:
+                outCond = MicroCond::NotEqual;
+                return true;
+            case MicroCond::NotEqual:
+            case MicroCond::NotZero:
+                outCond = MicroCond::Equal;
+                return true;
+            case MicroCond::Above:
+                outCond = MicroCond::BelowOrEqual;
+                return true;
+            case MicroCond::AboveOrEqual:
+                outCond = MicroCond::Below;
+                return true;
+            case MicroCond::Below:
+                outCond = MicroCond::AboveOrEqual;
+                return true;
+            case MicroCond::BelowOrEqual:
+            case MicroCond::NotAbove:
+                outCond = MicroCond::Above;
+                return true;
+            case MicroCond::Greater:
+                outCond = MicroCond::LessOrEqual;
+                return true;
+            case MicroCond::GreaterOrEqual:
+                outCond = MicroCond::Less;
+                return true;
+            case MicroCond::Less:
+                outCond = MicroCond::GreaterOrEqual;
+                return true;
+            case MicroCond::LessOrEqual:
+                outCond = MicroCond::Greater;
+                return true;
+            case MicroCond::Overflow:
+                outCond = MicroCond::NotOverflow;
+                return true;
+            case MicroCond::NotOverflow:
+                outCond = MicroCond::Overflow;
+                return true;
+            case MicroCond::Parity:
+            case MicroCond::EvenParity:
+                outCond = MicroCond::NotParity;
+                return true;
+            case MicroCond::NotParity:
+            case MicroCond::NotEvenParity:
+                outCond = MicroCond::Parity;
+                return true;
+            default:
+                return false;
+        }
+    }
+
     bool isJumpToImmediateNextLabel(const MicroInstrOperand* jumpOps, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroOperandStorage& operands)
     {
         SWC_ASSERT(jumpOps != nullptr);
@@ -54,6 +110,34 @@ namespace
             outLabels.insert(static_cast<Ref>(ops[2].valueU64));
         }
     }
+
+    bool tryMergeConditionalAndUnconditionalJump(const MicroInstr& conditionalJumpInst, const MicroInstr& unconditionalJumpInst, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroOperandStorage& operands)
+    {
+        if (conditionalJumpInst.op != MicroInstrOpcode::JumpCond || unconditionalJumpInst.op != MicroInstrOpcode::JumpCond)
+            return false;
+
+        MicroInstrOperand* conditionalOps   = conditionalJumpInst.ops(operands);
+        MicroInstrOperand* unconditionalOps = unconditionalJumpInst.ops(operands);
+        if (!conditionalOps || !unconditionalOps)
+            return false;
+
+        if (conditionalOps[0].cpuCond == MicroCond::Unconditional || unconditionalOps[0].cpuCond != MicroCond::Unconditional)
+            return false;
+
+        if (conditionalOps[2].valueU64 > std::numeric_limits<Ref>::max() || unconditionalOps[2].valueU64 > std::numeric_limits<Ref>::max())
+            return false;
+
+        if (!isJumpToImmediateNextLabel(conditionalOps, scanIt, endIt, operands))
+            return false;
+
+        MicroCond invertedCond;
+        if (!tryInvertCondition(invertedCond, conditionalOps[0].cpuCond))
+            return false;
+
+        conditionalOps[0].cpuCond  = invertedCond;
+        conditionalOps[2].valueU64 = unconditionalOps[2].valueU64;
+        return true;
+    }
 }
 
 Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
@@ -78,6 +162,22 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
         {
             const MicroInstrOperand* jumpOps = inst.ops(operands);
             SWC_ASSERT(jumpOps != nullptr);
+
+            if (it != endIt)
+            {
+                const MicroInstr& nextInst = *it;
+                auto              scanIt   = it;
+                ++scanIt;
+                if (tryMergeConditionalAndUnconditionalJump(inst, nextInst, scanIt, endIt, operands))
+                {
+                    const Ref nextRef = it.current;
+                    ++it;
+                    storage.erase(nextRef);
+                    changed = true;
+                    continue;
+                }
+            }
+
             if (isJumpToImmediateNextLabel(jumpOps, it, endIt, operands))
             {
                 storage.erase(instRef);

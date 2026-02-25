@@ -67,7 +67,7 @@ namespace Unittest
         bool       hasFailure      = false;
         uint32_t   totalTests      = 0;
         uint32_t   numFailedTests  = 0;
-        const bool verboseUnittest = ctx.cmdLine().verboseInternalUnittest;
+        const bool verboseUnittest = ctx.cmdLine().verboseUnittest;
 
         for (const SetupFn setupFn : setupRegistry())
         {

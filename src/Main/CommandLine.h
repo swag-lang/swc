@@ -38,7 +38,7 @@ struct CommandLine
 
     Utf8                buildCfg       = "fast-debug";
     Utf8                targetArchName = "x86_64";
-    std::optional<bool> backendOptimizeOverride;
+    std::optional<bool> backendOptimize;
 
     bool logColor                = true;
     bool logAscii                = false;
@@ -49,8 +49,8 @@ struct CommandLine
     bool stats                   = false;
     bool verboseVerify           = false;
     bool verify                  = true;
-    bool internalUnittest        = true;
-    bool verboseInternalUnittest = false;
+    bool unittest        = true;
+    bool verboseUnittest = false;
     bool runtime                 = true;
 
     static inline bool dbgDevMode = false;

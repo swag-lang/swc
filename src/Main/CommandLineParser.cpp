@@ -236,9 +236,9 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     switch (info.type)
     {
         case CommandLineType::Bool:
-            if (info.target == &cmdLine_->backendOptimizeOverride)
+            if (info.target == &cmdLine_->backendOptimize)
             {
-                cmdLine_->backendOptimizeOverride = !invertBoolean;
+                cmdLine_->backendOptimize = !invertBoolean;
                 return true;
             }
 
@@ -438,7 +438,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::Target, "all", "--arch", nullptr, CommandLineType::EnumString, &cmdLine_->targetArchName, "x86_64", "Set the target architecture used by #arch.");
     addArg(HelpOptionGroup::Target, "all", "--cfg", nullptr, CommandLineType::String, &cmdLine_->buildCfg, nullptr, "Set the build configuration string used by #cfg.");
     addArg(HelpOptionGroup::Target, "all", "--cpu", nullptr, CommandLineType::String, &cmdLine_->targetCpu, nullptr, "Set the target CPU string used by #cpu.");
-    addArg(HelpOptionGroup::Target, "all", "--optimize", "-o", CommandLineType::Bool, &cmdLine_->backendOptimizeOverride, nullptr, "Enable backend optimization.");
+    addArg(HelpOptionGroup::Target, "all", "--optimize", "-o", CommandLineType::Bool, &cmdLine_->backendOptimize, nullptr, "Enable backend optimization.");
 
     addArg(HelpOptionGroup::Compiler, "all", "--num-cores", nullptr, CommandLineType::UnsignedInt, &cmdLine_->numCores, nullptr, "Set the maximum number of CPU cores to use (0 = auto-detect).");
     addArg(HelpOptionGroup::Compiler, "all", "--stats", nullptr, CommandLineType::Bool, &cmdLine_->stats, nullptr, "Display runtime statistics after execution.");
@@ -456,8 +456,8 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color", "-sc", CommandLineType::Bool, &cmdLine_->syntaxColor, nullptr, "Syntax color output code.");
     addArg(HelpOptionGroup::LoggingAndOutput, "all", "--syntax-color-lum", nullptr, CommandLineType::UnsignedInt, &cmdLine_->syntaxColorLum, nullptr, "Syntax color luminosity factor [0-100].");
 
-    addArg(HelpOptionGroup::Testing, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->internalUnittest, nullptr, "Run internal C++ unit tests before executing command.");
-    addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseInternalUnittest, nullptr, "Print each internal unit test status.");
+    addArg(HelpOptionGroup::Testing, "all", "--unittest", "-ut", CommandLineType::Bool, &cmdLine_->unittest, nullptr, "Run internal C++ unit tests before executing command.");
+    addArg(HelpOptionGroup::Testing, "all", "--verbose-unittest", "-vut", CommandLineType::Bool, &cmdLine_->verboseUnittest, nullptr, "Print each internal unit test status.");
 
     addArg(HelpOptionGroup::Development, "all", "--devmode", nullptr, CommandLineType::Bool, &CommandLine::dbgDevMode, nullptr, "Open a message box in case of errors.");
 #if SWC_DEV_MODE

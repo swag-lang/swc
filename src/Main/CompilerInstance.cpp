@@ -82,8 +82,8 @@ namespace
             buildCfg.backendDebugInformations = true;
         }
 
-        if (cmdLine.backendOptimizeOverride.has_value())
-            buildCfg.backend.optimize = cmdLine.backendOptimizeOverride.value();
+        if (cmdLine.backendOptimize.has_value())
+            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
     }
 
     const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)

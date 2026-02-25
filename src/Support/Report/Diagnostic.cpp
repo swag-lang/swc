@@ -139,7 +139,7 @@ void Diagnostic::addArgument(std::string_view name, std::string_view arg)
     Utf8 sanitized;
     sanitized.reserve(arg.size());
 
-    auto           ptr = reinterpret_cast<const char8_t*>(arg.data());
+    const auto*    ptr = reinterpret_cast<const char8_t*>(arg.data());
     const char8_t* end = ptr + arg.size();
     while (ptr < end)
     {
@@ -258,7 +258,7 @@ void Diagnostic::report(TaskContext& ctx) const
     if (!dismiss)
     {
         {
-            Logger::ScopedLock loggerLock(ctx.global().logger());
+            Logger::ScopedLock const loggerLock(ctx.global().logger());
             Logger::print(ctx, msg);
         }
 

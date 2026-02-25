@@ -191,8 +191,8 @@ AstNodeRef Parser::parseFunctionDecl()
     SmallVector<AstNodeRef> whereRefs;
     while (is(TokenId::KwdWhere) || is(TokenId::KwdVerify))
     {
-        const Token* loopStartToken = curToken_;
-        AstNodeRef   whereRef       = parseConstraint();
+        const Token*     loopStartToken = curToken_;
+        AstNodeRef const whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
         if (loopStartToken == curToken_)
@@ -249,7 +249,7 @@ AstNodeRef Parser::parseFunctionParam()
         return nodeRef;
     }
 
-    PushContextFlags ctx(this, ParserContextFlagsE::InFunctionParam);
+    PushContextFlags const ctx(this, ParserContextFlagsE::InFunctionParam);
     return parseVarDecl();
 }
 
@@ -293,7 +293,7 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
         nodePtr->nodeExprRef          = nodeExpr;
         nodePtr->spanAliasesRef       = parseCompoundContent(AstNodeId::AliasCallExpr, TokenId::SymPipe);
         {
-            PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+            PushContextFlags const ctxFlags(this, ParserContextFlagsE::InCallArgument);
             nodePtr->spanChildrenRef = parseCompoundContentInside(AstNodeId::NamedArgumentList, openRef, TokenId::SymLeftParen);
         }
         return nodeRef;
@@ -305,7 +305,7 @@ AstNodeRef Parser::parseFunctionArguments(AstNodeRef nodeExpr)
     if (hasContextFlag(ParserContextFlagsE::InAttribute))
         nodePtr->addFlag(AstCallExprFlagsE::AttributeContext);
 
-    PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+    PushContextFlags const ctxFlags(this, ParserContextFlagsE::InCallArgument);
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftParen);
     return nodeRef;
 }

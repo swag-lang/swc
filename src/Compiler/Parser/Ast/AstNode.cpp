@@ -49,7 +49,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     const uint32_t        baseLine = baseLoc.line;
 
     // Descend left-most while staying on the same line and same SourceView
-    auto            leftMost = this;
+    const auto*     leftMost = this;
     SourceCodeRange startLoc = baseLoc;
     while (true)
     {
@@ -70,7 +70,7 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     }
 
     // Descend right-most while staying on the same line and same SourceView
-    auto            rightMost = this;
+    const auto*     rightMost = this;
     SourceCodeRange endLoc    = baseTok.codeRange(ctx, view);
     while (true)
     {

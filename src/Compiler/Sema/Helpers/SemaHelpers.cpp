@@ -18,7 +18,7 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 
     if (sym->isVariable())
     {
-        SymbolVariable& symVar = sym->cast<SymbolVariable>();
+        auto& symVar = sym->cast<SymbolVariable>();
         if (symbolMap->isStruct())
             symbolMap->cast<SymbolStruct>().addField(&symVar);
 
@@ -32,7 +32,7 @@ void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Sym
 
     if (sym->isFunction())
     {
-        SymbolFunction& symFunc = sym->cast<SymbolFunction>();
+        auto& symFunc = sym->cast<SymbolFunction>();
         if (symbolMap->isInterface())
             symbolMap->cast<SymbolInterface>().addFunction(&symFunc);
         if (symbolMap->isImpl())

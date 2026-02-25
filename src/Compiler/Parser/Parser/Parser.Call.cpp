@@ -7,8 +7,8 @@ SWC_BEGIN_NAMESPACE();
 AstNodeRef Parser::parseAttributeValue()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Attribute>(ref());
-    PushContextFlags ctx(this, ParserContextFlagsE::InAttribute);
-    const AstNodeRef nodeIdentRef = parseQualifiedIdentifier();
+    PushContextFlags const ctx(this, ParserContextFlagsE::InAttribute);
+    const AstNodeRef       nodeIdentRef = parseQualifiedIdentifier();
     if (is(TokenId::SymLeftParen))
     {
         nodePtr->nodeCallRef = parseFunctionArguments(nodeIdentRef);
@@ -59,7 +59,7 @@ AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
         }
 
         {
-            PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+            PushContextFlags const ctxFlags(this, ParserContextFlagsE::InCallArgument);
             nodeArgs.push_back(parseExpression());
         }
     }
@@ -128,7 +128,7 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
         }
 
         {
-            PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
+            PushContextFlags const ctxFlags(this, ParserContextFlagsE::InCallArgument);
             nodeArgs.push_back(parseExpression());
         }
     }

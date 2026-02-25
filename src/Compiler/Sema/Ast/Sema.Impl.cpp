@@ -15,7 +15,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView  identView = sema.viewNode(nodeIdentRef);
         const IdentifierRef idRef     = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
-        SymbolImpl*         sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
+        auto*               sym       = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
 
         // An `impl` block will be registered to its target (struct/enum/interface) only in the
@@ -32,7 +32,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
 
 Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SymbolImpl& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
+    auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
 
     // After the first name
     if (childRef == nodeIdentRef)
@@ -104,7 +104,7 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
     const SemaNodeView view = sema.viewSymbol(nodeRef);
     if (!view.hasSymbol())
         return;
-    SymbolImpl& symImpl = view.sym()->cast<SymbolImpl>();
+    auto& symImpl = view.sym()->cast<SymbolImpl>();
     if (!symImpl.isPendingRegistrationResolved())
     {
         symImpl.setPendingRegistrationResolved();

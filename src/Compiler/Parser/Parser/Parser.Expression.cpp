@@ -189,7 +189,7 @@ AstModifierFlags Parser::parseModifiers()
 
         if (result.has(toSet))
         {
-            Diagnostic diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
+            Diagnostic const diag = reportError(DiagnosticId::parser_err_duplicated_modifier, ref());
             diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, done[toSet]), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
             diag.report(*ctx_);
         }
@@ -227,7 +227,7 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
         // For right-associative ops, use 'precedence' instead of 'precedence + 1'
         const int nextMinPrecedence = precedence + 1;
 
-        AstNodeRef right = parseBinaryExpr(nextMinPrecedence);
+        AstNodeRef const right = parseBinaryExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
@@ -452,7 +452,7 @@ AstNodeRef Parser::parseLogicalExpr(int minPrecedence)
         const TokenRef tokOp             = consume();
         const int      nextMinPrecedence = precedence + 1;
 
-        AstNodeRef right = parseLogicalExpr(nextMinPrecedence);
+        AstNodeRef const right = parseLogicalExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 
@@ -841,7 +841,7 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     {
         const TokenRef tokDot = consume();
 
-        AstNodeRef rightNodeRef = parseQuotedIdentifier();
+        AstNodeRef const rightNodeRef = parseQuotedIdentifier();
         if (rightNodeRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -876,7 +876,7 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
 
         const int nextMinPrecedence = precedence + 1;
 
-        AstNodeRef right = parseRelationalExpr(nextMinPrecedence);
+        AstNodeRef const right = parseRelationalExpr(nextMinPrecedence);
         if (right.isInvalid())
             return AstNodeRef::invalid();
 

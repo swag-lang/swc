@@ -698,7 +698,7 @@ namespace PeepholePass
             const MicroReg baseReg = ops[1].reg;
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
+                MicroInstr const&  scanInst = *scanIt;
                 MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
@@ -1142,7 +1142,7 @@ namespace PeepholePass
             const MicroReg indexReg = ops[2].reg;
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&              scanInst = *scanIt;
+                MicroInstr const&        scanInst = *scanIt;
                 const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;

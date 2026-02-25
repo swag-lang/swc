@@ -231,8 +231,8 @@ namespace
         const MicroReg memReg    = ops[0].reg;
         const uint64_t memOffset = ops[2].valueU64;
         const uint64_t value     = ops[3].valueU64;
-        const uint32_t lowU32    = static_cast<uint32_t>(value & U32_MASK);
-        const uint32_t highU32   = static_cast<uint32_t>((value >> 32) & U32_MASK);
+        const auto     lowU32    = static_cast<uint32_t>(value & U32_MASK);
+        const auto     highU32   = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
         // Some encoders cannot store a 64-bit immediate to memory directly.
         // Rewrite as two 32-bit stores at [offset] and [offset + 4].
@@ -264,8 +264,8 @@ namespace
         const uint64_t    mulValue      = ops[5].valueU64;
         const uint64_t    addValue      = ops[6].valueU64;
         const uint64_t    value         = ops[7].valueU64;
-        const uint32_t    lowU32        = static_cast<uint32_t>(value & U32_MASK);
-        const uint32_t    highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
+        const auto        lowU32        = static_cast<uint32_t>(value & U32_MASK);
+        const auto        highU32       = static_cast<uint32_t>((value >> 32) & U32_MASK);
 
         // Same split strategy for address-mode-combined memory stores.
         std::array<MicroInstrOperand, 8> lowOps;
@@ -634,7 +634,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         MicroInstr* const instPtr = context.instructions->ptr(instRef);
         if (!instPtr)
             continue;
-        MicroInstr&              inst = *instPtr;
+        MicroInstr const&        inst = *instPtr;
         MicroInstrOperand* const ops  = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;

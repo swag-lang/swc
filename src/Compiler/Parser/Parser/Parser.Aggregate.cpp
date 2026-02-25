@@ -99,7 +99,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdUsing:
         {
             consume();
-            PushContextFlags _{this, ParserContextFlagsE::InUsingMemberDecl};
+            PushContextFlags const _{this, ParserContextFlagsE::InUsingMemberDecl};
             return parseVarDecl();
         }
 
@@ -142,8 +142,8 @@ AstNodeRef Parser::parseAggregateDecl()
     SmallVector<AstNodeRef> whereRefs;
     while (is(TokenId::KwdWhere))
     {
-        const Token* loopStartToken = curToken_;
-        AstNodeRef   whereRef       = parseConstraint();
+        const Token*     loopStartToken = curToken_;
+        AstNodeRef const whereRef       = parseConstraint();
         if (whereRef.isValid())
             whereRefs.push_back(whereRef);
 

@@ -34,14 +34,14 @@ void SymbolImpl::setSymEnum(SymbolEnum* sym)
 void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
 {
     SWC_UNUSED(ctx);
-    std::unique_lock lk(mutex_);
+    std::unique_lock const lk(mutex_);
     if (sym->specOpKind() != SpecOpKind::None && sym->specOpKind() != SpecOpKind::Invalid)
         specOps_.push_back(sym);
 }
 
 std::vector<SymbolFunction*> SymbolImpl::specOps() const
 {
-    std::shared_lock lk(mutex_);
+    std::shared_lock const lk(mutex_);
     return specOps_;
 }
 

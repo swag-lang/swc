@@ -65,7 +65,7 @@ namespace
 
             SmallVector<SymbolFunction*> dependencies;
             function->appendCallDependencies(dependencies);
-            for (const auto dependency : std::ranges::reverse_view(dependencies))
+            for (auto* const dependency : std::ranges::reverse_view(dependencies))
             {
                 if (!dependency || dependency == function)
                     continue;
@@ -225,7 +225,7 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
     if (!sym || sym == this)
         return;
 
-    std::scoped_lock lock(callDepsMutex_);
+    std::scoped_lock const lock(callDepsMutex_);
     if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())
         return;
     callDependencies_.push_back(sym);
@@ -233,7 +233,7 @@ void SymbolFunction::addCallDependency(SymbolFunction* sym)
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
 {
-    std::scoped_lock lock(callDepsMutex_);
+    std::scoped_lock const lock(callDepsMutex_);
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);
@@ -245,7 +245,7 @@ bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceC
     if (!address)
         return false;
 
-    const uint64_t                     addressU64 = reinterpret_cast<uint64_t>(address);
+    const auto                         addressU64 = reinterpret_cast<uint64_t>(address);
     SmallVector<const SymbolFunction*> toScan;
     toScan.push_back(this);
 
@@ -267,11 +267,11 @@ bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceC
         const uint32_t codeSize = function->jitExecMemory_.size();
         if (entry && codeSize)
         {
-            const uint64_t startAddress = reinterpret_cast<uint64_t>(entry);
+            const auto     startAddress = reinterpret_cast<uint64_t>(entry);
             const uint64_t endAddress   = startAddress + codeSize;
             if (addressU64 >= startAddress && addressU64 < endAddress)
             {
-                const uint32_t codeOffset = static_cast<uint32_t>(addressU64 - startAddress);
+                const auto codeOffset = static_cast<uint32_t>(addressU64 - startAddress);
                 if (function->loweredMicroCode_.resolveSourceCodeRefAtOffset(outSourceCodeRef, codeOffset))
                     return true;
 
@@ -298,7 +298,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    std::scoped_lock lock(emitMutex_);
+    std::scoped_lock const lock(emitMutex_);
     if (hasLoweredCode())
         return Result::Continue;
     auto& builder = microInstrBuilder(ctx);
@@ -343,7 +343,7 @@ void SymbolFunction::jit(TaskContext& ctx)
 
 void SymbolFunction::jitEmit(TaskContext& ctx)
 {
-    std::scoped_lock lock(emitMutex_);
+    std::scoped_lock const lock(emitMutex_);
     if (ctx.state().jitEmissionError)
         return;
 

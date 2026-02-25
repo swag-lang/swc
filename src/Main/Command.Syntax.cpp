@@ -26,7 +26,7 @@ namespace Command
 
         for (SourceFile* f : compiler.files())
         {
-            ParserJob* job = heapNew<ParserJob>(ctx, f);
+            auto* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

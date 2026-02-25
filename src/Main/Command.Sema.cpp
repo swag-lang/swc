@@ -31,7 +31,7 @@ namespace Command
         // Parser
         for (SourceFile* f : compiler.files())
         {
-            ParserJob* job = heapNew<ParserJob>(ctx, f);
+            auto* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -51,15 +51,15 @@ namespace Command
 
         compiler.setupSema(ctx);
 
-        SymbolModule*       symModule       = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        auto*               symModule       = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         const IdentifierRef idRef           = ctx.idMgr().addIdentifier("test", Math::hash("test"));
-        SymbolNamespace*    moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
+        auto*               moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, SymbolFlagsE::Zero);
         symModule->addSingleSymbol(ctx, moduleNamespace);
 
         for (SourceFile* f : files)
         {
             f->setModuleNamespace(*moduleNamespace);
-            SemaJob* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
+            auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), true);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
@@ -67,7 +67,7 @@ namespace Command
 
         for (SourceFile* f : files)
         {
-            SemaJob* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
+            auto* job = heapNew<SemaJob>(ctx, f->nodePayloadContext(), false);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

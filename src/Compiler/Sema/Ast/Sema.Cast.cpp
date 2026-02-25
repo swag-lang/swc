@@ -21,7 +21,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // @MinusLiteralSuffix
-    if (const auto parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
+    if (auto* const parentNode = sema.visit().parentNode(); parentNode->is(AstNodeId::UnaryExpr))
     {
         const Token& tok = sema.token(parentNode->codeRef());
         if (tok.is(TokenId::SymMinus))

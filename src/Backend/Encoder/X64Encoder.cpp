@@ -1325,7 +1325,7 @@ namespace
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const uint8_t scale = static_cast<uint8_t>(log2(mulValue));
+        const auto scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
@@ -1413,7 +1413,7 @@ namespace
 
         // SIB
         SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const uint8_t scale = static_cast<uint8_t>(log2(mulValue));
+        const auto scale = static_cast<uint8_t>(log2(mulValue));
         if (baseIsNoBase)
         {
             emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
@@ -1486,8 +1486,8 @@ void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApI
     {
         if (opBits == MicroOpBits::B64)
         {
-            const uint32_t lowU32  = static_cast<uint32_t>(valueU64 & 0xFFFFFFFFu);
-            const uint32_t highU32 = static_cast<uint32_t>((valueU64 >> 32) & 0xFFFFFFFFu);
+            const auto lowU32  = static_cast<uint32_t>(valueU64 & 0xFFFFFFFFu);
+            const auto highU32 = static_cast<uint32_t>((valueU64 >> 32) & 0xFFFFFFFFu);
             encodeLoadMemImm(memReg, memOffset, ApInt(lowU32, 64), MicroOpBits::B32);
             encodeLoadMemImm(memReg, memOffset + 4, ApInt(highU32, 64), MicroOpBits::B32);
             return;
@@ -2699,8 +2699,8 @@ void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
     patchValue += endIdx - startIdx;
     std::memcpy(patchPtr, &patchValue, sizeof(patchValue));
 
-    const auto    tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
-    const int32_t currentOffset = static_cast<int32_t>(store_.size());
+    auto* const tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
+    const auto  currentOffset = static_cast<int32_t>(store_.size());
 
     EncoderJumpLabel label;
     for (uint32_t idx = 0; idx < numEntries; idx++)
@@ -2871,7 +2871,7 @@ void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBi
 
 void X64Encoder::encodePatchJump(const MicroJump& jump, uint64_t offsetDestination)
 {
-    const int32_t offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
+    const auto offset = static_cast<int32_t>(offsetDestination - jump.offsetStart);
     if (jump.opBits == MicroOpBits::B8)
     {
         SWC_ASSERT(offset >= -128 && offset <= 127);

@@ -109,7 +109,7 @@ bool Symbol::isType() const
 
     if (isAlias())
     {
-        const SymbolAlias& symAlias = cast<SymbolAlias>();
+        const auto& symAlias = cast<SymbolAlias>();
         if (symAlias.aliasedSymbol())
             return symAlias.aliasedSymbol()->isType();
         return symAlias.typeRef().isValid();

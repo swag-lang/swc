@@ -117,7 +117,7 @@ void LangSpec::setupCharFlags()
 
 TokenId LangSpec::keyword(std::string_view name, uint32_t hash) const
 {
-    const auto ptr = keywordMap_.find(name, hash);
+    const auto* const ptr = keywordMap_.find(name, hash);
     if (!ptr)
         return TokenId::Identifier;
     return *ptr;

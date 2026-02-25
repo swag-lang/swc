@@ -44,7 +44,7 @@ namespace
         const SourceFile*     srcFile  = srcView.file();
         const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&ctx, srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
 
-        Logger::ScopedLock lock(ctx.global().logger());
+        Logger::ScopedLock const lock(ctx.global().logger());
         Logger::print(ctx, "\n");
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[ast]");
@@ -266,7 +266,7 @@ Result AstAccessModifier::semaPostNode(const Sema& sema)
 
 Result AstAttrDecl::semaPreDecl(Sema& sema) const
 {
-    SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
     sym.addExtraFlag(SymbolFunctionFlagsE::Attribute);
 
     // Predefined attributes
@@ -292,7 +292,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeParamsRef)
         return Result::Continue;
 
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, nodeParamsRef);
     sema.curScope().setSymMap(&sym);
     return Result::Continue;
@@ -300,7 +300,7 @@ Result AstAttrDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstAttrDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero));
     sym.setTypeRef(typeRef);
@@ -316,7 +316,7 @@ Result AstAttributeList::semaPreNode(Sema& sema)
     const AstNode* parentNode = sema.visit().parentNode();
     if (parentNode && parentNode->is(AstNodeId::CompilerGlobal))
     {
-        const AstCompilerGlobal& parentGlobal = parentNode->cast<AstCompilerGlobal>();
+        const auto& parentGlobal = parentNode->cast<AstCompilerGlobal>();
         if (parentGlobal.mode == AstCompilerGlobal::Mode::AttributeList)
             return Result::Continue;
     }

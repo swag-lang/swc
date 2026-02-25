@@ -16,7 +16,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
     if (u >= e)
         return {nullptr, 0, 0};
 
-    const uint8_t b0 = static_cast<uint8_t>(*u);
+    const auto b0 = static_cast<uint8_t>(*u);
 
     // Fast ASCII path
     if (b0 < 0x80)
@@ -32,7 +32,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
         const uint8_t b1 = u[1];
         if (b0 < 0xC2 || (b1 & 0xC0) != 0x80)
             return {nullptr, 0, 0};
-        uint32_t wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
+        uint32_t const wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
         return {u + 2, wc, 2};
     }
 
@@ -49,7 +49,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 == 0xED && b1 >= 0xA0)
             return {nullptr, 0, 0}; // surrogates
-        uint32_t wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
+        uint32_t const wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
         return {u + 3, wc, 3};
     }
 
@@ -67,7 +67,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 > 0xF4 || (b0 == 0xF4 && b1 > 0x8F))
             return {nullptr, 0, 0}; // > U+10FFFF
-        uint32_t wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
+        uint32_t const wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
         return {u + 4, wc, 4};
     }
 
@@ -88,7 +88,7 @@ uint32_t Utf8Helper::countChars(std::string_view str)
     int result = 0;
     for (size_t i = 0; i < str.size(); i++)
     {
-        const auto addr             = reinterpret_cast<const char8_t*>(str.data());
+        const auto* const addr      = reinterpret_cast<const char8_t*>(str.data());
         const auto [ptr, wc, bytes] = decodeOneChar(addr + i, addr + str.size());
         if (ptr)
             i += bytes - 1;
@@ -148,28 +148,28 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     // Microseconds (< 1ms)
     if (seconds < MILLISECOND)
     {
-        size_t us = static_cast<size_t>(seconds / MICROSECOND);
+        auto us = static_cast<size_t>(seconds / MICROSECOND);
         return std::format("{} µs", us);
     }
 
     // Milliseconds (< 1s)
     if (seconds < 1.0)
     {
-        size_t ms = static_cast<size_t>(seconds / MILLISECOND);
+        auto ms = static_cast<size_t>(seconds / MILLISECOND);
         return std::format("{} ms", ms);
     }
 
     // Seconds only (< 1min)
     if (seconds < MINUTE)
     {
-        size_t wholeSeconds = static_cast<size_t>(seconds);
-        size_t ms           = static_cast<size_t>((seconds - static_cast<double>(wholeSeconds)) / MILLISECOND);
+        auto wholeSeconds = static_cast<size_t>(seconds);
+        auto ms           = static_cast<size_t>((seconds - static_cast<double>(wholeSeconds)) / MILLISECOND);
         return std::format("{} s {} ms", wholeSeconds, ms);
     }
 
     // Minutes and seconds (>= 1 min)
-    size_t minutes          = static_cast<size_t>(seconds / MINUTE);
-    size_t remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
+    auto minutes          = static_cast<size_t>(seconds / MINUTE);
+    auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
     return std::format("{} min {} s", minutes, remainingSeconds);
 }
 
@@ -266,7 +266,7 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
     {
         const uint32_t start0 = (charStart ? charStart : 1) - 1;
         const uint32_t len    = charEnd - (charStart ? charStart : 1) + 1;
-        const uint32_t ssz    = static_cast<uint32_t>(s.size());
+        const auto     ssz    = static_cast<uint32_t>(s.size());
         if (start0 >= ssz)
             return {};
         const uint32_t safeLen = std::min<uint32_t>(len, ssz - start0);
@@ -280,8 +280,8 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
 
     for (size_t i = 0; i < s.size();)
     {
-        const char8_t c   = static_cast<char8_t>(s[i]);
-        size_t        adv = 1;
+        const auto c   = static_cast<char8_t>(s[i]);
+        size_t     adv = 1;
         if ((c & 0x80) == 0x00)
             adv = 1;
         else if ((c & 0xE0) == 0xC0)

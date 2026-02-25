@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
-    std::unique_lock lk(mutexImpls_);
+    std::unique_lock const lk(mutexImpls_);
     symImpl.setSymStruct(this);
     impls_.push_back(&symImpl);
     sema.compiler().notifyAlive();
@@ -23,21 +23,21 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 std::vector<SymbolImpl*> SymbolStruct::impls() const
 {
-    std::shared_lock lk(mutexImpls_);
+    std::shared_lock const lk(mutexImpls_);
     return impls_;
 }
 
 void SymbolStruct::addInterface(SymbolImpl& symImpl)
 {
-    std::unique_lock lk(mutexInterfaces_);
+    std::unique_lock const lk(mutexInterfaces_);
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
 }
 
 Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 {
-    std::unique_lock lk(mutexInterfaces_);
-    for (const auto itf : interfaces_)
+    std::unique_lock const lk(mutexInterfaces_);
+    for (auto* const itf : interfaces_)
     {
         if (itf->idRef() == symImpl.idRef())
         {
@@ -65,7 +65,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
 std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 {
-    std::shared_lock lk(mutexInterfaces_);
+    std::shared_lock const lk(mutexInterfaces_);
     return interfaces_;
 }
 
@@ -111,7 +111,7 @@ namespace
 bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
 {
     SWC_ASSERT(isSemaCompleted());
-    for (const auto itfImpl : interfaces())
+    for (auto* const itfImpl : interfaces())
     {
         if (itfImpl && itfImpl->idRef() == itf.idRef())
             return true;
@@ -161,15 +161,15 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 
 Result SymbolStruct::canBeCompleted(Sema& sema) const
 {
-    for (const auto field : fields_)
+    for (auto* const field : fields_)
     {
         auto& symVar = field->cast<SymbolVariable>();
 
         const AstNode* decl = symVar.decl();
         SWC_ASSERT(decl != nullptr);
         SWC_ASSERT(decl->is(AstNodeId::SingleVarDecl) || decl->is(AstNodeId::MultiVarDecl));
-        auto&      type        = symVar.typeInfo(sema.ctx());
-        AstNodeRef typeNodeRef = AstNodeRef::invalid();
+        const auto& type        = symVar.typeInfo(sema.ctx());
+        AstNodeRef  typeNodeRef = AstNodeRef::invalid();
         if (decl->is(AstNodeId::SingleVarDecl))
             typeNodeRef = decl->cast<AstSingleVarDecl>().typeOrInitRef();
         else if (decl->is(AstNodeId::MultiVarDecl))
@@ -209,10 +209,10 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     sizeInBytes_ = 0;
     alignment_   = 1;
 
-    for (const auto field : fields_)
+    for (auto* const field : fields_)
     {
-        auto& symVar = field->cast<SymbolVariable>();
-        auto& type   = symVar.typeInfo(ctx);
+        auto&       symVar = field->cast<SymbolVariable>();
+        const auto& type   = symVar.typeInfo(ctx);
 
         const uint64_t sizeOf  = type.sizeOf(ctx);
         const uint32_t alignOf = type.alignOf(ctx);
@@ -240,7 +240,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 {
     SmallVector<SymbolFunction*> result;
 
-    std::shared_lock lk(mutexSpecOps_);
+    std::shared_lock const lk(mutexSpecOps_);
     for (SymbolFunction* symFunc : specOps_)
     {
         if (symFunc->idRef() == identifierRef)
@@ -252,7 +252,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
-    std::unique_lock lk(mutexSpecOps_);
+    std::unique_lock const lk(mutexSpecOps_);
     specOps_.push_back(&symFunc);
 
     switch (kind)

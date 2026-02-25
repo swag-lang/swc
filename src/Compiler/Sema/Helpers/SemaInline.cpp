@@ -38,7 +38,7 @@ namespace
         if (!declNode)
             return AstNodeRef::invalid();
         SWC_ASSERT(declNode->is(AstNodeId::FunctionDecl));
-        const AstFunctionDecl& decl = declNode->cast<AstFunctionDecl>();
+        const auto& decl = declNode->cast<AstFunctionDecl>();
         if (decl.srcViewRef() != sema.ast().srcView().ref())
             return AstNodeRef::invalid();
 
@@ -51,7 +51,7 @@ namespace
         const AstNode& bodyNode = sema.node(decl.nodeBodyRef);
         if (!bodyNode.is(AstNodeId::EmbeddedBlock))
             return AstNodeRef::invalid();
-        const AstEmbeddedBlock& block = bodyNode.cast<AstEmbeddedBlock>();
+        const auto& block = bodyNode.cast<AstEmbeddedBlock>();
 
         SmallVector<AstNodeRef> statements;
         sema.ast().appendNodes(statements, block.spanChildrenRef);
@@ -61,7 +61,7 @@ namespace
         const AstNode& retNode = sema.node(statements[0]);
         if (!retNode.is(AstNodeId::ReturnStmt))
             return AstNodeRef::invalid();
-        const AstReturnStmt& retStmt = retNode.cast<AstReturnStmt>();
+        const auto& retStmt = retNode.cast<AstReturnStmt>();
         if (retStmt.nodeExprRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -91,8 +91,8 @@ namespace
             if (!isNamedArgument(argNode))
                 continue;
 
-            const AstNamedArgument& namedArg = argNode.cast<AstNamedArgument>();
-            const IdentifierRef     idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg.codeRef());
+            const auto&         namedArg = argNode.cast<AstNamedArgument>();
+            const IdentifierRef idRef    = sema.idMgr().addIdentifier(sema.ctx(), namedArg.codeRef());
 
             size_t paramIndex = params.size();
             for (size_t i = 0; i < params.size(); i++)

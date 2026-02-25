@@ -17,7 +17,7 @@
   parameters (e.g. managers).
 - Use auto for variable declarations when it makes the code clearer, reduces redundancy, or avoids repeating complex types. Use the explicit (real) type when it better communicates intent or improves readability.
 - Do not put defensive code after asserts.
-- Declare local variables and reference parameters as const whenever they are not modified.
+- Declare local variables and reference parameters as const whenever they are not modified (const on the left of the type).
 
 ## Formating code
 

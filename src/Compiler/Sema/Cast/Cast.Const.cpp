@@ -16,7 +16,7 @@ void Cast::foldConstantIdentity(CastRequest& castRequest)
 
 bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType)
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext const& ctx = sema.ctx();
 
     // Be sure constant is sized
     if (dstType.isInt())
@@ -77,7 +77,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
     if (srcFloat && dstInt)
     {
-        ApsInt              i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
+        ApsInt const        i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
@@ -85,7 +85,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
     if (srcInt && dstFloat)
     {
-        ApFloat             f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
+        ApFloat const       f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;
@@ -128,7 +128,7 @@ bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
 
 bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    TaskContext& ctx = sema.ctx();
+    TaskContext const& ctx = sema.ctx();
 
     const TypeInfo&      dstType = sema.typeMgr().get(dstTypeRef);
     const ConstantValue& src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
@@ -163,8 +163,8 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
     }
     else
     {
-        ApsInt minSigned = ApsInt::minValue(targetBits, false);
-        ApsInt maxSigned = ApsInt::maxValue(targetBits, false);
+        ApsInt const minSigned = ApsInt::minValue(targetBits, false);
+        ApsInt const maxSigned = ApsInt::maxValue(targetBits, false);
 
         if (!value.isUnsigned())
         {
@@ -336,7 +336,7 @@ bool Cast::foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, Ty
 
 bool Cast::foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
 {
-    TaskContext&        ctx     = sema.ctx();
+    TaskContext const&  ctx     = sema.ctx();
     const TypeInfo&     dstType = sema.typeMgr().get(dstTypeRef);
     const ConstantValue src     = sema.cstMgr().get(castRequest.constantFoldingSrc());
 
@@ -451,7 +451,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         ApsInt value = srcCst.getIntLike();
         value.setSigned(sign == TypeInfo::Sign::Signed);
         bool           overflow = false;
-        uint32_t       minBits  = force32BitInts ? std::max(value.minBits(), 32u) : value.minBits();
+        uint32_t const minBits  = force32BitInts ? std::max(value.minBits(), 32u) : value.minBits();
         const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(minBits, overflow);
         if (overflow)
             return false;

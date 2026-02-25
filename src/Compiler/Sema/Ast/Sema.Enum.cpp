@@ -85,7 +85,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    SymbolEnum&  sym      = sema.curViewSymbol().sym()->cast<SymbolEnum>();
+    auto&        sym      = sema.curViewSymbol().sym()->cast<SymbolEnum>();
     SemaNodeView typeView = sema.viewType(nodeTypeRef);
 
     if (nodeTypeRef.isValid())
@@ -110,7 +110,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstEnumDecl::semaPostNode(Sema& sema) const
 {
-    SymbolEnum& sym = sema.curViewSymbol().sym()->cast<SymbolEnum>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolEnum>();
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
@@ -127,7 +127,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     TaskContext& ctx          = sema.ctx();
     SemaNodeView nodeInitView = sema.viewNodeTypeConstant(nodeInitRef);
 
-    SymbolEnum&     symEnum           = sema.curSymMap()->cast<SymbolEnum>();
+    auto&           symEnum           = sema.curSymMap()->cast<SymbolEnum>();
     const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
     const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
 
@@ -162,19 +162,19 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
         if (symEnum.hasNextValue() && !symEnum.computeNextValue(sema, codeRef()))
             return Result::Error;
 
-        ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
-        valueCst          = sema.cstMgr().addConstant(ctx, val);
+        ConstantValue const val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
+        valueCst                = sema.cstMgr().addConstant(ctx, val);
         symEnum.setHasNextValue();
     }
 
     // Create a symbol for this enum value
     const IdentifierRef idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
-    SymbolFlags         flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
-    SymbolEnumValue*    symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
+    SymbolFlags const   flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
+    auto*               symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
     symValue->registerCompilerIf(sema);
 
-    ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
-    ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
+    ConstantValue const enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
+    ConstantRef const   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
     symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
     symValue->setTyped(ctx);

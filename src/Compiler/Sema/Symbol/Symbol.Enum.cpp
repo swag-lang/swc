@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 
 void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
-    std::unique_lock lk(mutexImpls_);
+    std::unique_lock const lk(mutexImpls_);
     symImpl.setSymEnum(this);
     impls_.push_back(&symImpl);
     sema.compiler().notifyAlive();
@@ -16,7 +16,7 @@ void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 std::vector<SymbolImpl*> SymbolEnum::impls() const
 {
-    std::shared_lock lk(mutexImpls_);
+    std::shared_lock const lk(mutexImpls_);
     return impls_;
 }
 

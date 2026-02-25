@@ -101,7 +101,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
-        MicroInstr& first = *it;
+        MicroInstr const& first = *it;
         if (first.op != MicroInstrOpcode::OpBinaryRegImm)
         {
             ++it;
@@ -116,7 +116,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
             continue;
         }
 
-        MicroInstr& second = *nextIt;
+        MicroInstr const& second = *nextIt;
         if (second.op != MicroInstrOpcode::OpBinaryRegImm)
         {
             ++it;

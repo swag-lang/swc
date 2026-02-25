@@ -23,7 +23,7 @@ namespace
         do
         {
             SWC_ASSERT(index + 1 < str.size());
-            const unsigned char h = static_cast<unsigned char>(str[++index]);
+            const auto h = static_cast<unsigned char>(str[++index]);
             SWC_ASSERT(langSpec.isHexNumber(h));
 
             value <<= 4;
@@ -153,10 +153,10 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
 
 Result AstStringLiteral::semaPreNode(Sema& sema) const
 {
-    TaskContext&      ctx     = sema.ctx();
-    const Token&      tok     = sema.token(codeRef());
-    const SourceView& srcView = sema.compiler().srcView(srcViewRef());
-    std::string_view  str     = tok.string(srcView);
+    TaskContext const& ctx     = sema.ctx();
+    const Token&       tok     = sema.token(codeRef());
+    const SourceView&  srcView = sema.compiler().srcView(srcViewRef());
+    std::string_view   str     = tok.string(srcView);
 
     // Remove delimiters
     switch (tok.id)
@@ -303,7 +303,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
             continue;
         }
 
-        const size_t digit = static_cast<size_t>(c - '0');
+        const auto digit = static_cast<size_t>(c - '0');
 
         // multiply the current value by 10
         bool over = false;
@@ -357,7 +357,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
 
         if (langSpec.isDigit(c))
         {
-            const uint32_t digit = static_cast<uint32_t>(c - '0');
+            const auto digit = static_cast<uint32_t>(c - '0');
 
             if (!seenExp)
             {

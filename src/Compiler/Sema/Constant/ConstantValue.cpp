@@ -605,7 +605,7 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isString())
     {
-        const auto str = static_cast<const Runtime::String*>(valuePtr);
+        const auto* const str = static_cast<const Runtime::String*>(valuePtr);
         return makeString(ctx, std::string_view(str->ptr, str->length));
     }
 
@@ -623,8 +623,8 @@ ConstantValue ConstantValue::make(TaskContext& ctx, const void* valuePtr, TypeRe
 
     if (ty.isSlice())
     {
-        const auto     slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
-        const ByteSpan span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
+        const auto* const slice = static_cast<const Runtime::Slice<uint8_t>*>(valuePtr);
+        const ByteSpan    span{reinterpret_cast<std::byte*>(slice->ptr), slice->count};
         if (ownership == PayloadOwnership::Borrowed)
             return makeSliceBorrowed(ctx, ty.payloadTypeRef(), span);
         return makeSlice(ctx, ty.payloadTypeRef(), span);
@@ -660,7 +660,7 @@ uint32_t ConstantValue::hash() const noexcept
             break;
         case ConstantKind::AggregateStruct:
         case ConstantKind::AggregateArray:
-            for (auto& v : getAggregate())
+            for (const auto& v : getAggregate())
                 h = Math::hashCombine(h, v.get());
             break;
         case ConstantKind::TypeValue:

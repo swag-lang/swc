@@ -248,8 +248,8 @@ namespace
         SWC_ASSERT(view.node() != nullptr);
         if (view.node()->is(AstNodeId::IndexExpr))
         {
-            const AstIndexExpr& idxExpr  = view.node()->cast<AstIndexExpr>();
-            const SemaNodeView  baseView = sema.viewType(idxExpr.nodeExprRef);
+            const auto&        idxExpr  = view.node()->cast<AstIndexExpr>();
+            const SemaNodeView baseView = sema.viewType(idxExpr.nodeExprRef);
             if (baseView.type() && baseView.type()->isArray())
                 blockPointer = true;
         }

@@ -452,7 +452,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         const AstNodeIdInfo& childInfo = Ast::nodeIdInfos(child.id());
         if (childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            SemaJob* job = heapNew<SemaJob>(ctx(), *this, childRef);
+            auto* job = heapNew<SemaJob>(ctx(), *this, childRef);
             compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
             return Result::SkipChildren;
         }
@@ -608,13 +608,13 @@ namespace
         ctx.global().jobMgr().waitingJobs(jobs, clientId);
 
         bool doneSomething = false;
-        for (const auto job : jobs)
+        for (auto* const job : jobs)
         {
             const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)
             {
                 // @CompilerNotDefined
-                SemaJob* semaJob = job->cast<SemaJob>();
+                auto* semaJob = job->cast<SemaJob>();
                 semaJob->sema().setConstant(state.nodeRef, semaJob->sema().cstMgr().cstFalse());
                 doneSomething = true;
             }

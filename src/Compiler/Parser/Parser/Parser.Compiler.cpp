@@ -81,7 +81,7 @@ AstNodeRef Parser::parseCompilerCall(uint32_t numParams)
     ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
     if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
-    PushContextFlags context(this, parseFlags);
+    PushContextFlags const context(this, parseFlags);
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
@@ -128,7 +128,7 @@ AstNodeRef Parser::parseCompilerCallOne()
     ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
     if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
-    PushContextFlags context(this, parseFlags);
+    PushContextFlags const context(this, parseFlags);
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {

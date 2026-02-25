@@ -113,9 +113,9 @@ namespace
         if (!context.taskContext || !context.builder)
             return;
 
-        const TaskContext&  ctx     = *context.taskContext;
-        const MicroBuilder& builder = *context.builder;
-        Logger::ScopedLock  loggerLock(ctx.global().logger());
+        const TaskContext&       ctx     = *context.taskContext;
+        const MicroBuilder&      builder = *context.builder;
+        Logger::ScopedLock const loggerLock(ctx.global().logger());
 
         const std::string stageName = passStageName(pass, before);
 

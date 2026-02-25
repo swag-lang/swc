@@ -108,7 +108,7 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 {
     if (!symList_.empty())
     {
-        for (auto s : symList_)
+        for (auto* s : symList_)
             symbols.push_back(s);
     }
     else if (sym_)

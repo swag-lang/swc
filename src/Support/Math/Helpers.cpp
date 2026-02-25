@@ -8,9 +8,9 @@ namespace Math
     void mul64X64(uint64_t a, uint64_t b, uint64_t& lo, uint64_t& hi)
     {
 #ifdef __SIZEOF_INT128__
-        __uint128_t r = (__uint128_t) a * b;
-        lo            = (uint64_t) r;
-        hi            = (uint64_t) (r >> 64);
+        __uint128_t const r = (__uint128_t) a * b;
+        lo                  = (uint64_t) r;
+        hi                  = (uint64_t) (r >> 64);
 
 #elif defined(_MSC_VER) && defined(_M_X64)
         lo = _umul128(a, b, &hi);
@@ -42,9 +42,9 @@ namespace Math
 
 #ifdef __SIZEOF_INT128__
         // Fast path using native 128-bit integer.
-        __uint128_t num  = (static_cast<__uint128_t>(hi) << 64) | lo;
-        __uint128_t q128 = num / d;
-        __uint128_t r128 = num % d;
+        __uint128_t const num  = (static_cast<__uint128_t>(hi) << 64) | lo;
+        __uint128_t const q128 = num / d;
+        __uint128_t const r128 = num % d;
 
         // For (2^128-1) / (2^64) the quotient is < 2^64, so it fits.
         q = static_cast<uint64_t>(q128);
@@ -108,8 +108,8 @@ namespace Math
 
         if (floatBits == 32)
         {
-            const uint32_t u = static_cast<uint32_t>(raw);
-            float          f = 0.0f;
+            const auto u = static_cast<uint32_t>(raw);
+            float      f = 0.0f;
             std::memcpy(&f, &u, sizeof(f));
             return ApFloat(f);
         }

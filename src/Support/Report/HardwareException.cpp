@@ -120,7 +120,7 @@ void HardwareException::appendField(Utf8& outMsg, const std::string_view label, 
 
 void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
-    Logger::ScopedLock loggerLock(ctx.global().logger());
+    Logger::ScopedLock const loggerLock(ctx.global().logger());
 
     Utf8 msg;
     msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);

@@ -26,7 +26,7 @@ namespace
 
 JITMemoryManager::~JITMemoryManager()
 {
-    std::unique_lock lock(mutex_);
+    std::unique_lock const lock(mutex_);
     for (const auto& block : blocks_)
     {
         if (block.ptr)
@@ -46,7 +46,7 @@ bool JITMemoryManager::allocate(JITMemory& outExecutableMemory, uint32_t size)
     const uint32_t requestSize      = size;
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
-    std::unique_lock lock(mutex_);
+    std::unique_lock const lock(mutex_);
 
     Block* targetBlock = nullptr;
     for (auto& block : blocks_)
@@ -102,7 +102,7 @@ bool JITMemoryManager::allocateAndCopy(JITMemory& outExecutableMemory, ByteSpan 
         return false;
 
     SWC_ASSERT(bytes.size() <= std::numeric_limits<uint32_t>::max());
-    const uint32_t requestSize = static_cast<uint32_t>(bytes.size());
+    const auto requestSize = static_cast<uint32_t>(bytes.size());
     if (!allocate(outExecutableMemory, requestSize))
         return false;
 

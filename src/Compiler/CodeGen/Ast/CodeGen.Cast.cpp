@@ -106,11 +106,11 @@ namespace
             }
         }
 
-        const uint64_t   length         = srcType.sizeOf(codeGen.ctx());
-        Runtime::String* runtimeValue   = codeGen.compiler().allocate<Runtime::String>();
-        runtimeValue->ptr               = nullptr;
-        runtimeValue->length            = 0;
-        const uint64_t runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
+        const uint64_t length       = srcType.sizeOf(codeGen.ctx());
+        auto*          runtimeValue = codeGen.compiler().allocate<Runtime::String>();
+        runtimeValue->ptr           = nullptr;
+        runtimeValue->length        = 0;
+        const auto runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
 
         const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);

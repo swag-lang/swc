@@ -87,7 +87,7 @@ namespace
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
-        const SymbolStruct& sym = owner->cast<SymbolStruct>();
+        const auto& sym = owner->cast<SymbolStruct>();
 
         size_t      fieldIndex = 0;
         const auto& fields     = sym.fields();
@@ -133,7 +133,7 @@ namespace
         if (typeField.isEnum())
             valueTypeRef = typeField.payloadSymEnum().underlyingTypeRef();
 
-        ConstantValue cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        ConstantValue const cv = ConstantValue::make(ctx, bytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (!cv.isValid())
             return failStructMemberType(sema, symVar, nodeMemberRef);
 
@@ -227,7 +227,7 @@ namespace
             if (elemType.isEnum())
                 valueTypeRef = elemType.payloadSymEnum().underlyingTypeRef();
 
-            ConstantValue cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            ConstantValue const cv = ConstantValue::make(ctx, elemBytes.data(), valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
             if (!cv.isValid())
                 return Result::Continue;
 

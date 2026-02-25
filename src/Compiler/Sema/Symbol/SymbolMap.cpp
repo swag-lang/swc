@@ -26,7 +26,7 @@ bool SymbolMap::empty() const noexcept
 {
     if (isSharded())
         return false;
-    std::shared_lock lk(mutex_);
+    std::shared_lock const lk(mutex_);
     return smallSize_ == 0 && bigMap_.empty();
 }
 
@@ -56,7 +56,7 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
     if (bigMap_.size() < SHARD_AFTER_KEYS)
         return;
 
-    Shard* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
+    auto* newShards = ctx.compiler().allocateArray<Shard>(SHARD_COUNT);
 
 #if SWC_HAS_STATS
     Stats::get().memSymbols.fetch_add(sizeof(Shard) * SHARD_COUNT, std::memory_order_relaxed);
@@ -78,8 +78,8 @@ Symbol* SymbolMap::insertIntoShard(Shard* shards, IdentifierRef idRef, Symbol* s
 {
     SWC_ASSERT(shards != nullptr);
 
-    Shard&           shard = shards[shardIndex(idRef)];
-    std::unique_lock lock(shard.mutex);
+    Shard&                 shard = shards[shardIndex(idRef)];
+    std::unique_lock const lock(shard.mutex);
 
     if (!acceptHomonyms)
     {
@@ -99,8 +99,8 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 {
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
-        const Shard&     shard = shards[shardIndex(idRef)];
-        std::shared_lock lock(shard.mutex);
+        const Shard&           shard = shards[shardIndex(idRef)];
+        std::shared_lock const lock(shard.mutex);
 
         const auto it = shard.map.find(idRef);
         if (it == shard.map.end())
@@ -121,9 +121,9 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
-        const Shard&     shard = shards[shardIndex(idRef)];
-        std::shared_lock lock(shard.mutex);
-        const auto       it = shard.map.find(idRef);
+        const Shard&           shard = shards[shardIndex(idRef)];
+        std::shared_lock const lock(shard.mutex);
+        const auto             it = shard.map.find(idRef);
         if (it == shard.map.end())
             return;
         for (const Symbol* cur = it->second; cur; cur = cur->nextHomonym())
@@ -161,8 +161,8 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         {
-            const Shard&     shard = shards[i];
-            std::shared_lock lock(shard.mutex);
+            const Shard&           shard = shards[i];
+            std::shared_lock const lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
             {
                 for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
@@ -184,8 +184,8 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
         lk.unlock();
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         {
-            const Shard&     shard = shards[i];
-            std::shared_lock lock(shard.mutex);
+            const Shard&           shard = shards[i];
+            std::shared_lock const lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
             {
                 for (const Symbol* cur = val; cur; cur = cur->nextHomonym())

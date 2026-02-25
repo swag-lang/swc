@@ -33,8 +33,8 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(frame);
 
-    SwitchPayload* payload = sema.compiler().allocate<SwitchPayload>();
-    payload->isComplete    = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+    auto* payload       = sema.compiler().allocate<SwitchPayload>();
+    payload->isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
     sema.setPayload(sema.curNodeRef(), payload);
     return Result::Continue;
 }
@@ -59,8 +59,8 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
         SWC_ASSERT(sym != nullptr);
         if (!sym->isEnumValue())
             continue;
-        const SymbolEnumValue& value  = sym->cast<SymbolEnumValue>();
-        const ConstantRef      cstRef = value.cstRef();
+        const auto&       value  = sym->cast<SymbolEnumValue>();
+        const ConstantRef cstRef = value.cstRef();
         if (cstRef.isInvalid())
             continue;
 
@@ -138,7 +138,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {
-        SwitchPayload* switchPayload = sema.payload<SwitchPayload>(switchRef);
+        auto* switchPayload = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(switchPayload);
 
         const AstNodeRef caseRef = sema.frame().currentSwitchCase();
@@ -238,7 +238,7 @@ namespace
                 return Result::Continue;
         }
 
-        SwitchPayload* seenSet = sema.payload<SwitchPayload>(switchRef);
+        auto* seenSet = sema.payload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
 
         const SemaNodeView exprView = sema.viewConstant(caseExprRef);
@@ -317,7 +317,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
     const AstSwitchCaseBody& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
 
     sema.ast().appendNodes(stmts, caseBody.spanChildrenRef);
-    const auto itStmt = std::ranges::find(stmts, sema.curNodeRef());
+    auto* const itStmt = std::ranges::find(stmts, sema.curNodeRef());
     if (itStmt == stmts.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
     if (itStmt + 1 != stmts.end())
@@ -330,7 +330,7 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
 
     SmallVector<AstNodeRef> cases;
     sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
-    const auto itCase = std::ranges::find(cases, caseRef);
+    auto* const itCase = std::ranges::find(cases, caseRef);
     if (itCase == cases.end())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
     if (itCase + 1 == cases.end())

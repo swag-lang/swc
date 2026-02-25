@@ -997,12 +997,12 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
 
         case TypeInfoKind::Function:
         {
-            if (const auto sym = getTypeBlockingSymbol(payloadFunction_.sym->returnTypeRef()))
+            if (auto* const sym = getTypeBlockingSymbol(payloadFunction_.sym->returnTypeRef()))
                 return sym;
 
             for (const auto& param : payloadFunction_.sym->parameters())
             {
-                if (const auto sym = getTypeBlockingSymbol(param->typeRef()))
+                if (auto* const sym = getTypeBlockingSymbol(param->typeRef()))
                     return sym;
             }
 

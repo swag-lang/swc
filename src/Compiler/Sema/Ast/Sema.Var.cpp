@@ -19,7 +19,7 @@ namespace
     {
         for (Symbol* s : symbols)
         {
-            SymbolConstant& symCst = s->cast<SymbolConstant>();
+            auto& symCst = s->cast<SymbolConstant>();
             symCst.setCstRef(cstRef);
             if (symCst.typeRef().isInvalid())
                 symCst.setTypeRef(typeRef);
@@ -33,7 +33,7 @@ namespace
         TaskContext& ctx = sema.ctx();
         for (Symbol* s : symbols)
         {
-            SymbolVariable& symVar = s->cast<SymbolVariable>();
+            auto& symVar = s->cast<SymbolVariable>();
             if (symVar.typeRef().isInvalid())
                 symVar.setTypeRef(typeRef);
 
@@ -175,7 +175,7 @@ namespace
             if (initDims.size() > 1)
             {
                 TypeRef elemTypeRef = baseTypeRef;
-                for (uint64_t& initDim : std::ranges::reverse_view(initDims))
+                for (uint64_t const& initDim : std::ranges::reverse_view(initDims))
                 {
                     SmallVector4<uint64_t> oneDim;
                     oneDim.push_back(initDim);
@@ -230,7 +230,7 @@ namespace
             if (!s->isVariable())
                 continue;
 
-            SymbolVariable&  symVar = s->cast<SymbolVariable>();
+            auto&            symVar = s->cast<SymbolVariable>();
             const SymbolMap* owner  = symVar.ownerSymMap();
             if (!owner || !owner->isStruct())
                 continue;
@@ -248,7 +248,7 @@ namespace
             if (!s->isVariable())
                 continue;
 
-            SymbolVariable& symVar = s->cast<SymbolVariable>();
+            auto& symVar = s->cast<SymbolVariable>();
             symVar.setCstRef(cstRef);
         }
     }
@@ -388,7 +388,7 @@ namespace
         {
             for (Symbol* s : symbols)
             {
-                SymbolVariable& symVar = s->cast<SymbolVariable>();
+                auto& symVar = s->cast<SymbolVariable>();
                 if (isExplicitUndefinedInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
@@ -409,7 +409,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
         {
-            SymbolVariable& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
+            auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
         }
     }
@@ -456,16 +456,16 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
     {
         if (hasFlag(AstVarDeclFlagsE::Const))
         {
-            Symbol& sym = SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
+            Symbol const& sym = SemaHelpers::registerSymbol<SymbolConstant>(sema, *this, tokNameRef);
             symbols.push_back(&sym);
         }
         else
         {
-            Symbol& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+            Symbol const& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symbols.push_back(&sym);
             if (hasFlag(AstVarDeclFlagsE::Let))
             {
-                SymbolVariable& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
+                auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
             }
         }
@@ -560,7 +560,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
         if (tokNameRef.isInvalid())
             continue;
 
-        SymbolVariable& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
             sym.addExtraFlag(SymbolVariableFlagsE::Let);
         sym.setDeclared(sema.ctx());

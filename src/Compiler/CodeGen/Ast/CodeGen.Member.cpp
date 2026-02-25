@@ -40,7 +40,7 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        rightView   = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym    = SWC_NOT_NULL(rightView.sym());
-        const SymbolVariable&     symVar      = rightSym->cast<SymbolVariable>();
+        const auto&               symVar      = rightSym->cast<SymbolVariable>();
 
         const TypeRef             memberTypeRef = codeGen.curViewType().typeRef();
         const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
@@ -58,7 +58,7 @@ namespace
         const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
         SWC_ASSERT(leftSize > 0 && leftSize <= 8);
 
-        std::byte* spillData = codeGen.compiler().allocateArray<std::byte>(leftSize);
+        auto* spillData = codeGen.compiler().allocateArray<std::byte>(leftSize);
         std::memset(spillData, 0, leftSize);
 
         const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
@@ -73,9 +73,9 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
-        const SemaNodeView    rightView  = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*         methodSym  = SWC_NOT_NULL(rightView.sym());
-        const SymbolFunction& methodFunc = methodSym->cast<SymbolFunction>();
+        const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*      methodSym  = SWC_NOT_NULL(rightView.sym());
+        const auto&        methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());

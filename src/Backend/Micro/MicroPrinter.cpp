@@ -1137,7 +1137,7 @@ namespace
 Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroBuilder* builder)
 {
     Utf8                                            out;
-    auto&                                           storeOps = operands;
+    const auto&                                     storeOps = operands;
     auto                                            view     = instructions.view();
     std::unordered_set<uint64_t>                    seenDebugLines;
     std::unordered_map<Ref, uint32_t>               instIndexByRef;

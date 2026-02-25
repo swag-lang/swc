@@ -39,9 +39,9 @@ void* Arena::allocate(std::size_t size, std::size_t alignment)
         block = addBlock(size + alignment);
     }
 
-    std::uintptr_t raw          = reinterpret_cast<std::uintptr_t>(block->data + block->used);
-    std::size_t    misalignment = raw % alignment;
-    std::size_t    padding      = misalignment ? (alignment - misalignment) : 0;
+    auto        raw          = reinterpret_cast<std::uintptr_t>(block->data + block->used);
+    std::size_t misalignment = raw % alignment;
+    std::size_t padding      = misalignment ? (alignment - misalignment) : 0;
 
     if (block->used + padding + size > block->size)
     {
@@ -64,9 +64,9 @@ bool Arena::canAllocateFrom(const Block* block, std::size_t size, std::size_t al
     if (!block)
         return false;
 
-    const std::uintptr_t raw          = reinterpret_cast<std::uintptr_t>(block->data + block->used);
-    const std::size_t    misalignment = raw % alignment;
-    const std::size_t    padding      = misalignment ? (alignment - misalignment) : 0;
+    const auto        raw          = reinterpret_cast<std::uintptr_t>(block->data + block->used);
+    const std::size_t misalignment = raw % alignment;
+    const std::size_t padding      = misalignment ? (alignment - misalignment) : 0;
     return (block->used + padding + size) <= block->size;
 }
 
@@ -78,8 +78,8 @@ Arena::Block* Arena::addBlock(std::size_t minSize)
     constexpr std::size_t headerSize = sizeof(Block);
     const std::size_t     totalSize  = headerSize + blockSize;
 
-    const auto raw   = static_cast<uint8_t*>(operator new(totalSize));
-    const auto block = reinterpret_cast<Block*>(raw);
+    auto* const raw   = static_cast<uint8_t*>(operator new(totalSize));
+    auto* const block = reinterpret_cast<Block*>(raw);
 
     block->size = blockSize;
     block->used = 0;

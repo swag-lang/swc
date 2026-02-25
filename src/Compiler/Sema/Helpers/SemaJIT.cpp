@@ -22,7 +22,7 @@ namespace
     {
         if (symFn.tryMarkCodeGenJobScheduled())
         {
-            CodeGenJob* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
+            auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symFn, symFn.declNodeRef());
             sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
         }
     }
@@ -72,7 +72,7 @@ namespace
         if (!strPtrAddress)
             return ConstantValue::makeString(ctx, std::string_view{});
 
-        const auto str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
+        const auto* const str = reinterpret_cast<const Runtime::String*>(strPtrAddress);
         if (!str->ptr || !str->length)
             return ConstantValue::makeString(ctx, std::string_view{});
 
@@ -115,7 +115,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 
     SWC_ASSERT(resultSize > 0);
     SmallVector<std::byte> resultStorage(resultSize);
-    const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
+    const auto             resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
     SWC_RESULT_VERIFY(symFn.emit(ctx));
@@ -127,7 +127,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
         return Result::Error;
 
     {
-        TaskScopedState scopedState(ctx);
+        TaskScopedState const scopedState(ctx);
         ctx.state().setRunJit(&symFn, nodeExprRef, sema.node(nodeExprRef).codeRef());
 
         auto         callErrorKind = JITCallErrorKind::None;

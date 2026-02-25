@@ -226,7 +226,7 @@ namespace
             auto& out = state.liveOut[idx];
             out.clear();
             out.reserve(live.size());
-            for (uint32_t regKey : live)
+            for (uint32_t const regKey : live)
                 out.push_back(regKey);
 
             const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
@@ -329,7 +329,7 @@ namespace
     uint64_t spillMemOffset(uint64_t spillOffset, int64_t stackDepth)
     {
         SWC_ASSERT(spillOffset <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
-        int64_t finalOffset = static_cast<int64_t>(spillOffset);
+        auto finalOffset = static_cast<int64_t>(spillOffset);
         finalOffset += stackDepth;
         SWC_ASSERT(finalOffset >= std::numeric_limits<int32_t>::min());
         SWC_ASSERT(finalOffset <= std::numeric_limits<int32_t>::max());
@@ -379,7 +379,7 @@ namespace
         if (ops[1].opBits != MicroOpBits::B64)
             return;
 
-        const int64_t immValue = static_cast<int64_t>(ops[3].valueU64);
+        const auto immValue = static_cast<int64_t>(ops[3].valueU64);
         if (ops[2].microOp == MicroOp::Subtract)
             stackDepth += immValue;
         else if (ops[2].microOp == MicroOp::Add)

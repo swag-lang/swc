@@ -25,7 +25,7 @@ bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view 
     if (moduleName.empty())
         return false;
 
-    std::unique_lock lock(mutex_);
+    std::unique_lock const lock(mutex_);
     if (findLoadedModule(outModuleHandle, moduleName))
         return true;
 

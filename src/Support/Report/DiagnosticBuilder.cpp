@@ -477,7 +477,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
         {
             msg                        = buildMessage(msg, &el);
             const uint32_t msgStartPos = column + underlineLen + 1; // +1 for space before a message
-            const uint32_t msgLength   = static_cast<uint32_t>(msg.length());
+            const auto     msgLength   = static_cast<uint32_t>(msg.length());
 
             // Check if a message fits on this line (consider next underline position if exists)
             bool fits = true;
@@ -818,7 +818,7 @@ void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<Diagnosti
         size_t insertPos = idx + 1;
         for (const auto& p : parts)
         {
-            DiagnosticSeverity sev = p.tag.value_or(DiagnosticSeverity::Note);
+            DiagnosticSeverity const sev = p.tag.value_or(DiagnosticSeverity::Note);
 
             auto extra = std::make_unique<DiagnosticElement>(sev, element->id());
             extra->setMessage(Utf8(p.text));

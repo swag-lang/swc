@@ -26,17 +26,17 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
     line--;
     SWC_ASSERT(line < lines_.size());
 
-    const auto  offset      = lines_[line];
-    const auto  startBuffer = stringView_.data() + offset;
-    const char* end;
+    const auto        offset      = lines_[line];
+    const auto* const startBuffer = stringView_.data() + offset;
+    const char*       end;
 
     if (line == lines_.size() - 1)
         end = stringView_.data() + stringView_.size();
     else
         end = stringView_.data() + lines_[line + 1];
 
-    auto buffer = startBuffer;
-    bool hasTab = false;
+    const auto* buffer = startBuffer;
+    bool        hasTab = false;
     while (buffer < end && buffer[0] != '\n' && buffer[0] != '\r')
     {
         if (buffer[0] == '\t')
@@ -115,7 +115,7 @@ TokenRef SourceView::findRightFrom(TokenRef startRef, std::initializer_list<Toke
 
 TokenRef SourceView::findLeftFrom(TokenRef startRef, std::initializer_list<TokenId> ids) const
 {
-    int32_t i = static_cast<int32_t>(startRef.get());
+    auto i = static_cast<int32_t>(startRef.get());
     for (; i >= 0; --i)
     {
         const TokenId tokId = tokens_[i].id;

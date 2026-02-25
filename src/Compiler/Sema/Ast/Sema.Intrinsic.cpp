@@ -150,8 +150,8 @@ namespace
         TypeRef typeRef;
         if (forString)
         {
-            TypeInfo ty = TypeInfo::makeString();
-            typeRef     = sema.typeMgr().addType(ty);
+            TypeInfo const ty = TypeInfo::makeString();
+            typeRef           = sema.typeMgr().addType(ty);
         }
         else
         {

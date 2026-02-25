@@ -60,7 +60,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     {
         const uint64_t rawSize = ty.sizeOf(ctx);
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
-        const uint32_t size = static_cast<uint32_t>(rawSize);
+        const auto size = static_cast<uint32_t>(rawSize);
 
         const auto passingKind = usage == Usage::Argument ? conv.classifyStructArgPassing(size) : conv.classifyStructReturnPassing(size);
         if (passingKind == StructArgPassingKind::ByValue)

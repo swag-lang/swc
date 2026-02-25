@@ -35,7 +35,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
-        SymbolStruct&  sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
@@ -50,7 +50,7 @@ Result AstStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
 Result AstStructDecl::semaPostNode(Sema& sema)
 {
-    SymbolStruct& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -91,7 +91,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
         TaskContext& ctx = sema.ctx();
 
         // Creates symbol with type
-        SymbolStruct&  sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+        auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
         const TypeInfo structType    = TypeInfo::makeStruct(&sym);
         const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
         sym.setTypeRef(structTypeRef);
@@ -106,7 +106,7 @@ Result AstAnonymousStructDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 
 Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 {
-    SymbolStruct& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.

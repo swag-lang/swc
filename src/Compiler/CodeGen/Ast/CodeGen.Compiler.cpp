@@ -38,10 +38,10 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const CallConv&  callConv     = CallConv::host();
+    const CallConv&        callConv     = CallConv::host();
     constexpr CallConvKind callConvKind = CallConvKind::Host;
-    MicroBuilder&    builder      = codeGen.builder();
-    const SemaNodeView exprView   = codeGen.viewType(nodeExprRef);
+    MicroBuilder&          builder      = codeGen.builder();
+    const SemaNodeView     exprView     = codeGen.viewType(nodeExprRef);
     SWC_ASSERT(exprView.type());
 
     const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);
@@ -63,7 +63,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         else
         {
             const uint32_t spillSize = normalizedRet.indirectSize;
-            std::byte*     spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
+            auto*          spillData = codeGen.compiler().allocateArray<std::byte>(spillSize);
             std::memset(spillData, 0, spillSize);
 
             const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();

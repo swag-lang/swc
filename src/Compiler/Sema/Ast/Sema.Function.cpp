@@ -19,7 +19,7 @@ SWC_BEGIN_NAMESPACE();
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
-    SymbolFunction& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
 
     sym.setExtraFlags(flags());
     sym.setDeclNodeRef(sema.curNodeRef());
@@ -35,7 +35,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
 
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isMethod() && !sema.frame().currentImpl() && !sema.frame().currentInterface())
     {
         const SourceView& srcView   = sema.srcView(srcViewRef());
@@ -59,7 +59,7 @@ namespace
             const SymbolImpl& symImpl   = sema.frame().currentImpl()->asSymMap()->cast<SymbolImpl>();
             const TypeRef     ownerType = symImpl.symStruct()->typeRef();
             TaskContext&      ctx       = sema.ctx();
-            SymbolVariable*   symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
+            auto*             symMe     = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), sema.idMgr().predefined(IdentifierManager::PredefinedName::Me), SymbolFlagsE::Zero);
             TypeInfoFlags     typeFlags = TypeInfoFlagsE::Zero;
             if (sym.hasExtraFlag(SymbolFunctionFlagsE::Const))
                 typeFlags.add(TypeInfoFlagsE::Const);
@@ -90,8 +90,8 @@ namespace
         SWC_ASSERT(nodeCallee.node() != nullptr);
         if (nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
         {
-            const AstMemberAccessExpr& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
-            const SemaNodeView         nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
+            const auto&        memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
+            const SemaNodeView nodeLeftView = sema.viewZero(memberAccess.nodeLeftRef);
             if (sema.isValue(nodeLeftView.nodeRef()))
                 ufcsArg = nodeLeftView.nodeRef();
         }
@@ -102,7 +102,7 @@ namespace
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
-        SymbolFunction& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
+        auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
             if (currentFn->decl() && calledFn.decl() && currentFn->srcViewRef() == calledFn.srcViewRef() && !calledFn.isForeign())
@@ -126,7 +126,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (childRef == nodeParamsRef)
     {
-        SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Parameters, childRef);
         sema.curScope().setSymMap(&sym);
         if (sym.isMethod())
@@ -134,8 +134,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        SymbolFunction& sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        auto            frame = sema.frame();
+        auto& sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        auto  frame = sema.frame();
         if (sym.isMethod())
         {
             const auto& params = sym.parameters();
@@ -155,7 +155,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
 
     bool setIsTyped = false;
     if (hasFlag(AstFunctionFlagsE::Short))
@@ -201,7 +201,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
@@ -215,8 +215,8 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     if (!symImpl)
         return SemaError::raise(sema, DiagnosticId::sema_err_tok_outside_impl, sema.curNodeRef());
 
-    const TypeRef   ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
-    SymbolVariable& sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
+    const TypeRef ownerType = symImpl->isForStruct() ? symImpl->symStruct()->typeRef() : symImpl->symEnum()->typeRef();
+    auto&         sym       = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokRef());
 
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (hasFlag(AstFunctionParamMeFlagsE::Const))

@@ -188,7 +188,7 @@ void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& fol
     {
         if (!entry.is_regular_file())
             continue;
-        std::string ext = entry.path().extension().string();
+        std::string const ext = entry.path().extension().string();
         if (ext != ".swg" && ext != ".swgs")
             continue;
 

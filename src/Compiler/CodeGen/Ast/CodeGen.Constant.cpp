@@ -57,7 +57,7 @@ namespace
                 const ApFloat& value = cst.getFloat();
                 if (value.bitWidth() == 32)
                 {
-                    const uint32_t bits = std::bit_cast<uint32_t>(value.asFloat());
+                    const auto bits = std::bit_cast<uint32_t>(value.asFloat());
                     builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B32);
                     payload.setIsValue();
                     return;
@@ -65,7 +65,7 @@ namespace
 
                 if (value.bitWidth() == 64)
                 {
-                    const uint64_t bits = std::bit_cast<uint64_t>(value.asDouble());
+                    const auto bits = std::bit_cast<uint64_t>(value.asDouble());
                     builder.emitLoadRegImm(payload.reg, ApInt(bits, 64), MicroOpBits::B64);
                     payload.setIsValue();
                     return;

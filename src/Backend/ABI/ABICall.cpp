@@ -23,7 +23,7 @@ namespace
             return;
 
         const uint32_t numRegArgs = conv.numArgRegisterSlots();
-        const uint32_t numArgs    = static_cast<uint32_t>(args.size());
+        const auto     numArgs    = static_cast<uint32_t>(args.size());
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
         for (uint32_t i = 0; i < numArgs; ++i)
         {
@@ -159,7 +159,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     // Move lowered argument values into the concrete ABI argument registers/stack slots.
     PreparedCall    preparedCall;
     const CallConv& conv            = CallConv::get(callConvKind);
-    const uint32_t  numPreparedArgs = static_cast<uint32_t>(args.size());
+    const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     preparedCall.numPreparedArgs    = numPreparedArgs;
     if (args.empty())
         return preparedCall;
@@ -439,7 +439,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 {
     // Fully self-contained call helper for runtime/JIT address calls.
     const CallConv& conv        = CallConv::get(callConvKind);
-    const uint32_t  numArgs     = static_cast<uint32_t>(args.size());
+    const auto      numArgs     = static_cast<uint32_t>(args.size());
     const uint32_t  stackAdjust = computeCallStackAdjust(callConvKind, numArgs);
 
     MicroReg   regBase, regTmp;

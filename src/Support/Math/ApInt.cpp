@@ -202,7 +202,7 @@ void ApInt::logicalShiftRight(uint64_t amount)
     {
         for (uint32_t i = 0; i < numWords_ - static_cast<uint32_t>(wordShift); ++i)
             words_[i] = words_[i + wordShift];
-        for (uint32_t i = static_cast<uint32_t>(numWords_ - wordShift); i < numWords_; ++i)
+        for (auto i = static_cast<uint32_t>(numWords_ - wordShift); i < numWords_; ++i)
             words_[i] = 0;
     }
 
@@ -256,7 +256,7 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
             return;
         }
 
-        const uint32_t ws = static_cast<uint32_t>(wordShift);
+        const auto ws = static_cast<uint32_t>(wordShift);
 
         for (uint32_t i = 0; i < numWords_ - ws; ++i)
             words_[i] = words_[i + ws];

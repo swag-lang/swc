@@ -26,7 +26,7 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
+                MicroInstr const&  scanInst = *scanIt;
                 MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
@@ -110,7 +110,7 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
+                MicroInstr const&  scanInst = *scanIt;
                 MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
@@ -200,7 +200,7 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&              scanInst = *scanIt;
+                MicroInstr const&        scanInst = *scanIt;
                 const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
@@ -362,7 +362,7 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
+                MicroInstr const&  scanInst = *scanIt;
                 MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;
@@ -590,7 +590,7 @@ namespace PeepholePass
                 if (scanIt.current == INVALID_REF)
                     break;
 
-                MicroInstr& scanInst = *scanIt;
+                MicroInstr const& scanInst = *scanIt;
 
                 const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
                 if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
@@ -668,7 +668,7 @@ namespace PeepholePass
 
             for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
             {
-                MicroInstr&        scanInst = *scanIt;
+                MicroInstr const&  scanInst = *scanIt;
                 MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                 if (!scanOps)
                     return false;

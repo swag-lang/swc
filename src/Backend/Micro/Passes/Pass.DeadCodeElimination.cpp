@@ -518,9 +518,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     const MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        const Ref   currentRef = it.current;
-        MicroInstr& inst       = *it;
-        const auto* ops        = inst.ops(operands);
+        const Ref         currentRef = it.current;
+        MicroInstr const& inst       = *it;
+        const auto*       ops        = inst.ops(operands);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         if (isControlFlowBarrier(inst, useDef))

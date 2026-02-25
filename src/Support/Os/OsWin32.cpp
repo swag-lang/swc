@@ -47,8 +47,8 @@ namespace
 
     bool ensureSymbolEngineInitialized()
     {
-        SymbolEngineState& state = symbolEngineState();
-        std::scoped_lock   lock(state.mutex);
+        SymbolEngineState&     state = symbolEngineState();
+        std::scoped_lock const lock(state.mutex);
 
         if (!state.attempted)
         {
@@ -187,14 +187,14 @@ namespace
         if (!ensureSymbolEngineInitialized())
             return false;
 
-        SymbolEngineState& state = symbolEngineState();
-        std::scoped_lock   lock(state.mutex);
-        bool               hasInfo = false;
+        SymbolEngineState&     state = symbolEngineState();
+        std::scoped_lock const lock(state.mutex);
+        bool                   hasInfo = false;
 
         const HANDLE                                            process = GetCurrentProcess();
         std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
 
-        const auto symbol    = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
+        auto* const symbol   = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen   = MAX_SYM_NAME;
 
@@ -228,7 +228,7 @@ namespace
         if (!VirtualQuery(reinterpret_cast<LPCVOID>(static_cast<uintptr_t>(address)), &mbi, sizeof(mbi)))
             return;
 
-        const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
+        const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
         if (modBase)
         {
             char        modulePath[MAX_PATH + 1]{};
@@ -537,13 +537,13 @@ namespace Os
 
         for (uint32_t i = 0; i < numFrames; ++i)
         {
-            const uintptr_t address = reinterpret_cast<uintptr_t>(frames[i]);
+            const auto address = reinterpret_cast<uintptr_t>(frames[i]);
             outMsg += std::format("[{:02}] 0x{:016X}", i, address);
 
             MEMORY_BASIC_INFORMATION mbi{};
             if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
             {
-                const uintptr_t modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
+                const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
                 if (modBase)
                 {
                     char        modulePath[MAX_PATH + 1]{};

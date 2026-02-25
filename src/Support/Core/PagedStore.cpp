@@ -74,7 +74,7 @@ void PagedStore::copyTo(ByteSpanRW dst) const
     SWC_ASSERT(dst.size() <= size());
 
     std::byte* out       = dst.data();
-    uint32_t   remaining = static_cast<uint32_t>(dst.size());
+    auto       remaining = static_cast<uint32_t>(dst.size());
     for (const std::unique_ptr<Page>& page : pagesStorage_)
     {
         if (!remaining)
@@ -124,8 +124,8 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     page->used.store(newUsed, std::memory_order_relaxed);
     totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
 
-    const auto hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
-    hdr->total     = totalElems;
+    auto* const hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
+    hdr->total      = totalElems;
 
     std::memcpy(page->bytes() + dataOffsetF, src, static_cast<size_t>(fit) * elemSize);
 
@@ -153,7 +153,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
             pageUsed = 0;
         }
         const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};
-        const auto    hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
+        auto* const   hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
         hdr->total        = 0;
         page->used.store(pageUsed + need, std::memory_order_relaxed);
         totalBytes_ += need;
@@ -161,7 +161,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
     }
 
     SWC_ASSERT(data != nullptr);
-    auto           src        = static_cast<const uint8_t*>(data);
+    const auto*    src        = static_cast<const uint8_t*>(data);
     uint32_t       remaining  = count;
     const uint32_t totalElems = count;
     SpanRef        firstRef   = SpanRef::invalid();
@@ -342,14 +342,14 @@ PagedStore::Page* PagedStore::newPage()
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
-    const auto bPtr  = static_cast<const uint8_t*>(ptr);
-    const auto pages = snapshotPages();
+    const auto* const bPtr  = static_cast<const uint8_t*>(ptr);
+    const auto        pages = snapshotPages();
     for (uint32_t j = 0; j < pages->size(); j++)
     {
         const Page* page = (*pages)[j];
         if (bPtr >= page->bytes() && bPtr < page->bytes() + pageSizeValue_)
         {
-            const uint32_t offset = static_cast<uint32_t>(bPtr - page->bytes());
+            const auto offset = static_cast<uint32_t>(bPtr - page->bytes());
             return makeRef(pageSizeValue_, j, offset);
         }
     }

@@ -78,8 +78,8 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
-        const Ref   instRef = it.current;
-        MicroInstr& inst    = *it;
+        const Ref         instRef = it.current;
+        MicroInstr const& inst    = *it;
         ++it;
 
         if (inst.op == MicroInstrOpcode::JumpCond && isJumpToImmediateNextLabel(storage, operands, instRef))
@@ -110,8 +110,8 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
-        const Ref   instRef = it.current;
-        MicroInstr& inst    = *it;
+        const Ref         instRef = it.current;
+        MicroInstr const& inst    = *it;
         ++it;
 
         if (inst.op != MicroInstrOpcode::Label)

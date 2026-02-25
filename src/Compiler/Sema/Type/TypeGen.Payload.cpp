@@ -26,8 +26,8 @@ namespace
     {
         storage.addRelocation(baseOffset + fieldOffset, targetOffset);
 
-        const Runtime::TypeInfo** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
-        *ptrField                          = storage.ptr<Runtime::TypeInfo>(targetOffset);
+        const auto** ptrField = storage.ptr<const Runtime::TypeInfo*>(baseOffset + fieldOffset);
+        *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
     template<typename T>

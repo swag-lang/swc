@@ -39,11 +39,11 @@ namespace
     MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
     {
         SWC_ASSERT(copySize > 0);
-        std::byte* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
+        auto* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
 
         MicroBuilder&  builder  = codeGen.builder();
         const MicroReg dstReg   = codeGen.nextVirtualIntRegister();
-        const uint64_t dstValue = reinterpret_cast<uint64_t>(storage);
+        const auto     dstValue = reinterpret_cast<uint64_t>(storage);
         builder.emitLoadRegPtrImm(dstReg, dstValue);
         CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
         return dstReg;
@@ -64,7 +64,7 @@ namespace
             SWC_ASSERT(typeRef.isValid());
 
             const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-            const uint32_t  size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
+            const auto      size     = static_cast<uint32_t>(typeInfo.sizeOf(codeGen.ctx()));
             SWC_ASSERT(size > 0);
 
             const uint32_t symOffset = symVar->offset();
@@ -332,7 +332,7 @@ namespace
         const uint64_t  rawElemSize  = variadicType.sizeOf(ctx);
         SWC_ASSERT(rawElemSize > 0 && rawElemSize <= std::numeric_limits<uint32_t>::max());
 
-        const uint32_t elemSize      = static_cast<uint32_t>(rawElemSize);
+        const auto     elemSize      = static_cast<uint32_t>(rawElemSize);
         const uint32_t elemAlign     = std::max<uint32_t>(variadicType.alignOf(ctx), 1);
         const uint64_t variadicCount = args.size();
 
@@ -699,7 +699,7 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     MicroBuilder&                          builder        = codeGen.builder();
     const SemaNodeView                     calleeView     = codeGen.viewZero(nodeExprRef);
     const SemaNodeView                     currentView    = codeGen.curViewTypeSymbol();
-    SymbolFunction&                        calledFunction = currentView.sym()->cast<SymbolFunction>();
+    auto&                                  calledFunction = currentView.sym()->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
     const CallConv&                        callConv       = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(codeGen.ctx(), callConv, currentView.typeRef(), ABITypeNormalize::Usage::Return);

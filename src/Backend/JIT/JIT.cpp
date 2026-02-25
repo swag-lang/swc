@@ -244,7 +244,7 @@ namespace
 
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
-        const auto     basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
+        auto* const    basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
         SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
@@ -281,7 +281,7 @@ void JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan linear
     SWC_FORCE_ASSERT(linearCode.size_bytes() <= std::numeric_limits<uint32_t>::max());
 
     JITMemoryManager& memoryManager = ctx.compiler().jitMemMgr();
-    const uint32_t    codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
+    const auto        codeSize      = static_cast<uint32_t>(linearCode.size_bytes());
     ByteSpanRW        writableCode;
 
     SWC_FORCE_ASSERT(memoryManager.allocate(outExecutableMemory, codeSize));
@@ -316,7 +316,7 @@ void JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgum
         packedArgs[0].numBits = 64;
     }
 
-    const uint32_t numArgs = static_cast<uint32_t>(args.size());
+    const auto numArgs = static_cast<uint32_t>(args.size());
     for (uint32_t i = 0; i < numArgs; ++i)
     {
         const JITArgument&                     arg     = args[i];

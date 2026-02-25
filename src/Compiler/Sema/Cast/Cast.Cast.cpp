@@ -912,8 +912,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
     SWC_ASSERT(view.node() != nullptr);
     if (view.node()->is(AstNodeId::AutoCastExpr))
     {
-        const AstAutoCastExpr& autoCast = view.node()->cast<AstAutoCastExpr>();
-        effectiveKind                   = CastKind::Explicit;
+        const auto& autoCast = view.node()->cast<AstAutoCastExpr>();
+        effectiveKind        = CastKind::Explicit;
         if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
             effectiveFlags.add(CastFlagsE::BitCast);
         if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))

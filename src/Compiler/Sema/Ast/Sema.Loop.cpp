@@ -117,7 +117,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 if (tokNameRef.isInvalid())
                     continue;
 
-                SymbolVariable& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+                auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
                 symVar.registerAttributes(sema);
                 symVar.setDeclared(sema.ctx());
                 SWC_RESULT_VERIFY(Match::ghosting(sema, symVar));

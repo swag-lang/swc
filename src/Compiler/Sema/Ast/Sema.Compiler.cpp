@@ -51,7 +51,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     {
         SemaFrame       frame    = sema.frame();
         SemaCompilerIf* parentIf = frame.currentCompilerIf();
-        SemaCompilerIf* ifFrame  = sema.compiler().allocate<SemaCompilerIf>();
+        auto*           ifFrame  = sema.compiler().allocate<SemaCompilerIf>();
         ifFrame->parent          = parentIf;
 
         frame.setCurrentCompilerIf(ifFrame);
@@ -65,7 +65,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     {
         SemaFrame       frame     = sema.frame();
         SemaCompilerIf* parentIf  = frame.currentCompilerIf();
-        SemaCompilerIf* elseFrame = sema.compiler().allocate<SemaCompilerIf>();
+        auto*           elseFrame = sema.compiler().allocate<SemaCompilerIf>();
         elseFrame->parent         = parentIf;
 
         frame.setCurrentCompilerIf(elseFrame);
@@ -188,9 +188,9 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 
 Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
-    TaskContext&      ctx     = sema.ctx();
-    const Token&      tok     = sema.token(codeRef());
-    const SourceView& srcView = sema.ast().srcView();
+    TaskContext const& ctx     = sema.ctx();
+    const Token&       tok     = sema.token(codeRef());
+    const SourceView&  srcView = sema.ast().srcView();
 
     switch (tok.id)
     {
@@ -454,9 +454,9 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext&     ctx      = sema.ctx();
-        const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
+        TaskContext const& ctx      = sema.ctx();
+        const AstNodeRef   childRef = node.nodeArgRef;
+        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
 
         if (view.sym())
         {
@@ -668,7 +668,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
-    SymbolFunction& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     sym.registerAttributes(sema);
     sym.setReturnTypeRef(sema.typeMgr().typeVoid());
     auto frame                = sema.frame();
@@ -689,7 +689,7 @@ Result AstCompilerRunExpr::semaPreNode(Sema& sema)
         const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
         const AstNode&      node  = sema.node(nodeRef);
 
-        SymbolFunction* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
+        auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
         symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
         symFn->setDeclNodeRef(nodeRef);
         symFn->setReturnTypeRef(sema.typeMgr().typeVoid());

@@ -207,7 +207,7 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
         {
             // Not enough or invalid hex digits
             const uint32_t actualDigits = i;
-            const uint32_t offset       = static_cast<uint32_t>(buffer_ - startBuffer_);
+            const auto     offset       = static_cast<uint32_t>(buffer_ - startBuffer_);
 
             if (actualDigits == 0)
             {
@@ -703,7 +703,7 @@ void Lexer::lexIdentifier()
             else if (name[0] == '@')
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
-            const uint32_t idx = static_cast<uint32_t>(srcView_->identifiers().size());
+            const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
             srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
@@ -711,7 +711,7 @@ void Lexer::lexIdentifier()
         // #global skip
         if (token_.id == TokenId::CompilerGlobal)
         {
-            auto tmp = buffer_;
+            const auto* tmp = buffer_;
             while (langSpec_->isBlank(tmp[0]))
                 tmp++;
 
@@ -1132,7 +1132,7 @@ void Lexer::checkFormat(uint32_t& startOffset)
         return;
     }
 
-    const auto data = reinterpret_cast<const char8_t*>(content.data());
+    const auto* const data = reinterpret_cast<const char8_t*>(content.data());
 
     // UTF-8 BOM
     if (content.size() >= 3 &&
@@ -1213,10 +1213,10 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     uint32_t startOffset = 0;
     checkFormat(startOffset);
 
-    const auto base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
-    buffer_         = base + startOffset;
-    startBuffer_    = base;
-    endBuffer_      = startBuffer_ + srcView.stringView().size();
+    const auto* const base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
+    buffer_                = base + startOffset;
+    startBuffer_           = base;
+    endBuffer_             = startBuffer_ + srcView.stringView().size();
 
     // Reserve space based on source size
     srcView_->tokens().reserve(srcView.stringView().size() / 10);

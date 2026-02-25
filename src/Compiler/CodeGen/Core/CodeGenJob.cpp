@@ -67,7 +67,7 @@ JobResult CodeGenJob::exec()
             continue;
         const AstNodeRef depRoot = dep->declNodeRef();
         SWC_ASSERT(depRoot.isValid());
-        CodeGenJob* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
+        auto* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
         sema().compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema().compiler().jobClientId());
     }
 

@@ -50,7 +50,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
     bool                 changed  = false;
     MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
-    for (MicroInstr& inst : context.instructions->view())
+    for (MicroInstr const& inst : context.instructions->view())
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             continue;

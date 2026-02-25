@@ -99,29 +99,29 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
         const uint64_t u = bits;
         if (targetBits == 32)
         {
-            const float f = static_cast<float>(u);
+            const auto f = static_cast<float>(u);
             set(f);
             exact = (static_cast<uint64_t>(f) == u);
         }
         else
         {
-            const double d = static_cast<double>(u);
+            const auto d = static_cast<double>(u);
             set(d);
             exact = (static_cast<uint64_t>(d) == u);
         }
     }
     else
     {
-        const int64_t s = static_cast<int64_t>(bits);
+        const auto s = static_cast<int64_t>(bits);
         if (targetBits == 32)
         {
-            const float f = static_cast<float>(s);
+            const auto f = static_cast<float>(s);
             set(f);
             exact = (static_cast<int64_t>(f) == s);
         }
         else
         {
-            const double d = static_cast<double>(s);
+            const auto d = static_cast<double>(s);
             set(d);
             exact = (static_cast<int64_t>(d) == s);
         }
@@ -503,7 +503,7 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
             return ApsInt::minValue(targetBits, isUnsigned);
         }
 
-        const uint64_t u = static_cast<uint64_t>(truncated);
+        const auto u = static_cast<uint64_t>(truncated);
 
         if (targetBits < 64)
         {
@@ -527,7 +527,7 @@ ApsInt ApFloat::toInt(uint32_t targetBits, bool isUnsigned, bool& isExact, bool&
         return ApsInt::minValue(targetBits, isUnsigned);
     }
 
-    const int64_t s = static_cast<int64_t>(truncated);
+    const auto s = static_cast<int64_t>(truncated);
 
     if (targetBits < 63)
     {
@@ -566,7 +566,7 @@ ApFloat ApFloat::toFloat(uint32_t targetBits, bool& isExact, bool& overflow) con
     }
     else if (bitWidth_ == 64 && targetBits == 32)
     {
-        const float f = static_cast<float>(value_.f64);
+        const auto f = static_cast<float>(value_.f64);
         result.set(f);
         isExact = static_cast<double>(f) == value_.f64;
     }
@@ -596,7 +596,7 @@ uint32_t ApFloat::minBits() const
 
     // Preserve -0 exactly (signbit matters, but the round-trip test below also works).
     // Check whether the value round-trips through float unchanged.
-    const float  f  = static_cast<float>(d);
+    const auto   f  = static_cast<float>(d);
     const double rt = f;
 
     if (rt == d)

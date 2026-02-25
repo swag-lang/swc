@@ -13,10 +13,10 @@ namespace
 {
     uint32_t calculateColumn(const TaskContext& ctx, const char8_t* content, uint32_t lineStart, uint32_t offset)
     {
-        const uint32_t tabSize = ctx.cmdLine().tabSize;
-        uint32_t       column  = 1; // Columns are 1-based
-        auto           ptr     = content + lineStart;
-        const auto     end     = content + offset;
+        const uint32_t    tabSize = ctx.cmdLine().tabSize;
+        uint32_t          column  = 1; // Columns are 1-based
+        const auto*       ptr     = content + lineStart;
+        const auto* const end     = content + offset;
 
         while (ptr < end)
         {

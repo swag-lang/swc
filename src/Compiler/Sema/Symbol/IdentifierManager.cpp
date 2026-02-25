@@ -152,13 +152,13 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     auto& shard = shards_[shardIndex];
 
     {
-        std::shared_lock lk(shard.mutex);
-        if (const auto it = shard.map.find(name, hash))
+        std::shared_lock const lk(shard.mutex);
+        if (auto* const it = shard.map.find(name, hash))
             return *it;
     }
 
-    std::unique_lock lk(shard.mutex);
-    if (const auto it = shard.map.find(name, hash))
+    std::unique_lock const lk(shard.mutex);
+    if (auto* const it = shard.map.find(name, hash))
         return *it;
 
     std::string_view storedName = name;

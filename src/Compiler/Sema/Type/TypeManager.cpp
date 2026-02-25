@@ -175,12 +175,12 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     auto& shard = shards_[shardIndex];
 
     {
-        std::shared_lock lk(shard.mutex);
+        std::shared_lock const lk(shard.mutex);
         if (const auto it = shard.map.find(typeInfo); it != shard.map.end())
             return it->second;
     }
 
-    std::unique_lock lk(shard.mutex);
+    std::unique_lock const lk(shard.mutex);
     const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
     if (!inserted)
         return it->second;
@@ -193,8 +193,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t localIndex = shard.store.pushBack(typeInfo);
     SWC_ASSERT(localIndex < LOCAL_MASK);
 
-    TypeInfo* ptr = shard.store.ptr<TypeInfo>(localIndex);
-    TypeRef   result{(shardIndex << LOCAL_BITS) | localIndex};
+    auto*   ptr = shard.store.ptr<TypeInfo>(localIndex);
+    TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
     ptr->typeRef_ = result;
 
 #if SWC_HAS_REF_DEBUG_INFO
@@ -258,15 +258,15 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
         return false;
 
     const RuntimeTypeKind kind  = it->second;
-    const uint32_t        uKind = static_cast<uint32_t>(kind);
+    const auto            uKind = static_cast<uint32_t>(kind);
     return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
            uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
 }
 
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
-    std::unique_lock lk(mutexRt_);
-    const auto       it = mapRtKind_.find(idRef);
+    std::unique_lock const lk(mutexRt_);
+    const auto             it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
     runtimeTypes_[static_cast<uint32_t>(it->second)] = typeRef;
@@ -274,7 +274,7 @@ void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 
 TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
 {
-    std::shared_lock lk(mutexRt_);
+    std::shared_lock const lk(mutexRt_);
     return runtimeTypes_[static_cast<uint32_t>(kind)];
 }
 

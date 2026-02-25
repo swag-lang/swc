@@ -112,7 +112,7 @@ namespace
 
     uint32_t countCallArgs(std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        uint32_t n = static_cast<uint32_t>(args.size());
+        auto n = static_cast<uint32_t>(args.size());
         if (ufcsArg.isValid())
             ++n;
         return n;
@@ -170,7 +170,7 @@ namespace
         outMapping = {};
 
         const auto&    params     = fn.parameters();
-        const uint32_t numParams  = static_cast<uint32_t>(params.size());
+        const auto     numParams  = static_cast<uint32_t>(params.size());
         const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
 
         outMapping.paramArgs.resize(numParams);
@@ -438,8 +438,8 @@ namespace
         SWC_ASSERT(argNodeView.node() != nullptr);
         if (argNodeView.node()->is(AstNodeId::AutoCastExpr))
         {
-            const AstAutoCastExpr& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
-            castKind                        = CastKind::Explicit;
+            const auto& autoCast = argNodeView.node()->cast<AstAutoCastExpr>();
+            castKind             = CastKind::Explicit;
             if (autoCast.modifierFlags.has(AstModifierFlagsE::Bit))
                 castFlags.add(CastFlagsE::BitCast);
             if (autoCast.modifierFlags.has(AstModifierFlagsE::UnConst))
@@ -476,7 +476,7 @@ namespace
         const AstNode&   argNode     = sema.node(finalArgRef);
         if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
             return Result::Continue;
-        const AstAutoMemberAccessExpr& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
+        const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
         if (!paramTypeInfo.isEnum())
@@ -519,7 +519,7 @@ namespace
         const AstNode&   argNode     = sema.node(finalArgRef);
         if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
             return Result::Continue;
-        const AstAutoMemberAccessExpr& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
+        const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
         if (!paramTypeInfo.isEnum())
@@ -561,7 +561,7 @@ namespace
     uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
     {
         const auto&    params = fn.parameters();
-        const uint32_t n      = static_cast<uint32_t>(params.size());
+        const auto     n      = static_cast<uint32_t>(params.size());
         const uint32_t end    = (ignoreVariadicTail && n > 0) ? (n - 1) : n;
 
         uint32_t required = 0;
@@ -581,7 +581,7 @@ namespace
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto     params    = fn.parameters();
-        const uint32_t numParams = static_cast<uint32_t>(params.size());
+        const auto     numParams = static_cast<uint32_t>(params.size());
         const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 
         outCandidate.fn = &fn;
@@ -715,8 +715,8 @@ namespace
     // 3. Number of default arguments used (fewer is better)
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
-        const uint32_t na = static_cast<uint32_t>(a.perArg.size());
-        const uint32_t nb = static_cast<uint32_t>(b.perArg.size());
+        const auto     na = static_cast<uint32_t>(a.perArg.size());
+        const auto     nb = static_cast<uint32_t>(b.perArg.size());
         const uint32_t n  = std::min(na, nb);
 
         for (uint32_t i = 0; i < n; ++i)
@@ -833,7 +833,7 @@ namespace
     {
         const TypeInfo& selectedFnType = selectedFn.type(sema.ctx());
         const auto&     params         = selectedFn.parameters();
-        const uint32_t  numParams      = static_cast<uint32_t>(params.size());
+        const auto      numParams      = static_cast<uint32_t>(params.size());
         const uint32_t  commonParams   = numCommonParamsForFinalize(selectedFnType, numParams);
 
         for (uint32_t i = 0; i < commonParams; ++i)
@@ -903,9 +903,9 @@ namespace
     // The cast value is then stored back in the argument node.
     Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
     {
-        const auto&    params    = selectedFn.parameters();
-        const uint32_t numParams = static_cast<uint32_t>(params.size());
-        uint32_t       numCommon = numParams;
+        const auto& params    = selectedFn.parameters();
+        const auto  numParams = static_cast<uint32_t>(params.size());
+        uint32_t    numCommon = numParams;
         if (numParams > 0)
         {
             const SymbolVariable* const lastParam = params.back();
@@ -934,7 +934,7 @@ namespace
     // must be cast to the underlying variadic type.
     Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
-        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
+        const auto numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
             return Result::Continue;
 
@@ -980,7 +980,7 @@ namespace
 
     Result concretizeUntypedVariadicArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
     {
-        const uint32_t numParams = static_cast<uint32_t>(selectedFn.parameters().size());
+        const auto numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
             return Result::Continue;
 
@@ -1005,7 +1005,7 @@ namespace
             return AstNodeRef::invalid();
         if (!nodeCallee.node()->is(AstNodeId::MemberAccessExpr))
             return AstNodeRef::invalid();
-        const AstMemberAccessExpr& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
+        const auto& memberAccess = nodeCallee.node()->cast<AstMemberAccessExpr>();
 
         const SemaNodeView receiverView = sema.viewNodeType(memberAccess.nodeLeftRef);
         if (receiverView.type() && receiverView.type()->isInterface() && sema.isValue(*receiverView.node()))
@@ -1065,9 +1065,9 @@ namespace
         outResolvedArgs.clear();
         appendImplicitInterfaceReceiverArg(sema, outResolvedArgs, nodeCallee, selectedFn, mapping);
 
-        const uint32_t numParams          = static_cast<uint32_t>(selectedFn.parameters().size());
-        bool           hasUntypedVariadic = false;
-        uint32_t       variadicParamIdx   = 0;
+        const auto numParams          = static_cast<uint32_t>(selectedFn.parameters().size());
+        bool       hasUntypedVariadic = false;
+        uint32_t   variadicParamIdx   = 0;
         if (numParams)
         {
             const SymbolVariable* const variadicParam = selectedFn.parameters().back();

@@ -26,19 +26,19 @@ namespace
 
         if (symMap->isStruct())
         {
-            const SymbolStruct& structSym = symMap->cast<SymbolStruct>();
+            const auto& structSym = symMap->cast<SymbolStruct>();
             for (const SymbolImpl* impl : structSym.impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
         else if (symMap->isEnum())
         {
-            const SymbolEnum& enumSym = symMap->cast<SymbolEnum>();
+            const auto& enumSym = symMap->cast<SymbolEnum>();
             for (const SymbolImpl* impl : enumSym.impls())
                 addSymMap(lookUpCxt, impl, priority);
         }
         else if (symMap->isImpl())
         {
-            const SymbolImpl& implSym = symMap->cast<SymbolImpl>();
+            const auto& implSym = symMap->cast<SymbolImpl>();
             if (implSym.isForStruct())
                 addSymMap(lookUpCxt, implSym.symStruct(), priority);
             else
@@ -130,7 +130,7 @@ namespace
             // in member-access/auto-member-access.
             if (lookUpCxt.symMapHint->isStruct())
             {
-                const SymbolStruct& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 if (const SymbolImpl* symImpl = sema.frame().currentImpl())
                 {
                     if (symImpl->isForStruct() && symImpl->symStruct() == &structSym && symImpl->idRef() != structSym.idRef())
@@ -143,7 +143,7 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
             {
-                const SymbolStruct&              structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                const auto&                      structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 SmallVector<const SymbolStruct*> visited;
                 addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited);
             }

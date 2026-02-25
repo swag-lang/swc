@@ -350,8 +350,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
     for (int i = 2; i < argc; i++)
     {
-        Utf8 arg           = argv[i];
-        bool invertBoolean = false;
+        Utf8 const arg           = argv[i];
+        bool       invertBoolean = false;
 
         const std::optional<ArgInfo> info = findArgument(ctx, arg, invertBoolean);
         if (!info)

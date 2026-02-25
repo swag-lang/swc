@@ -32,9 +32,9 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     TaskContext& ctx = sema.ctx();
 
     // Creates symbol with type
-    SymbolInterface& symItf     = sema.curViewSymbol().sym()->cast<SymbolInterface>();
-    const TypeInfo   itfType    = TypeInfo::makeInterface(&symItf);
-    const TypeRef    itfTypeRef = ctx.typeMgr().addType(itfType);
+    auto&          symItf     = sema.curViewSymbol().sym()->cast<SymbolInterface>();
+    const TypeInfo itfType    = TypeInfo::makeInterface(&symItf);
+    const TypeRef  itfTypeRef = ctx.typeMgr().addType(itfType);
     symItf.setTypeRef(itfTypeRef);
     symItf.setTyped(sema.ctx());
 

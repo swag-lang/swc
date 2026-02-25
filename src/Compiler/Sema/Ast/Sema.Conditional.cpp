@@ -91,8 +91,8 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     // Constant folding
     if (nodeCondView.cstRef().isValid())
     {
-        AstNodeRef   selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
-        SemaNodeView selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);
+        AstNodeRef const selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
+        SemaNodeView     selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);
         SWC_RESULT_VERIFY(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
         sema.setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef());
         if (selectedBranchView.cstRef().isValid())

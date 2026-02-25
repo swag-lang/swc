@@ -53,43 +53,6 @@ private:
 class CodeGen
 {
 public:
-    struct IfStmtCodeGenState
-    {
-        Ref  falseLabel   = INVALID_REF;
-        Ref  doneLabel    = INVALID_REF;
-        bool hasElseBlock = false;
-    };
-
-    struct SwitchCaseCodeGenState
-    {
-        Ref  testLabel     = INVALID_REF;
-        Ref  bodyLabel     = INVALID_REF;
-        Ref  nextTestLabel = INVALID_REF;
-        Ref  nextBodyLabel = INVALID_REF;
-        bool hasNextCase   = false;
-    };
-
-    struct SwitchStmtCodeGenState
-    {
-        Ref                                                    doneLabel      = INVALID_REF;
-        TypeRef                                                compareTypeRef = TypeRef::invalid();
-        MicroReg                                               switchValueReg;
-        MicroOpBits                                            compareOpBits   = MicroOpBits::B64;
-        bool                                                   hasExpression   = false;
-        bool                                                   useUnsignedCond = false;
-        std::unordered_map<AstNodeRef, SwitchCaseCodeGenState> caseStates;
-    };
-
-    struct IfStmtCodeGenPayload
-    {
-        IfStmtCodeGenState state;
-    };
-
-    struct SwitchStmtCodeGenPayload
-    {
-        SwitchStmtCodeGenState state;
-    };
-
     struct LocalStackSlot
     {
         uint32_t offset = 0;
@@ -191,12 +154,6 @@ public:
     CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    IfStmtCodeGenState&       setIfStmtCodeGenState(AstNodeRef nodeRef, const IfStmtCodeGenState& value);
-    IfStmtCodeGenState*       ifStmtCodeGenState(AstNodeRef nodeRef);
-    void                      eraseIfStmtCodeGenState(AstNodeRef nodeRef);
-    SwitchStmtCodeGenState&   setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value);
-    SwitchStmtCodeGenState*   switchStmtCodeGenState(AstNodeRef nodeRef);
-    void                      eraseSwitchStmtCodeGenState(AstNodeRef nodeRef);
     void                      pushFrame(const CodeGenFrame& frame);
     void                      popFrame();
 

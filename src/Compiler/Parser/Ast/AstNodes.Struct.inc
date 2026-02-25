@@ -1203,6 +1203,7 @@ struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
     static Result semaPreNode(Sema& sema);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -1214,6 +1215,7 @@ struct AstScopedBreakStmt : AstNamedNodeT<AstNodeId::ScopedBreakStmt>
 struct AstFallThroughStmt : AstNodeT<AstNodeId::FallThroughStmt>
 {
     static Result semaPreNode(Sema& sema);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -1426,6 +1428,10 @@ struct AstSwitchStmt : AstCompoundT<AstNodeId::SwitchStmt>
     static Result semaPostNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        codeGenPreNode(CodeGen& codeGen) const;
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNode(CodeGen& codeGen) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1450,6 +1456,8 @@ struct AstSwitchCaseStmt : AstNodeT<AstNodeId::SwitchCaseStmt>
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------

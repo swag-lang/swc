@@ -29,6 +29,11 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
     SWC_ASSERT(localStackFrameSize_ == 0);
     SWC_ASSERT(!localStackBaseReg_.isValid());
     ifStmtCodeGenStates_.clear();
+    switchStmtCodeGenStates_.clear();
+    SWC_ASSERT(activeSwitchStack_.empty());
+    SWC_ASSERT(activeSwitchCaseStack_.empty());
+    activeSwitchStack_.clear();
+    activeSwitchCaseStack_.clear();
 
     MicroBuilderFlags        builderFlags    = MicroBuilderFlagsE::Zero;
     const auto&              attributes      = symbolFunc.attributes();

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -44,6 +45,26 @@ public:
         Ref  falseLabel   = INVALID_REF;
         Ref  doneLabel    = INVALID_REF;
         bool hasElseBlock = false;
+    };
+
+    struct SwitchCaseCodeGenState
+    {
+        Ref  testLabel     = INVALID_REF;
+        Ref  bodyLabel     = INVALID_REF;
+        Ref  nextTestLabel = INVALID_REF;
+        Ref  nextBodyLabel = INVALID_REF;
+        bool hasNextCase   = false;
+    };
+
+    struct SwitchStmtCodeGenState
+    {
+        Ref                                           doneLabel       = INVALID_REF;
+        TypeRef                                       compareTypeRef  = TypeRef::invalid();
+        MicroReg                                      switchValueReg;
+        MicroOpBits                                   compareOpBits   = MicroOpBits::B64;
+        bool                                          hasExpression   = false;
+        bool                                          useUnsignedCond = false;
+        std::unordered_map<AstNodeRef, SwitchCaseCodeGenState> caseStates;
     };
 
     struct LocalStackSlot
@@ -153,6 +174,55 @@ public:
         ifStmtCodeGenStates_.erase(nodeRef);
     }
 
+    SwitchStmtCodeGenState& setSwitchStmtCodeGenState(AstNodeRef nodeRef, const SwitchStmtCodeGenState& value)
+    {
+        const auto it = switchStmtCodeGenStates_.insert_or_assign(nodeRef, value).first;
+        return it->second;
+    }
+    SwitchStmtCodeGenState* switchStmtCodeGenState(AstNodeRef nodeRef)
+    {
+        const auto it = switchStmtCodeGenStates_.find(nodeRef);
+        if (it == switchStmtCodeGenStates_.end())
+            return nullptr;
+        return &it->second;
+    }
+    void eraseSwitchStmtCodeGenState(AstNodeRef nodeRef)
+    {
+        switchStmtCodeGenStates_.erase(nodeRef);
+    }
+
+    void pushActiveSwitch(AstNodeRef nodeRef)
+    {
+        activeSwitchStack_.push_back(nodeRef);
+    }
+    void popActiveSwitch()
+    {
+        if (!activeSwitchStack_.empty())
+            activeSwitchStack_.pop_back();
+    }
+    AstNodeRef currentSwitchRef() const
+    {
+        if (activeSwitchStack_.empty())
+            return AstNodeRef::invalid();
+        return activeSwitchStack_.back();
+    }
+
+    void pushActiveSwitchCase(AstNodeRef nodeRef)
+    {
+        activeSwitchCaseStack_.push_back(nodeRef);
+    }
+    void popActiveSwitchCase()
+    {
+        if (!activeSwitchCaseStack_.empty())
+            activeSwitchCaseStack_.pop_back();
+    }
+    AstNodeRef currentSwitchCaseRef() const
+    {
+        if (activeSwitchCaseStack_.empty())
+            return AstNodeRef::invalid();
+        return activeSwitchCaseStack_.back();
+    }
+
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
     MicroReg nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
@@ -177,6 +247,9 @@ private:
     uint32_t                                                      localStackFrameSize_ = 0;
     MicroReg                                                      localStackBaseReg_;
     std::unordered_map<AstNodeRef, IfStmtCodeGenState>            ifStmtCodeGenStates_;
+    std::unordered_map<AstNodeRef, SwitchStmtCodeGenState>        switchStmtCodeGenStates_;
+    SmallVector<AstNodeRef>                                       activeSwitchStack_;
+    SmallVector<AstNodeRef>                                       activeSwitchCaseStack_;
 };
 
 SWC_END_NAMESPACE();

@@ -54,6 +54,7 @@ namespace
     using KnownRegMap             = std::unordered_map<uint32_t, KnownConstant>;
     using KnownStackSlotMap       = std::unordered_map<StackSlotKey, KnownConstant, StackSlotKeyHash>;
     using KnownAddressMap         = std::unordered_map<uint32_t, uint64_t>;
+    using KnownStackAddressMap    = std::unordered_map<uint64_t, uint64_t>;
     using KnownConstantPointerMap = std::unordered_map<uint32_t, KnownConstantPointer>;
 
     uint32_t opBitsNumBytes(MicroOpBits opBits)
@@ -110,6 +111,43 @@ namespace
         knownSlots[{.offset = offset, .opBits = opBits}] = {
             .value = MicroOptimization::normalizeToOpBits(value, opBits),
         };
+    }
+
+    void eraseOverlappingStackAddresses(KnownStackAddressMap& knownStackAddresses, uint64_t offset, MicroOpBits opBits)
+    {
+        const uint32_t slotSize = opBitsNumBytes(opBits);
+        if (!slotSize)
+        {
+            knownStackAddresses.clear();
+            return;
+        }
+
+        for (auto it = knownStackAddresses.begin(); it != knownStackAddresses.end();)
+        {
+            if (rangesOverlap(offset, slotSize, it->first, sizeof(uint64_t)))
+                it = knownStackAddresses.erase(it);
+            else
+                ++it;
+        }
+    }
+
+    void setKnownStackAddress(KnownStackAddressMap& knownStackAddresses, uint64_t stackSlotOffset, uint64_t stackAddressOffset)
+    {
+        eraseOverlappingStackAddresses(knownStackAddresses, stackSlotOffset, MicroOpBits::B64);
+        knownStackAddresses[stackSlotOffset] = stackAddressOffset;
+    }
+
+    bool tryGetKnownStackAddress(uint64_t& outStackAddressOffset, const KnownStackAddressMap& knownStackAddresses, uint64_t stackSlotOffset, MicroOpBits opBits)
+    {
+        if (opBits != MicroOpBits::B64)
+            return false;
+
+        const auto it = knownStackAddresses.find(stackSlotOffset);
+        if (it == knownStackAddresses.end())
+            return false;
+
+        outStackAddressOffset = it->second;
+        return true;
     }
 
     bool tryGetKnownStackSlotValue(uint64_t& outValue, const KnownStackSlotMap& knownSlots, uint64_t offset, MicroOpBits opBits)
@@ -620,11 +658,13 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     KnownRegMap             known;
     KnownStackSlotMap       knownStackSlots;
     KnownAddressMap         knownAddresses;
+    KnownStackAddressMap    knownStackAddresses;
     KnownConstantPointerMap knownConstantPointers;
     CompareState            compareState{};
     known.reserve(64);
     knownStackSlots.reserve(64);
     knownAddresses.reserve(32);
+    knownStackAddresses.reserve(32);
     knownConstantPointers.reserve(32);
 
     MicroReg stackPointerReg = CallConv::get(context.callConvKind).stackPointer;
@@ -717,10 +757,14 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                         changed = true;
                     }
                 }
+
+                uint64_t knownStackAddressOffset = 0;
+                if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses, stackOffset, ops[3].opBits))
+                    deferredAddressDef = std::pair{ops[0].reg.packed, knownStackAddressOffset};
             }
         }
 
-        if (inst.op == MicroInstrOpcode::LoadRegMem && ops[0].reg.isInt())
+        if (inst.op == MicroInstrOpcode::LoadRegMem)
         {
             uint64_t stackOffset = 0;
             if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[1].reg, ops[3].valueU64))
@@ -728,11 +772,26 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits))
                 {
-                    inst.op          = MicroInstrOpcode::LoadRegImm;
-                    inst.numOperands = 3;
-                    ops[1].opBits    = ops[2].opBits;
-                    ops[2].valueU64  = knownValue;
-                    changed          = true;
+                    const uint64_t normalizedValue = MicroOptimization::normalizeToOpBits(knownValue, ops[2].opBits);
+                    if (ops[0].reg.isInt())
+                    {
+                        inst.op          = MicroInstrOpcode::LoadRegImm;
+                        inst.numOperands = 3;
+                        ops[1].opBits    = ops[2].opBits;
+                        ops[2].valueU64  = normalizedValue;
+                        changed          = true;
+                    }
+                    else
+                    {
+                        deferredKnownDef = std::pair{ops[0].reg.packed, normalizedValue};
+                    }
+                }
+
+                if (ops[0].reg.isInt())
+                {
+                    uint64_t knownStackAddressOffset = 0;
+                    if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses, stackOffset, ops[2].opBits))
+                        deferredAddressDef = std::pair{ops[0].reg.packed, knownStackAddressOffset};
                 }
             }
         }
@@ -762,20 +821,29 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[0].reg.isInt() && ops[1].reg.isInt() && !ops[1].reg.isInstructionPointer())
         {
+            const MicroReg baseReg    = ops[1].reg;
+            const uint64_t baseOffset = ops[3].valueU64;
             const auto itKnown = known.find(ops[1].reg.packed);
             if (itKnown != known.end())
             {
                 inst.op          = MicroInstrOpcode::LoadRegImm;
                 inst.numOperands = 3;
                 ops[1].opBits    = ops[2].opBits;
-                ops[2].valueU64  = MicroOptimization::normalizeToOpBits(itKnown->second.value + ops[3].valueU64, ops[2].opBits);
+                ops[2].valueU64  = MicroOptimization::normalizeToOpBits(itKnown->second.value + baseOffset, ops[2].opBits);
                 changed          = true;
-                deferredAddressDef = std::pair{ops[0].reg.packed, ops[2].valueU64};
+
+                if (ops[2].opBits == MicroOpBits::B64)
+                {
+                    const auto itAddress = knownAddresses.find(baseReg.packed);
+                    if (itAddress != knownAddresses.end() && itAddress->second <= std::numeric_limits<uint64_t>::max() - baseOffset)
+                        deferredAddressDef = std::pair{ops[0].reg.packed, itAddress->second + baseOffset};
+                }
             }
         }
 
         if (inst.op == MicroInstrOpcode::LoadRegReg)
         {
+            const MicroReg sourceReg = ops[1].reg;
             const auto itKnown = known.find(ops[1].reg.packed);
             if (itKnown != known.end() && ops[0].reg.isInt())
             {
@@ -786,7 +854,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
                 if (ops[2].opBits == MicroOpBits::B64)
                 {
-                    const auto itAddress = knownAddresses.find(ops[1].reg.packed);
+                    const auto itAddress = knownAddresses.find(sourceReg.packed);
                     if (itAddress != knownAddresses.end())
                         deferredAddressDef = std::pair{ops[0].reg.packed, itAddress->second};
                 }
@@ -1173,6 +1241,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         {
             knownStackSlots.clear();
             knownAddresses.clear();
+            knownStackAddresses.clear();
         }
 
         if (useDef.isCall)
@@ -1182,6 +1251,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             if (hasStackAddressArg)
                 knownStackSlots.clear();
             knownAddresses.clear();
+            knownStackAddresses.clear();
             knownConstantPointers.clear();
             compareState.valid = false;
             continue;
@@ -1194,6 +1264,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             if (tryResolveStackOffset(stackOffset, knownAddresses, stackPointerReg, ops[0].reg, ops[2].valueU64))
             {
                 setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, ops[3].valueU64);
+                eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
                 handledMemoryWrite = true;
             }
         }
@@ -1243,6 +1314,20 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     if (!handledConstantCopy)
                         eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
                 }
+
+                if (ops[2].opBits == MicroOpBits::B64)
+                {
+                    const auto itKnownAddress = knownAddresses.find(ops[1].reg.packed);
+                    if (itKnownAddress != knownAddresses.end())
+                        setKnownStackAddress(knownStackAddresses, stackOffset, itKnownAddress->second);
+                    else
+                        eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
+                }
+                else
+                {
+                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
+                }
+
                 handledMemoryWrite = true;
             }
         }
@@ -1259,6 +1344,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                                             ops[6].valueU64))
             {
                 setKnownStackSlot(knownStackSlots, stackOffset, ops[4].opBits, ops[7].valueU64);
+                eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
                 handledMemoryWrite = true;
             }
         }
@@ -1279,6 +1365,19 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     setKnownStackSlot(knownStackSlots, stackOffset, ops[4].opBits, itKnownReg->second.value);
                 else
                     eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[4].opBits);
+
+                if (ops[4].opBits == MicroOpBits::B64)
+                {
+                    const auto itKnownAddress = knownAddresses.find(ops[2].reg.packed);
+                    if (itKnownAddress != knownAddresses.end())
+                        setKnownStackAddress(knownStackAddresses, stackOffset, itKnownAddress->second);
+                    else
+                        eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
+                }
+                else
+                {
+                    eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[4].opBits);
+                }
 
                 handledMemoryWrite = true;
             }
@@ -1310,6 +1409,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
                 }
 
+                eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
                 handledMemoryWrite = true;
             }
         }
@@ -1341,6 +1441,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[2].opBits);
                 }
 
+                eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[2].opBits);
                 handledMemoryWrite = true;
             }
         }
@@ -1366,12 +1467,16 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
                 }
 
+                eraseOverlappingStackAddresses(knownStackAddresses, stackOffset, ops[1].opBits);
                 handledMemoryWrite = true;
             }
         }
 
         if (writesMemory(inst) && !handledMemoryWrite)
+        {
             knownStackSlots.clear();
+            knownStackAddresses.clear();
+        }
 
         if (inst.op == MicroInstrOpcode::LoadRegImm)
         {
@@ -1573,6 +1678,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             known.clear();
             knownStackSlots.clear();
             knownAddresses.clear();
+            knownStackAddresses.clear();
             knownConstantPointers.clear();
             compareState.valid = false;
         }

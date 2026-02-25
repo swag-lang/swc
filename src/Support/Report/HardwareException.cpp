@@ -61,7 +61,7 @@ namespace
             appendPointerField(outMsg, "waiter symbol ptr", state.waiterSymbol);
     }
 
-    void appendCrashGroup(Utf8& outMsg, const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    void appendCrashGroup(Utf8& outMsg, const TaskContext& ctx, const void* platformExceptionPointers)
     {
         HardwareException::appendSectionHeader(outMsg, "infos");
         HardwareException::appendField(outMsg, "host", std::format("os = {}, cpu = {}, exception backend = {}", Os::hostOsName(), Os::hostCpuName(), Os::hostExceptionBackendName()));
@@ -71,7 +71,7 @@ namespace
         HardwareException::appendField(outMsg, "cmd randomize", std::format("{} (seed {})", ctx.cmdLine().randomize, ctx.cmdLine().randSeed));
 #endif
         outMsg += "\n";
-        Os::appendHostExceptionSummary(ctx, outMsg, args);
+        Os::appendHostExceptionSummary(ctx, outMsg, platformExceptionPointers);
     }
 
     void appendContextGroup(Utf8& outMsg, std::string_view extraInfo)
@@ -83,10 +83,10 @@ namespace
         }
     }
 
-    void appendHostTraceGroup(Utf8& outMsg, const TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args)
+    void appendHostTraceGroup(Utf8& outMsg, const TaskContext& ctx, const void* platformExceptionPointers)
     {
         HardwareException::appendSectionHeader(outMsg, "cpu context");
-        Os::appendHostCpuContext(outMsg, args);
+        Os::appendHostCpuContext(outMsg, platformExceptionPointers);
         HardwareException::appendSectionHeader(outMsg, "trace");
         Os::appendHostHandlerStack(ctx, outMsg);
     }
@@ -118,7 +118,7 @@ void HardwareException::appendField(Utf8& outMsg, const std::string_view label, 
     outMsg += "\n";
 }
 
-void HardwareException::log(const TaskContext& ctx, const std::string_view title, SWC_LP_EXCEPTION_POINTERS args, const std::string_view extraInfo)
+void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
     Logger::ScopedLock loggerLock(ctx.global().logger());
 
@@ -129,8 +129,8 @@ void HardwareException::log(const TaskContext& ctx, const std::string_view title
 
     appendContextGroup(msg, extraInfo);
     appendTaskStateGroup(msg, ctx);
-    appendCrashGroup(msg, ctx, args);
-    appendHostTraceGroup(msg, ctx, args);
+    appendCrashGroup(msg, ctx, platformExceptionPointers);
+    appendHostTraceGroup(msg, ctx, platformExceptionPointers);
     Logger::print(ctx, msg);
 }
 

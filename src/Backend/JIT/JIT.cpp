@@ -103,12 +103,12 @@ namespace
         return true;
     }
 
-    int exceptionHandler(TaskContext& ctx, SWC_LP_EXCEPTION_POINTERS args, JITCallErrorKind& outErrorKind)
+    int exceptionHandler(TaskContext& ctx, const void* platformExceptionPointers, JITCallErrorKind& outErrorKind)
     {
-        if (JIT::tryHandleRuntimeException(ctx, args, &outErrorKind))
+        if (JIT::tryHandleRuntimeException(ctx, platformExceptionPointers, &outErrorKind))
             return SWC_EXCEPTION_EXECUTE_HANDLER;
 
-        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
+        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 

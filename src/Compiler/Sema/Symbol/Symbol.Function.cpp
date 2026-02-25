@@ -245,7 +245,7 @@ bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceC
     if (!address)
         return false;
 
-    const uint64_t addressU64 = reinterpret_cast<uint64_t>(address);
+    const uint64_t                     addressU64 = reinterpret_cast<uint64_t>(address);
     SmallVector<const SymbolFunction*> toScan;
     toScan.push_back(this);
 
@@ -263,7 +263,7 @@ bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceC
             continue;
         visited.insert(function);
 
-        const void* entry = function->jitEntryAddress();
+        const void*    entry    = function->jitEntryAddress();
         const uint32_t codeSize = function->jitExecMemory_.size();
         if (entry && codeSize)
         {
@@ -282,7 +282,7 @@ bool SymbolFunction::resolveJitSourceCodeRefForAddress(SourceCodeRef& outSourceC
 
         SmallVector<SymbolFunction*> dependencies;
         function->appendCallDependencies(dependencies);
-        for (SymbolFunction* const dep : dependencies)
+        for (const SymbolFunction* const dep : dependencies)
         {
             if (!dep)
                 continue;

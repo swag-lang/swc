@@ -160,7 +160,7 @@ Result SemaError::raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRe
     if (diagId == DiagnosticId::None)
         return Result::Continue;
 
-    auto diag = report(sema, diagId, atNodeRef, location);
+    const auto diag = report(sema, diagId, atNodeRef, location);
     if (nodeValueRef.isValid())
         addSpan(sema, diag.last(), nodeValueRef, "", DiagnosticSeverity::Note);
     diag.report(sema.ctx());

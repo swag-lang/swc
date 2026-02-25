@@ -51,7 +51,7 @@ namespace
             return;
 
         const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        Diagnostic        diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
+        const Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_assert_failed, srcView.fileRef());
         diag.last().addSpan(srcView.tokenCodeRange(ctx, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
         diag.report(ctx);
     }
@@ -61,7 +61,7 @@ namespace
         outExceptionCode    = 0;
         outExceptionAddress = nullptr;
 #ifdef _WIN32
-        const auto args = reinterpret_cast<SWC_LP_EXCEPTION_POINTERS>(const_cast<void*>(platformExceptionPointers));
+        const auto args = static_cast<SWC_LP_EXCEPTION_POINTERS>(const_cast<void*>(platformExceptionPointers));
         if (args && args->ExceptionRecord)
         {
             outExceptionCode    = args->ExceptionRecord->ExceptionCode;
@@ -115,7 +115,6 @@ namespace
 
         if (outErrorKind)
             *outErrorKind = JITCallErrorKind::AssertTrap;
-
         reportRunJitAssertTrapDiagnostic(ctx, sourceCodeRef);
         return true;
     }
@@ -126,7 +125,6 @@ namespace
             return SWC_EXCEPTION_EXECUTE_HANDLER;
 
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", args);
-
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 

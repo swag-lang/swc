@@ -8,12 +8,16 @@
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
+
+## Coding Rules
+
 - Do not add standard library includes in source files; they are already provided (or must be) via the precompiled
   header `pch.h`.
-- When designing code, avoid excessive use of lambdas. Prioritize clarity and readability.
+- Avoid excessive use of lambdas. Prioritize clarity and readability.
 - When designing a function which returns something by argument, place that output parameter first, right after global
   parameters (e.g. managers).
 - Do not overuse "auto". When it's clearer, use the real type.
+- Do not put defensive code after asserts.
 
 ## Refactoring Compliance Rules
 

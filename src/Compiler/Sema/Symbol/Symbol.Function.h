@@ -77,10 +77,10 @@ public:
     void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
     Result              emit(TaskContext& ctx);
+    bool                hasLoweredCode() const noexcept;
     void                jit(TaskContext& ctx);
 
 private:
-    bool hasLoweredCode() const noexcept;
     bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
     void jitEmit(TaskContext& ctx);
 

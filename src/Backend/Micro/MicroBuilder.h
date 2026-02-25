@@ -157,8 +157,8 @@ private:
     MicroStorage                                        instructions_;
     MicroOperandStorage                                 operands_;
     MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
-    std::vector<std::optional<MicroDebugInfo>>          debugInfos_;
     MicroDebugInfo                                      currentDebugInfo_;
+    mutable MicroDebugInfo                              debugInfoScratch_;
     Utf8                                                printSymbolName_;
     Utf8                                                printFilePath_;
     uint32_t                                            printSourceLine_ = 0;

@@ -125,16 +125,25 @@ Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref in
         return Result::Error;
 
     Diagnostic diag;
-    if (context.builder && instructionRef != INVALID_REF)
+    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+    if (context.instructions && instructionRef != INVALID_REF)
+    {
+        if (const MicroInstr* inst = context.instructions->ptr(instructionRef))
+            sourceCodeRef = inst->sourceCodeRef;
+    }
+
+    if (!sourceCodeRef.isValid() && context.builder && instructionRef != INVALID_REF)
     {
         const MicroDebugInfo* debugInfo = context.builder->debugInfo(instructionRef);
         if (debugInfo && debugInfo->sourceCodeRef.isValid())
-        {
-            const SourceCodeRef sourceCodeRef = debugInfo->sourceCodeRef;
-            const SourceView&   srcView       = taskContext->compiler().srcView(sourceCodeRef.srcViewRef);
-            diag                              = Diagnostic::get(diagId, srcView.fileRef());
-            diag.last().addSpan(srcView.tokenCodeRange(*taskContext, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
-        }
+            sourceCodeRef = debugInfo->sourceCodeRef;
+    }
+
+    if (sourceCodeRef.isValid())
+    {
+        const SourceView& srcView = taskContext->compiler().srcView(sourceCodeRef.srcViewRef);
+        diag                      = Diagnostic::get(diagId, srcView.fileRef());
+        diag.last().addSpan(srcView.tokenCodeRange(*taskContext, sourceCodeRef.tokRef), "", DiagnosticSeverity::Error);
     }
 
     if (diag.elements().empty())

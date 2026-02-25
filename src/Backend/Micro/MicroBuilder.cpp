@@ -36,27 +36,24 @@ MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperand
 
 void MicroBuilder::storeInstructionDebugInfo(Ref instructionRef)
 {
-    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
+    MicroInstr* inst = instructions_.ptr(instructionRef);
+    if (!inst)
         return;
 
-    if (!currentDebugInfo_.hasData())
-        return;
-
-    if (instructionRef >= debugInfos_.size())
-        debugInfos_.resize(instructionRef + 1);
-
-    debugInfos_[instructionRef] = currentDebugInfo_;
+    inst->sourceCodeRef = currentDebugInfo_.sourceCodeRef;
 }
 
 const MicroDebugInfo* MicroBuilder::debugInfo(Ref instructionRef) const
 {
-    if (instructionRef >= debugInfos_.size())
+    const MicroInstr* inst = instructions_.ptr(instructionRef);
+    if (!inst)
         return nullptr;
 
-    const auto& info = debugInfos_[instructionRef];
-    if (!info.has_value())
+    if (!inst->sourceCodeRef.isValid())
         return nullptr;
-    return &info.value();
+
+    debugInfoScratch_.sourceCodeRef = inst->sourceCodeRef;
+    return &debugInfoScratch_;
 }
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)

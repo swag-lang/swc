@@ -274,6 +274,8 @@ Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
     const Ref ref          = allocNode();
     Node&     node         = nodes_[ref];
     node.instr             = value;
+    if (!node.instr.sourceCodeRef.isValid())
+        node.instr.sourceCodeRef = nodes_[beforeRef].instr.sourceCodeRef;
     const Ref prev         = nodes_[beforeRef].prev;
     node.prev              = prev;
     node.next              = beforeRef;

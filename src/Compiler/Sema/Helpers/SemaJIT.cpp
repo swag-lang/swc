@@ -27,6 +27,37 @@ namespace
         }
     }
 
+    Result ensureJitReady(SymbolFunction& root)
+    {
+        std::unordered_set<SymbolFunction*> visited;
+        SmallVector<SymbolFunction*>        stack;
+        stack.push_back(&root);
+
+        while (!stack.empty())
+        {
+            SymbolFunction* const function = stack.back();
+            stack.pop_back();
+            if (!function)
+                continue;
+            if (!visited.insert(function).second)
+                continue;
+
+            if (!function->hasLoweredCode())
+                return Result::Error;
+
+            SmallVector<SymbolFunction*> dependencies;
+            function->appendCallDependencies(dependencies);
+            for (SymbolFunction* dependency : dependencies)
+            {
+                if (!dependency || dependency == function)
+                    continue;
+                stack.push_back(dependency);
+            }
+        }
+
+        return Result::Continue;
+    }
+
     TypeRef computeRunExprStorageTypeRef(Sema& sema, TypeRef exprTypeRef)
     {
         const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
@@ -115,8 +146,10 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     const uint64_t         resultStorageAddress = reinterpret_cast<uint64_t>(resultStorage.data());
 
     // Call !
-    SWC_RESULT_VERIFY(symFn.emit(ctx));
+    SWC_RESULT_VERIFY(ensureJitReady(symFn));
     symFn.jit(ctx);
+    if (!symFn.jitEntryAddress())
+        return Result::Error;
 
     {
         TaskScopedState scopedState(ctx);

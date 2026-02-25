@@ -2,6 +2,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroTypes.h"
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
@@ -137,8 +138,9 @@ struct MicroInstrRegOperandRef
 
 struct MicroInstr
 {
-    Ref              opsRef = INVALID_REF;
-    MicroInstrOpcode op     = MicroInstrOpcode::OpBinaryRegImm;
+    Ref              opsRef        = INVALID_REF;
+    MicroInstrOpcode op            = MicroInstrOpcode::OpBinaryRegImm;
+    SourceCodeRef    sourceCodeRef = SourceCodeRef::invalid();
 
     uint8_t numOperands = 0;
 

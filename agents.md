@@ -56,8 +56,9 @@
 
 ## Build Instructions (Windows only)
 
-- MSBuild is located at:
+- MSBuild can be located at:
   `C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\amd64\`
+  `C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\amd64\`
 - Default build configuration:
   `/p:Configuration=Release`
   `/p:Configuration=DevMode`
@@ -71,8 +72,8 @@
 - Run all tests:
 
   ````bash
-  all.bat
-  all_dm.bat
+  tools/all.bat
+  tools/all_dm.bat
   `````
 
 - Run all semantic tests:

@@ -10,8 +10,8 @@ struct MachineCode
 {
     using DebugSourceRange = EncoderDebugSourceRange;
 
-    std::vector<std::byte>       bytes;
-    std::vector<MicroRelocation> codeRelocations;
+    std::vector<std::byte>        bytes;
+    std::vector<MicroRelocation>  codeRelocations;
     std::vector<DebugSourceRange> debugSourceRanges;
 
     bool   resolveSourceCodeRefAtOffset(SourceCodeRef& outSourceCodeRef, uint32_t codeOffset) const;

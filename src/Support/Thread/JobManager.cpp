@@ -419,7 +419,7 @@ namespace
 
     int exceptionHandler(const Job& job, SWC_LP_EXCEPTION_POINTERS args)
     {
-        TaskContext& ctx = const_cast<TaskContext&>(job.ctx());
+        auto& ctx = const_cast<TaskContext&>(job.ctx());
         if (JIT::tryHandleRuntimeException(ctx, args))
             return SWC_EXCEPTION_EXECUTE_HANDLER;
 

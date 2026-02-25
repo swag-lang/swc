@@ -59,17 +59,17 @@ class Encoder
     friend struct MicroInstr;
 
 public:
-    uint32_t                        size() const { return store_.size(); }
-    const uint8_t*                  data() const;
-    uint8_t                         byteAt(uint32_t index) const;
-    void                            copyTo(ByteSpanRW dst) const;
-    void                            clearDebugSourceRanges() { debugSourceRanges_.clear(); }
-    void                            addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef);
+    uint32_t                                    size() const { return store_.size(); }
+    const uint8_t*                              data() const;
+    uint8_t                                     byteAt(uint32_t index) const;
+    void                                        copyTo(ByteSpanRW dst) const;
+    void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
+    void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
-    void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
-    const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
-    virtual std::string             formatRegisterName(MicroReg reg) const;
-    virtual MicroReg                stackPointerReg() const = 0;
+    void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }
+    virtual std::string                         formatRegisterName(MicroReg reg) const;
+    virtual MicroReg                            stackPointerReg() const = 0;
 
 protected:
     TaskContext&       ctx() { return *SWC_NOT_NULL(ctx_); }
@@ -142,12 +142,12 @@ public:
 protected:
     static void addSymbolRelocation(uint32_t, uint32_t, uint16_t);
 
-    TaskContext*             ctx_ = nullptr;
-    PagedStore               store_;
-    uint32_t                 textSectionOffset_ = 0;
-    uint32_t                 symCsIndex_        = 0;
-    EncoderFunction*         cpuFct_            = nullptr;
-    Runtime::BuildCfgBackend backendBuildCfg_{};
+    TaskContext*                         ctx_ = nullptr;
+    PagedStore                           store_;
+    uint32_t                             textSectionOffset_ = 0;
+    uint32_t                             symCsIndex_        = 0;
+    EncoderFunction*                     cpuFct_            = nullptr;
+    Runtime::BuildCfgBackend             backendBuildCfg_{};
     std::vector<EncoderDebugSourceRange> debugSourceRanges_;
 };
 

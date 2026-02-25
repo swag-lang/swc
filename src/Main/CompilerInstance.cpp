@@ -69,7 +69,7 @@ namespace
             buildCfg.errorStackTrace            = false;
             buildCfg.debugAllocator             = false;
             buildCfg.backend.optimize           = true;
-            buildCfg.backend.emitAssert        = false;
+            buildCfg.backend.emitAssert         = false;
             buildCfg.backendDebugInformations   = true;
             buildCfg.backend.fpMathFma          = true;
             buildCfg.backend.fpMathNoNaN        = true;

@@ -41,7 +41,7 @@ namespace
     bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, SourceCodeRef& outSourceCodeRef, uint32_t& outSourceLine)
     {
         outSourceCodeRef = SourceCodeRef::invalid();
-        outSourceLine = 0;
+        outSourceLine    = 0;
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
@@ -1114,12 +1114,12 @@ namespace
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
         SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-        uint32_t sourceLine = 0;
+        uint32_t      sourceLine    = 0;
         if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceCodeRef, sourceLine))
             return false;
 
-        const SourceView& srcView = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        const uint64_t debugKey = (static_cast<uint64_t>(sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
+        const SourceView& srcView  = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
+        const uint64_t    debugKey = (static_cast<uint64_t>(sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;
         seenDebugLines.insert(debugKey);

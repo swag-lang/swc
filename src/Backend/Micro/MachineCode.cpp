@@ -181,7 +181,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 
     bytes.resize(codeSize);
     encoder.copyTo(bytes);
-    codeRelocations = builder.codeRelocations();
+    codeRelocations   = builder.codeRelocations();
     debugSourceRanges = encoder.debugSourceRanges();
     return Result::Continue;
 }

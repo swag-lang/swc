@@ -22,6 +22,7 @@ namespace
     enum class NaturalTagKind : char
     {
         Instruction = 'I',
+        Compiler    = 'C',
     };
 
     uint32_t opcodeColumnWidth()
@@ -330,14 +331,24 @@ namespace
         return true;
     }
 
-    Utf8 tagInstructionToken(std::string_view token)
+    Utf8 tagNaturalToken(NaturalTagKind kind, std::string_view token)
     {
         Utf8 out;
         out += K_NATURAL_TAG_BEGIN;
-        out += static_cast<char>(NaturalTagKind::Instruction);
+        out += static_cast<char>(kind);
         out += token;
         out += K_NATURAL_TAG_END;
         return out;
+    }
+
+    Utf8 tagInstructionToken(std::string_view token)
+    {
+        return tagNaturalToken(NaturalTagKind::Instruction, token);
+    }
+
+    Utf8 tagCompilerToken(std::string_view token)
+    {
+        return tagNaturalToken(NaturalTagKind::Compiler, token);
     }
 
     bool isNaturalLogicToken(std::string_view token)
@@ -568,7 +579,7 @@ namespace
             case MicroInstrOpcode::LoadRegPtrImm:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegPtrReloc:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), ptrRelocValue.empty() ? "<reloc>" : ptrRelocValue);
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), ptrRelocValue.empty() ? "<reloc>" : tagCompilerToken(ptrRelocValue));
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadSignedExtRegMem:
@@ -780,9 +791,24 @@ namespace
                 if (end < value.size())
                 {
                     const std::string_view token = value.subView(pos + 2, end - (pos + 2));
-                    SWC_UNUSED(kind);
-                    appendColored(out, ctx, SyntaxColor::MicroInstruction, token);
-                    expectCallTarget = token == "call";
+                    switch (static_cast<NaturalTagKind>(kind))
+                    {
+                        case NaturalTagKind::Instruction:
+                            appendColored(out, ctx, SyntaxColor::MicroInstruction, token);
+                            expectCallTarget = token == "call";
+                            break;
+
+                        case NaturalTagKind::Compiler:
+                            appendColored(out, ctx, SyntaxColor::Compiler, token);
+                            expectCallTarget = false;
+                            break;
+
+                        default:
+                            appendColored(out, ctx, SyntaxColor::Code, token);
+                            expectCallTarget = false;
+                            break;
+                    }
+
                     pos              = end + 1;
                     continue;
                 }

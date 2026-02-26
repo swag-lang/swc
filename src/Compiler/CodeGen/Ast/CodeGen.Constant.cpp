@@ -87,14 +87,14 @@ namespace
 
             case ConstantKind::ValuePointer:
             {
-                builder.emitLoadRegImm(payload.reg, ApInt(cst.getValuePointer(), 64), MicroOpBits::B64);
+                builder.emitLoadRegPtrImm(payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                builder.emitLoadRegImm(payload.reg, ApInt(cst.getBlockPointer(), 64), MicroOpBits::B64);
+                builder.emitLoadRegPtrImm(payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
                 return;
             }

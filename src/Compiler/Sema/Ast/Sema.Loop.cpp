@@ -7,12 +7,39 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef foreachInternalArrayType(Sema& sema, TypeRef elemTypeRef, uint64_t count)
+    {
+        SmallVector<uint64_t> dims;
+        dims.push_back(count);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), elemTypeRef));
+    }
+
+    Result completeForeachInternalSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            currentFunc->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
     {
         if (!exprView.type())
@@ -93,6 +120,8 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         sema.pushFramePopOnPostNode(frame);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+        SmallVector<Symbol*> symbols;
+        symbols.reserve(4);
 
         // Alias names
         SmallVector<TokenRef> tokNames;
@@ -106,9 +135,6 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
             TypeRef            valueTypeRef = TypeRef::invalid();
             TypeRef            indexTypeRef = TypeRef::invalid();
             SWC_RESULT_VERIFY(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
-
-            SmallVector<Symbol*> symbols;
-            symbols.reserve(tokNames.size());
 
             const size_t count = std::min<size_t>(tokNames.size(), 2);
             for (size_t i = 0; i < count; i++)
@@ -128,10 +154,23 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
                 symVar.setSemaCompleted(sema.ctx());
                 symbols.push_back(&symVar);
             }
-
-            if (!symbols.empty())
-                sema.setSymbolList(sema.curNodeRef(), symbols.span());
         }
+
+        auto& stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
+        stateSym.registerAttributes(sema);
+        stateSym.setDeclared(sema.ctx());
+        SWC_RESULT_VERIFY(Match::ghosting(sema, stateSym));
+        SWC_RESULT_VERIFY(completeForeachInternalSymbol(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
+        symbols.push_back(&stateSym);
+
+        auto& sourceSpillSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
+        sourceSpillSym.registerAttributes(sema);
+        sourceSpillSym.setDeclared(sema.ctx());
+        SWC_RESULT_VERIFY(Match::ghosting(sema, sourceSpillSym));
+        SWC_RESULT_VERIFY(completeForeachInternalSymbol(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
+        symbols.push_back(&sourceSpillSym);
+
+        sema.setSymbolList(sema.curNodeRef(), symbols.span());
     }
 
     return Result::Continue;

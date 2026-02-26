@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Member.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -77,6 +78,70 @@ namespace
             else
                 sema.setSymbolList(nodeRef, symbols);
         }
+    }
+
+    TypeRef memberRuntimeStorageTypeRef(Sema& sema)
+    {
+        SmallVector<uint64_t> dims;
+        dims.push_back(8);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
+    }
+
+    Result completeMemberRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            currentFunc->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
+    bool needsStructMemberRuntimeStorage(Sema& sema, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView)
+    {
+        if (sema.frame().currentFunction() == nullptr)
+            return false;
+        if (!nodeLeftView.type())
+            return false;
+        if (nodeLeftView.type()->isReference())
+            return false;
+        if (!sema.isLValue(node.nodeLeftRef))
+            return true;
+
+        const SemaNodeView leftSymbolView = sema.viewSymbol(node.nodeLeftRef);
+        if (!leftSymbolView.sym() || !leftSymbolView.sym()->isVariable())
+            return false;
+
+        const auto& leftSymVar = leftSymbolView.sym()->cast<SymbolVariable>();
+        return leftSymVar.hasExtraFlag(SymbolVariableFlagsE::Parameter);
+    }
+
+    SymbolVariable& registerUniqueMemberRuntimeStorageSymbol(Sema& sema, const AstNode& node)
+    {
+        TaskContext&        ctx         = sema.ctx();
+        const Utf8          privateName = Utf8("__member_runtime_storage");
+        const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
+        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+
+        auto* sym = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        {
+            sema.curScope().addSymbol(sym);
+        }
+        else
+        {
+            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            symMap->addSymbol(ctx, sym, true);
+        }
+
+        return *SWC_NOT_NULL(sym);
     }
 }
 
@@ -162,6 +227,25 @@ namespace
 
         if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference() || sema.isLValue(node->nodeLeftRef))
             sema.setIsLValue(*node);
+
+        if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, *node, nodeLeftView))
+        {
+            auto& storageSym = registerUniqueMemberRuntimeStorageSymbol(sema, *node);
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
+            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+            SWC_RESULT_VERIFY(completeMemberRuntimeStorageSymbol(sema, storageSym, memberRuntimeStorageTypeRef(sema)));
+
+            auto* payload = sema.codeGenPayload<MemberAccessExprCodeGenPayload>(sema.curNodeRef());
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<MemberAccessExprCodeGenPayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = &storageSym;
+        }
+
         return Result::SkipChildren;
     }
 

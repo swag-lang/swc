@@ -68,6 +68,21 @@ SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRe
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
+    switch (relocation.kind)
+    {
+        case MicroRelocation::Kind::ConstantAddress:
+            SWC_ASSERT(relocation.constantRef.isValid());
+            break;
+
+        case MicroRelocation::Kind::LocalFunctionAddress:
+        case MicroRelocation::Kind::ForeignFunctionAddress:
+            SWC_ASSERT(relocation.targetSymbol && relocation.targetSymbol->isFunction());
+            break;
+
+        default:
+            SWC_UNREACHABLE();
+    }
+
     relocations_.push_back(relocation);
 }
 
@@ -235,6 +250,7 @@ void MicroBuilder::emitRet()
 void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
     // Convenience wrapper: materialize target address then use the generic indirect call opcode.
+    SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const CallConv& conv = CallConv::get(callConv);
     emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     emitCallReg(conv.intReturn, callConv);
@@ -244,6 +260,7 @@ void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
 {
     // Extern/local share the same micro-level representation; relocation kind differs.
+    SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const CallConv& conv = CallConv::get(callConv);
     emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     emitCallReg(conv.intReturn, callConv);
@@ -313,12 +330,19 @@ void MicroBuilder::emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits 
 
 void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
 {
+    const bool hasFunctionTarget = targetSymbol && targetSymbol->isFunction();
+    const bool hasConstantTarget = constantRef.isValid();
+    SWC_ASSERT(!targetSymbol || hasFunctionTarget);
+    SWC_ASSERT(hasConstantTarget || hasFunctionTarget);
+
     // Record relocation metadata so the emitter/JIT can patch the final absolute target.
-    auto relocationKind = MicroRelocation::Kind::ConstantAddress;
-    if (targetSymbol && targetSymbol->isFunction())
+    auto    relocationKind         = MicroRelocation::Kind::ConstantAddress;
+    Symbol* relocationTargetSymbol = nullptr;
+    if (hasFunctionTarget)
     {
         const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
         relocationKind                       = targetFunction.isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
+        relocationTargetSymbol               = targetSymbol;
     }
 
     auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrImm, 3);
@@ -331,7 +355,7 @@ void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef c
         .kind           = relocationKind,
         .instructionRef = instRef,
         .targetAddress  = value,
-        .targetSymbol   = targetSymbol,
+        .targetSymbol   = relocationTargetSymbol,
         .constantRef    = constantRef,
     });
 }

@@ -3,6 +3,8 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Main/CompilerInstance.h"
 
@@ -158,10 +160,12 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
         case TokenId::IntrinsicCompiler:
         {
-            const auto                compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
-            const SemaNodeView        view              = codeGen.curViewType();
-            const CodeGenNodePayload& payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
-            codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress);
+            const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
+            const ConstantValue compilerIfCst     = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeVoid(), compilerIfAddress, TypeInfoFlagsE::Const);
+            const ConstantRef   compilerIfCstRef  = codeGen.cstMgr().addConstant(codeGen.ctx(), compilerIfCst);
+            const SemaNodeView  view              = codeGen.curViewType();
+            const auto&         payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+            codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress, compilerIfCstRef);
             return Result::Continue;
         }
 

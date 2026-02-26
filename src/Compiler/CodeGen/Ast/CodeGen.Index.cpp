@@ -3,13 +3,52 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Index.Payload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload resolveIndexRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
+    {
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
+            return *symbolPayload;
+
+        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = storageSym.typeRef();
+        localPayload.setIsAddress();
+        if (!storageSym.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        codeGen.setVariablePayload(storageSym, localPayload);
+        return localPayload;
+    }
+
+    MicroReg indexRuntimeStorageAddressReg(CodeGen& codeGen)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<IndexExprCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
+        const CodeGenNodePayload storagePayload = resolveIndexRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        SWC_ASSERT(storagePayload.isAddress());
+        return storagePayload.reg;
+    }
+
     MicroOpBits indexOpBits(const TypeInfo& typeInfo)
     {
         if (!typeInfo.isIntLike())
@@ -58,13 +97,12 @@ namespace
     {
         MicroBuilder&  builder     = codeGen.builder();
         const uint64_t sizeOfValue = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOfValue > 0 && sizeOfValue <= 8);
+        SWC_ASSERT(sizeOfValue > 0);
 
-        auto* spillData = codeGen.compiler().allocateArray<std::byte>(sizeOfValue);
-        std::memset(spillData, 0, sizeOfValue);
+        if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
+            return payload.reg;
 
-        const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
+        const MicroReg spillAddrReg = indexRuntimeStorageAddressReg(codeGen);
         builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
         return spillAddrReg;
     }

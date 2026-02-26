@@ -3,9 +3,11 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Cast.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
@@ -18,6 +20,43 @@ namespace
         const std::string_view payloadView(reinterpret_cast<const char*>(payload.data()), payload.size());
         const std::string_view storedPayload = codeGen.cstMgr().addPayloadBuffer(payloadView);
         return reinterpret_cast<uint64_t>(storedPayload.data());
+    }
+
+    CodeGenNodePayload resolveCastRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
+    {
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
+            return *symbolPayload;
+
+        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = storageSym.typeRef();
+        localPayload.setIsAddress();
+        if (!storageSym.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        codeGen.setVariablePayload(storageSym, localPayload);
+        return localPayload;
+    }
+
+    MicroReg castRuntimeStorageAddressReg(CodeGen& codeGen)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<CastExprCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
+        const CodeGenNodePayload storagePayload = resolveCastRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        SWC_ASSERT(storagePayload.isAddress());
+        return storagePayload.reg;
     }
 
     bool isNumericIntLike(const TypeInfo& typeInfo)
@@ -106,14 +145,8 @@ namespace
             }
         }
 
-        const uint64_t length       = srcType.sizeOf(codeGen.ctx());
-        auto*          runtimeValue = codeGen.compiler().allocate<Runtime::String>();
-        runtimeValue->ptr           = nullptr;
-        runtimeValue->length        = 0;
-        const auto runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
-
-        const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);
+        const uint64_t length          = srcType.sizeOf(codeGen.ctx());
+        const MicroReg runtimeValueReg = castRuntimeStorageAddressReg(codeGen);
 
         MicroReg srcDataReg = srcPayload.reg;
         if (!srcPayload.isAddress())
@@ -165,13 +198,7 @@ namespace
             }
         }
 
-        auto* runtimeValue          = codeGen.compiler().allocate<Runtime::Slice<std::byte>>();
-        runtimeValue->ptr           = nullptr;
-        runtimeValue->count         = 0;
-        const auto runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
-
-        const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);
+        const MicroReg runtimeValueReg = castRuntimeStorageAddressReg(codeGen);
 
         MicroReg srcDataReg = srcPayload.reg;
         if (!srcPayload.isAddress())

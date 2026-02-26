@@ -27,15 +27,17 @@ namespace
 
     struct ForeachStmtCodeGenPayload
     {
-        MicroLabelRef loopLabel     = MicroLabelRef::invalid();
-        MicroLabelRef continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
-        MicroReg      baseReg       = MicroReg::invalid();
-        MicroReg      countReg      = MicroReg::invalid();
-        MicroReg      indexReg      = MicroReg::invalid();
-        uint64_t      stateAddress  = 0;
-        uint64_t      elementSize   = 0;
-        bool          reverse       = false;
+        MicroLabelRef   loopLabel        = MicroLabelRef::invalid();
+        MicroLabelRef   continueLabel    = MicroLabelRef::invalid();
+        MicroLabelRef   doneLabel        = MicroLabelRef::invalid();
+        MicroReg        baseReg          = MicroReg::invalid();
+        MicroReg        countReg         = MicroReg::invalid();
+        MicroReg        indexReg         = MicroReg::invalid();
+        uint32_t        aliasSymbolCount = 0;
+        SymbolVariable* stateSym         = nullptr;
+        SymbolVariable* sourceSpillSym   = nullptr;
+        uint64_t        elementSize      = 0;
+        bool            reverse          = false;
     };
 
     AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -141,7 +143,9 @@ namespace
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
     }
 
-    MicroReg materializeForeachSourceAddress(CodeGen& codeGen, const CodeGenNodePayload& sourcePayload, const TypeInfo& sourceType)
+    CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
+
+    MicroReg materializeForeachSourceAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState, const CodeGenNodePayload& sourcePayload, const TypeInfo& sourceType)
     {
         if (sourcePayload.isAddress())
             return sourcePayload.reg;
@@ -151,12 +155,12 @@ namespace
         if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
             return sourcePayload.reg;
 
-        auto* spillData = codeGen.compiler().allocateArray<std::byte>(sizeOfValue);
-        std::memset(spillData, 0, sizeOfValue);
+        SWC_ASSERT(loopState.sourceSpillSym != nullptr);
+        const CodeGenNodePayload spillPayload = resolveForeachVariablePayload(codeGen, *SWC_NOT_NULL(loopState.sourceSpillSym));
+        SWC_ASSERT(spillPayload.isAddress());
 
         MicroBuilder&  builder      = codeGen.builder();
-        const MicroReg spillAddrReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
+        const MicroReg spillAddrReg = spillPayload.reg;
         builder.emitLoadMemReg(spillAddrReg, 0, sourcePayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
         return spillAddrReg;
     }
@@ -219,10 +223,10 @@ namespace
 
     MicroReg emitForeachStateAddressReg(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
-        SWC_ASSERT(loopState.stateAddress != 0);
-        const MicroReg stateAddressReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrImm(stateAddressReg, loopState.stateAddress);
-        return stateAddressReg;
+        SWC_ASSERT(loopState.stateSym != nullptr);
+        const CodeGenNodePayload statePayload = resolveForeachVariablePayload(codeGen, *SWC_NOT_NULL(loopState.stateSym));
+        SWC_ASSERT(statePayload.isAddress());
+        return statePayload.reg;
     }
 
     void emitForeachStoreLoopState(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
@@ -256,13 +260,14 @@ namespace
     {
         const SemaNodeView symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
         const auto         symbols     = symbolsView.symList();
-        if (symbols.empty())
+        const size_t       aliasCount  = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
+        if (!aliasCount)
             return;
 
         const MicroReg elementAddressReg = emitForeachElementAddress(codeGen, loopState);
         MicroBuilder&  builder           = codeGen.builder();
 
-        const SymbolVariable&    valueSym     = symbols.front()->cast<SymbolVariable>();
+        const SymbolVariable&    valueSym     = symbols[0]->cast<SymbolVariable>();
         const CodeGenNodePayload valuePayload = resolveForeachVariablePayload(codeGen, valueSym);
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))
         {
@@ -285,7 +290,7 @@ namespace
             }
         }
 
-        if (symbols.size() < 2)
+        if (aliasCount < 2)
             return;
 
         const SymbolVariable&    indexSym     = symbols[1]->cast<SymbolVariable>();
@@ -316,7 +321,7 @@ namespace
 
             const uint64_t totalSize  = exprType.sizeOf(codeGen.ctx());
             const uint64_t totalCount = totalSize / loopState.elementSize;
-            loopState.baseReg         = materializeForeachSourceAddress(codeGen, exprPayload, exprType);
+            loopState.baseReg         = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
             builder.emitLoadRegImm(loopState.countReg, ApInt(totalCount, 64), MicroOpBits::B64);
         }
         else
@@ -340,7 +345,7 @@ namespace
             const TypeInfo& valueType = codeGen.typeMgr().get(valueTypeRef);
             loopState.elementSize     = valueType.sizeOf(codeGen.ctx());
 
-            const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, exprPayload, exprType);
+            const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
             loopState.baseReg               = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(loopState.baseReg, sourceAddressReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
             builder.emitLoadRegMem(loopState.countReg, sourceAddressReg, countOffset, MicroOpBits::B64);
@@ -351,11 +356,6 @@ namespace
         else
             builder.emitLoadRegImm(loopState.indexReg, ApInt(0, 64), MicroOpBits::B64);
 
-        auto* runtimeState     = codeGen.compiler().allocate<ForeachLoopRuntimeState>();
-        runtimeState->base     = 0;
-        runtimeState->count    = 0;
-        runtimeState->index    = 0;
-        loopState.stateAddress = reinterpret_cast<uint64_t>(runtimeState);
         emitForeachStoreLoopState(codeGen, loopState);
     }
 }
@@ -363,6 +363,18 @@ namespace
 Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 {
     ForeachStmtCodeGenPayload loopState;
+    const SemaNodeView        symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
+    const auto                symbols     = symbolsView.symList();
+    SWC_ASSERT(symbols.size() >= 2);
+    if (symbols.size() >= 2)
+    {
+        const size_t stateIndex    = symbols.size() - 2;
+        const size_t spillIndex    = symbols.size() - 1;
+        loopState.aliasSymbolCount = static_cast<uint32_t>(std::min<size_t>(2, stateIndex));
+        loopState.stateSym         = &symbols[stateIndex]->cast<SymbolVariable>();
+        loopState.sourceSpillSym   = &symbols[spillIndex]->cast<SymbolVariable>();
+    }
+
     loopState.loopLabel     = codeGen.builder().createLabel();
     loopState.continueLabel = codeGen.builder().createLabel();
     loopState.doneLabel     = codeGen.builder().createLabel();

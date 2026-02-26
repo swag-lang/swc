@@ -60,9 +60,15 @@ namespace
         ENCODE_CASE("push_r12", "41 54", b.emitPush(R12););
         ENCODE_CASE("pop_r15", "41 5F", b.emitPop(R15););
         ENCODE_CASE("pop_r12", "41 5C", b.emitPop(R12););
-        ENCODE_CASE("call_local", "48 B8 00 00 00 00 00 00 00 00 FF D0", b.emitCallLocal({}, CallConvKind::C););
-        ENCODE_CASE("call_extern", "48 B8 00 00 00 00 00 00 00 00 FF D0", b.emitCallExtern(nullptr, CallConvKind::C););
-        ENCODE_CASE("call_local_repeat", "48 B8 00 00 00 00 00 00 00 00 FF D0", b.emitCallLocal({}, CallConvKind::C););
+        ENCODE_CASE("call_local", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+                    b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
+                    b.emitCallReg(RAX, CallConvKind::C););
+        ENCODE_CASE("call_extern", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+                    b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
+                    b.emitCallReg(RAX, CallConvKind::C););
+        ENCODE_CASE("call_local_repeat", "48 B8 00 00 00 00 00 00 00 00 FF D0",
+                    b.emitLoadRegImm(RAX, ApInt(0, 64), MicroOpBits::B64);
+                    b.emitCallReg(RAX, CallConvKind::C););
         ENCODE_CASE("call_reg_rax", "FF D0", b.emitCallReg(RAX, CallConvKind::C););
         ENCODE_CASE("call_reg_r9", "41 FF D1", b.emitCallReg(R9, CallConvKind::C););
         ENCODE_CASE("jump_reg_r8", "41 FF E0", b.emitJumpReg(R8););

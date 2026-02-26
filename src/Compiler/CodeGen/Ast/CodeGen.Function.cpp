@@ -41,10 +41,12 @@ namespace
         SWC_ASSERT(copySize > 0);
         auto* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
 
-        MicroBuilder&  builder  = codeGen.builder();
-        const MicroReg dstReg   = codeGen.nextVirtualIntRegister();
-        const auto     dstValue = reinterpret_cast<uint64_t>(storage);
-        builder.emitLoadRegPtrImm(dstReg, dstValue);
+        MicroBuilder&       builder       = codeGen.builder();
+        const MicroReg      dstReg        = codeGen.nextVirtualIntRegister();
+        const auto          dstValue      = reinterpret_cast<uint64_t>(storage);
+        const ConstantValue storageCst    = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU8(), dstValue, TypeInfoFlagsE::Const);
+        const ConstantRef   storageCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), storageCst);
+        builder.emitLoadRegPtrImm(dstReg, dstValue, storageCstRef);
         CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
         return dstReg;
     }

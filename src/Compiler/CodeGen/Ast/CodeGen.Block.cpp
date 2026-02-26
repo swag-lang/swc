@@ -193,24 +193,47 @@ namespace
 
     CodeGenNodePayload resolveForeachVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
-        const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar);
-        if (symbolPayload)
-            return *symbolPayload;
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+                return *symbolPayload;
+            const SymbolFunction& symbolFunc = codeGen.function();
+            return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+        }
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar.typeRef());
-        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOf > 0);
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        {
+            if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
+                return *symbolPayload;
+            SWC_ASSERT(codeGen.localStackBaseReg().isValid());
 
-        auto* spillData = codeGen.compiler().allocateArray<std::byte>(sizeOf);
-        std::memset(spillData, 0, sizeOf);
+            CodeGenNodePayload localPayload;
+            localPayload.typeRef = symVar.typeRef();
+            localPayload.setIsAddress();
+            if (!symVar.offset())
+            {
+                localPayload.reg = codeGen.localStackBaseReg();
+            }
+            else
+            {
+                MicroBuilder& builder = codeGen.builder();
+                localPayload.reg      = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(localPayload.reg, ApInt(symVar.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+            }
 
-        CodeGenNodePayload spillPayload;
-        spillPayload.typeRef = symVar.typeRef();
-        spillPayload.setIsAddress();
-        spillPayload.reg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrImm(spillPayload.reg, reinterpret_cast<uint64_t>(spillData));
-        codeGen.setVariablePayload(symVar, spillPayload);
-        return spillPayload;
+            codeGen.setVariablePayload(symVar, localPayload);
+            return localPayload;
+        }
+
+        // Foreach aliases are not guaranteed to be part of function local-variable reset,
+        // so always refresh their payload instead of reusing any cached symbol payload.
+        CodeGenNodePayload regPayload;
+        regPayload.typeRef = symVar.typeRef();
+        regPayload.setIsValue();
+        regPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
+        codeGen.setVariablePayload(symVar, regPayload);
+        return regPayload;
     }
 
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)

@@ -21,8 +21,9 @@
 
 ## Formating code
 
-- When you are done with coding, and everything is working fine (after the tests), run clang-format.exe only on modified files.
+- When you are done with coding, and everything is working fine (after the tests), run clang-format.exe only on modified c++ files.
 - If nothing is modified, do not run it.
+- After the formating, recompile but do not run tests again.
 
   ````bash
   C:\Program Files\JetBrains\JetBrains Rider 2025.3.1\lib\ReSharperHost\windows-x64\clang-format.exe

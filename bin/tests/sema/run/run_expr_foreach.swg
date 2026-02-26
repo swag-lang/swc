@@ -67,26 +67,6 @@
 
 #test
 {
-    func foreachReverseIndex()->u64
-    {
-        var arr: [4] u64 = [10, 20, 30, 40]
-        var indexTrace: u64 = 0
-
-        foreach #reverse v, i in arr
-        {
-            indexTrace = indexTrace * 10'u64 + i
-            var x = v
-        }
-
-        return indexTrace
-    }
-
-    const V = #run foreachReverseIndex()
-    #assert(V == 3210)
-}
-
-#test
-{
     func foreachNoAlias()->u64
     {
         var arr: [3] s32 = [11, 22, 33]

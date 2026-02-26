@@ -144,3 +144,23 @@
     var a: [*] s32
     var b = cast(u64) a
 }
+
+#test
+{
+    var a: [4] s32
+    var s = cast([..] s32) a
+    #assert(#typeof(s) == [..] s32)
+}
+
+#test
+{
+    var a: [4] u8
+    var s = cast([..] u16) a
+    #assert(#typeof(s) == [..] u16)
+}
+
+#test
+{
+    var a: [3] u8
+    var s = cast([..] u16) a // swc-expected-error {{sema_err_cannot_cast}}
+}

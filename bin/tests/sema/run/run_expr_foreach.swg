@@ -102,3 +102,42 @@
     const V = #run foreachStringValueIndex()
     #assert(V == 201'u32)
 }
+
+#test
+{
+    func foreachSliceValueIndex()->s32
+    {
+        var arr: [4] s32 = [5, 6, 7, 8]
+        var sl = cast([..] s32) arr
+        var acc: s32 = 0
+
+        foreach v, i in sl
+        {
+            acc += v + cast(s32) i
+        }
+
+        return acc
+    }
+
+    const V = #run foreachSliceValueIndex()
+    #assert(V == 32)
+}
+
+#test
+{
+    func foreachSliceWeighted()->s32
+    {
+        var arr: [4] s32 = [5, 6, 7, 8]
+        var sl = cast([..] s32) arr
+        var acc: s32 = 0
+        foreach v, i in sl
+        {
+            acc += v * cast(s32) (i + 1)
+        }
+
+        return acc
+    }
+
+    const V = #run foreachSliceWeighted()
+    #assert(V == 70)
+}

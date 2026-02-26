@@ -12,6 +12,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct ForeachLoopRuntimeState
+    {
+        uint64_t base  = 0;
+        uint64_t count = 0;
+        uint64_t index = 0;
+    };
+
     struct LoopStmtCodeGenPayload
     {
         MicroLabelRef continueLabel = MicroLabelRef::invalid();
@@ -26,6 +33,7 @@ namespace
         MicroReg      baseReg       = MicroReg::invalid();
         MicroReg      countReg      = MicroReg::invalid();
         MicroReg      indexReg      = MicroReg::invalid();
+        uint64_t      stateAddress  = 0;
         uint64_t      elementSize   = 0;
         bool          reverse       = false;
     };
@@ -209,6 +217,41 @@ namespace
         return elementAddressReg;
     }
 
+    MicroReg emitForeachStateAddressReg(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
+    {
+        SWC_ASSERT(loopState.stateAddress != 0);
+        const MicroReg stateAddressReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrImm(stateAddressReg, loopState.stateAddress);
+        return stateAddressReg;
+    }
+
+    void emitForeachStoreLoopState(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
+    {
+        SWC_ASSERT(loopState.baseReg.isValid());
+        SWC_ASSERT(loopState.countReg.isValid());
+        SWC_ASSERT(loopState.indexReg.isValid());
+
+        MicroBuilder&  builder         = codeGen.builder();
+        const MicroReg stateAddressReg = emitForeachStateAddressReg(codeGen, loopState);
+        builder.emitLoadMemReg(stateAddressReg, offsetof(ForeachLoopRuntimeState, base), loopState.baseReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(stateAddressReg, offsetof(ForeachLoopRuntimeState, count), loopState.countReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(stateAddressReg, offsetof(ForeachLoopRuntimeState, index), loopState.indexReg, MicroOpBits::B64);
+    }
+
+    void emitForeachLoadLoopState(CodeGen& codeGen, ForeachStmtCodeGenPayload& loopState)
+    {
+        MicroBuilder&  builder         = codeGen.builder();
+        const MicroReg stateAddressReg = emitForeachStateAddressReg(codeGen, loopState);
+
+        loopState.baseReg  = codeGen.nextVirtualIntRegister();
+        loopState.countReg = codeGen.nextVirtualIntRegister();
+        loopState.indexReg = codeGen.nextVirtualIntRegister();
+
+        builder.emitLoadRegMem(loopState.baseReg, stateAddressReg, offsetof(ForeachLoopRuntimeState, base), MicroOpBits::B64);
+        builder.emitLoadRegMem(loopState.countReg, stateAddressReg, offsetof(ForeachLoopRuntimeState, count), MicroOpBits::B64);
+        builder.emitLoadRegMem(loopState.indexReg, stateAddressReg, offsetof(ForeachLoopRuntimeState, index), MicroOpBits::B64);
+    }
+
     void emitForeachBindSymbols(CodeGen& codeGen, const AstForeachStmt& node, const ForeachStmtCodeGenPayload& loopState)
     {
         const SemaNodeView symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
@@ -307,6 +350,13 @@ namespace
             builder.emitLoadRegReg(loopState.indexReg, loopState.countReg, MicroOpBits::B64);
         else
             builder.emitLoadRegImm(loopState.indexReg, ApInt(0, 64), MicroOpBits::B64);
+
+        auto* runtimeState     = codeGen.compiler().allocate<ForeachLoopRuntimeState>();
+        runtimeState->base     = 0;
+        runtimeState->count    = 0;
+        runtimeState->index    = 0;
+        loopState.stateAddress = reinterpret_cast<uint64_t>(runtimeState);
+        emitForeachStoreLoopState(codeGen, loopState);
     }
 }
 
@@ -323,7 +373,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
@@ -351,10 +401,14 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     {
         emitForeachInit(codeGen, *this, *loopState);
         codeGen.builder().placeLabel(loopState->loopLabel);
+        emitForeachLoadLoopState(codeGen, *loopState);
         codeGen.builder().emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
         codeGen.builder().emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
         if (loopState->reverse)
+        {
+            codeGen.builder().emitLoadRegReg(loopState->indexReg, loopState->countReg, MicroOpBits::B64);
             codeGen.builder().emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        }
         emitForeachBindSymbols(codeGen, *this, *loopState);
         return Result::Continue;
     }
@@ -370,9 +424,11 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if (childRef == bodyRef)
     {
         codeGen.builder().placeLabel(loopState->continueLabel);
+        emitForeachLoadLoopState(codeGen, *loopState);
         if (!loopState->reverse)
             codeGen.builder().emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         codeGen.builder().emitOpBinaryRegImm(loopState->countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        emitForeachStoreLoopState(codeGen, *loopState);
         codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         codeGen.popFrame();
         return Result::Continue;

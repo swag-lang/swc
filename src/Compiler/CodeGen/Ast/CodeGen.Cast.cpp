@@ -133,6 +133,64 @@ namespace
         return Result::Continue;
     }
 
+    Result emitArrayToSliceCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        SWC_ASSERT(dstType.isSlice());
+
+        const TypeInfo& dstElementType = codeGen.typeMgr().get(dstType.payloadTypeRef());
+        const uint64_t  totalSize      = srcType.sizeOf(codeGen.ctx());
+        const uint64_t  elementSize    = dstElementType.sizeOf(codeGen.ctx());
+        const uint64_t  elementCount   = elementSize ? totalSize / elementSize : 0;
+
+        MicroBuilder&             builder    = codeGen.builder();
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+
+        const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
+        if (srcConstView.hasConstant())
+        {
+            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            if (srcConst.isArray())
+            {
+                const ByteSpan       arrayBytes   = srcConst.getArray();
+                const Runtime::Slice runtimeSlice = {
+                    .ptr   = arrayBytes.data(),
+                    .count = elementCount,
+                };
+                const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
+                const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
+
+                const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                builder.emitLoadRegPtrImm(dstPayload.reg, storageAddress, srcConstView.cstRef());
+                return Result::Continue;
+            }
+        }
+
+        auto* runtimeValue          = codeGen.compiler().allocate<Runtime::Slice<std::byte>>();
+        runtimeValue->ptr           = nullptr;
+        runtimeValue->count         = 0;
+        const auto runtimeValueAddr = reinterpret_cast<uint64_t>(runtimeValue);
+
+        const MicroReg runtimeValueReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrImm(runtimeValueReg, runtimeValueAddr);
+
+        MicroReg srcDataReg = srcPayload.reg;
+        if (!srcPayload.isAddress())
+        {
+            srcDataReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(srcDataReg, srcPayload.reg, MicroOpBits::B64);
+        }
+
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), srcDataReg, MicroOpBits::B64);
+
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(countReg, ApInt(elementCount, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
+
+        const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        builder.emitLoadRegReg(dstPayload.reg, runtimeValueReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result emitAnyCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         if (dstTypeRef.isInvalid())
@@ -215,6 +273,8 @@ namespace
         const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
         if (dstType.isString() && srcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
+        if (dstType.isSlice() && srcType.isArray())
+            return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, srcType, dstType);
         const bool srcFloatType   = srcType.isFloat();
         const bool srcIntLikeType = isNumericIntLike(srcType);
         const bool dstFloatType   = dstType.isFloat();

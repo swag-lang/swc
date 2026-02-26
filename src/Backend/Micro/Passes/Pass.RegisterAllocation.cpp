@@ -3,7 +3,6 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
@@ -17,17 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct InstructionIndexData
-    {
-        std::vector<MicroInstrRef>                  refs;
-        std::unordered_map<MicroLabelRef, uint32_t> labelToIndex;
-    };
-
-    struct ControlFlowData
-    {
-        std::vector<std::vector<uint32_t>> successors;
-    };
-
     bool hasVirtualRegisters(const MicroPassContext& context)
     {
         SWC_ASSERT(context.instructions != nullptr);
@@ -48,107 +36,6 @@ namespace
         }
 
         return false;
-    }
-
-    bool isUnsupportedControlFlowForCfgLiveness(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
-            case MicroInstrOpcode::JumpCondImm:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    bool buildInstructionIndexData(const MicroStorage& storage, const MicroOperandStorage& operands, InstructionIndexData& outData)
-    {
-        outData.refs.clear();
-        outData.labelToIndex.clear();
-
-        outData.refs.reserve(storage.count());
-        outData.labelToIndex.reserve(storage.count() / 2 + 1);
-
-        uint32_t index = 0;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it, ++index)
-        {
-            outData.refs.push_back(it.current);
-
-            if (it->op != MicroInstrOpcode::Label)
-                continue;
-
-            const MicroInstrOperand* const labelOps = it->ops(operands);
-            if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
-                return false;
-
-            const MicroLabelRef labelRef(static_cast<uint32_t>(labelOps[0].valueU64));
-            outData.labelToIndex[labelRef] = index;
-        }
-
-        return true;
-    }
-
-    bool buildControlFlowData(const MicroStorage& storage, const MicroOperandStorage& operands, const InstructionIndexData& indexData, ControlFlowData& outData)
-    {
-        outData.successors.clear();
-        outData.successors.resize(indexData.refs.size());
-
-        const size_t instructionCount = indexData.refs.size();
-        for (size_t i = 0; i < instructionCount; ++i)
-        {
-            const MicroInstr* const inst = storage.ptr(indexData.refs[i]);
-            if (!inst)
-                return false;
-
-            const bool hasFallthrough = i + 1 < instructionCount;
-            if (inst->op == MicroInstrOpcode::JumpCond)
-            {
-                const MicroInstrOperand* const jumpOps = inst->ops(operands);
-                if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
-                    return false;
-
-                const MicroLabelRef targetLabel(static_cast<uint32_t>(jumpOps[2].valueU64));
-                const auto          targetIt = indexData.labelToIndex.find(targetLabel);
-                if (targetIt == indexData.labelToIndex.end())
-                    return false;
-
-                std::vector<uint32_t>& successors = outData.successors[i];
-                successors.push_back(targetIt->second);
-                if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, jumpOps) && hasFallthrough)
-                    successors.push_back(static_cast<uint32_t>(i + 1));
-                continue;
-            }
-
-            if (inst->op == MicroInstrOpcode::Ret)
-                continue;
-
-            if (MicroInstrInfo::isTerminatorInstruction(*inst))
-                return false;
-
-            if (hasFallthrough)
-                outData.successors[i].push_back(static_cast<uint32_t>(i + 1));
-        }
-
-        return true;
-    }
-
-    void transferVirtualLiveness(std::unordered_set<uint32_t>& outLiveIn, const std::unordered_set<uint32_t>& liveOut, const MicroInstrUseDef& useDef)
-    {
-        outLiveIn = liveOut;
-
-        for (const MicroReg reg : useDef.defs)
-        {
-            if (reg.isVirtual())
-                outLiveIn.erase(reg.packed);
-        }
-
-        for (const MicroReg reg : useDef.uses)
-        {
-            if (reg.isVirtual())
-                outLiveIn.insert(reg.packed);
-        }
     }
 
     struct VRegState
@@ -207,37 +94,6 @@ namespace
         std::unordered_map<uint32_t, uint32_t>  liveStamp;
         std::unordered_set<uint32_t>            callSpillVregs;
     };
-
-    void analyzeLivenessLinear(PassState& state)
-    {
-        state.liveOut.clear();
-        state.liveOut.resize(state.instructionCount);
-        state.vregsLiveAcrossCall.clear();
-
-        std::unordered_set<uint32_t> live;
-        live.reserve(state.instructionCount * 2ull);
-
-        uint32_t idx = state.instructionCount;
-        for (const auto& inst : std::ranges::reverse_view(state.instructions->view()))
-        {
-            --idx;
-
-            auto& out = state.liveOut[idx];
-            out.clear();
-            out.reserve(live.size());
-            for (const uint32_t regKey : live)
-                out.push_back(regKey);
-
-            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
-            if (useDef.isCall)
-            {
-                for (const auto regKey : live)
-                    state.vregsLiveAcrossCall.insert(regKey);
-            }
-
-            transferVirtualLiveness(live, live, useDef);
-        }
-    }
 
     void initState(PassState& state, MicroPassContext& context)
     {
@@ -355,104 +211,42 @@ namespace
     void analyzeLiveness(PassState& state)
     {
         // Backward liveness: capture live-outset per instruction and detect values live across calls.
-        if (!state.hasControlFlow)
-        {
-            analyzeLivenessLinear(state);
-            return;
-        }
-
-        bool hasUnsupportedControlFlow = false;
-        for (const MicroInstr& inst : state.instructions->view())
-        {
-            if (isUnsupportedControlFlowForCfgLiveness(inst))
-            {
-                hasUnsupportedControlFlow = true;
-                break;
-            }
-        }
-
-        if (hasUnsupportedControlFlow)
-        {
-            analyzeLivenessLinear(state);
-            return;
-        }
-
-        InstructionIndexData indexData;
-        if (!buildInstructionIndexData(*state.instructions, *state.operands, indexData))
-        {
-            analyzeLivenessLinear(state);
-            return;
-        }
-
-        ControlFlowData controlFlowData;
-        if (!buildControlFlowData(*state.instructions, *state.operands, indexData, controlFlowData))
-        {
-            analyzeLivenessLinear(state);
-            return;
-        }
-
-        const size_t                              instructionCount = indexData.refs.size();
-        std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
-        std::vector<std::unordered_set<uint32_t>> liveOutSets(instructionCount);
-
-        bool changed = true;
-        while (changed)
-        {
-            changed = false;
-
-            for (size_t i = instructionCount; i > 0; --i)
-            {
-                const size_t            idx            = i - 1;
-                const MicroInstrRef     instructionRef = indexData.refs[idx];
-                const MicroInstr* const inst           = state.instructions->ptr(instructionRef);
-                if (!inst)
-                    continue;
-
-                const MicroInstrUseDef useDef = inst->collectUseDef(*state.operands, state.context->encoder);
-
-                std::unordered_set<uint32_t> newLiveOut;
-                for (const uint32_t successorIndex : controlFlowData.successors[idx])
-                {
-                    if (successorIndex >= liveIn.size())
-                        continue;
-
-                    for (const uint32_t regKey : liveIn[successorIndex])
-                        newLiveOut.insert(regKey);
-                }
-
-                std::unordered_set<uint32_t> newLiveIn;
-                transferVirtualLiveness(newLiveIn, newLiveOut, useDef);
-
-                if (newLiveOut != liveOutSets[idx] || newLiveIn != liveIn[idx])
-                {
-                    liveOutSets[idx] = std::move(newLiveOut);
-                    liveIn[idx]      = std::move(newLiveIn);
-                    changed          = true;
-                }
-            }
-        }
-
         state.liveOut.clear();
         state.liveOut.resize(state.instructionCount);
         state.vregsLiveAcrossCall.clear();
-        for (size_t i = 0; i < instructionCount; ++i)
+
+        std::unordered_set<uint32_t> live;
+        live.reserve(state.instructionCount * 2ull);
+
+        uint32_t idx = state.instructionCount;
+        for (const auto& inst : std::ranges::reverse_view(state.instructions->view()))
         {
-            const auto& liveOutSet = liveOutSets[i];
-            auto&       liveOutVec = state.liveOut[i];
-            liveOutVec.reserve(liveOutSet.size());
-            for (const uint32_t regKey : liveOutSet)
-                liveOutVec.push_back(regKey);
+            --idx;
 
-            const MicroInstr* const inst = state.instructions->ptr(indexData.refs[i]);
-            if (!inst)
-                continue;
+            auto& out = state.liveOut[idx];
+            out.clear();
+            out.reserve(live.size());
+            for (const uint32_t regKey : live)
+                out.push_back(regKey);
 
-            const MicroInstrUseDef useDef = inst->collectUseDef(*state.operands, state.context->encoder);
-            if (!useDef.isCall)
-                continue;
+            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
+            if (useDef.isCall)
+            {
+                for (const auto regKey : live)
+                    state.vregsLiveAcrossCall.insert(regKey);
+            }
 
-            for (const uint32_t regKey : liveOutSet)
-                state.vregsLiveAcrossCall.insert(regKey);
+            for (const auto& reg : useDef.defs)
+            {
+                if (reg.isVirtual())
+                    live.erase(reg.packed);
+            }
+
+            for (const auto& reg : useDef.uses)
+            {
+                if (reg.isVirtual())
+                    live.insert(reg.packed);
+            }
         }
     }
 

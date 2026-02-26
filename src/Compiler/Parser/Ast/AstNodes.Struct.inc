@@ -1350,6 +1350,10 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
     AstNodeRef       nodeBodyRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
+    Result codeGenPreNode(CodeGen& codeGen) const;
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;

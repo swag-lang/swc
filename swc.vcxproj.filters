@@ -264,6 +264,12 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Loop.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Switch.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
@@ -274,6 +280,9 @@
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Conditional.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp">
@@ -289,6 +298,9 @@
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Index.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Logical.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Member.cpp">

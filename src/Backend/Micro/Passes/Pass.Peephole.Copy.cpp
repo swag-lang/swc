@@ -484,6 +484,7 @@ namespace PeepholePass
 
                 case MicroInstrOpcode::LoadRegImm:
                 case MicroInstrOpcode::LoadRegPtrImm:
+                case MicroInstrOpcode::LoadRegPtrReloc:
                     if (instOps[0].reg != fromReg)
                         return false;
                     instOps[0].reg = toReg;

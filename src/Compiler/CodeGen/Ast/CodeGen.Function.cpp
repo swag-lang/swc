@@ -46,7 +46,7 @@ namespace
         const auto          dstValue      = reinterpret_cast<uint64_t>(storage);
         const ConstantValue storageCst    = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU8(), dstValue, TypeInfoFlagsE::Const);
         const ConstantRef   storageCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), storageCst);
-        builder.emitLoadRegPtrImm(dstReg, dstValue, storageCstRef);
+        builder.emitLoadRegPtrReloc(dstReg, dstValue, storageCstRef);
         CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
         return dstReg;
     }
@@ -518,7 +518,7 @@ namespace
             SWC_ASSERT(typeInfoCst.isValuePointer());
 
             const MicroReg typeInfoReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegPtrImm(typeInfoReg, typeInfoCst.getValuePointer(), info.typeInfoCstRef);
+            builder.emitLoadRegPtrReloc(typeInfoReg, typeInfoCst.getValuePointer(), info.typeInfoCstRef);
             builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
         }
 

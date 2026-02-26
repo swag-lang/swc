@@ -820,7 +820,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
-    if (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm)
+    if (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm || inst.op == MicroInstrOpcode::LoadRegPtrReloc)
     {
         if (ops[0].reg.isFloat())
         {

@@ -108,7 +108,8 @@ public:
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);
-    void emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
+    void emitLoadRegPtrImm(MicroReg reg, uint64_t value);
+    void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
     void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
     void emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);
     void emitLoadSignedExtendRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);

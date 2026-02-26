@@ -252,7 +252,7 @@ void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
     // Convenience wrapper: materialize target address then use the generic indirect call opcode.
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const CallConv& conv = CallConv::get(callConv);
-    emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
+    emitLoadRegPtrReloc(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     emitCallReg(conv.intReturn, callConv);
     return;
 }
@@ -262,7 +262,7 @@ void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
     // Extern/local share the same micro-level representation; relocation kind differs.
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const CallConv& conv = CallConv::get(callConv);
-    emitLoadRegPtrImm(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
+    emitLoadRegPtrReloc(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
     emitCallReg(conv.intReturn, callConv);
     return;
 }
@@ -328,7 +328,16 @@ void MicroBuilder::emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits 
     return;
 }
 
-void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
+void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::LoadRegPtrImm, 3);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].opBits           = MicroOpBits::B64;
+    ops[2].valueU64         = value;
+}
+
+void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
 {
     const bool hasFunctionTarget = targetSymbol && targetSymbol->isFunction();
     const bool hasConstantTarget = constantRef.isValid();
@@ -345,7 +354,7 @@ void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value, ConstantRef c
         relocationTargetSymbol               = targetSymbol;
     }
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrImm, 3);
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrReloc, 3);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].reg             = reg;
     ops[1].opBits          = MicroOpBits::B64;

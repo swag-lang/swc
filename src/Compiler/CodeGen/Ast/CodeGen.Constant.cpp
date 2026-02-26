@@ -80,21 +80,21 @@ namespace
                 const Runtime::String  runtimeString      = {.ptr = value.data(), .length = value.size()};
                 const ByteSpan         runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
                 const uint64_t         storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
-                builder.emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::ValuePointer:
             {
-                builder.emitLoadRegPtrImm(payload.reg, cst.getValuePointer(), cstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, cst.getValuePointer(), cstRef);
                 payload.setIsValue();
                 return;
             }
 
             case ConstantKind::BlockPointer:
             {
-                builder.emitLoadRegPtrImm(payload.reg, cst.getBlockPointer(), cstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, cst.getBlockPointer(), cstRef);
                 payload.setIsValue();
                 return;
             }
@@ -118,7 +118,7 @@ namespace
                     const TypeInfo& targetType = codeGen.typeMgr().get(targetTypeRef);
                     if (targetType.isReference())
                     {
-                        builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
                         payload.setIsValue();
                         return;
                     }
@@ -126,7 +126,7 @@ namespace
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(structBytes.size() == storageSize);
-                builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(structBytes.data()), cstRef);
                 payload.setIsAddress();
                 return;
             }
@@ -145,7 +145,7 @@ namespace
                         };
                         const ByteSpan runtimeStringBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString));
                         const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
-                        builder.emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
                         payload.setIsValue();
                         return;
                     }
@@ -160,7 +160,7 @@ namespace
                         };
                         const ByteSpan runtimeSliceBytes = asByteSpan(reinterpret_cast<const std::byte*>(&runtimeSlice), sizeof(runtimeSlice));
                         const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
-                        builder.emitLoadRegPtrImm(payload.reg, storageAddress, cstRef);
+                        builder.emitLoadRegPtrReloc(payload.reg, storageAddress, cstRef);
                         payload.setIsValue();
                         return;
                     }
@@ -168,7 +168,7 @@ namespace
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
                 SWC_ASSERT(arrayBytes.size() == storageSize);
-                builder.emitLoadRegPtrImm(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
+                builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(arrayBytes.data()), cstRef);
                 payload.setIsAddress();
                 return;
             }

@@ -293,7 +293,7 @@ namespace
     void applyRewriteLoadFloatRegImm(const MicroPassContext& context, const Encoder& encoder, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint64_t stackScratchBaseOffset)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm || inst.op == MicroInstrOpcode::LoadRegPtrReloc);
         SWC_ASSERT(inst.numOperands >= 3);
 
         const MicroReg dstReg   = ops[0].reg;

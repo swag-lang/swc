@@ -24,7 +24,7 @@ namespace
 
         const uint32_t numRegArgs = conv.numArgRegisterSlots();
         const auto     numArgs    = static_cast<uint32_t>(args.size());
-        builder.emitLoadRegImm(regBase, ApInt(reinterpret_cast<uint64_t>(args.data()), 64), MicroOpBits::B64);
+        builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg      = args[i];
@@ -66,7 +66,7 @@ namespace
 
         SWC_ASSERT(ret.valuePtr != nullptr);
         const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-        builder.emitLoadRegImm(regBase, ApInt(reinterpret_cast<uint64_t>(ret.valuePtr), 64), MicroOpBits::B64);
+        builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
         if (ret.isFloat)
             builder.emitLoadMemReg(regBase, 0, conv.floatReturn, retBits);
         else
@@ -344,7 +344,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     MicroReg   hiddenRetArgSrcReg, hiddenRetArgTmpReg;
     const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
     SWC_INTERNAL_CHECK(hasScratchRegs);
-    builder.emitLoadRegImm(hiddenRetArgSrcReg, ApInt(reinterpret_cast<uint64_t>(indirectRetStorage), 64), MicroOpBits::B64);
+    builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
 
     SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;
     preparedArgsWithHiddenRetArg.reserve(args.size() + 1);
@@ -448,7 +448,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
     emitCallArgs(builder, conv, args, regBase, regTmp);
-    builder.emitLoadRegImm(regTmp, ApInt(targetAddress, 64), MicroOpBits::B64);
+    builder.emitLoadRegPtrImm(regTmp, targetAddress);
     builder.emitCallReg(regTmp, callConvKind);
     emitReturnWriteBack(builder, conv, ret, regBase);
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
@@ -470,7 +470,7 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
         builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitLoadRegPtrImm(targetReg, 0, ConstantRef::invalid(), targetSymbol);
+    builder.emitLoadRegPtrReloc(targetReg, 0, ConstantRef::invalid(), targetSymbol);
     builder.emitCallReg(targetReg, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
@@ -497,7 +497,7 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
         builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitLoadRegPtrImm(targetReg, 0, ConstantRef::invalid(), targetSymbol);
+    builder.emitLoadRegPtrReloc(targetReg, 0, ConstantRef::invalid(), targetSymbol);
     builder.emitCallReg(targetReg, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);

@@ -179,6 +179,17 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 SWC_MICRO_INSTR_DEF(
+    LoadRegPtrReloc,
+    MicroInstrDef{
+        .regModes = {MicroInstrRegMode::Def, MicroInstrRegMode::None, MicroInstrRegMode::None},
+        .special = MicroInstrRegSpecial::None,
+        .microOpIndex = 0,
+        .callConvIndex = 0,
+        .flags = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex = 0,
+        .memOffsetOperandIndex = 0,
+    })
+SWC_MICRO_INSTR_DEF(
     LoadRegMem,
     MicroInstrDef{
         .regModes = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},

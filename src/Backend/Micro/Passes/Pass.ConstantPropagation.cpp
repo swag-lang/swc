@@ -1644,7 +1644,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             };
         }
 
-        if (inst.op == MicroInstrOpcode::LoadRegPtrImm && ops[0].reg.isInt() && ops[1].opBits == MicroOpBits::B64)
+        if (inst.op == MicroInstrOpcode::LoadRegPtrReloc && ops[0].reg.isInt() && ops[1].opBits == MicroOpBits::B64)
         {
             bool       canTrackConstantPointer = false;
             const auto itRelocation            = relocationByInstructionRef.find(instRef);

@@ -165,7 +165,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             const ConstantRef   compilerIfCstRef  = codeGen.cstMgr().addConstant(codeGen.ctx(), compilerIfCst);
             const SemaNodeView  view              = codeGen.curViewType();
             const auto&         payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
-            codeGen.builder().emitLoadRegPtrImm(payload.reg, compilerIfAddress, compilerIfCstRef);
+            codeGen.builder().emitLoadRegPtrReloc(payload.reg, compilerIfAddress, compilerIfCstRef);
             return Result::Continue;
         }
 

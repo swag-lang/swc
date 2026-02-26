@@ -222,6 +222,7 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
         case MicroInstrOpcode::JumpCondImm:
         case MicroInstrOpcode::LoadRegImm:
         case MicroInstrOpcode::LoadRegPtrImm:
+        case MicroInstrOpcode::LoadRegPtrReloc:
         case MicroInstrOpcode::LoadRegMem:
         case MicroInstrOpcode::LoadMemReg:
         case MicroInstrOpcode::LoadMemImm:

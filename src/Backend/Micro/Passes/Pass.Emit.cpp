@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
-    // LoadRegPtrImm always embeds an absolute 64-bit immediate at the end of the instruction.
+    // LoadRegPtrReloc embeds an absolute 64-bit immediate at the end of the instruction.
     const auto found = relocationByInstructionRef_.find(instructionRef);
     SWC_ASSERT(found != relocationByInstructionRef_.end());
     if (found == relocationByInstructionRef_.end())
@@ -60,6 +60,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         }
         case MicroInstrOpcode::LoadRegPtrImm:
+            encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
+            break;
+        case MicroInstrOpcode::LoadRegPtrReloc:
         {
             const uint32_t loadCodeStartOffset = encoder.size();
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
@@ -204,7 +207,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
     relocationByInstructionRef_.clear();
     SWC_NOT_NULL(context.builder)->pruneDeadRelocations();
 
-    // Build instruction->relocation lookup once so LoadRegPtrImm can bind encoded offsets.
+    // Build instruction->relocation lookup once so LoadRegPtrReloc can bind encoded offsets.
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
     {
         const MicroRelocation& reloc = relocations[idx];

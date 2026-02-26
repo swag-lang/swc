@@ -140,7 +140,7 @@ namespace
                 const uint64_t storageAddress     = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeStringBytes);
 
                 const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-                builder.emitLoadRegPtrImm(dstPayload.reg, storageAddress, srcConstView.cstRef());
+                builder.emitLoadRegPtrReloc(dstPayload.reg, storageAddress, srcConstView.cstRef());
                 return Result::Continue;
             }
         }
@@ -193,7 +193,7 @@ namespace
                 const uint64_t storageAddress    = addPayloadToConstantManagerAndGetAddress(codeGen, runtimeSliceBytes);
 
                 const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-                builder.emitLoadRegPtrImm(dstPayload.reg, storageAddress, srcConstView.cstRef());
+                builder.emitLoadRegPtrReloc(dstPayload.reg, storageAddress, srcConstView.cstRef());
                 return Result::Continue;
             }
         }

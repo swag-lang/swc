@@ -39,18 +39,6 @@ func VirtualFree(address: *void, bytes: u64, freeType: u32)->bool;
     #assert(B == 0'u32)
 }
 
-// #test
-// {
-//     const MEM_COMMIT  = 0x1000'u32
-//     const MEM_RESERVE = 0x2000'u32
-//     const MEM_RELEASE = 0x8000'u32
-//     const PAGE_READWRITE = 0x04'u32
-//     const P = #run VirtualAlloc(null, 4096'u64, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
-//     const F = #run VirtualFree(P, 0'u64, MEM_RELEASE)
-//     #assert(P != null)
-//     #assert(F)
-// }
-
 #test
 {
     const MEM_RELEASE = 0x8000'u32

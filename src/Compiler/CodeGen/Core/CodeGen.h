@@ -39,14 +39,42 @@ struct CodeGenNodePayload
 class CodeGenFrame
 {
 public:
+    enum class BreakContextKind : uint8_t
+    {
+        None,
+        Loop,
+        Switch,
+    };
+
+    struct BreakContext
+    {
+        AstNodeRef       nodeRef = AstNodeRef::invalid();
+        BreakContextKind kind    = BreakContextKind::None;
+    };
+
+    const BreakContext& currentBreakContext() const { return breakable_; }
+    void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
+    {
+        breakable_.nodeRef = nodeRef;
+        breakable_.kind    = kind;
+    }
+    BreakContextKind currentBreakableKind() const { return breakable_.kind; }
+
     AstNodeRef currentSwitch() const { return currentSwitch_; }
     void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
     void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    Ref        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void       setCurrentLoopContinueLabel(Ref labelRef) { currentLoopContinueLabel_ = labelRef; }
+    Ref        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void       setCurrentLoopBreakLabel(Ref labelRef) { currentLoopBreakLabel_ = labelRef; }
 
 private:
-    AstNodeRef currentSwitch_     = AstNodeRef::invalid();
-    AstNodeRef currentSwitchCase_ = AstNodeRef::invalid();
+    BreakContext breakable_;
+    AstNodeRef   currentSwitch_            = AstNodeRef::invalid();
+    AstNodeRef   currentSwitchCase_        = AstNodeRef::invalid();
+    Ref          currentLoopContinueLabel_ = INVALID_REF;
+    Ref          currentLoopBreakLabel_    = INVALID_REF;
 };
 
 class CodeGen

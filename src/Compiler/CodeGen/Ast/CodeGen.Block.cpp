@@ -36,6 +36,12 @@ namespace
         std::unordered_map<AstNodeRef, SwitchCaseCodeGenPayload> caseStates;
     };
 
+    struct LoopStmtCodeGenPayload
+    {
+        Ref continueLabel = INVALID_REF;
+        Ref doneLabel     = INVALID_REF;
+    };
+
     AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.viewZero(nodeRef).nodeRef();
@@ -99,6 +105,37 @@ namespace
     void eraseSwitchStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         SwitchStmtCodeGenPayload* payload = switchStmtCodeGenPayload(codeGen, nodeRef);
+        if (payload)
+            *payload = {};
+    }
+
+    LoopStmtCodeGenPayload* loopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        if (nodeRef.isInvalid())
+            return nullptr;
+        return codeGen.sema().codeGenPayload<LoopStmtCodeGenPayload>(nodeRef);
+    }
+
+    LoopStmtCodeGenPayload& setLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef, const LoopStmtCodeGenPayload& payloadValue)
+    {
+        nodeRef = resolvedNodeRef(codeGen, nodeRef);
+        SWC_ASSERT(nodeRef.isValid());
+
+        auto* payload = codeGen.sema().codeGenPayload<LoopStmtCodeGenPayload>(nodeRef);
+        if (!payload)
+        {
+            payload = codeGen.compiler().allocate<LoopStmtCodeGenPayload>();
+            codeGen.sema().setCodeGenPayload(nodeRef, payload);
+        }
+
+        *payload = payloadValue;
+        return *payload;
+    }
+
+    void eraseLoopStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        LoopStmtCodeGenPayload* payload = loopStmtCodeGenPayload(codeGen, nodeRef);
         if (payload)
             *payload = {};
     }
@@ -301,6 +338,126 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
     return Result::Continue;
 }
 
+Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen) const
+{
+    LoopStmtCodeGenPayload loopState;
+    loopState.continueLabel = codeGen.builder().createLabel();
+    loopState.doneLabel     = codeGen.builder().createLabel();
+    setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    return Result::Continue;
+}
+
+Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef exprRef = resolvedNodeRef(codeGen, nodeExprRef);
+    const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
+
+    if (childRef == exprRef)
+    {
+        codeGen.builder().placeLabel(loopState->continueLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == bodyRef)
+    {
+        CodeGenFrame frame = codeGen.frame();
+        frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+        frame.setCurrentLoopContinueLabel(loopState->continueLabel);
+        frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+        codeGen.pushFrame(frame);
+    }
+
+    return Result::Continue;
+}
+
+Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    const AstNodeRef exprRef = resolvedNodeRef(codeGen, nodeExprRef);
+    const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
+
+    if (childRef == exprRef)
+    {
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
+        emitConditionFalseJump(codeGen, exprPayload, exprView.typeRef(), loopState->doneLabel);
+        return Result::Continue;
+    }
+
+    if (childRef == bodyRef)
+    {
+        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+        codeGen.popFrame();
+    }
+
+    return Result::Continue;
+}
+
+Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen) const
+{
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().placeLabel(loopState->doneLabel);
+    eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    return Result::Continue;
+}
+
+Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen) const
+{
+    LoopStmtCodeGenPayload loopState;
+    loopState.continueLabel = codeGen.builder().createLabel();
+    loopState.doneLabel     = codeGen.builder().createLabel();
+    setLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
+    return Result::Continue;
+}
+
+Result AstInfiniteLoopStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != resolvedNodeRef(codeGen, nodeBodyRef))
+        return Result::Continue;
+
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().placeLabel(loopState->continueLabel);
+
+    CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
+    frame.setCurrentLoopContinueLabel(loopState->continueLabel);
+    frame.setCurrentLoopBreakLabel(loopState->doneLabel);
+    codeGen.pushFrame(frame);
+    return Result::Continue;
+}
+
+Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (childRef != resolvedNodeRef(codeGen, nodeBodyRef))
+        return Result::Continue;
+
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+    codeGen.popFrame();
+    return Result::Continue;
+}
+
+Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen) const
+{
+    const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    SWC_ASSERT(loopState != nullptr);
+
+    codeGen.builder().placeLabel(loopState->doneLabel);
+    eraseLoopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    return Result::Continue;
+}
+
 Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
 {
     SwitchStmtCodeGenPayload switchState;
@@ -339,6 +496,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     setSwitchStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), switchState);
 
     CodeGenFrame frame = codeGen.frame();
+    frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(codeGen.curNodeRef());
     frame.setCurrentSwitchCase(AstNodeRef::invalid());
     codeGen.pushFrame(frame);
@@ -537,14 +695,37 @@ Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRe
 
 Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
-    if (switchRef.isInvalid())
+    const CodeGenFrame::BreakContext& breakCtx = codeGen.frame().currentBreakContext();
+    if (breakCtx.kind == CodeGenFrame::BreakContextKind::None)
         return Result::Continue;
+
+    if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop)
+    {
+        const Ref breakLabel = codeGen.frame().currentLoopBreakLabel();
+        if (breakLabel != INVALID_REF)
+            codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, breakLabel);
+        return Result::Continue;
+    }
+
+    const AstNodeRef switchRef = codeGen.frame().currentSwitch();
+    SWC_ASSERT(switchRef.isValid());
 
     const SwitchStmtCodeGenPayload* switchState = switchStmtCodeGenPayload(codeGen, switchRef);
     SWC_ASSERT(switchState != nullptr);
-
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, switchState->doneLabel);
+    return Result::Continue;
+}
+
+Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    if (codeGen.frame().currentBreakableKind() != CodeGenFrame::BreakContextKind::Loop)
+        return Result::Continue;
+
+    const Ref continueLabel = codeGen.frame().currentLoopContinueLabel();
+    if (continueLabel == INVALID_REF)
+        return Result::Continue;
+
+    codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
     return Result::Continue;
 }
 

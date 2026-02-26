@@ -1197,6 +1197,7 @@ struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 {
     static Result semaPreNode(Sema& sema);
+    static Result codeGenPostNode(CodeGen& codeGen);
 };
 
 // -----------------------------------------------------------------------------
@@ -1324,6 +1325,10 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
     AstNodeRef nodeBodyRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
+    Result codeGenPreNode(CodeGen& codeGen) const;
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
@@ -1384,6 +1389,10 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
     AstNodeRef nodeBodyRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result codeGenPreNode(CodeGen& codeGen) const;
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 

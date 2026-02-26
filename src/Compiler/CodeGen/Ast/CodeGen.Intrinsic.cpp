@@ -115,7 +115,7 @@ namespace
         else
             builder.emitLoadRegReg(condReg, exprPayload.reg, condBits);
 
-        const Ref doneLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
         builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
         builder.emitAssertTrap();

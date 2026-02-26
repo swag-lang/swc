@@ -37,11 +37,11 @@ namespace
 
 SWC_TEST_BEGIN(MicroControlFlowSimplification_RemovesRedundantFlow)
 {
-    MicroBuilder       builder(ctx);
-    constexpr MicroReg r8        = MicroReg::intReg(8);
-    constexpr MicroReg r9        = MicroReg::intReg(9);
-    const Ref          bodyLabel = builder.createLabel();
-    const Ref          deadLabel = builder.createLabel();
+    MicroBuilder        builder(ctx);
+    constexpr MicroReg  r8        = MicroReg::intReg(8);
+    constexpr MicroReg  r9        = MicroReg::intReg(9);
+    const MicroLabelRef bodyLabel = builder.createLabel();
+    const MicroLabelRef deadLabel = builder.createLabel();
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, bodyLabel);
     builder.placeLabel(bodyLabel);
@@ -67,10 +67,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroControlFlowSimplification_MergesJumpChain)
 {
-    MicroBuilder       builder(ctx);
-    constexpr MicroReg r8             = MicroReg::intReg(8);
-    const Ref          fallthroughRef = builder.createLabel();
-    const Ref          targetRef      = builder.createLabel();
+    MicroBuilder        builder(ctx);
+    constexpr MicroReg  r8             = MicroReg::intReg(8);
+    const MicroLabelRef fallthroughRef = builder.createLabel();
+    const MicroLabelRef targetRef      = builder.createLabel();
 
     builder.emitCmpRegImm(r8, ApInt(1, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, fallthroughRef);
@@ -95,7 +95,7 @@ SWC_TEST_BEGIN(MicroControlFlowSimplification_MergesJumpChain)
 
         if (ops[0].cpuCond != MicroCond::NotEqual)
             return Result::Error;
-        if (ops[2].valueU64 != targetRef)
+        if (ops[2].valueU64 != targetRef.get())
             return Result::Error;
     }
 

@@ -70,10 +70,10 @@ namespace
     bool isJumpToImmediateNextLabel(const MicroInstrOperand* jumpOps, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroOperandStorage& operands)
     {
         SWC_ASSERT(jumpOps != nullptr);
-        if (jumpOps[2].valueU64 > std::numeric_limits<Ref>::max())
+        if (jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
             return false;
 
-        const Ref targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
+        const MicroLabelRef targetLabelRef(static_cast<uint32_t>(jumpOps[2].valueU64));
         for (; scanIt != endIt; ++scanIt)
         {
             const MicroInstr& inst = *scanIt;
@@ -81,10 +81,10 @@ namespace
             {
                 const MicroInstrOperand* labelOps = inst.ops(operands);
                 SWC_ASSERT(labelOps != nullptr);
-                if (labelOps[0].valueU64 > std::numeric_limits<Ref>::max())
+                if (labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
                     continue;
 
-                if (static_cast<Ref>(labelOps[0].valueU64) == targetLabelRef)
+                if (MicroLabelRef(static_cast<uint32_t>(labelOps[0].valueU64)) == targetLabelRef)
                     return true;
                 continue;
             }
@@ -95,7 +95,7 @@ namespace
         return false;
     }
 
-    void collectReferencedLabels(const MicroStorage& storage, const MicroOperandStorage& operands, std::unordered_set<Ref>& outLabels)
+    void collectReferencedLabels(const MicroStorage& storage, const MicroOperandStorage& operands, std::unordered_set<MicroLabelRef>& outLabels)
     {
         outLabels.clear();
         for (const MicroInstr& inst : storage.view())
@@ -104,10 +104,10 @@ namespace
                 continue;
 
             const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops || ops[2].valueU64 > std::numeric_limits<Ref>::max())
+            if (!ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
                 continue;
 
-            outLabels.insert(static_cast<Ref>(ops[2].valueU64));
+            outLabels.insert(MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64)));
         }
     }
 
@@ -124,7 +124,7 @@ namespace
         if (conditionalOps[0].cpuCond == MicroCond::Unconditional || unconditionalOps[0].cpuCond != MicroCond::Unconditional)
             return false;
 
-        if (conditionalOps[2].valueU64 > std::numeric_limits<Ref>::max() || unconditionalOps[2].valueU64 > std::numeric_limits<Ref>::max())
+        if (conditionalOps[2].valueU64 > std::numeric_limits<uint32_t>::max() || unconditionalOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
             return false;
 
         if (!isJumpToImmediateNextLabel(conditionalOps, scanIt, endIt, operands))
@@ -154,8 +154,8 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
 
     for (auto it = beginIt; it != endIt;)
     {
-        const Ref         instRef = it.current;
-        const MicroInstr& inst    = *it;
+        const MicroInstrRef instRef = it.current;
+        const MicroInstr&   inst    = *it;
         ++it;
 
         if (inst.op == MicroInstrOpcode::JumpCond)
@@ -170,7 +170,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
                 ++scanIt;
                 if (tryMergeConditionalAndUnconditionalJump(inst, nextInst, scanIt, endIt, operands))
                 {
-                    const Ref nextRef = it.current;
+                    const MicroInstrRef nextRef = it.current;
                     ++it;
                     storage.erase(nextRef);
                     changed = true;
@@ -195,31 +195,31 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             if (scanIt->op == MicroInstrOpcode::Label)
                 break;
 
-            const Ref deadRef = scanIt.current;
+            const MicroInstrRef deadRef = scanIt.current;
             ++scanIt;
             storage.erase(deadRef);
             changed = true;
         }
     }
 
-    std::unordered_set<Ref> referencedLabels;
+    std::unordered_set<MicroLabelRef> referencedLabels;
     referencedLabels.reserve(storage.count());
     collectReferencedLabels(storage, operands, referencedLabels);
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
-        const Ref         instRef = it.current;
-        const MicroInstr& inst    = *it;
+        const MicroInstrRef instRef = it.current;
+        const MicroInstr&   inst    = *it;
         ++it;
 
         if (inst.op != MicroInstrOpcode::Label)
             continue;
 
         const MicroInstrOperand* ops = inst.ops(operands);
-        if (!ops || ops[0].valueU64 > std::numeric_limits<Ref>::max())
+        if (!ops || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
             continue;
 
-        const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
+        const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
         if (referencedLabels.contains(labelRef))
             continue;
 

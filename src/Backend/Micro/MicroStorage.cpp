@@ -18,33 +18,33 @@ void MicroOperandStorage::clear() noexcept
     operands_.clear();
 }
 
-std::pair<Ref, MicroInstrOperand*> MicroOperandStorage::emplaceUninitArray(uint32_t count)
+std::pair<MicroOperandRef, MicroInstrOperand*> MicroOperandStorage::emplaceUninitArray(uint32_t count)
 {
     if (!count)
-        return {INVALID_REF, nullptr};
+        return {MicroOperandRef::invalid(), nullptr};
 
-    const Ref first = static_cast<Ref>(operands_.size());
+    const MicroOperandRef first(static_cast<uint32_t>(operands_.size()));
     operands_.resize(operands_.size() + count);
-    return {first, operands_.data() + first};
+    return {first, operands_.data() + first.get()};
 }
 
-MicroInstrOperand* MicroOperandStorage::ptr(Ref ref) noexcept
+MicroInstrOperand* MicroOperandStorage::ptr(MicroOperandRef ref) noexcept
 {
-    SWC_ASSERT(ref < operands_.size());
-    return operands_.data() + ref;
+    SWC_ASSERT(ref.get() < operands_.size());
+    return operands_.data() + ref.get();
 }
 
-const MicroInstrOperand* MicroOperandStorage::ptr(Ref ref) const noexcept
+const MicroInstrOperand* MicroOperandStorage::ptr(MicroOperandRef ref) const noexcept
 {
-    SWC_ASSERT(ref < operands_.size());
-    return operands_.data() + ref;
+    SWC_ASSERT(ref.get() < operands_.size());
+    return operands_.data() + ref.get();
 }
 
 MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
 {
     SWC_ASSERT(storage);
-    SWC_ASSERT(current != INVALID_REF);
-    return storage->nodes_[current].instr;
+    SWC_ASSERT(current.isValid());
+    return storage->nodes_[current.get()].instr;
 }
 
 MicroStorage::Iterator::pointer MicroStorage::Iterator::operator->() const
@@ -55,8 +55,8 @@ MicroStorage::Iterator::pointer MicroStorage::Iterator::operator->() const
 MicroStorage::Iterator& MicroStorage::Iterator::operator++()
 {
     SWC_ASSERT(storage);
-    SWC_ASSERT(current != INVALID_REF);
-    current = storage->nodes_[current].next;
+    SWC_ASSERT(current.isValid());
+    current = storage->nodes_[current.get()].next;
     return *this;
 }
 
@@ -71,13 +71,13 @@ MicroStorage::Iterator& MicroStorage::Iterator::operator--()
 {
     SWC_ASSERT(storage);
 
-    if (current == INVALID_REF)
+    if (current.isInvalid())
     {
         current = storage->tail_;
         return *this;
     }
 
-    current = storage->nodes_[current].prev;
+    current = storage->nodes_[current.get()].prev;
     return *this;
 }
 
@@ -96,8 +96,8 @@ bool MicroStorage::Iterator::operator==(const Iterator& other) const
 MicroStorage::ConstIterator::reference MicroStorage::ConstIterator::operator*() const
 {
     SWC_ASSERT(storage);
-    SWC_ASSERT(current != INVALID_REF);
-    return storage->nodes_[current].instr;
+    SWC_ASSERT(current.isValid());
+    return storage->nodes_[current.get()].instr;
 }
 
 MicroStorage::ConstIterator::pointer MicroStorage::ConstIterator::operator->() const
@@ -108,8 +108,8 @@ MicroStorage::ConstIterator::pointer MicroStorage::ConstIterator::operator->() c
 MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
 {
     SWC_ASSERT(storage);
-    SWC_ASSERT(current != INVALID_REF);
-    current = storage->nodes_[current].next;
+    SWC_ASSERT(current.isValid());
+    current = storage->nodes_[current.get()].next;
     return *this;
 }
 
@@ -124,13 +124,13 @@ MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator--()
 {
     SWC_ASSERT(storage);
 
-    if (current == INVALID_REF)
+    if (current.isInvalid())
     {
         current = storage->tail_;
         return *this;
     }
 
-    current = storage->nodes_[current].prev;
+    current = storage->nodes_[current.get()].prev;
     return *this;
 }
 
@@ -158,7 +158,7 @@ MicroStorage::Iterator MicroStorage::View::begin() const
 
 MicroStorage::Iterator MicroStorage::View::end() const
 {
-    return {storage_, INVALID_REF};
+    return {storage_, MicroInstrRef::invalid()};
 }
 
 MicroStorage::ConstView::ConstView(const MicroStorage* storage) :
@@ -173,7 +173,7 @@ MicroStorage::ConstIterator MicroStorage::ConstView::begin() const
 
 MicroStorage::ConstIterator MicroStorage::ConstView::end() const
 {
-    return {storage_, INVALID_REF};
+    return {storage_, MicroInstrRef::invalid()};
 }
 
 uint32_t MicroStorage::count() const noexcept
@@ -190,56 +190,56 @@ void MicroStorage::clear() noexcept
 {
     nodes_.clear();
     freeList_.clear();
-    head_  = INVALID_REF;
-    tail_  = INVALID_REF;
+    head_  = MicroInstrRef::invalid();
+    tail_  = MicroInstrRef::invalid();
     count_ = 0;
 }
 
-MicroInstr* MicroStorage::ptr(Ref ref) noexcept
+MicroInstr* MicroStorage::ptr(MicroInstrRef ref) noexcept
 {
-    if (ref == INVALID_REF || ref >= nodes_.size())
+    if (ref.isInvalid() || ref.get() >= nodes_.size())
         return nullptr;
 
-    Node& node = nodes_[ref];
+    Node& node = nodes_[ref.get()];
     if (!node.alive)
         return nullptr;
     return &node.instr;
 }
 
-const MicroInstr* MicroStorage::ptr(Ref ref) const noexcept
+const MicroInstr* MicroStorage::ptr(MicroInstrRef ref) const noexcept
 {
-    if (ref == INVALID_REF || ref >= nodes_.size())
+    if (ref.isInvalid() || ref.get() >= nodes_.size())
         return nullptr;
 
-    const Node& node = nodes_[ref];
+    const Node& node = nodes_[ref.get()];
     if (!node.alive)
         return nullptr;
     return &node.instr;
 }
 
-std::pair<Ref, MicroInstr*> MicroStorage::emplaceUninit()
+std::pair<MicroInstrRef, MicroInstr*> MicroStorage::emplaceUninit()
 {
-    const Ref ref = allocNode();
+    const MicroInstrRef ref = allocNode();
     linkAtEnd(ref);
-    return {ref, &nodes_[ref].instr};
+    return {ref, &nodes_[ref.get()].instr};
 }
 
-bool MicroStorage::erase(Ref ref)
+bool MicroStorage::erase(MicroInstrRef ref)
 {
-    if (ref == INVALID_REF || ref >= nodes_.size())
+    if (ref.isInvalid() || ref.get() >= nodes_.size())
         return false;
 
-    Node& node = nodes_[ref];
+    Node& node = nodes_[ref.get()];
     if (!node.alive)
         return false;
 
-    if (node.prev != INVALID_REF)
-        nodes_[node.prev].next = node.next;
+    if (node.prev.isValid())
+        nodes_[node.prev.get()].next = node.next;
     else
         head_ = node.next;
 
-    if (node.next != INVALID_REF)
-        nodes_[node.next].prev = node.prev;
+    if (node.next.isValid())
+        nodes_[node.next.get()].prev = node.prev;
     else
         tail_ = node.prev;
 
@@ -250,46 +250,46 @@ bool MicroStorage::erase(Ref ref)
     return true;
 }
 
-Ref MicroStorage::findPreviousInstructionRef(Ref beforeRef) const noexcept
+MicroInstrRef MicroStorage::findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept
 {
-    if (beforeRef == INVALID_REF)
+    if (beforeRef.isInvalid())
         return tail_;
 
-    if (beforeRef >= nodes_.size())
-        return INVALID_REF;
+    if (beforeRef.get() >= nodes_.size())
+        return MicroInstrRef::invalid();
 
-    const Node& node = nodes_[beforeRef];
+    const Node& node = nodes_[beforeRef.get()];
     if (!node.alive)
-        return INVALID_REF;
+        return MicroInstrRef::invalid();
 
     return node.prev;
 }
 
-Ref MicroStorage::insertBefore(Ref beforeRef, const MicroInstr& value)
+MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroInstr& value)
 {
-    SWC_ASSERT(beforeRef != INVALID_REF);
-    SWC_ASSERT(beforeRef < nodes_.size());
-    SWC_ASSERT(nodes_[beforeRef].alive);
+    SWC_ASSERT(beforeRef.isValid());
+    SWC_ASSERT(beforeRef.get() < nodes_.size());
+    SWC_ASSERT(nodes_[beforeRef.get()].alive);
 
-    const Ref ref  = allocNode();
-    Node&     node = nodes_[ref];
-    node.instr     = value;
+    const MicroInstrRef ref  = allocNode();
+    Node&               node = nodes_[ref.get()];
+    node.instr               = value;
     if (!node.instr.sourceCodeRef.isValid())
-        node.instr.sourceCodeRef = nodes_[beforeRef].instr.sourceCodeRef;
-    const Ref prev         = nodes_[beforeRef].prev;
-    node.prev              = prev;
-    node.next              = beforeRef;
-    nodes_[beforeRef].prev = ref;
+        node.instr.sourceCodeRef = nodes_[beforeRef.get()].instr.sourceCodeRef;
+    const MicroInstrRef prev     = nodes_[beforeRef.get()].prev;
+    node.prev                    = prev;
+    node.next                    = beforeRef;
+    nodes_[beforeRef.get()].prev = ref;
 
-    if (prev != INVALID_REF)
-        nodes_[prev].next = ref;
+    if (prev.isValid())
+        nodes_[prev.get()].next = ref;
     else
         head_ = ref;
 
     return ref;
 }
 
-Ref MicroStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
+MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
 {
     MicroInstr inst;
     inst.op          = op;
@@ -304,7 +304,7 @@ Ref MicroStorage::insertBefore(MicroOperandStorage& operands, Ref beforeRef, Mic
     }
     else
     {
-        inst.opsRef = INVALID_REF;
+        inst.opsRef = MicroOperandRef::invalid();
     }
 
     return insertBefore(beforeRef, inst);
@@ -320,9 +320,9 @@ MicroStorage::ConstView MicroStorage::view() const noexcept
     return ConstView(this);
 }
 
-Ref MicroStorage::allocNode()
+MicroInstrRef MicroStorage::allocNode()
 {
-    Ref ref = INVALID_REF;
+    MicroInstrRef ref = MicroInstrRef::invalid();
     if (!freeList_.empty())
     {
         ref = freeList_.back();
@@ -330,25 +330,25 @@ Ref MicroStorage::allocNode()
     }
     else
     {
-        ref = static_cast<Ref>(nodes_.size());
+        ref = MicroInstrRef(static_cast<uint32_t>(nodes_.size()));
         nodes_.emplace_back();
     }
 
-    Node& node = nodes_[ref];
+    Node& node = nodes_[ref.get()];
     node       = Node{};
     node.alive = true;
     ++count_;
     return ref;
 }
 
-void MicroStorage::linkAtEnd(Ref ref)
+void MicroStorage::linkAtEnd(MicroInstrRef ref)
 {
-    Node& node = nodes_[ref];
+    Node& node = nodes_[ref.get()];
     node.prev  = tail_;
-    node.next  = INVALID_REF;
+    node.next  = MicroInstrRef::invalid();
 
-    if (tail_ != INVALID_REF)
-        nodes_[tail_].next = ref;
+    if (tail_.isValid())
+        nodes_[tail_.get()].next = ref;
     else
         head_ = ref;
 

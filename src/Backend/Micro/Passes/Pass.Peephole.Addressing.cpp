@@ -11,7 +11,7 @@ namespace PeepholePass
     {
         bool foldZeroIndexAmcFromImmediate(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -125,7 +125,7 @@ namespace PeepholePass
 
         bool foldCopyAddIntoLoadAddress(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -180,7 +180,7 @@ namespace PeepholePass
 
         bool foldLoadRegMemIntoNextBinaryRegMem(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -224,8 +224,8 @@ namespace PeepholePass
             newOps[3].microOp  = nextOps[3].microOp;
             newOps[4].valueU64 = ops[3].valueU64;
 
-            const Ref         newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
-            const MicroInstr* newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
+            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
             if (!newInst)
                 return false;
 
@@ -249,7 +249,7 @@ namespace PeepholePass
 
         bool foldLoadRegMemBinaryStoreBackIntoMemOp(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -316,8 +316,8 @@ namespace PeepholePass
                 return false;
             }
 
-            const Ref         newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), instRef, newOpcode, newOps);
-            const MicroInstr* newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), instRef, newOpcode, newOps);
+            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
             if (!newInst)
             {
                 SWC_NOT_NULL(context.instructions)->erase(newRef);
@@ -345,19 +345,19 @@ namespace PeepholePass
 
         bool foldLoadRegMemBinaryStoreBackIntoMemOpTail(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                storeRef  = cursor.instRef;
+            const MicroInstrRef      storeRef  = cursor.instRef;
             const MicroInstr*        storeInst = cursor.inst;
             const MicroInstrOperand* storeOps  = cursor.ops;
             if (!storeInst || !storeOps || storeInst->op != MicroInstrOpcode::LoadMemReg)
                 return false;
 
             MicroStorage* const instructions = SWC_NOT_NULL(context.instructions);
-            const Ref           prevRef      = instructions->findPreviousInstructionRef(storeRef);
-            if (prevRef == INVALID_REF)
+            const MicroInstrRef prevRef      = instructions->findPreviousInstructionRef(storeRef);
+            if (prevRef.isInvalid())
                 return false;
 
-            const Ref prevPrevRef = instructions->findPreviousInstructionRef(prevRef);
-            if (prevPrevRef == INVALID_REF)
+            const MicroInstrRef prevPrevRef = instructions->findPreviousInstructionRef(prevRef);
+            if (prevPrevRef.isInvalid())
                 return false;
 
             const MicroInstr* const prevInst     = instructions->ptr(prevRef);
@@ -416,8 +416,8 @@ namespace PeepholePass
                 return false;
             }
 
-            const Ref         newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
-            const MicroInstr* newInst = instructions->ptr(newRef);
+            const MicroInstrRef newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
+            const MicroInstr*   newInst = instructions->ptr(newRef);
             if (!newInst)
             {
                 instructions->erase(newRef);
@@ -445,7 +445,7 @@ namespace PeepholePass
 
         bool foldLoadRegMemIntoNextCmpMemImm(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -471,8 +471,8 @@ namespace PeepholePass
             newOps[2].valueU64 = ops[3].valueU64;
             newOps[3].setImmediateValue(ApInt(nextOps[2].valueU64, getNumBits(nextOps[1].opBits)));
 
-            const Ref         newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::CmpMemImm, newOps);
-            const MicroInstr* newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::CmpMemImm, newOps);
+            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
             if (!newInst)
                 return false;
 
@@ -496,7 +496,7 @@ namespace PeepholePass
 
         bool foldLoadRegMemIntoNextLoadAddrCopy(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -543,7 +543,7 @@ namespace PeepholePass
 
         bool foldLoadAddrIntoNextLoadAddr(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -588,7 +588,7 @@ namespace PeepholePass
 
         bool normalizeLoadAddrStackBaseToFramePointer(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
+            const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstrOperand* ops     = cursor.ops;
             if (!ops)
                 return false;
@@ -682,7 +682,7 @@ namespace PeepholePass
 
         bool foldLoadAddrIntoNextMemOffset(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -783,7 +783,7 @@ namespace PeepholePass
 
         bool foldImmediateIndexAmcIntoNextLoadRegMem(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -869,7 +869,7 @@ namespace PeepholePass
 
         bool foldLoadAddrIntoAllMemOffsets(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -882,11 +882,11 @@ namespace PeepholePass
 
             struct RewriteCandidate
             {
-                Ref      ref         = INVALID_REF;
-                uint8_t  baseIndex   = 0;
-                uint8_t  offsetIndex = 0;
-                MicroReg originalBase;
-                uint64_t originalOffset = 0;
+                MicroInstrRef ref         = MicroInstrRef::invalid();
+                uint8_t       baseIndex   = 0;
+                uint8_t       offsetIndex = 0;
+                MicroReg      originalBase;
+                uint64_t      originalOffset = 0;
             };
 
             bool                          baseWasRedefined = false;
@@ -984,7 +984,7 @@ namespace PeepholePass
                 {
                     for (const RewriteCandidate& rollback : candidates)
                     {
-                        if (rollback.ref == INVALID_REF)
+                        if (rollback.ref.isInvalid())
                             continue;
 
                         const MicroInstr* rollbackInst = SWC_NOT_NULL(context.instructions)->ptr(rollback.ref);
@@ -1011,7 +1011,7 @@ namespace PeepholePass
 
         bool foldLoadAddrAmcIntoNextMemoryAccess(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -1121,7 +1121,7 @@ namespace PeepholePass
 
         bool foldLoadAddrAmcIntoLaterLoadRegMem(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -1200,8 +1200,8 @@ namespace PeepholePass
                 newOps[6].valueU64 = combinedAdd;
                 newOps[7].valueU64 = 0;
 
-                const Ref         newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
-                const MicroInstr* newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+                const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
+                const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
                 if (!newInst)
                 {
                     SWC_NOT_NULL(context.instructions)->erase(newRef);

@@ -98,7 +98,7 @@ namespace
         return false;
     }
 
-    MicroStorage::Iterator computeResumeIterator(const MicroPassContext& context, const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, Ref instRef, const MicroStorage::Iterator& nextIt)
+    MicroStorage::Iterator computeResumeIterator(const MicroPassContext& context, const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt)
     {
         SWC_ASSERT(context.instructions != nullptr);
         auto& storage = *SWC_NOT_NULL(context.instructions);
@@ -142,7 +142,7 @@ Result MicroPeepholePass::run(MicroPassContext& context)
             --prevIt;
         }
 
-        const Ref                instRef = it.current;
+        const MicroInstrRef      instRef = it.current;
         MicroInstr&              inst    = *it;
         const MicroInstrOperand* ops     = inst.ops(*SWC_NOT_NULL(context.operands));
         auto                     nextIt  = it;

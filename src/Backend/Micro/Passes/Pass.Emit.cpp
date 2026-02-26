@@ -10,7 +10,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
+void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
     // LoadRegPtrImm always embeds an absolute 64-bit immediate at the end of the instruction.
     const auto found = relocationByInstructionRef_.find(instructionRef);
@@ -23,7 +23,7 @@ void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, R
     reloc.codeOffset       = codeEndOffset - sizeof(uint64_t);
 }
 
-void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst)
+void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst)
 {
     SWC_ASSERT(context.encoder);
     SWC_ASSERT(context.operands);
@@ -38,8 +38,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
 
         case MicroInstrOpcode::Label:
             // Record concrete code offset so pending branch patches can resolve target.
-            SWC_ASSERT(ops[0].valueU64 <= std::numeric_limits<Ref>::max());
-            labelOffsets_[static_cast<Ref>(ops[0].valueU64)] = encoder.currentOffset();
+            SWC_ASSERT(ops[0].valueU64 <= std::numeric_limits<uint32_t>::max());
+            labelOffsets_[MicroLabelRef(static_cast<uint32_t>(ops[0].valueU64))] = encoder.currentOffset();
             break;
         case MicroInstrOpcode::JumpCond:
         {
@@ -47,8 +47,8 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, Ref instr
             MicroJump jump;
             encoder.encodeJump(jump, ops[0].cpuCond, ops[1].opBits);
             jump.valid = true;
-            SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<Ref>::max());
-            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = static_cast<Ref>(ops[2].valueU64)});
+            SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<uint32_t>::max());
+            pendingLabelJumps_.push_back(PendingLabelJump{.jump = jump, .labelRef = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64))});
             break;
         }
         case MicroInstrOpcode::JumpCondImm:
@@ -208,7 +208,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
     for (uint32_t idx = 0; idx < relocations.size(); ++idx)
     {
         const MicroRelocation& reloc = relocations[idx];
-        if (reloc.instructionRef == INVALID_REF)
+        if (reloc.instructionRef.isInvalid())
             continue;
         relocationByInstructionRef_[reloc.instructionRef] = idx;
     }

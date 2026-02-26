@@ -8,7 +8,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-std::pair<Ref, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands)
+std::pair<MicroInstrRef, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands)
 {
     auto [instRef, inst] = instructions_.emplaceUninit();
     inst->op             = op;
@@ -22,7 +22,7 @@ std::pair<Ref, MicroInstr&> MicroBuilder::addInstructionWithRef(MicroInstrOpcode
     }
     else
     {
-        inst->opsRef = std::numeric_limits<Ref>::max();
+        inst->opsRef = MicroOperandRef::invalid();
     }
 
     storeInstructionDebugInfo(instRef);
@@ -34,7 +34,7 @@ MicroInstr& MicroBuilder::addInstruction(MicroInstrOpcode op, uint8_t numOperand
     return addInstructionWithRef(op, numOperands).second;
 }
 
-void MicroBuilder::storeInstructionDebugInfo(Ref instructionRef)
+void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
 {
     if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
         return;
@@ -54,7 +54,7 @@ void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeR
     currentDebugSourceCodeRef_ = sourceCodeRef;
 }
 
-SourceCodeRef MicroBuilder::instructionSourceCodeRef(Ref instructionRef) const
+SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRef) const
 {
     if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
         return SourceCodeRef::invalid();
@@ -71,7 +71,7 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
     relocations_.push_back(relocation);
 }
 
-bool MicroBuilder::invalidateRelocationForInstruction(Ref instructionRef)
+bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionRef)
 {
     bool changed = false;
     for (MicroRelocation& reloc : relocations_)
@@ -79,7 +79,7 @@ bool MicroBuilder::invalidateRelocationForInstruction(Ref instructionRef)
         if (reloc.instructionRef != instructionRef)
             continue;
 
-        reloc.instructionRef = INVALID_REF;
+        reloc.instructionRef = MicroInstrRef::invalid();
         changed              = true;
     }
 
@@ -94,19 +94,19 @@ bool MicroBuilder::pruneDeadRelocations()
     bool changed = false;
     for (MicroRelocation& reloc : relocations_)
     {
-        if (reloc.instructionRef == INVALID_REF)
+        if (reloc.instructionRef.isInvalid())
             continue;
 
         if (instructions_.ptr(reloc.instructionRef))
             continue;
 
-        reloc.instructionRef = INVALID_REF;
+        reloc.instructionRef = MicroInstrRef::invalid();
         changed              = true;
     }
 
     const auto beforeSize = relocations_.size();
     std::erase_if(relocations_, [](const MicroRelocation& reloc) {
-        return reloc.instructionRef == INVALID_REF;
+        return reloc.instructionRef.isInvalid();
     });
 
     return changed || beforeSize != relocations_.size();
@@ -201,26 +201,26 @@ void MicroBuilder::emitAssertTrap()
     return;
 }
 
-Ref MicroBuilder::createLabel()
+MicroLabelRef MicroBuilder::createLabel()
 {
-    const Ref labelRef = static_cast<Ref>(labels_.size());
-    labels_.push_back(INVALID_REF);
+    const MicroLabelRef labelRef(static_cast<uint32_t>(labels_.size()));
+    labels_.push_back(MicroInstrRef::invalid());
     return labelRef;
 }
 
-void MicroBuilder::placeLabel(Ref labelRef)
+void MicroBuilder::placeLabel(MicroLabelRef labelRef)
 {
-    SWC_ASSERT(labelRef < labels_.size());
-    SWC_ASSERT(labels_[labelRef] == INVALID_REF);
+    SWC_ASSERT(labelRef.get() < labels_.size());
+    SWC_ASSERT(labels_[labelRef.get()].isInvalid());
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::Label, 1);
-    MicroInstrOperand* ops = inst.ops(operands_);
-    ops[0].valueU64        = labelRef;
-    labels_[labelRef]      = instRef;
+    auto [instRef, inst]    = addInstructionWithRef(MicroInstrOpcode::Label, 1);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].valueU64         = labelRef.get();
+    labels_[labelRef.get()] = instRef;
     return;
 }
 
-void MicroBuilder::emitLabel(Ref& outLabelRef)
+void MicroBuilder::emitLabel(MicroLabelRef& outLabelRef)
 {
     outLabelRef = createLabel();
     return placeLabel(outLabelRef);
@@ -272,13 +272,13 @@ void MicroBuilder::emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t 
     return;
 }
 
-void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef)
+void MicroBuilder::emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::JumpCond, 3);
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].cpuCond          = cpuCond;
     ops[1].opBits           = opBits;
-    ops[2].valueU64         = labelRef;
+    ops[2].valueU64         = labelRef.get();
     return;
 }
 

@@ -32,11 +32,11 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
-            for (const auto& ref : refs)
+            for (const auto& MicroLabelRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroLabelRef.reg)
                     return Result::Error;
-                const auto reg = *ref.reg;
+                const auto reg = *MicroLabelRef.reg;
                 if (reg.isVirtual())
                     return Result::Error;
 
@@ -227,9 +227,9 @@ namespace
 
     void buildSpillAcrossBalancedControlFlow(MicroBuilder& b, CallConvKind callConvKind)
     {
-        const CallConv& conv      = CallConv::get(callConvKind);
-        const Ref       elseLabel = b.createLabel();
-        const Ref       doneLabel = b.createLabel();
+        const CallConv&     conv      = CallConv::get(callConvKind);
+        const MicroLabelRef elseLabel = b.createLabel();
+        const MicroLabelRef doneLabel = b.createLabel();
 
         for (uint32_t i = 0; i < 20; ++i)
         {
@@ -370,12 +370,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
-            for (const auto& ref : refs)
+            for (const auto& MicroLabelRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroLabelRef.reg)
                     continue;
 
-                const MicroReg reg = *ref.reg;
+                const MicroReg reg = *MicroLabelRef.reg;
                 if (!reg.isInt())
                     continue;
 

@@ -11,15 +11,15 @@ namespace
 {
     struct IfStmtCodeGenPayload
     {
-        Ref  falseLabel   = INVALID_REF;
-        Ref  doneLabel    = INVALID_REF;
-        bool hasElseBlock = false;
+        MicroLabelRef falseLabel   = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel    = MicroLabelRef::invalid();
+        bool          hasElseBlock = false;
     };
 
     struct LoopStmtCodeGenPayload
     {
-        Ref continueLabel = INVALID_REF;
-        Ref doneLabel     = INVALID_REF;
+        MicroLabelRef continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
     };
 
     AstNodeRef resolvedNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -109,7 +109,7 @@ namespace
         }
     }
 
-    void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, Ref falseLabel)
+    void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
@@ -317,8 +317,8 @@ Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
     if (codeGen.frame().currentBreakableKind() != CodeGenFrame::BreakContextKind::Loop)
         return Result::Continue;
 
-    const Ref continueLabel = codeGen.frame().currentLoopContinueLabel();
-    if (continueLabel == INVALID_REF)
+    const MicroLabelRef continueLabel = codeGen.frame().currentLoopContinueLabel();
+    if (continueLabel == MicroLabelRef::invalid())
         return Result::Continue;
 
     codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);

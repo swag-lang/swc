@@ -13,14 +13,14 @@ namespace
 {
     struct InstructionIndexData
     {
-        std::vector<Ref>             refs;
-        std::unordered_map<Ref, Ref> labelRefToInstructionRef;
-        std::unordered_map<Ref, Ref> instructionRefToIndex;
+        std::vector<MicroInstrRef>                       refs;
+        std::unordered_map<MicroLabelRef, MicroInstrRef> labelRefToInstructionRef;
+        std::unordered_map<MicroInstrRef, uint32_t>      instructionRefToIndex;
     };
 
     struct ControlFlowData
     {
-        std::vector<std::vector<Ref>> successors;
+        std::vector<std::vector<uint32_t>> successors;
     };
 
     void addCallArgumentRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
@@ -201,10 +201,10 @@ namespace
         outData.labelRefToInstructionRef.reserve(storage.count());
         outData.instructionRefToIndex.reserve(storage.count());
 
-        Ref index = 0;
+        uint32_t index = 0;
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
-            const Ref instructionRef = it.current;
+            const MicroInstrRef instructionRef = it.current;
             outData.refs.push_back(instructionRef);
             outData.instructionRefToIndex[instructionRef] = index;
             ++index;
@@ -213,10 +213,10 @@ namespace
                 continue;
 
             const MicroInstrOperand* labelOps = it->ops(operands);
-            if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<Ref>::max())
+            if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
                 return false;
 
-            const Ref labelRef                         = static_cast<Ref>(labelOps[0].valueU64);
+            const MicroLabelRef labelRef(static_cast<uint32_t>(labelOps[0].valueU64));
             outData.labelRefToInstructionRef[labelRef] = instructionRef;
         }
 
@@ -231,8 +231,8 @@ namespace
         const size_t instructionCount = indexData.refs.size();
         for (size_t i = 0; i < instructionCount; ++i)
         {
-            const Ref         instructionRef = indexData.refs[i];
-            const MicroInstr* inst           = storage.ptr(instructionRef);
+            const MicroInstrRef instructionRef = indexData.refs[i];
+            const MicroInstr*   inst           = storage.ptr(instructionRef);
             if (!inst)
                 return false;
 
@@ -240,11 +240,11 @@ namespace
             if (inst->op == MicroInstrOpcode::JumpCond)
             {
                 const MicroInstrOperand* jumpOps = inst->ops(operands);
-                if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<Ref>::max())
+                if (!jumpOps || jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
                     return false;
 
-                const Ref  targetLabelRef = static_cast<Ref>(jumpOps[2].valueU64);
-                const auto targetRefIt    = indexData.labelRefToInstructionRef.find(targetLabelRef);
+                const MicroLabelRef targetLabelRef(static_cast<uint32_t>(jumpOps[2].valueU64));
+                const auto          targetRefIt = indexData.labelRefToInstructionRef.find(targetLabelRef);
                 if (targetRefIt == indexData.labelRefToInstructionRef.end())
                     return false;
 
@@ -252,10 +252,10 @@ namespace
                 if (targetIndexIt == indexData.instructionRefToIndex.end())
                     return false;
 
-                std::vector<Ref>& successors = outData.successors[i];
+                std::vector<uint32_t>& successors = outData.successors[i];
                 successors.push_back(targetIndexIt->second);
                 if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, jumpOps) && hasFallthrough)
-                    successors.push_back(static_cast<Ref>(i + 1));
+                    successors.push_back(static_cast<uint32_t>(i + 1));
                 continue;
             }
 
@@ -266,7 +266,7 @@ namespace
                 return false;
 
             if (hasFallthrough)
-                outData.successors[i].push_back(static_cast<Ref>(i + 1));
+                outData.successors[i].push_back(static_cast<uint32_t>(i + 1));
         }
 
         return true;
@@ -330,17 +330,17 @@ namespace
 
             for (size_t i = instructionCount; i > 0; --i)
             {
-                const size_t      idx            = i - 1;
-                const Ref         instructionRef = indexData.refs[idx];
-                const MicroInstr* inst           = storage.ptr(instructionRef);
+                const size_t        idx            = i - 1;
+                const MicroInstrRef instructionRef = indexData.refs[idx];
+                const MicroInstr*   inst           = storage.ptr(instructionRef);
                 if (!inst)
                     continue;
 
                 const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
 
                 std::unordered_set<uint32_t> newLiveOut;
-                const std::vector<Ref>&      successors = controlFlowData.successors[idx];
-                for (const Ref successorIndexRef : successors)
+                const std::vector<uint32_t>& successors = controlFlowData.successors[idx];
+                for (const uint32_t successorIndexRef : successors)
                 {
                     const size_t successorIndex = successorIndexRef;
                     if (successorIndex >= liveIn.size())
@@ -363,14 +363,14 @@ namespace
             }
         }
 
-        bool             removedAny = false;
-        std::vector<Ref> eraseList;
+        bool                       removedAny = false;
+        std::vector<MicroInstrRef> eraseList;
         eraseList.reserve(64);
 
         for (size_t i = 0; i < instructionCount; ++i)
         {
-            const Ref         instructionRef = indexData.refs[i];
-            const MicroInstr* inst           = storage.ptr(instructionRef);
+            const MicroInstrRef instructionRef = indexData.refs[i];
+            const MicroInstr*   inst           = storage.ptr(instructionRef);
             if (!inst)
                 continue;
 
@@ -385,7 +385,7 @@ namespace
             eraseList.push_back(instructionRef);
         }
 
-        for (const Ref eraseRef : eraseList)
+        for (const MicroInstrRef eraseRef : eraseList)
         {
             storage.erase(eraseRef);
             removedAny = true;
@@ -400,7 +400,7 @@ namespace
         std::unordered_set<uint32_t> liveRegs;
         liveRegs.reserve(64);
 
-        std::vector<Ref> eraseList;
+        std::vector<MicroInstrRef> eraseList;
         eraseList.reserve(64);
 
         const CallConv& conv = CallConv::get(callConvKind);
@@ -410,8 +410,8 @@ namespace
         for (auto it = view.end(); it != view.begin();)
         {
             --it;
-            const Ref         instRef = it.current;
-            const MicroInstr& inst    = *it;
+            const MicroInstrRef instRef = it.current;
+            const MicroInstr&   inst    = *it;
 
             const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
             if (useDef.isCall)
@@ -469,7 +469,7 @@ namespace
                 liveRegs.insert(useReg.packed);
         }
 
-        for (const Ref ref : eraseList)
+        for (const MicroInstrRef ref : eraseList)
             storage.erase(ref);
 
         return changed;
@@ -502,17 +502,17 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                              changed = false;
-    std::unordered_map<uint32_t, Ref> lastPureDefByReg;
+    bool                                        changed = false;
+    std::unordered_map<uint32_t, MicroInstrRef> lastPureDefByReg;
     lastPureDefByReg.reserve(64);
 
     MicroStorage&              storage  = *SWC_NOT_NULL(context.instructions);
     const MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        const Ref         currentRef = it.current;
-        const MicroInstr& inst       = *it;
-        const auto*       ops        = inst.ops(operands);
+        const MicroInstrRef currentRef = it.current;
+        const MicroInstr&   inst       = *it;
+        const auto*         ops        = inst.ops(operands);
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         if (isControlFlowBarrier(inst, useDef))

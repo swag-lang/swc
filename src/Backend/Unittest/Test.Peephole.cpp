@@ -181,15 +181,15 @@ SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg rbp       = MicroReg::intReg(5);
-    constexpr MicroReg rsp       = MicroReg::intReg(4);
-    constexpr MicroReg rdx       = MicroReg::intReg(2);
-    constexpr MicroReg rcx       = MicroReg::intReg(1);
-    constexpr MicroReg rax       = MicroReg::intReg(0);
-    constexpr MicroReg r13       = MicroReg::intReg(13);
-    constexpr MicroReg r14       = MicroReg::intReg(14);
-    constexpr MicroReg r15       = MicroReg::intReg(15);
-    const Ref          loopLabel = builder.createLabel();
+    constexpr MicroReg  rbp       = MicroReg::intReg(5);
+    constexpr MicroReg  rsp       = MicroReg::intReg(4);
+    constexpr MicroReg  rdx       = MicroReg::intReg(2);
+    constexpr MicroReg  rcx       = MicroReg::intReg(1);
+    constexpr MicroReg  rax       = MicroReg::intReg(0);
+    constexpr MicroReg  r13       = MicroReg::intReg(13);
+    constexpr MicroReg  r14       = MicroReg::intReg(14);
+    constexpr MicroReg  r15       = MicroReg::intReg(15);
+    const MicroLabelRef loopLabel = builder.createLabel();
 
     builder.emitPush(rbp);
     builder.emitLoadRegReg(rbp, rsp, MicroOpBits::B64);

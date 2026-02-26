@@ -139,7 +139,7 @@ struct MicroInstrRegOperandRef
 struct MicroInstr
 {
     SourceCodeRef    sourceCodeRef = SourceCodeRef::invalid();
-    Ref              opsRef        = INVALID_REF;
+    MicroOperandRef  opsRef        = MicroOperandRef::invalid();
     MicroInstrOpcode op            = MicroInstrOpcode::OpBinaryRegImm;
     uint8_t          numOperands   = 0;
 

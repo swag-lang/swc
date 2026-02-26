@@ -12,7 +12,7 @@ namespace PeepholePass
     {
         bool forwardCopyIntoNextBinarySource(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -96,7 +96,7 @@ namespace PeepholePass
 
         bool forwardCopyIntoFollowingCopySource(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -178,7 +178,7 @@ namespace PeepholePass
 
         bool forwardCopyIntoRetRegionSourceUses(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -279,7 +279,7 @@ namespace PeepholePass
 
         bool forwardCopyIntoNextCompareSource(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -346,7 +346,7 @@ namespace PeepholePass
 
         bool foldCopyIntoNextMemoryBase(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -532,7 +532,7 @@ namespace PeepholePass
 
         bool foldRetCopyIntoAccumulator(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -576,7 +576,7 @@ namespace PeepholePass
 
             struct RewritePlan
             {
-                Ref                            ref = INVALID_REF;
+                MicroInstrRef                  ref = MicroInstrRef::invalid();
                 SmallVector<MicroInstrOperand> rewrittenOps;
             };
 
@@ -584,10 +584,10 @@ namespace PeepholePass
             bool                     foundRootDef = false;
 
             MicroStorage::Iterator scanIt{SWC_NOT_NULL(context.instructions), instRef};
-            while (scanIt.current != INVALID_REF)
+            while (scanIt.current.isValid())
             {
                 --scanIt;
-                if (scanIt.current == INVALID_REF)
+                if (scanIt.current.isInvalid())
                     break;
 
                 const MicroInstr& scanInst = *scanIt;
@@ -654,7 +654,7 @@ namespace PeepholePass
 
         bool foldCopyIntoNextSelfLoadMem(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -730,7 +730,7 @@ namespace PeepholePass
 
         bool foldCopyTwinLoadMemReuse(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -812,7 +812,7 @@ namespace PeepholePass
 
         bool foldCopyOpCopyBack(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -863,7 +863,7 @@ namespace PeepholePass
 
         bool foldCopyUnaryCopyBack(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -916,7 +916,7 @@ namespace PeepholePass
 
         bool foldTailCopyBinaryIntoSource(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -1171,7 +1171,7 @@ namespace PeepholePass
 
         bool coalesceCopyInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef   = cursor.instRef;
+            const MicroInstrRef          instRef   = cursor.instRef;
             const MicroInstrOperand*     ops       = cursor.ops;
             const MicroStorage::Iterator scanBegin = cursor.nextIt;
             const MicroStorage::Iterator endIt     = cursor.endIt;
@@ -1198,7 +1198,7 @@ namespace PeepholePass
 
         bool removeOverwrittenCopy(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -1219,7 +1219,7 @@ namespace PeepholePass
 
         bool removeUnusedCopyDestination(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
+            const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstr*        inst    = cursor.inst;
             const MicroInstrOperand* ops     = cursor.ops;
             if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || !ops)
@@ -1246,7 +1246,7 @@ namespace PeepholePass
 
         bool removeDeadCopyBeforeUse(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
+            const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstr*        inst    = cursor.inst;
             const MicroInstrOperand* ops     = cursor.ops;
             if (!inst || inst->op != MicroInstrOpcode::LoadRegReg || !ops)
@@ -1278,17 +1278,17 @@ namespace PeepholePass
 
             MicroStorage::Iterator currentIt = cursor.nextIt;
             --currentIt;
-            if (currentIt.current == INVALID_REF)
+            if (currentIt.current.isInvalid())
                 return false;
 
             MicroStorage::Iterator prevOpIt = currentIt;
             --prevOpIt;
-            if (prevOpIt.current == INVALID_REF)
+            if (prevOpIt.current.isInvalid())
                 return false;
 
             MicroStorage::Iterator prevCopyIt = prevOpIt;
             --prevCopyIt;
-            if (prevCopyIt.current == INVALID_REF)
+            if (prevCopyIt.current.isInvalid())
                 return false;
 
             const MicroInstr&        prevOpInst = *prevOpIt;

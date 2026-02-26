@@ -31,12 +31,12 @@ struct MicroRelocation
         LocalFunctionAddress,
     };
 
-    Kind        kind           = Kind::ConstantAddress;
-    uint32_t    codeOffset     = 0;
-    Ref         instructionRef = INVALID_REF;
-    uint64_t    targetAddress  = 0;
-    Symbol*     targetSymbol   = nullptr;
-    ConstantRef constantRef    = ConstantRef::invalid();
+    Kind          kind           = Kind::ConstantAddress;
+    uint32_t      codeOffset     = 0;
+    MicroInstrRef instructionRef = MicroInstrRef::invalid();
+    uint64_t      targetAddress  = 0;
+    Symbol*       targetSymbol   = nullptr;
+    ConstantRef   constantRef    = ConstantRef::invalid();
 };
 
 class MicroBuilder
@@ -69,7 +69,7 @@ public:
     MicroBuilderFlags                   flags() const { return flags_; }
     bool                                hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
     void                                setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
-    SourceCodeRef                       instructionSourceCodeRef(Ref instructionRef) const;
+    SourceCodeRef                       instructionSourceCodeRef(MicroInstrRef instructionRef) const;
     void                                setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&     backendBuildCfg() const { return backendBuildCfg_; }
@@ -79,7 +79,7 @@ public:
     uint32_t                            printSourceLine() const { return printSourceLine_; }
     void                                clearRelocations() { relocations_.clear(); }
     void                                addRelocation(const MicroRelocation& relocation);
-    bool                                invalidateRelocationForInstruction(Ref instructionRef);
+    bool                                invalidateRelocationForInstruction(MicroInstrRef instructionRef);
     bool                                pruneDeadRelocations();
     std::vector<MicroRelocation>&       codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>& codeRelocations() const { return relocations_; }
@@ -90,21 +90,21 @@ public:
 
     Result runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 
-    Ref  createLabel();
-    void placeLabel(Ref labelRef);
+    MicroLabelRef createLabel();
+    void          placeLabel(MicroLabelRef labelRef);
 
     void emitPush(MicroReg reg);
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
     void emitAssertTrap();
-    void emitLabel(Ref& outLabelRef);
+    void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
     void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);
     void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv);
     void emitCallReg(MicroReg reg, CallConvKind callConv);
     void emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries);
-    void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, Ref labelRef);
+    void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);
@@ -138,9 +138,9 @@ public:
     void emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);
 
 private:
-    std::pair<Ref, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
-    MicroInstr&                 addInstruction(MicroInstrOpcode op, uint8_t numOperands);
-    void                        storeInstructionDebugInfo(Ref instructionRef);
+    std::pair<MicroInstrRef, MicroInstr&> addInstructionWithRef(MicroInstrOpcode op, uint8_t numOperands);
+    MicroInstr&                           addInstruction(MicroInstrOpcode op, uint8_t numOperands);
+    void                                  storeInstructionDebugInfo(MicroInstrRef instructionRef);
 
     TaskContext*                                        ctx_ = nullptr;
     MicroStorage                                        instructions_;
@@ -152,7 +152,7 @@ private:
     uint32_t                                            printSourceLine_ = 0;
     std::vector<Utf8>                                   printPassOptions_;
     Runtime::BuildCfgBackend                            backendBuildCfg_{};
-    std::vector<Ref>                                    labels_;
+    std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
 };

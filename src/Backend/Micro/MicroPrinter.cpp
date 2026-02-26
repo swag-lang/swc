@@ -38,7 +38,7 @@ namespace
         return WIDTH;
     }
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, SourceCodeRef& outSourceCodeRef, uint32_t& outSourceLine)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, SourceCodeRef& outSourceCodeRef, uint32_t& outSourceLine)
     {
         outSourceCodeRef = SourceCodeRef::invalid();
         outSourceLine    = 0;
@@ -561,7 +561,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::Label:
-                return std::format("L{}:", static_cast<Ref>(ops[0].valueU64));
+                return std::format("L{}:", MicroLabelRef(static_cast<uint32_t>(ops[0].valueU64)).get());
             case MicroInstrOpcode::LoadRegReg:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
@@ -1116,7 +1116,7 @@ namespace
         appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc = {} = {}", relocationKindName(*relocation), relocationTargetDebugValue(ctx, *relocation)));
     }
 
-    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, Ref instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
+    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
         SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
         uint32_t      sourceLine    = 0;
@@ -1141,18 +1141,18 @@ namespace
 
 Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructions, const MicroOperandStorage& operands, MicroRegPrintMode regPrintMode, const Encoder* encoder, const MicroBuilder* builder)
 {
-    Utf8                                            out;
-    const auto&                                     storeOps = operands;
-    auto                                            view     = instructions.view();
-    std::unordered_set<uint64_t>                    seenDebugLines;
-    std::unordered_map<Ref, Ref>                    labelInstructionIndexByRef;
-    std::unordered_map<Ref, const MicroRelocation*> relocationByInstructionRef;
+    Utf8                                                      out;
+    const auto&                                               storeOps = operands;
+    auto                                                      view     = instructions.view();
+    std::unordered_set<uint64_t>                              seenDebugLines;
+    std::unordered_map<MicroLabelRef, MicroInstrRef>          labelInstructionIndexByRef;
+    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
 
     if (builder)
     {
         for (const auto& reloc : builder->codeRelocations())
         {
-            if (reloc.instructionRef == INVALID_REF)
+            if (reloc.instructionRef.isInvalid())
                 continue;
 
             const MicroInstr* const inst = instructions.ptr(reloc.instructionRef);
@@ -1172,8 +1172,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         if (inst.op != MicroInstrOpcode::Label || inst.numOperands < 1)
             continue;
 
-        const MicroInstrOperand* ops         = inst.ops(storeOps);
-        const Ref                labelRef    = static_cast<Ref>(ops[0].valueU64);
+        const MicroInstrOperand* ops = inst.ops(storeOps);
+        const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
         labelInstructionIndexByRef[labelRef] = it.current;
     }
 
@@ -1190,7 +1190,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
     for (auto it = view.begin(); it != view.end(); ++it)
     {
         ++printedIndex;
-        const Ref                instRef = it.current;
+        const MicroInstrRef      instRef = it.current;
         const MicroInstr&        inst    = *it;
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
@@ -1225,10 +1225,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
         if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
         {
-            const Ref  labelRef = static_cast<Ref>(ops[2].valueU64);
-            const auto labelIt  = labelInstructionIndexByRef.find(labelRef);
+            const MicroLabelRef labelRef(static_cast<uint32_t>(ops[2].valueU64));
+            const auto          labelIt = labelInstructionIndexByRef.find(labelRef);
             if (labelIt != labelInstructionIndexByRef.end())
-                naturalJumpTargetIndex = formatInstructionIndex(labelIt->second, indexWidth);
+                naturalJumpTargetIndex = formatInstructionIndex(labelIt->second.get(), indexWidth);
             else
                 naturalJumpTargetIndex = unknownInstructionIndex(indexWidth);
         }
@@ -1236,7 +1236,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const bool isLabelLine = inst.op == MicroInstrOpcode::Label;
         appendColored(out, ctx, SyntaxColor::Comment, formatInstructionIndex(printedIndex, printedIndexWidth));
         out += " ";
-        appendColored(out, ctx, isLabelLine ? SyntaxColor::Function : SyntaxColor::InstructionIndex, formatInstructionIndex(instRef, indexWidth));
+        appendColored(out, ctx, isLabelLine ? SyntaxColor::Function : SyntaxColor::InstructionIndex, formatInstructionIndex(instRef.get(), indexWidth));
         out += "  ";
         const size_t leftColumnStart = out.size();
 
@@ -1294,11 +1294,11 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 }
                 if (inst.numOperands >= 3)
                 {
-                    const Ref labelRef = static_cast<Ref>(ops[2].valueU64);
+                    const MicroLabelRef labelRef(static_cast<uint32_t>(ops[2].valueU64));
                     out += " ";
                     const auto labelIt = labelInstructionIndexByRef.find(labelRef);
                     if (labelIt != labelInstructionIndexByRef.end())
-                        appendColored(out, ctx, SyntaxColor::Function, formatInstructionIndex(labelIt->second, indexWidth));
+                        appendColored(out, ctx, SyntaxColor::Function, formatInstructionIndex(labelIt->second.get(), indexWidth));
                     else
                         appendColored(out, ctx, SyntaxColor::Function, unknownInstructionIndex(indexWidth));
                 }

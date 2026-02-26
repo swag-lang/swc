@@ -155,9 +155,9 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     known.reserve(64);
     CompareState compareState{};
 
-    MicroStorage&        storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage& operands = *SWC_NOT_NULL(context.operands);
-    std::unordered_set<Ref> referencedLabels;
+    MicroStorage&                     storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage&              operands = *SWC_NOT_NULL(context.operands);
+    std::unordered_set<MicroLabelRef> referencedLabels;
     referencedLabels.reserve(storage.count());
     for (const MicroInstr& scanInst : storage.view())
     {
@@ -165,14 +165,14 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         {
             const auto* scanOps = scanInst.ops(operands);
             if (scanOps)
-                referencedLabels.insert(static_cast<Ref>(scanOps[2].valueU64));
+                referencedLabels.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
         }
     }
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
-        const Ref         instRef = it.current;
-        const MicroInstr& inst    = *it;
+        const MicroInstrRef instRef = it.current;
+        const MicroInstr&   inst    = *it;
         ++it;
 
         MicroInstrOperand* ops = inst.ops(operands);
@@ -306,7 +306,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         {
             if (ops && inst.numOperands >= 1)
             {
-                const Ref labelRef = static_cast<Ref>(ops[0].valueU64);
+                const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
                 clearForControlFlowBoundary = referencedLabels.contains(labelRef);
             }
             else

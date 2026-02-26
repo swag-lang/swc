@@ -6,12 +6,12 @@ SWC_BEGIN_NAMESPACE();
 class MicroOperandStorage
 {
 public:
-    uint32_t                           count() const noexcept;
-    size_t                             allocatedBytes() const noexcept;
-    void                               clear() noexcept;
-    std::pair<Ref, MicroInstrOperand*> emplaceUninitArray(uint32_t count);
-    MicroInstrOperand*                 ptr(Ref ref) noexcept;
-    const MicroInstrOperand*           ptr(Ref ref) const noexcept;
+    uint32_t                                       count() const noexcept;
+    size_t                                         allocatedBytes() const noexcept;
+    void                                           clear() noexcept;
+    std::pair<MicroOperandRef, MicroInstrOperand*> emplaceUninitArray(uint32_t count);
+    MicroInstrOperand*                             ptr(MicroOperandRef ref) noexcept;
+    const MicroInstrOperand*                       ptr(MicroOperandRef ref) const noexcept;
 
 private:
     std::vector<MicroInstrOperand> operands_;
@@ -30,7 +30,7 @@ public:
         using reference         = MicroInstr&;
 
         MicroStorage* storage = nullptr;
-        Ref           current = INVALID_REF;
+        MicroInstrRef current = MicroInstrRef::invalid();
 
         reference operator*() const;
         pointer   operator->() const;
@@ -51,7 +51,7 @@ public:
         using reference         = const MicroInstr&;
 
         const MicroStorage* storage = nullptr;
-        Ref                 current = INVALID_REF;
+        MicroInstrRef       current = MicroInstrRef::invalid();
 
         reference      operator*() const;
         pointer        operator->() const;
@@ -86,36 +86,36 @@ public:
         const MicroStorage* storage_ = nullptr;
     };
 
-    uint32_t                    count() const noexcept;
-    size_t                      allocatedBytes() const noexcept;
-    void                        clear() noexcept;
-    MicroInstr*                 ptr(Ref ref) noexcept;
-    const MicroInstr*           ptr(Ref ref) const noexcept;
-    std::pair<Ref, MicroInstr*> emplaceUninit();
-    bool                        erase(Ref ref);
-    Ref                         findPreviousInstructionRef(Ref beforeRef) const noexcept;
-    Ref                         insertBefore(Ref beforeRef, const MicroInstr& value);
-    Ref                         insertBefore(MicroOperandStorage& operands, Ref beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
-    View                        view() noexcept;
-    ConstView                   view() const noexcept;
+    uint32_t                              count() const noexcept;
+    size_t                                allocatedBytes() const noexcept;
+    void                                  clear() noexcept;
+    MicroInstr*                           ptr(MicroInstrRef ref) noexcept;
+    const MicroInstr*                     ptr(MicroInstrRef ref) const noexcept;
+    std::pair<MicroInstrRef, MicroInstr*> emplaceUninit();
+    bool                                  erase(MicroInstrRef ref);
+    MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
+    MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
+    MicroInstrRef                         insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    View                                  view() noexcept;
+    ConstView                             view() const noexcept;
 
 private:
     struct Node
     {
-        MicroInstr instr;
-        Ref        prev  = INVALID_REF;
-        Ref        next  = INVALID_REF;
-        bool       alive = false;
+        MicroInstr    instr;
+        MicroInstrRef prev  = MicroInstrRef::invalid();
+        MicroInstrRef next  = MicroInstrRef::invalid();
+        bool          alive = false;
     };
 
-    Ref  allocNode();
-    void linkAtEnd(Ref ref);
+    MicroInstrRef allocNode();
+    void          linkAtEnd(MicroInstrRef ref);
 
-    std::vector<Node> nodes_;
-    std::vector<Ref>  freeList_;
-    Ref               head_  = INVALID_REF;
-    Ref               tail_  = INVALID_REF;
-    uint32_t          count_ = 0;
+    std::vector<Node>          nodes_;
+    std::vector<MicroInstrRef> freeList_;
+    MicroInstrRef              head_  = MicroInstrRef::invalid();
+    MicroInstrRef              tail_  = MicroInstrRef::invalid();
+    uint32_t                   count_ = 0;
 };
 
 SWC_END_NAMESPACE();

@@ -12,9 +12,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryMergeStackAdjustInstruction(const MicroPassContext& context, Ref targetRef, MicroReg stackPointerReg, MicroOp expectedOp, uint64_t additionalValue)
+    bool tryMergeStackAdjustInstruction(const MicroPassContext& context, MicroInstrRef targetRef, MicroReg stackPointerReg, MicroOp expectedOp, uint64_t additionalValue)
     {
-        if (targetRef == INVALID_REF || !additionalValue)
+        if (targetRef.isInvalid() || !additionalValue)
             return false;
 
         const MicroInstr* inst = SWC_NOT_NULL(context.instructions)->ptr(targetRef);
@@ -60,12 +60,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& ref : refs)
+            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -91,18 +91,18 @@ namespace
 
             bool framePointerUsed = false;
             bool framePointerDef  = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
+            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
                     continue;
 
-                if (ref.use)
+                if (MicroInstrRef.use)
                     framePointerUsed = true;
-                if (ref.def)
+                if (MicroInstrRef.def)
                     framePointerDef = true;
             }
 
@@ -146,18 +146,18 @@ namespace
 
             bool hasUse = false;
             bool hasDef = false;
-            for (const MicroInstrRegOperandRef& ref : refs)
+            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroInstrRef.reg)
                     continue;
 
-                const MicroReg refReg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg refReg = *SWC_NOT_NULL(MicroInstrRef.reg);
                 if (refReg != reg)
                     continue;
 
-                if (ref.use)
+                if (MicroInstrRef.use)
                     hasUse = true;
-                if (ref.def)
+                if (MicroInstrRef.def)
                     hasDef = true;
             }
 
@@ -266,12 +266,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& ref : refs)
+            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
             {
-                if (!ref.reg)
+                if (!MicroInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -279,8 +279,8 @@ namespace
                 if (mapIt == remap.end())
                     continue;
 
-                *SWC_NOT_NULL(ref.reg) = mapIt->second;
-                changed                = true;
+                *SWC_NOT_NULL(MicroInstrRef.reg) = mapIt->second;
+                changed                          = true;
             }
         }
 
@@ -312,22 +312,22 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         return Result::Continue;
     }
 
-    Ref              firstRef = INVALID_REF;
-    SmallVector<Ref> retRefs;
+    MicroInstrRef              firstRef = MicroInstrRef::invalid();
+    SmallVector<MicroInstrRef> retRefs;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
-        if (firstRef == INVALID_REF)
+        if (firstRef.isInvalid())
             firstRef = it.current;
         if (it->op == MicroInstrOpcode::Ret)
             retRefs.push_back(it.current);
     }
 
-    if (firstRef != INVALID_REF)
+    if (firstRef.isValid())
         insertSavedRegsPrologue(context, conv, firstRef);
-    for (const Ref retRef : retRefs)
+    for (const MicroInstrRef retRef : retRefs)
         insertSavedRegsEpilogue(context, conv, retRef);
 
-    context.passChanged = firstRef != INVALID_REF || remappedPersistentRegsToTransient;
+    context.passChanged = firstRef.isValid() || remappedPersistentRegsToTransient;
     return Result::Continue;
 }
 
@@ -368,12 +368,12 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     {
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(storeOps, refs, context.encoder);
-        for (const MicroInstrRegOperandRef& ref : refs)
+        for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
         {
-            if (!ref.reg)
+            if (!MicroInstrRef.reg)
                 continue;
 
-            const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+            const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 
@@ -425,7 +425,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     savedRegsStackSubSize_        = totalFrameSize > pushedRegsSize ? totalFrameSize - pushedRegsSize : 0;
 }
 
-void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
+void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const
 {
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
         return;
@@ -482,7 +482,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
     }
 }
 
-void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const
+void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const
 {
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
         return;
@@ -504,8 +504,8 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     bool mergedStackAdd = false;
     if (savedRegsStackSubSize_ && savedRegSlots_.empty())
     {
-        const Ref previousBodyRef = instructions.findPreviousInstructionRef(insertBeforeRef);
-        mergedStackAdd            = tryMergeStackAdjustInstruction(context, previousBodyRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
+        const MicroInstrRef previousBodyRef = instructions.findPreviousInstructionRef(insertBeforeRef);
+        mergedStackAdd                      = tryMergeStackAdjustInstruction(context, previousBodyRef, conv.stackPointer, MicroOp::Add, savedRegsStackSubSize_);
     }
 
     if (savedRegsStackSubSize_ && !mergedStackAdd)

@@ -60,21 +60,21 @@ public:
     }
     BreakContextKind currentBreakableKind() const { return breakable_.kind; }
 
-    AstNodeRef currentSwitch() const { return currentSwitch_; }
-    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
-    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    Ref        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
-    void       setCurrentLoopContinueLabel(Ref labelRef) { currentLoopContinueLabel_ = labelRef; }
-    Ref        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
-    void       setCurrentLoopBreakLabel(Ref labelRef) { currentLoopBreakLabel_ = labelRef; }
+    AstNodeRef    currentSwitch() const { return currentSwitch_; }
+    void          setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef    currentSwitchCase() const { return currentSwitchCase_; }
+    void          setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    MicroLabelRef currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void          setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
+    MicroLabelRef currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void          setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
 
 private:
-    BreakContext breakable_;
-    AstNodeRef   currentSwitch_            = AstNodeRef::invalid();
-    AstNodeRef   currentSwitchCase_        = AstNodeRef::invalid();
-    Ref          currentLoopContinueLabel_ = INVALID_REF;
-    Ref          currentLoopBreakLabel_    = INVALID_REF;
+    BreakContext  breakable_;
+    AstNodeRef    currentSwitch_            = AstNodeRef::invalid();
+    AstNodeRef    currentSwitchCase_        = AstNodeRef::invalid();
+    MicroLabelRef currentLoopContinueLabel_ = MicroLabelRef::invalid();
+    MicroLabelRef currentLoopBreakLabel_    = MicroLabelRef::invalid();
 };
 
 class CodeGen

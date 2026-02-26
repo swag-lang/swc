@@ -8,7 +8,7 @@ namespace PeepholePass
 {
     struct Cursor
     {
-        Ref                      instRef;
+        MicroInstrRef            instRef;
         MicroInstr*              inst;
         const MicroInstrOperand* ops;
         MicroStorage::Iterator   nextIt;

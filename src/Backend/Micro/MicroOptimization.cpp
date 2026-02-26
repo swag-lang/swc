@@ -114,7 +114,7 @@ Math::FoldStatus MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint
     return Math::FoldStatus::Ok;
 }
 
-Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref instructionRef, Math::FoldStatus status)
+Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, MicroInstrRef instructionRef, Math::FoldStatus status)
 {
     const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
     if (diagId == DiagnosticId::None)
@@ -126,7 +126,7 @@ Result MicroOptimization::raiseFoldSafetyError(MicroPassContext& context, Ref in
 
     Diagnostic    diag;
     SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-    if (context.instructions && instructionRef != INVALID_REF)
+    if (context.instructions && instructionRef.isValid())
     {
         if (const MicroInstr* inst = context.instructions->ptr(instructionRef))
             sourceCodeRef = inst->sourceCodeRef;

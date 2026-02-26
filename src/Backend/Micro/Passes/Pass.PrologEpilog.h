@@ -19,8 +19,8 @@ private:
 
     bool containsPushedReg(MicroReg reg) const;
     void buildSavedRegsPlan(const MicroPassContext& context, const CallConv& conv);
-    void insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
-    void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, Ref insertBeforeRef) const;
+    void insertSavedRegsPrologue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const;
+    void insertSavedRegsEpilogue(const MicroPassContext& context, const CallConv& conv, MicroInstrRef insertBeforeRef) const;
     bool containsSavedSlot(MicroReg reg) const;
 
     uint64_t                  savedRegsStackSubSize_ = 0;

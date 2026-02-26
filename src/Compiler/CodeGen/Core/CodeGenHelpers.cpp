@@ -89,7 +89,7 @@ namespace
         const uint32_t tailSize   = sizeInBytes % chunkSize;
         SWC_ASSERT(chunkCount > 0);
 
-        const Ref loopLabel = builder.createLabel();
+        const MicroLabelRef loopLabel = builder.createLabel();
 
         builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
@@ -145,7 +145,7 @@ namespace
         const uint32_t tailSize   = sizeInBytes % chunkSize;
         SWC_ASSERT(chunkCount > 0);
 
-        const Ref loopLabel = builder.createLabel();
+        const MicroLabelRef loopLabel = builder.createLabel();
 
         builder.emitLoadRegImm(countReg, ApInt(chunkCount, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);

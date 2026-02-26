@@ -176,8 +176,8 @@ namespace PeepholePass
             if (!tryInvertCondition(invertedCond1, set1Ops[1].cpuCond) || !tryInvertCondition(invertedCond2, set2Ops[1].cpuCond))
                 return false;
 
-            const Ref                set1Ref        = set1It.current;
-            const Ref                set2Ref        = set2It.current;
+            const MicroInstrRef      set1Ref        = set1It.current;
+            const MicroInstrRef      set2Ref        = set2It.current;
             MicroInstr*              set1Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set1Ref);
             MicroInstr*              set2Mutable    = SWC_NOT_NULL(context.instructions)->ptr(set2Ref);
             MicroInstrOperand*       set1MutableOps = set1Mutable ? set1Mutable->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
@@ -408,7 +408,7 @@ namespace PeepholePass
 
         bool removeOverwrittenStoreToSameSlot(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstr*            inst    = cursor.inst;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
@@ -464,7 +464,7 @@ namespace PeepholePass
 
         bool removeDeadStackStoreBeforeRet(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstr*            inst    = cursor.inst;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
@@ -675,7 +675,7 @@ namespace PeepholePass
 
         bool removeNoOpInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
+            const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
             if (!MicroOptimization::isNoOpEncoderInstruction(inst, ops))
@@ -687,7 +687,7 @@ namespace PeepholePass
 
         bool removeDeadCompareInstruction(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                instRef = cursor.instRef;
+            const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
             if (inst.op != MicroInstrOpcode::CmpRegImm &&
@@ -700,7 +700,7 @@ namespace PeepholePass
 
             const MicroStorage::View view        = SWC_NOT_NULL(context.instructions)->view();
             auto                     it          = view.begin();
-            Ref                      previousRef = INVALID_REF;
+            MicroInstrRef            previousRef = MicroInstrRef::invalid();
             for (; it != view.end(); ++it)
             {
                 if (it.current == instRef)
@@ -715,7 +715,7 @@ namespace PeepholePass
 
             const bool     compareUsesRegisterLhs = inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpRegReg;
             const MicroReg compareLhsReg          = compareUsesRegisterLhs ? ops[0].reg : MicroReg{};
-            if (compareUsesRegisterLhs && previousRef != INVALID_REF && compareLhsReg.isValid() && compareLhsReg.isInt())
+            if (compareUsesRegisterLhs && previousRef.isValid() && compareLhsReg.isValid() && compareLhsReg.isInt())
             {
                 const MicroInstr* prevInst = SWC_NOT_NULL(context.instructions)->ptr(previousRef);
                 if (prevInst && prevInst->op == MicroInstrOpcode::LoadRegImm)
@@ -732,7 +732,7 @@ namespace PeepholePass
 
         bool foldSetCondZeroExtCopy(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -808,7 +808,7 @@ namespace PeepholePass
 
         bool foldClearRegIntoNextMemStoreZero(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstr*            inst    = cursor.inst;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;

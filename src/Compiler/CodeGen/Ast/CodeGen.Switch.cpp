@@ -11,16 +11,16 @@ namespace
 {
     struct SwitchCaseCodeGenPayload
     {
-        Ref  testLabel     = INVALID_REF;
-        Ref  bodyLabel     = INVALID_REF;
-        Ref  nextTestLabel = INVALID_REF;
-        Ref  nextBodyLabel = INVALID_REF;
-        bool hasNextCase   = false;
+        MicroLabelRef testLabel     = MicroLabelRef::invalid();
+        MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
+        MicroLabelRef nextTestLabel = MicroLabelRef::invalid();
+        MicroLabelRef nextBodyLabel = MicroLabelRef::invalid();
+        bool          hasNextCase   = false;
     };
 
     struct SwitchStmtCodeGenPayload
     {
-        Ref                                                      doneLabel      = INVALID_REF;
+        MicroLabelRef                                            doneLabel      = MicroLabelRef::invalid();
         TypeRef                                                  compareTypeRef = TypeRef::invalid();
         MicroReg                                                 switchValueReg;
         MicroOpBits                                              compareOpBits   = MicroOpBits::B64;
@@ -116,7 +116,7 @@ namespace
             builder.emitLoadRegReg(outReg, payload.reg, opBits);
     }
 
-    void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, Ref falseLabel)
+    void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
@@ -132,7 +132,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
     }
 
-    void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, Ref trueLabel)
+    void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef trueLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = conditionOpBits(&typeInfo, codeGen.ctx());
@@ -148,7 +148,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, trueLabel);
     }
 
-    void emitSwitchValueEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, Ref successLabel)
+    void emitSwitchValueEqualsJump(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseExprRef, MicroLabelRef successLabel)
     {
         const CodeGenNodePayload& casePayload = codeGen.payload(caseExprRef);
         MicroReg                  caseReg     = MicroReg::invalid();
@@ -159,7 +159,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, successLabel);
     }
 
-    void emitSwitchRangeFailJumps(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstRangeExpr& rangeExpr, Ref failLabel)
+    void emitSwitchRangeFailJumps(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstRangeExpr& rangeExpr, MicroLabelRef failLabel)
     {
         const bool unsignedOrFloat = switchState.useUnsignedCond;
 
@@ -321,7 +321,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     SWC_ASSERT(itCase != switchState->caseStates.end());
 
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
-    const Ref                       failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
+    const MicroLabelRef             failLabel = caseState.hasNextCase ? caseState.nextTestLabel : switchState->doneLabel;
 
     MicroBuilder& builder = codeGen.builder();
 
@@ -332,8 +332,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             SmallVector<AstNodeRef> caseExprRefs;
             codeGen.ast().appendNodes(caseExprRefs, spanExprRef);
 
-            const bool hasWhere   = nodeWhereRef.isValid();
-            const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
+            const bool          hasWhere   = nodeWhereRef.isValid();
+            const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 if (codeGen.node(caseExprRef).is(AstNodeId::RangeExpr))
@@ -377,8 +377,8 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             SmallVector<AstNodeRef> caseExprRefs;
             codeGen.ast().appendNodes(caseExprRefs, spanExprRef);
 
-            const bool hasWhere   = nodeWhereRef.isValid();
-            const Ref  matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
+            const bool          hasWhere   = nodeWhereRef.isValid();
+            const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);
@@ -440,8 +440,8 @@ Result AstBreakStmt::codeGenPostNode(CodeGen& codeGen)
 
     if (breakCtx.kind == CodeGenFrame::BreakContextKind::Loop)
     {
-        const Ref breakLabel = codeGen.frame().currentLoopBreakLabel();
-        if (breakLabel != INVALID_REF)
+        const MicroLabelRef breakLabel = codeGen.frame().currentLoopBreakLabel();
+        if (breakLabel != MicroLabelRef::invalid())
             codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, breakLabel);
         return Result::Continue;
     }

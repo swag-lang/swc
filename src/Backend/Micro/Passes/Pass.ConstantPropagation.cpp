@@ -671,9 +671,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     if (context.encoder)
         stackPointerReg = context.encoder->stackPointerReg();
 
-    MicroStorage&                                   storage  = *SWC_NOT_NULL(context.instructions);
-    MicroOperandStorage&                            operands = *SWC_NOT_NULL(context.operands);
-    std::unordered_map<Ref, const MicroRelocation*> relocationByInstructionRef;
+    MicroStorage&                                             storage  = *SWC_NOT_NULL(context.instructions);
+    MicroOperandStorage&                                      operands = *SWC_NOT_NULL(context.operands);
+    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
     if (context.builder)
     {
         const auto& relocations = context.builder->codeRelocations();
@@ -682,7 +682,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             relocationByInstructionRef[relocation.instructionRef] = &relocation;
     }
 
-    std::unordered_set<Ref> referencedLabels;
+    std::unordered_set<MicroLabelRef> referencedLabels;
     referencedLabels.reserve(storage.count());
     for (const MicroInstr& scanInst : storage.view())
     {
@@ -690,13 +690,13 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         {
             const auto* scanOps = scanInst.ops(operands);
             if (scanOps)
-                referencedLabels.insert(static_cast<Ref>(scanOps[2].valueU64));
+                referencedLabels.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
         }
     }
 
     for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
     {
-        const Ref                                    instRef = it.current;
+        const MicroInstrRef                          instRef = it.current;
         MicroInstr&                                  inst    = *it;
         MicroInstrOperand*                           ops     = inst.ops(operands);
         std::optional<std::pair<uint32_t, uint64_t>> deferredKnownDef;
@@ -1768,7 +1768,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         {
             if (ops && inst.numOperands >= 1)
             {
-                const Ref labelRef          = static_cast<Ref>(ops[0].valueU64);
+                const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
                 clearForControlFlowBoundary = referencedLabels.contains(labelRef);
             }
             else

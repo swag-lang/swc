@@ -11,7 +11,7 @@ namespace PeepholePass
     {
         bool foldLoadImmIntoNextMemStore(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -88,7 +88,7 @@ namespace PeepholePass
 
         bool foldLoadImmIntoNextCopy(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -162,7 +162,7 @@ namespace PeepholePass
 
         bool foldLoadImmIntoNextBinary(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -212,7 +212,7 @@ namespace PeepholePass
 
         bool foldLoadImmIntoNextCompare(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -261,7 +261,7 @@ namespace PeepholePass
 
         bool foldImmediateScaledAddChain(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -429,7 +429,7 @@ namespace PeepholePass
 
         bool foldAdjacentMemImm32Stores(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;
@@ -543,7 +543,7 @@ namespace PeepholePass
 
         bool mergeRegImmArithmeticWithNext(const MicroPassContext& context, const Cursor& cursor)
         {
-            const Ref                    instRef = cursor.instRef;
+            const MicroInstrRef          instRef = cursor.instRef;
             const MicroInstrOperand*     ops     = cursor.ops;
             const MicroStorage::Iterator nextIt  = cursor.nextIt;
             const MicroStorage::Iterator endIt   = cursor.endIt;

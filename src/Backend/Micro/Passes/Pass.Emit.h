@@ -14,16 +14,16 @@ public:
 private:
     struct PendingLabelJump
     {
-        MicroJump jump;
-        Ref       labelRef = INVALID_REF;
+        MicroJump     jump;
+        MicroLabelRef labelRef = MicroLabelRef::invalid();
     };
 
-    void encodeInstruction(const MicroPassContext& context, Ref instructionRef, const MicroInstr& inst);
-    void bindAbs64RelocationOffset(const MicroPassContext& context, Ref instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
+    void encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst);
+    void bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
 
-    std::unordered_map<Ref, uint64_t> labelOffsets_;
-    std::vector<PendingLabelJump>     pendingLabelJumps_;
-    std::unordered_map<Ref, uint32_t> relocationByInstructionRef_;
+    std::unordered_map<MicroLabelRef, uint64_t> labelOffsets_;
+    std::vector<PendingLabelJump>               pendingLabelJumps_;
+    std::unordered_map<MicroInstrRef, uint32_t> relocationByInstructionRef_;
 };
 
 SWC_END_NAMESPACE();

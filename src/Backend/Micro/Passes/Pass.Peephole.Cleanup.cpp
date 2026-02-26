@@ -234,9 +234,23 @@ namespace PeepholePass
             return true;
         }
 
-        bool isStackBaseRegister(const MicroReg reg)
+        bool isStackBaseRegister(const MicroPassContext& context, const MicroReg reg)
         {
-            return reg == MicroReg::intReg(4) || reg == MicroReg::intReg(5);
+            const CallConv& conv = CallConv::get(context.callConvKind);
+            if (reg == conv.stackPointer)
+                return true;
+
+            if (conv.framePointer.isValid() && reg == conv.framePointer)
+                return true;
+
+            if (context.encoder)
+            {
+                const MicroReg stackPointerReg = context.encoder->stackPointerReg();
+                if (stackPointerReg.isValid() && reg == stackPointerReg)
+                    return true;
+            }
+
+            return false;
         }
 
         uint32_t opBitsNumBytes(const MicroOpBits opBits)
@@ -481,7 +495,7 @@ namespace PeepholePass
                 return false;
 
             const MicroReg baseReg = ops[baseIndex].reg;
-            if (!isStackBaseRegister(baseReg))
+            if (!isStackBaseRegister(context, baseReg))
                 return false;
 
             MicroOpBits opBits = MicroOpBits::Zero;
@@ -562,7 +576,7 @@ namespace PeepholePass
                     return false;
 
                 const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
-                if (!isStackBaseRegister(scanBaseReg))
+                if (!isStackBaseRegister(context, scanBaseReg))
                     return false;
 
                 MicroOpBits scanOpBits = MicroOpBits::Zero;
@@ -592,7 +606,7 @@ namespace PeepholePass
                 return false;
             if (saveOps[2].opBits != MicroOpBits::B64)
                 return false;
-            if (!isStackBaseRegister(saveOps[0].reg))
+            if (!isStackBaseRegister(context, saveOps[0].reg))
                 return false;
 
             const MicroReg savedReg = saveOps[1].reg;

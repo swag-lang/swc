@@ -119,9 +119,11 @@ namespace
         }
     }
 
-    bool definesSpecialRegister(std::span<const MicroReg> defs, const Encoder* encoder)
+    bool definesSpecialRegister(std::span<const MicroReg> defs, const Encoder* encoder, CallConvKind callConvKind)
     {
-        MicroReg stackPointerReg;
+        const CallConv& conv            = CallConv::get(callConvKind);
+        MicroReg        stackPointerReg = conv.stackPointer;
+        const MicroReg  framePointerReg = conv.framePointer;
         if (encoder)
             stackPointerReg = encoder->stackPointerReg();
 
@@ -133,7 +135,7 @@ namespace
             if (stackPointerReg.isValid() && reg == stackPointerReg)
                 return true;
 
-            if (reg.isInt() && reg.index() == 4)
+            if (framePointerReg.isValid() && reg == framePointerReg)
                 return true;
         }
 
@@ -157,10 +159,10 @@ namespace
         }
     }
 
-    bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder)
+    bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder, CallConvKind callConvKind)
     {
         return isRemovableInstruction(inst) &&
-               !definesSpecialRegister(useDef.defs, encoder) &&
+               !definesSpecialRegister(useDef.defs, encoder, callConvKind) &&
                useDef.defs.size() == 1 &&
                !useDef.isCall;
     }
@@ -377,7 +379,7 @@ namespace
                 continue;
 
             const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
-            if (!isBackwardDeadDefRemovableInstruction(*inst) || !isPureDefCandidate(*inst, useDef, encoder))
+            if (!isBackwardDeadDefRemovableInstruction(*inst) || !isPureDefCandidate(*inst, useDef, encoder, callConvKind))
                 continue;
 
             const uint32_t defRegKey = useDef.defs.front().packed;
@@ -448,7 +450,7 @@ namespace
             if (!processRegion)
                 continue;
 
-            if (!isBackwardDeadDefRemovableInstruction(inst) || !isPureDefCandidate(inst, useDef, encoder))
+            if (!isBackwardDeadDefRemovableInstruction(inst) || !isPureDefCandidate(inst, useDef, encoder, callConvKind))
             {
                 for (const MicroReg defReg : useDef.defs)
                     liveRegs.erase(defReg.packed);
@@ -549,7 +551,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             }
         }
 
-        const bool trackAsPureDef = isPureDefCandidate(inst, useDef, context.encoder);
+        const bool trackAsPureDef = isPureDefCandidate(inst, useDef, context.encoder, context.callConvKind);
 
         if (trackAsPureDef)
             lastPureDefByReg[useDef.defs.front().packed] = currentRef;

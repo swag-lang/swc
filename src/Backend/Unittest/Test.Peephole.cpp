@@ -378,20 +378,30 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadCmpIntoCmpMemImmAcrossJump)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Peephole_FoldsCopySwapAddIntoAccumulator)
+SWC_TEST_BEGIN(Peephole_FoldsCopySwapAddIntoAccumulatorAcrossBackedge)
 {
     MicroBuilder builder(ctx);
     setPeepholeOptimizeLevel(builder);
 
-    constexpr MicroReg rsp = MicroReg::intReg(4);
-    constexpr MicroReg rax = MicroReg::intReg(0);
-    constexpr MicroReg rcx = MicroReg::intReg(1);
-    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg  rsp       = MicroReg::intReg(4);
+    constexpr MicroReg  rax       = MicroReg::intReg(0);
+    constexpr MicroReg  rcx       = MicroReg::intReg(1);
+    constexpr MicroReg  r8        = MicroReg::intReg(8);
+    const MicroLabelRef loopLabel = builder.createLabel();
+    const MicroLabelRef doneLabel = builder.createLabel();
 
+    builder.placeLabel(loopLabel);
+    builder.emitCmpMemImm(rsp, 0x40, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
     builder.emitLoadRegReg(rax, r8, MicroOpBits::B32);
     builder.emitLoadRegReg(r8, rcx, MicroOpBits::B32);
     builder.emitOpBinaryRegReg(r8, rax, MicroOp::Add, MicroOpBits::B32);
     builder.emitOpBinaryMemReg(rsp, 0x30, r8, MicroOp::Add, MicroOpBits::B32);
+    builder.emitOpBinaryMemImm(rsp, 0x48, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryMemImm(rsp, 0x40, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
+    builder.emitLoadRegMem(rax, rsp, 0x30, MicroOpBits::B32);
     builder.emitRet();
 
     SWC_RESULT_VERIFY(runPeepholePass(builder));
@@ -405,8 +415,8 @@ SWC_TEST_BEGIN(Peephole_FoldsCopySwapAddIntoAccumulator)
             continue;
 
         if (inst.op == MicroInstrOpcode::OpBinaryRegReg &&
-            ops[0].reg == rcx &&
-            ops[1].reg == r8 &&
+            ops[0].reg == r8 &&
+            ops[1].reg == rcx &&
             ops[2].opBits == MicroOpBits::B32 &&
             ops[3].microOp == MicroOp::Add)
         {

@@ -862,6 +862,219 @@ namespace PeepholePass
             return true;
         }
 
+        bool isFloatArgRegForCopyFold(const CallConv& conv, const MicroReg reg)
+        {
+            if (!reg.isFloat())
+                return false;
+
+            for (const MicroReg argReg : conv.floatArgRegs)
+            {
+                if (argReg == reg)
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool isRegCallArgumentForCopyFold(const CallConv& conv, const MicroReg reg)
+        {
+            if (!reg.isValid() || reg.isNoBase())
+                return false;
+
+            if (reg.isInt())
+                return conv.isIntArgReg(reg);
+            if (reg.isFloat())
+                return isFloatArgRegForCopyFold(conv, reg);
+
+            return false;
+        }
+
+        bool isRegPersistentAcrossCallsForCopyFold(const MicroPassContext& context, const MicroReg reg)
+        {
+            if (!reg.isValid() || reg.isNoBase())
+                return false;
+
+            const CallConv& conv = CallConv::get(context.callConvKind);
+            if (reg.isInt())
+                return conv.isIntPersistentReg(reg);
+            if (reg.isFloat())
+                return conv.isFloatPersistentReg(reg);
+            return false;
+        }
+
+        MicroInstrRef nextInstructionRefForCopyFold(const MicroPassContext& context, const MicroInstrRef ref)
+        {
+            if (ref.isInvalid())
+                return MicroInstrRef::invalid();
+
+            MicroStorage& instructions = *SWC_NOT_NULL(context.instructions);
+            auto          it           = MicroStorage::Iterator{&instructions, ref};
+            ++it;
+            if (it == instructions.view().end())
+                return MicroInstrRef::invalid();
+
+            return it.current;
+        }
+
+        bool buildLabelRefMapForCopyFold(std::unordered_map<uint32_t, MicroInstrRef>& outMap, const MicroPassContext& context)
+        {
+            outMap.clear();
+
+            MicroStorage& instructions = *SWC_NOT_NULL(context.instructions);
+            outMap.reserve(instructions.count() / 2 + 1);
+
+            for (auto it = instructions.view().begin(); it != instructions.view().end(); ++it)
+            {
+                const MicroInstr& inst = *it;
+                if (inst.op != MicroInstrOpcode::Label)
+                    continue;
+
+                const MicroInstrOperand* ops = inst.ops(*SWC_NOT_NULL(context.operands));
+                if (!ops || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
+                    return false;
+
+                outMap[static_cast<uint32_t>(ops[0].valueU64)] = it.current;
+            }
+
+            return true;
+        }
+
+        bool isRegDeadOnAllPathsUntilRedefForCopyFold(const MicroPassContext& context, const MicroInstrRef startRef, const MicroReg reg)
+        {
+            if (!reg.isValid() || reg.isNoBase())
+                return true;
+            if (startRef.isInvalid())
+                return true;
+
+            MicroStorage&        instructions = *SWC_NOT_NULL(context.instructions);
+            MicroOperandStorage& operands     = *SWC_NOT_NULL(context.operands);
+
+            std::unordered_map<uint32_t, MicroInstrRef> labelRefMap;
+            if (!buildLabelRefMapForCopyFold(labelRefMap, context))
+                return false;
+
+            enum class VisitState : uint8_t
+            {
+                Visiting,
+                Dead,
+                Live,
+            };
+
+            std::unordered_map<uint32_t, VisitState> stateByRef;
+            stateByRef.reserve(instructions.count());
+
+            std::function<bool(MicroInstrRef)> isDeadFromRef;
+            isDeadFromRef = [&](const MicroInstrRef ref) -> bool {
+                if (ref.isInvalid())
+                    return true;
+
+                const auto stateIt = stateByRef.find(ref.get());
+                if (stateIt != stateByRef.end())
+                {
+                    if (stateIt->second == VisitState::Visiting)
+                        return true;
+
+                    return stateIt->second == VisitState::Dead;
+                }
+
+                const MicroInstr* inst = instructions.ptr(ref);
+                if (!inst)
+                    return false;
+
+                const MicroInstrOperand* ops = inst->ops(operands);
+                if (!ops)
+                    return false;
+
+                stateByRef.emplace(ref.get(), VisitState::Visiting);
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                inst->collectRegOperands(operands, refs, context.encoder);
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& refOp : refs)
+                {
+                    if (!refOp.reg || *SWC_NOT_NULL(refOp.reg) != reg)
+                        continue;
+
+                    hasUse |= refOp.use;
+                    hasDef |= refOp.def;
+                }
+
+                bool result = false;
+                if (hasUse)
+                {
+                    result = false;
+                }
+                else if (hasDef)
+                {
+                    result = true;
+                }
+                else if (inst->op == MicroInstrOpcode::Ret)
+                {
+                    const CallConv& functionConv = CallConv::get(context.callConvKind);
+                    result                       = functionConv.intReturn != reg && functionConv.floatReturn != reg;
+                }
+                else
+                {
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                    if (useDef.isCall)
+                    {
+                        const CallConv& callConv = CallConv::get(useDef.callConv);
+                        if (isRegCallArgumentForCopyFold(callConv, reg))
+                        {
+                            result = false;
+                        }
+                        else if (!isRegPersistentAcrossCallsForCopyFold(context, reg))
+                        {
+                            result = true;
+                        }
+                        else
+                        {
+                            result = isDeadFromRef(nextInstructionRefForCopyFold(context, ref));
+                        }
+                    }
+                    else if (inst->op == MicroInstrOpcode::JumpCond)
+                    {
+                        if (ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
+                        {
+                            result = false;
+                        }
+                        else
+                        {
+                            const uint32_t targetLabelId = static_cast<uint32_t>(ops[2].valueU64);
+                            const auto     targetIt      = labelRefMap.find(targetLabelId);
+                            if (targetIt == labelRefMap.end())
+                            {
+                                result = false;
+                            }
+                            else if (MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops))
+                            {
+                                result = isDeadFromRef(targetIt->second);
+                            }
+                            else
+                            {
+                                result = isDeadFromRef(nextInstructionRefForCopyFold(context, ref)) &&
+                                         isDeadFromRef(targetIt->second);
+                            }
+                        }
+                    }
+                    else if (MicroInstrInfo::isTerminatorInstruction(*inst))
+                    {
+                        result = false;
+                    }
+                    else
+                    {
+                        result = isDeadFromRef(nextInstructionRefForCopyFold(context, ref));
+                    }
+                }
+
+                stateByRef[ref.get()] = result ? VisitState::Dead : VisitState::Live;
+                return result;
+            };
+
+            return isDeadFromRef(startRef);
+        }
+
         bool foldCopySwapAddIntoAccumulator(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstrRef          instRef = cursor.instRef;
@@ -918,29 +1131,21 @@ namespace PeepholePass
             if (accOps[3].microOp != MicroOp::Add)
                 return false;
 
-            if (!isCopyDeadAfterInstruction(context, std::next(accIt), endIt, idxReg))
-                return false;
-            if (!isCopyDeadAfterInstruction(context, std::next(accIt), endIt, valueReg))
-                return false;
-
-            MicroInstrOperand* mutableOpOps  = opInst.ops(*SWC_NOT_NULL(context.operands));
-            MicroInstrOperand* mutableAccOps = accInst.ops(*SWC_NOT_NULL(context.operands));
-            if (!mutableOpOps || !mutableAccOps)
+            const MicroStorage::Iterator afterAccIt  = std::next(accIt);
+            const MicroInstrRef          afterAccRef = afterAccIt == endIt ? MicroInstrRef::invalid() : afterAccIt.current;
+            if (!isRegDeadOnAllPathsUntilRedefForCopyFold(context, afterAccRef, tmpReg))
                 return false;
 
-            const MicroReg originalOpDst   = mutableOpOps[0].reg;
-            const MicroReg originalOpSrc   = mutableOpOps[1].reg;
-            const MicroReg originalAccSrc  = mutableAccOps[1].reg;
-            mutableOpOps[0].reg            = valueReg;
-            mutableOpOps[1].reg            = idxReg;
-            mutableAccOps[1].reg           = valueReg;
+            MicroInstrOperand* mutableOpOps = opInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!mutableOpOps)
+                return false;
 
-            if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps) ||
-                MicroOptimization::violatesEncoderConformance(context, accInst, mutableAccOps))
+            const MicroReg originalOpSrc = mutableOpOps[1].reg;
+            mutableOpOps[1].reg          = valueReg;
+
+            if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps))
             {
-                mutableOpOps[0].reg  = originalOpDst;
-                mutableOpOps[1].reg  = originalOpSrc;
-                mutableAccOps[1].reg = originalAccSrc;
+                mutableOpOps[1].reg = originalOpSrc;
                 return false;
             }
 

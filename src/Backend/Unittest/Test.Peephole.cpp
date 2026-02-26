@@ -378,6 +378,49 @@ SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadCmpIntoCmpMemImmAcrossJump)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_FoldsCopySwapAddIntoAccumulator)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    builder.emitLoadRegReg(rax, r8, MicroOpBits::B32);
+    builder.emitLoadRegReg(r8, rcx, MicroOpBits::B32);
+    builder.emitOpBinaryRegReg(r8, rax, MicroOp::Add, MicroOpBits::B32);
+    builder.emitOpBinaryMemReg(rsp, 0x30, r8, MicroOp::Add, MicroOpBits::B32);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    bool                       hasRewrittenAdd = false;
+    const MicroOperandStorage& operands        = builder.operands();
+    for (const auto& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        if (inst.op == MicroInstrOpcode::OpBinaryRegReg &&
+            ops[0].reg == rcx &&
+            ops[1].reg == r8 &&
+            ops[2].opBits == MicroOpBits::B32 &&
+            ops[3].microOp == MicroOp::Add)
+        {
+            hasRewrittenAdd = true;
+        }
+    }
+
+    if (!hasRewrittenAdd)
+        return Result::Error;
+    if (countInstruction(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 {
     MicroBuilder builder(ctx);

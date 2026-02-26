@@ -862,6 +862,93 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldCopySwapAddIntoAccumulator(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstrRef          instRef = cursor.instRef;
+            const MicroInstrOperand*     ops     = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!ops || nextIt == endIt)
+                return false;
+
+            const MicroStorage::Iterator copySwapIt = nextIt;
+            const MicroStorage::Iterator opIt       = std::next(copySwapIt);
+            if (opIt == endIt)
+                return false;
+
+            const MicroStorage::Iterator accIt = std::next(opIt);
+            if (accIt == endIt)
+                return false;
+
+            const MicroReg tmpReg = ops[0].reg;
+            const MicroReg idxReg = ops[1].reg;
+            if (!tmpReg.isSameClass(idxReg) || tmpReg == idxReg)
+                return false;
+
+            const MicroInstr&        copySwapInst = *copySwapIt;
+            const MicroInstrOperand* copySwapOps  = copySwapInst.ops(*SWC_NOT_NULL(context.operands));
+            if (copySwapInst.op != MicroInstrOpcode::LoadRegReg || !copySwapOps)
+                return false;
+            if (copySwapOps[0].reg != idxReg || !copySwapOps[1].reg.isSameClass(idxReg))
+                return false;
+            if (copySwapOps[2].opBits != ops[2].opBits)
+                return false;
+
+            const MicroReg valueReg = copySwapOps[1].reg;
+            if (valueReg == idxReg || valueReg == tmpReg)
+                return false;
+
+            const MicroInstr&        opInst = *opIt;
+            const MicroInstrOperand* opOps  = opInst.ops(*SWC_NOT_NULL(context.operands));
+            if (opInst.op != MicroInstrOpcode::OpBinaryRegReg || !opOps)
+                return false;
+            if (opOps[0].reg != idxReg || opOps[1].reg != tmpReg)
+                return false;
+            if (opOps[2].opBits != ops[2].opBits)
+                return false;
+            if (opOps[3].microOp != MicroOp::Add)
+                return false;
+
+            const MicroInstr&        accInst = *accIt;
+            const MicroInstrOperand* accOps  = accInst.ops(*SWC_NOT_NULL(context.operands));
+            if (accInst.op != MicroInstrOpcode::OpBinaryMemReg || !accOps)
+                return false;
+            if (accOps[1].reg != idxReg || accOps[2].opBits != opOps[2].opBits)
+                return false;
+            if (accOps[3].microOp != MicroOp::Add)
+                return false;
+
+            if (!isCopyDeadAfterInstruction(context, std::next(accIt), endIt, idxReg))
+                return false;
+            if (!isCopyDeadAfterInstruction(context, std::next(accIt), endIt, valueReg))
+                return false;
+
+            MicroInstrOperand* mutableOpOps  = opInst.ops(*SWC_NOT_NULL(context.operands));
+            MicroInstrOperand* mutableAccOps = accInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!mutableOpOps || !mutableAccOps)
+                return false;
+
+            const MicroReg originalOpDst   = mutableOpOps[0].reg;
+            const MicroReg originalOpSrc   = mutableOpOps[1].reg;
+            const MicroReg originalAccSrc  = mutableAccOps[1].reg;
+            mutableOpOps[0].reg            = valueReg;
+            mutableOpOps[1].reg            = idxReg;
+            mutableAccOps[1].reg           = valueReg;
+
+            if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps) ||
+                MicroOptimization::violatesEncoderConformance(context, accInst, mutableAccOps))
+            {
+                mutableOpOps[0].reg  = originalOpDst;
+                mutableOpOps[1].reg  = originalOpSrc;
+                mutableAccOps[1].reg = originalAccSrc;
+                return false;
+            }
+
+            SWC_NOT_NULL(context.instructions)->erase(instRef);
+            SWC_NOT_NULL(context.instructions)->erase(copySwapIt.current);
+            return true;
+        }
+
         bool foldCopyUnaryCopyBack(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstrRef          instRef = cursor.instRef;
@@ -1380,6 +1467,11 @@ namespace PeepholePass
         // Purpose: fold copy-to-temp + binary-op + copy-back into direct binary-op on a source.
         // Example: mov r8, r11; and r8, rdx; mov r11, r8 -> and r11, rdx
         outRules.push_back({RuleTarget::LoadRegReg, foldCopyOpCopyBack});
+
+        // Rule: fold_copy_swap_add_into_accumulator
+        // Purpose: fold copy old-index + copy loaded-value + add + accumulator-store into direct add on loaded value.
+        // Example: mov rax,r8; mov r8,rcx; add r8,rax; add [rsp+30],r8 -> add rcx,r8; add [rsp+30],rcx
+        outRules.push_back({RuleTarget::LoadRegReg, foldCopySwapAddIntoAccumulator});
 
         // Rule: fold_copy_unary_copy_back
         // Purpose: fold copy-to-temp + unary-op + copy-back into direct unary-op on source.

@@ -8,6 +8,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -27,7 +28,8 @@ namespace
 
 Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 {
-    const CallConv& callConv = CallConv::host();
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     const MicroReg            outputStorageReg = callConv.intArgRegs[0];
@@ -38,10 +40,10 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
 Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const CallConv&        callConv     = CallConv::host();
-    constexpr CallConvKind callConvKind = CallConvKind::Host;
-    MicroBuilder&          builder      = codeGen.builder();
-    const SemaNodeView     exprView     = codeGen.viewType(nodeExprRef);
+    const CallConvKind callConvKind = codeGen.function().callConvKind();
+    const CallConv&    callConv     = CallConv::get(callConvKind);
+    MicroBuilder&      builder      = codeGen.builder();
+    const SemaNodeView exprView     = codeGen.viewType(nodeExprRef);
     SWC_ASSERT(exprView.type());
 
     const CodeGenNodePayload& exprPayload      = codeGen.payload(nodeExprRef);

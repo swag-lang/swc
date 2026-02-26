@@ -247,6 +247,61 @@ SWC_TEST_BEGIN(Peephole_KeepsStackLoadStorePairWhenSlotWasWritten)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Peephole_FoldsLoadOpStoreIntoMemImm)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+
+    builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x20, r8, MicroOpBits::B64);
+    builder.emitLoadRegMem(r9, rsp, 0x20, MicroOpBits::B64);
+    builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (!hasInstruction(builder, MicroInstrOpcode::OpBinaryMemImm))
+        return Result::Error;
+    if (hasInstruction(builder, MicroInstrOpcode::OpBinaryRegImm))
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadMemReg, rsp, 0x20) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_KeepsLoadOpStoreWhenResultRegIsUsed)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+
+    builder.emitLoadRegMem(r8, rsp, 0x20, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x20, r8, MicroOpBits::B64);
+    builder.emitCmpRegImm(r8, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(r9, rsp, 0x20, MicroOpBits::B64);
+    builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (hasInstruction(builder, MicroInstrOpcode::OpBinaryMemImm))
+        return Result::Error;
+    if (!hasInstruction(builder, MicroInstrOpcode::OpBinaryRegImm))
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadMemReg, rsp, 0x20) != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Peephole_KeepsFramePointerCopyWhenSourceIsStackPointer)
 {
     MicroBuilder builder(ctx);

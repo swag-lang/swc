@@ -259,6 +259,71 @@ namespace PeepholePass
             return true;
         }
 
+        bool foldLoadOpStoreIntoMemImm(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstrRef          loadRef = cursor.instRef;
+            const MicroInstrOperand*     loadOps = cursor.ops;
+            const MicroStorage::Iterator opIt    = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!loadOps || opIt == endIt)
+                return false;
+
+            const MicroStorage::Iterator storeIt = std::next(opIt);
+            if (storeIt == endIt)
+                return false;
+
+            const MicroInstr& opInst = *opIt;
+            if (opInst.op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+
+            const MicroInstr& storeInst = *storeIt;
+            if (storeInst.op != MicroInstrOpcode::LoadMemReg)
+                return false;
+
+            const MicroInstrOperand* opOps    = opInst.ops(*SWC_NOT_NULL(context.operands));
+            const MicroInstrOperand* storeOps = storeInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!opOps || !storeOps)
+                return false;
+
+            const MicroReg valueReg = loadOps[0].reg;
+            const MicroReg baseReg  = loadOps[1].reg;
+            if (!valueReg.isValid() || valueReg.isNoBase())
+                return false;
+            if (valueReg == baseReg)
+                return false;
+
+            if (opOps[0].reg != valueReg || storeOps[1].reg != valueReg)
+                return false;
+            if (loadOps[1].reg != storeOps[0].reg || loadOps[3].valueU64 != storeOps[3].valueU64)
+                return false;
+            if (loadOps[2].opBits != opOps[1].opBits || loadOps[2].opBits != storeOps[2].opBits)
+                return false;
+
+            if (!isRegUnusedAfterInstruction(context, std::next(storeIt), endIt, valueReg))
+                return false;
+
+            std::array<MicroInstrOperand, 5> memImmOps{};
+            memImmOps[0].reg      = loadOps[1].reg;
+            memImmOps[1].opBits   = loadOps[2].opBits;
+            memImmOps[2].microOp  = opOps[2].microOp;
+            memImmOps[3].valueU64 = loadOps[3].valueU64;
+            memImmOps[4]          = opOps[3];
+
+            MicroInstr probeInst;
+            probeInst.op          = MicroInstrOpcode::OpBinaryMemImm;
+            probeInst.numOperands = 5;
+            if (MicroOptimization::violatesEncoderConformance(context, probeInst, memImmOps.data()))
+                return false;
+
+            MicroStorage&        instructions = *SWC_NOT_NULL(context.instructions);
+            MicroOperandStorage& operands     = *SWC_NOT_NULL(context.operands);
+            instructions.insertBefore(operands, storeIt.current, MicroInstrOpcode::OpBinaryMemImm, memImmOps);
+            instructions.erase(loadRef);
+            instructions.erase(opIt.current);
+            instructions.erase(storeIt.current);
+            return true;
+        }
+
         bool foldImmediateScaledAddChain(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstrRef          instRef = cursor.instRef;
@@ -681,6 +746,11 @@ namespace PeepholePass
         // Purpose: store immediate directly to memory instead of via temporary register.
         // Example: mov r11, 1; mov [rdx], r11 -> mov [rdx], 1
         outRules.push_back({RuleTarget::LoadRegImm, foldLoadImmIntoNextMemStore});
+
+        // Rule: fold_loadopstore_into_memimm
+        // Purpose: collapse load/compute/store memory update into direct memory-immediate op.
+        // Example: mov r8,[rsp+32]; add r8,1; mov [rsp+32],r8 -> add [rsp+32],1
+        outRules.push_back({RuleTarget::LoadRegMem, foldLoadOpStoreIntoMemImm});
 
         // Rule: fold_immediate_scaled_add_chain
         // Purpose: fold immediate*scale + add chains into direct address-form setup.

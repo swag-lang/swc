@@ -173,7 +173,7 @@ namespace
         return currentExpr;
     }
 
-    AstNodeRef extractPureInlineExprRef(Sema& sema, const SymbolFunction& fn)
+    AstNodeRef extractPureExprRef(Sema& sema, const SymbolFunction& fn)
     {
         const AstNode* const declNode = fn.decl();
         if (!declNode)
@@ -370,7 +370,7 @@ namespace
         }
     }
 
-    bool isPureFunctionExpression(Sema& sema, AstNodeRef rootRef, std::span<const IdentifierRef> parameterIds, uint32_t& budget)
+    bool isPureExpression(Sema& sema, AstNodeRef rootRef, std::span<const IdentifierRef> parameterIds, uint32_t& budget)
     {
         if (rootRef.isInvalid())
             return false;
@@ -401,12 +401,12 @@ namespace
         return true;
     }
 
-    void computeFunctionPurityFlag(Sema& sema, SymbolFunction& sym)
+    void computePurityFlag(Sema& sema, SymbolFunction& sym)
     {
         sym.setPureExpression(false);
         sym.setPureExpressionRef(AstNodeRef::invalid());
 
-        const AstNodeRef srcExprRef = extractPureInlineExprRef(sema, sym);
+        const AstNodeRef srcExprRef = extractPureExprRef(sema, sym);
         if (srcExprRef.isInvalid())
             return;
 
@@ -420,7 +420,7 @@ namespace
         }
 
         uint32_t expressionBudget = 64;
-        if (!isPureFunctionExpression(sema, srcExprRef, parameterIds.span(), expressionBudget))
+        if (!isPureExpression(sema, srcExprRef, parameterIds.span(), expressionBudget))
             return;
 
         sym.setPureExpression(true);
@@ -563,7 +563,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
-        computeFunctionPurityFlag(sema, sym);
+        computePurityFlag(sema, sym);
         sym.setTyped(sema.ctx());
 
         SWC_RESULT_VERIFY(SemaCheck::isValidSignature(sema, sym.parameters(), false));

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Ast/Sema.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -10,6 +9,18 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    struct SwitchPayload
+    {
+        std::unordered_map<ConstantRef, AstNodeRef> seen;
+
+        TypeRef    exprTypeRef     = TypeRef::invalid();
+        AstNodeRef firstDefaultRef = AstNodeRef::invalid();
+        bool       isComplete      = false;
+    };
+}
 
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {

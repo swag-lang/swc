@@ -256,6 +256,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.Specific.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaClone.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaInline.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaPurity.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Constant\ConstantIntrinsic.cpp"/>
         <ClCompile Include="src\Support\Core\DataSegment.cpp"/>
         <ClCompile Include="src\Support\Core\PagedStore.cpp"/>
@@ -533,6 +534,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaPurity.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\Match.h"/>
         <ClInclude Include="src\Compiler\Sema\Match\MatchContext.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\IdentifierManager.h"/>

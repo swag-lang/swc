@@ -420,6 +420,113 @@ namespace PeepholePass
             }
         }
 
+        bool getLoadLocation(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg& outDstReg, MicroReg& outBaseReg, uint64_t& outOffset, MicroOpBits& outOpBits)
+        {
+            if (!ops)
+                return false;
+
+            if (inst.op != MicroInstrOpcode::LoadRegMem)
+                return false;
+
+            outDstReg  = ops[0].reg;
+            outBaseReg = ops[1].reg;
+            outOffset  = ops[3].valueU64;
+            outOpBits  = ops[2].opBits;
+            return true;
+        }
+
+        bool removeRedundantStackLoadStorePair(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstr*            inst   = cursor.inst;
+            const MicroInstrOperand*     ops    = cursor.ops;
+            const MicroStorage::Iterator nextIt = cursor.nextIt;
+            const MicroStorage::Iterator endIt  = cursor.endIt;
+            if (!inst || !ops)
+                return false;
+
+            MicroReg    dstReg;
+            MicroReg    baseReg;
+            uint64_t    slotOffset = 0;
+            MicroOpBits opBits     = MicroOpBits::Zero;
+            if (!getLoadLocation(*inst, ops, dstReg, baseReg, slotOffset, opBits))
+                return false;
+
+            if (!dstReg.isValid() || dstReg == baseReg)
+                return false;
+            if (!isStackBaseRegister(context, baseReg))
+                return false;
+
+            const uint32_t slotSize = opBitsNumBytes(opBits);
+            if (!slotSize)
+                return false;
+
+            for (auto scanIt = nextIt; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&      scanInst = *scanIt;
+                const MicroInstrUseDef useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                for (const MicroReg defReg : useDef.defs)
+                {
+                    if (defReg == baseReg || defReg == dstReg)
+                        return false;
+                }
+
+                const MicroInstrOperand* scanOps = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                if (scanInst.op == MicroInstrOpcode::LoadMemReg &&
+                    scanOps[0].reg == baseReg &&
+                    scanOps[1].reg == dstReg &&
+                    scanOps[2].opBits == opBits &&
+                    scanOps[3].valueU64 == slotOffset)
+                {
+                    SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
+                    SWC_NOT_NULL(context.instructions)->erase(cursor.instRef);
+                    return true;
+                }
+
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != dstReg)
+                        continue;
+
+                    if (ref.use || ref.def)
+                        return false;
+                }
+
+                if (!isMemoryWriteInstruction(scanInst))
+                    continue;
+
+                uint8_t scanBaseIndex   = 0;
+                uint8_t scanOffsetIndex = 0;
+                if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
+                    return false;
+
+                const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
+                if (!isStackBaseRegister(context, scanBaseReg))
+                    return false;
+
+                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                    return false;
+
+                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                if (!scanSlotSize)
+                    return false;
+
+                const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
+                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
+                    return false;
+            }
+
+            return false;
+        }
+
         bool removeOverwrittenStoreToSameSlot(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstrRef          instRef = cursor.instRef;
@@ -916,6 +1023,11 @@ namespace PeepholePass
         // Purpose: remove stores to local stack slots that are never observed before returning.
         // Example: mov [rsp], r9; mov rax, r9; ret -> mov rax, r9; ret
         outRules.push_back({RuleTarget::AnyInstruction, removeDeadStackStoreBeforeRet});
+
+        // Rule: remove_redundant_stack_load_store_pair
+        // Purpose: remove a stack load restored unchanged later, with no observable intervening effect.
+        // Example: mov rax, [rsp+56]; mov rcx, [rsp+64]; mov [rsp+56], rax -> mov rcx, [rsp+64]
+        outRules.push_back({RuleTarget::LoadRegMem, removeRedundantStackLoadStorePair});
 
         // Rule: remove_dead_compare_instruction
         // Purpose: remove compare operations whose flags are never consumed.

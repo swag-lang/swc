@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/Passes/Pass.Peephole.h"
 #include "Support/Unittest/Unittest.h"
@@ -52,6 +53,31 @@ namespace
         }
 
         return false;
+    }
+
+    uint32_t countStackAccess(const MicroBuilder& builder, MicroInstrOpcode opcode, MicroReg stackBaseReg, uint64_t offset)
+    {
+        uint32_t                   count    = 0;
+        const MicroOperandStorage& operands = builder.operands();
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != opcode)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            uint8_t baseIndex   = 0;
+            uint8_t offsetIndex = 0;
+            if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, inst))
+                continue;
+
+            if (ops[baseIndex].reg == stackBaseReg && ops[offsetIndex].valueU64 == offset)
+                ++count;
+        }
+
+        return count;
     }
 }
 
@@ -172,6 +198,51 @@ SWC_TEST_BEGIN(Peephole_KeepsStackSaveRestoreWhenShiftWritesSavedReg)
     if (!hasInstruction(builder, MicroInstrOpcode::LoadMemReg))
         return Result::Error;
     if (!hasInstruction(builder, MicroInstrOpcode::LoadRegMem))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_RemovesRedundantStackLoadStorePair)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+
+    builder.emitLoadRegMem(rax, rsp, 0x38, MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, rsp, 0x40, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x40, rcx, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x38, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 0x38) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_KeepsStackLoadStorePairWhenSlotWasWritten)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+
+    builder.emitLoadRegMem(rax, rsp, 0x38, MicroOpBits::B64);
+    builder.emitLoadMemImm(rsp, 0x38, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(rcx, rsp, 0x38, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x38, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 0x38) != 2)
         return Result::Error;
 }
 SWC_TEST_END()

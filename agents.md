@@ -8,6 +8,7 @@
 - If you add a new feature, add new tests in `Sema/` that cover it:
     - Verify expected successful behavior.
     - Verify expected failures by asserting the correct errors are raised.
+- Do not hack or make workarounds, always find the root cause of each problem.
 
 ## Coding Rules
 

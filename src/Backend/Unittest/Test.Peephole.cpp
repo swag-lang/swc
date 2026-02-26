@@ -55,6 +55,18 @@ namespace
         return false;
     }
 
+    uint32_t countInstruction(const MicroBuilder& builder, MicroInstrOpcode opcode)
+    {
+        uint32_t count = 0;
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op == opcode)
+                count++;
+        }
+
+        return count;
+    }
+
     uint32_t countStackAccess(const MicroBuilder& builder, MicroInstrOpcode opcode, MicroReg stackBaseReg, uint64_t offset)
     {
         uint32_t                   count    = 0;
@@ -298,6 +310,70 @@ SWC_TEST_BEGIN(Peephole_KeepsLoadOpStoreWhenResultRegIsUsed)
     if (!hasInstruction(builder, MicroInstrOpcode::OpBinaryRegImm))
         return Result::Error;
     if (countStackAccess(builder, MicroInstrOpcode::LoadMemReg, rsp, 0x20) != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadOpStoreIntoMemImm)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rcx = MicroReg::intReg(1);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r10 = MicroReg::intReg(10);
+
+    builder.emitLoadRegMem(rcx, rsp, 0x40, MicroOpBits::B64);
+    builder.emitLoadRegMem(r8, rsp, 0x48, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rcx, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x40, rcx, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0x48, r8, MicroOpBits::B64);
+    builder.emitLoadRegMem(r9, rsp, 0x40, MicroOpBits::B64);
+    builder.emitCmpRegImm(r9, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(r10, rsp, 0x48, MicroOpBits::B64);
+    builder.emitCmpRegImm(r10, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (countInstruction(builder, MicroInstrOpcode::OpBinaryMemImm) != 2)
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadMemReg, rsp, 0x40) != 0)
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadMemReg, rsp, 0x48) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Peephole_FoldsInterleavedLoadCmpIntoCmpMemImmAcrossJump)
+{
+    MicroBuilder builder(ctx);
+    setPeepholeOptimizeLevel(builder);
+
+    constexpr MicroReg  rsp       = MicroReg::intReg(4);
+    constexpr MicroReg  rcx       = MicroReg::intReg(1);
+    constexpr MicroReg  rax       = MicroReg::intReg(0);
+    constexpr MicroReg  r8        = MicroReg::intReg(8);
+    const MicroLabelRef doneLabel = builder.createLabel();
+
+    builder.emitLoadRegMem(rcx, rsp, 0x38, MicroOpBits::B64);
+    builder.emitLoadRegMem(rax, rsp, 0x40, MicroOpBits::B64);
+    builder.emitLoadRegMem(r8, rsp, 0x48, MicroOpBits::B64);
+    builder.emitCmpRegImm(rax, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+    builder.emitLoadRegReg(rax, r8, MicroOpBits::B64);
+    builder.placeLabel(doneLabel);
+    builder.emitLoadRegImm(rax, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT_VERIFY(runPeepholePass(builder));
+
+    if (!hasInstruction(builder, MicroInstrOpcode::CmpMemImm))
+        return Result::Error;
+    if (countStackAccess(builder, MicroInstrOpcode::LoadRegMem, rsp, 0x40) != 0)
         return Result::Error;
 }
 SWC_TEST_END()

@@ -9,6 +9,483 @@ namespace PeepholePass
 {
     namespace
     {
+        struct MemoryAccessInfo
+        {
+            MicroReg    baseReg = MicroReg::invalid();
+            uint64_t    offset  = 0;
+            MicroOpBits opBits  = MicroOpBits::Zero;
+            bool        reads   = false;
+            bool        writes  = false;
+            bool        unknown = false;
+        };
+
+        bool containsReg(std::span<const MicroReg> regs, const MicroReg reg)
+        {
+            for (const MicroReg candidate : regs)
+            {
+                if (candidate == reg)
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool touchesReg(const MicroInstrUseDef& useDef, const MicroReg reg)
+        {
+            return containsReg(useDef.uses, reg) || containsReg(useDef.defs, reg);
+        }
+
+        uint32_t opBitsNumBytes(const MicroOpBits opBits)
+        {
+            switch (opBits)
+            {
+                case MicroOpBits::B8:
+                    return 1;
+                case MicroOpBits::B16:
+                    return 2;
+                case MicroOpBits::B32:
+                    return 4;
+                case MicroOpBits::B64:
+                    return 8;
+                case MicroOpBits::B128:
+                    return 16;
+                default:
+                    return 0;
+            }
+        }
+
+        bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
+        {
+            if (!lhsSize || !rhsSize)
+                return false;
+
+            const uint64_t lhsEnd = lhsOffset + lhsSize;
+            const uint64_t rhsEnd = rhsOffset + rhsSize;
+            return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
+        }
+
+        bool tryGetMemoryAccess(MemoryAccessInfo& outAccess, const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            if (!ops)
+                return false;
+
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadRegMem:
+                    outAccess.opBits = ops[2].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::LoadMemReg:
+                    outAccess.opBits = ops[2].opBits;
+                    outAccess.writes = true;
+                    break;
+                case MicroInstrOpcode::LoadMemImm:
+                    outAccess.opBits = ops[1].opBits;
+                    outAccess.writes = true;
+                    break;
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                    outAccess.opBits = ops[3].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    outAccess.opBits = ops[3].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::CmpMemReg:
+                    outAccess.opBits = ops[2].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::CmpMemImm:
+                    outAccess.opBits = ops[1].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::OpUnaryMem:
+                    outAccess.opBits = ops[1].opBits;
+                    outAccess.reads  = true;
+                    outAccess.writes = true;
+                    break;
+                case MicroInstrOpcode::OpBinaryRegMem:
+                    outAccess.opBits = ops[2].opBits;
+                    outAccess.reads  = true;
+                    break;
+                case MicroInstrOpcode::OpBinaryMemReg:
+                    outAccess.opBits = ops[2].opBits;
+                    outAccess.reads  = true;
+                    outAccess.writes = true;
+                    break;
+                case MicroInstrOpcode::OpBinaryMemImm:
+                    outAccess.opBits = ops[1].opBits;
+                    outAccess.reads  = true;
+                    outAccess.writes = true;
+                    break;
+
+                // AMC memory accesses do not expose a simple base+offset pair, treat as unknown.
+                case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadAmcMemReg:
+                case MicroInstrOpcode::LoadAmcMemImm:
+                    outAccess.unknown = true;
+                    return true;
+
+                default:
+                    return false;
+            }
+
+            uint8_t baseIndex   = 0;
+            uint8_t offsetIndex = 0;
+            if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(baseIndex, offsetIndex, inst))
+            {
+                outAccess.unknown = true;
+                return true;
+            }
+
+            outAccess.baseReg = ops[baseIndex].reg;
+            outAccess.offset  = ops[offsetIndex].valueU64;
+            return true;
+        }
+
+        bool hasOverlappingMemoryAccess(const MicroInstr&        inst,
+                                        const MicroInstrOperand* ops,
+                                        const MicroReg           targetBaseReg,
+                                        const uint64_t           targetOffset,
+                                        const MicroOpBits        targetOpBits,
+                                        const bool               considerReads,
+                                        const bool               considerWrites)
+        {
+            MemoryAccessInfo access;
+            if (!tryGetMemoryAccess(access, inst, ops))
+                return false;
+            if (access.unknown)
+                return true;
+
+            if (access.baseReg != targetBaseReg)
+                return false;
+
+            const bool matchesRead  = considerReads && access.reads;
+            const bool matchesWrite = considerWrites && access.writes;
+            if (!matchesRead && !matchesWrite)
+                return false;
+
+            const uint32_t accessSize = opBitsNumBytes(access.opBits);
+            const uint32_t targetSize = opBitsNumBytes(targetOpBits);
+            if (!accessSize || !targetSize)
+                return true;
+
+            return rangesOverlap(access.offset, accessSize, targetOffset, targetSize);
+        }
+
+        bool canCrossInstruction(const MicroPassContext&       context,
+                                 const MicroStorage::Iterator& it,
+                                 const MicroReg                trackedReg,
+                                 const MicroReg                targetBaseReg,
+                                 const uint64_t                targetOffset,
+                                 const MicroOpBits             targetOpBits,
+                                 const bool                    allowTargetReads,
+                                 const bool                    allowTargetWrites)
+        {
+            const MicroInstr&        inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(*SWC_NOT_NULL(context.operands));
+            if (!ops)
+                return false;
+
+            const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+            if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))
+                return false;
+
+            if (touchesReg(useDef, trackedReg))
+                return false;
+            if (containsReg(useDef.defs, targetBaseReg))
+                return false;
+
+            if (hasOverlappingMemoryAccess(inst, ops, targetBaseReg, targetOffset, targetOpBits, !allowTargetReads, !allowTargetWrites))
+                return false;
+
+            return true;
+        }
+
+        bool findLabelIteratorById(MicroStorage::Iterator& outIt, const MicroPassContext& context, const uint32_t labelId)
+        {
+            MicroStorage& instructions = *SWC_NOT_NULL(context.instructions);
+            const auto    endIt        = instructions.view().end();
+            for (auto it = instructions.view().begin(); it != endIt; ++it)
+            {
+                const MicroInstr& inst = *it;
+                if (inst.op != MicroInstrOpcode::Label)
+                    continue;
+
+                const MicroInstrOperand* labelOps = inst.ops(*SWC_NOT_NULL(context.operands));
+                if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
+                    continue;
+                if (static_cast<uint32_t>(labelOps[0].valueU64) != labelId)
+                    continue;
+
+                outIt = it;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool isRegDeadBeforeBarrierOrRedef(const MicroPassContext&       context,
+                                           MicroStorage::Iterator        scanIt,
+                                           const MicroStorage::Iterator& endIt,
+                                           const MicroReg                reg)
+        {
+            if (!reg.isValid() || reg.isNoBase())
+                return true;
+
+            const CallConv& functionConv = CallConv::get(context.callConvKind);
+            for (; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&                    scanInst = *scanIt;
+                const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+                        continue;
+
+                    hasUse |= ref.use;
+                    hasDef |= ref.def;
+                }
+
+                if (hasUse)
+                    return false;
+                if (hasDef)
+                    return true;
+
+                if (scanInst.op == MicroInstrOpcode::Ret)
+                {
+                    if (functionConv.intReturn == reg || functionConv.floatReturn == reg)
+                        return false;
+                    return true;
+                }
+
+                if (useDef.isCall)
+                    return false;
+
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+            }
+
+            return true;
+        }
+
+        bool isRegDeadAcrossConditionalJumpSuccessors(const MicroPassContext& context, const MicroStorage::Iterator& cmpIt, const MicroReg reg)
+        {
+            MicroStorage& instructions = *SWC_NOT_NULL(context.instructions);
+            const auto    endIt        = instructions.view().end();
+            const auto    jumpIt       = std::next(cmpIt);
+            if (jumpIt == endIt)
+                return false;
+
+            const MicroInstr& jumpInst = *jumpIt;
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                return false;
+
+            const MicroInstrOperand* jumpOps = jumpInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!jumpOps || MicroInstrInfo::isUnconditionalJumpInstruction(jumpInst, jumpOps))
+                return false;
+            if (jumpOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            const uint32_t         targetLabelId = static_cast<uint32_t>(jumpOps[2].valueU64);
+            MicroStorage::Iterator targetLabelIt;
+            if (!findLabelIteratorById(targetLabelIt, context, targetLabelId))
+                return false;
+
+            const auto fallthroughIt = std::next(jumpIt);
+            if (!isRegDeadBeforeBarrierOrRedef(context, fallthroughIt, endIt, reg))
+                return false;
+
+            const auto targetStartIt = std::next(targetLabelIt);
+            if (!isRegDeadBeforeBarrierOrRedef(context, targetStartIt, endIt, reg))
+                return false;
+
+            return true;
+        }
+
+        bool isRegDeadBeforeBarrier(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroReg reg)
+        {
+            for (; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&                    scanInst = *scanIt;
+                const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                SmallVector<MicroInstrRegOperandRef> refs;
+                scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+
+                bool hasUse = false;
+                bool hasDef = false;
+                for (const MicroInstrRegOperandRef& ref : refs)
+                {
+                    if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+                        continue;
+
+                    hasUse |= ref.use;
+                    hasDef |= ref.def;
+                }
+
+                if (hasUse)
+                    return false;
+                if (hasDef)
+                    return true;
+
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return true;
+            }
+
+            return true;
+        }
+
+        bool foldNonAdjacentLoadOpStoreIntoMemImm(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstrRef      opRef  = cursor.instRef;
+            const MicroInstr*        opInst = cursor.inst;
+            const MicroInstrOperand* opOps  = cursor.ops;
+            if (!opInst || !opOps || opInst->op != MicroInstrOpcode::OpBinaryRegImm)
+                return false;
+
+            MicroStorage* const instructions = SWC_NOT_NULL(context.instructions);
+            const auto          endIt        = cursor.endIt;
+
+            const MicroReg tmpReg = opOps[0].reg;
+            if (!tmpReg.isValid() || tmpReg.isNoBase())
+                return false;
+
+            const MicroInstrRef loadRef = instructions->findPreviousInstructionRef(opRef);
+            if (loadRef.isInvalid())
+                return false;
+
+            MicroInstrRef            scanLoadRef = loadRef;
+            MicroStorage::Iterator   loadIt      = endIt;
+            const MicroInstrOperand* loadOps     = nullptr;
+            while (scanLoadRef.isValid())
+            {
+                const MicroInstr* candidateInst = instructions->ptr(scanLoadRef);
+                if (!candidateInst)
+                    return false;
+
+                MicroStorage::Iterator   candidateIt{instructions, scanLoadRef};
+                const MicroInstrOperand* candidateOps = candidateInst->ops(*SWC_NOT_NULL(context.operands));
+                if (!candidateOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = candidateInst->collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(*candidateInst, useDef))
+                    return false;
+
+                if (touchesReg(useDef, tmpReg))
+                {
+                    if (candidateInst->op != MicroInstrOpcode::LoadRegMem ||
+                        candidateOps[0].reg != tmpReg ||
+                        candidateOps[2].opBits != opOps[1].opBits)
+                    {
+                        return false;
+                    }
+
+                    loadIt  = candidateIt;
+                    loadOps = candidateOps;
+                    break;
+                }
+
+                scanLoadRef = instructions->findPreviousInstructionRef(scanLoadRef);
+            }
+
+            if (!loadOps || loadIt == endIt)
+                return false;
+
+            const MicroReg    baseReg = loadOps[1].reg;
+            const uint64_t    offset  = loadOps[3].valueU64;
+            const MicroOpBits opBits  = loadOps[2].opBits;
+            if (!baseReg.isValid() || baseReg.isNoBase() || baseReg == tmpReg)
+                return false;
+
+            auto scanIt = loadIt;
+            ++scanIt;
+            for (; scanIt != endIt && scanIt.current != opRef; ++scanIt)
+            {
+                if (!canCrossInstruction(context, scanIt, tmpReg, baseReg, offset, opBits, true, false))
+                    return false;
+            }
+
+            if (scanIt == endIt)
+                return false;
+
+            MicroStorage::Iterator storeIt = endIt;
+            scanIt                         = MicroStorage::Iterator{instructions, opRef};
+            ++scanIt;
+            for (; scanIt != endIt; ++scanIt)
+            {
+                const MicroInstr&        scanInst = *scanIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                if (touchesReg(useDef, tmpReg))
+                {
+                    if (scanInst.op != MicroInstrOpcode::LoadMemReg ||
+                        scanOps[1].reg != tmpReg ||
+                        scanOps[0].reg != baseReg ||
+                        scanOps[2].opBits != opBits ||
+                        scanOps[3].valueU64 != offset)
+                    {
+                        return false;
+                    }
+
+                    storeIt = scanIt;
+                    break;
+                }
+
+                if (!canCrossInstruction(context, scanIt, tmpReg, baseReg, offset, opBits, false, false))
+                    return false;
+            }
+
+            if (storeIt == endIt)
+                return false;
+
+            auto afterStoreIt = storeIt;
+            ++afterStoreIt;
+            if (!isRegDeadBeforeBarrier(context, afterStoreIt, endIt, tmpReg))
+                return false;
+
+            std::array<MicroInstrOperand, 5> newOps{};
+            newOps[0].reg      = baseReg;
+            newOps[1].opBits   = opBits;
+            newOps[2].microOp  = opOps[2].microOp;
+            newOps[3].valueU64 = offset;
+            newOps[4]          = opOps[3];
+
+            const MicroInstrRef newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), opRef, MicroInstrOpcode::OpBinaryMemImm, newOps);
+            const MicroInstr*   newInst = instructions->ptr(newRef);
+            if (!newInst)
+                return false;
+
+            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
+            if (!newInstOps)
+            {
+                instructions->erase(newRef);
+                return false;
+            }
+
+            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
+            {
+                instructions->erase(newRef);
+                return false;
+            }
+
+            instructions->erase(loadIt.current);
+            instructions->erase(opRef);
+            instructions->erase(storeIt.current);
+            return true;
+        }
+
         bool foldZeroIndexAmcFromImmediate(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstrRef          instRef = cursor.instRef;
@@ -445,53 +922,75 @@ namespace PeepholePass
 
         bool foldLoadRegMemIntoNextCmpMemImm(const MicroPassContext& context, const Cursor& cursor)
         {
-            const MicroInstrRef          instRef = cursor.instRef;
-            const MicroInstrOperand*     ops     = cursor.ops;
-            const MicroStorage::Iterator nextIt  = cursor.nextIt;
-            const MicroStorage::Iterator endIt   = cursor.endIt;
-            if (!ops || nextIt == endIt)
+            const MicroInstrRef      instRef = cursor.instRef;
+            const MicroInstrOperand* ops     = cursor.ops;
+            const auto               endIt   = cursor.endIt;
+            if (!ops)
                 return false;
 
-            const MicroInstr&        nextInst = *nextIt;
-            const MicroInstrOperand* nextOps  = nextInst.ops(*SWC_NOT_NULL(context.operands));
-            if (nextInst.op != MicroInstrOpcode::CmpRegImm || !nextOps)
+            const MicroReg    tmpReg    = ops[0].reg;
+            const MicroReg    baseReg   = ops[1].reg;
+            const MicroOpBits memOpBits = ops[2].opBits;
+            const uint64_t    memOffset = ops[3].valueU64;
+            if (!tmpReg.isValid() || tmpReg.isNoBase() || !baseReg.isValid() || baseReg.isNoBase())
                 return false;
 
-            const MicroReg tmpReg = ops[0].reg;
-            if (nextOps[0].reg != tmpReg)
-                return false;
-            if (ops[2].opBits != nextOps[1].opBits)
-                return false;
-            if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, tmpReg))
-                return false;
-
-            std::array<MicroInstrOperand, 4> newOps;
-            newOps[0].reg      = ops[1].reg;
-            newOps[1].opBits   = ops[2].opBits;
-            newOps[2].valueU64 = ops[3].valueU64;
-            newOps[3].setImmediateValue(ApInt(nextOps[2].valueU64, getNumBits(nextOps[1].opBits)));
-
-            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::CmpMemImm, newOps);
-            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
-            if (!newInst)
-                return false;
-
-            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-            if (!newInstOps)
+            for (auto scanIt = cursor.nextIt; scanIt != endIt; ++scanIt)
             {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
+                const MicroInstr&        scanInst = *scanIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+
+                if (touchesReg(useDef, tmpReg))
+                {
+                    if (scanInst.op != MicroInstrOpcode::CmpRegImm)
+                        return false;
+                    if (scanOps[0].reg != tmpReg || scanOps[1].opBits != memOpBits)
+                        return false;
+                    if (!isCopyDeadAfterInstruction(context, std::next(scanIt), endIt, tmpReg) &&
+                        !isRegUnusedAfterInstruction(context, std::next(scanIt), endIt, tmpReg) &&
+                        !isRegDeadAcrossConditionalJumpSuccessors(context, scanIt, tmpReg))
+                        return false;
+
+                    std::array<MicroInstrOperand, 4> newOps;
+                    newOps[0].reg      = baseReg;
+                    newOps[1].opBits   = memOpBits;
+                    newOps[2].valueU64 = memOffset;
+                    newOps[3].setImmediateValue(ApInt(scanOps[2].valueU64, getNumBits(scanOps[1].opBits)));
+
+                    const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::CmpMemImm, newOps);
+                    const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
+                    if (!newInst)
+                        return false;
+
+                    const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
+                    if (!newInstOps)
+                    {
+                        SWC_NOT_NULL(context.instructions)->erase(newRef);
+                        return false;
+                    }
+
+                    if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
+                    {
+                        SWC_NOT_NULL(context.instructions)->erase(newRef);
+                        return false;
+                    }
+
+                    SWC_NOT_NULL(context.instructions)->erase(instRef);
+                    SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
+                    return true;
+                }
+
+                if (!canCrossInstruction(context, scanIt, tmpReg, baseReg, memOffset, memOpBits, true, false))
+                    return false;
             }
 
-            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
-            }
-
-            SWC_NOT_NULL(context.instructions)->erase(instRef);
-            SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
-            return true;
+            return false;
         }
 
         bool foldLoadRegMemIntoNextLoadAddrCopy(const MicroPassContext& context, const Cursor& cursor)
@@ -1259,6 +1758,11 @@ namespace PeepholePass
         // Purpose: fold loaded temporary compared with immediate into direct memory compare.
         // Example: mov r8, [rsp + 8]; cmp r8, 0 -> cmp [rsp + 8], 0
         outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextCmpMemImm});
+
+        // Rule: fold_nonadjacent_loadopstore_into_memimm
+        // Purpose: fold load/op/store into direct memory-immediate op even with independent instructions in between.
+        // Example: mov r8,[rsp+48]; add r8,1; ... ; mov [rsp+48],r8 -> add [rsp+48],1
+        outRules.push_back({RuleTarget::OpBinaryRegImm, foldNonAdjacentLoadOpStoreIntoMemImm});
 
         outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemIntoNextBinaryRegMem});
         outRules.push_back({RuleTarget::LoadRegMem, foldLoadRegMemBinaryStoreBackIntoMemOp});

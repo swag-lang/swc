@@ -105,6 +105,7 @@
 
 #test
 {
+    #[Swag.PrintMicro]
     func foreachSliceValueIndex()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]

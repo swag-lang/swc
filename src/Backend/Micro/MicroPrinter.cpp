@@ -556,7 +556,7 @@ namespace
         return std::format("{} = {}({}, b{} <- b{})", dst, op, src, opBitsName(dstBits), opBitsName(srcBits));
     }
 
-    Utf8 naturalInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder, bool hasImmediateRelocation)
+    Utf8 naturalInstruction(const MicroInstr& inst, const MicroInstrOperand* ops, MicroRegPrintMode regPrintMode, const Encoder* encoder, std::string_view ptrRelocValue)
     {
         switch (inst.op)
         {
@@ -566,8 +566,9 @@ namespace
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hexU64(ops[2].valueU64));
             case MicroInstrOpcode::LoadRegPtrReloc:
-                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), hasImmediateRelocation ? std::format("<{}>", hexU64(ops[2].valueU64)) : hexU64(ops[2].valueU64));
+                return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), ptrRelocValue.empty() ? "<reloc>" : ptrRelocValue);
             case MicroInstrOpcode::LoadRegMem:
                 return std::format("{} = {}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
             case MicroInstrOpcode::LoadSignedExtRegMem:
@@ -1107,6 +1108,23 @@ namespace
         return "<unknown>";
     }
 
+    Utf8 relocationTargetNaturalValue(const TaskContext& ctx, const MicroRelocation& relocation)
+    {
+        if (relocation.constantRef.isValid())
+            return relocationTargetDebugValue(ctx, relocation);
+
+        if (relocation.targetSymbol)
+            return relocation.targetSymbol->name(ctx);
+
+        if (relocation.targetAddress == MicroRelocation::K_SELF_ADDRESS)
+            return "<self>";
+
+        if (relocation.targetAddress)
+            return std::format("0x{:X}", relocation.targetAddress);
+
+        return "<unknown>";
+    }
+
     void appendInstructionRelocationOrigin(Utf8& out, const TaskContext& ctx, const MicroRelocation* relocation)
     {
         if (!relocation)
@@ -1197,8 +1215,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
         const auto               relocIt                = relocationByInstructionRef.find(instRef);
         const MicroRelocation*   instructionRelocation  = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
-        const bool               hasImmediateRelocation = instructionRelocation != nullptr && (inst.op == MicroInstrOpcode::LoadRegPtrReloc);
-        auto                     natural                = naturalInstruction(inst, ops, regPrintMode, encoder, hasImmediateRelocation);
+        const bool               isPtrRelocInstruction  = inst.op == MicroInstrOpcode::LoadRegPtrReloc;
+        const bool               hasImmediateRelocation = instructionRelocation != nullptr && isPtrRelocInstruction;
+        const Utf8               ptrRelocNaturalValue   = instructionRelocation && isPtrRelocInstruction ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
+        auto                     natural                = naturalInstruction(inst, ops, regPrintMode, encoder, ptrRelocNaturalValue);
         std::optional<Utf8>      naturalJumpTargetIndex;
         std::unordered_set<Utf8> concreteRegs;
         std::unordered_set<Utf8> virtualRegs;
@@ -1328,6 +1348,9 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::LoadRegImm:
             case MicroInstrOpcode::LoadRegPtrImm:
+                appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder, false);
+                break;
+
             case MicroInstrOpcode::LoadRegPtrReloc:
                 appendRegImmBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder, hasImmediateRelocation);
                 break;
@@ -1491,7 +1514,8 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         padLeftColumnToWidth(out, leftColumnStart, K_NATURAL_COLUMN_WIDTH);
         appendColumnSeparator(out, ctx);
         appendNaturalColumn(out, ctx, natural, concreteRegs, virtualRegs, naturalJumpTargetIndex);
-        appendInstructionRelocationOrigin(out, ctx, instructionRelocation);
+        if (!(instructionRelocation && isPtrRelocInstruction))
+            appendInstructionRelocationOrigin(out, ctx, instructionRelocation);
         out += '\n';
     }
 

@@ -50,6 +50,31 @@
 
 #test
 {
+    var text: string = "AB"
+    foreach v, i in text
+    {
+        #assert(#typeof(v) == u8)
+        #assert(#typeof(i) == u64)
+        var x = v
+        var y = i
+    }
+}
+
+#test
+{
+    var arr: [2] s32 = [3, 4]
+    var sl = cast([..] s32) arr
+    foreach v, i in sl
+    {
+        #assert(#typeof(v) == s32)
+        #assert(#typeof(i) == u64)
+        var x = v
+        var y = i
+    }
+}
+
+#test
+{
     foreach v in 12 {} // swc-expected-error {{sema_err_type_not_indexable}}
 }
 

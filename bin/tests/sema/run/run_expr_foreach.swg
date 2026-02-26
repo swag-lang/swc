@@ -83,3 +83,22 @@
     const V = #run foreachNoAlias()
     #assert(V == 3)
 }
+
+#test
+{
+    func foreachStringValueIndex()->u32
+    {
+        var text: string = "ABC"
+        var acc: u32 = 0
+
+        foreach v, i in text
+        {
+            acc += cast(u32) v + cast(u32) i
+        }
+
+        return acc
+    }
+
+    const V = #run foreachStringValueIndex()
+    #assert(V == 201'u32)
+}

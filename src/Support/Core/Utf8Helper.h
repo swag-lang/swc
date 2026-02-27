@@ -2,8 +2,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class TaskContext;
-
 namespace Utf8Helper
 {
     std::tuple<const char8_t*, char32_t, uint32_t> decodeOneChar(const char8_t* cur, const char8_t* end);
@@ -21,7 +19,6 @@ namespace Utf8Helper
     std::string_view trimRight(std::string_view s);
     std::string_view trim(std::string_view s);
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
-    uint32_t         countLeadingBlanks(const TaskContext& ctx, std::string_view s, uint32_t upto);
     Utf8             addArticleAAn(std::string_view s);
 }
 

@@ -12,33 +12,33 @@ Utf8 LogSymbolHelper::toString(const TaskContext& ctx, LogSymbol symbol)
     switch (symbol)
     {
         case LogSymbol::VerticalLine:
-            return ascii ? "|" : "│";
+            return ascii ? "|" : "\xE2\x94\x82";
         case LogSymbol::VerticalLineDot:
-            return ascii ? "|" : "┆";
+            return ascii ? "|" : "\xE2\x94\x86";
         case LogSymbol::VerticalLineUp:
-            return ascii ? "|" : "╵";
+            return ascii ? "|" : "\xE2\x95\xB5";
         case LogSymbol::DotCenter:
-            return ascii ? "." : "·";
+            return ascii ? "." : "\xC2\xB7";
         case LogSymbol::DotList:
-            return ascii ? "*" : "•";
+            return ascii ? "*" : "\xE2\x80\xA2";
         case LogSymbol::Cross:
-            return ascii ? "X" : "✖";
+            return ascii ? "X" : "\xE2\x9C\x96";
         case LogSymbol::HorizontalLine:
-            return ascii ? "-" : "─";
+            return ascii ? "-" : "\xE2\x94\x80";
         case LogSymbol::HorizontalLine2:
-            return ascii ? "=" : "═";
+            return ascii ? "=" : "\xE2\x95\x90";
         case LogSymbol::HorizontalLineMidVert:
-            return ascii ? "-" : "┬";
+            return ascii ? "-" : "\xE2\x94\xAC";
         case LogSymbol::HorizontalLine2MidVert:
-            return ascii ? "=" : "╤";
+            return ascii ? "=" : "\xE2\x95\xA4";
         case LogSymbol::DownRight:
-            return ascii ? "|" : "└";
+            return ascii ? "|" : "\xE2\x94\x94";
         case LogSymbol::DownLeft:
-            return ascii ? "|" : "┘";
+            return ascii ? "|" : "\xE2\x94\x98";
         case LogSymbol::UpRight:
-            return ascii ? "|" : "┌";
+            return ascii ? "|" : "\xE2\x94\x8C";
         case LogSymbol::RightDown:
-            return ascii ? "|" : "┐";
+            return ascii ? "|" : "\xE2\x94\x90";
         case LogSymbol::Underline:
             return "^";
     }

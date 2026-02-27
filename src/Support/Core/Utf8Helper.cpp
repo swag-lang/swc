@@ -1,8 +1,5 @@
 #include "pch.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Compiler/Lexer/LangSpec.h"
-#include "Main/Global.h"
-#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -149,7 +146,7 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     if (seconds < MILLISECOND)
     {
         auto us = static_cast<size_t>(seconds / MICROSECOND);
-        return std::format("{} µs", us);
+        return std::format("{} us", us);
     }
 
     // Milliseconds (< 1s)
@@ -307,20 +304,6 @@ Utf8 Utf8Helper::substrChars(std::string_view s, uint32_t charStart, uint32_t ch
     if (endByte == Utf8::npos)
         endByte = s.size();
     return Utf8{s.substr(startByte, endByte - startByte)};
-}
-
-uint32_t Utf8Helper::countLeadingBlanks(const TaskContext& ctx, std::string_view s, uint32_t upto)
-{
-    // Count spaces and tabs only; extend if you want more Unicode categories.
-    uint32_t       i = 0;
-    const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(s.length()), upto);
-    while (i < n)
-    {
-        if (!ctx.global().langSpec().isBlank(s[i]))
-            break;
-        ++i;
-    }
-    return i;
 }
 
 Utf8 Utf8Helper::addArticleAAn(std::string_view s)

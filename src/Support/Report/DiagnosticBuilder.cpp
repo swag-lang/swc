@@ -64,6 +64,20 @@ namespace
     {
         return static_cast<uint32_t>(std::to_string(n).size());
     }
+
+    uint32_t countLeadingBlanks(std::string_view s, uint32_t upto)
+    {
+        uint32_t       i = 0;
+        const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(s.length()), upto);
+        while (i < n)
+        {
+            if (s[i] != ' ' && s[i] != '\t')
+                break;
+            ++i;
+        }
+
+        return i;
+    }
 }
 
 DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
@@ -577,7 +591,7 @@ void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
     if (addPrefix && underlineStart0 > 0)
     {
         // Only trim blanks strictly before the underline, so we never shift the token itself.
-        ltrim = Utf8Helper::countLeadingBlanks(*ctx_, provisional, underlineStart0);
+        ltrim = countLeadingBlanks(provisional, underlineStart0);
         if (ltrim > 0)
         {
             windowStart += ltrim;

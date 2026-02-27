@@ -53,8 +53,6 @@ void CommandLineParser::setReportArguments(Diagnostic& diag, const Utf8& arg)
 void CommandLineParser::setReportArguments(Diagnostic& diag, const ArgInfo& info, const Utf8& arg)
 {
     setReportArguments(diag, arg);
-    diag.addArgument(Diagnostic::ARG_ARG, arg);
-    diag.addArgument(Diagnostic::ARG_COMMAND, command_);
     diag.addArgument(Diagnostic::ARG_LONG, info.longForm);
     diag.addArgument(Diagnostic::ARG_SHORT, info.shortForm);
     diag.addArgument(Diagnostic::ARG_VALUES, info.enumValues);

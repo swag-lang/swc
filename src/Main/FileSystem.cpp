@@ -182,33 +182,4 @@ Utf8 FileSystem::normalizeSystemMessage(std::error_code ec)
     return normalizeSystemMessage(ec.message());
 }
 
-void FileSystem::collectSwagFilesRec(const TaskContext& ctx, const fs::path& folder, std::vector<fs::path>& files, bool canFilter)
-{
-    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(folder))
-    {
-        if (!entry.is_regular_file())
-            continue;
-        const std::string ext = entry.path().extension().string();
-        if (ext != ".swg" && ext != ".swgs")
-            continue;
-
-        if (canFilter)
-        {
-            bool ignore = false;
-            for (const Utf8& filter : ctx.cmdLine().fileFilter)
-            {
-                if (!entry.path().string().contains(filter))
-                {
-                    ignore = true;
-                    break;
-                }
-            }
-            if (ignore)
-                continue;
-        }
-
-        files.push_back(entry.path());
-    }
-}
-
 SWC_END_NAMESPACE();

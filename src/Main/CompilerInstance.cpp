@@ -91,10 +91,54 @@ namespace
             buildCfg.backend.optimize = cmdLine.backendOptimize.value();
     }
 
+    void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true)
+    {
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(folder, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+            {
+                ec.clear();
+                continue;
+            }
+
+            const fs::directory_entry& entry = *it;
+            if (!entry.is_regular_file(ec))
+            {
+                ec.clear();
+                continue;
+            }
+
+            const fs::path&   path = entry.path();
+            const std::string ext  = path.extension().string();
+            if (ext != ".swg" && ext != ".swgs")
+                continue;
+
+            if (canFilter && !cmdLine.fileFilter.empty())
+            {
+                const std::string pathString = path.string();
+                bool              ignore     = false;
+                for (const Utf8& filter : cmdLine.fileFilter)
+                {
+                    if (!pathString.contains(filter))
+                    {
+                        ignore = true;
+                        break;
+                    }
+                }
+
+                if (ignore)
+                    continue;
+            }
+
+            files.push_back(path);
+        }
+    }
+
     const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
     {
         SWC_ASSERT(owner != nullptr);
-        return nullptr;
+        return &owner->runtimeCompilerMessage();
     }
 
     Runtime::BuildCfg* runtimeCompilerGetBuildCfg(CompilerInstance* owner)
@@ -337,7 +381,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     for (const fs::path& folder : cmdLine.directories)
     {
         paths.clear();
-        FileSystem::collectSwagFilesRec(ctx, folder, paths);
+        collectSwagFilesRec(cmdLine, folder, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const fs::path& f : paths)
@@ -363,7 +407,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         modulePathSrc_ = cmdLine.modulePath / "src";
         SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, modulePathSrc_));
         paths.clear();
-        FileSystem::collectSwagFilesRec(ctx, modulePathSrc_, paths);
+        collectSwagFilesRec(cmdLine, modulePathSrc_, paths);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const fs::path& f : paths)
@@ -376,7 +420,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         fs::path runtimePath = exeFullName_.parent_path() / "Runtime";
         SWC_RESULT_VERIFY(FileSystem::resolveFolder(ctx, runtimePath));
         paths.clear();
-        FileSystem::collectSwagFilesRec(ctx, runtimePath, paths, false);
+        collectSwagFilesRec(cmdLine, runtimePath, paths, false);
         if (cmdLine.numCores == 1)
             std::ranges::sort(paths);
         for (const fs::path& f : paths)

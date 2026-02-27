@@ -286,51 +286,6 @@ namespace
                op == MicroOp::MultiplyUnsigned;
     }
 
-    bool isOneOf(MicroReg reg, std::span<const MicroReg> regs)
-    {
-        for (const MicroReg value : regs)
-        {
-            if (value == reg)
-                return true;
-        }
-
-        return false;
-    }
-
-    MicroReg selectRewriteHelperReg(std::span<const MicroReg> avoidRegs)
-    {
-        static constexpr X64Reg CANDIDATES[] = {
-            X64Reg::Rax,
-            X64Reg::Rbx,
-            X64Reg::Rdx,
-            X64Reg::Rsi,
-            X64Reg::Rdi,
-            X64Reg::R8,
-            X64Reg::R9,
-            X64Reg::R10,
-            X64Reg::R11,
-            X64Reg::R12,
-            X64Reg::R13,
-            X64Reg::R14,
-            X64Reg::R15,
-        };
-
-        for (const X64Reg candidate : CANDIDATES)
-        {
-            const MicroReg candidateReg = x64RegToMicroReg(candidate);
-            if (!isOneOf(candidateReg, avoidRegs))
-                return candidateReg;
-        }
-
-        return MicroReg::invalid();
-    }
-
-    MicroReg selectRegImmRewriteScratchReg(MicroReg dstReg)
-    {
-        const std::array avoidRegs = {dstReg};
-        return selectRewriteHelperReg(avoidRegs);
-    }
-
     uint8_t getRex(bool w, bool r, bool x, bool b)
     {
         uint8_t rex = 0x40;
@@ -782,12 +737,9 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
             {
-                const std::array avoidRegs = {rcxReg, ops[0].reg, ops[1].reg};
-                outIssue.kind              = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
-                outIssue.operandIndex      = 1;
-                outIssue.requiredReg       = rcxReg;
-                outIssue.helperReg         = selectRewriteHelperReg(avoidRegs);
-                SWC_ASSERT(outIssue.helperReg.isValid());
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 1;
+                outIssue.requiredReg  = rcxReg;
                 return true;
             }
         }
@@ -804,7 +756,6 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
                 outIssue.operandIndex = 0;
                 outIssue.requiredReg  = raxReg;
-                outIssue.helperReg    = x64RegToMicroReg(X64Reg::Rcx);
                 return true;
             }
 
@@ -813,7 +764,6 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
                 outIssue.operandIndex = 1;
                 outIssue.forbiddenReg = rdxReg;
-                outIssue.scratchReg   = x64RegToMicroReg(X64Reg::Rcx);
                 return true;
             }
         }
@@ -877,9 +827,14 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         if (requiresRegImmRewrite(ops[2].microOp))
         {
-            outIssue.kind       = MicroConformanceIssueKind::RewriteRegImmToRegReg;
-            outIssue.scratchReg = selectRegImmRewriteScratchReg(ops[0].reg);
-            SWC_ASSERT(outIssue.scratchReg.isValid());
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            if (ops[2].microOp == MicroOp::DivideUnsigned ||
+                ops[2].microOp == MicroOp::DivideSigned ||
+                ops[2].microOp == MicroOp::ModuloUnsigned ||
+                ops[2].microOp == MicroOp::ModuloSigned)
+            {
+                outIssue.forbiddenReg = x64RegToMicroReg(X64Reg::Rdx);
+            }
             return true;
         }
 
@@ -914,9 +869,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         const bool immediateIsEncodable = !ops[2].hasWideImmediateValue() ? canEncodeOpImmediate(ops[2].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[2].wideImmediateValue(), ops[1].opBits);
         if (!immediateIsEncodable)
         {
-            outIssue.kind       = MicroConformanceIssueKind::RewriteRegImmToRegReg;
-            outIssue.scratchReg = selectRegImmRewriteScratchReg(ops[0].reg);
-            SWC_ASSERT(outIssue.scratchReg.isValid());
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             return true;
         }
     }
@@ -938,10 +891,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
         if (!immediateIsEncodable)
         {
-            const std::array avoidRegs = {ops[0].reg};
-            outIssue.kind              = MicroConformanceIssueKind::RewriteRegImmToRegReg;
-            outIssue.scratchReg        = selectRewriteHelperReg(avoidRegs);
-            SWC_ASSERT(outIssue.scratchReg.isValid());
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
             return true;
         }
     }

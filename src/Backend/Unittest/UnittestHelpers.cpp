@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Report/Logger.h"
 #endif
 
@@ -75,10 +76,13 @@ namespace Backend::Unittest
         MicroBuilder builder(ctx);
         fn(builder);
 
-        MicroLegalizePass legalizePass;
-        MicroEmitPass     encodePass;
-        MicroPassManager  passes;
+        MicroRegisterAllocationPass regAllocPass;
+        MicroLegalizePass           legalizePass;
+        MicroEmitPass               encodePass;
+        MicroPassManager            passes;
+        passes.add(regAllocPass);
         passes.add(legalizePass);
+        passes.add(regAllocPass);
         passes.add(encodePass);
 
         MicroPassContext passCtx;

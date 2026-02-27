@@ -87,6 +87,7 @@ public:
     void                                addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, std::span<const MicroReg> forbiddenRegs);
     bool                                isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
     bool                                isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
+    uint32_t                            nextVirtualIntRegIndexHint() const;
 
     Result runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context);
 

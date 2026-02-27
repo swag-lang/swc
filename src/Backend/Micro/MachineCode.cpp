@@ -38,6 +38,7 @@ namespace
     {
         passManager.addMandatory(regAllocPass);
         passManager.addMandatory(legalizePass);
+        passManager.addMandatory(regAllocPass);
     }
 
     void registerLateOptimizationFinalPasses(MicroPassManager& passManager, const Runtime::BuildCfgBackend& backendCfg, const MicroOptimizationPasses& passes)
@@ -60,6 +61,7 @@ namespace
                              const Runtime::BuildCfgBackend& backendCfg,
                              const MicroOptimizationPasses&  optimizationPasses,
                              MicroPrologEpilogPass&          prologEpilogPass,
+                             MicroRegisterAllocationPass&    regAllocPass,
                              MicroLegalizePass&              legalizePass,
                              MicroEmitPass&                  emitPass)
     {
@@ -79,6 +81,7 @@ namespace
             passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.branchFoldingPass));
             passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
         }
+        passManager.addFinal(regAllocPass);
         passManager.addFinal(emitPass);
     }
 
@@ -183,7 +186,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     MicroPassManager passManager;
     registerOptimizationPasses(passManager, builder.backendBuildCfg(), optimizationPasses);
     registerMandatoryPasses(passManager, regAllocPass, legalizePass);
-    registerFinalPasses(passManager, builder.backendBuildCfg(), optimizationPasses, prologEpilogPass, legalizePass, emitPass);
+    registerFinalPasses(passManager, builder.backendBuildCfg(), optimizationPasses, prologEpilogPass, regAllocPass, legalizePass, emitPass);
 
 #if SWC_HAS_STATS
     const size_t numMicroInstrNoOptim    = builder.instructions().count();

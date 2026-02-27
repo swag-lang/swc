@@ -181,6 +181,26 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg
     return false;
 }
 
+uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
+{
+    uint32_t nextIndex = 1;
+    for (const auto& it : virtualRegForbiddenPhysRegs_)
+    {
+        const uint32_t virtualRegKey = it.first;
+        MicroReg       reg;
+        reg.packed = virtualRegKey;
+        if (!reg.isVirtualInt())
+            continue;
+
+        if (reg.index() < MicroReg::K_MAX_INDEX)
+            nextIndex = std::max(nextIndex, reg.index() + 1);
+        else
+            return MicroReg::K_MAX_INDEX;
+    }
+
+    return nextIndex;
+}
+
 void MicroBuilder::emitPush(MicroReg reg)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::Push, 1);

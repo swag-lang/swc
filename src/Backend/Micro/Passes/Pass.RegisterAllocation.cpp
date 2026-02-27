@@ -77,6 +77,7 @@ namespace
         bool     hasControlFlow   = false;
 
         std::vector<std::vector<uint32_t>>                  liveOut;
+        std::vector<std::vector<uint32_t>>                  concreteLiveOut;
         std::unordered_set<uint32_t>                        vregsLiveAcrossCall;
         std::unordered_map<uint32_t, std::vector<uint32_t>> usePositions;
 
@@ -92,6 +93,7 @@ namespace
         std::unordered_map<uint32_t, MicroReg>  mapping;
         std::unordered_map<uint32_t, uint32_t>  physToVirt;
         std::unordered_map<uint32_t, uint32_t>  liveStamp;
+        std::unordered_map<uint32_t, uint32_t>  concreteLiveStamp;
         std::unordered_set<uint32_t>            callSpillVregs;
     };
 
@@ -118,6 +120,17 @@ namespace
     {
         const auto it = state.liveStamp.find(key);
         if (it == state.liveStamp.end())
+            return false;
+        return it->second == stamp;
+    }
+
+    bool isConcreteLiveOut(const PassState& state, MicroReg reg, uint32_t stamp)
+    {
+        if (!reg.isInt() && !reg.isFloat())
+            return false;
+
+        const auto it = state.concreteLiveStamp.find(reg.packed);
+        if (it == state.concreteLiveStamp.end())
             return false;
         return it->second == stamp;
     }
@@ -152,13 +165,20 @@ namespace
         return state.context->builder->isVirtualRegPhysRegForbidden(virtKey, physReg);
     }
 
-    bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool, const PassState& state, uint32_t virtKey, MicroReg& outPhys)
+    bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool,
+                                const PassState&       state,
+                                uint32_t               virtKey,
+                                uint32_t               stamp,
+                                bool                   allowConcreteLive,
+                                MicroReg&              outPhys)
     {
         for (size_t index = pool.size(); index > 0; --index)
         {
             const size_t candidateIndex = index - 1;
             const auto   candidateReg   = pool[candidateIndex];
             if (isPhysRegForbiddenForVirtual(state, virtKey, candidateReg))
+                continue;
+            if (!allowConcreteLive && isConcreteLiveOut(state, candidateReg, stamp))
                 continue;
 
             outPhys = candidateReg;
@@ -213,39 +233,53 @@ namespace
         // Backward liveness: capture live-outset per instruction and detect values live across calls.
         state.liveOut.clear();
         state.liveOut.resize(state.instructionCount);
+        state.concreteLiveOut.clear();
+        state.concreteLiveOut.resize(state.instructionCount);
         state.vregsLiveAcrossCall.clear();
 
-        std::unordered_set<uint32_t> live;
-        live.reserve(state.instructionCount * 2ull);
+        std::unordered_set<uint32_t> liveVirtual;
+        std::unordered_set<uint32_t> liveConcrete;
+        liveVirtual.reserve(state.instructionCount * 2ull);
+        liveConcrete.reserve(state.instructionCount * 2ull);
 
         uint32_t idx = state.instructionCount;
         for (const auto& inst : std::ranges::reverse_view(state.instructions->view()))
         {
             --idx;
 
-            auto& out = state.liveOut[idx];
-            out.clear();
-            out.reserve(live.size());
-            for (const uint32_t regKey : live)
-                out.push_back(regKey);
+            auto& outVirtual = state.liveOut[idx];
+            outVirtual.clear();
+            outVirtual.reserve(liveVirtual.size());
+            for (const uint32_t regKey : liveVirtual)
+                outVirtual.push_back(regKey);
+
+            auto& outConcrete = state.concreteLiveOut[idx];
+            outConcrete.clear();
+            outConcrete.reserve(liveConcrete.size());
+            for (const uint32_t regKey : liveConcrete)
+                outConcrete.push_back(regKey);
 
             const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
             if (useDef.isCall)
             {
-                for (const auto regKey : live)
+                for (const auto regKey : liveVirtual)
                     state.vregsLiveAcrossCall.insert(regKey);
             }
 
             for (const auto& reg : useDef.defs)
             {
                 if (reg.isVirtual())
-                    live.erase(reg.packed);
+                    liveVirtual.erase(reg.packed);
+                else if (reg.isInt() || reg.isFloat())
+                    liveConcrete.erase(reg.packed);
             }
 
             for (const auto& reg : useDef.uses)
             {
                 if (reg.isVirtual())
-                    live.insert(reg.packed);
+                    liveVirtual.insert(reg.packed);
+                else if (reg.isInt() || reg.isFloat())
+                    liveConcrete.insert(reg.packed);
             }
         }
     }
@@ -439,6 +473,7 @@ namespace
                                  bool                      fromPersistentPool,
                                  std::span<const uint32_t> protectedKeys,
                                  uint32_t                  stamp,
+                                 bool                      allowConcreteLive,
                                  uint32_t&                 outVirtKey,
                                  MicroReg&                 outPhys)
     {
@@ -467,6 +502,8 @@ namespace
 
             if (isPhysRegForbiddenForVirtual(state, requestVirtKey, physReg))
                 continue;
+            if (!allowConcreteLive && isConcreteLiveOut(state, physReg, stamp))
+                continue;
 
             if (isCandidateBetter(state, virtKey, physReg, outVirtKey, outPhys, instructionIndex, stamp))
             {
@@ -478,14 +515,23 @@ namespace
         return outPhys.isValid();
     }
 
-    bool tryTakeFreePhysical(PassState& state, const AllocRequest& request, MicroReg& outPhys)
+    bool tryTakeFreePhysical(PassState&          state,
+                             const AllocRequest& request,
+                             uint32_t            stamp,
+                             bool                allowConcreteLive,
+                             MicroReg&           outPhys)
     {
         if (request.virtReg.isVirtualInt())
         {
             if (request.needsPersistent)
-                return tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, outPhys);
+            {
+                if (tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, stamp, allowConcreteLive, outPhys))
+                    return true;
 
-            if (tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, outPhys))
+                return tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys);
+            }
+
+            if (tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys))
                 return true;
 
             return false;
@@ -494,9 +540,14 @@ namespace
         SWC_ASSERT(request.virtReg.isVirtualFloat());
 
         if (request.needsPersistent)
-            return tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, outPhys);
+        {
+            if (tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, stamp, allowConcreteLive, outPhys))
+                return true;
 
-        if (tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, outPhys))
+            return tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys);
+        }
+
+        if (tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys))
             return true;
 
         return false;
@@ -536,7 +587,7 @@ namespace
     {
         // Prefer free registers; otherwise evict one candidate and spill if needed.
         MicroReg physReg;
-        if (tryTakeFreePhysical(state, request, physReg))
+        if (tryTakeFreePhysical(state, request, stamp, false, physReg))
             return physReg;
 
         uint32_t victimKey = 0;
@@ -546,14 +597,13 @@ namespace
 
         if (request.needsPersistent)
         {
-            SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
+            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, false, victimKey, victimReg))
+                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, false, victimKey, victimReg));
         }
         else
         {
-            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, victimKey, victimReg))
-            {
-                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, victimKey, victimReg));
-            }
+            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, false, victimKey, victimReg))
+                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, false, victimKey, victimReg));
         }
 
         auto&      victimState   = state.states[victimKey];
@@ -667,6 +717,8 @@ namespace
         // 3) release dead mappings.
         state.liveStamp.clear();
         state.liveStamp.reserve(state.instructionCount * 2ull);
+        state.concreteLiveStamp.clear();
+        state.concreteLiveStamp.reserve(state.instructionCount * 2ull);
 
         uint32_t                                   stamp      = 1;
         uint32_t                                   idx        = 0;
@@ -679,6 +731,7 @@ namespace
             if (stamp == std::numeric_limits<uint32_t>::max())
             {
                 state.liveStamp.clear();
+                state.concreteLiveStamp.clear();
                 stamp = 1;
             }
             ++stamp;
@@ -694,6 +747,8 @@ namespace
 
             for (const auto key : state.liveOut[idx])
                 state.liveStamp[key] = stamp;
+            for (const auto key : state.concreteLiveOut[idx])
+                state.concreteLiveStamp[key] = stamp;
 
             const MicroInstrRef instructionRef = it.current;
 
@@ -746,6 +801,9 @@ namespace
 
                 const auto physReg        = assignVirtReg(state, request, protectedKeys, stamp, stackDepth, pending);
                 *SWC_NOT_NULL(regRef.reg) = physReg;
+
+                if (liveAcrossCall && !isPersistentPhysReg(state, physReg))
+                    state.callSpillVregs.insert(request.virtKey);
 
                 if (request.isDef)
                     state.states[request.virtKey].dirty = true;

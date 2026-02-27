@@ -83,3 +83,53 @@
     var arr: [1] s32 = [1]
     foreach v in arr where s32 {} // swc-expected-error {{sema_err_not_value_expr}}
 }
+
+#test
+{
+    func foreachVariadicAny(values: ...)
+    {
+        foreach v, i in values
+        {
+            #assert(#typeof(v) == any)
+            #assert(#typeof(i) == u64)
+            var x = v
+            var y = i
+        }
+    }
+}
+
+#test
+{
+    func foreachVariadicTyped(values: s32...)
+    {
+        foreach v, i in values
+        {
+            #assert(#typeof(v) == s32)
+            #assert(#typeof(i) == u64)
+            var x = v
+            var y = i
+        }
+    }
+}
+
+#test
+{
+    func foreachVariadicAnyErr(values: ...)
+    {
+        foreach v in values
+        {
+            #assert(#typeof(v) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+        }
+    }
+}
+
+#test
+{
+    func foreachVariadicTypedErr(values: s32...)
+    {
+        foreach v, i in values
+        {
+            #assert(#typeof(i) == s32) // swc-expected-error {{sema_err_compiler_assert}}
+        }
+    }
+}

@@ -1,5 +1,12 @@
 #global fileprivate
 
+struct ForeachVariadicPayload
+{
+    arr: [3] s32
+    flag: bool
+    tag: u8
+}
+
 #test
 {
     func foreachArrayValueIndex()->s32
@@ -140,4 +147,61 @@
 
     const V = #run foreachSliceWeighted()
     #assert(V == 70)
+}
+
+#test
+{
+    func foreachUntypedVariadic(values: ...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            let p = cast(*s32) @dataof(v)
+            acc += dref p + cast(s32) i
+        }
+
+        return acc
+    }
+
+    const V = #run foreachUntypedVariadic(3's32, 4's32, 5's32)
+    #assert(V == 15)
+}
+
+#test
+{
+    func foreachTypedVariadic(values: s32...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            acc += v * cast(s32) (i + 1)
+        }
+
+        return acc
+    }
+
+    const V = #run foreachTypedVariadic(2, 3, 4)
+    #assert(V == 20)
+}
+
+#test
+{
+    func foreachTypedVariadicPayload(values: ForeachVariadicPayload...)->u64
+    {
+        var acc: u64 = 0
+
+        foreach v, i in values
+        {
+            acc += cast(u64) v.arr[0] + cast(u64) v.arr[2] + cast(u64) v.flag + cast(u64) v.tag + i
+        }
+
+        return acc
+    }
+
+    const p0: ForeachVariadicPayload = {arr: [7, 8, 9], flag: true, tag: 2'u8}
+    const p1: ForeachVariadicPayload = {arr: [1, 2, 3], flag: false, tag: 4'u8}
+    const V = #run foreachTypedVariadicPayload(p0, p1)
+    #assert(V == 28'u64)
 }

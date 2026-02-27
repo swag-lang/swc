@@ -151,7 +151,6 @@ namespace
             return sourcePayload.reg;
 
         const uint64_t sizeOfValue = sourceType.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOfValue > 0);
         if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
             return sourcePayload.reg;
 

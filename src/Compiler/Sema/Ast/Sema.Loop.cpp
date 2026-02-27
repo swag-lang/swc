@@ -150,6 +150,12 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
                 symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
                 symVar.setTypeRef(i == 0 ? valueTypeRef : indexTypeRef);
+                if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+                {
+                    const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
+                    SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+                    currentFunc->addLocalVariable(sema.ctx(), &symVar);
+                }
                 symVar.setTyped(sema.ctx());
                 symVar.setSemaCompleted(sema.ctx());
                 symbols.push_back(&symVar);

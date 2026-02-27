@@ -35,6 +35,17 @@ namespace PeepholePass
             return containsReg(useDef.uses, reg) || containsReg(useDef.defs, reg);
         }
 
+        template<size_t N>
+        bool wouldConformEncoder(const MicroPassContext& context, MicroInstrOpcode opcode, const std::array<MicroInstrOperand, N>& ops)
+        {
+            static_assert(N <= std::numeric_limits<uint8_t>::max());
+
+            MicroInstr probeInst;
+            probeInst.op          = opcode;
+            probeInst.numOperands = static_cast<uint8_t>(N);
+            return !MicroOptimization::violatesEncoderConformance(context, probeInst, ops.data());
+        }
+
         uint32_t opBitsNumBytes(const MicroOpBits opBits)
         {
             switch (opBits)
@@ -462,23 +473,10 @@ namespace PeepholePass
             newOps[3].valueU64 = offset;
             newOps[4]          = opOps[3];
 
-            const MicroInstrRef newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), opRef, MicroInstrOpcode::OpBinaryMemImm, newOps);
-            const MicroInstr*   newInst = instructions->ptr(newRef);
-            if (!newInst)
+            if (!wouldConformEncoder(context, MicroInstrOpcode::OpBinaryMemImm, newOps))
                 return false;
 
-            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-            if (!newInstOps)
-            {
-                instructions->erase(newRef);
-                return false;
-            }
-
-            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-            {
-                instructions->erase(newRef);
-                return false;
-            }
+            instructions->insertBefore(*SWC_NOT_NULL(context.operands), opRef, MicroInstrOpcode::OpBinaryMemImm, newOps);
 
             instructions->erase(loadIt.current);
             instructions->erase(opRef);
@@ -701,23 +699,10 @@ namespace PeepholePass
             newOps[3].microOp  = nextOps[3].microOp;
             newOps[4].valueU64 = ops[3].valueU64;
 
-            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
-            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
-            if (!newInst)
+            if (!wouldConformEncoder(context, MicroInstrOpcode::OpBinaryRegMem, newOps))
                 return false;
 
-            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-            if (!newInstOps)
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
-            }
-
-            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
-            }
+            SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), nextIt.current, MicroInstrOpcode::OpBinaryRegMem, newOps);
 
             SWC_NOT_NULL(context.instructions)->erase(instRef);
             SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
@@ -793,26 +778,10 @@ namespace PeepholePass
                 return false;
             }
 
-            const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), instRef, newOpcode, newOps);
-            const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
-            if (!newInst)
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
+            if (!wouldConformEncoder(context, newOpcode, newOps))
                 return false;
-            }
 
-            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-            if (!newInstOps)
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
-            }
-
-            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-            {
-                SWC_NOT_NULL(context.instructions)->erase(newRef);
-                return false;
-            }
+            SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), instRef, newOpcode, newOps);
 
             SWC_NOT_NULL(context.instructions)->erase(instRef);
             SWC_NOT_NULL(context.instructions)->erase(nextIt.current);
@@ -893,26 +862,10 @@ namespace PeepholePass
                 return false;
             }
 
-            const MicroInstrRef newRef  = instructions->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
-            const MicroInstr*   newInst = instructions->ptr(newRef);
-            if (!newInst)
-            {
-                instructions->erase(newRef);
+            if (!wouldConformEncoder(context, newOpcode, newOps))
                 return false;
-            }
 
-            const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-            if (!newInstOps)
-            {
-                instructions->erase(newRef);
-                return false;
-            }
-
-            if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-            {
-                instructions->erase(newRef);
-                return false;
-            }
+            instructions->insertBefore(*SWC_NOT_NULL(context.operands), storeRef, newOpcode, newOps);
 
             instructions->erase(prevPrevRef);
             instructions->erase(prevRef);
@@ -963,23 +916,10 @@ namespace PeepholePass
                     newOps[2].valueU64 = memOffset;
                     newOps[3].setImmediateValue(ApInt(scanOps[2].valueU64, getNumBits(scanOps[1].opBits)));
 
-                    const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::CmpMemImm, newOps);
-                    const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
-                    if (!newInst)
+                    if (!wouldConformEncoder(context, MicroInstrOpcode::CmpMemImm, newOps))
                         return false;
 
-                    const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-                    if (!newInstOps)
-                    {
-                        SWC_NOT_NULL(context.instructions)->erase(newRef);
-                        return false;
-                    }
-
-                    if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-                    {
-                        SWC_NOT_NULL(context.instructions)->erase(newRef);
-                        return false;
-                    }
+                    SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::CmpMemImm, newOps);
 
                     SWC_NOT_NULL(context.instructions)->erase(instRef);
                     SWC_NOT_NULL(context.instructions)->erase(scanIt.current);
@@ -1698,26 +1638,10 @@ namespace PeepholePass
                 newOps[6].valueU64 = combinedAdd;
                 newOps[7].valueU64 = 0;
 
-                const MicroInstrRef newRef  = SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
-                const MicroInstr*   newInst = SWC_NOT_NULL(context.instructions)->ptr(newRef);
-                if (!newInst)
-                {
-                    SWC_NOT_NULL(context.instructions)->erase(newRef);
+                if (!wouldConformEncoder(context, MicroInstrOpcode::LoadAmcRegMem, newOps))
                     return false;
-                }
 
-                const MicroInstrOperand* newInstOps = newInst->ops(*SWC_NOT_NULL(context.operands));
-                if (!newInstOps)
-                {
-                    SWC_NOT_NULL(context.instructions)->erase(newRef);
-                    return false;
-                }
-
-                if (MicroOptimization::violatesEncoderConformance(context, *newInst, newInstOps))
-                {
-                    SWC_NOT_NULL(context.instructions)->erase(newRef);
-                    return false;
-                }
+                SWC_NOT_NULL(context.instructions)->insertBefore(*SWC_NOT_NULL(context.operands), scanIt.current, MicroInstrOpcode::LoadAmcRegMem, newOps);
 
                 SWC_NOT_NULL(context.instructions)->erase(instRef);
                 SWC_NOT_NULL(context.instructions)->erase(scanIt.current);

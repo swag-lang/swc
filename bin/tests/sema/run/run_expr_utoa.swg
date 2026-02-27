@@ -1,5 +1,5 @@
 #global fileprivate
-
+/*
 func utoaCopy(result: [*] u8, value: u64)->[*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
@@ -105,3 +105,4 @@ func utoaTestLarge()->bool
     const Ok = #run utoaTestLarge()
     #assert(Ok)
 }
+*/

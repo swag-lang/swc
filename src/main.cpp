@@ -41,7 +41,7 @@ namespace
 
     void printFatalProcessMessage(const char* title)
     {
-        std::fprintf(stderr, "%s\n", title);
+        std::println(stderr, "{}", title);
         std::fflush(stderr);
     }
 
@@ -66,7 +66,7 @@ namespace
         swc::HardwareException::appendField(msg, "address", std::format("0x{:016X}", reinterpret_cast<uint64_t>(exceptionAddress)));
         swc::HardwareException::appendSectionHeader(msg, "cpu context");
         swc::Os::appendHostCpuContext(msg, exceptionPointers);
-        std::fprintf(stderr, "%s", msg.c_str());
+        std::print(stderr, "{}", msg.c_str());
         std::fflush(stderr);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

@@ -54,20 +54,7 @@ namespace
 
     int onUnhandledHostException(const void* exceptionPointers)
     {
-        uint32_t    exceptionCode    = 0;
-        const void* exceptionAddress = nullptr;
-        swc::Os::decodeHostException(exceptionCode, exceptionAddress, exceptionPointers);
-
-        swc::Utf8 msg;
-        msg += "fatal error: unhandled host exception\n";
-        swc::HardwareException::appendSectionHeader(msg, "host");
-        swc::HardwareException::appendField(msg, "backend", swc::Os::hostExceptionBackendName());
-        swc::HardwareException::appendField(msg, "code", std::format("0x{:08X}", exceptionCode));
-        swc::HardwareException::appendField(msg, "address", std::format("0x{:016X}", reinterpret_cast<uint64_t>(exceptionAddress)));
-        swc::HardwareException::appendSectionHeader(msg, "cpu context");
-        swc::Os::appendHostCpuContext(msg, exceptionPointers);
-        std::print(stderr, "{}", msg.c_str());
-        std::fflush(stderr);
+        swc::HardwareException::print("fatal error: unhandled host exception", exceptionPointers);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 }

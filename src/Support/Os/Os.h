@@ -44,9 +44,9 @@ namespace Os
     uint32_t    currentThreadId();
     bool        isHostIllegalInstructionException(uint32_t exceptionCode);
     void        decodeHostException(uint32_t& outExceptionCode, const void*& outExceptionAddress, const void* platformExceptionPointers);
-    void        appendHostExceptionSummary(const TaskContext& ctx, Utf8& outMsg, const void* platformExceptionPointers);
+    void        appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers);
     void        appendHostCpuContext(Utf8& outMsg, const void* platformExceptionPointers);
-    void        appendHostHandlerStack(const TaskContext& ctx, Utf8& outMsg);
+    void        appendHostHandlerStack(Utf8& outMsg, const void* platformExceptionPointers, const TaskContext* ctx = nullptr);
 }
 
 #ifdef _WIN32

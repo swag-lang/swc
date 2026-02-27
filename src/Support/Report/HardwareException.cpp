@@ -27,9 +27,12 @@ namespace
         HardwareException::appendField(outMsg, "function name", function->name(ctx));
     }
 
-    void appendTaskStateGroup(Utf8& outMsg, const TaskContext& ctx)
+    void appendTaskStateGroup(Utf8& outMsg, const TaskContext* ctx)
     {
-        const TaskState& state = ctx.state();
+        if (!ctx)
+            return;
+
+        const TaskState& state = ctx->state();
         HardwareException::appendSectionHeader(outMsg, "task");
         HardwareException::appendField(outMsg, "state", state.kindName());
 
@@ -41,18 +44,18 @@ namespace
             HardwareException::appendField(outMsg, "src view ref", std::format("{}", state.codeRef.srcViewRef.get()));
             HardwareException::appendField(outMsg, "token ref", std::format("{}", state.codeRef.tokRef.get()));
 
-            const SourceView&     srcView    = ctx.compiler().srcView(state.codeRef.srcViewRef);
+            const SourceView&     srcView    = ctx->compiler().srcView(state.codeRef.srcViewRef);
             const Token&          token      = srcView.token(state.codeRef.tokRef);
-            const SourceCodeRange codeRange  = token.codeRange(ctx, srcView);
+            const SourceCodeRange codeRange  = token.codeRange(*ctx, srcView);
             const SourceFile*     sourceFile = srcView.file();
             if (sourceFile)
             {
-                HardwareException::appendField(outMsg, "source", FileSystem::formatFileLocation(&ctx, sourceFile->path(), codeRange.line, codeRange.column));
+                HardwareException::appendField(outMsg, "source", FileSystem::formatFileLocation(ctx, sourceFile->path(), codeRange.line, codeRange.column));
             }
         }
 
-        appendTaskFunction(outMsg, ctx, state.runJitFunction);
-        appendTaskFunction(outMsg, ctx, state.codeGenFunction);
+        appendTaskFunction(outMsg, *ctx, state.runJitFunction);
+        appendTaskFunction(outMsg, *ctx, state.codeGenFunction);
 
         if (state.symbol)
             appendPointerField(outMsg, "symbol ptr", state.symbol);
@@ -61,14 +64,15 @@ namespace
             appendPointerField(outMsg, "waiter symbol ptr", state.waiterSymbol);
     }
 
-    void appendCrashGroup(Utf8& outMsg, const TaskContext& ctx, const void* platformExceptionPointers)
+    void appendCrashGroup(Utf8& outMsg, const TaskContext* ctx, const void* platformExceptionPointers)
     {
         HardwareException::appendSectionHeader(outMsg, "infos");
         HardwareException::appendField(outMsg, "host", std::format("os = {}, cpu = {}, exception backend = {}", Os::hostOsName(), Os::hostCpuName(), Os::hostExceptionBackendName()));
         HardwareException::appendField(outMsg, "process id", std::format("{}", Os::currentProcessId()));
         HardwareException::appendField(outMsg, "thread id", std::format("{}", Os::currentThreadId()));
 #if SWC_DEV_MODE
-        HardwareException::appendField(outMsg, "cmd randomize", std::format("{} (seed {})", ctx.cmdLine().randomize, ctx.cmdLine().randSeed));
+        if (ctx)
+            HardwareException::appendField(outMsg, "cmd randomize", std::format("{} (seed {})", ctx->cmdLine().randomize, ctx->cmdLine().randSeed));
 #endif
         outMsg += "\n";
         Os::appendHostExceptionSummary(ctx, outMsg, platformExceptionPointers);
@@ -83,12 +87,28 @@ namespace
         }
     }
 
-    void appendHostTraceGroup(Utf8& outMsg, const TaskContext& ctx, const void* platformExceptionPointers)
+    void appendHostTraceGroup(Utf8& outMsg, const TaskContext* ctx, const void* platformExceptionPointers)
     {
         HardwareException::appendSectionHeader(outMsg, "cpu context");
         Os::appendHostCpuContext(outMsg, platformExceptionPointers);
         HardwareException::appendSectionHeader(outMsg, "trace");
-        Os::appendHostHandlerStack(ctx, outMsg);
+        Os::appendHostHandlerStack(outMsg, platformExceptionPointers, ctx);
+    }
+
+    void appendTitle(Utf8& outMsg, const TaskContext* ctx, const std::string_view title)
+    {
+        constexpr std::string_view kAnsiBrightRed = "\x1b[91m";
+        constexpr std::string_view kAnsiReset     = "\x1b[0m";
+
+        if (ctx)
+            outMsg += LogColorHelper::toAnsi(*ctx, LogColor::BrightRed);
+        else
+            outMsg += kAnsiBrightRed;
+        outMsg += title;
+        if (ctx)
+            outMsg += LogColorHelper::toAnsi(*ctx, LogColor::Reset);
+        else
+            outMsg += kAnsiReset;
     }
 }
 
@@ -118,20 +138,30 @@ void HardwareException::appendField(Utf8& outMsg, const std::string_view label, 
     outMsg += "\n";
 }
 
-void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
+Utf8 HardwareException::format(const TaskContext* ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
-    const Logger::ScopedLock loggerLock(ctx.global().logger());
-
     Utf8 msg;
-    msg += LogColorHelper::toAnsi(ctx, LogColor::BrightRed);
-    msg += title;
-    msg += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+    appendTitle(msg, ctx, title);
 
     appendContextGroup(msg, extraInfo);
     appendTaskStateGroup(msg, ctx);
     appendCrashGroup(msg, ctx, platformExceptionPointers);
     appendHostTraceGroup(msg, ctx, platformExceptionPointers);
+    return msg;
+}
+
+void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
+{
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
+    const Utf8               msg = format(&ctx, title, platformExceptionPointers, extraInfo);
     Logger::print(ctx, msg);
+}
+
+void HardwareException::print(const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
+{
+    const Utf8 msg = format(nullptr, title, platformExceptionPointers, extraInfo);
+    std::print(stderr, "{}", msg.c_str());
+    (void) std::fflush(stderr);
 }
 
 SWC_END_NAMESPACE();

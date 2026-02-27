@@ -257,6 +257,97 @@ namespace
         appendOsField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
     }
 
+    void appendWindowsStackFrame(Utf8& outMsg, const TaskContext* ctx, const uint32_t index, const uintptr_t address)
+    {
+        outMsg += std::format("[{:02}] 0x{:016X}", index, address);
+
+        MEMORY_BASIC_INFORMATION mbi{};
+        if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
+        {
+            const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
+            if (modBase)
+            {
+                char        modulePath[MAX_PATH + 1]{};
+                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
+                if (len)
+                {
+                    modulePath[len]       = 0;
+                    const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                    outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
+                }
+            }
+        }
+
+        outMsg += "\n";
+        if (!appendWindowsAddressSymbol(outMsg, ctx, address, 4))
+            appendOsField(outMsg, "symbol", "<unresolved>", 4);
+    }
+
+    bool appendWindowsStackFromException(Utf8& outMsg, const void* platformExceptionPointers, const TaskContext* ctx)
+    {
+#ifdef _M_X64
+        const auto* args    = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
+        const auto* context = args ? args->ContextRecord : nullptr;
+        if (!context)
+            return false;
+
+        (void) ensureSymbolEngineInitialized();
+
+        CONTEXT      walkContext = *context;
+        STACKFRAME64 frame{};
+        frame.AddrPC.Offset    = walkContext.Rip;
+        frame.AddrPC.Mode      = AddrModeFlat;
+        frame.AddrFrame.Offset = walkContext.Rbp;
+        frame.AddrFrame.Mode   = AddrModeFlat;
+        frame.AddrStack.Offset = walkContext.Rsp;
+        frame.AddrStack.Mode   = AddrModeFlat;
+
+        uint32_t     numFrames = 0;
+        const HANDLE process   = GetCurrentProcess();
+        const HANDLE thread    = GetCurrentThread();
+
+        while (numFrames < 64)
+        {
+            const auto address = static_cast<uintptr_t>(frame.AddrPC.Offset);
+            if (!address)
+                break;
+
+            appendWindowsStackFrame(outMsg, ctx, numFrames, address);
+            ++numFrames;
+
+            const BOOL hasNext = StackWalk64(IMAGE_FILE_MACHINE_AMD64,
+                                             process,
+                                             thread,
+                                             &frame,
+                                             &walkContext,
+                                             nullptr,
+                                             SymFunctionTableAccess64,
+                                             SymGetModuleBase64,
+                                             nullptr);
+            if (!hasNext)
+                break;
+
+            if (frame.AddrPC.Offset == address)
+                break;
+        }
+
+        return numFrames != 0;
+#else
+        (void) outMsg;
+        (void) platformExceptionPointers;
+        (void) ctx;
+        return false;
+#endif
+    }
+
+    void appendWindowsStackFromHandler(Utf8& outMsg, const TaskContext* ctx)
+    {
+        void*        frames[64]{};
+        const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
+        for (uint32_t i = 0; i < numFrames; ++i)
+            appendWindowsStackFrame(outMsg, ctx, i, reinterpret_cast<uintptr_t>(frames[i]));
+    }
+
     Os::HostExceptionHandlerFn& hostExceptionHandler()
     {
         static Os::HostExceptionHandlerFn handler = nullptr;
@@ -549,7 +640,7 @@ namespace Os
         return true;
     }
 
-    void appendHostExceptionSummary(const TaskContext& ctx, Utf8& outMsg, const void* platformExceptionPointers)
+    void appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers)
     {
         const auto* args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
         const auto* record = args ? args->ExceptionRecord : nullptr;
@@ -561,7 +652,7 @@ namespace Os
 
         appendOsField(outMsg, "code", std::format("0x{:08X} ({})", record->ExceptionCode, windowsExceptionCodeName(record->ExceptionCode)));
         Utf8 addressMsg;
-        appendWindowsAddress(addressMsg, &ctx, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
+        appendWindowsAddress(addressMsg, ctx, reinterpret_cast<uintptr_t>(record->ExceptionAddress));
         while (!addressMsg.empty() && addressMsg.back() == '\n')
             addressMsg.pop_back();
         appendOsField(outMsg, "address", addressMsg);
@@ -573,7 +664,7 @@ namespace Os
         {
             Utf8 accessMsg;
             accessMsg += std::format("{} at ", windowsAccessViolationOpName(record->ExceptionInformation[0]));
-            appendWindowsAddress(accessMsg, &ctx, record->ExceptionInformation[1]);
+            appendWindowsAddress(accessMsg, ctx, record->ExceptionInformation[1]);
             while (!accessMsg.empty() && accessMsg.back() == '\n')
                 accessMsg.pop_back();
             appendOsField(outMsg, "access", accessMsg);
@@ -601,37 +692,12 @@ namespace Os
 #endif
     }
 
-    void appendHostHandlerStack(const TaskContext& ctx, Utf8& outMsg)
+    void appendHostHandlerStack(Utf8& outMsg, const void* platformExceptionPointers, const TaskContext* ctx)
     {
-        void*        frames[64]{};
-        const USHORT numFrames = ::CaptureStackBackTrace(0, std::size(frames), frames, nullptr);
+        if (appendWindowsStackFromException(outMsg, platformExceptionPointers, ctx))
+            return;
 
-        for (uint32_t i = 0; i < numFrames; ++i)
-        {
-            const auto address = reinterpret_cast<uintptr_t>(frames[i]);
-            outMsg += std::format("[{:02}] 0x{:016X}", i, address);
-
-            MEMORY_BASIC_INFORMATION mbi{};
-            if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
-            {
-                const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-                if (modBase)
-                {
-                    char        modulePath[MAX_PATH + 1]{};
-                    const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-                    if (len)
-                    {
-                        modulePath[len]       = 0;
-                        const Utf8 moduleName = FileSystem::formatFileName(&ctx, fs::path(modulePath));
-                        outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
-                    }
-                }
-            }
-
-            outMsg += "\n";
-            if (!appendWindowsAddressSymbol(outMsg, &ctx, address, 4))
-                appendOsField(outMsg, "symbol", "<unresolved>", 4);
-        }
+        appendWindowsStackFromHandler(outMsg, ctx);
     }
 
     void exit(ExitCode code)

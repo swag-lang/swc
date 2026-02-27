@@ -833,6 +833,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
                 ops[2].microOp == MicroOp::ModuloUnsigned ||
                 ops[2].microOp == MicroOp::ModuloSigned)
             {
+                outIssue.requiredReg  = x64RegToMicroReg(X64Reg::Rax);
                 outIssue.forbiddenReg = x64RegToMicroReg(X64Reg::Rdx);
             }
             return true;

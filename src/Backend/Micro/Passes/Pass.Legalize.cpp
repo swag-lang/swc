@@ -452,6 +452,7 @@ namespace
         const MicroReg scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         SWC_ASSERT(scratchReg.isValid());
         addVirtualForbiddenReg(context, scratchReg, ops[0].reg);
+        addVirtualForbiddenReg(context, scratchReg, issue.requiredReg);
         addVirtualForbiddenReg(context, scratchReg, issue.forbiddenReg);
 
         insertLoadRegImm(context, instRef, scratchReg, opBits, immOperand);

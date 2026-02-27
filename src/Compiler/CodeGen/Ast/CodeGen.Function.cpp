@@ -684,10 +684,21 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstFunctionDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    if (!hasFlag(AstFunctionFlagsE::Short))
-        return Result::Continue;
-    SWC_ASSERT(nodeBodyRef.isValid());
-    return emitFunctionReturn(codeGen, codeGen.function(), nodeBodyRef);
+    const SymbolFunction&                  symbolFunc    = codeGen.function();
+    const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+    const CallConv&                        callConv      = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+
+    if (hasFlag(AstFunctionFlagsE::Short))
+    {
+        SWC_ASSERT(nodeBodyRef.isValid());
+        return emitFunctionReturn(codeGen, symbolFunc, nodeBodyRef);
+    }
+
+    if (normalizedRet.isVoid)
+        return emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid());
+
+    return Result::Continue;
 }
 
 Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const

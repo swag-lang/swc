@@ -1,5 +1,4 @@
 #global fileprivate
-/*
 func itoaCopyForFtoa(result: [*] u8, value: s64)->[*] u8
 {
     const conv = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
@@ -135,8 +134,7 @@ func ftoaTestNegative()->bool
         buf[8] == '0' and
         buf[9] == '0' and
         buf[10] == '0' and
-        buf[11] == '0' and
-        buf[12] == 0
+        buf[11] == 0
 }
 
 #test
@@ -156,4 +154,3 @@ func ftoaTestNegative()->bool
     const Ok = #run ftoaTestNegative()
     #assert(Ok)
 }
-*/

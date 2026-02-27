@@ -563,7 +563,7 @@ impl IWnd for ListView
     }
 }
 
-internal impl ListView
+fileprivate impl ListView
 {
     mtd getXPos(column: u32)->f32
     {
@@ -1128,7 +1128,7 @@ impl ListCtrl
         return .lines[idx]
     }
 
-    internal mtd mapIndexes()
+    fileprivate mtd mapIndexes()
     {
         .idxLineToIdxList.clear()
         foreach l, idx in .lines do
@@ -1136,7 +1136,7 @@ impl ListCtrl
     }
 
     #[Swag.Overload]
-    internal mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
+    fileprivate mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
     {
         func sortFunc(column: u32, descentOrder: bool, a, b: *ListLine)->s32
         {

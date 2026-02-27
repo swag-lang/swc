@@ -1,4 +1,4 @@
 public
 {
-    private func toto4720(b: s32) {}
+    moduleprivate func toto4720(b: s32) {}
 }

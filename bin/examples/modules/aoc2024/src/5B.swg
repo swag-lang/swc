@@ -13,7 +13,7 @@ Find the updates which are not in the correct order. What do you get if you add 
 */
 
 using Core
-private var order: HashTable'(s32, Array's32)
+moduleprivate var order: HashTable'(s32, Array's32)
 
 func day5B()
 {

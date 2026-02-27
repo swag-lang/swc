@@ -1,7 +1,7 @@
 #global #if #os == Swag.TargetOs.Windows
 using Core, Win32, Gdi32
 
-private
+moduleprivate
 {
     var g_HitTest:   POINT
     var g_Hit:       HWND

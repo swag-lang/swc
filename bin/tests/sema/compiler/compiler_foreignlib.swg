@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #foreignlib("user32")
 #foreignlib("user32")

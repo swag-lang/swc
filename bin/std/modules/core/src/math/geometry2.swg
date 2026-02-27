@@ -234,7 +234,7 @@ func nearestPointsSegSeg(p0, p1, q0, q1: Math.Vector2)->{ a: Math.Vector2, b: Ma
 
 // Calculate intersection coefficients for two infinite lines.
 // Returns parametric coefficients 'd0' and 'd1' where intersection = start + d * (end - start).
-internal func getLineLineIntersectCoefs(start0, end0, start1, end1: Vector2, epsilon: f32)->{ yes: bool, d0: f32, d1: f32 }
+fileprivate func getLineLineIntersectCoefs(start0, end0, start1, end1: Vector2, epsilon: f32)->{ yes: bool, d0: f32, d1: f32 }
 {
     var result: retval
 

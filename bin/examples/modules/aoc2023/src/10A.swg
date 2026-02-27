@@ -97,7 +97,7 @@ Find the single giant for starting at S. How many steps along the for does it ta
 using Core
 
 #[Swag.EnumFlags]
-private enum Dir
+moduleprivate enum Dir
 {
     Zero  = 0
     West

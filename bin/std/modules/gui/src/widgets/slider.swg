@@ -324,7 +324,7 @@ impl IWnd for Slider
     }
 }
 
-internal impl Slider
+fileprivate impl Slider
 {
     mtd clamp(f: f32)->f32
     {

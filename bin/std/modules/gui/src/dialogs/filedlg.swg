@@ -65,7 +65,7 @@ impl IWnd for FileDlg
     }
 }
 
-internal impl FileDlg
+fileprivate impl FileDlg
 {
     mtd folderUp()
     {

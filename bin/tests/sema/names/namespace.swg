@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 namespace NA {}
 namespace NA.NB.NC {}

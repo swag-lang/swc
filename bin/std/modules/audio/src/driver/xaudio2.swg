@@ -102,7 +102,7 @@ impl Driver
 // XAUDIO2 CALLBACKS
 ///////////////////////////////////////////////////////////////
 
-private
+moduleprivate
 {
     var g_ThreadCxt: Swag.Context
     var g_Cb:        IXAudio2VoiceCallback

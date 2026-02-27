@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 var XX: s32
 enum A

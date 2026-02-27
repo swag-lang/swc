@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const A: s32 = 1
 const B: bool = cast() A

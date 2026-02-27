@@ -447,7 +447,7 @@ func RGB(r, g, b: s32)->COLORREF
     func Rectangle(hdc: HDC, left, top, right, bottom: s32)->BOOL;
 }
 
-private namespace Gdi32Priv
+moduleprivate namespace Gdi32Priv
 {
     #[Foreign("Gdi32")]
     {

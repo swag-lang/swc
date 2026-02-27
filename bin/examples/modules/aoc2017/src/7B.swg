@@ -18,14 +18,14 @@ Given that exactly one program is the wrong weight, what would its weight need t
 
 using Core
 
-private struct Pile
+moduleprivate struct Pile
 {
     val:        s32
     childs:     Array'string
 }
 
-private var set: HashTable'(string, Pile)
-private var result: s64
+moduleprivate var set: HashTable'(string, Pile)
+moduleprivate var result: s64
 
 func day7B()
 {

@@ -68,7 +68,7 @@ namespace __Win32RT
     struct IMAGEHLP_LINE64
     {
         SizeOfStruct:     DWORD        // set to sizeof(IMAGEHLP_LINE64)
-        Key:              *void        // internal
+        Key:              *void        // fileprivate
         LineNumber:       DWORD        // line number in file
         FileName:         [*] CHAR     // full filename
         Address:          ULONG64      // first instruction of line
@@ -77,7 +77,7 @@ namespace __Win32RT
     struct IMAGEHLP_LINEW64
     {
         SizeOfStruct:     DWORD         // set to sizeof(IMAGEHLP_LINEW64)
-        Key:              *void         // internal
+        Key:              *void         // fileprivate
         LineNumber:       DWORD         // line number in file
         FileName:         [*] WCHAR     // full filename
         Address:          ULONG64       // first instruction of line
@@ -149,7 +149,7 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
-private
+moduleprivate
 {
     func sinf(val: f32)->f32;
     func cosf(val: f32)->f32;

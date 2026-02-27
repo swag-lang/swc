@@ -15,7 +15,7 @@ public interface IImageEncoder
 
 public impl Image
 {
-    internal var encoders: Array'ImageEncoder
+    fileprivate var encoders: Array'ImageEncoder
 
     // Register an image encoder
     func(T) addEncoder()

@@ -69,7 +69,7 @@ impl IWnd for ColorPickerCtrl
     }
 }
 
-internal impl ColorPickerCtrl
+fileprivate impl ColorPickerCtrl
 {
     mtd updateMode()
     {

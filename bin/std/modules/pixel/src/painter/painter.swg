@@ -163,7 +163,7 @@ struct Painter
 
 impl Painter
 {
-    internal func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
+    fileprivate func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
     {
         var result: retval
 
@@ -181,7 +181,7 @@ impl Painter
         return result
     }
 
-    internal mtd resetTexture0()
+    fileprivate mtd resetTexture0()
     {
         if .lastTexture0Handle or .lastTexture0Type != .SolidColor
         {
@@ -191,7 +191,7 @@ impl Painter
         }
     }
 
-    internal mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
+    fileprivate mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
     {
         if !.canSetTexture0 do
             return
@@ -242,17 +242,17 @@ impl Painter
         .lastTexture0Type   = brush.type
     }
 
-    internal mtd startFont()
+    fileprivate mtd startFont()
     {
         discard .newCommand(.StartFont, true)
     }
 
-    internal mtd endFont()
+    fileprivate mtd endFont()
     {
         discard .newCommand(.EndFont, true)
     }
 
-    internal mtd resetTextureFont()
+    fileprivate mtd resetTextureFont()
     {
         if !.hasTextureFont do
             return
@@ -260,7 +260,7 @@ impl Painter
         discard .newCommand(.ResetTextureFont, true)
     }
 
-    internal mtd setTextureFont(font: *Font, atlasIndex: s32)
+    fileprivate mtd setTextureFont(font: *Font, atlasIndex: s32)
     {
         let cmd    = .newCommand(.BindTextureFont, true)
         let params = &cmd.textureFont
@@ -269,7 +269,7 @@ impl Painter
         .hasTextureFont   = true
     }
 
-    internal mtd pushTriangleCmd()->*Command
+    fileprivate mtd pushTriangleCmd()->*Command
     {
         var cmd: *Command
         if .commandBuffer.count
@@ -290,7 +290,7 @@ impl Painter
     }
 
     #[Swag.Overload]
-    internal mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
+    fileprivate mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
@@ -315,7 +315,7 @@ impl Painter
     }
 
     #[Swag.Overload]
-    internal mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
+    fileprivate mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
@@ -337,7 +337,7 @@ impl Painter
     }
 
     #[Swag.Safety(.All, .All, false), Swag.Overload]
-    internal mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
+    fileprivate mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
         var ptr = .vertexBuffer.buffer + tri
         if ptr.aanum == MaxAAEdge do
@@ -370,13 +370,13 @@ impl Painter
     }
 
     #[Swag.Inline, Swag.Overload]
-    internal mtd addEdgeAA(tri: u64, start, end: Vector2)
+    fileprivate mtd addEdgeAA(tri: u64, start, end: Vector2)
     {
         .addEdgeAA(tri, start.x, start.y, end.x, end.y)
     }
 
     #[Swag.Inline]
-    internal mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
+    fileprivate mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
     {
         Debug.assert(.drawingBegin, "begin() not called before")
 
@@ -389,7 +389,7 @@ impl Painter
         return ptr
     }
 
-    internal mtd updateFont(fontRef: *Font)
+    fileprivate mtd updateFont(fontRef: *Font)
     {
         if !fontRef.dirty do
             return
@@ -397,7 +397,7 @@ impl Painter
         cmd.font.fontRef = fontRef
     }
 
-    internal mtd startOverlapMode(pen: Pen)
+    fileprivate mtd startOverlapMode(pen: Pen)
     {
         var alpha = false
         if pen.brush.color.argb & 0xFF000000 != 0xFF000000 do
@@ -413,7 +413,7 @@ impl Painter
         }
     }
 
-    internal mtd stopOverlapMode()
+    fileprivate mtd stopOverlapMode()
     {
         if .overlapMode
         {

@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const At: [2, 2] s32 = [[1, 2], [3, 4, 5]] // swc-expected-error {{sema_err_cannot_cast}}
 

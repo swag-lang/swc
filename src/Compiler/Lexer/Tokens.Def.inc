@@ -146,8 +146,8 @@ SWC_TOKEN_DEF(KwdUndefined, "undefined",  TokenIdKindE::Keyword)
 // ACCESS MODIFIERS
 
 SWC_TOKEN_DEF(KwdPublic, "public",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdInternal, "internal",  TokenIdKindE::Keyword)
-SWC_TOKEN_DEF(KwdPrivate, "private",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdFilePrivate, "fileprivate",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdModulePrivate, "moduleprivate",  TokenIdKindE::Keyword)
 
 // TYPE DEFINITIONS
 
@@ -413,5 +413,4 @@ SWC_TOKEN_DEF(TypeString, "string",  TokenIdKindE::Type)
 SWC_TOKEN_DEF(TypeCString, "cstring",  TokenIdKindE::Type)
 SWC_TOKEN_DEF(TypeTypeInfo, "typeinfo",  TokenIdKindE::Type)
 SWC_TOKEN_DEF(TypeCVarArgs, "cvarargs",  TokenIdKindE::Type)
-
 

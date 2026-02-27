@@ -57,7 +57,7 @@ attributes across the entire file. Controls compilation and symbol visibility.
 Examples (write these as top-level directives):
   #global skip                        // Skip file content (file must still be valid).
   #global public                      // All symbols become public.
-  #global internal                    // All symbols are internal to the module.
+  #global fileprivate                    // All symbols are fileprivate to the module.
   #global namespace Toto              // Place all symbols in namespace 'Toto'.
   #global #if DEBUG == true           // Conditional compilation for the file.
   #global #[Swag.Safety('', true)]    // Apply an attribute to all declarations.

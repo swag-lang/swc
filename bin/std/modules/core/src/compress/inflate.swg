@@ -8,7 +8,7 @@
 #global namespace Compress
 using Core.Errors
 
-private
+moduleprivate
 {
 
     const FastBits        = 9

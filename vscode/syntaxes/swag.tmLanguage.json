@@ -176,7 +176,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor",
-          "match": "(#)(global)\\s+(using|export|generated|if|namespace|public|internal|private|skip|testpass|testerror|testerrors|testwarning|testwarnings|skipfmt)\\b",
+          "match": "(#)(global)\\s+(using|export|generated|if|namespace|public|fileprivate|moduleprivate|skip|testpass|testerror|testerrors|testwarning|testwarnings|skipfmt)\\b",
           "captures": {
             "3": {
               "name": "constant.character.escape"
@@ -261,7 +261,7 @@
       "patterns": [
         {
           "name": "storage.modifier",
-          "match": "\\b(public|internal|private)\\b"
+          "match": "\\b(public|fileprivate|moduleprivate)\\b"
         }
       ]
     },

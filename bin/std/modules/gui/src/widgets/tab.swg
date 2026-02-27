@@ -317,7 +317,7 @@ impl IWnd for Tab
     }
 }
 
-internal impl Tab
+fileprivate impl Tab
 {
     mtd showPopup(x, y: f32)
     {

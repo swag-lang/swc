@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 func titi(a: ...) {}
 func tata(a: s32...) {}

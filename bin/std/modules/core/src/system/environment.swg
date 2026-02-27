@@ -111,7 +111,7 @@ func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
     return result
 }
 
-internal var g_CmdLineArgs: const [..] string
+fileprivate var g_CmdLineArgs: const [..] string
 
 enum Metrics
 {

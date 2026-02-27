@@ -3,15 +3,15 @@
 // Thread-local storage for random number generation and GUID counter.
 #[Swag.Tls]
 {
-    private var g_Rng: Random.Mt64 // Mersenne Twister 64-bit random number generator
-    private var g_RngInit: bool // Flag indicating whether the RNG has been initialized
-    private var g_Counter: u32 // Thread-local counter for timestamp-based GUIDs
+    moduleprivate var g_Rng: Random.Mt64 // Mersenne Twister 64-bit random number generator
+    moduleprivate var g_RngInit: bool // Flag indicating whether the RNG has been initialized
+    moduleprivate var g_Counter: u32 // Thread-local counter for timestamp-based GUIDs
 }
 
 // Initialize the random number generator with high-entropy seed.
 // Uses multiple time-based and hardware-based entropy sources for better randomness.
 #[Swag.Inline]
-private func initRng()
+moduleprivate func initRng()
 {
     if !g_RngInit
     {

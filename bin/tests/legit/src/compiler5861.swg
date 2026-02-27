@@ -1,11 +1,11 @@
 struct A
 {
-    private a:   s32
+    moduleprivate a:   s32
 }
 
 struct B
 {
-    private
+    moduleprivate
     {
         a:     s32
         b:     s32

@@ -2,14 +2,14 @@ using Core
 
 public impl Image
 {
-    private struct SaliencyWeights
+    moduleprivate struct SaliencyWeights
     {
         contrast:       f32
         saturation:     f32
         edge:           f32
     }
 
-    private struct ScoreCtx
+    moduleprivate struct ScoreCtx
     {
         iiS:         *Array'f32     // Integral image of saliency values (blurred/combined)
         iiT:         *Array'f32     // Integral image of rule-of-thirds weights
@@ -25,7 +25,7 @@ public impl Image
     }
 
     // Pack of precomputed features + integrals to avoid recomputation
-    private struct FeaturePack
+    moduleprivate struct FeaturePack
     {
         sblur:     Array'f32     // blurred saliency (and may contain thirds blended in fast paths)
         T:         Array'f32     // thirds map (may be zero if disabled)
@@ -35,20 +35,20 @@ public impl Image
         iiE:       Array'f32
     }
 
-    private const SALIENCY_RADIUS = 4
-    private const THIRDS_SIGMA = 0.075
-    private const EDGE_DIST_SCALE = 0.15
-    private const ENHANCED_WEIGHTS = SaliencyWeights{contrast: 1.0, saturation: 0.55, edge: 1.2}
+    moduleprivate const SALIENCY_RADIUS = 4
+    moduleprivate const THIRDS_SIGMA = 0.075
+    moduleprivate const EDGE_DIST_SCALE = 0.15
+    moduleprivate const ENHANCED_WEIGHTS = SaliencyWeights{contrast: 1.0, saturation: 0.55, edge: 1.2}
 
     #[Swag.Inline]
-    private func srgbToLinear(c: f32)->f32
+    moduleprivate func srgbToLinear(c: f32)->f32
     {
         if c <= 0.04045 do
             return c / 12.92
         return Math.pow((c + 0.055) / 1.055, 2.4)
     }
 
-    private func buildIntegral(src: Array'f32, w, h: s32)->Array'f32
+    moduleprivate func buildIntegral(src: Array'f32, w, h: s32)->Array'f32
     {
         var ii: retval
         ii.resize((w + 1) * (h + 1))
@@ -68,7 +68,7 @@ public impl Image
     }
 
     #[Swag.Inline]
-    private func sumRect(ii: &Array'f32, w, h, x0, y0, x1, y1: s32)->f32
+    moduleprivate func sumRect(ii: &Array'f32, w, h, x0, y0, x1, y1: s32)->f32
     {
         let a = y0 * (w + 1) + x0
         let b = y0 * (w + 1) + x1
@@ -77,7 +77,7 @@ public impl Image
         return ii[d] - ii[b] - ii[c] + ii[a]
     }
 
-    private func boxBlurViaIntegral(src: Array'f32, w, h, radius: s32)->Array'f32
+    moduleprivate func boxBlurViaIntegral(src: Array'f32, w, h, radius: s32)->Array'f32
     {
         if radius <= 0 do
             return src
@@ -102,7 +102,7 @@ public impl Image
         return dst
     }
 
-    private func buildThirdsMap(w, h: s32, sigma: f32)->Array'f32
+    moduleprivate func buildThirdsMap(w, h: s32, sigma: f32)->Array'f32
     {
         var tx, ty: Array'f32
         tx.resize(w)
@@ -134,7 +134,7 @@ public impl Image
     }
 
     // Sobel on (slightly) blurred luminance (shared by saliency and edge-distance)
-    private func sobelMagFromLumBlur(lumBlur: &Array'f32, w, h: s32, outEdge: &Array'f32)
+    moduleprivate func sobelMagFromLumBlur(lumBlur: &Array'f32, w, h: s32, outEdge: &Array'f32)
     {
         for y in 0 to (h - 1)
         {
@@ -164,7 +164,7 @@ public impl Image
     }
 
     // Build luminance & saturation once (used by saliency and, indirectly, edge)
-    private mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
+    moduleprivate mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
     {
         var f   = {lum: lum, sat: sat}
         let mec = cast #unconst (*Image) me
@@ -188,7 +188,7 @@ public impl Image
     }
 
     // Correct edge distance map: high away from edges, low near edges
-    private func buildEdgeDistanceMap(edges: &Array'f32, w, h: s32)->Array'f32
+    moduleprivate func buildEdgeDistanceMap(edges: &Array'f32, w, h: s32)->Array'f32
     {
         // blur edge magnitude
         let B = boxBlurViaIntegral(edges, w, h, 3)
@@ -208,7 +208,7 @@ public impl Image
         return D
     }
 
-    private func estimatePercentiles(buf: &Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
+    moduleprivate func estimatePercentiles(buf: &Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
     {
         const K  = 4096's32
         var tmp: Array'f32
@@ -247,7 +247,7 @@ public impl Image
     }
 
     // Core saliency builder that reuses extracted lum/sat and Sobel edges
-    private mtd const buildSaliencyAndEdges(w, h: s32, weights: SaliencyWeights)->{ S: Array'f32, Eedge: Array'f32 }
+    moduleprivate mtd const buildSaliencyAndEdges(w, h: s32, weights: SaliencyWeights)->{ S: Array'f32, Eedge: Array'f32 }
     {
         let N = cast(s32) (w * h)
 
@@ -346,7 +346,7 @@ public impl Image
         return {S, edgeMag}
     }
 
-    private func getThirdsOrZero(w, h: s32, enabled: bool)->Array'f32
+    moduleprivate func getThirdsOrZero(w, h: s32, enabled: bool)->Array'f32
     {
         var tmp: retval
         tmp.resize(w * h)
@@ -355,7 +355,7 @@ public impl Image
         return tmp
     }
 
-    private mtd const buildFeaturePack(w, h: s32, opts: SmartCropSearchOpts, needEdges: bool)->FeaturePack
+    moduleprivate mtd const buildFeaturePack(w, h: s32, opts: SmartCropSearchOpts, needEdges: bool)->FeaturePack
     {
         // Build saliency and edge magnitude once
         var (S, Eedge) = .buildSaliencyAndEdges(w, h, ENHANCED_WEIGHTS)
@@ -394,7 +394,7 @@ public impl Image
         return pack
     }
 
-    private func prepareScoreCtx(w, h: s32, pack: &FeaturePack, imgArea: f32, opts: SmartCropSearchOpts, shrinkW: f32)->ScoreCtx
+    moduleprivate func prepareScoreCtx(w, h: s32, pack: &FeaturePack, imgArea: f32, opts: SmartCropSearchOpts, shrinkW: f32)->ScoreCtx
     {
         let cx   = w * 0.5
         let cy   = h * 0.5
@@ -417,7 +417,7 @@ public impl Image
         return ctx
     }
 
-    private func scoreWindow(ctx: &ScoreCtx, x0, y0, cw, ch: s32)->{ score: f32, d2: f32 }
+    moduleprivate func scoreWindow(ctx: &ScoreCtx, x0, y0, cw, ch: s32)->{ score: f32, d2: f32 }
     {
         let x1   = x0 + cw
         let y1   = y0 + ch
@@ -445,7 +445,7 @@ public impl Image
         return {s, d2}
     }
 
-    private func fitAspect(cw, ch, w, h: s32, aspect, imgAspect: f32)->{ w0: s32, h0: s32 }
+    moduleprivate func fitAspect(cw, ch, w, h: s32, aspect, imgAspect: f32)->{ w0: s32, h0: s32 }
     {
         var w0 = cw, h0 = ch
         if imgAspect > aspect
@@ -462,7 +462,7 @@ public impl Image
         return {w0, h0}
     }
 
-    private func refinePosition(ctx: &ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
+    moduleprivate func refinePosition(ctx: &ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
     {
         let maxX   = ctx.w - bestW
         let maxY   = ctx.h - bestH
@@ -495,7 +495,7 @@ public impl Image
         return {bx, by, bScore, bD2}
     }
 
-    private func tryScaledVariants(ctx: &ScoreCtx, aspect, imgAspect: f32, bestX, bestY, bestW, bestH: s32)->{ x: s32, y: s32, w: s32, h: s32, score: f32, d2: f32 }
+    moduleprivate func tryScaledVariants(ctx: &ScoreCtx, aspect, imgAspect: f32, bestX, bestY, bestW, bestH: s32)->{ x: s32, y: s32, w: s32, h: s32, score: f32, d2: f32 }
     {
         let scales: [5] f32 = [0.88, 0.94, 1.00, 1.06, 1.12]
 
@@ -546,7 +546,7 @@ public impl Image
         return {bx, by, bw, bh, bScore, bD2}
     }
 
-    private mtd const calculateSingleScale(aspect, imgAspect: f32, w, h: s32, opts: SmartCropSearchOpts)->Math.Rectangle
+    moduleprivate mtd const calculateSingleScale(aspect, imgAspect: f32, w, h: s32, opts: SmartCropSearchOpts)->Math.Rectangle
     {
         var cropW: s32
         var cropH: s32
@@ -617,7 +617,7 @@ public impl Image
         return r
     }
 
-    private mtd const calculateMultiScale(aspect, imgAspect: f32, w, h: s32, opts: SmartCropSearchOpts)->Math.Rectangle
+    moduleprivate mtd const calculateMultiScale(aspect, imgAspect: f32, w, h: s32, opts: SmartCropSearchOpts)->Math.Rectangle
     {
         // Full feature pack (with edges if enabled)
         var pack = .buildFeaturePack(w, h, opts, true)
@@ -725,7 +725,7 @@ public impl Image
         return r
     }
 
-    private mtd const calculateReframeRect(targetWidth, targetHeight: f32, opts: SmartCropSearchOpts)->Math.Rectangle
+    moduleprivate mtd const calculateReframeRect(targetWidth, targetHeight: f32, opts: SmartCropSearchOpts)->Math.Rectangle
     {
         let w         = .width
         let h         = .height
@@ -737,7 +737,7 @@ public impl Image
         return .calculateMultiScale(aspect, imgAspect, w, h, opts)
     }
 
-    private mtd const evaluateCropScoreFast(rect: Math.Rectangle, opts: SmartCropSearchOpts)->f32
+    moduleprivate mtd const evaluateCropScoreFast(rect: Math.Rectangle, opts: SmartCropSearchOpts)->f32
     {
         let w = .width, h = .height
 
@@ -758,7 +758,7 @@ public impl Image
         return sumS / area
     }
 
-    private mtd const evaluateCropScoreFull(rect: Math.Rectangle, opts: SmartCropSearchOpts)->f32
+    moduleprivate mtd const evaluateCropScoreFull(rect: Math.Rectangle, opts: SmartCropSearchOpts)->f32
     {
         let w = .width, h = .height
         var pack = .buildFeaturePack(w, h, opts, true)

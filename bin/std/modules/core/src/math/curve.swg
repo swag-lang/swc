@@ -47,7 +47,7 @@ func evaluateBezier(start, end, ctrl1, ctrl2: Vector2, t: f32)->Vector2
 
 // Find roots of quadratic equation ax² + bx + c = 0 within the range [0, 1].
 // Returns an array containing valid roots that fall within the parameter range.
-private func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
+moduleprivate func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
 {
     var roots: Array'f32
 

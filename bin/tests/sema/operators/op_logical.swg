@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #assert(true and true == true)
 #assert(true and false == false)

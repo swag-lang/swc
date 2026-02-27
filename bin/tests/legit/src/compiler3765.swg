@@ -1,4 +1,4 @@
-private
+moduleprivate
 {
 
     var x = 0

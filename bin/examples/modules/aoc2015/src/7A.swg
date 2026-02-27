@@ -62,7 +62,7 @@ using Core
             l.replace("do", "_do")
             l.replace("in", "_in")
 
-            result += "private const "
+            result += "moduleprivate const "
             if r.match(#"(\w+) -> (\w+)"#, l) do
                 result += Format.toString("% = %", r[2], r[1])
             elif r.match(#"(\w+) (\w+) (\w+) -> (\w+)"#, l) do

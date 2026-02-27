@@ -19,8 +19,8 @@ AstNodeRef Parser::parseAccessModifier()
     switch (id())
     {
         case TokenId::KwdPublic:
-        case TokenId::KwdPrivate:
-        case TokenId::KwdInternal:
+        case TokenId::KwdModulePrivate:
+        case TokenId::KwdFilePrivate:
             raiseError(DiagnosticId::parser_err_duplicate_modifier, ref());
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
@@ -786,8 +786,8 @@ AstNodeRef Parser::parseTopLevelStmt()
             return parseCompilerDependencies();
 
         case TokenId::KwdPublic:
-        case TokenId::KwdInternal:
-        case TokenId::KwdPrivate:
+        case TokenId::KwdFilePrivate:
+        case TokenId::KwdModulePrivate:
             return parseAccessModifier();
 
         case TokenId::KwdUsing:

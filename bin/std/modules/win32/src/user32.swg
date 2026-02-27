@@ -1064,7 +1064,7 @@ func GET_Y_LPARAM(lp: LPARAM) => cast(s32) HIWORD(lp)
     func EnumWindows(lpEnumFunc: const *void, lParam: LPARAM)->BOOL;
 }
 
-private namespace User32Priv
+moduleprivate namespace User32Priv
 {
     #[Foreign("user32")]
     {

@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const A = true
 const B = A orelse false

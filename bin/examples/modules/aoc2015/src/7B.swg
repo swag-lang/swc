@@ -20,7 +20,7 @@ using Core
         foreach l in File.readAllLines(dataPath)
         {
             l.makeUpper()
-            result += "private const "
+            result += "moduleprivate const "
             if r.match(#"(\w+) -> B"#, l) do
                 result += Format.toString("B = %", 46065)
             elif r.match(#"(\w+) -> (\w+)"#, l) do

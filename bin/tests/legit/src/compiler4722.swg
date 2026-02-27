@@ -1,6 +1,6 @@
-internal
+fileprivate
 {
-    private func toto() {}
+    moduleprivate func toto() {}
 }
 
 #test

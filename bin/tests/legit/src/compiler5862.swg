@@ -1,6 +1,6 @@
 struct A
 {
-    private a5862: s32
+    moduleprivate a5862: s32
 }
 
 impl A

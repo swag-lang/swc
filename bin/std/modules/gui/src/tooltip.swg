@@ -1,6 +1,6 @@
 #global namespace ToolTip
 
-private
+moduleprivate
 {
     struct ToolTipVal
     {

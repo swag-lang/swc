@@ -310,11 +310,11 @@ Result AstCompilerGlobal::semaPreDecl(Sema& sema) const
         case Mode::AccessPublic:
             sema.frame().setCurrentAccess(SymbolAccess::Public);
             break;
-        case Mode::AccessInternal:
-            sema.frame().setCurrentAccess(SymbolAccess::Internal);
+        case Mode::AccessFilePrivate:
+            sema.frame().setCurrentAccess(SymbolAccess::FilePrivate);
             break;
-        case Mode::AccessPrivate:
-            sema.frame().setCurrentAccess(SymbolAccess::Private);
+        case Mode::AccessModulePrivate:
+            sema.frame().setCurrentAccess(SymbolAccess::ModulePrivate);
             break;
         case Mode::Namespace:
             return AstNamespaceDecl::pushNamespace(sema, this, spanNameRef);

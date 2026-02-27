@@ -90,7 +90,7 @@ Variadic parameters can be forwarded between functions while preserving their ty
 # Combining Fixed and Variadic Parameters
 You can mix fixed parameters with variadic ones to make function calls more expressive.
 */
-private func print()
+moduleprivate func print()
 {
     func logMessage(prefix: string, messages: ...)
     {

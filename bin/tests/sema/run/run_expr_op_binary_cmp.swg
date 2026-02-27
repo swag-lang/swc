@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 enum CmpEnum: u16
 {

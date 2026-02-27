@@ -49,7 +49,7 @@ struct Application
     dirtyTheme:             u32
 }
 
-internal impl Application
+fileprivate impl Application
 {
     // Send and process an event
     mtd sendEventPrivate(evt: IEvent, stopAt: #null *Wnd)
@@ -641,7 +641,7 @@ impl Application
             s.wnd.updateTheme()
     }
 
-    internal mtd serializeState(ser: *Serializer) throw
+    fileprivate mtd serializeState(ser: *Serializer) throw
     {
         ser.beginSection(.Unordered)
         foreach s in .surfaces do

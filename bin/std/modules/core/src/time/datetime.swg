@@ -134,7 +134,7 @@ impl DateTime
     }
 
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
-    private func parseU8(buf: &string, eat: &u32)->u16 throw
+    moduleprivate func parseU8(buf: &string, eat: &u32)->u16 throw
     {
         let (year, eat0, ovf) = StrConv.parseU8(buf)
         if ovf do
@@ -145,7 +145,7 @@ impl DateTime
     }
 
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
-    private func parseU16(buf: &string, eat: &u32)->u16 throw
+    moduleprivate func parseU16(buf: &string, eat: &u32)->u16 throw
     {
         let (year, eat0, ovf) = StrConv.parseU16(buf)
         if ovf do
@@ -156,7 +156,7 @@ impl DateTime
     }
 
     // Parses a separator character from the buffer and updates the consumed character count
-    private func parseSep(buf: &string, sep: u8, eat: &u32) throw
+    moduleprivate func parseSep(buf: &string, sep: u8, eat: &u32) throw
     {
         if !@countof(buf) or buf[0] != sep do
             throw SyntaxError{}

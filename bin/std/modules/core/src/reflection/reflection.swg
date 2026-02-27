@@ -116,9 +116,9 @@ using Swag
     }
 }
 
-internal var g_HashCrcToType: HashTable'(u32, typeinfo)
-internal var g_HashNameToType: HashTable'(string, typeinfo)
-internal var g_HashLock: Sync.RWLock
+fileprivate var g_HashCrcToType: HashTable'(u32, typeinfo)
+fileprivate var g_HashNameToType: HashTable'(string, typeinfo)
+fileprivate var g_HashLock: Sync.RWLock
 
 // #premain can be called more than once if we compile/run more than one
 // module using Core at the same time. So lock !

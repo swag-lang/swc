@@ -1,7 +1,7 @@
 #global namespace Jpg
 using Core
 
-private
+moduleprivate
 {
     struct SOF0InfoType
     {

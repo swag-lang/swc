@@ -42,7 +42,7 @@ Try every combination of phase settings on the amplifiers. What is the highest s
 
 using Core
 
-private func run(prg: Array's32, input: const [2] s32)->s32
+moduleprivate func run(prg: Array's32, input: const [2] s32)->s32
 {
     var op = prg
     var ip, output, incpt = 0

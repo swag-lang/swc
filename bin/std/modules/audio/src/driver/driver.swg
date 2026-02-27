@@ -28,7 +28,7 @@ struct Driver
     driverIsClosing:          bool
 }
 
-private func updateThreadProc(th: Threading.Thread)
+moduleprivate func updateThreadProc(th: Threading.Thread)
 {
     let driver = &g_Driver
     while !th.requestEnd

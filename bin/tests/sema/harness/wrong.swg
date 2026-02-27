@@ -1,1 +1,1 @@
-#global internal
+#global fileprivate

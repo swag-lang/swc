@@ -23,7 +23,7 @@ Using the new joker rule, find the rank of every hand in your set. What are the 
 
 using Core
 
-private struct Card
+moduleprivate struct Card
 {
     val:        string
     bid:        u64
@@ -32,10 +32,10 @@ private struct Card
     value:      s32
 }
 
-private var map: [256] u8
-private var cards: Array'Card
+moduleprivate var map: [256] u8
+moduleprivate var cards: Array'Card
 
-private func sort()
+moduleprivate func sort()
 {
     cards.sort(func(a, b)
     {

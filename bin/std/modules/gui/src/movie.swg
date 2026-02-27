@@ -29,7 +29,7 @@ struct Movie
     dirtyFrame:          bool
 }
 
-internal impl Movie
+fileprivate impl Movie
 {
     mtd nextFrame()
     {

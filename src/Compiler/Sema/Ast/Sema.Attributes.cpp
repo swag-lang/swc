@@ -234,11 +234,11 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
     SymbolAccess access;
     switch (tok.id)
     {
-        case TokenId::KwdPrivate:
-            access = SymbolAccess::Private;
+        case TokenId::KwdModulePrivate:
+            access = SymbolAccess::ModulePrivate;
             break;
-        case TokenId::KwdInternal:
-            access = SymbolAccess::Internal;
+        case TokenId::KwdFilePrivate:
+            access = SymbolAccess::FilePrivate;
             break;
         case TokenId::KwdPublic:
             access = SymbolAccess::Public;

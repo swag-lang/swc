@@ -287,7 +287,7 @@ impl Wnd
             .parent.applyLayout()
     }
 
-    internal mtd firstTopMostIndex()->u64
+    fileprivate mtd firstTopMostIndex()->u64
     {
         foreach c, i in .childs
         {
@@ -776,7 +776,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
-    internal mtd clampSize(pos: *Math.Rectangle)
+    fileprivate mtd clampSize(pos: *Math.Rectangle)
     {
         if .minSize.x > 0 do
             pos.width = Math.max(pos.width, .minSize.x)
@@ -1339,7 +1339,7 @@ impl Wnd
         .actions.add(itfAct)
     }
 
-    internal mtd updateAction(evt: *CommandStateEvent)->bool
+    fileprivate mtd updateAction(evt: *CommandStateEvent)->bool
     {
         var cxt: ActionContext
         cxt.wnd = me
@@ -1358,7 +1358,7 @@ impl Wnd
         return false
     }
 
-    internal mtd executeAction(evt: *CommandEvent)->bool
+    fileprivate mtd executeAction(evt: *CommandEvent)->bool
     {
         var cxt: ActionContext
         cxt.wnd = me

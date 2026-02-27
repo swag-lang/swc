@@ -147,8 +147,8 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("const", State.Declaration)
 
         .mapWords.add("public", State.StorageModifier)
-        .mapWords.add("internal", State.StorageModifier)
-        .mapWords.add("private", State.StorageModifier)
+        .mapWords.add("fileprivate", State.StorageModifier)
+        .mapWords.add("moduleprivate", State.StorageModifier)
 
         .mapWords.add("true", State.Constant)
         .mapWords.add("false", State.Constant)

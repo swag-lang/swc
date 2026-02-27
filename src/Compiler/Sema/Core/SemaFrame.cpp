@@ -63,7 +63,7 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     const SymbolAccess access = sema.frame().currentAccess();
 
     SymbolMap* root = nullptr;
-    if (access == SymbolAccess::Internal)
+    if (access == SymbolAccess::FilePrivate)
         root = &sema.fileNamespace();
     else
         root = &sema.moduleNamespace();

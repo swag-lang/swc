@@ -44,7 +44,7 @@ public struct Font
     dirty:             bool
 }
 
-internal var g_HashFont: HashTable'(String, *Font)
+fileprivate var g_HashFont: HashTable'(String, *Font)
 
 #drop
 {
@@ -55,7 +55,7 @@ internal var g_HashFont: HashTable'(String, *Font)
 
 public impl Font
 {
-    internal var lock: Sync.Mutex
+    fileprivate var lock: Sync.Mutex
 
     mtd opDrop()
     {
@@ -63,13 +63,13 @@ public impl Font
             Memory.delete(v)
     }
 
-    internal func mulFix(a, b: s32)->s32
+    fileprivate func mulFix(a, b: s32)->s32
     {
         let ab = cast(s64) a * cast(s64) b
         return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
     }
 
-    // Clear internal caches
+    // Clear fileprivate caches
     func clearCaches()
     {
         foreach a, b in g_HashFont do

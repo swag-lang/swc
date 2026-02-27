@@ -18,7 +18,7 @@ enum SoundFileValidityMask
     MetaData
 }
 
-// SoundFile internal format.
+// SoundFile fileprivate format.
 enum SoundFileEncoding
 {
     Unknown

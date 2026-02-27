@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #[Swag.Strict]
 alias LocalStrict = s32

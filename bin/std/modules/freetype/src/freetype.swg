@@ -404,7 +404,7 @@ var Errors: [0xFF] string = undefined
     func FT_GlyphSlot_Oblique(slot: FT_GlyphSlot);
 }
 
-private namespace FreeTypePriv
+moduleprivate namespace FreeTypePriv
 {
     #[Foreign("freetype")]
     {

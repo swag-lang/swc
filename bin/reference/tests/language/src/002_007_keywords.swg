@@ -50,8 +50,8 @@ throw
 discard
 
 public
-internal
-private
+fileprivate
+moduleprivate
 
 enum
 struct
@@ -201,7 +201,7 @@ User-defined identifiers cannot start with '#', ensuring there are no naming con
 # Intrinsic Values
 
 Intrinsic values begin with '@' and are provided by the compiler for introspection
-or internal state access.
+or fileprivate state access.
 
 ```swag
 @err

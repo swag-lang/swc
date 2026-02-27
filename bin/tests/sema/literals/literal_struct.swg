@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const ANONYMOUS = {1's32, 2}
 

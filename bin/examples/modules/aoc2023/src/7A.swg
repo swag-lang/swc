@@ -54,7 +54,7 @@ Find the rank of every hand in your set. What are the total winnings?
 
 using Core
 
-private struct Card
+moduleprivate struct Card
 {
     val:        string
     bid:        u64
@@ -63,10 +63,10 @@ private struct Card
     value:      s32
 }
 
-private var map: HashTable'(u8, u8)
-private var cards: Array'Card
+moduleprivate var map: HashTable'(u8, u8)
+moduleprivate var cards: Array'Card
 
-private func sort()
+moduleprivate func sort()
 {
     cards.sort(func(a, b)
     {

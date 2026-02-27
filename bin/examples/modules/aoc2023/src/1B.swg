@@ -18,7 +18,7 @@ What is the sum of all of the calibration values?
 
 using Core
 
-private func process(line: String)->u64
+moduleprivate func process(line: String)->u64
 {
     const N = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     const V = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

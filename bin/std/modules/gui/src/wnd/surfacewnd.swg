@@ -299,7 +299,7 @@ impl SurfaceWnd
         btn.surface.wnd.view.postEvent(evt)
     }
 
-    internal mtd applySurfaceFlags()
+    fileprivate mtd applySurfaceFlags()
     {
         let theme = .surface.app.theme
         if !theme.intialized do

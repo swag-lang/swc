@@ -153,7 +153,7 @@ impl IWnd for ComboBox
     }
 }
 
-internal impl ComboBox
+fileprivate impl ComboBox
 {
     mtd showPopup()
     {

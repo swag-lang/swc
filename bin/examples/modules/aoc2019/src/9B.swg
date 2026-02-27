@@ -37,7 +37,7 @@ Once your Intcode computer is fully functional, the BOOST program should report 
 
 using Core
 
-private func run(op: &Array's64, input: s64)->s64
+moduleprivate func run(op: &Array's64, input: s64)->s64
 {
     var output, ip, base = 0's64
 

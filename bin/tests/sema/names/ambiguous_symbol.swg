@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 func Amb() {}
 func Amb(a: s32) {}

@@ -195,7 +195,7 @@ impl Array
         return .buffer + x + y * w
     }
 
-    // Reallocates the internal me.buffer to a new capacity.
+    // Reallocates the fileprivate me.buffer to a new capacity.
     // This is a low-level memory operation that handles moving existing elements.
     mtd realloc(newCapacity: u64)
     {

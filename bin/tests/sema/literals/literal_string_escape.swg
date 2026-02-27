@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #assert('\x41' == 'A')
 #assert('\x61' == 'a')

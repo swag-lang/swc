@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const A = 0
 

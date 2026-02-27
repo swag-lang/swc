@@ -40,7 +40,7 @@ struct TagBin
     compressionLevel:        Core.Compress.Deflate.CompressionLevel = .BestSpeed
     compressionStrategy:     Core.Compress.Deflate.CompressionStrategy = .Default
 
-    private
+    moduleprivate
     {
         compressor:       Core.Compress.Deflate
         output:           *ConcatBuffer                                         // Output buffer where data is written
@@ -52,7 +52,7 @@ struct TagBin
     }
 }
 
-internal impl TagBin
+fileprivate impl TagBin
 {
     // Creates or reuses a new section for writing
     mtd newSection()->*TagBinSection

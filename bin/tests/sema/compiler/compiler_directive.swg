@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #warning("toto") // swc-expected-warning {{sema_warn_compiler_warning}}
 

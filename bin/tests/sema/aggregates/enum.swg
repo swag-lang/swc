@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 enum AA: u32 { A }
 enum BB { A }

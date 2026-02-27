@@ -127,7 +127,7 @@ impl Polygon
         .points = #move copy
     }
 
-    internal mtd storeClipperResult(res: Clipper.ClipperPath)
+    fileprivate mtd storeClipperResult(res: Clipper.ClipperPath)
     {
         .clear()
         if !res.count do
@@ -147,7 +147,7 @@ impl Polygon
     }
 
     #[Swag.Overload]
-    internal mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
+    fileprivate mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
     {
         if Math.isZeroEpsilon(value) do
             return
@@ -213,7 +213,7 @@ impl Polygon
     }
 
     #[Swag.Overload]
-    internal mtd clean(res: *Clipper.ClipperPaths)
+    fileprivate mtd clean(res: *Clipper.ClipperPaths)
     {
         if !.points.count do
             return
@@ -267,7 +267,7 @@ impl Polygon
         return result
     }
 
-    // Compute internal values, like convex/clockwise
+    // Compute fileprivate values, like convex/clockwise
     // Call it once the polygon contains all its points
     mtd compute()
     {

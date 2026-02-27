@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 const Cfg = #run dref @compiler.getBuildCfg()
 

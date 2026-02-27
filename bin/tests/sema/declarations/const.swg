@@ -1,16 +1,16 @@
-#global internal
+#global fileprivate
 
 const A = 52
 const B = A
 #assert(B == 52)
 
-internal
+fileprivate
 {
     const C = A + 10
     #assert(C == 62)
 }
 
-internal const D = A * 2
+fileprivate const D = A * 2
 #assert(D == 104)
 
 // swc-expected-error@(+1,+2) {{sema_err_already_defined}}

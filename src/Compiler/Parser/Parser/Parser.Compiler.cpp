@@ -328,15 +328,15 @@ AstNodeRef Parser::parseCompilerGlobal()
         nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
-    else if (is(TokenId::KwdInternal))
+    else if (is(TokenId::KwdFilePrivate))
     {
-        nodePtr->mode        = AstCompilerGlobal::Mode::AccessInternal;
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessFilePrivate;
         nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
-    else if (is(TokenId::KwdPrivate))
+    else if (is(TokenId::KwdModulePrivate))
     {
-        nodePtr->mode        = AstCompilerGlobal::Mode::AccessPrivate;
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessModulePrivate;
         nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }

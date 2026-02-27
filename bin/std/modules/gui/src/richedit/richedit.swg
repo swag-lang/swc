@@ -75,7 +75,7 @@ struct RichEditCtrl
     selBegUndo:                  RichEditCursor
 }
 
-internal impl IWnd for RichEditCtrl
+fileprivate impl IWnd for RichEditCtrl
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
@@ -88,7 +88,7 @@ internal impl IWnd for RichEditCtrl
     }
 }
 
-internal impl RichEditCtrl
+fileprivate impl RichEditCtrl
 {
     mtd getMarginLeft()->f32
     {

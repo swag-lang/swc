@@ -32,7 +32,7 @@ Use the binary numbers in your diagnostic report to calculate the oxygen generat
 
 using Core
 
-private var lines: Array'String
+moduleprivate var lines: Array'String
 
 func calc(a, b: u8)->u64
 {

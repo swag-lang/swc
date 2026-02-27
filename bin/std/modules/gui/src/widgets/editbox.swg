@@ -59,7 +59,7 @@ struct EditBox
     sigEscapePressed:     SigArray'func||(*EditBox)                // Emitted when Escape is pressed
     sigCheckContent:      func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
 
-    private
+    moduleprivate
     {
         originalText: String // Text captured when focus was gained
 
@@ -338,7 +338,7 @@ impl IWnd for EditBox
     }
 }
 
-internal impl EditBox
+fileprivate impl EditBox
 {
     // Shows or hides the clear button based on current text and flags.
     mtd showHideClearButon()

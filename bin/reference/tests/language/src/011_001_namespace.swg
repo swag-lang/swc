@@ -59,15 +59,15 @@ const C = FileSymbol             // Direct access via 'using' directive
 /**
 # 'Private' Scopes
 
-In addition to named namespaces, Swag provides 'private' scopes. A private
+In addition to named namespaces, Swag provides 'moduleprivate' scopes. A moduleprivate
 scope creates a unique, unnamed namespace restricted to the current file.
 Symbols defined in such a scope are inaccessible outside it, making this
-useful for isolating internal details.
+useful for isolating fileprivate details.
 */
 
-private
+moduleprivate
 {
-    const OtherSymbol = 0 // Constant defined in a file-local private scope
+    const OtherSymbol = 0 // Constant defined in a file-local moduleprivate scope
 }
 
 const D = OtherSymbol // Accessible within this file only
@@ -76,6 +76,6 @@ const D = OtherSymbol // Accessible within this file only
 # 'Exporting Symbols'
 
 By default, all symbols in a Swag file are exported to other files within
-the same module. Using explicit namespaces or private scopes provides
+the same module. Using explicit namespaces or moduleprivate scopes provides
 protection against accidental symbol conflicts across files.
 */

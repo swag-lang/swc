@@ -5,7 +5,7 @@
 #global namespace Gif
 using Swag, Core, Core.Errors
 
-private
+moduleprivate
 {
 
     struct Entry

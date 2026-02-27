@@ -15,7 +15,7 @@ func(T) orderMinMax(x, y: *T)
         swap(x, y)
 }
 
-private struct Bot
+moduleprivate struct Bot
 {
     id:        s32
     count:     s32
@@ -23,7 +23,7 @@ private struct Bot
     out:       s32
 }
 
-private impl Bot
+moduleprivate impl Bot
 {
     mtd add(v: s32)
     {

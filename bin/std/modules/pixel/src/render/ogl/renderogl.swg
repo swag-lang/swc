@@ -1,7 +1,7 @@
 #global public
 using Swag, Core, Ogl, Core.Math
 
-internal
+fileprivate
 {
     const BaseVertexShader = #include("shaders/base.vert")
     const BasePixelShader  = #include("shaders/base.frag")
@@ -53,7 +53,7 @@ struct RenderOgl
     overlapMode          = false
 }
 
-internal impl RenderOgl
+fileprivate impl RenderOgl
 {
     func setShaderCompileError(shaderID: GLuint) throw
     {
@@ -276,7 +276,7 @@ impl RenderOgl
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    private func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
+    moduleprivate func GLDebugMessageCallback(Source: GLenum, Type: GLenum, Id: GLuint, Severity: GLenum, Length: GLsizei, Message: const *GLchar, UserParam: const *void)
     {
         //@print(cast(cstring) (Message));
     }
@@ -632,7 +632,7 @@ impl RenderOgl
         glUniformMatrix4fv(cast(GLint) mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
     }
 
-    internal mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64, width, height: s32)
+    fileprivate mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64, width, height: s32)
     {
         switch cmd.id
         {

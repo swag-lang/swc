@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 #assert(s32 == s32)
 #assert(s32 != u32)

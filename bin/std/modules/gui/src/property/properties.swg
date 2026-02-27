@@ -125,7 +125,7 @@ impl IWnd for Properties
     }
 }
 
-internal impl Properties
+fileprivate impl Properties
 {
     mtd getColumnX()->f32
     {

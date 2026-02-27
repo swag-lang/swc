@@ -1,4 +1,4 @@
-#global internal
+#global fileprivate
 
 alias PassAlias = s32
 enum PassEnum: u16

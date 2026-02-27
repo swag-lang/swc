@@ -95,7 +95,7 @@ Figure out whether you have time to search for the nest by calculating the area 
 using Core
 
 #[Swag.EnumFlags]
-private enum Dir
+moduleprivate enum Dir
 {
     Zero  = 0
     West

@@ -3,7 +3,7 @@ using Core, Core.Math
 public impl Painter
 {
     #[Swag.Overload]
-    internal mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
+    fileprivate mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
     {
         .setTexture0(bvMin, bvMax, brush)
         .resetTextureFont()

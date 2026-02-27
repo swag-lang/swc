@@ -185,7 +185,7 @@ enum SHSTOCKICONID
     SIID_INTERNET          = 104     // Internet
     SIID_ZIPFILE           = 105     // ZIP file
     SIID_SETTINGS          = 106     // Settings
-    // 107-131 are internal Vista RTM icons
+    // 107-131 are fileprivate Vista RTM icons
     // 132-159 for SP1 icons
     SIID_DRIVEHDDVD     = 132     // HDDVD Drive (all types)
     SIID_DRIVEBD        = 133     // BluRay Drive (all types)
@@ -296,7 +296,7 @@ struct NOTIFYICONDATAW
     hBalloonIcon:     HICON
 }
 
-private namespace Shell32Priv
+moduleprivate namespace Shell32Priv
 {
     #[Foreign("shell32")]
     {

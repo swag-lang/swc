@@ -71,13 +71,10 @@ namespace
         if (assignOp == TokenId::SymEqual)
             return AssignEncodingKind::EqualStore;
 
-        if (targetType.isIntLike())
-            return AssignEncodingKind::IntLikeCompound;
-
         if (targetType.isFloat())
             return AssignEncodingKind::FloatCompound;
 
-        SWC_UNREACHABLE();
+        return AssignEncodingKind::IntLikeCompound;
     }
 
     bool isScalarAssignmentType(CodeGen& codeGen, TypeRef typeRef)
@@ -156,14 +153,6 @@ namespace
         target.payload = codeGen.safePayload(leftRef);
         if (!target.payload)
             return target;
-
-        const SemaNodeView leftSymView = codeGen.viewSymbol(leftRef);
-        if (!leftSymView.sym() || !leftSymView.sym()->isVariable())
-            return target;
-
-        const SymbolVariable& symVar = leftSymView.sym()->cast<SymbolVariable>();
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-            return target;
         if (!target.payload->isAddress())
             return target;
 
@@ -227,12 +216,11 @@ namespace
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
-        SWC_ASSERT(targetType.isIntLike());
-
-        const TokenId  binaryOp = Token::assignToBinary(assignOp);
-        const MicroOp  op       = intBinaryMicroOp(binaryOp, !targetType.isIntLikeUnsigned());
-        MicroBuilder&  builder  = codeGen.builder();
-        const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
+        const bool      isSigned   = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
+        const TokenId   binaryOp   = Token::assignToBinary(assignOp);
+        const MicroOp   op         = intBinaryMicroOp(binaryOp, isSigned);
+        MicroBuilder&   builder    = codeGen.builder();
+        const MicroReg  leftReg    = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, encodeCtx.target.payload->reg, 0, encodeCtx.opBits);
 
         const MicroReg rightReg = materializeAssignOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.opBits);

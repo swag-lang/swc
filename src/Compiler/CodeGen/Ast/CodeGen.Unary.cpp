@@ -142,6 +142,34 @@ namespace
             builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
         return Result::Continue;
     }
+
+    Result codeGenUnaryTakeAddress(CodeGen& codeGen, AstNodeRef nodeExprRef)
+    {
+        MicroBuilder&             builder      = codeGen.builder();
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+
+        const SemaNodeView  view    = codeGen.curViewType();
+        CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+        if (childPayload.isAddress())
+            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    Result codeGenUnaryMoveRef(CodeGen& codeGen, AstNodeRef nodeExprRef)
+    {
+        MicroBuilder&             builder      = codeGen.builder();
+        const CodeGenNodePayload& childPayload = codeGen.payload(nodeExprRef);
+
+        const SemaNodeView  view    = codeGen.curViewType();
+        CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+        if (childPayload.isAddress())
+            builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+        return Result::Continue;
+    }
 }
 
 Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -159,6 +187,10 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenUnaryBitwiseNot(codeGen, nodeExprRef);
         case TokenId::KwdDRef:
             return codeGenUnaryDeref(codeGen, nodeExprRef);
+        case TokenId::SymAmpersand:
+            return codeGenUnaryTakeAddress(codeGen, nodeExprRef);
+        case TokenId::KwdMoveRef:
+            return codeGenUnaryMoveRef(codeGen, nodeExprRef);
 
         default:
             SWC_UNREACHABLE();

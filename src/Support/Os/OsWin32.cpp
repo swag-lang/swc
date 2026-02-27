@@ -256,6 +256,60 @@ namespace
         appendWindowsAddressSymbol(outMsg, ctx, address);
         appendOsField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
     }
+
+    Os::HostExceptionHandlerFn& hostExceptionHandler()
+    {
+        static Os::HostExceptionHandlerFn handler = nullptr;
+        return handler;
+    }
+
+    volatile LONG& hasReportedVectoredException()
+    {
+        static volatile LONG hasReported = 0;
+        return hasReported;
+    }
+
+    PVOID& vectoredExceptionHandle()
+    {
+        static PVOID handle = nullptr;
+        return handle;
+    }
+
+    int dispatchHostException(const void* platformExceptionPointers)
+    {
+        const Os::HostExceptionHandlerFn handler = hostExceptionHandler();
+        if (!handler)
+            return SWC_EXCEPTION_EXECUTE_HANDLER;
+        return handler(platformExceptionPointers);
+    }
+
+    LONG WINAPI onUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionPointers)
+    {
+        (void) dispatchHostException(exceptionPointers);
+        return SWC_EXCEPTION_EXECUTE_HANDLER;
+    }
+
+    LONG CALLBACK onVectoredExceptionHandler(struct _EXCEPTION_POINTERS* exceptionPointers)
+    {
+        volatile LONG& hasReported = hasReportedVectoredException();
+        if (InterlockedCompareExchange(&hasReported, 1, 0) != 0)
+            return EXCEPTION_CONTINUE_SEARCH;
+
+        (void) dispatchHostException(exceptionPointers);
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    void installHostExceptionHandlers(const Os::HostExceptionHandlerFn exceptionHandler)
+    {
+        hostExceptionHandler()         = exceptionHandler;
+        hasReportedVectoredException() = 0;
+
+        PVOID& handle = vectoredExceptionHandle();
+        if (!handle)
+            handle = AddVectoredExceptionHandler(1, onVectoredExceptionHandler);
+
+        SetUnhandledExceptionFilter(onUnhandledExceptionFilter);
+    }
 }
 
 namespace Os
@@ -279,6 +333,23 @@ namespace Os
     const char* hostExceptionBackendName()
     {
         return "windows seh";
+    }
+
+    int runMainWithHostExceptionBarrier(const MainEntryPoint mainEntryPoint, const HostExceptionHandlerFn exceptionHandler, const int argc, char* argv[])
+    {
+        SWC_ASSERT(mainEntryPoint);
+        SWC_ASSERT(exceptionHandler);
+
+        installHostExceptionHandlers(exceptionHandler);
+
+        SWC_TRY
+        {
+            return mainEntryPoint(argc, argv);
+        }
+        SWC_EXCEPT(dispatchHostException(SWC_GET_EXCEPTION_INFOS()))
+        {
+            return static_cast<int>(ExitCode::HardwareException);
+        }
     }
 
     uint32_t currentProcessId()

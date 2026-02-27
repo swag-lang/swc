@@ -12,6 +12,9 @@ class TaskContext;
 
 namespace Os
 {
+    using MainEntryPoint         = int (*)(int argc, char* argv[]);
+    using HostExceptionHandlerFn = int (*)(const void* platformExceptionPointers);
+
     void initialize();
 
     void panicBox(const char* expr);
@@ -36,6 +39,7 @@ namespace Os
     const char* hostOsName();
     const char* hostCpuName();
     const char* hostExceptionBackendName();
+    int         runMainWithHostExceptionBarrier(MainEntryPoint mainEntryPoint, HostExceptionHandlerFn exceptionHandler, int argc, char* argv[]);
     uint32_t    currentProcessId();
     uint32_t    currentThreadId();
     bool        isHostIllegalInstructionException(uint32_t exceptionCode);

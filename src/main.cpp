@@ -5,13 +5,13 @@
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/HardwareException.h"
 #include "Support/Report/Logger.h"
 #include "Support/Unittest/Unittest.h"
 
 namespace
 {
     int onUnhandledHostException(const void* exceptionPointers);
-    LONG CALLBACK onVectoredExceptionHandler(struct _EXCEPTION_POINTERS* exceptionPointers);
 
     int runMain(int argc, char* argv[])
     {
@@ -52,31 +52,21 @@ namespace
         std::abort();
     }
 
-    LONG WINAPI onUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionPointers)
-    {
-        onUnhandledHostException(exceptionPointers);
-        return SWC_EXCEPTION_EXECUTE_HANDLER;
-    }
-
-    LONG CALLBACK onVectoredExceptionHandler(struct _EXCEPTION_POINTERS* exceptionPointers)
-    {
-        static LONG hasPrinted = 0;
-        if (InterlockedCompareExchange(&hasPrinted, 1, 0) != 0)
-            return EXCEPTION_CONTINUE_SEARCH;
-
-        onUnhandledHostException(exceptionPointers);
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
     int onUnhandledHostException(const void* exceptionPointers)
     {
         uint32_t    exceptionCode    = 0;
         const void* exceptionAddress = nullptr;
         swc::Os::decodeHostException(exceptionCode, exceptionAddress, exceptionPointers);
-        std::fprintf(stderr,
-                     "fatal error: unhandled host exception 0x%08X at %p\n",
-                     exceptionCode,
-                     exceptionAddress);
+
+        swc::Utf8 msg;
+        msg += "fatal error: unhandled host exception\n";
+        swc::HardwareException::appendSectionHeader(msg, "host");
+        swc::HardwareException::appendField(msg, "backend", swc::Os::hostExceptionBackendName());
+        swc::HardwareException::appendField(msg, "code", std::format("0x{:08X}", exceptionCode));
+        swc::HardwareException::appendField(msg, "address", std::format("0x{:016X}", reinterpret_cast<uint64_t>(exceptionAddress)));
+        swc::HardwareException::appendSectionHeader(msg, "cpu context");
+        swc::Os::appendHostCpuContext(msg, exceptionPointers);
+        std::fprintf(stderr, "%s", msg.c_str());
         std::fflush(stderr);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
@@ -85,15 +75,5 @@ namespace
 int main(int argc, char* argv[])
 {
     std::set_terminate(onTerminate);
-    AddVectoredExceptionHandler(1, onVectoredExceptionHandler);
-    SetUnhandledExceptionFilter(onUnhandledExceptionFilter);
-
-    SWC_TRY
-    {
-        return runMain(argc, argv);
-    }
-    SWC_EXCEPT(onUnhandledHostException(SWC_GET_EXCEPTION_INFOS()))
-    {
-        return static_cast<int>(swc::ExitCode::HardwareException);
-    }
+    return swc::Os::runMainWithHostExceptionBarrier(runMain, onUnhandledHostException, argc, argv);
 }

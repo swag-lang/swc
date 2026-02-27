@@ -91,7 +91,6 @@ namespace
 
         std::unordered_map<uint32_t, VRegState> states;
         std::unordered_map<uint32_t, MicroReg>  mapping;
-        std::unordered_map<uint32_t, uint32_t>  physToVirt;
         std::unordered_map<uint32_t, uint32_t>  liveStamp;
         std::unordered_map<uint32_t, uint32_t>  concreteLiveStamp;
         std::unordered_set<uint32_t>            callSpillVregs;
@@ -105,6 +104,15 @@ namespace
         state.operands         = SWC_NOT_NULL(context.operands);
         state.instructionCount = state.instructions->count();
         state.hasControlFlow   = false;
+
+        const size_t reserveCount = static_cast<size_t>(state.instructionCount) * 2ull + 8ull;
+        state.vregsLiveAcrossCall.reserve(reserveCount);
+        state.usePositions.reserve(static_cast<size_t>(state.instructionCount) + 8ull);
+        state.states.reserve(reserveCount);
+        state.mapping.reserve(reserveCount);
+        state.liveStamp.reserve(reserveCount);
+        state.concreteLiveStamp.reserve(reserveCount);
+        state.callSpillVregs.reserve(reserveCount);
 
         for (const auto& inst : state.instructions->view())
         {
@@ -323,6 +331,10 @@ namespace
         state.freeIntPersistent.clear();
         state.freeFloatTransient.clear();
         state.freeFloatPersistent.clear();
+        state.freeIntTransient.reserve(state.conv->intRegs.size());
+        state.freeIntPersistent.reserve(state.conv->intRegs.size());
+        state.freeFloatTransient.reserve(state.conv->floatRegs.size());
+        state.freeFloatPersistent.reserve(state.conv->floatRegs.size());
 
         for (const auto reg : state.conv->intRegs)
         {
@@ -479,6 +491,7 @@ namespace
     {
         // Choose mapped virtual reg that is cheapest to evict under current constraints.
         outVirtKey = 0;
+        outPhys    = MicroReg{};
 
         for (const auto& [virtKey, physReg] : state.mapping)
         {
@@ -515,40 +528,43 @@ namespace
         return outPhys.isValid();
     }
 
+    struct FreePools
+    {
+        SmallVector<MicroReg>* primary   = nullptr;
+        SmallVector<MicroReg>* secondary = nullptr;
+    };
+
+    FreePools pickFreePools(PassState& state, const AllocRequest& request)
+    {
+        if (request.virtReg.isVirtualInt())
+        {
+            if (request.needsPersistent)
+                return FreePools{&state.freeIntPersistent, &state.freeIntTransient};
+
+            return FreePools{&state.freeIntTransient, nullptr};
+        }
+
+        SWC_ASSERT(request.virtReg.isVirtualFloat());
+        if (request.needsPersistent)
+            return FreePools{&state.freeFloatPersistent, &state.freeFloatTransient};
+
+        return FreePools{&state.freeFloatTransient, nullptr};
+    }
+
     bool tryTakeFreePhysical(PassState&          state,
                              const AllocRequest& request,
                              uint32_t            stamp,
                              bool                allowConcreteLive,
                              MicroReg&           outPhys)
     {
-        if (request.virtReg.isVirtualInt())
-        {
-            if (request.needsPersistent)
-            {
-                if (tryTakeAllowedPhysical(state.freeIntPersistent, state, request.virtKey, stamp, allowConcreteLive, outPhys))
-                    return true;
+        const FreePools pools = pickFreePools(state, request);
+        SWC_ASSERT(pools.primary != nullptr);
 
-                return tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys);
-            }
-
-            if (tryTakeAllowedPhysical(state.freeIntTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys))
-                return true;
-
-            return false;
-        }
-
-        SWC_ASSERT(request.virtReg.isVirtualFloat());
-
-        if (request.needsPersistent)
-        {
-            if (tryTakeAllowedPhysical(state.freeFloatPersistent, state, request.virtKey, stamp, allowConcreteLive, outPhys))
-                return true;
-
-            return tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys);
-        }
-
-        if (tryTakeAllowedPhysical(state.freeFloatTransient, state, request.virtKey, stamp, allowConcreteLive, outPhys))
+        if (tryTakeAllowedPhysical(*pools.primary, state, request.virtKey, stamp, allowConcreteLive, outPhys))
             return true;
+
+        if (pools.secondary)
+            return tryTakeAllowedPhysical(*pools.secondary, state, request.virtKey, stamp, allowConcreteLive, outPhys);
 
         return false;
     }
@@ -559,9 +575,7 @@ namespace
         if (mapIt == state.mapping.end())
             return;
 
-        const auto physReg = mapIt->second;
         state.mapping.erase(mapIt);
-        state.physToVirt.erase(physReg.packed);
 
         const auto stateIt = state.states.find(virtKey);
         if (stateIt != state.states.end())
@@ -570,12 +584,28 @@ namespace
 
     void mapVirtReg(PassState& state, uint32_t virtKey, MicroReg physReg)
     {
-        state.mapping[virtKey]           = physReg;
-        state.physToVirt[physReg.packed] = virtKey;
+        state.mapping[virtKey] = physReg;
 
         auto& regState  = state.states[virtKey];
         regState.mapped = true;
         regState.phys   = physReg;
+    }
+
+    bool selectEvictionCandidateWithFallback(const PassState&          state,
+                                             uint32_t                  requestVirtKey,
+                                             uint32_t                  instructionIndex,
+                                             bool                      isFloatReg,
+                                             bool                      preferPersistentPool,
+                                             std::span<const uint32_t> protectedKeys,
+                                             uint32_t                  stamp,
+                                             bool                      allowConcreteLive,
+                                             uint32_t&                 outVirtKey,
+                                             MicroReg&                 outPhys)
+    {
+        if (selectEvictionCandidate(state, requestVirtKey, instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys))
+            return true;
+
+        return selectEvictionCandidate(state, requestVirtKey, instructionIndex, isFloatReg, !preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys);
     }
 
     MicroReg allocatePhysical(PassState&                  state,
@@ -593,18 +623,9 @@ namespace
         uint32_t victimKey = 0;
         MicroReg victimReg;
 
-        const bool isFloatReg = request.virtReg.isVirtualFloat();
-
-        if (request.needsPersistent)
-        {
-            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, false, victimKey, victimReg))
-                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, false, victimKey, victimReg));
-        }
-        else
-        {
-            if (!selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, false, protectedKeys, stamp, false, victimKey, victimReg))
-                SWC_ASSERT(selectEvictionCandidate(state, request.virtKey, request.instructionIndex, isFloatReg, true, protectedKeys, stamp, false, victimKey, victimReg));
-        }
+        const bool isFloatReg           = request.virtReg.isVirtualFloat();
+        const bool preferPersistentPool = request.needsPersistent;
+        SWC_INTERNAL_CHECK(selectEvictionCandidateWithFallback(state, request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, false, victimKey, victimReg));
 
         auto&      victimState   = state.states[victimKey];
         const bool victimLiveOut = isLiveOut(state, victimKey, stamp);
@@ -678,8 +699,7 @@ namespace
             }
 
             regState.mapped = false;
-            state.physToVirt.erase(physReg.packed);
-            it = state.mapping.erase(it);
+            it              = state.mapping.erase(it);
             returnToFreePool(state, physReg);
         }
     }
@@ -703,7 +723,6 @@ namespace
             if (stateIt != state.states.end())
                 stateIt->second.mapped = false;
 
-            state.physToVirt.erase(deadReg.packed);
             it = state.mapping.erase(it);
             returnToFreePool(state, deadReg);
         }
@@ -751,6 +770,7 @@ namespace
                 state.concreteLiveStamp[key] = stamp;
 
             const MicroInstrRef instructionRef = it.current;
+            const bool          isCall         = it->collectUseDef(*state.operands, state.context->encoder).isCall;
 
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
@@ -809,8 +829,7 @@ namespace
                     state.states[request.virtKey].dirty = true;
             }
 
-            const auto useDef = it->collectUseDef(*state.operands, state.context->encoder);
-            if (useDef.isCall)
+            if (isCall)
                 spillCallLiveOut(state, stamp, stackDepth, pending);
 
             for (const auto& pendingInst : pending)

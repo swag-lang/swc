@@ -40,3 +40,20 @@ namespace N
 {
     let p1 = #typeof(N.Amb) // swc-expected-error {{sema_err_ambiguous_symbol}}
 }
+
+func DeclAndDef();
+func DeclAndDef() {}
+
+#test
+{
+    DeclAndDef()
+    #assert(#nameof(DeclAndDef) == "DeclAndDef")
+}
+
+func DeclOnly();
+func DeclOnly(a: s32);
+
+#test
+{
+    #assert(#nameof(DeclOnly) == "DeclOnly") // swc-expected-error {{sema_err_ambiguous_symbol}}
+}

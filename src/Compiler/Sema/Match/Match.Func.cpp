@@ -16,6 +16,50 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasConcreteFunctionCandidate(std::span<Symbol*> symbols)
+    {
+        for (Symbol* const sym : symbols)
+        {
+            if (!sym || !sym->isFunction())
+                continue;
+            const auto& fn = sym->cast<SymbolFunction>();
+            if (!fn.isEmpty())
+                return true;
+        }
+
+        return false;
+    }
+
+    void removeEmptyFunctionDeclarations(std::span<Symbol*> inSymbols, SmallVector<Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+        outSymbols.reserve(inSymbols.size());
+
+        if (!hasConcreteFunctionCandidate(inSymbols))
+        {
+            for (Symbol* const sym : inSymbols)
+            {
+                if (sym)
+                    outSymbols.push_back(sym);
+            }
+            return;
+        }
+
+        for (Symbol* const sym : inSymbols)
+        {
+            if (!sym)
+                continue;
+            if (sym->isFunction())
+            {
+                const auto& fn = sym->cast<SymbolFunction>();
+                if (!fn.isForeign() && fn.isEmpty())
+                    continue;
+            }
+
+            outSymbols.push_back(sym);
+        }
+    }
+
     bool isCallableForMode(const Symbol& sym, Match::ResolveCallMode mode)
     {
         if (mode == Match::ResolveCallMode::AttributeOnly)
@@ -1169,13 +1213,16 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
             filteredSymbols.push_back(sym);
     }
 
+    SmallVector<Symbol*> concreteSymbols;
+    removeEmptyFunctionDeclarations(filteredSymbols, concreteSymbols);
+
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     // Collect all function candidates and evaluate their match quality
     SmallVector<Attempt>         attempts;
     SmallVector<SymbolFunction*> functions;
-    SWC_RESULT_VERIFY(collectAttempts(sema, attempts, functions, filteredSymbols.span(), args, ufcsArg));
+    SWC_RESULT_VERIFY(collectAttempts(sema, attempts, functions, concreteSymbols.span(), args, ufcsArg));
 
     // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;

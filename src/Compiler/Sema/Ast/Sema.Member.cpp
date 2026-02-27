@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -18,6 +19,50 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasConcreteFunctionCandidate(std::span<const Symbol*> symbols)
+    {
+        for (const Symbol* const sym : symbols)
+        {
+            if (!sym || !sym->isFunction())
+                continue;
+            const auto& fn = sym->cast<SymbolFunction>();
+            if (!fn.isEmpty())
+                return true;
+        }
+
+        return false;
+    }
+
+    void removeEmptyFunctionDeclarations(std::span<const Symbol*> inSymbols, SmallVector<const Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+        outSymbols.reserve(inSymbols.size());
+
+        if (!hasConcreteFunctionCandidate(inSymbols))
+        {
+            for (const Symbol* const sym : inSymbols)
+            {
+                if (sym)
+                    outSymbols.push_back(sym);
+            }
+            return;
+        }
+
+        for (const Symbol* const sym : inSymbols)
+        {
+            if (!sym)
+                continue;
+            if (sym->isFunction())
+            {
+                const auto& fn = sym->cast<SymbolFunction>();
+                if (!fn.isForeign() && fn.isEmpty())
+                    continue;
+            }
+
+            outSymbols.push_back(sym);
+        }
+    }
+
     // A call callee may legitimately bind to an overload set, but only for callable candidates.
     // If at least one callable candidate exists, keep ONLY those callables (ignore non-callables for a call).
     // If no callable candidates exist:
@@ -26,10 +71,12 @@ namespace
     bool filterCallCalleeCandidates(std::span<const Symbol*> inSymbols, SmallVector<const Symbol*>& outSymbols)
     {
         outSymbols.clear();
+        SmallVector<const Symbol*> filteredSymbols;
+        removeEmptyFunctionDeclarations(inSymbols, filteredSymbols);
 
         // Currently, "callable" means "function symbol".
         // Extend here later for function pointers/delegates/call-operator types if needed.
-        for (const Symbol* s : inSymbols)
+        for (const Symbol* const s : filteredSymbols)
         {
             if (s && s->isFunction())
                 outSymbols.push_back(s);
@@ -40,43 +87,49 @@ namespace
 
     Result checkAmbiguityAndBindSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<const Symbol*> foundSymbols)
     {
-        const size_t n = foundSymbols.size();
+        SmallVector<const Symbol*> filteredSymbols;
+        removeEmptyFunctionDeclarations(foundSymbols, filteredSymbols);
+
+        const size_t n = filteredSymbols.size();
 
         if (n <= 1)
         {
-            sema.setSymbolList(nodeRef, foundSymbols);
+            sema.setSymbolList(nodeRef, filteredSymbols);
             return Result::Continue;
         }
 
         // Multiple candidates.
         if (!allowOverloadSetForCallCallee)
-            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
+            return SemaError::raiseAmbiguousSymbol(sema, nodeRef, filteredSymbols);
 
         // Call-callee context: keep only callables if any exist.
         SmallVector<const Symbol*> callables;
-        if (filterCallCalleeCandidates(foundSymbols, callables))
+        if (filterCallCalleeCandidates(filteredSymbols, callables))
         {
             sema.setSymbolList(nodeRef, callables);
             return Result::Continue;
         }
 
         // No callable candidates and multiple results => true ambiguity (e.g. multiple vars/namespaces/etc.).
-        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, foundSymbols);
+        return SemaError::raiseAmbiguousSymbol(sema, nodeRef, filteredSymbols);
     }
 
     void bindMemberSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSet, std::span<const Symbol*> symbols)
     {
-        if (symbols.size() <= 1 || !allowOverloadSet)
+        SmallVector<const Symbol*> filteredSymbols;
+        removeEmptyFunctionDeclarations(symbols, filteredSymbols);
+
+        if (filteredSymbols.size() <= 1 || !allowOverloadSet)
         {
-            sema.setSymbolList(nodeRef, symbols);
+            sema.setSymbolList(nodeRef, filteredSymbols);
         }
         else
         {
             SmallVector<const Symbol*> callables;
-            if (filterCallCalleeCandidates(symbols, callables))
+            if (filterCallCalleeCandidates(filteredSymbols, callables))
                 sema.setSymbolList(nodeRef, callables);
             else
-                sema.setSymbolList(nodeRef, symbols);
+                sema.setSymbolList(nodeRef, filteredSymbols);
         }
     }
 

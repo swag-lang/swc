@@ -221,7 +221,7 @@ func memmove(dst: *void, src: const *void, size: u64)
 }
 
 #[Swag.NoDoc]
-func memcmp(dst, src: const [*] void, size: u64)->s32
+func @memcmp(dst, src: const [*] void, size: u64)->s32
 {
     let len = __Win32RT.RtlCompareMemory(dst, src, size)
     if len == size do

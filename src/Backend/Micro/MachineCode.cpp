@@ -82,6 +82,16 @@ namespace
             passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
         }
         passManager.addFinal(regAllocPass);
+        if (backendCfg.optimize)
+        {
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.loadStoreForwardPass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.peepholePass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.deadCodePass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.constantPropagationPass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.branchFoldingPass));
+            passManager.addFinal(*SWC_NOT_NULL(optimizationPasses.cfgSimplifyPass));
+        }
         passManager.addFinal(emitPass);
     }
 

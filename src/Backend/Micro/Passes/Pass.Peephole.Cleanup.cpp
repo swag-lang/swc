@@ -626,7 +626,7 @@ namespace PeepholePass
                    op == MicroOp::RotateRight;
         }
 
-        bool isEpilogStackAdjustBeforeReturn(const Cursor& cursor, const MicroStorage::Iterator it, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
+        bool isEpilogStackAdjustBeforeReturn(const MicroStorage::Iterator it, const MicroStorage::Iterator endIt, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
         {
             if (!ops)
                 return false;
@@ -635,7 +635,7 @@ namespace PeepholePass
                 return false;
 
             const auto nextIt = std::next(it);
-            if (nextIt == cursor.endIt)
+            if (nextIt == endIt)
                 return false;
 
             if (nextIt->op == MicroInstrOpcode::Ret)
@@ -645,7 +645,200 @@ namespace PeepholePass
                 return false;
 
             const auto nextNextIt = std::next(nextIt);
-            return nextNextIt != cursor.endIt && nextNextIt->op == MicroInstrOpcode::Ret;
+            return nextNextIt != endIt && nextNextIt->op == MicroInstrOpcode::Ret;
+        }
+
+        bool canTreatStackBaseRegistersAsEquivalent(const MicroPassContext& context)
+        {
+            const CallConv& conv = CallConv::get(context.callConvKind);
+            if (!conv.framePointer.isValid())
+                return false;
+
+            const MicroReg stackReg = conv.stackPointer;
+            const MicroReg frameReg = conv.framePointer;
+            if (!stackReg.isValid() || !frameReg.isValid() || stackReg == frameReg)
+                return false;
+
+            bool       sawFrameAliasToStack = false;
+            const auto view                 = SWC_NOT_NULL(context.instructions)->view();
+            for (auto it = view.begin(); it != view.end(); ++it)
+            {
+                const MicroInstr&        inst = *it;
+                const MicroInstrOperand* ops  = inst.ops(*SWC_NOT_NULL(context.operands));
+                if (!ops)
+                    return false;
+
+                const MicroInstrUseDef useDef = inst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (inst.op == MicroInstrOpcode::LoadRegReg &&
+                    ops[0].reg == frameReg &&
+                    ops[1].reg == stackReg &&
+                    ops[2].opBits == MicroOpBits::B64)
+                {
+                    sawFrameAliasToStack = true;
+                    continue;
+                }
+
+                bool stackRegDefined = false;
+                bool frameRegDefined = false;
+                for (const MicroReg defReg : useDef.defs)
+                {
+                    if (defReg == stackReg)
+                        stackRegDefined = true;
+                    if (defReg == frameReg)
+                        frameRegDefined = true;
+                }
+
+                if (frameRegDefined)
+                {
+                    if (inst.op == MicroInstrOpcode::Pop)
+                    {
+                        const auto nextIt = std::next(it);
+                        if (nextIt != view.end() && nextIt->op == MicroInstrOpcode::Ret)
+                            continue;
+                    }
+
+                    return false;
+                }
+
+                if (!stackRegDefined)
+                    continue;
+
+                if (!sawFrameAliasToStack)
+                    continue;
+
+                if (isEpilogStackAdjustBeforeReturn(it, view.end(), inst, ops, stackReg))
+                    continue;
+
+                if (inst.op == MicroInstrOpcode::Pop)
+                {
+                    const auto nextIt = std::next(it);
+                    if (nextIt != view.end() && nextIt->op == MicroInstrOpcode::Ret)
+                        continue;
+                }
+
+                return false;
+            }
+
+            return sawFrameAliasToStack;
+        }
+
+        bool hasAnyReadOrAddressTakenForStackSlot(const MicroPassContext& context, const MicroInstrRef excludedInstRef, const MicroReg slotBaseReg, const uint64_t slotOffset, const uint32_t slotSize, const bool equivalentStackBases)
+        {
+            const MicroStorage::View view                       = SWC_NOT_NULL(context.instructions)->view();
+            bool                     reachedExcludedInstruction = false;
+
+            for (auto it = view.begin(); it != view.end(); ++it)
+            {
+                if (it.current == excludedInstRef)
+                {
+                    reachedExcludedInstruction = true;
+                    continue;
+                }
+
+                const bool               afterExcludedInstruction = reachedExcludedInstruction;
+                const MicroInstr&        scanInst                 = *it;
+                const MicroInstrOperand* scanOps                  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return true;
+
+                const MicroInstrUseDef scanUseDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (afterExcludedInstruction && scanUseDef.isCall)
+                    return true;
+
+                if (afterExcludedInstruction)
+                {
+                    bool slotBaseDefined = false;
+                    for (const MicroReg defReg : scanUseDef.defs)
+                    {
+                        if (defReg == slotBaseReg)
+                        {
+                            slotBaseDefined = true;
+                            break;
+                        }
+                    }
+
+                    if (slotBaseDefined)
+                    {
+                        if (isEpilogStackAdjustBeforeReturn(it, view.end(), scanInst, scanOps, slotBaseReg))
+                            continue;
+
+                        if (scanInst.op == MicroInstrOpcode::Pop)
+                        {
+                            const auto nextIt = std::next(it);
+                            if (nextIt != view.end() && nextIt->op == MicroInstrOpcode::Ret)
+                                continue;
+                        }
+
+                        return true;
+                    }
+                }
+
+                if (!isAddressOnlyInstruction(scanInst) && !isMemoryReadInstruction(scanInst) && !isMemoryWriteInstruction(scanInst))
+                    continue;
+
+                uint8_t scanBaseIndex   = 0;
+                uint8_t scanOffsetIndex = 0;
+                if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
+                {
+                    if (scanInst.op == MicroInstrOpcode::LoadAmcRegMem ||
+                        scanInst.op == MicroInstrOpcode::LoadAmcMemReg ||
+                        scanInst.op == MicroInstrOpcode::LoadAmcMemImm ||
+                        scanInst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
+                    {
+                        if (isAmcInstructionUsingStackBase(context, scanInst, scanOps))
+                            return true;
+
+                        continue;
+                    }
+
+                    if (scanInst.op == MicroInstrOpcode::Pop)
+                    {
+                        const auto nextIt = std::next(it);
+                        if (nextIt != view.end() && nextIt->op == MicroInstrOpcode::Ret)
+                            continue;
+                    }
+
+                    if (afterExcludedInstruction && (isAddressOnlyInstruction(scanInst) || isMemoryReadInstruction(scanInst)))
+                        return true;
+
+                    continue;
+                }
+
+                const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
+                if (scanBaseReg != slotBaseReg)
+                {
+                    if (!isStackBaseRegister(context, scanBaseReg))
+                        continue;
+
+                    if (!equivalentStackBases)
+                        continue;
+                }
+
+                if (scanOps[scanOffsetIndex].hasWideImmediateValue())
+                    return true;
+
+                const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
+                if (isAddressOnlyInstruction(scanInst))
+                {
+                    if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, 1))
+                        return true;
+
+                    continue;
+                }
+
+                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                    return true;
+
+                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                if (!scanSlotSize)
+                    return true;
+
+                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
+                    return true;
+            }
+
+            return false;
         }
 
         bool getStoreLocation(const MicroInstr& inst, const MicroInstrOperand* ops, MicroReg& outBaseReg, uint64_t& outOffset, MicroOpBits& outOpBits)
@@ -983,7 +1176,8 @@ namespace PeepholePass
             if (!slotSize)
                 return false;
 
-            const uint64_t slotOffset = ops[offsetIndex].valueU64;
+            const uint64_t slotOffset           = ops[offsetIndex].valueU64;
+            const bool     equivalentStackBases = canTreatStackBaseRegistersAsEquivalent(context);
 
             if (MicroInstrInfo::definesCpuFlags(*inst))
             {
@@ -1001,113 +1195,8 @@ namespace PeepholePass
                     return false;
             }
 
-            for (auto it = cursor.nextIt; it != cursor.endIt; ++it)
-            {
-                const MicroInstr&        scanInst   = *it;
-                const MicroInstrUseDef   scanUseDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
-                const MicroInstrOperand* scanOps    = scanInst.ops(*SWC_NOT_NULL(context.operands));
-                if (!scanOps)
-                    return false;
-
-                if (scanUseDef.isCall)
-                    return false;
-
-                bool baseRegUsed = false;
-                for (const MicroReg useReg : scanUseDef.uses)
-                {
-                    if (useReg == baseReg)
-                    {
-                        baseRegUsed = true;
-                        break;
-                    }
-                }
-
-                bool baseRegDefined = false;
-                for (const MicroReg defReg : scanUseDef.defs)
-                {
-                    if (defReg == baseReg)
-                    {
-                        baseRegDefined = true;
-                        break;
-                    }
-                }
-
-                if (baseRegDefined)
-                {
-                    if (!isEpilogStackAdjustBeforeReturn(cursor, it, scanInst, scanOps, baseReg))
-                        return false;
-                }
-
-                if (!isAddressOnlyInstruction(scanInst) && !isMemoryReadInstruction(scanInst) && !isMemoryWriteInstruction(scanInst))
-                {
-                    if (baseRegUsed)
-                        return false;
-                    continue;
-                }
-
-                uint8_t scanBaseIndex   = 0;
-                uint8_t scanOffsetIndex = 0;
-                if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(scanBaseIndex, scanOffsetIndex, scanInst))
-                {
-                    if (scanInst.op == MicroInstrOpcode::Pop)
-                    {
-                        const auto nextScanIt = std::next(it);
-                        if (nextScanIt != cursor.endIt && nextScanIt->op == MicroInstrOpcode::Ret)
-                            continue;
-                    }
-
-                    if (scanInst.op == MicroInstrOpcode::LoadAmcRegMem ||
-                        scanInst.op == MicroInstrOpcode::LoadAmcMemReg ||
-                        scanInst.op == MicroInstrOpcode::LoadAmcMemImm ||
-                        scanInst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
-                    {
-                        if (isAmcInstructionUsingStackBase(context, scanInst, scanOps))
-                            return false;
-
-                        continue;
-                    }
-
-                    if (baseRegUsed)
-                        return false;
-
-                    return false;
-                }
-
-                const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
-                if (scanBaseReg != baseReg)
-                {
-                    if (isStackBaseRegister(context, scanBaseReg))
-                        return false;
-
-                    if (baseRegUsed)
-                        return false;
-
-                    continue;
-                }
-
-                if (scanOps[scanOffsetIndex].hasWideImmediateValue())
-                    return false;
-
-                const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
-                if (isAddressOnlyInstruction(scanInst))
-                {
-                    return false;
-                }
-
-                MicroOpBits scanOpBits = MicroOpBits::Zero;
-                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
-                    return false;
-
-                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
-                if (!scanSlotSize)
-                    return false;
-
-                if (!rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
-                    continue;
-
-                if (isAddressOnlyInstruction(scanInst) || isMemoryReadInstruction(scanInst))
-                    return false;
-            }
+            if (hasAnyReadOrAddressTakenForStackSlot(context, instRef, baseReg, slotOffset, slotSize, equivalentStackBases))
+                return false;
 
             SWC_NOT_NULL(context.instructions)->erase(instRef);
             return true;

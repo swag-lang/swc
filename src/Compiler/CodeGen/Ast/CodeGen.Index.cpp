@@ -137,6 +137,35 @@ namespace
 
         SWC_UNREACHABLE();
     }
+
+    uint64_t resolveIndexStrideSize(CodeGen& codeGen, const TypeInfo& indexedType)
+    {
+        TypeManager& typeMgr = codeGen.sema().typeMgr();
+        if (indexedType.isArray())
+        {
+            const auto& dims       = indexedType.payloadArrayDims();
+            const auto  elementRef = indexedType.payloadArrayElemTypeRef();
+            if (dims.size() <= 1)
+                return typeMgr.get(elementRef).sizeOf(codeGen.ctx());
+
+            SmallVector<uint64_t> remainingDims;
+            remainingDims.reserve(dims.size() - 1);
+            for (size_t i = 1; i < dims.size(); ++i)
+                remainingDims.push_back(dims[i]);
+
+            const TypeRef strideTypeRef = typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), elementRef, indexedType.flags()));
+            return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
+        }
+
+        if (indexedType.isBlockPointer() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isValuePointer() || indexedType.isReference() || indexedType.isCString())
+            return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
+        if (indexedType.isString())
+            return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
+        if (indexedType.isVariadic())
+            return typeMgr.get(typeMgr.typeAny()).sizeOf(codeGen.ctx());
+
+        SWC_UNREACHABLE();
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -153,7 +182,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     const MicroReg indexReg  = materializeIndexReg(codeGen, nodeArgRef, indexBits);
     const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, *indexedView.type(), indexedPayload);
 
-    const uint64_t resultSize = resultView.type()->sizeOf(codeGen.ctx());
+    const uint64_t resultSize = resolveIndexStrideSize(codeGen, *indexedView.type());
     SWC_ASSERT(resultSize > 0);
 
     const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);

@@ -3,6 +3,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
@@ -238,56 +239,171 @@ namespace
 
     void analyzeLiveness(PassState& state)
     {
-        // Backward liveness: capture live-outset per instruction and detect values live across calls.
+        // CFG-aware backward liveness: captures live-out sets even across back-edges.
         state.liveOut.clear();
         state.liveOut.resize(state.instructionCount);
         state.concreteLiveOut.clear();
         state.concreteLiveOut.resize(state.instructionCount);
         state.vregsLiveAcrossCall.clear();
 
-        std::unordered_set<uint32_t> liveVirtual;
-        std::unordered_set<uint32_t> liveConcrete;
-        liveVirtual.reserve(state.instructionCount * 2ull);
-        liveConcrete.reserve(state.instructionCount * 2ull);
+        if (!state.instructionCount)
+            return;
 
-        uint32_t idx = state.instructionCount;
-        for (const auto& inst : std::ranges::reverse_view(state.instructions->view()))
+        std::vector<const MicroInstr*>            instructions;
+        std::vector<MicroInstrUseDef>             useDefs;
+        std::vector<std::vector<uint32_t>>        useVirtual;
+        std::vector<std::vector<uint32_t>>        defVirtual;
+        std::vector<std::vector<uint32_t>>        useConcrete;
+        std::vector<std::vector<uint32_t>>        defConcrete;
+        std::vector<SmallVector<uint32_t>>        successors;
+        std::unordered_map<uint32_t, uint32_t>    labelToIndex;
+        std::vector<std::unordered_set<uint32_t>> liveInVirtual;
+        std::vector<std::unordered_set<uint32_t>> liveOutVirtual;
+        std::vector<std::unordered_set<uint32_t>> liveInConcrete;
+        std::vector<std::unordered_set<uint32_t>> liveOutConcrete;
+        const auto                                reserveCount = static_cast<size_t>(state.instructionCount);
+
+        instructions.reserve(reserveCount);
+        useDefs.resize(state.instructionCount);
+        useVirtual.resize(state.instructionCount);
+        defVirtual.resize(state.instructionCount);
+        useConcrete.resize(state.instructionCount);
+        defConcrete.resize(state.instructionCount);
+        successors.resize(state.instructionCount);
+        labelToIndex.reserve(reserveCount / 2 + 1);
+        liveInVirtual.resize(state.instructionCount);
+        liveOutVirtual.resize(state.instructionCount);
+        liveInConcrete.resize(state.instructionCount);
+        liveOutConcrete.resize(state.instructionCount);
+
+        uint32_t idx = 0;
+        for (const auto& inst : state.instructions->view())
         {
-            --idx;
+            instructions.push_back(&inst);
+            useDefs[idx] = inst.collectUseDef(*state.operands, state.context->encoder);
 
-            auto& outVirtual = state.liveOut[idx];
+            auto& usesV = useVirtual[idx];
+            auto& defsV = defVirtual[idx];
+            auto& usesC = useConcrete[idx];
+            auto& defsC = defConcrete[idx];
+            usesV.reserve(useDefs[idx].uses.size());
+            defsV.reserve(useDefs[idx].defs.size());
+            usesC.reserve(useDefs[idx].uses.size());
+            defsC.reserve(useDefs[idx].defs.size());
+
+            for (const auto& reg : useDefs[idx].uses)
+            {
+                if (reg.isVirtual())
+                    usesV.push_back(reg.packed);
+                else if (reg.isInt() || reg.isFloat())
+                    usesC.push_back(reg.packed);
+            }
+
+            for (const auto& reg : useDefs[idx].defs)
+            {
+                if (reg.isVirtual())
+                    defsV.push_back(reg.packed);
+                else if (reg.isInt() || reg.isFloat())
+                    defsC.push_back(reg.packed);
+            }
+
+            if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)
+            {
+                const MicroInstrOperand* const ops                   = inst.ops(*state.operands);
+                labelToIndex[static_cast<uint32_t>(ops[0].valueU64)] = idx;
+            }
+
+            ++idx;
+        }
+
+        idx = 0;
+        for (const MicroInstr* inst : instructions)
+        {
+            SWC_ASSERT(inst != nullptr);
+            const MicroInstrOperand* const ops  = inst->ops(*state.operands);
+            auto&                          succ = successors[idx];
+            succ.clear();
+            succ.reserve(2);
+
+            if ((inst->op == MicroInstrOpcode::JumpCond || inst->op == MicroInstrOpcode::JumpCondImm) && inst->numOperands >= 3)
+            {
+                const uint32_t labelId = static_cast<uint32_t>(ops[2].valueU64);
+                const auto     itLabel = labelToIndex.find(labelId);
+                if (itLabel != labelToIndex.end())
+                    succ.push_back(itLabel->second);
+
+                if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops) && idx + 1 < state.instructionCount)
+                    succ.push_back(idx + 1);
+            }
+            else if (!MicroInstrInfo::isTerminatorInstruction(*inst) && idx + 1 < state.instructionCount)
+            {
+                succ.push_back(idx + 1);
+            }
+
+            ++idx;
+        }
+
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+
+            for (int64_t rev = static_cast<int64_t>(state.instructionCount) - 1; rev >= 0; --rev)
+            {
+                const uint32_t i = static_cast<uint32_t>(rev);
+
+                std::unordered_set<uint32_t> newOutV;
+                std::unordered_set<uint32_t> newOutC;
+                for (const auto succIdx : successors[i])
+                {
+                    newOutV.insert(liveInVirtual[succIdx].begin(), liveInVirtual[succIdx].end());
+                    newOutC.insert(liveInConcrete[succIdx].begin(), liveInConcrete[succIdx].end());
+                }
+
+                std::unordered_set<uint32_t> newInV = newOutV;
+                for (const auto defKey : defVirtual[i])
+                    newInV.erase(defKey);
+                for (const auto useKey : useVirtual[i])
+                    newInV.insert(useKey);
+
+                std::unordered_set<uint32_t> newInC = newOutC;
+                for (const auto defKey : defConcrete[i])
+                    newInC.erase(defKey);
+                for (const auto useKey : useConcrete[i])
+                    newInC.insert(useKey);
+
+                if (newOutV != liveOutVirtual[i] ||
+                    newOutC != liveOutConcrete[i] ||
+                    newInV != liveInVirtual[i] ||
+                    newInC != liveInConcrete[i])
+                {
+                    changed            = true;
+                    liveOutVirtual[i]  = std::move(newOutV);
+                    liveOutConcrete[i] = std::move(newOutC);
+                    liveInVirtual[i]   = std::move(newInV);
+                    liveInConcrete[i]  = std::move(newInC);
+                }
+            }
+        }
+
+        for (uint32_t i = 0; i < state.instructionCount; ++i)
+        {
+            auto& outVirtual = state.liveOut[i];
             outVirtual.clear();
-            outVirtual.reserve(liveVirtual.size());
-            for (const uint32_t regKey : liveVirtual)
-                outVirtual.push_back(regKey);
+            outVirtual.reserve(liveOutVirtual[i].size());
+            for (const auto key : liveOutVirtual[i])
+                outVirtual.push_back(key);
 
-            auto& outConcrete = state.concreteLiveOut[idx];
+            auto& outConcrete = state.concreteLiveOut[i];
             outConcrete.clear();
-            outConcrete.reserve(liveConcrete.size());
-            for (const uint32_t regKey : liveConcrete)
-                outConcrete.push_back(regKey);
+            outConcrete.reserve(liveOutConcrete[i].size());
+            for (const auto key : liveOutConcrete[i])
+                outConcrete.push_back(key);
 
-            const auto useDef = inst.collectUseDef(*state.operands, state.context->encoder);
-            if (useDef.isCall)
+            if (useDefs[i].isCall)
             {
-                for (const auto regKey : liveVirtual)
-                    state.vregsLiveAcrossCall.insert(regKey);
-            }
-
-            for (const auto& reg : useDef.defs)
-            {
-                if (reg.isVirtual())
-                    liveVirtual.erase(reg.packed);
-                else if (reg.isInt() || reg.isFloat())
-                    liveConcrete.erase(reg.packed);
-            }
-
-            for (const auto& reg : useDef.uses)
-            {
-                if (reg.isVirtual())
-                    liveVirtual.insert(reg.packed);
-                else if (reg.isInt() || reg.isFloat())
-                    liveConcrete.insert(reg.packed);
+                for (const auto key : liveOutVirtual[i])
+                    state.vregsLiveAcrossCall.insert(key);
             }
         }
     }
@@ -441,8 +557,10 @@ namespace
             return;
         }
 
-        // All incoming edges to the same label must agree on transient stack depth.
-        SWC_ASSERT(it->second == stackDepth);
+        // Keep the first observed depth. Mismatches can happen on dead edges
+        // (for example after a return in linearized IR).
+        if (it->second != stackDepth)
+            return;
     }
 
     bool isCandidateBetter(const PassState& state, uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
@@ -704,6 +822,40 @@ namespace
         }
     }
 
+    void flushAllMappedVirtuals(PassState& state, int64_t stackDepth, std::vector<PendingInsert>& pending)
+    {
+        // Control-flow boundaries require a stable memory state for all mapped values.
+        for (const auto& [virtKey, physReg] : state.mapping)
+        {
+            auto& regState = state.states[virtKey];
+            if (regState.dirty || !regState.hasSpill)
+            {
+                ensureSpillSlot(state, regState, physReg.isFloat());
+                PendingInsert spillPending;
+                queueSpillStore(spillPending, physReg, regState, stackDepth, *state.conv);
+                pending.push_back(spillPending);
+                regState.dirty = false;
+            }
+
+            regState.mapped = false;
+            returnToFreePool(state, physReg);
+        }
+
+        state.mapping.clear();
+    }
+
+    void clearAllMappedVirtuals(PassState& state)
+    {
+        for (const auto& [virtKey, physReg] : state.mapping)
+        {
+            auto& regState  = state.states[virtKey];
+            regState.mapped = false;
+            returnToFreePool(state, physReg);
+        }
+
+        state.mapping.clear();
+    }
+
     void expireDeadMappings(PassState& state, uint32_t stamp)
     {
         // Linear dead-expiry is only safe when the instruction stream has no control-flow joins.
@@ -771,6 +923,18 @@ namespace
 
             const MicroInstrRef instructionRef = it.current;
             const bool          isCall         = it->collectUseDef(*state.operands, state.context->encoder).isCall;
+            const bool          isTerminator   = MicroInstrInfo::isTerminatorInstruction(*it);
+
+            if (state.hasControlFlow && (it->op == MicroInstrOpcode::Label || isTerminator))
+            {
+                std::vector<PendingInsert> boundaryPending;
+                boundaryPending.reserve(state.mapping.size());
+                flushAllMappedVirtuals(state, stackDepth, boundaryPending);
+                for (const auto& pendingInst : boundaryPending)
+                {
+                    state.instructions->insertBefore(*state.operands, instructionRef, pendingInst.op, std::span(pendingInst.ops, pendingInst.numOps));
+                }
+            }
 
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
@@ -847,6 +1011,10 @@ namespace
             }
 
             applyStackPointerDelta(stackDepth, *it, *state.operands, *state.conv);
+
+            if (state.hasControlFlow && isTerminator)
+                clearAllMappedVirtuals(state);
+
             ++idx;
         }
     }

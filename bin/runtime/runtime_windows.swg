@@ -203,19 +203,19 @@ moduleprivate
 }
 
 #[Swag.NoDoc]
-func memset(dst: *void, value: s32, size: u64)
+func @memset(dst: *void, value: s32, size: u64)
 {
     __Win32RT.RtlFillMemory(dst, size, value)
 }
 
 #[Swag.NoDoc]
-func memcpy(dst: *void, src: const *void, size: u64)
+func @memcpy(dst: *void, src: const *void, size: u64)
 {
     __Win32RT.RtlCopyMemory(dst, src, size)
 }
 
 #[Swag.NoDoc]
-func memmove(dst: *void, src: const *void, size: u64)
+func @memmove(dst: *void, src: const *void, size: u64)
 {
     __Win32RT.RtlMoveMemory(dst, src, size)
 }

@@ -14,6 +14,19 @@ namespace
     constexpr uint32_t K_OPT_ITERATION_ON  = 4;
     size_t             countNonLabelInstructions(const MicroStorage* instructions);
 
+    void updatePrintInstructionCountBaseline(MicroPassContext& context)
+    {
+        if (!context.instructions)
+            return;
+
+        const size_t currentCount = countNonLabelInstructions(context.instructions);
+        if (!context.hasPrintInstrCountBeforeAll || currentCount > context.printInstrCountBeforeAll)
+        {
+            context.printInstrCountBeforeAll    = currentCount;
+            context.hasPrintInstrCountBeforeAll = true;
+        }
+    }
+
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimize)
@@ -167,6 +180,7 @@ namespace
 
     Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
     {
+        updatePrintInstructionCountBaseline(context);
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
@@ -177,6 +191,7 @@ namespace
         if (changed && context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
             changed = true;
 
+        updatePrintInstructionCountBaseline(context);
         if (shouldPrintPass(context, pass, false))
             printPassInstructions(context, pass, false);
 

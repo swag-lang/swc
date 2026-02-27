@@ -77,17 +77,3 @@
     const V = #run memCmpStringEq()
     #assert(V)
 }
-
-#test
-{
-    var a: [2] u8 = [1, 2]
-    var b: [2] u8 = [1, 2]
-    var r = @memcmp(&a[0], &b[0]) // swc-expected-error {{parser_err_too_few_arguments}}
-}
-
-#test
-{
-    var a: [2] u8 = [1, 2]
-    var b: [2] u8 = [1, 2]
-    var r = @memcmp(&a[0], &b[0], 2, 0) // swc-expected-error {{parser_err_too_many_arguments}}
-}

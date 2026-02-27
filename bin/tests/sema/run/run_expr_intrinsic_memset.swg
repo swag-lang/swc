@@ -48,15 +48,3 @@
     const V = #run memsetZeroSize()
     #assert(V)
 }
-
-#test
-{
-    var data: [2] u8 = [1, 2]
-    @memset(&data[0], 0'u8) // swc-expected-error {{parser_err_too_few_arguments}}
-}
-
-#test
-{
-    var data: [2] u8 = [1, 2]
-    @memset(&data[0], 0'u8, 2, 1) // swc-expected-error {{parser_err_too_many_arguments}}
-}

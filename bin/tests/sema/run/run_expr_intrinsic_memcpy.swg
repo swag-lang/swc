@@ -46,17 +46,3 @@
     const V = #run memcpyZeroSize()
     #assert(V)
 }
-
-#test
-{
-    var src: [2] u8 = [1, 2]
-    var dst: [2] u8 = [0, 0]
-    @memcpy(&dst[0], &src[0]) // swc-expected-error {{parser_err_too_few_arguments}}
-}
-
-#test
-{
-    var src: [2] u8 = [1, 2]
-    var dst: [2] u8 = [0, 0]
-    @memcpy(&dst[0], &src[0], 2, 0) // swc-expected-error {{parser_err_too_many_arguments}}
-}

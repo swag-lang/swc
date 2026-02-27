@@ -13,13 +13,14 @@ public:
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
     JobResult   exec();
-    Sema&       sema() { return codeGen_.sema(); }
-    const Sema& sema() const { return codeGen_.sema(); }
+    Sema&       sema() { return codeGen_->sema(); }
+    const Sema& sema() const { return codeGen_->sema(); }
 
 private:
-    CodeGen         codeGen_;
-    SymbolFunction* symbolFunc_ = nullptr;
-    AstNodeRef      root_       = AstNodeRef::invalid();
+    std::unique_ptr<Sema>    ownedSema_;
+    std::unique_ptr<CodeGen> codeGen_;
+    SymbolFunction*          symbolFunc_ = nullptr;
+    AstNodeRef               root_       = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

@@ -138,14 +138,15 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView leftView = codeGen.viewType(nodeLeftRef);
-    SWC_ASSERT(leftView.type());
 
-    if (leftView.type()->isInterface())
+    if (leftView.type() && leftView.type()->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
-    if (rightView.sym() && rightView.sym()->isVariable())
+    if (leftView.type() && rightView.sym() && rightView.sym()->isVariable())
         return codeGenStructMemberAccess(codeGen, *this);
+    if (rightView.sym() && (rightView.sym()->isFunction() || rightView.sym()->isType() || rightView.sym()->isNamespace() || rightView.sym()->isModule()))
+        return Result::Continue;
 
     if (codeGen.safePayload(nodeRightRef))
     {

@@ -706,10 +706,10 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);
 }
 
-Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
+Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
     MicroBuilder&                          builder        = codeGen.builder();
-    const SemaNodeView                     calleeView     = codeGen.viewZero(nodeExprRef);
+    const SemaNodeView                     calleeView     = codeGen.viewZero(calleeRef);
     const SemaNodeView                     currentView    = codeGen.curViewTypeSymbol();
     auto&                                  calledFunction = currentView.sym()->cast<SymbolFunction>();
     const CallConvKind                     callConvKind   = calledFunction.callConvKind();
@@ -733,6 +733,11 @@ Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
 
     return Result::Continue;
+}
+
+Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    return codeGenCallExprCommon(codeGen, nodeExprRef);
 }
 
 SWC_END_NAMESPACE();

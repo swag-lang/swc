@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Global.h"
+#include "Wmf/SourceFile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -28,11 +29,24 @@ namespace
 
 CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) :
     Job(ctx, JobKind::CodeGen),
-    codeGen_(sema),
     symbolFunc_(&symbolFunc),
     root_(root)
 {
-    func = [this] {
+    Sema* codeGenSema = &sema;
+    if (symbolFunc.srcViewRef() != sema.ast().srcView().ref())
+    {
+        SourceView&   symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
+        const FileRef symbolFileRef = symbolSrcView.fileRef();
+        if (symbolFileRef.isValid())
+        {
+            SourceFile& symbolFile = sema.compiler().file(symbolFileRef);
+            ownedSema_             = std::make_unique<Sema>(Job::ctx(), symbolFile.nodePayloadContext(), false);
+            codeGenSema            = ownedSema_.get();
+        }
+    }
+
+    codeGen_ = std::make_unique<CodeGen>(*SWC_NOT_NULL(codeGenSema));
+    func     = [this] {
         return exec();
     };
 }
@@ -79,7 +93,7 @@ JobResult CodeGenJob::exec()
 #if SWC_HAS_STATS
         Timer timeCodeGen(&Stats::get().timeCodeGen);
 #endif
-        const Result codeGenResult = codeGen_.exec(*symbolFunc_, root_);
+        const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
             return toJobResult(codeGenResult);
         symbolFunc_->setCodeGenPreSolved(ctx());

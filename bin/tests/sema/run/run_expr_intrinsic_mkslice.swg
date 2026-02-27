@@ -54,6 +54,19 @@
 
 #test
 {
+    func memCmpEq()->bool
+    {
+        var a: [4] u8 = [1, 2, 3, 4]
+        var b: [4] u8 = [1, 2, 3, 4]
+        return @memcmp(&a[0], &b[0], 4) == 0
+    }
+
+    const V = #run memCmpEq()
+    #assert(V)
+}
+
+#test
+{
     var s = @mkstring(0, 1) // swc-expected-error {{sema_err_expected_type_fam}}
 }
 

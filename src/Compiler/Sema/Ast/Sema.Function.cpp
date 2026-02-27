@@ -127,7 +127,7 @@ namespace
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
-            if (currentFn->decl() && calledFn.decl() && currentFn->srcViewRef() == calledFn.srcViewRef() && !calledFn.isForeign())
+            if (currentFn->decl() && calledFn.decl() && !calledFn.isForeign() && !calledFn.isEmpty())
                 currentFn->addCallDependency(&calledFn);
         }
 

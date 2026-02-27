@@ -90,6 +90,10 @@ namespace
             case SymbolKind::Function:
                 return;
 
+            case SymbolKind::Namespace:
+            case SymbolKind::Module:
+                return;
+
             default:
                 if (symbol.isType())
                     return;

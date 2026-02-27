@@ -12,6 +12,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef);
+
 namespace
 {
     CodeGenNodePayload resolveIntrinsicRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
@@ -249,7 +251,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         }
 
         default:
-            SWC_UNREACHABLE();
+            return codeGenCallExprCommon(codeGen, nodeExprRef);
     }
 }
 

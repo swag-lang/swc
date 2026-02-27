@@ -234,6 +234,200 @@ namespace PeepholePass
             return true;
         }
 
+        bool tryResolveOriginalSetCond(MicroCond& outCond, MicroInstrRef& outSetCondRef, const MicroPassContext& context, MicroInstrRef startRef, MicroReg reg)
+        {
+            MicroInstrRef scanRef    = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(startRef);
+            MicroReg      trackedReg = reg;
+            while (scanRef.isValid())
+            {
+                const MicroInstr*        scanInst = SWC_NOT_NULL(context.instructions)->ptr(scanRef);
+                const MicroInstrOperand* scanOps  = scanInst ? scanInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
+                if (!scanInst || !scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst->collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::isLocalDataflowBarrier(*scanInst, useDef))
+                    return false;
+
+                bool regDefined = false;
+                for (const MicroReg defReg : useDef.defs)
+                {
+                    if (defReg == trackedReg)
+                    {
+                        regDefined = true;
+                        break;
+                    }
+                }
+
+                if (!regDefined)
+                {
+                    scanRef = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                    continue;
+                }
+
+                if (scanInst->op == MicroInstrOpcode::SetCondReg && scanOps[0].reg == trackedReg)
+                {
+                    outCond       = scanOps[1].cpuCond;
+                    outSetCondRef = scanRef;
+                    return true;
+                }
+
+                if (scanInst->op == MicroInstrOpcode::LoadZeroExtRegReg &&
+                    scanOps[0].reg == trackedReg &&
+                    scanOps[1].reg == trackedReg &&
+                    scanOps[2].opBits == MicroOpBits::B32 &&
+                    scanOps[3].opBits == MicroOpBits::B8)
+                {
+                    scanRef = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                    continue;
+                }
+
+                if (scanInst->op == MicroInstrOpcode::LoadRegReg &&
+                    scanOps[0].reg == trackedReg &&
+                    scanOps[2].opBits == MicroOpBits::B8)
+                {
+                    trackedReg = scanOps[1].reg;
+                    scanRef    = SWC_NOT_NULL(context.instructions)->findPreviousInstructionRef(scanRef);
+                    continue;
+                }
+
+                return false;
+            }
+
+            return false;
+        }
+
+        bool foldSetCondCompareZeroIntoDirectJump(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstrRef      cmpRef  = cursor.instRef;
+            const MicroInstr*        cmpInst = cursor.inst;
+            const MicroInstrOperand* cmpOps  = cursor.ops;
+            const auto               endIt   = cursor.endIt;
+            if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm || !cmpOps)
+                return false;
+
+            if (cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
+                return false;
+
+            MicroCond     setCondCond = MicroCond::Equal;
+            MicroInstrRef setCondRef  = MicroInstrRef::invalid();
+            if (!tryResolveOriginalSetCond(setCondCond, setCondRef, context, cmpRef, cmpOps[0].reg))
+                return false;
+
+            MicroStorage::Iterator jumpIt = cursor.nextIt;
+            for (; jumpIt != endIt; ++jumpIt)
+            {
+                const MicroInstr&        scanInst = *jumpIt;
+                const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                if (!scanOps)
+                    return false;
+
+                const MicroInstrUseDef useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                if (MicroInstrInfo::usesCpuFlags(scanInst))
+                    break;
+                if (MicroInstrInfo::definesCpuFlags(scanInst))
+                    return false;
+                if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                    return false;
+            }
+
+            if (jumpIt == endIt)
+                return false;
+
+            const MicroInstr&  jumpInst = *jumpIt;
+            MicroInstrOperand* jumpOps  = jumpInst.ops(*SWC_NOT_NULL(context.operands));
+            if (jumpInst.op != MicroInstrOpcode::JumpCond || !jumpOps)
+                return false;
+
+            if (jumpOps[0].cpuCond != MicroCond::Equal &&
+                jumpOps[0].cpuCond != MicroCond::Zero &&
+                jumpOps[0].cpuCond != MicroCond::NotEqual &&
+                jumpOps[0].cpuCond != MicroCond::NotZero)
+            {
+                return false;
+            }
+
+            MicroCond newJumpCond = setCondCond;
+            if (jumpOps[0].cpuCond == MicroCond::Equal || jumpOps[0].cpuCond == MicroCond::Zero)
+            {
+                if (!tryInvertCondition(newJumpCond, newJumpCond))
+                    return false;
+            }
+
+            const MicroCond originalJumpCond = jumpOps[0].cpuCond;
+            jumpOps[0].cpuCond               = newJumpCond;
+            if (MicroOptimization::violatesEncoderConformance(context, jumpInst, jumpOps))
+            {
+                jumpOps[0].cpuCond = originalJumpCond;
+                return false;
+            }
+
+            SWC_NOT_NULL(context.instructions)->erase(cmpRef);
+            return true;
+        }
+
+        bool foldSetCondCompareSetCondChain(const MicroPassContext& context, const Cursor& cursor)
+        {
+            const MicroInstrRef          cmpRef  = cursor.instRef;
+            const MicroInstr*            cmpInst = cursor.inst;
+            const MicroInstrOperand*     cmpOps  = cursor.ops;
+            const MicroStorage::Iterator nextIt  = cursor.nextIt;
+            const MicroStorage::Iterator endIt   = cursor.endIt;
+            if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm || !cmpOps || nextIt == endIt)
+                return false;
+
+            if (cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
+                return false;
+
+            const MicroInstr& nextSetCondInst = *nextIt;
+            if (nextSetCondInst.op != MicroInstrOpcode::SetCondReg)
+                return false;
+
+            MicroInstrOperand* nextSetCondOps = nextSetCondInst.ops(*SWC_NOT_NULL(context.operands));
+            if (!nextSetCondOps)
+                return false;
+
+            const MicroCond cmpToBoolCond = nextSetCondOps[1].cpuCond;
+            if (cmpToBoolCond != MicroCond::Equal &&
+                cmpToBoolCond != MicroCond::Zero &&
+                cmpToBoolCond != MicroCond::NotEqual &&
+                cmpToBoolCond != MicroCond::NotZero)
+            {
+                return false;
+            }
+
+            MicroCond     originalSetCond    = MicroCond::Equal;
+            MicroInstrRef originalSetCondRef = MicroInstrRef::invalid();
+            if (!tryResolveOriginalSetCond(originalSetCond, originalSetCondRef, context, cmpRef, cmpOps[0].reg))
+                return false;
+
+            MicroCond foldedCond = originalSetCond;
+            if (cmpToBoolCond == MicroCond::Equal || cmpToBoolCond == MicroCond::Zero)
+            {
+                if (!tryInvertCondition(foldedCond, foldedCond))
+                    return false;
+            }
+
+            const MicroCond originalNextSetCond = nextSetCondOps[1].cpuCond;
+            nextSetCondOps[1].cpuCond           = foldedCond;
+            if (MicroOptimization::violatesEncoderConformance(context, nextSetCondInst, nextSetCondOps))
+            {
+                nextSetCondOps[1].cpuCond = originalNextSetCond;
+                return false;
+            }
+
+            SWC_NOT_NULL(context.instructions)->erase(cmpRef);
+            if (originalSetCondRef.isValid())
+            {
+                const MicroInstr*        originalSetCondInst = SWC_NOT_NULL(context.instructions)->ptr(originalSetCondRef);
+                const MicroInstrOperand* originalSetCondOps  = originalSetCondInst ? originalSetCondInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
+                if (originalSetCondOps && isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, originalSetCondOps[0].reg))
+                    SWC_NOT_NULL(context.instructions)->erase(originalSetCondRef);
+            }
+
+            return true;
+        }
+
         bool isStackBaseRegister(const MicroPassContext& context, const MicroReg reg)
         {
             const CallConv& conv = CallConv::get(context.callConvKind);
@@ -893,33 +1087,194 @@ namespace PeepholePass
             if (!copyOps[0].reg.isSameClass(tmpReg))
                 return false;
 
-            if (!isCopyDeadAfterInstruction(context, std::next(copyIt), endIt, tmpReg))
-                return false;
-
             const MicroReg dstReg = copyOps[0].reg;
 
-            const MicroInstr*  setCondInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
-            MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
-            if (!setCondOps)
-                return false;
-
-            const MicroReg originalSetCondReg = setCondOps[0].reg;
-            setCondOps[0].reg                 = dstReg;
-            if (MicroOptimization::violatesEncoderConformance(context, *setCondInst, setCondOps))
+            struct RegRewrite
             {
-                setCondOps[0].reg = originalSetCondReg;
-                return false;
+                MicroReg* reg = nullptr;
+                MicroReg  oldReg;
+            };
+
+            auto rollbackRewritesFrom = [](SmallVector<RegRewrite>& rewrites, const size_t start) {
+                for (size_t i = rewrites.size(); i > start; --i)
+                {
+                    const RegRewrite& rewrite = rewrites[i - 1];
+                    if (rewrite.reg)
+                        *rewrite.reg = rewrite.oldReg;
+                }
+
+                rewrites.resize(start);
+            };
+
+            auto isCopyDeadNoBarrier = [&](MicroStorage::Iterator scanIt, const MicroReg reg) {
+                for (; scanIt != endIt; ++scanIt)
+                {
+                    const MicroInstr&                    scanInst = *scanIt;
+                    const MicroInstrUseDef               useDef   = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                    SmallVector<MicroInstrRegOperandRef> refs;
+                    scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+
+                    bool hasUse = false;
+                    bool hasDef = false;
+                    for (const MicroInstrRegOperandRef& ref : refs)
+                    {
+                        if (!ref.reg || *SWC_NOT_NULL(ref.reg) != reg)
+                            continue;
+
+                        hasUse |= ref.use;
+                        hasDef |= ref.def;
+                    }
+
+                    if (hasUse)
+                        return false;
+                    if (hasDef)
+                        return true;
+                    if (scanInst.op == MicroInstrOpcode::Ret)
+                        return true;
+                    if (useDef.isCall)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            };
+
+            auto forwardUses = [&](const MicroReg fromReg, const MicroReg toReg, const MicroReg stopOnDefReg, SmallVector<RegRewrite>& rewrites) {
+                bool replacedUse = false;
+                for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
+                {
+                    MicroInstr&        scanInst = *scanIt;
+                    MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                    if (!scanOps)
+                    {
+                        rollbackRewritesFrom(rewrites, 0);
+                        return false;
+                    }
+
+                    const MicroInstrUseDef               useDef = scanInst.collectUseDef(*SWC_NOT_NULL(context.operands), context.encoder);
+                    SmallVector<MicroInstrRegOperandRef> refs;
+                    scanInst.collectRegOperands(*SWC_NOT_NULL(context.operands), refs, context.encoder);
+
+                    bool hasFromUse   = false;
+                    bool hasFromDef   = false;
+                    bool hasStopOnDef = false;
+                    for (const MicroInstrRegOperandRef& ref : refs)
+                    {
+                        if (!ref.reg)
+                            continue;
+
+                        const MicroReg reg = *SWC_NOT_NULL(ref.reg);
+                        if (reg == fromReg)
+                        {
+                            hasFromUse |= ref.use;
+                            hasFromDef |= ref.def;
+                        }
+                        else if (reg == stopOnDefReg && ref.def)
+                        {
+                            hasStopOnDef = true;
+                        }
+                    }
+
+                    if (hasFromUse)
+                    {
+                        const size_t rewriteStart = rewrites.size();
+                        for (const MicroInstrRegOperandRef& ref : refs)
+                        {
+                            if (!ref.reg || !ref.use)
+                                continue;
+
+                            MicroReg& reg = *SWC_NOT_NULL(ref.reg);
+                            if (reg != fromReg)
+                                continue;
+
+                            rewrites.push_back({&reg, reg});
+                            reg = toReg;
+                        }
+
+                        if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                        {
+                            rollbackRewritesFrom(rewrites, rewriteStart);
+                            rollbackRewritesFrom(rewrites, 0);
+                            return false;
+                        }
+
+                        replacedUse = true;
+                    }
+
+                    if (hasFromDef ||
+                        hasStopOnDef ||
+                        useDef.isCall ||
+                        scanInst.op == MicroInstrOpcode::JumpCond ||
+                        scanInst.op == MicroInstrOpcode::Ret)
+                    {
+                        break;
+                    }
+                }
+
+                return replacedUse;
+            };
+
+            auto retargetSetCondToDst = [&]() {
+                const MicroInstr*  setCondInst = SWC_NOT_NULL(context.instructions)->ptr(instRef);
+                MicroInstrOperand* setCondOps  = setCondInst ? setCondInst->ops(*SWC_NOT_NULL(context.operands)) : nullptr;
+                if (!setCondOps)
+                    return false;
+
+                const MicroReg originalSetCondReg = setCondOps[0].reg;
+                setCondOps[0].reg                 = dstReg;
+                if (MicroOptimization::violatesEncoderConformance(context, *setCondInst, setCondOps))
+                {
+                    setCondOps[0].reg = originalSetCondReg;
+                    return false;
+                }
+
+                const MicroReg originalZeroExtDst = zeroExtOps[0].reg;
+                const MicroReg originalZeroExtSrc = zeroExtOps[1].reg;
+                zeroExtOps[0].reg                 = dstReg;
+                zeroExtOps[1].reg                 = dstReg;
+                if (MicroOptimization::violatesEncoderConformance(context, zeroExtInst, zeroExtOps))
+                {
+                    setCondOps[0].reg = originalSetCondReg;
+                    zeroExtOps[0].reg = originalZeroExtDst;
+                    zeroExtOps[1].reg = originalZeroExtSrc;
+                    return false;
+                }
+
+                return true;
+            };
+
+            bool                    canRetargetSetCondToDst = isCopyDeadAfterInstruction(context, std::next(copyIt), endIt, tmpReg);
+            SmallVector<RegRewrite> tmpToDstRewrites;
+            if (!canRetargetSetCondToDst)
+            {
+                if (forwardUses(tmpReg, dstReg, dstReg, tmpToDstRewrites) && isCopyDeadNoBarrier(std::next(copyIt), tmpReg))
+                {
+                    canRetargetSetCondToDst = true;
+                }
+                else
+                {
+                    rollbackRewritesFrom(tmpToDstRewrites, 0);
+                }
             }
 
-            const MicroReg originalZeroExtDst = zeroExtOps[0].reg;
-            const MicroReg originalZeroExtSrc = zeroExtOps[1].reg;
-            zeroExtOps[0].reg                 = dstReg;
-            zeroExtOps[1].reg                 = dstReg;
-            if (MicroOptimization::violatesEncoderConformance(context, zeroExtInst, zeroExtOps))
+            if (canRetargetSetCondToDst)
             {
-                setCondOps[0].reg = originalSetCondReg;
-                zeroExtOps[0].reg = originalZeroExtDst;
-                zeroExtOps[1].reg = originalZeroExtSrc;
+                if (!retargetSetCondToDst())
+                {
+                    rollbackRewritesFrom(tmpToDstRewrites, 0);
+                    return false;
+                }
+
+                SWC_NOT_NULL(context.instructions)->erase(copyIt.current);
+                return true;
+            }
+
+            SmallVector<RegRewrite> dstToTmpRewrites;
+            const bool              replacedDstUse = forwardUses(dstReg, tmpReg, tmpReg, dstToTmpRewrites);
+            if (!replacedDstUse || !isCopyDeadNoBarrier(std::next(copyIt), dstReg))
+            {
+                rollbackRewritesFrom(dstToTmpRewrites, 0);
                 return false;
             }
 
@@ -1033,6 +1388,16 @@ namespace PeepholePass
         // Purpose: remove compare operations whose flags are never consumed.
         // Example: cmp r11, 0; mov rax, 11; ret -> mov rax, 11; ret
         outRules.push_back({RuleTarget::AnyInstruction, removeDeadCompareInstruction});
+
+        // Rule: fold_setcond_compare_setcond_chain
+        // Purpose: collapse bool rematerialization chain into one setcc.
+        // Example: setne r9; cmp r9, 0; sete r10 -> sete r10
+        outRules.push_back({RuleTarget::AnyInstruction, foldSetCondCompareSetCondChain});
+
+        // Rule: fold_setcond_compare_zero_into_direct_jump
+        // Purpose: consume bool materialization compare in front of conditional jump.
+        // Example: setcc r11; cmp r11, 0; je L0 -> setcc r11; j!cc L0
+        outRules.push_back({RuleTarget::AnyInstruction, foldSetCondCompareZeroIntoDirectJump});
 
         // Rule: fold_bool_and_chain_into_direct_jumps
         // Purpose: replace materialized bool-and chains with direct conditional branches.

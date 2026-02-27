@@ -200,8 +200,11 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_ror", "49 D3 CA", b.emitOpBinaryRegReg(R10, RCX, MicroOp::RotateRight, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_sar", "49 D3 FA", b.emitOpBinaryRegReg(R10, RCX, MicroOp::ShiftArithmeticRight, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_shr", "49 D3 EA", b.emitOpBinaryRegReg(R10, RCX, MicroOp::ShiftRight, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_rol_non_rcx_conform", "4C 89 C9 49 D3 C2", b.emitOpBinaryRegReg(R10, R9, MicroOp::RotateLeft, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_sal_non_rcx_conform", "4C 89 C9 49 D3 E2", b.emitOpBinaryRegReg(R10, R9, MicroOp::ShiftArithmeticLeft, MicroOpBits::B64););
 
         ENCODE_CASE("op_binary_reg_reg_mul_unsigned", "49 F7 E1", b.emitOpBinaryRegReg(RAX, R9, MicroOp::MultiplyUnsigned, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_mul_unsigned_non_rax_conform", "4C 89 C0 49 F7 E1 49 89 C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::MultiplyUnsigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_div_unsigned", "48 31 D2 49 F7 F3", b.emitOpBinaryRegReg(RAX, R11, MicroOp::DivideUnsigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_div_signed", "48 99 49 F7 F8", b.emitOpBinaryRegReg(RAX, R8, MicroOp::DivideSigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_mod_unsigned", "48 31 D2 49 F7 F1 48 89 D0", b.emitOpBinaryRegReg(RAX, R9, MicroOp::ModuloUnsigned, MicroOpBits::B64););
@@ -239,6 +242,7 @@ namespace
         ENCODE_CASE("op_binary_mem_reg_shl_rcx", "49 D3 65 18", b.emitOpBinaryMemReg(R13, 0x18, RCX, MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_reg_shr_rcx", "49 D3 6C 24 28", b.emitOpBinaryMemReg(R12, 0x28, RCX, MicroOp::ShiftRight, MicroOpBits::B64););
         ENCODE_CASE("op_binary_mem_reg_sar_rcx", "48 D3 7C 24 38", b.emitOpBinaryMemReg(RSP, 0x38, RCX, MicroOp::ShiftArithmeticRight, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_mem_reg_rol_non_rcx_conform", "4C 89 C9 49 D3 45 18", b.emitOpBinaryMemReg(R13, 0x18, R9, MicroOp::RotateLeft, MicroOpBits::B64););
         return Result::Continue;
     }
 

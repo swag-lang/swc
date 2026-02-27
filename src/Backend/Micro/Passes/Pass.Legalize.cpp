@@ -412,6 +412,17 @@ namespace
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
     }
 
+    void insertBinaryMemReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg memReg, uint64_t memOffset, MicroReg srcReg, MicroOp op, MicroOpBits opBits)
+    {
+        std::array<MicroInstrOperand, 5> ops;
+        ops[0].reg      = memReg;
+        ops[1].reg      = srcReg;
+        ops[2].opBits   = opBits;
+        ops[3].microOp  = op;
+        ops[4].valueU64 = memOffset;
+        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryMemReg, ops);
+    }
+
     void insertCmpRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg lhsReg, MicroReg rhsReg, MicroOpBits opBits)
     {
         std::array<MicroInstrOperand, 3> ops;
@@ -443,12 +454,19 @@ namespace
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
-        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm || inst.op == MicroInstrOpcode::CmpRegImm || inst.op == MicroInstrOpcode::CmpMemImm);
 
-        const MicroOpBits       opBits = ops[1].opBits;
-        const MicroInstrOperand immOperand =
-            inst.op == MicroInstrOpcode::OpBinaryRegImm ? ops[3] : inst.op == MicroInstrOpcode::CmpRegImm ? ops[2]
-                                                                                                          : ops[3];
+        const MicroOpBits opBits = ops[1].opBits;
+        MicroInstrOperand immOperand;
+        if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
+            immOperand = ops[3];
+        else if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
+            immOperand = ops[4];
+        else if (inst.op == MicroInstrOpcode::CmpRegImm)
+            immOperand = ops[2];
+        else
+            immOperand = ops[3];
+
         const MicroReg scratchReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
         SWC_ASSERT(scratchReg.isValid());
         addVirtualForbiddenReg(context, scratchReg, ops[0].reg);
@@ -460,6 +478,10 @@ namespace
         if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
         {
             insertBinaryRegReg(context, instRef, ops[0].reg, scratchReg, ops[2].microOp, opBits);
+        }
+        else if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
+        {
+            insertBinaryMemReg(context, instRef, ops[0].reg, ops[3].valueU64, scratchReg, ops[2].microOp, opBits);
         }
         else if (inst.op == MicroInstrOpcode::CmpRegImm)
         {
@@ -539,6 +561,49 @@ namespace
         removeInstruction(context, instRef);
     }
 
+    void applyRewriteMemRegOperandToFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
+    {
+        SWC_ASSERT(ops);
+        SWC_ASSERT(inst.op == MicroInstrOpcode::OpBinaryMemReg);
+        SWC_ASSERT(issue.operandIndex == 1);
+
+        const MicroReg    originalMemReg = ops[0].reg;
+        const MicroReg    originalSrcReg = ops[1].reg;
+        const MicroOpBits opBits         = ops[2].opBits;
+        const MicroOp     op             = ops[3].microOp;
+        const uint64_t    memOffset      = ops[4].valueU64;
+        const MicroReg    requiredReg    = issue.requiredReg;
+        SWC_ASSERT(requiredReg.isValid());
+
+        const bool mustPreserveRequiredReg = mustPreserveRegAfterInstruction(context, instRef, requiredReg);
+        MicroReg   savedRequiredReg        = MicroReg::invalid();
+        if (mustPreserveRequiredReg)
+        {
+            savedRequiredReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, savedRequiredReg, requiredReg);
+            addVirtualForbiddenReg(context, savedRequiredReg, originalMemReg);
+            addVirtualForbiddenReg(context, savedRequiredReg, originalSrcReg);
+            insertMoveRegReg(context, instRef, savedRequiredReg, requiredReg, MicroOpBits::B64);
+        }
+
+        MicroReg rewrittenMemReg = originalMemReg;
+        if (originalMemReg == requiredReg)
+        {
+            rewrittenMemReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, rewrittenMemReg, requiredReg);
+            addVirtualForbiddenReg(context, rewrittenMemReg, originalMemReg);
+            addVirtualForbiddenReg(context, rewrittenMemReg, originalSrcReg);
+            insertMoveRegReg(context, instRef, rewrittenMemReg, requiredReg, MicroOpBits::B64);
+        }
+
+        insertMoveRegReg(context, instRef, requiredReg, originalSrcReg, MicroOpBits::B64);
+        insertBinaryMemReg(context, instRef, rewrittenMemReg, memOffset, requiredReg, op, opBits);
+
+        if (savedRequiredReg.isValid())
+            insertMoveRegReg(context, instRef, requiredReg, savedRequiredReg, MicroOpBits::B64);
+        removeInstruction(context, instRef);
+    }
+
     void applyRewriteRegRegOperandAwayFromFixedReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
@@ -604,7 +669,12 @@ namespace
                 applyRewriteRegImmToRegReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg:
-                applyRewriteRegRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
+                    applyRewriteRegRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                else if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
+                    applyRewriteMemRegOperandToFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);
+                else
+                    SWC_ASSERT(false);
                 return;
             case MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg:
                 applyRewriteRegRegOperandAwayFromFixedReg(context, instRef, inst, ops, issue, nextVirtualIntRegIndex);

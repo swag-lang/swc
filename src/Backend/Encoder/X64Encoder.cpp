@@ -274,7 +274,12 @@ namespace
 
     bool isShiftImmediateOp(MicroOp op)
     {
-        return op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight || op == MicroOp::ShiftArithmeticRight;
+        return op == MicroOp::RotateLeft ||
+               op == MicroOp::RotateRight ||
+               op == MicroOp::ShiftArithmeticLeft ||
+               op == MicroOp::ShiftArithmeticRight ||
+               op == MicroOp::ShiftLeft ||
+               op == MicroOp::ShiftRight;
     }
 
     bool requiresRegImmRewrite(MicroOp op)
@@ -710,10 +715,14 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
                 info.addUse(x64RegToMicroReg(X64Reg::Rcx));
             break;
         case MicroOp::MultiplyUnsigned:
+            info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
+            info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+            break;
         case MicroOp::DivideUnsigned:
         case MicroOp::ModuloUnsigned:
         case MicroOp::DivideSigned:
         case MicroOp::ModuloSigned:
+            info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
             info.addUseDef(x64RegToMicroReg(X64Reg::Rdx));
             break;
         default:
@@ -744,7 +753,8 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             }
         }
 
-        if (op == MicroOp::DivideUnsigned ||
+        if (op == MicroOp::MultiplyUnsigned ||
+            op == MicroOp::DivideUnsigned ||
             op == MicroOp::DivideSigned ||
             op == MicroOp::ModuloUnsigned ||
             op == MicroOp::ModuloSigned)
@@ -759,11 +769,32 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
                 return true;
             }
 
-            if (ops[1].reg == rdxReg)
+            if ((op == MicroOp::DivideUnsigned ||
+                 op == MicroOp::DivideSigned ||
+                 op == MicroOp::ModuloUnsigned ||
+                 op == MicroOp::ModuloSigned) &&
+                ops[1].reg == rdxReg)
             {
                 outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandAwayFromFixedReg;
                 outIssue.operandIndex = 1;
                 outIssue.forbiddenReg = rdxReg;
+                return true;
+            }
+        }
+    }
+
+    ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpBinaryMemReg)
+    {
+        const MicroOp op = ops[3].microOp;
+        if (isShiftImmediateOp(op))
+        {
+            const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
+            if (ops[1].reg != rcxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 1;
+                outIssue.requiredReg  = rcxReg;
                 return true;
             }
         }
@@ -825,32 +856,50 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryRegImm)
     {
+        if (ops[1].opBits != MicroOpBits::B8 &&
+            ops[1].opBits != MicroOpBits::B16 &&
+            ops[1].opBits != MicroOpBits::B32 &&
+            ops[1].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 1;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
+
         if (requiresRegImmRewrite(ops[2].microOp))
         {
-            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            outIssue.kind        = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            outIssue.requiredReg = x64RegToMicroReg(X64Reg::Rax);
             if (ops[2].microOp == MicroOp::DivideUnsigned ||
                 ops[2].microOp == MicroOp::DivideSigned ||
                 ops[2].microOp == MicroOp::ModuloUnsigned ||
                 ops[2].microOp == MicroOp::ModuloSigned)
             {
-                outIssue.requiredReg  = x64RegToMicroReg(X64Reg::Rax);
                 outIssue.forbiddenReg = x64RegToMicroReg(X64Reg::Rdx);
             }
             return true;
         }
 
-        if (!isShiftImmediateOp(ops[2].microOp))
-            return false;
+        if (isShiftImmediateOp(ops[2].microOp))
+        {
+            const bool immediateIsWide = ops[3].hasWideImmediateValue();
+            if ((!immediateIsWide && ops[3].valueU64 <= 0x7F) ||
+                (immediateIsWide && ops[3].wideImmediateValue().fit64() && ops[3].wideImmediateValue().as64() <= 0x7F))
+                return false;
 
-        const bool immediateIsWide = ops[3].hasWideImmediateValue();
-        if ((!immediateIsWide && ops[3].valueU64 <= 0x7F) ||
-            (immediateIsWide && ops[3].wideImmediateValue().fit64() && ops[3].wideImmediateValue().as64() <= 0x7F))
-            return false;
+            outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
+            outIssue.operandIndex  = 3;
+            outIssue.valueLimitU64 = 0x7F;
+            return true;
+        }
 
-        outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
-        outIssue.operandIndex  = 3;
-        outIssue.valueLimitU64 = 0x7F;
-        return true;
+        const bool immediateIsEncodable = !ops[3].hasWideImmediateValue() ? canEncodeOpImmediate(ops[3].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[3].wideImmediateValue(), ops[1].opBits);
+        if (!immediateIsEncodable)
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            return true;
+        }
     }
 
     ///////////////////////////////////////////
@@ -900,18 +949,36 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::OpBinaryMemImm)
     {
-        if (!isShiftImmediateOp(ops[2].microOp))
-            return false;
+        if (ops[1].opBits != MicroOpBits::B8 &&
+            ops[1].opBits != MicroOpBits::B16 &&
+            ops[1].opBits != MicroOpBits::B32 &&
+            ops[1].opBits != MicroOpBits::B64)
+        {
+            outIssue.kind             = MicroConformanceIssueKind::NormalizeOpBits;
+            outIssue.operandIndex     = 1;
+            outIssue.normalizedOpBits = MicroOpBits::B64;
+            return true;
+        }
 
-        const bool immediateIsWide = ops[4].hasWideImmediateValue();
-        if ((!immediateIsWide && ops[4].valueU64 <= 0x7F) ||
-            (immediateIsWide && ops[4].wideImmediateValue().fit64() && ops[4].wideImmediateValue().as64() <= 0x7F))
-            return false;
+        if (isShiftImmediateOp(ops[2].microOp))
+        {
+            const bool immediateIsWide = ops[4].hasWideImmediateValue();
+            if ((!immediateIsWide && ops[4].valueU64 <= 0x7F) ||
+                (immediateIsWide && ops[4].wideImmediateValue().fit64() && ops[4].wideImmediateValue().as64() <= 0x7F))
+                return false;
 
-        outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
-        outIssue.operandIndex  = 4;
-        outIssue.valueLimitU64 = 0x7F;
-        return true;
+            outIssue.kind          = MicroConformanceIssueKind::ClampImmediate;
+            outIssue.operandIndex  = 4;
+            outIssue.valueLimitU64 = 0x7F;
+            return true;
+        }
+
+        const bool immediateIsEncodable = !ops[4].hasWideImmediateValue() ? canEncodeOpImmediate(ops[4].valueU64, ops[1].opBits) : canEncodeOpImmediate(ops[4].wideImmediateValue(), ops[1].opBits);
+        if (!immediateIsEncodable)
+        {
+            outIssue.kind = MicroConformanceIssueKind::RewriteRegImmToRegReg;
+            return true;
+        }
     }
 
     ///////////////////////////////////////////
@@ -2084,13 +2151,21 @@ void X64Encoder::encodeOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
 
     ///////////////////////////////////////////
 
-    if (op == MicroOp::ShiftArithmeticRight ||
+    if (op == MicroOp::RotateLeft ||
+        op == MicroOp::RotateRight ||
+        op == MicroOp::ShiftArithmeticLeft ||
+        op == MicroOp::ShiftArithmeticRight ||
         op == MicroOp::ShiftRight ||
         op == MicroOp::ShiftLeft)
     {
+        SWC_ASSERT(microRegToX64Reg(reg) == X64Reg::Rcx);
         emitRex(store_, opBits, MicroReg{}, memReg);
         emitSpecCpuOp(store_, 0xD3, opBits);
-        if (op == MicroOp::ShiftLeft)
+        if (op == MicroOp::RotateLeft)
+            emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+        else if (op == MicroOp::RotateRight)
+            emitModRm(store_, memOffset, MODRM_REG_1, memReg);
+        else if (op == MicroOp::ShiftArithmeticLeft || op == MicroOp::ShiftLeft)
             emitModRm(store_, memOffset, MODRM_REG_4, memReg);
         else if (op == MicroOp::ShiftArithmeticRight)
             emitModRm(store_, memOffset, MODRM_REG_7, memReg);
@@ -2341,6 +2416,26 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
 
     ///////////////////////////////////////////
 
+    else if (op == MicroOp::ShiftArithmeticLeft)
+    {
+        SWC_ASSERT(value <= 0x7F);
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, MODRM_REG_4, reg);
+        }
+        else
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, MODRM_REG_4, reg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
     else if (op == MicroOp::ShiftRight)
     {
         SWC_ASSERT(value <= 0x7F);
@@ -2355,6 +2450,46 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
             emitRex(store_, opBits, MicroReg{}, reg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, MODRM_REG_5, reg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::RotateLeft)
+    {
+        SWC_ASSERT(value <= 0x7F);
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, MODRM_REG_0, reg);
+        }
+        else
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, MODRM_REG_0, reg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::RotateRight)
+    {
+        SWC_ASSERT(value <= 0x7F);
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, MODRM_REG_1, reg);
+        }
+        else
+        {
+            emitRex(store_, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, MODRM_REG_1, reg);
             emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }
@@ -2417,6 +2552,26 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 
     ///////////////////////////////////////////
 
+    else if (op == MicroOp::ShiftArithmeticLeft)
+    {
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_4, memReg);
+        }
+        else
+        {
+            SWC_ASSERT(value <= 0x7F);
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_4, memReg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
     else if (op == MicroOp::ShiftRight)
     {
         if (value == 1)
@@ -2431,6 +2586,46 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
             emitRex(store_, opBits, MicroReg{}, memReg);
             emitSpecCpuOp(store_, 0xC1, opBits);
             emitModRm(store_, memOffset, MODRM_REG_5, memReg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::RotateLeft)
+    {
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+        }
+        else
+        {
+            SWC_ASSERT(value <= 0x7F);
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_0, memReg);
+            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::RotateRight)
+    {
+        if (value == 1)
+        {
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xD1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_1, memReg);
+        }
+        else
+        {
+            SWC_ASSERT(value <= 0x7F);
+            emitRex(store_, opBits, MicroReg{}, memReg);
+            emitSpecCpuOp(store_, 0xC1, opBits);
+            emitModRm(store_, memOffset, MODRM_REG_1, memReg);
             emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
         }
     }

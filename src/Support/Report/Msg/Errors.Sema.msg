@@ -134,6 +134,7 @@ SWC_DIAG_DEF(sema_err_fallthrough_in_last_case, Error, "'fallthrough' is used in
 SWC_DIAG_DEF(sema_err_run_expr_void, Error, "a '#run' expression cannot have type 'void'")
 SWC_DIAG_DEF(sema_err_return_value_in_void, Error, "cannot return a value from a void function")
 SWC_DIAG_DEF(sema_err_return_missing_value, Error, "missing return value for a function that returns '{requested-type}'")
+SWC_DIAG_DEF(sema_err_return_value_must_be_used, Error, "return value must be used; use 'discard' before the call or mark the function with '#[Swag.Discardable]'")
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "implementation block expects a struct, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_enum, Error, "implementation block expects an enum, but '{sym}' is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "implementation block expects an interface, but '{sym}' is {a-sym-fam}")

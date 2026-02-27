@@ -53,6 +53,27 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
 
 namespace
 {
+    bool isCallResultIgnored(const Sema& sema)
+    {
+        const AstNode* const parent = sema.visit().parentNode();
+        if (!parent)
+            return false;
+
+        if (parent->is(AstNodeId::DiscardExpr))
+            return false;
+
+        switch (parent->id())
+        {
+            case AstNodeId::EmbeddedBlock:
+            case AstNodeId::FunctionBody:
+            case AstNodeId::SwitchCaseBody:
+            case AstNodeId::TopLevelBlock:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     void addMeParameter(Sema& sema, SymbolFunction& sym)
     {
         if (sema.frame().currentImpl() && sema.frame().currentImpl()->isForStruct())
@@ -108,6 +129,14 @@ namespace
         {
             if (currentFn->decl() && calledFn.decl() && currentFn->srcViewRef() == calledFn.srcViewRef() && !calledFn.isForeign())
                 currentFn->addCallDependency(&calledFn);
+        }
+
+        const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
+        if (!returnType.isVoid() &&
+            !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Discardable) &&
+            isCallResultIgnored(sema))
+        {
+            return SemaError::raise(sema, DiagnosticId::sema_err_return_value_must_be_used, sema.curNodeRef());
         }
 
         if (tryIntrinsicFold)
@@ -261,6 +290,12 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
+    return Result::Continue;
+}
+
+Result AstDiscardExpr::semaPostNode(Sema& sema) const
+{
+    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
     return Result::Continue;
 }
 

@@ -1118,7 +1118,6 @@ namespace PeepholePass
 
                 if (scanInst.op == MicroInstrOpcode::JumpCond ||
                     scanInst.op == MicroInstrOpcode::JumpReg ||
-                    scanInst.op == MicroInstrOpcode::JumpTable ||
                     scanInst.op == MicroInstrOpcode::Ret)
                 {
                     frameMatchesStack = false;

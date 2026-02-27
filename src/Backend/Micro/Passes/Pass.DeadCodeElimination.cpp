@@ -151,7 +151,6 @@ namespace
             case MicroInstrOpcode::JumpCond:
             case MicroInstrOpcode::JumpCondImm:
             case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
             case MicroInstrOpcode::Ret:
                 return true;
             default:
@@ -187,7 +186,6 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::JumpReg:
-            case MicroInstrOpcode::JumpTable:
             case MicroInstrOpcode::JumpCondImm:
                 return true;
             default:

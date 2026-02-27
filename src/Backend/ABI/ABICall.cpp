@@ -457,21 +457,13 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
 void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
     SWC_ASSERT(targetSymbol != nullptr);
+    SWC_UNUSED(targetReg);
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
-
-    const CallConv& conv = CallConv::get(callConvKind);
-    if (!targetReg.isValid())
-        targetReg = conv.intReturn;
-
-    // The temporary target register must not alias ABI argument registers.
-    SWC_ASSERT(targetReg.isInt() || targetReg.isVirtualInt());
-    if (targetReg.isVirtualInt())
-        builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
+    const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitLoadRegPtrReloc(targetReg, 0, ConstantRef::invalid(), targetSymbol);
-    builder.emitCallReg(targetReg, callConvKind);
+    builder.emitCallLocal(targetSymbol, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
@@ -484,21 +476,13 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
 void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
     SWC_ASSERT(targetSymbol != nullptr);
+    SWC_UNUSED(targetReg);
 
     const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
-
-    const CallConv& conv = CallConv::get(callConvKind);
-    if (!targetReg.isValid())
-        targetReg = conv.intReturn;
-
-    // The temporary target register must not alias ABI argument registers.
-    SWC_ASSERT(targetReg.isInt() || targetReg.isVirtualInt());
-    if (targetReg.isVirtualInt())
-        builder.addVirtualRegForbiddenPhysRegs(targetReg, conv.intArgRegs);
+    const CallConv&               conv        = CallConv::get(callConvKind);
 
     emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-    builder.emitLoadRegPtrReloc(targetReg, 0, ConstantRef::invalid(), targetSymbol);
-    builder.emitCallReg(targetReg, callConvKind);
+    builder.emitCallExtern(targetSymbol, callConvKind);
     emitReturnWriteBackIfNeeded(builder, conv, ret);
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }

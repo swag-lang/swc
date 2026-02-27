@@ -215,8 +215,9 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
         case MicroInstrOpcode::Ret:
         case MicroInstrOpcode::Breakpoint:
         case MicroInstrOpcode::AssertTrap:
+        case MicroInstrOpcode::CallLocal:
+        case MicroInstrOpcode::CallExtern:
         case MicroInstrOpcode::CallIndirect:
-        case MicroInstrOpcode::JumpTable:
         case MicroInstrOpcode::JumpCond:
         case MicroInstrOpcode::JumpReg:
         case MicroInstrOpcode::JumpCondImm:

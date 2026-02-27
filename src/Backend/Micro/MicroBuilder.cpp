@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -249,21 +248,41 @@ void MicroBuilder::emitRet()
 
 void MicroBuilder::emitCallLocal(Symbol* targetSymbol, CallConvKind callConv)
 {
-    // Convenience wrapper: materialize target address then use the generic indirect call opcode.
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
-    const CallConv& conv = CallConv::get(callConv);
-    emitLoadRegPtrReloc(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
-    emitCallReg(conv.intReturn, callConv);
+    const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
+    SWC_ASSERT(!targetFunction.isForeign());
+
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallLocal, 1);
+    MicroInstrOperand* ops = inst.ops(operands_);
+    ops[0].callConv        = callConv;
+
+    addRelocation({
+        .kind           = MicroRelocation::Kind::LocalFunctionAddress,
+        .instructionRef = instRef,
+        .targetAddress  = 0,
+        .targetSymbol   = targetSymbol,
+        .constantRef    = ConstantRef::invalid(),
+    });
     return;
 }
 
 void MicroBuilder::emitCallExtern(Symbol* targetSymbol, CallConvKind callConv)
 {
-    // Extern/local share the same micro-level representation; relocation kind differs.
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
-    const CallConv& conv = CallConv::get(callConv);
-    emitLoadRegPtrReloc(conv.intReturn, 0, ConstantRef::invalid(), targetSymbol);
-    emitCallReg(conv.intReturn, callConv);
+    const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
+    SWC_ASSERT(targetFunction.isForeign());
+
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 1);
+    MicroInstrOperand* ops = inst.ops(operands_);
+    ops[0].callConv        = callConv;
+
+    addRelocation({
+        .kind           = MicroRelocation::Kind::ForeignFunctionAddress,
+        .instructionRef = instRef,
+        .targetAddress  = 0,
+        .targetSymbol   = targetSymbol,
+        .constantRef    = ConstantRef::invalid(),
+    });
     return;
 }
 
@@ -274,18 +293,6 @@ void MicroBuilder::emitCallReg(MicroReg reg, CallConvKind callConv)
     MicroInstrOperand* ops  = inst.ops(operands_);
     ops[0].reg              = reg;
     ops[1].callConv         = callConv;
-    return;
-}
-
-void MicroBuilder::emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries)
-{
-    const auto&        inst = addInstruction(MicroInstrOpcode::JumpTable, 5);
-    MicroInstrOperand* ops  = inst.ops(operands_);
-    ops[0].reg              = tableReg;
-    ops[1].reg              = offsetReg;
-    ops[2].valueI32         = currentIp;
-    ops[3].valueU32         = offsetTable;
-    ops[4].valueU32         = numEntries;
     return;
 }
 

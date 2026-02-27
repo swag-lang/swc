@@ -2721,49 +2721,6 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     return;
 }
 
-void X64Encoder::encodeJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries)
-{
-    auto& compiler                                 = ctx().compiler();
-    const auto [offsetTableConstant, addrConstant] = compiler.constantSegment().reserveSpan<uint32_t>(numEntries);
-    auto emitRelocAddressLoad                      = [&](MicroReg reg, uint32_t symbolIndex, uint32_t offset) {
-        emitRex(store_, MicroOpBits::B64, reg);
-        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
-        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
-        addSymbolRelocation(store_.size() - textSectionOffset_, symbolIndex, IMAGE_REL_AMD64_REL32);
-        store_.pushU32(offset);
-    };
-    emitRelocAddressLoad(tableReg, symCsIndex_, offsetTableConstant);
-
-    // 'movsxd' table, dword ptr [table + offset*4]
-    encodeAmcReg(store_, tableReg, MicroOpBits::B64, tableReg, offsetReg, 4, 0, MicroOpBits::B64, MicroOp::MoveSignExtend, false);
-
-    const auto startIdx = store_.size();
-    emitRelocAddressLoad(offsetReg, cpuFct_->symbolIndex, store_.size() - cpuFct_->startAddress);
-    uint8_t* patchPtr = store_.seekPtr() - sizeof(uint32_t);
-    encodeOpBinaryRegReg(offsetReg, tableReg, MicroOp::Add, MicroOpBits::B64);
-    encodeJumpReg(offsetReg);
-    const auto endIdx     = store_.size();
-    uint32_t   patchValue = 0;
-    std::memcpy(&patchValue, patchPtr, sizeof(patchValue));
-    patchValue += endIdx - startIdx;
-    std::memcpy(patchPtr, &patchValue, sizeof(patchValue));
-
-    auto* const tableCompiler = compiler.compilerSegment().ptr<int32_t>(offsetTable);
-    const auto  currentOffset = static_cast<int32_t>(store_.size());
-
-    EncoderJumpLabel label;
-    for (uint32_t idx = 0; idx < numEntries; idx++)
-    {
-        label.ipDest               = tableCompiler[idx] + currentIp + 1;
-        label.jump.opBits          = MicroOpBits::B32;
-        label.jump.offsetStart     = currentOffset;
-        label.jump.patchOffsetAddr = addrConstant + idx;
-        cpuFct_->labelsToSolve.push_back(label);
-    }
-
-    return;
-}
-
 void X64Encoder::encodeJump(MicroJump& jump, MicroCond cpuCond, MicroOpBits opBits)
 {
     SWC_ASSERT(opBits == MicroOpBits::B8 || opBits == MicroOpBits::B32);

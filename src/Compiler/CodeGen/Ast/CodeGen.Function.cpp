@@ -207,11 +207,10 @@ namespace
             return;
         }
 
-        const MicroReg callTargetReg = codeGen.nextVirtualIntRegister();
         if (calledFunction.isForeign())
-            ABICall::callExtern(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+            ABICall::callExtern(builder, callConvKind, &calledFunction, preparedCall);
         else
-            ABICall::callLocal(builder, callConvKind, &calledFunction, callTargetReg, preparedCall);
+            ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
     }
 
     void collectFunctionParameterInfos(SmallVector<CodeGenHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)

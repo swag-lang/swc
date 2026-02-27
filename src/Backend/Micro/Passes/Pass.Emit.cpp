@@ -12,7 +12,7 @@ SWC_BEGIN_NAMESPACE();
 
 void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
-    // LoadRegPtrReloc embeds an absolute 64-bit immediate at the end of the instruction.
+    // Relocation-backed absolute pointer loads embed a trailing 64-bit immediate.
     const auto found = relocationByInstructionRef_.find(instructionRef);
     SWC_ASSERT(found != relocationByInstructionRef_.end());
     if (found == relocationByInstructionRef_.end())
@@ -89,12 +89,31 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::Ret:
             encoder.encodeRet();
             break;
+        case MicroInstrOpcode::CallLocal:
+        case MicroInstrOpcode::CallExtern:
+        {
+            const auto relocIt = relocationByInstructionRef_.find(instructionRef);
+            SWC_ASSERT(relocIt != relocationByInstructionRef_.end());
+            if (relocIt == relocationByInstructionRef_.end())
+                break;
+
+            const MicroRelocation& relocation = context.builder->codeRelocations()[relocIt->second];
+            if (inst.op == MicroInstrOpcode::CallLocal)
+                SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress);
+            else
+                SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
+
+            const CallConv& conv      = CallConv::get(ops[0].callConv);
+            const uint32_t  loadStart = encoder.size();
+
+            encoder.encodeLoadRegImm(conv.intReturn, ApInt(relocation.targetAddress, 64), MicroOpBits::B64);
+            bindAbs64RelocationOffset(context, instructionRef, loadStart, encoder.size());
+            encoder.encodeCallReg(conv.intReturn, ops[0].callConv);
+            break;
+        }
         case MicroInstrOpcode::CallIndirect:
             // Call target is already materialized in ops[0] by earlier lowering stages.
             encoder.encodeCallReg(ops[0].reg, ops[1].callConv);
-            break;
-        case MicroInstrOpcode::JumpTable:
-            encoder.encodeJumpTable(ops[0].reg, ops[1].reg, ops[2].valueI32, ops[3].valueU32, ops[4].valueU32);
             break;
         case MicroInstrOpcode::JumpReg:
             encoder.encodeJumpReg(ops[0].reg);

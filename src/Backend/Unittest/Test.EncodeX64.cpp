@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Unittest/UnittestHelpers.h"
-#include "Main/CompilerInstance.h"
 #include "Support/Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -10,22 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    class TestX64Encoder final : public X64Encoder
-    {
-    public:
-        explicit TestX64Encoder(TaskContext& ctx) :
-            X64Encoder(ctx)
-        {
-        }
-
-        void setupJumpTableState(EncoderFunction& fct, uint32_t symCsIndex = 0, uint32_t textOffset = 0)
-        {
-            cpuFct_            = &fct;
-            symCsIndex_        = symCsIndex;
-            textSectionOffset_ = textOffset;
-        }
-    };
-
     using BuilderCaseFn = std::function<void(MicroBuilder&)>;
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
@@ -310,30 +293,6 @@ namespace
         return buildFn(runOneCase);
     }
 
-    Result buildJumpTable(const TaskContext& ctx)
-    {
-        CompilerInstance compiler(ctx.global(), ctx.cmdLine());
-        TaskContext      compilerCtx(compiler);
-        const RunCaseFn  runCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
-            TestX64Encoder  encoder(compilerCtx);
-            EncoderFunction testFct{};
-            testFct.startAddress = 0;
-            testFct.symbolIndex  = 7;
-            encoder.setupJumpTableState(testFct);
-            return Backend::Unittest::runEncodeCase(compilerCtx, encoder, name, expectedHex, fn);
-        };
-
-        auto [tableOffset, tablePtr] = compiler.compilerSegment().reserveSpan<int32_t>(3);
-        tablePtr[0]                  = 1;
-        tablePtr[1]                  = 2;
-        tablePtr[2]                  = 3;
-
-        ENCODE_CASE("jump_table_basic",
-                    "48 8D 05 ?? ?? ?? ?? 48 63 04 88 48 8D 0D ?? ?? ?? ?? 48 01 C1 FF E1",
-                    b.emitJumpTable(RAX, RCX, 0, tableOffset, 3););
-        return Result::Continue;
-    }
-
 #undef ENCODE_CASE
 }
 
@@ -388,12 +347,6 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
     SWC_RESULT_VERIFY(runCase(ctx, buildTernaryAndConvert));
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(EncodeX64_JumpTable)
-{
-    SWC_RESULT_VERIFY(buildJumpTable(ctx));
 }
 SWC_TEST_END()
 

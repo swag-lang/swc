@@ -103,7 +103,6 @@ public:
     void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv);
     void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv);
     void emitCallReg(MicroReg reg, CallConvKind callConv);
-    void emitJumpTable(MicroReg tableReg, MicroReg offsetReg, int32_t currentIp, uint32_t offsetTable, uint32_t numEntries);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);

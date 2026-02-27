@@ -87,7 +87,7 @@ func ftoaCopy(result: [*] u8, value: f64)
     ipart = cast(s64) fpart
     if fpart - ipart > 0.5 do
         ipart += 1
-    itoaCopyForFtoa(n, ipart)
+    discard itoaCopyForFtoa(n, ipart)
 }
 
 func ftoaTestZero()->bool

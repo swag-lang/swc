@@ -28,14 +28,14 @@ struct Bad
 {
     var s: S
     var i0 = cast(I) s
-    i0.foo()
+    discard i0.foo()
 }
 
 #test
 {
     var w: W
     var i1 = cast(I) w
-    i1.foo()
+    discard i1.foo()
 }
 
 #test

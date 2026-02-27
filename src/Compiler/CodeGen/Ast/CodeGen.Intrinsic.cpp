@@ -3,15 +3,90 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    CodeGenNodePayload resolveIntrinsicRuntimeStoragePayload(CodeGen& codeGen, const SymbolVariable& storageSym)
+    {
+        if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(storageSym))
+            return *symbolPayload;
+
+        SWC_ASSERT(storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload localPayload;
+        localPayload.typeRef = storageSym.typeRef();
+        localPayload.setIsAddress();
+        if (!storageSym.offset())
+        {
+            localPayload.reg = codeGen.localStackBaseReg();
+        }
+        else
+        {
+            MicroBuilder& builder = codeGen.builder();
+            localPayload.reg      = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(localPayload.reg, codeGen.localStackBaseReg(), MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(localPayload.reg, ApInt(storageSym.offset(), 64), MicroOp::Add, MicroOpBits::B64);
+        }
+
+        codeGen.setVariablePayload(storageSym, localPayload);
+        return localPayload;
+    }
+
+    MicroReg intrinsicRuntimeStorageAddressReg(CodeGen& codeGen)
+    {
+        const auto* payload = codeGen.sema().codeGenPayload<IntrinsicCallCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeStorageSym != nullptr);
+        const CodeGenNodePayload storagePayload = resolveIntrinsicRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
+        SWC_ASSERT(storagePayload.isAddress());
+        return storagePayload.reg;
+    }
+
+    Result codeGenMakeSlice(CodeGen& codeGen, const AstIntrinsicCall& node, bool forString)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          ptrRef        = children[0];
+        const AstNodeRef          sizeRef       = children[1];
+        const CodeGenNodePayload& ptrPayload    = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& sizePayload   = codeGen.payload(sizeRef);
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+
+        MicroBuilder& builder = codeGen.builder();
+
+        const MicroReg ptrReg = codeGen.nextVirtualIntRegister();
+        if (ptrPayload.isAddress())
+            builder.emitLoadRegMem(ptrReg, ptrPayload.reg, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(ptrReg, ptrPayload.reg, MicroOpBits::B64);
+
+        const MicroReg sizeReg = codeGen.nextVirtualIntRegister();
+        if (sizePayload.isAddress())
+            builder.emitLoadRegMem(sizeReg, sizePayload.reg, 0, MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(sizeReg, sizePayload.reg, MicroOpBits::B64);
+
+        const MicroReg runtimeStorageReg = intrinsicRuntimeStorageAddressReg(codeGen);
+        const uint64_t countOffset       = forString ? offsetof(Runtime::String, length) : offsetof(Runtime::Slice<std::byte>, count);
+        builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Slice<std::byte>, ptr), ptrReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(runtimeStorageReg, countOffset, sizeReg, MicroOpBits::B64);
+
+        CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        payload.reg                 = runtimeStorageReg;
+        return Result::Continue;
+    }
+
     MicroReg materializeCountLikeBaseReg(const CodeGen& codeGen, const CodeGenNodePayload& payload)
     {
         SWC_UNUSED(codeGen);
@@ -140,6 +215,10 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenDataOf(codeGen, *this);
         case TokenId::IntrinsicKindOf:
             return codeGenKindOf(codeGen, *this);
+        case TokenId::IntrinsicMakeSlice:
+            return codeGenMakeSlice(codeGen, *this, false);
+        case TokenId::IntrinsicMakeString:
+            return codeGenMakeSlice(codeGen, *this, true);
 
         default:
             SWC_UNREACHABLE();

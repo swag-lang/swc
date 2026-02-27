@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -8,7 +9,10 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -29,6 +33,23 @@ Result AstIntrinsicValue::semaPostNode(Sema& sema)
 
 namespace
 {
+    Result completeIntrinsicRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
+    {
+        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+        symVar.setTypeRef(typeRef);
+
+        if (SymbolFunction* currentFunc = sema.frame().currentFunction())
+        {
+            const TypeInfo& symType = sema.typeMgr().get(typeRef);
+            SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+            currentFunc->addLocalVariable(sema.ctx(), &symVar);
+        }
+
+        symVar.setTyped(sema.ctx());
+        symVar.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
     Result semaIntrinsicDataOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         SemaNodeView view = sema.viewNodeTypeConstantSymbol(children[0]);
@@ -163,6 +184,25 @@ namespace
 
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
+
+        if (sema.frame().currentFunction() != nullptr)
+        {
+            auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
+            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+            SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
+
+            auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = &storageSym;
+        }
+
         return Result::Continue;
     }
 }

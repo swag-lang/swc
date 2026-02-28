@@ -361,11 +361,14 @@ namespace
         if (resultType.isIntLikeUnsigned())
             return Result::Continue;
 
-        const MicroLabelRef doneLabel = builder.createLabel();
-        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), opBits);
-        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, doneLabel);
-        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
-        builder.placeLabel(doneLabel);
+        const uint32_t bitWidth = getNumBits(opBits);
+        SWC_ASSERT(bitWidth > 0);
+
+        const MicroReg signMaskReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(signMaskReg, resultPayload.reg, opBits);
+        builder.emitOpBinaryRegImm(signMaskReg, ApInt(bitWidth - 1, 64), MicroOp::ShiftArithmeticRight, opBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, signMaskReg, MicroOp::Xor, opBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, signMaskReg, MicroOp::Subtract, opBits);
         return Result::Continue;
     }
 

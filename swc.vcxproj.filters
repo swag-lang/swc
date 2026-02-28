@@ -318,7 +318,10 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenHelpers.cpp">
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp">
@@ -845,7 +848,10 @@
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGen.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenHelpers.h">
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.h">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h">

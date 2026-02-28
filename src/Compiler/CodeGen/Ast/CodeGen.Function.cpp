@@ -4,7 +4,8 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -47,7 +48,7 @@ namespace
         const ConstantValue storageCst    = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU8(), dstValue, TypeInfoFlagsE::Const);
         const ConstantRef   storageCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), storageCst);
         builder.emitLoadRegPtrReloc(dstReg, dstValue, storageCstRef);
-        CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcAddressReg, copySize);
         return dstReg;
     }
 
@@ -106,7 +107,7 @@ namespace
         codeGen.builder().emitOpBinaryRegImm(callConv.stackPointer, ApInt(codeGen.localStackFrameSize(), 64), MicroOp::Add, MicroOpBits::B64);
     }
 
-    MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenHelpers::FunctionParameterInfo& paramInfo)
+    MicroReg parameterSourcePhysReg(const CallConv& callConv, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
     {
         if (paramInfo.isFloat)
         {
@@ -213,7 +214,7 @@ namespace
             ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
     }
 
-    void collectFunctionParameterInfos(SmallVector<CodeGenHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void collectFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
         outParamInfos.clear();
@@ -229,11 +230,11 @@ namespace
         {
             const SymbolVariable* const symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
-            outParamInfos[i] = CodeGenHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg);
+            outParamInfos[i] = CodeGenFunctionHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg);
         }
     }
 
-    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenHelpers::FunctionParameterInfo> paramInfos)
+    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
         const std::vector<SymbolVariable*>& params   = symbolFunc.parameters();
@@ -246,7 +247,7 @@ namespace
         {
             const SymbolVariable* const symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
-            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
+            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (!paramInfo.isRegisterArg)
                 continue;
 
@@ -258,7 +259,7 @@ namespace
             const uint32_t              paramIndex = registerParamIndices[i];
             const SymbolVariable* const symVar     = params[paramIndex];
             SWC_ASSERT(symVar != nullptr);
-            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
+            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
 
             CodeGenNodePayload symbolPayload;
             symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
@@ -268,20 +269,20 @@ namespace
             futureSourceRegs.reserve(registerParamIndices.size() - i - 1);
             for (size_t j = i + 1; j < registerParamIndices.size(); ++j)
             {
-                const uint32_t                              laterParamIndex = registerParamIndices[j];
-                const CodeGenHelpers::FunctionParameterInfo laterParamInfo  = paramInfos[laterParamIndex];
+                const uint32_t                                      laterParamIndex = registerParamIndices[j];
+                const CodeGenFunctionHelpers::FunctionParameterInfo laterParamInfo  = paramInfos[laterParamIndex];
                 futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
-            CodeGenHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
+            CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
             setPayloadStorageKind(symbolPayload, paramInfo.isIndirect);
 
             codeGen.setVariablePayload(*symVar, symbolPayload);
         }
     }
 
-    void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenHelpers::FunctionParameterInfo> paramInfos)
+    void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
         SWC_ASSERT(paramInfos.size() == params.size());
@@ -290,11 +291,11 @@ namespace
         {
             const SymbolVariable* const symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
-            const CodeGenHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
+            const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
 
-            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, paramInfo);
+            CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, paramInfo);
         }
     }
 
@@ -303,13 +304,13 @@ namespace
         MicroBuilder& builder = codeGen.builder();
         if (srcPayload.isAddress())
         {
-            CodeGenHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
             return;
         }
 
         if (elemSize > 8)
         {
-            CodeGenHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, elemSize);
             return;
         }
 
@@ -629,7 +630,7 @@ namespace
 
             const MicroReg outputStorageReg = fnPayload.reg;
             SWC_ASSERT(exprPayload.isAddress());
-            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
@@ -672,7 +673,7 @@ Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
         codeGen.builder().emitLoadRegReg(payload.reg, callConv.intArgRegs[0], MicroOpBits::B64);
     }
 
-    SmallVector<CodeGenHelpers::FunctionParameterInfo> paramInfos;
+    SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
     collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
     buildLocalStackLayout(codeGen);
     materializeRegisterParameters(codeGen, symbolFunc, paramInfos);

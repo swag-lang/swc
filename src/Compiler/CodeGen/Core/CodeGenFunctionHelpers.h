@@ -9,7 +9,7 @@ class SymbolFunction;
 class SymbolVariable;
 struct CodeGenNodePayload;
 
-namespace CodeGenHelpers
+namespace CodeGenFunctionHelpers
 {
     struct FunctionParameterInfo
     {
@@ -25,12 +25,6 @@ namespace CodeGenHelpers
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
-
-    void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
-    void emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes);
-    void emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes);
-    void emitMemMove(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes);
-    void emitMemCompare(CodeGen& codeGen, MicroReg outResultReg, MicroReg leftAddressReg, MicroReg rightAddressReg, uint32_t sizeInBytes);
 }
 
 SWC_END_NAMESPACE();

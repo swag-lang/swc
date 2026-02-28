@@ -4,7 +4,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -60,7 +60,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         SWC_ASSERT(normalizedRet.indirectSize != 0);
         if (exprPayload.isAddress())
         {
-            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
         }
         else
         {
@@ -72,7 +72,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
             builder.emitLoadRegPtrImm(spillAddrReg, reinterpret_cast<uint64_t>(spillData));
             builder.emitLoadMemReg(spillAddrReg, 0, payloadReg, MicroOpBits::B64);
-            CodeGenHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, spillAddrReg, spillSize);
         }
     }
     else

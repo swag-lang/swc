@@ -2,7 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Member.Payload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -69,7 +69,7 @@ namespace
         if (!symVar.hasParameterIndex())
             return false;
 
-        const CodeGenHelpers::FunctionParameterInfo paramInfo = CodeGenHelpers::functionParameterInfo(codeGen, codeGen.function(), symVar);
+        const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = CodeGenFunctionHelpers::functionParameterInfo(codeGen, codeGen.function(), symVar);
         return !paramInfo.isIndirect;
     }
 

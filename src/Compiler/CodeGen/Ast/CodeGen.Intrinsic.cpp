@@ -2,7 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -226,7 +226,7 @@ namespace
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
-        CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcReg, sizeInBytes);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstReg, srcReg, sizeInBytes);
         return Result::Continue;
     }
 
@@ -249,12 +249,12 @@ namespace
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         if (isIntrinsicIntConstantZero(codeGen, valueRef))
         {
-            CodeGenHelpers::emitMemZero(codeGen, dstReg, sizeInBytes);
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, sizeInBytes);
             return Result::Continue;
         }
 
         const MicroReg valueReg = materializeIntrinsicIntArgReg(codeGen, valuePayload, MicroOpBits::B8);
-        CodeGenHelpers::emitMemSet(codeGen, dstReg, valueReg, sizeInBytes);
+        CodeGenMemoryHelpers::emitMemSet(codeGen, dstReg, valueReg, sizeInBytes);
         return Result::Continue;
     }
 
@@ -276,7 +276,7 @@ namespace
 
         const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
         const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
-        CodeGenHelpers::emitMemMove(codeGen, dstReg, srcReg, sizeInBytes);
+        CodeGenMemoryHelpers::emitMemMove(codeGen, dstReg, srcReg, sizeInBytes);
         return Result::Continue;
     }
 
@@ -299,7 +299,7 @@ namespace
         const MicroReg      leftReg       = materializeIntrinsicIntArgReg(codeGen, leftPayload, MicroOpBits::B64);
         const MicroReg      rightReg      = materializeIntrinsicIntArgReg(codeGen, rightPayload, MicroOpBits::B64);
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        CodeGenHelpers::emitMemCompare(codeGen, resultPayload.reg, leftReg, rightReg, sizeInBytes);
+        CodeGenMemoryHelpers::emitMemCompare(codeGen, resultPayload.reg, leftReg, rightReg, sizeInBytes);
         return Result::Continue;
     }
 

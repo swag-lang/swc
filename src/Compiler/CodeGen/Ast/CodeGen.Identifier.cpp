@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -42,7 +43,7 @@ namespace
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
-            return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
@@ -131,13 +132,13 @@ namespace
                     const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
                     if (initPayload.isAddress())
                     {
-                        CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                        CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
                     }
                     else
                     {
                         if (localSize > 8)
                         {
-                            CodeGenHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                            CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
                             codeGen.setVariablePayload(symVar, symbolPayload);
                             return;
                         }
@@ -156,7 +157,7 @@ namespace
                 }
                 else
                 {
-                    CodeGenHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
+                    CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }
 
@@ -217,7 +218,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-        CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+        CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
     }
     else
     {
@@ -238,7 +239,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
         for (Symbol* sym : view.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
-            CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+            CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
     }
     else

@@ -2,7 +2,8 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -171,7 +172,7 @@ namespace
             if (const CodeGenNodePayload* symbolPayload = CodeGen::variablePayload(symVar))
                 return *symbolPayload;
             const SymbolFunction& symbolFunc = codeGen.function();
-            return CodeGenHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
@@ -280,7 +281,7 @@ namespace
             SWC_ASSERT(loopState.elementSize <= std::numeric_limits<uint32_t>::max());
             if (valuePayload.isAddress())
             {
-                CodeGenHelpers::emitMemCopy(codeGen, valuePayload.reg, elementAddressReg, static_cast<uint32_t>(loopState.elementSize));
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, valuePayload.reg, elementAddressReg, static_cast<uint32_t>(loopState.elementSize));
             }
             else
             {

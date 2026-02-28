@@ -201,6 +201,33 @@ namespace
         builder.placeLabel(doneLabel);
         return Result::Continue;
     }
+
+    Result codeGenSqrt(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          exprRef       = children[0];
+        const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        SWC_ASSERT(resultType.isFloat());
+
+        const uint32_t    floatBits = resultType.payloadFloatBits() ? resultType.payloadFloatBits() : 64;
+        const MicroOpBits opBits    = microOpBitsFromBitWidth(floatBits);
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        if (exprPayload.isAddress())
+            builder.emitLoadRegMem(resultPayload.reg, exprPayload.reg, 0, opBits);
+        else
+            builder.emitLoadRegReg(resultPayload.reg, exprPayload.reg, opBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, resultPayload.reg, MicroOp::FloatSqrt, opBits);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -234,8 +261,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         case TokenId::IntrinsicAssert:
             return codeGenAssert(codeGen, *this);
-
-        case TokenId::IntrinsicBcBreakpoint:
+        case TokenId::IntrinsicSqrt:
+            return codeGenSqrt(codeGen, *this);
+        case TokenId::IntrinsicBreakpoint:
             codeGen.builder().emitBreakpoint();
             return Result::Continue;
 

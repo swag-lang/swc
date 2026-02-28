@@ -289,7 +289,7 @@ SWC_TOKEN_DEF(IntrinsicSetContext, "@setcontext",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPrint, "@print",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicCompilerError, "@compilererror",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicCompilerWarning, "@compilerwarning",  TokenIdKindE::Intrinsic)
-SWC_TOKEN_DEF(IntrinsicBcBreakpoint, "@breakpoint",  TokenIdKindE::Intrinsic)
+SWC_TOKEN_DEF(IntrinsicBreakpoint, "@breakpoint",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicAssert, "@assert",  TokenIdKindE::Intrinsic)
 SWC_TOKEN_DEF(IntrinsicPanic, "@panic",  TokenIdKindE::Intrinsic)
 

@@ -848,7 +848,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicCVaEnd:
             return parseIntrinsicCall(1);
 
-        case TokenId::IntrinsicBcBreakpoint:
+        case TokenId::IntrinsicBreakpoint:
             return parseIntrinsicCallExpr(0);
         case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAssert:

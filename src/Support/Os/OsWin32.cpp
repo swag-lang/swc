@@ -374,13 +374,15 @@ namespace
         return handler(platformExceptionPointers);
     }
 
-    LONG WINAPI onUnhandledExceptionFilter(const _EXCEPTION_POINTERS* exceptionPointers)
+    // ReSharper disable once CppParameterMayBeConstPtrOrRef
+    LONG WINAPI onUnhandledExceptionFilter(_EXCEPTION_POINTERS* exceptionPointers)
     {
         (void) dispatchHostException(exceptionPointers);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    LONG CALLBACK onVectoredExceptionHandler(const _EXCEPTION_POINTERS* exceptionPointers)
+    // ReSharper disable once CppParameterMayBeConstPtrOrRef
+    LONG CALLBACK onVectoredExceptionHandler(_EXCEPTION_POINTERS* exceptionPointers)
     {
         volatile LONG& hasReported = hasReportedVectoredException();
         if (InterlockedCompareExchange(&hasReported, 1, 0) != 0)
@@ -390,7 +392,7 @@ namespace
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    void installHostExceptionHandlers(const Os::HostExceptionHandlerFn exceptionHandler)
+    void installHostExceptionHandlers(Os::HostExceptionHandlerFn exceptionHandler)
     {
         hostExceptionHandler()         = exceptionHandler;
         hasReportedVectoredException() = 0;

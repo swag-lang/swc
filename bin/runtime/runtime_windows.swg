@@ -17,7 +17,7 @@ namespace __Win32RT
     alias WCHAR   = u16
     alias BOOL    = u8
 
-    const STD_OUTPUT_HANDLE    = cast #bit (u32) -11
+    const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
     const MB_CANCELTRYCONTINUE = 0x00000006
     const MB_ICONERROR         = 0x00000010
     const IDCANCEL             = 2

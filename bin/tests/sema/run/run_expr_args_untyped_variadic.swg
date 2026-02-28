@@ -599,8 +599,6 @@ enum VariadicKind: u16
     #assert(V0)
 }
 
-// BUG: before
-/*
 #test
 {
     func variadicAnyStressWithHead(a: VariadicPair, values: ...)->bool
@@ -640,7 +638,6 @@ enum VariadicKind: u16
     const V0 = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void) 0x99'u64)
     #assert(V0)
 }
-*/
 
 #test
 {

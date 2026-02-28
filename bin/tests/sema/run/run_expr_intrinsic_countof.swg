@@ -24,6 +24,13 @@ enum Color
 
 #test
 {
+    func countCString(value: cstring)->u64 { return @countof(value) }
+    const V0 = #run countCString(cast(cstring) @dataof("runtime"))
+    #assert(V0 == 7'u64)
+}
+
+#test
+{
     func countSlice(value: [..] u8)->u64 { return @countof(value) }
 
     const data: [6] u8 = [0, 0, 0, 0, 0, 0]

@@ -199,7 +199,6 @@ impl MutexRW
     func malloc(s: s64)->[*] void;
     func realloc(ptr: [*] void, s: s64)->[*] void;
     func free(ptr: [*] void);
-    func strlen(a: cstring)->s64;
     func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
     func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
     func memset(dst: [*] void, value: s32, size: s64)->[*] void;
@@ -223,11 +222,6 @@ func @realloc(ptr: [*] void, size: u64)->[*] void
 func @free(ptr: [*] void)
 {
     free(ptr)
-}
-
-func @strlen(str: cstring)->u64
-{
-    return cast(u64) strlen(str)
 }
 
 func @memset(dst: [*] void, value: u8, size: u64)
@@ -402,7 +396,7 @@ func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null
     {
         let hasSymbol = SymFromAddr(GetCurrentProcess(), cast(ULONG64) cast(u64) wh[i], &displacement, psym)
         let hasLine   = SymGetLineFromAddr64(GetCurrentProcess(), cast(ULONG64) cast(u64) wh[i], cast() &displacement, &line)
-        let fileName  = hasLine ? @mkstring(line.FileName, @strlen(line.FileName)) : null
+        let fileName  = hasLine ? @mkstring(line.FileName, @countof(cast(cstring) line.FileName)) : null
         if !hasLine and !printNoLine do
             continue
 
@@ -440,7 +434,7 @@ func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null
 
         if hasSymbol
         {
-            let symName = @mkstring(cast(const [*] u8) psym.Name, @strlen(psym.Name))
+            let symName = @mkstring(cast(const [*] u8) psym.Name, @countof(cast(cstring) psym.Name))
             @print(symName)
         }
 

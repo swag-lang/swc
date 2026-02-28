@@ -532,7 +532,7 @@ impl Decoder
                 if seenIDAT do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 let chunk = .readChunk(ch)
-                let len   = @countof(chunk.datas)
+                let len   = @countof(cast(cstring) chunk.datas)
                 if len % 3 != 0 or len > 768 do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 .seenPLTE = true
@@ -548,12 +548,12 @@ impl Decoder
                 let chunk = .readChunk(ch)
                 if .decOptions.decodeMetaDatas
                 {
-                    let len = @strlen(chunk.datas)
+                    let len = @countof(cast(cstring) chunk.datas)
                     if len > 1
                     {
                         var md: ImageMetaData
                         md.tag = cast(string) chunk.datas[ until len]
-                        if len != @countof(chunk.datas) - 1 do
+                        if len != @countof(cast(cstring) chunk.datas) - 1 do
                             md.value = cast(string) chunk.datas[len + 1 to ]
                         result.metaDatas.add(md)
                     }

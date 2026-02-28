@@ -294,7 +294,7 @@ func getString()->String
         if hglob
         {
             let pz = cast([*] u8) GlobalLock(hglob)
-            result = @mkstring(pz, @strlen(pz))
+            result = @mkstring(pz, @countof(cast(cstring) pz))
             discard GlobalUnlock(pz)
             return result
         }

@@ -85,7 +85,6 @@ func @memset(dst: [*] void, value: u8, size: u64);          // Set a block of me
 func @memcpy(dst: [*] void, src: const [*] void, size: u64);   // Copy a block of memory.
 func @memmove(dst: [*] void, src: const [*] void, size: u64);  // Move a block of memory (overlap-safe).
 func @memcmp(dst: const [*] void, src: const [*] void, size: u64) -> s32; // Compare two blocks of memory.
-func @strlen(value: const [*] u8) -> u64;                   // Length of a null-terminated string.
 
 /**
 

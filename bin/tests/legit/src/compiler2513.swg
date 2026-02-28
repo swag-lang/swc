@@ -11,5 +11,5 @@ func toto(x: string)->[100] u8
 #test
 {
     let x = toto("toto")
-    @assert(@strlen(@dataof(x)) == 4)
+    @assert(@countof(cast(cstring) @dataof(x)) == 4)
 }

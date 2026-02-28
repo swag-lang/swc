@@ -1,7 +1,7 @@
 // Expressions
-var a = @strlen()                       // swc-expected-error {{parser_err_too_few_arguments}}
-var b = @strlen(a, b + 4)               // swc-expected-error {{parser_err_too_many_arguments}}
-var c = @strlen("foo")
+var a = @countof()                      // swc-expected-error {{parser_err_too_few_arguments}}
+var b = @countof(a, b + 4)              // swc-expected-error {{parser_err_too_many_arguments}}
+var c = @countof("foo")
 
 var _01 = @getcontext()
 var _02 = @getcontext(a)                // swc-expected-error {{parser_err_too_many_arguments}}

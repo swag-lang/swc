@@ -199,7 +199,14 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
         return Result::Continue;
     }
 
-    if (view.type()->isAnyString())
+    if (view.type()->isCString())
+    {
+        sema.setType(targetRef, sema.typeMgr().typeU64());
+        sema.setIsValue(targetRef);
+        return Result::Continue;
+    }
+
+    if (view.type()->isString())
     {
         sema.setType(targetRef, sema.typeMgr().typeU64());
         sema.setIsValue(targetRef);

@@ -75,7 +75,7 @@ public impl TypeFace
     // Returns the underlying font family name
     mtd const getFamilyName()->string
     {
-        let defname = @mkstring(.face.family_name, @strlen(.face.family_name))
+        let defname = @mkstring(.face.family_name, @countof(cast(cstring) .face.family_name))
         return defname
     }
 

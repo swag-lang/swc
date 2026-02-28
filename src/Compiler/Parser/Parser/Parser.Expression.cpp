@@ -673,7 +673,6 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicGetContext:
             return parseIntrinsicCallExpr(0);
 
-        case TokenId::IntrinsicStrLen:
         case TokenId::IntrinsicAlloc:
         case TokenId::IntrinsicFree:
         case TokenId::IntrinsicAbs:

@@ -25,6 +25,10 @@ namespace NS {}
     var b = @countof(a)
     #assert(#typeof(b) == u64)
 
+    var cs: cstring
+    var csc = @countof(cs)
+    #assert(#typeof(csc) == u64)
+
     var c: [4, 10] s32
     const d = @countof(c)
     #assert(d == 40)

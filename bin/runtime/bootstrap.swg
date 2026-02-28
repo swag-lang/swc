@@ -1111,9 +1111,6 @@ func @realloc(ptr: [*] void, size: u64)->[*] void;
 // Free a system memory block allocated with [[@alloc]]
 func @free(ptr: [*] void);
 
-// Returns the length of the given 0 terminated string.
-func @strlen(str: cstring)->u64;
-
 #[Swag.ConstExpr, Swag.Overload]
 {
     // Trigonometric functions.

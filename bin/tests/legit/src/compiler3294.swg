@@ -5,7 +5,7 @@
     {
         #run
         {
-            @assert(@strlen(#stringof(stmt)) > 0)
+            @assert(@countof(#stringof(stmt)) > 0)
         }
     }
 

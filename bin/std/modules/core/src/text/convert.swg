@@ -179,7 +179,7 @@ func convertAny(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strForma
         if type.flags & TypeInfoFlags.CString
         {
             let ptr = dref cast(const [*] [*] u8) valueData
-            let len = @strlen(ptr)
+            let len = @countof(cast(cstring) ptr)
             buf.addBytes(@mkslice(ptr, len))
             return
         }

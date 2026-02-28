@@ -322,7 +322,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("@sin", State.Buildin)
         .mapWords.add("@sinh", State.Buildin)
         .mapWords.add("@sqrt", State.Buildin)
-        .mapWords.add("@strlen", State.Buildin)
         .mapWords.add("@tan", State.Buildin)
         .mapWords.add("@tanh", State.Buildin)
         .mapWords.add("@trunc", State.Buildin)

@@ -51,11 +51,11 @@
 #test
 {
     #[Swag.NoInline]
-    func strlenBasic()->u64
+    func cstringCountBasic()->u64
     {
         let s = cast(cstring) @dataof("hello")
-        return @strlen(s)
+        return @countof(s)
     }
 
-    #assert(#run strlenBasic() == 5)
+    #assert(#run cstringCountBasic() == 5)
 }

@@ -159,7 +159,7 @@ func getDrives()->Array'String throw
     var ptr = &volName[0]
     while ptr[0]
     {
-        let len = @strlen(ptr)
+        let len = @countof(cast(cstring) ptr)
         result.add(@mkstring(ptr, len))
         ptr += len + 1
     }
@@ -185,7 +185,7 @@ func getVolumes()->Array'String throw
         catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret)
         if @err == null
         {
-            let len = @strlen(driveName)
+            let len = @countof(cast(cstring) driveName)
             if len
             {
                 var str = String.from(@mkstring(&driveName[0], len))

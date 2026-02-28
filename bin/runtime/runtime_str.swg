@@ -134,7 +134,7 @@ func __printU64(value: u64)
 {
     var buf: [100] u8
     __utoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @strlen(&buf[0]))
+    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
     __printString(str)
 }
 
@@ -142,7 +142,7 @@ func __printS64(value: s64)
 {
     var buf: [100] u8
     __itoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @strlen(&buf[0]))
+    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
     __printString(str)
 }
 
@@ -150,7 +150,7 @@ func __printF64(value: f64)
 {
     var buf: [100] u8
     __ftoa(&buf[0], value)
-    let str = cast(string) @mkslice(&buf[0], @strlen(&buf[0]))
+    let str = cast(string) @mkslice(&buf[0], @countof(cast(cstring) &buf[0]))
     __printString(str)
 }
 
@@ -182,7 +182,7 @@ func @print(params: ...)
         {
             #[Safety(.All, .DynCast, false)]
             let ptr = cast(const [*] u8) v
-            let len = @strlen(ptr)
+            let len = @countof(cast(cstring) ptr)
             __printString(@mkstring(ptr, len))
             continue
         }

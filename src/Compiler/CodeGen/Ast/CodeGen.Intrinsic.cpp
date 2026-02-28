@@ -549,6 +549,45 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenMulAdd(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          aRef          = children[0];
+        const AstNodeRef          bRef          = children[1];
+        const AstNodeRef          cRef          = children[2];
+        const CodeGenNodePayload& aPayload      = codeGen.payload(aRef);
+        const CodeGenNodePayload& bPayload      = codeGen.payload(bRef);
+        const CodeGenNodePayload& cPayload      = codeGen.payload(cRef);
+        const SemaNodeView        aView         = codeGen.viewType(aRef);
+        const SemaNodeView        bView         = codeGen.viewType(bRef);
+        const SemaNodeView        cView         = codeGen.viewType(cRef);
+        const TypeRef             aTypeRef      = aPayload.typeRef.isValid() ? aPayload.typeRef : aView.typeRef();
+        const TypeRef             bTypeRef      = bPayload.typeRef.isValid() ? bPayload.typeRef : bView.typeRef();
+        const TypeRef             cTypeRef      = cPayload.typeRef.isValid() ? cPayload.typeRef : cView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        SWC_ASSERT(resultType.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+        MicroReg aReg = MicroReg::invalid();
+        MicroReg bReg = MicroReg::invalid();
+        MicroReg cReg = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(aReg, codeGen, aPayload, aTypeRef, resultTypeRef);
+        materializeIntrinsicNumericOperand(bReg, codeGen, bPayload, bTypeRef, resultTypeRef);
+        materializeIntrinsicNumericOperand(cReg, codeGen, cPayload, cTypeRef, resultTypeRef);
+
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        builder.emitLoadRegReg(resultPayload.reg, aReg, opBits);
+        builder.emitOpTernaryRegRegReg(resultPayload.reg, bReg, cReg, MicroOp::MultiplyAdd, opBits);
+        return Result::Continue;
+    }
+
     Result codeGenCompiler(CodeGen& codeGen)
     {
         const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
@@ -612,6 +651,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenBitCount(codeGen, *this, BitCountKind::Tz);
         case TokenId::IntrinsicBitCountLz:
             return codeGenBitCount(codeGen, *this, BitCountKind::Lz);
+        case TokenId::IntrinsicMulAdd:
+            return codeGenMulAdd(codeGen, *this);
 
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);

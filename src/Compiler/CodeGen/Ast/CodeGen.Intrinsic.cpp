@@ -423,6 +423,42 @@ namespace
         builder.placeLabel(doneLabel);
         return Result::Continue;
     }
+
+    Result codeGenRotate(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          valueRef          = children[0];
+        const AstNodeRef          countRef          = children[1];
+        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
+        const CodeGenNodePayload& countPayload      = codeGen.payload(countRef);
+        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
+        const SemaNodeView        countView         = codeGen.viewType(countRef);
+        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             countTypeRef      = countPayload.typeRef.isValid() ? countPayload.typeRef : countView.typeRef();
+        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
+        const TypeInfo&           countType         = codeGen.typeMgr().get(countTypeRef);
+        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder           = codeGen.builder();
+        MicroReg                  materializedValue = MicroReg::invalid();
+        MicroReg                  materializedCount = MicroReg::invalid();
+
+        SWC_ASSERT(resultType.isIntLikeUnsigned());
+        SWC_ASSERT(countType.isIntLikeUnsigned());
+        SWC_ASSERT(resultBits != MicroOpBits::Zero);
+
+        materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+        loadIntrinsicNumericOperand(materializedCount, codeGen, countPayload, countTypeRef);
+
+        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(resultPayload.reg, materializedValue, resultBits);
+        builder.emitOpBinaryRegReg(resultPayload.reg, materializedCount, op, resultBits);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -464,6 +500,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMinMax(codeGen, *this, true);
         case TokenId::IntrinsicMax:
             return codeGenMinMax(codeGen, *this, false);
+        case TokenId::IntrinsicRol:
+            return codeGenRotate(codeGen, *this, MicroOp::RotateLeft);
+        case TokenId::IntrinsicRor:
+            return codeGenRotate(codeGen, *this, MicroOp::RotateRight);
         case TokenId::IntrinsicBreakpoint:
             codeGen.builder().emitBreakpoint();
             return Result::Continue;

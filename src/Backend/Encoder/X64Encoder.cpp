@@ -1867,10 +1867,10 @@ void X64Encoder::encodeOpUnaryReg(MicroReg reg, MicroOp op, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B16)
         {
-            // rol ax, 0x8
+            // rol r16, 8  (C1 /0 ib)
             emitRex(store_, opBits, MicroReg{}, reg);
             emitCpuOp(store_, 0xC1);
-            emitCpuOp(store_, 0xC0);
+            emitModRm(store_, MODRM_REG_0, reg);
             emitValue(store_, 0x08, MicroOpBits::B8);
         }
         else

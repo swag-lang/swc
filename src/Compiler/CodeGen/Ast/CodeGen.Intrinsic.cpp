@@ -459,6 +459,33 @@ namespace
         builder.emitOpBinaryRegReg(resultPayload.reg, materializedCount, op, resultBits);
         return Result::Continue;
     }
+
+    Result codeGenByteSwap(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          valueRef          = children[0];
+        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
+        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder           = codeGen.builder();
+        MicroReg                  materializedValue = MicroReg::invalid();
+
+        SWC_ASSERT(resultType.isIntLikeUnsigned());
+        SWC_ASSERT(resultBits == MicroOpBits::B16 || resultBits == MicroOpBits::B32 || resultBits == MicroOpBits::B64);
+
+        materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(resultPayload.reg, materializedValue, resultBits);
+        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::ByteSwap, resultBits);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -504,6 +531,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenRotate(codeGen, *this, MicroOp::RotateLeft);
         case TokenId::IntrinsicRor:
             return codeGenRotate(codeGen, *this, MicroOp::RotateRight);
+        case TokenId::IntrinsicByteSwap:
+            return codeGenByteSwap(codeGen, *this);
         case TokenId::IntrinsicBreakpoint:
             codeGen.builder().emitBreakpoint();
             return Result::Continue;

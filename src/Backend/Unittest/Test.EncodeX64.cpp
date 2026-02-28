@@ -176,7 +176,7 @@ namespace
     {
         ENCODE_CASE("op_unary_reg_not_r8", "49 F7 D0", b.emitOpUnaryReg(R8, MicroOp::BitwiseNot, MicroOpBits::B64););
         ENCODE_CASE("op_unary_reg_neg_r9_b32", "41 F7 D9", b.emitOpUnaryReg(R9, MicroOp::Negate, MicroOpBits::B32););
-        ENCODE_CASE("op_unary_reg_bswap_r10_b16", "66 41 C1 C0 08", b.emitOpUnaryReg(R10, MicroOp::ByteSwap, MicroOpBits::B16););
+        ENCODE_CASE("op_unary_reg_bswap_r10_b16", "66 41 C1 C2 08", b.emitOpUnaryReg(R10, MicroOp::ByteSwap, MicroOpBits::B16););
         ENCODE_CASE("op_unary_reg_bswap_r11_b64", "49 0F CB", b.emitOpUnaryReg(R11, MicroOp::ByteSwap, MicroOpBits::B64););
         ENCODE_CASE("op_unary_mem_not_r12_b32", "F7 54 24 20", b.emitOpUnaryMem(R12, 0x20, MicroOp::BitwiseNot, MicroOpBits::B32););
         ENCODE_CASE("op_unary_mem_neg_r13", "48 F7 5D 40", b.emitOpUnaryMem(R13, 0x40, MicroOp::Negate, MicroOpBits::B64););

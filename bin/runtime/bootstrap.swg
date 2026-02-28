@@ -1054,6 +1054,26 @@ func @strcmp(str1, str2: cstring)->s32;
     func @max(value1, value2: f32)->f32;
     func @max(value1, value2: f64)->f64;
 
+    // Rotate bits left
+    func @rol(value: u8, num: u8)->u8;
+    func @rol(value: u16, num: u8)->u16;
+    func @rol(value: u32, num: u8)->u32;
+    func @rol(value: u64, num: u8)->u64;
+
+    // Rotate bits right
+    func @ror(value: u8, num: u8)->u8;
+    func @ror(value: u16, num: u8)->u16;
+    func @ror(value: u32, num: u8)->u32;
+    func @ror(value: u64, num: u8)->u64;
+
+    // Reverses the order of bytes in an integer.
+    func @byteswap(value: u16)->u16;
+    func @byteswap(value: u32)->u32;
+    func @byteswap(value: u64)->u64;
+}
+
+#[Swag.ConstExpr, Swag.Overload]
+{
     func @abs(value: s8)->s8;
     func @abs(value: s16)->s16;
     func @abs(value: s32)->s32;
@@ -1124,23 +1144,6 @@ func @strcmp(str1, str2: cstring)->s32;
     func @bitcountlz(value: u16)->u16;
     func @bitcountlz(value: u32)->u32;
     func @bitcountlz(value: u64)->u64;
-
-    // Reverses the order of bytes in an integer.
-    func @byteswap(value: u16)->u16;
-    func @byteswap(value: u32)->u32;
-    func @byteswap(value: u64)->u64;
-
-    // Rotate bits left
-    func @rol(value: u8, num: u8)->u8;
-    func @rol(value: u16, num: u8)->u16;
-    func @rol(value: u32, num: u8)->u32;
-    func @rol(value: u64, num: u8)->u64;
-
-    // Rotate bits right
-    func @ror(value: u8, num: u8)->u8;
-    func @ror(value: u16, num: u8)->u16;
-    func @ror(value: u32, num: u8)->u32;
-    func @ror(value: u64, num: u8)->u64;
 
     // Returns '(val1 * val2) + val3'
     func @muladd(val1, val2, val3: f32)->f32;

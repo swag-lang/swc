@@ -1029,9 +1029,11 @@ func @strcmp(str1, str2: cstring)->s32;
 // Constant intrinsics
 #[Swag.ConstExpr, Swag.Overload]
 {
+    // Square root.
     func @sqrt(value: f32)->f32;
     func @sqrt(value: f64)->f64;
 
+    // Minimum of two values.
     func @min(value1, value2: s8)->s8;
     func @min(value1, value2: s16)->s16;
     func @min(value1, value2: s32)->s32;
@@ -1043,6 +1045,7 @@ func @strcmp(str1, str2: cstring)->s32;
     func @min(value1, value2: f32)->f32;
     func @min(value1, value2: f64)->f64;
 
+    // Maximum of two values.
     func @max(value1, value2: s8)->s8;
     func @max(value1, value2: s16)->s16;
     func @max(value1, value2: s32)->s32;
@@ -1054,6 +1057,7 @@ func @strcmp(str1, str2: cstring)->s32;
     func @max(value1, value2: f32)->f32;
     func @max(value1, value2: f64)->f64;
 
+    // Absolute value.
     func @abs(value: s8)->s8;
     func @abs(value: s16)->s16;
     func @abs(value: s32)->s32;
@@ -1100,18 +1104,23 @@ func @strcmp(str1, str2: cstring)->s32;
     func @muladd(val1, val2, val3: f32)->f32;
     func @muladd(val1, val2, val3: f64)->f64;
 
+    // Round toward minus infinity.
     func @floor(value: f32)->f32;
     func @floor(value: f64)->f64;
+    // Round toward plus infinity.
     func @ceil(value: f32)->f32;
     func @ceil(value: f64)->f64;
+    // Round toward zero.
     func @trunc(value: f32)->f32;
     func @trunc(value: f64)->f64;
+    // Round to nearest, away from zero at .5.
     func @round(value: f32)->f32;
     func @round(value: f64)->f64;
 }
 
 #[Swag.ConstExpr, Swag.Overload]
 {
+    // Trigonometric functions.
     func @sin(value: f32)->f32;
     func @sin(value: f64)->f64;
     func @cos(value: f32)->f32;
@@ -1119,6 +1128,7 @@ func @strcmp(str1, str2: cstring)->s32;
     func @tan(value: f32)->f32;
     func @tan(value: f64)->f64;
 
+    // Hyperbolic trigonometric functions.
     func @sinh(value: f32)->f32;
     func @sinh(value: f64)->f64;
     func @cosh(value: f32)->f32;
@@ -1126,6 +1136,7 @@ func @strcmp(str1, str2: cstring)->s32;
     func @tanh(value: f32)->f32;
     func @tanh(value: f64)->f64;
 
+    // Inverse trigonometric functions.
     func @asin(value: f32)->f32;
     func @asin(value: f64)->f64;
     func @acos(value: f32)->f32;
@@ -1133,6 +1144,7 @@ func @strcmp(str1, str2: cstring)->s32;
     func @atan(value: f32)->f32;
     func @atan(value: f64)->f64;
 
+    // Logarithms.
     func @log(value: f32)->f32;
     func @log(value: f64)->f64;
     func @log2(value: f32)->f32;
@@ -1140,12 +1152,14 @@ func @strcmp(str1, str2: cstring)->s32;
     func @log10(value: f32)->f32;
     func @log10(value: f64)->f64;
 
+    // Exponentials and power.
     func @exp(value: f32)->f32;
     func @exp(value: f64)->f64;
     func @exp2(value: f32)->f32;
     func @exp2(value: f64)->f64;
     func @pow(value1, value2: f32)->f32;
     func @pow(value1, value2: f64)->f64;
+    // Arctangent of y/x with quadrant selection.
     func @atan2(value1, value2: f32)->f32;
     func @atan2(value1, value2: f64)->f64;
 }

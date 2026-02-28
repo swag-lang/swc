@@ -155,6 +155,15 @@ namespace
         return false;
     }
 
+    void addCallConcreteClobberedRegs(std::vector<uint32_t>& defConcreteRegs, const CallConv& callConv)
+    {
+        defConcreteRegs.reserve(defConcreteRegs.size() + callConv.intTransientRegs.size() + callConv.floatTransientRegs.size());
+        for (const auto reg : callConv.intTransientRegs)
+            defConcreteRegs.push_back(reg.packed);
+        for (const auto reg : callConv.floatTransientRegs)
+            defConcreteRegs.push_back(reg.packed);
+    }
+
     bool isPersistentPhysReg(const PassState& state, MicroReg reg)
     {
         if (reg.isInt())
@@ -305,6 +314,12 @@ namespace
                     defsV.push_back(reg.packed);
                 else if (reg.isInt() || reg.isFloat())
                     defsC.push_back(reg.packed);
+            }
+
+            if (useDefs[idx].isCall)
+            {
+                const CallConv& callConv = CallConv::get(useDefs[idx].callConv);
+                addCallConcreteClobberedRegs(defsC, callConv);
             }
 
             if (inst.op == MicroInstrOpcode::Label && inst.numOperands >= 1)

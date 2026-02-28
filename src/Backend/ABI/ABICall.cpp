@@ -88,6 +88,24 @@ namespace
         return result;
     }
 
+    void forbidOtherArgRegs(MicroBuilder& builder, MicroReg virtualReg, std::span<const MicroReg> argRegs, uint32_t allowedIndex)
+    {
+        if (!virtualReg.isVirtual())
+            return;
+
+        SWC_ASSERT(allowedIndex < argRegs.size());
+        SmallVector<MicroReg> forbiddenRegs;
+        forbiddenRegs.reserve(argRegs.size() > 0 ? argRegs.size() - 1 : 0);
+        for (uint32_t idx = 0; idx < argRegs.size(); ++idx)
+        {
+            if (idx == allowedIndex)
+                continue;
+            forbiddenRegs.push_back(argRegs[idx]);
+        }
+
+        builder.addVirtualRegForbiddenPhysRegs(virtualReg, forbiddenRegs);
+    }
+
     void emitCallStackAdjust(MicroBuilder& builder, const CallConv& conv, uint32_t stackAdjust, MicroOp op)
     {
         if (stackAdjust)
@@ -197,7 +215,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 if (!useHomeSlot)
                 {
                     SWC_ASSERT(i < conv.intArgRegs.size());
-                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
+                    forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
                     continue;
                 }
             }
@@ -280,12 +298,12 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             if (arg.isFloat)
             {
                 if (arg.srcReg.isVirtualFloat())
-                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.floatArgRegs);
+                    forbidOtherArgRegs(builder, arg.srcReg, conv.floatArgRegs, i);
             }
             else
             {
                 if (arg.srcReg.isVirtualInt())
-                    builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
+                    forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
             }
         }
 

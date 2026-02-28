@@ -151,48 +151,53 @@ impl MutexRW
 
 moduleprivate
 {
-    func sinf(val: f32)->f32;
-    func cosf(val: f32)->f32;
-    func tanf(val: f32)->f32;
-    func sinhf(val: f32)->f32;
-    func coshf(val: f32)->f32;
-    func tanhf(val: f32)->f32;
-    func asinf(val: f32)->f32;
-    func acosf(val: f32)->f32;
-    func atanf(val: f32)->f32;
-    func logf(val: f32)->f32;
-    func log2f(val: f32)->f32;
-    func log10f(val: f32)->f32;
-    func floorf(val: f32)->f32;
-    func ceilf(val: f32)->f32;
-    func truncf(val: f32)->f32;
-    func roundf(val: f32)->f32;
-    func expf(val: f32)->f32;
-    func exp2f(val: f32)->f32;
+    #[Swag.Foreign("ucrtbase")]
+    {
+        func sinf(val: f32)->f32;
+        func cosf(val: f32)->f32;
+        func tanf(val: f32)->f32;
+        func sinhf(val: f32)->f32;
+        func coshf(val: f32)->f32;
+        func tanhf(val: f32)->f32;
+        func asinf(val: f32)->f32;
+        func acosf(val: f32)->f32;
+        func atanf(val: f32)->f32;
+        func logf(val: f32)->f32;
+        func log2f(val: f32)->f32;
+        func log10f(val: f32)->f32;
+        func floorf(val: f32)->f32;
+        func ceilf(val: f32)->f32;
+        func truncf(val: f32)->f32;
+        func roundf(val: f32)->f32;
+        func expf(val: f32)->f32;
+        func exp2f(val: f32)->f32;
+        func sqrtf(val: f32)->f32;
 
-    func sin(val: f64)->f64;
-    func cos(val: f64)->f64;
-    func tan(val: f64)->f64;
-    func sinh(val: f64)->f64;
-    func cosh(val: f64)->f64;
-    func tanh(val: f64)->f64;
-    func asin(val: f64)->f64;
-    func acos(val: f64)->f64;
-    func atan(val: f64)->f64;
-    func log(val: f64)->f64;
-    func log2(val: f64)->f64;
-    func log10(val: f64)->f64;
-    func floor(val: f64)->f64;
-    func ceil(val: f64)->f64;
-    func trunc(val: f64)->f64;
-    func round(val: f64)->f64;
-    func exp(val: f64)->f64;
-    func exp2(val: f64)->f64;
+        func sin(val: f64)->f64;
+        func cos(val: f64)->f64;
+        func tan(val: f64)->f64;
+        func sinh(val: f64)->f64;
+        func cosh(val: f64)->f64;
+        func tanh(val: f64)->f64;
+        func asin(val: f64)->f64;
+        func acos(val: f64)->f64;
+        func atan(val: f64)->f64;
+        func log(val: f64)->f64;
+        func log2(val: f64)->f64;
+        func log10(val: f64)->f64;
+        func floor(val: f64)->f64;
+        func ceil(val: f64)->f64;
+        func trunc(val: f64)->f64;
+        func round(val: f64)->f64;
+        func exp(val: f64)->f64;
+        func exp2(val: f64)->f64;
+        func sqrt(val: f64)->f64;
 
-    func powf(val1, val2: f32)->f32;
-    func atan2f(val1, val2: f32)->f32;
-    func pow(val1, val2: f64)->f64;
-    func atan2(val1, val2: f64)->f64;
+        func powf(val1, val2: f32)->f32;
+        func atan2f(val1, val2: f32)->f32;
+        func pow(val1, val2: f64)->f64;
+        func atan2(val1, val2: f64)->f64;
+    }
 
     func malloc(s: s64)->[*] void;
     func realloc(ptr: [*] void, s: s64)->[*] void;
@@ -200,6 +205,91 @@ moduleprivate
 
     func strlen(a: const [*] u8)->s64;
     func strcmp(a, b: const [*] u8)->s32;
+
+    #[Swag.Foreign("ucrtbase")]
+    {
+        func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
+        func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
+        func memset(dst: [*] void, value: s32, size: s64)->[*] void;
+        func memcmp(dst, src: const [*] void, size: s64)->s32;
+    }
+}
+
+////////////////////////////////////////////////////////////
+// INTRINSIC WRAPPERS
+////////////////////////////////////////////////////////////
+
+func @memset(dst: [*] void, value: u8, size: u64)
+{
+    discard memset(dst, cast(s32) value, cast(s64) size)
+}
+
+func @memcpy(dst: [*] void, src: const [*] void, size: u64)
+{
+    discard memcpy(dst, src, cast(s64) size)
+}
+
+func @memmove(dst: [*] void, src: const [*] void, size: u64)
+{
+    discard memmove(dst, src, cast(s64) size)
+}
+
+func @memcmp(dst, src: const [*] void, size: u64)->s32
+{
+    return memcmp(dst, src, cast(s64) size)
+}
+
+#[Swag.Overload]
+{
+    func @sin(value: f32)->f32  => sinf(value)
+    func @sin(value: f64)->f64  => sin(value)
+    func @cos(value: f32)->f32  => cosf(value)
+    func @cos(value: f64)->f64  => cos(value)
+    func @tan(value: f32)->f32  => tanf(value)
+    func @tan(value: f64)->f64  => tan(value)
+
+    func @sinh(value: f32)->f32 => sinhf(value)
+    func @sinh(value: f64)->f64 => sinh(value)
+    func @cosh(value: f32)->f32 => coshf(value)
+    func @cosh(value: f64)->f64 => cosh(value)
+    func @tanh(value: f32)->f32 => tanhf(value)
+    func @tanh(value: f64)->f64 => tanh(value)
+
+    func @asin(value: f32)->f32 => asinf(value)
+    func @asin(value: f64)->f64 => asin(value)
+    func @acos(value: f32)->f32 => acosf(value)
+    func @acos(value: f64)->f64 => acos(value)
+    func @atan(value: f32)->f32 => atanf(value)
+    func @atan(value: f64)->f64 => atan(value)
+
+    func @log(value: f32)->f32   => logf(value)
+    func @log(value: f64)->f64   => log(value)
+    func @log2(value: f32)->f32  => log2f(value)
+    func @log2(value: f64)->f64  => log2(value)
+    func @log10(value: f32)->f32 => log10f(value)
+    func @log10(value: f64)->f64 => log10(value)
+
+    func @floor(value: f32)->f32 => floorf(value)
+    func @floor(value: f64)->f64 => floor(value)
+    func @ceil(value: f32)->f32  => ceilf(value)
+    func @ceil(value: f64)->f64  => ceil(value)
+    func @trunc(value: f32)->f32 => truncf(value)
+    func @trunc(value: f64)->f64 => trunc(value)
+    func @round(value: f32)->f32 => roundf(value)
+    func @round(value: f64)->f64 => round(value)
+    func @sqrt(value: f32)->f32  => sqrtf(value)
+    func @sqrt(value: f64)->f64  => sqrt(value)
+
+    func @exp(value: f32)->f32  => expf(value)
+    func @exp(value: f64)->f64  => exp(value)
+    func @exp2(value: f32)->f32 => exp2f(value)
+    func @exp2(value: f64)->f64 => exp2(value)
+
+    func @pow(value1, value2: f32)->f32 => powf(value1, value2)
+    func @pow(value1, value2: f64)->f64 => pow(value1, value2)
+
+    func @atan2(value1, value2: f32)->f32 => atan2f(value1, value2)
+    func @atan2(value1, value2: f64)->f64 => atan2(value1, value2)
 }
 
 ////////////////////////////////////////////////////////////

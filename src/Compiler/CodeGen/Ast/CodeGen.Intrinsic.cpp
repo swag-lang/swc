@@ -486,6 +486,17 @@ namespace
         builder.emitOpUnaryReg(resultPayload.reg, MicroOp::ByteSwap, resultBits);
         return Result::Continue;
     }
+
+    Result codeGenCompiler(CodeGen& codeGen)
+    {
+        const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
+        const ConstantValue compilerIfCst     = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeVoid(), compilerIfAddress, TypeInfoFlagsE::Const);
+        const ConstantRef   compilerIfCstRef  = codeGen.cstMgr().addConstant(codeGen.ctx(), compilerIfCst);
+        const SemaNodeView  view              = codeGen.curViewType();
+        const auto&         payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
+        codeGen.builder().emitLoadRegPtrReloc(payload.reg, compilerIfAddress, compilerIfCstRef);
+        return Result::Continue;
+    }
 }
 
 Result AstCountOfExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -533,20 +544,12 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenRotate(codeGen, *this, MicroOp::RotateRight);
         case TokenId::IntrinsicByteSwap:
             return codeGenByteSwap(codeGen, *this);
+
+        case TokenId::IntrinsicCompiler:
+            return codeGenCompiler(codeGen);
         case TokenId::IntrinsicBreakpoint:
             codeGen.builder().emitBreakpoint();
             return Result::Continue;
-
-        case TokenId::IntrinsicCompiler:
-        {
-            const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
-            const ConstantValue compilerIfCst     = ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeVoid(), compilerIfAddress, TypeInfoFlagsE::Const);
-            const ConstantRef   compilerIfCstRef  = codeGen.cstMgr().addConstant(codeGen.ctx(), compilerIfCst);
-            const SemaNodeView  view              = codeGen.curViewType();
-            const auto&         payload           = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
-            codeGen.builder().emitLoadRegPtrReloc(payload.reg, compilerIfAddress, compilerIfCstRef);
-            return Result::Continue;
-        }
 
         default:
             return codeGenCallExprCommon(codeGen, nodeExprRef);

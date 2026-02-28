@@ -1070,6 +1070,24 @@ func @strcmp(str1, str2: cstring)->s32;
     func @byteswap(value: u16)->u16;
     func @byteswap(value: u32)->u32;
     func @byteswap(value: u64)->u64;
+
+    // Count the number of bits set to 1
+    func @bitcountnz(value: u8)->u8;
+    func @bitcountnz(value: u16)->u16;
+    func @bitcountnz(value: u32)->u32;
+    func @bitcountnz(value: u64)->u64;
+
+    // Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.
+    func @bitcounttz(value: u8)->u8;
+    func @bitcounttz(value: u16)->u16;
+    func @bitcounttz(value: u32)->u32;
+    func @bitcounttz(value: u64)->u64;
+
+    // Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.
+    func @bitcountlz(value: u8)->u8;
+    func @bitcountlz(value: u16)->u16;
+    func @bitcountlz(value: u32)->u32;
+    func @bitcountlz(value: u64)->u64;
 }
 
 #[Swag.ConstExpr, Swag.Overload]
@@ -1126,24 +1144,6 @@ func @strcmp(str1, str2: cstring)->s32;
     func @pow(value1, value2: f64)->f64;
     func @atan2(value1, value2: f32)->f32;
     func @atan2(value1, value2: f64)->f64;
-
-    // Count the number of bits set to 1
-    func @bitcountnz(value: u8)->u8;
-    func @bitcountnz(value: u16)->u16;
-    func @bitcountnz(value: u32)->u32;
-    func @bitcountnz(value: u64)->u64;
-
-    // Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.
-    func @bitcounttz(value: u8)->u8;
-    func @bitcounttz(value: u16)->u16;
-    func @bitcounttz(value: u32)->u32;
-    func @bitcounttz(value: u64)->u64;
-
-    // Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.
-    func @bitcountlz(value: u8)->u8;
-    func @bitcountlz(value: u16)->u16;
-    func @bitcountlz(value: u32)->u32;
-    func @bitcountlz(value: u64)->u64;
 
     // Returns '(val1 * val2) + val3'
     func @muladd(val1, val2, val3: f32)->f32;

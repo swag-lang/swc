@@ -9,6 +9,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool bitCastSourceUnsigned(const TypeInfo& srcType, const ApsInt& value)
+    {
+        if (srcType.isIntUnsized() && srcType.payloadIntSign() == TypeInfo::Sign::Unknown)
+            return !value.isNegative();
+
+        return srcType.isIntLikeUnsigned();
+    }
+}
+
 void Cast::foldConstantIdentity(CastRequest& castRequest)
 {
     castRequest.setConstantFoldingResult(castRequest.constantFoldingSrc());
@@ -21,8 +32,15 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
     // Be sure constant is sized
     if (dstType.isInt())
     {
+        TypeInfo::Sign hintSign = dstType.payloadIntSign();
+        if (srcType.isIntUnsized() && srcType.payloadIntSign() == TypeInfo::Sign::Unknown)
+        {
+            const ConstantValue& unsizedValue = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            hintSign                          = unsizedValue.getIntLike().isNegative() ? TypeInfo::Sign::Signed : TypeInfo::Sign::Unsigned;
+        }
+
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), dstType.payloadIntSign()))
+        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), hintSign))
         {
             castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castRequest.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
@@ -32,8 +50,15 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
     }
     else if (dstType.isFloat())
     {
+        TypeInfo::Sign hintSign = TypeInfo::Sign::Signed;
+        if (srcType.isIntUnsized() && srcType.payloadIntSign() == TypeInfo::Sign::Unknown)
+        {
+            const ConstantValue& unsizedValue = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            hintSign                          = unsizedValue.getIntLike().isNegative() ? TypeInfo::Sign::Signed : TypeInfo::Sign::Unsigned;
+        }
+
         ConstantRef newCstRef;
-        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), TypeInfo::Sign::Signed))
+        if (!concretizeConstant(sema, newCstRef, castRequest.constantFoldingSrc(), hintSign))
         {
             castRequest.fail(DiagnosticId::sema_err_literal_too_big, sema.cstMgr().get(castRequest.constantFoldingSrc()).typeRef(), TypeRef::invalid());
             return false;
@@ -59,6 +84,13 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
     if (srcInt && dstInt)
     {
         ApsInt value = src.getIntLike();
+        if (srcType.isIntUnsized())
+        {
+            const bool srcUnsigned = bitCastSourceUnsigned(srcType, value);
+            value.setUnsigned(srcUnsigned);
+            value.resize(dstBits);
+        }
+
         if (value.isUnsigned() != dstType.isIntLikeUnsigned())
             value.setUnsigned(dstType.isIntLikeUnsigned());
 
@@ -85,7 +117,15 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
     if (srcInt && dstFloat)
     {
-        const ApFloat       f      = Math::bitCastToApFloat(src.getIntLike(), dstBits);
+        ApsInt value = src.getIntLike();
+        if (srcType.isIntUnsized())
+        {
+            const bool srcUnsigned = bitCastSourceUnsigned(srcType, value);
+            value.setUnsigned(srcUnsigned);
+            value.resize(dstBits);
+        }
+
+        const ApFloat       f      = Math::bitCastToApFloat(value, dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
         return true;

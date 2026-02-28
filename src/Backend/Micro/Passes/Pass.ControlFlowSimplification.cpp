@@ -111,13 +111,13 @@ namespace
         }
     }
 
-    bool tryMergeConditionalAndUnconditionalJump(const MicroInstr& conditionalJumpInst, const MicroInstr& unconditionalJumpInst, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroOperandStorage& operands)
+    bool tryMergeConditionalAndUnconditionalJump(const MicroInstr& conditionalJumpInst, const MicroInstr& unconditionalJumpInst, const MicroStorage::Iterator& scanIt, const MicroStorage::Iterator& endIt, MicroOperandStorage& operands)
     {
         if (conditionalJumpInst.op != MicroInstrOpcode::JumpCond || unconditionalJumpInst.op != MicroInstrOpcode::JumpCond)
             return false;
 
-        MicroInstrOperand* conditionalOps   = conditionalJumpInst.ops(operands);
-        MicroInstrOperand* unconditionalOps = unconditionalJumpInst.ops(operands);
+        MicroInstrOperand*       conditionalOps   = conditionalJumpInst.ops(operands);
+        const MicroInstrOperand* unconditionalOps = unconditionalJumpInst.ops(operands);
         if (!conditionalOps || !unconditionalOps)
             return false;
 

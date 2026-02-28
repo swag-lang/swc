@@ -42,7 +42,7 @@ namespace
     void printFatalProcessMessage(const char* title)
     {
         std::println(stderr, "{}", title);
-        std::fflush(stderr);
+        (void) std::fflush(stderr);
     }
 
     [[noreturn]]

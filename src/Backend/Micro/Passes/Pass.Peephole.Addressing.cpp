@@ -379,7 +379,7 @@ namespace PeepholePass
                 if (!candidateInst)
                     return false;
 
-                MicroStorage::Iterator   candidateIt{instructions, scanLoadRef};
+                const MicroStorage::Iterator   candidateIt{instructions, scanLoadRef};
                 const MicroInstrOperand* candidateOps = candidateInst->ops(*SWC_NOT_NULL(context.operands));
                 if (!candidateOps)
                     return false;

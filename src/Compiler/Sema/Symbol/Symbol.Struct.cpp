@@ -37,7 +37,7 @@ void SymbolStruct::addInterface(SymbolImpl& symImpl)
 Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexInterfaces_);
-    for (auto* const itf : interfaces_)
+    for (const auto* itf : interfaces_)
     {
         if (itf->idRef() == symImpl.idRef())
         {
@@ -111,7 +111,7 @@ namespace
 bool SymbolStruct::implementsInterface(const SymbolInterface& itf) const
 {
     SWC_ASSERT(isSemaCompleted());
-    for (auto* const itfImpl : interfaces())
+    for (const auto* itfImpl : interfaces())
     {
         if (itfImpl && itfImpl->idRef() == itf.idRef())
             return true;

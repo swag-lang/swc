@@ -308,7 +308,7 @@ namespace
 
         while (numFrames < 64)
         {
-            const auto address = static_cast<uintptr_t>(frame.AddrPC.Offset);
+            const DWORD64 address = frame.AddrPC.Offset;
             if (!address)
                 break;
 
@@ -374,13 +374,13 @@ namespace
         return handler(platformExceptionPointers);
     }
 
-    LONG WINAPI onUnhandledExceptionFilter(struct _EXCEPTION_POINTERS* exceptionPointers)
+    LONG WINAPI onUnhandledExceptionFilter(const _EXCEPTION_POINTERS* exceptionPointers)
     {
         (void) dispatchHostException(exceptionPointers);
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    LONG CALLBACK onVectoredExceptionHandler(struct _EXCEPTION_POINTERS* exceptionPointers)
+    LONG CALLBACK onVectoredExceptionHandler(const _EXCEPTION_POINTERS* exceptionPointers)
     {
         volatile LONG& hasReported = hasReportedVectoredException();
         if (InterlockedCompareExchange(&hasReported, 1, 0) != 0)

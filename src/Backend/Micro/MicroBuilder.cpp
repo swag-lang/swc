@@ -184,9 +184,9 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
 {
     uint32_t nextIndex = 1;
-    for (const auto& it : virtualRegForbiddenPhysRegs_)
+    for (const auto& key : virtualRegForbiddenPhysRegs_ | std::views::keys)
     {
-        const uint32_t virtualRegKey = it.first;
+        const uint32_t virtualRegKey = key;
         MicroReg       reg;
         reg.packed = virtualRegKey;
         if (!reg.isVirtualInt())

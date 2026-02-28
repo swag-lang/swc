@@ -35,8 +35,8 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
     Sema* codeGenSema = &sema;
     if (symbolFunc.srcViewRef() != sema.ast().srcView().ref())
     {
-        SourceView&   symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
-        const FileRef symbolFileRef = symbolSrcView.fileRef();
+        const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
+        const FileRef     symbolFileRef = symbolSrcView.fileRef();
         if (symbolFileRef.isValid())
         {
             SourceFile& symbolFile = sema.compiler().file(symbolFileRef);

@@ -309,7 +309,7 @@ namespace PeepholePass
             if (cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
                 return false;
 
-            MicroCond     setCondCond = MicroCond::Equal;
+            auto          setCondCond = MicroCond::Equal;
             MicroInstrRef setCondRef  = MicroInstrRef::invalid();
             if (!tryResolveOriginalSetCond(setCondCond, setCondRef, context, cmpRef, cmpOps[0].reg))
                 return false;
@@ -396,7 +396,7 @@ namespace PeepholePass
                 return false;
             }
 
-            MicroCond     originalSetCond    = MicroCond::Equal;
+            auto          originalSetCond    = MicroCond::Equal;
             MicroInstrRef originalSetCondRef = MicroInstrRef::invalid();
             if (!tryResolveOriginalSetCond(originalSetCond, originalSetCondRef, context, cmpRef, cmpOps[0].reg))
                 return false;
@@ -626,7 +626,7 @@ namespace PeepholePass
                    op == MicroOp::RotateRight;
         }
 
-        bool isEpilogStackAdjustBeforeReturn(const MicroStorage::Iterator it, const MicroStorage::Iterator endIt, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
+        bool isEpilogStackAdjustBeforeReturn(const MicroStorage::Iterator& it, const MicroStorage::Iterator& endIt, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg stackReg)
         {
             if (!ops)
                 return false;
@@ -826,7 +826,7 @@ namespace PeepholePass
                     continue;
                 }
 
-                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                auto scanOpBits = MicroOpBits::Zero;
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return true;
 
@@ -887,10 +887,10 @@ namespace PeepholePass
             if (!inst || !ops)
                 return false;
 
-            MicroReg    dstReg;
-            MicroReg    baseReg;
-            uint64_t    slotOffset = 0;
-            MicroOpBits opBits     = MicroOpBits::Zero;
+            MicroReg dstReg;
+            MicroReg baseReg;
+            uint64_t slotOffset = 0;
+            auto     opBits     = MicroOpBits::Zero;
             if (!getLoadLocation(*inst, ops, dstReg, baseReg, slotOffset, opBits))
                 return false;
 
@@ -954,7 +954,7 @@ namespace PeepholePass
                 if (!isStackBaseRegister(context, scanBaseReg))
                     return false;
 
-                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                auto scanOpBits = MicroOpBits::Zero;
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
@@ -1048,7 +1048,7 @@ namespace PeepholePass
             if (!isStackBaseRegister(context, baseReg))
                 return false;
 
-            MicroOpBits opBits = MicroOpBits::Zero;
+            auto opBits = MicroOpBits::Zero;
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
@@ -1129,7 +1129,7 @@ namespace PeepholePass
                 if (!isStackBaseRegister(context, scanBaseReg))
                     return false;
 
-                MicroOpBits scanOpBits = MicroOpBits::Zero;
+                auto scanOpBits = MicroOpBits::Zero;
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
@@ -1168,7 +1168,7 @@ namespace PeepholePass
             if (ops[offsetIndex].hasWideImmediateValue())
                 return false;
 
-            MicroOpBits opBits = MicroOpBits::Zero;
+            auto opBits = MicroOpBits::Zero;
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
@@ -1451,7 +1451,7 @@ namespace PeepholePass
                 for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
                 {
                     MicroInstr&        scanInst = *scanIt;
-                    MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
+                    const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                     if (!scanOps)
                     {
                         rollbackRewritesFrom(rewrites, 0);

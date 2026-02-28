@@ -384,7 +384,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 
 Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef bodyRef = resolvedNodeRef(codeGen, nodeBodyRef);
@@ -448,7 +448,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     return Result::Continue;
 }
 
-Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen) const
+Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
 {
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
@@ -458,7 +458,7 @@ Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen) const
     return Result::Continue;
 }
 
-Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen) const
+Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
 {
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = codeGen.builder().createLabel();
@@ -518,7 +518,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     return Result::Continue;
 }
 
-Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen) const
+Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 {
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
@@ -528,7 +528,7 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen) const
     return Result::Continue;
 }
 
-Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen) const
+Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = codeGen.builder().createLabel();
@@ -568,7 +568,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     return Result::Continue;
 }
 
-Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen) const
+Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen)
 {
     const LoopStmtCodeGenPayload* loopState = loopStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);

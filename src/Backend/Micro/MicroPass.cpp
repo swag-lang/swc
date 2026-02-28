@@ -164,8 +164,8 @@ namespace
         if (!instructions)
             return 0;
 
-        size_t count = 0;
-        auto   view  = instructions->view();
+        size_t                        count = 0;
+        const MicroStorage::ConstView view  = instructions->view();
         for (auto it = view.begin(); it != view.end(); ++it)
         {
             const MicroInstr& inst = *it;

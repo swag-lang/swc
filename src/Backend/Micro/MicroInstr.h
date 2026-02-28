@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroTypes.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Flags.h"
-#include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApInt.h"
 

@@ -32,11 +32,11 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
-            for (const auto& MicroLabelRef : refs)
+            for (const auto& microLabelRef : refs)
             {
-                if (!MicroLabelRef.reg)
+                if (!microLabelRef.reg)
                     return Result::Error;
-                const auto reg = *MicroLabelRef.reg;
+                const auto reg = *microLabelRef.reg;
                 if (reg.isVirtual())
                     return Result::Error;
 
@@ -370,12 +370,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(storeOps, refs, nullptr);
-            for (const auto& MicroLabelRef : refs)
+            for (const auto& microLabelRef : refs)
             {
-                if (!MicroLabelRef.reg)
+                if (!microLabelRef.reg)
                     continue;
 
-                const MicroReg reg = *MicroLabelRef.reg;
+                const MicroReg reg = *microLabelRef.reg;
                 if (!reg.isInt())
                     continue;
 

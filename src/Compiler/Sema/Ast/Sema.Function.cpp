@@ -293,7 +293,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstDiscardExpr::semaPostNode(Sema& sema) const
+Result AstDiscardExpr::semaPostNode(Sema& sema)
 {
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
     return Result::Continue;

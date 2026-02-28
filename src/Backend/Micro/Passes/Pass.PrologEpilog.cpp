@@ -60,12 +60,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
+            for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
-                if (!MicroInstrRef.reg)
+                if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
+                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -91,18 +91,18 @@ namespace
 
             bool framePointerUsed = false;
             bool framePointerDef  = false;
-            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
+            for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
-                if (!MicroInstrRef.reg)
+                if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
+                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual() || reg != conv.framePointer)
                     continue;
 
-                if (MicroInstrRef.use)
+                if (microInstrRef.use)
                     framePointerUsed = true;
-                if (MicroInstrRef.def)
+                if (microInstrRef.def)
                     framePointerDef = true;
             }
 
@@ -146,18 +146,18 @@ namespace
 
             bool hasUse = false;
             bool hasDef = false;
-            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
+            for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
-                if (!MicroInstrRef.reg)
+                if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg refReg = *SWC_NOT_NULL(MicroInstrRef.reg);
+                const MicroReg refReg = *SWC_NOT_NULL(microInstrRef.reg);
                 if (refReg != reg)
                     continue;
 
-                if (MicroInstrRef.use)
+                if (microInstrRef.use)
                     hasUse = true;
-                if (MicroInstrRef.def)
+                if (microInstrRef.def)
                     hasDef = true;
             }
 
@@ -266,12 +266,12 @@ namespace
         {
             SmallVector<MicroInstrRegOperandRef> refs;
             inst.collectRegOperands(operands, refs, context.encoder);
-            for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
+            for (const MicroInstrRegOperandRef& microInstrRef : refs)
             {
-                if (!MicroInstrRef.reg)
+                if (!microInstrRef.reg)
                     continue;
 
-                const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
+                const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
@@ -279,7 +279,7 @@ namespace
                 if (mapIt == remap.end())
                     continue;
 
-                *SWC_NOT_NULL(MicroInstrRef.reg) = mapIt->second;
+                *SWC_NOT_NULL(microInstrRef.reg) = mapIt->second;
                 changed                          = true;
             }
         }
@@ -368,12 +368,12 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(const MicroPassContext& context, 
     {
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(storeOps, refs, context.encoder);
-        for (const MicroInstrRegOperandRef& MicroInstrRef : refs)
+        for (const MicroInstrRegOperandRef& microInstrRef : refs)
         {
-            if (!MicroInstrRef.reg)
+            if (!microInstrRef.reg)
                 continue;
 
-            const MicroReg reg = *SWC_NOT_NULL(MicroInstrRef.reg);
+            const MicroReg reg = *SWC_NOT_NULL(microInstrRef.reg);
             if (!reg.isValid() || reg.isVirtual())
                 continue;
 

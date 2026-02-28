@@ -1324,13 +1324,13 @@ struct AstWhileStmt : AstNodeT<AstNodeId::WhileStmt>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeBodyRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
-    Result codeGenPreNode(CodeGen& codeGen) const;
-    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNode(CodeGen& codeGen) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeBodyRef}); }
+    static Result codeGenPreNode(CodeGen& codeGen);
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1349,14 +1349,14 @@ struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>
     AstNodeRef       nodeWhereRef;
     AstNodeRef       nodeBodyRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
-    Result codeGenPreNode(CodeGen& codeGen) const;
-    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNode(CodeGen& codeGen) const;
-    Result semaPreNode(Sema& sema) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeWhereRef, nodeBodyRef}); }
+    Result        codeGenPreNode(CodeGen& codeGen) const;
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPreNode(Sema& sema) const;
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1392,12 +1392,12 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 {
     AstNodeRef nodeBodyRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    Result codeGenPreNode(CodeGen& codeGen) const;
-    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result codeGenPostNode(CodeGen& codeGen) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    static Result codeGenPreNode(CodeGen& codeGen);
+    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1422,9 +1422,9 @@ struct AstDiscardExpr : AstNodeT<AstNodeId::DiscardExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result     semaPostNode(Sema& sema) const;
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

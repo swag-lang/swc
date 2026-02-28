@@ -2,7 +2,6 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Main/CompilerInstance.h"
-#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

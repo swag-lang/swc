@@ -75,10 +75,14 @@ namespace
 
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    MicroBuilder&    builder = codeGen.builder();
-    const AstNodeRef ifRef   = codeGen.curNodeRef();
+    MicroBuilder&    builder              = codeGen.builder();
+    const AstNodeRef ifRef                = codeGen.curNodeRef();
+    const AstNodeRef resolvedConditionRef = resolvedNodeRef(codeGen, nodeConditionRef);
+    const AstNodeRef resolvedIfBlockRef   = resolvedNodeRef(codeGen, nodeIfBlockRef);
+    const AstNodeRef resolvedElseBlockRef = resolvedNodeRef(codeGen, nodeElseBlockRef);
+    const AstNodeRef resolvedChildRef     = resolvedNodeRef(codeGen, childRef);
 
-    if (childRef == nodeConditionRef)
+    if (resolvedConditionRef.isValid() && resolvedChildRef == resolvedConditionRef)
     {
         const CodeGenNodePayload& conditionPayload = codeGen.payload(nodeConditionRef);
         const SemaNodeView        conditionView    = codeGen.viewType(nodeConditionRef);
@@ -95,17 +99,23 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         IfStmtCodeGenPayload state;
         state.falseLabel   = builder.createLabel();
         state.doneLabel    = builder.createLabel();
-        state.hasElseBlock = nodeElseBlockRef.isValid();
+        state.hasElseBlock = resolvedElseBlockRef.isValid();
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
         setIfStmtCodeGenPayload(codeGen, ifRef, state);
 
         return Result::Continue;
     }
 
-    const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
-    SWC_ASSERT(state != nullptr);
+    const bool isIfBlockChild   = resolvedIfBlockRef.isValid() && resolvedChildRef == resolvedIfBlockRef;
+    const bool isElseBlockChild = resolvedElseBlockRef.isValid() && resolvedChildRef == resolvedElseBlockRef;
+    if (!isIfBlockChild && !isElseBlockChild)
+        return Result::Continue;
 
-    if (childRef == nodeIfBlockRef)
+    const IfStmtCodeGenPayload* state = ifStmtCodeGenPayload(codeGen, ifRef);
+    if (!state)
+        return Result::Continue;
+
+    if (isIfBlockChild)
     {
         if (state->hasElseBlock)
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
@@ -118,7 +128,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
         return Result::Continue;
     }
 
-    if (childRef == nodeElseBlockRef)
+    if (isElseBlockChild)
     {
         builder.placeLabel(state->doneLabel);
         eraseIfStmtCodeGenPayload(codeGen, ifRef);

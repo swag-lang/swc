@@ -424,6 +424,30 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenMakeAny(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          ptrRef        = children[0];
+        const AstNodeRef          typeRef       = children[1];
+        const CodeGenNodePayload& ptrPayload    = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& typePayload   = codeGen.payload(typeRef);
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+
+        const MicroReg ptrReg          = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+        const MicroReg typeInfoReg     = materializeIntrinsicIntArgReg(codeGen, typePayload, MicroOpBits::B64);
+        const MicroReg runtimeValueReg = intrinsicRuntimeStorageAddressReg(codeGen);
+        MicroBuilder&  builder         = codeGen.builder();
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, value), ptrReg, MicroOpBits::B64);
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
+
+        CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+        payload.reg                 = runtimeValueReg;
+        return Result::Continue;
+    }
+
     Result codeGenMakeSlice(CodeGen& codeGen, const AstIntrinsicCall& node, bool forString)
     {
         SmallVector<AstNodeRef> children;
@@ -983,6 +1007,8 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenDataOf(codeGen, *this);
         case TokenId::IntrinsicKindOf:
             return codeGenKindOf(codeGen, *this);
+        case TokenId::IntrinsicMakeAny:
+            return codeGenMakeAny(codeGen, *this);
         case TokenId::IntrinsicMakeSlice:
             return codeGenMakeSlice(codeGen, *this, false);
         case TokenId::IntrinsicMakeString:

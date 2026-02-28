@@ -124,11 +124,18 @@ namespace
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
+
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         if (SymbolFunction* currentFn = sema.frame().currentFunction())
         {
-            if (currentFn->decl() && calledFn.decl() && !calledFn.isForeign() && !calledFn.isEmpty())
+            if (currentFn->decl() &&
+                calledFn.decl() &&
+                calledFn.declNodeRef().isValid() &&
+                !calledFn.isForeign() &&
+                !calledFn.isEmpty())
+            {
                 currentFn->addCallDependency(&calledFn);
+            }
         }
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());

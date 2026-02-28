@@ -330,6 +330,9 @@ void CodeGen::setVisitors()
 Result CodeGen::preNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
+    if (node.id() == AstNodeId::Attribute)
+        return Result::SkipChildren;
+
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT_VERIFY(info.codeGenPreNode(*this, node));
 

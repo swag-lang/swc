@@ -152,6 +152,24 @@ namespace
         sema.setType(sema.curNodeRef(), typeRef);
         sema.setIsValue(node);
 
+        if (sema.frame().currentFunction() != nullptr)
+        {
+            auto& storageSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, node, "intrinsic_runtime_storage");
+            storageSym.registerAttributes(sema);
+            storageSym.setDeclared(sema.ctx());
+            SWC_RESULT_VERIFY(Match::ghosting(sema, storageSym));
+            SWC_RESULT_VERIFY(completeIntrinsicRuntimeStorageSymbol(sema, storageSym, typeRef));
+
+            auto* payload = sema.codeGenPayload<IntrinsicCallCodeGenPayload>(sema.curNodeRef());
+            if (!payload)
+            {
+                payload = sema.compiler().allocate<IntrinsicCallCodeGenPayload>();
+                sema.setCodeGenPayload(sema.curNodeRef(), payload);
+            }
+
+            payload->runtimeStorageSym = &storageSym;
+        }
+
         return Result::Continue;
     }
 

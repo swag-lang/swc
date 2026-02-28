@@ -72,6 +72,18 @@ namespace
         return MicroOpBits::Zero;
     }
 
+    TypeRef normalizeArithmeticTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return typeRef;
+
+        const TypeInfo& typeInfo      = codeGen.typeMgr().get(typeRef);
+        const TypeRef   normalizedRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (normalizedRef.isValid())
+            return normalizedRef;
+        return typeRef;
+    }
+
     BinaryEncodingKind resolveBinaryEncodingKind(const TypeInfo& leftType, const TypeInfo& rightType)
     {
         if (leftType.isIntLike() && rightType.isIntLike())
@@ -95,8 +107,15 @@ namespace
         ctx.rightPayload        = &codeGen.payload(node.nodeRightRef);
         ctx.leftOperandTypeRef  = resolveOperandTypeRef(*ctx.leftPayload, leftView.typeRef());
         ctx.rightOperandTypeRef = resolveOperandTypeRef(*ctx.rightPayload, rightView.typeRef());
+        ctx.leftOperandTypeRef  = normalizeArithmeticTypeRef(codeGen, ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef = normalizeArithmeticTypeRef(codeGen, ctx.rightOperandTypeRef);
         ctx.resultTypeRef       = codeGen.curViewType().typeRef();
-        ctx.encodingKind        = resolveBinaryEncodingKind(*leftView.type(), *rightView.type());
+        SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
+        SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
+
+        const TypeInfo& leftOperandType  = codeGen.typeMgr().get(ctx.leftOperandTypeRef);
+        const TypeInfo& rightOperandType = codeGen.typeMgr().get(ctx.rightOperandTypeRef);
+        ctx.encodingKind                 = resolveBinaryEncodingKind(leftOperandType, rightOperandType);
         return ctx;
     }
 

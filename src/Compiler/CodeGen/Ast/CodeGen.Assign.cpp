@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -13,6 +14,7 @@ namespace
     enum class AssignEncodingKind : uint8_t
     {
         EqualStore,
+        EqualStoreBulk,
         IntLikeCompound,
         FloatCompound,
     };
@@ -29,6 +31,7 @@ namespace
         const CodeGenNodePayload* rightPayload = nullptr;
         TypeRef                   rightTypeRef = TypeRef::invalid();
         MicroOpBits               opBits       = MicroOpBits::Zero;
+        uint32_t                  copySize     = 0;
         AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
     };
 
@@ -176,13 +179,6 @@ namespace
         SWC_ASSERT(encodeCtx.target.payload != nullptr);
         SWC_ASSERT(encodeCtx.target.typeRef.isValid());
 
-        if (!isScalarAssignmentType(codeGen, encodeCtx.target.typeRef))
-            SWC_UNREACHABLE();
-
-        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
-        encodeCtx.opBits           = scalarStoreOpBits(codeGen, targetType);
-        SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
-
         encodeCtx.rightPayload = &codeGen.payload(node.nodeRightRef);
 
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
@@ -190,8 +186,35 @@ namespace
         if (!encodeCtx.rightTypeRef.isValid())
             encodeCtx.rightTypeRef = encodeCtx.target.typeRef;
 
-        encodeCtx.encodingKind = resolveAssignEncodingKind(targetType, assignOp);
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.typeRef);
+        if (isScalarAssignmentType(codeGen, encodeCtx.target.typeRef))
+        {
+            encodeCtx.opBits = scalarStoreOpBits(codeGen, targetType);
+            SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
+            encodeCtx.encodingKind = resolveAssignEncodingKind(targetType, assignOp);
+            return encodeCtx;
+        }
+
+        SWC_ASSERT(assignOp == TokenId::SymEqual);
+
+        const uint64_t copySize = targetType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(copySize > 0);
+        SWC_ASSERT(copySize <= std::numeric_limits<uint32_t>::max());
+        encodeCtx.copySize     = static_cast<uint32_t>(copySize);
+        encodeCtx.encodingKind = AssignEncodingKind::EqualStoreBulk;
         return encodeCtx;
+    }
+
+    Result emitAssignEqualStoreBulk(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
+    {
+        SWC_ASSERT(encodeCtx.target.payload);
+        SWC_ASSERT(encodeCtx.rightPayload);
+        SWC_ASSERT(encodeCtx.target.payload->isAddress());
+        SWC_ASSERT(encodeCtx.copySize > 0);
+
+        const MicroReg srcAddressReg = encodeCtx.rightPayload->reg;
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, encodeCtx.target.payload->reg, srcAddressReg, encodeCtx.copySize);
+        return Result::Continue;
     }
 
     Result emitAssignEqualStore(CodeGen& codeGen, const AssignEncodeContext& encodeCtx)
@@ -261,6 +284,8 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         case AssignEncodingKind::EqualStore:
             return emitAssignEqualStore(codeGen, encodeCtx);
+        case AssignEncodingKind::EqualStoreBulk:
+            return emitAssignEqualStoreBulk(codeGen, encodeCtx);
         case AssignEncodingKind::IntLikeCompound:
             return emitAssignCompoundIntLike(codeGen, encodeCtx, tok.id);
         case AssignEncodingKind::FloatCompound:

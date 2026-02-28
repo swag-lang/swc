@@ -9,7 +9,7 @@
         var a: any = @mkany(&x, s32)
         var b: any = @mkany(&y, s32)
         b = a
-        //@print("boxed", b)
+        @print("boxed", b)
         let p = cast(*s32) @dataof(b)
         return dref p
     }

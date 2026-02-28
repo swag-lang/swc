@@ -398,14 +398,14 @@ namespace
 
     struct UntypedVariadicArgInfo
     {
-        AstNodeRef                argRef         = AstNodeRef::invalid();
-        const CodeGenNodePayload* argPayload     = nullptr;
-        TypeRef                   argTypeRef     = TypeRef::invalid();
-        ConstantRef               typeInfoCstRef = ConstantRef::invalid();
-        uint32_t                  valueSize      = 0;
-        uint32_t                  valueAlign     = 1;
-        bool                      needsSpill     = false;
-        uint64_t                  spillOffset    = 0;
+        AstNodeRef         argRef = AstNodeRef::invalid();
+        CodeGenNodePayload argPayload;
+        TypeRef            argTypeRef     = TypeRef::invalid();
+        ConstantRef        typeInfoCstRef = ConstantRef::invalid();
+        uint32_t           valueSize      = 0;
+        uint32_t           valueAlign     = 1;
+        bool               needsSpill     = false;
+        uint64_t           spillOffset    = 0;
     };
 
     void packUntypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, const ABITypeNormalize::NormalizedType& normalizedVariadic)
@@ -418,7 +418,6 @@ namespace
         SmallVector<UntypedVariadicArgInfo> variadicInfos;
         variadicInfos.reserve(args.size());
 
-        uint64_t spillStorageSize = 0;
         for (const ResolvedCallArgument& resolvedArg : args)
         {
             if (resolvedArg.argRef.isInvalid())
@@ -435,13 +434,28 @@ namespace
 
             UntypedVariadicArgInfo info;
             info.argRef         = resolvedArg.argRef;
-            info.argPayload     = &argPayload;
+            info.argPayload     = argPayload;
             info.argTypeRef     = argView.typeRef();
             info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
             info.valueSize      = static_cast<uint32_t>(rawArgSize);
             info.valueAlign     = std::max<uint32_t>(argType.alignOf(ctx), 1);
-            info.needsSpill     = argPayload.isValue() && info.valueSize <= 8;
+            if (info.argPayload.reg == callConv.stackPointer)
+            {
+                info.argPayload.reg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(info.argPayload.reg, callConv.stackPointer, MicroOpBits::B64);
+            }
+
+            info.needsSpill = info.argPayload.isValue() && (info.valueSize <= 8 || argType.isAny());
             SWC_ASSERT(info.typeInfoCstRef.isValid());
+            variadicInfos.push_back(info);
+        }
+
+        uint64_t spillStorageSize = 0;
+        for (uint64_t i = 0; i < variadicInfos.size(); ++i)
+        {
+            UntypedVariadicArgInfo& info = variadicInfos[i];
+            if (!info.needsSpill && info.argPayload.isValue() && info.valueSize > 8 && i + 1 < variadicInfos.size())
+                info.needsSpill = true;
 
             if (info.needsSpill)
             {
@@ -449,8 +463,6 @@ namespace
                 info.spillOffset = spillStorageSize;
                 spillStorageSize += info.valueSize;
             }
-
-            variadicInfos.push_back(info);
         }
 
         const uint64_t     variadicCount = variadicInfos.size();
@@ -500,16 +512,16 @@ namespace
                     builder.emitLoadRegReg(valuePtrReg, frameBaseReg, MicroOpBits::B64);
                     builder.emitOpBinaryRegImm(valuePtrReg, ApInt(info.spillOffset, 64), MicroOp::Add, MicroOpBits::B64);
                 }
-                storeTypedVariadicElement(codeGen, valuePtrReg, *info.argPayload, info.valueSize);
+                storeTypedVariadicElement(codeGen, valuePtrReg, info.argPayload, info.valueSize);
             }
-            else if (info.argPayload->isAddress())
+            else if (info.argPayload.isAddress())
             {
-                valuePtrReg = info.argPayload->reg;
+                valuePtrReg = info.argPayload.reg;
             }
             else
             {
                 valuePtrReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(valuePtrReg, info.argPayload->reg, MicroOpBits::B64);
+                builder.emitLoadRegReg(valuePtrReg, info.argPayload.reg, MicroOpBits::B64);
             }
 
             builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);

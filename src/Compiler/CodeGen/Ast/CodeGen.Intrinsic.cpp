@@ -323,6 +323,52 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenAbs(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          exprRef         = children[0];
+        const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
+        const SemaNodeView        exprView        = codeGen.viewType(exprRef);
+        const TypeRef             exprTypeRef     = exprPayload.typeRef.isValid() ? exprPayload.typeRef : exprView.typeRef();
+        const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType      = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits          = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder         = codeGen.builder();
+        MicroReg                  materializedReg = MicroReg::invalid();
+
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+        materializeIntrinsicNumericOperand(materializedReg, codeGen, exprPayload, exprTypeRef, resultTypeRef);
+
+        if (resultType.isFloat())
+        {
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            builder.emitLoadRegReg(resultPayload.reg, materializedReg, opBits);
+
+            const uint64_t mask    = opBits == MicroOpBits::B32 ? 0x7FFFFFFFu : 0x7FFFFFFFFFFFFFFFull;
+            const MicroReg maskReg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            builder.emitLoadRegImm(maskReg, ApInt(mask, 64), opBits);
+            builder.emitOpBinaryRegReg(resultPayload.reg, maskReg, MicroOp::FloatAnd, opBits);
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(resultType.isIntLike());
+        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(resultPayload.reg, materializedReg, opBits);
+        if (resultType.isIntLikeUnsigned())
+            return Result::Continue;
+
+        const MicroLabelRef doneLabel = builder.createLabel();
+        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), opBits);
+        builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, doneLabel);
+        builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, opBits);
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     Result codeGenMinMax(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool isMin)
     {
         SmallVector<AstNodeRef> children;
@@ -409,6 +455,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenAssert(codeGen, *this);
         case TokenId::IntrinsicSqrt:
             return codeGenSqrt(codeGen, *this);
+        case TokenId::IntrinsicAbs:
+            return codeGenAbs(codeGen, *this);
         case TokenId::IntrinsicMin:
             return codeGenMinMax(codeGen, *this, true);
         case TokenId::IntrinsicMax:

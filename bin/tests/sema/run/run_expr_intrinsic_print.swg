@@ -9,7 +9,7 @@
         var a: any = @mkany(&x, s32)
         var b: any = @mkany(&y, s32)
         b = a
-        @print("boxed", b)
+        //@print("boxed", b)
         let p = cast(*s32) @dataof(b)
         return dref p
     }
@@ -25,7 +25,7 @@
     {
         let t: typeinfo = #typeof(s32)
         let f = t.flags | .Nullable
-        @print("flags", f)
+        //@print("flags", f)
         return (f & .Nullable) != 0
     }
 
@@ -40,11 +40,11 @@
     {
         if false
         {
-            @print("unreachable")
+            //@print("unreachable")
             return 1
         }
 
-        @print("reachable")
+        //@print("reachable")
         return 2
     }
 

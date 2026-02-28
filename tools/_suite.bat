@@ -29,8 +29,6 @@ if errorlevel 1 exit /b %errorlevel%
 if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\std\modules" %EXTRA%
 if errorlevel 1 exit /b %errorlevel%
-%EXE% syntax -d "%ROOT%\bin\runtime" %EXTRA%
-if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\reference" %EXTRA%
 if errorlevel 1 exit /b %errorlevel%
 %EXE% syntax -d "%ROOT%\bin\examples" %EXTRA%

@@ -15,6 +15,9 @@ func helper(a: s32)->s32 { return a + 1 }
 #[Swag.Inline]
 func inlineCallsNonConst(a: s32)->s32 => helper(a)
 
+#[Swag.NoInline]
+func addNoInline(a: s32, b: s32)->s32 => a + b
+
 #test
 {
     #assert(addInline(2, 3) == 5)
@@ -46,3 +49,13 @@ func inlineCallsNonConst(a: s32)->s32 => helper(a)
         #assert(V == 3)
     }
 }
+
+#test
+{
+    const V = #run addNoInline(2, 3)
+    #assert(V == 5)
+}
+
+#[Swag.Inline]
+#[Swag.NoInline] // swc-expected-error {{sema_err_attribute_inline_noinline_conflict}}
+func conflictInlineNoInline(a: s32, b: s32)->s32 => a + b

@@ -389,6 +389,15 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     const RtAttributeFlags attrFlags = attrSym.rtAttributeFlags();
     if (attrFlags != RtAttributeFlagsE::Zero)
     {
+        const AttributeList& currentAttributes = sema.frame().currentAttributes();
+        const bool           hasInline         = currentAttributes.hasRtFlag(RtAttributeFlagsE::Inline);
+        const bool           hasNoInline       = currentAttributes.hasRtFlag(RtAttributeFlagsE::NoInline);
+        if ((attrFlags.has(RtAttributeFlagsE::Inline) && hasNoInline) ||
+            (attrFlags.has(RtAttributeFlagsE::NoInline) && hasInline))
+        {
+            return SemaError::raise(sema, DiagnosticId::sema_err_attribute_inline_noinline_conflict, errorRef);
+        }
+
         sema.frame().currentAttributes().addRtFlag(attrFlags);
         return Result::Continue;
     }

@@ -149,75 +149,92 @@ impl MutexRW
 // LIBC
 ////////////////////////////////////////////////////////////
 
-moduleprivate
+#[Swag.Foreign("ucrtbase")]
 {
-    #[Swag.Foreign("ucrtbase")]
-    {
-        func sinf(val: f32)->f32;
-        func cosf(val: f32)->f32;
-        func tanf(val: f32)->f32;
-        func sinhf(val: f32)->f32;
-        func coshf(val: f32)->f32;
-        func tanhf(val: f32)->f32;
-        func asinf(val: f32)->f32;
-        func acosf(val: f32)->f32;
-        func atanf(val: f32)->f32;
-        func logf(val: f32)->f32;
-        func log2f(val: f32)->f32;
-        func log10f(val: f32)->f32;
-        func floorf(val: f32)->f32;
-        func ceilf(val: f32)->f32;
-        func truncf(val: f32)->f32;
-        func roundf(val: f32)->f32;
-        func expf(val: f32)->f32;
-        func exp2f(val: f32)->f32;
-        func sqrtf(val: f32)->f32;
+    func sinf(val: f32)->f32;
+    func cosf(val: f32)->f32;
+    func tanf(val: f32)->f32;
+    func sinhf(val: f32)->f32;
+    func coshf(val: f32)->f32;
+    func tanhf(val: f32)->f32;
+    func asinf(val: f32)->f32;
+    func acosf(val: f32)->f32;
+    func atanf(val: f32)->f32;
+    func logf(val: f32)->f32;
+    func log2f(val: f32)->f32;
+    func log10f(val: f32)->f32;
+    func floorf(val: f32)->f32;
+    func ceilf(val: f32)->f32;
+    func truncf(val: f32)->f32;
+    func roundf(val: f32)->f32;
+    func expf(val: f32)->f32;
+    func exp2f(val: f32)->f32;
+    func sqrtf(val: f32)->f32;
 
-        func sin(val: f64)->f64;
-        func cos(val: f64)->f64;
-        func tan(val: f64)->f64;
-        func sinh(val: f64)->f64;
-        func cosh(val: f64)->f64;
-        func tanh(val: f64)->f64;
-        func asin(val: f64)->f64;
-        func acos(val: f64)->f64;
-        func atan(val: f64)->f64;
-        func log(val: f64)->f64;
-        func log2(val: f64)->f64;
-        func log10(val: f64)->f64;
-        func floor(val: f64)->f64;
-        func ceil(val: f64)->f64;
-        func trunc(val: f64)->f64;
-        func round(val: f64)->f64;
-        func exp(val: f64)->f64;
-        func exp2(val: f64)->f64;
-        func sqrt(val: f64)->f64;
+    func sin(val: f64)->f64;
+    func cos(val: f64)->f64;
+    func tan(val: f64)->f64;
+    func sinh(val: f64)->f64;
+    func cosh(val: f64)->f64;
+    func tanh(val: f64)->f64;
+    func asin(val: f64)->f64;
+    func acos(val: f64)->f64;
+    func atan(val: f64)->f64;
+    func log(val: f64)->f64;
+    func log2(val: f64)->f64;
+    func log10(val: f64)->f64;
+    func floor(val: f64)->f64;
+    func ceil(val: f64)->f64;
+    func trunc(val: f64)->f64;
+    func round(val: f64)->f64;
+    func exp(val: f64)->f64;
+    func exp2(val: f64)->f64;
+    func sqrt(val: f64)->f64;
 
-        func powf(val1, val2: f32)->f32;
-        func atan2f(val1, val2: f32)->f32;
-        func pow(val1, val2: f64)->f64;
-        func atan2(val1, val2: f64)->f64;
-    }
+    func powf(val1, val2: f32)->f32;
+    func atan2f(val1, val2: f32)->f32;
+    func pow(val1, val2: f64)->f64;
+    func atan2(val1, val2: f64)->f64;
 
     func malloc(s: s64)->[*] void;
     func realloc(ptr: [*] void, s: s64)->[*] void;
     func free(ptr: [*] void);
-
-    func strlen(a: const [*] u8)->s64;
-    func strcmp(a, b: const [*] u8)->s32;
-
-    #[Swag.Foreign("ucrtbase")]
-    {
-        func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
-        func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
-        func memset(dst: [*] void, value: s32, size: s64)->[*] void;
-        func memcmp(dst, src: const [*] void, size: s64)->s32;
-    }
+    func strlen(a: cstring)->s64;
+    func strcmp(a, b: cstring)->s32;
+    func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
+    func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
+    func memset(dst: [*] void, value: s32, size: s64)->[*] void;
+    func memcmp(dst, src: const [*] void, size: s64)->s32;
 }
 
 ////////////////////////////////////////////////////////////
 // INTRINSIC WRAPPERS
 ////////////////////////////////////////////////////////////
+
+func @alloc(size: u64)->[*] void
+{
+    return malloc(cast(s64) size)
+}
+
+func @realloc(ptr: [*] void, size: u64)->[*] void
+{
+    return realloc(ptr, cast(s64) size)
+}
+
+func @free(ptr: [*] void)
+{
+    free(ptr)
+}
+
+func @strlen(str: cstring)->u64
+{
+    return cast(u64) strlen(str)
+}
+
+func @strcmp(str1, str2: cstring)->s32
+{
+    return strcmp(str1, str2)
+}
 
 func @memset(dst: [*] void, value: u8, size: u64)
 {

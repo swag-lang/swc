@@ -88,6 +88,7 @@ enum class MicroOp : uint8_t
     FloatMax,
     FloatMin,
     FloatMultiply,
+    FloatRound,
     FloatSqrt,
     FloatSubtract,
     FloatXor,

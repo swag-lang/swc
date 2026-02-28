@@ -532,6 +532,8 @@ namespace
                 return 0x58;
             case MicroOp::FloatMultiply:
                 return 0x59;
+            case MicroOp::FloatRound:
+                return 0x0A;
             case MicroOp::ConvertFloatToFloat:
                 return 0x5A;
             case MicroOp::FloatSubtract:
@@ -2212,7 +2214,23 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
     const uint64_t value = immediateToU64(valueInt);
     ///////////////////////////////////////////
 
-    if (op == MicroOp::Xor)
+    if (op == MicroOp::FloatRound)
+    {
+        SWC_ASSERT(reg.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        SWC_ASSERT(value <= 0x03);
+        emitCpuOp(store_, 0x66);
+        emitRex(store_, opBits, reg, reg);
+        emitCpuOp(store_, 0x0F);
+        emitCpuOp(store_, 0x3A);
+        emitCpuOp(store_, opBits == MicroOpBits::B64 ? 0x0B : 0x0A);
+        emitModRm(store_, reg, reg);
+        emitValue(store_, value, MicroOpBits::B8);
+    }
+
+    ///////////////////////////////////////////
+
+    else if (op == MicroOp::Xor)
     {
         if (opBits == MicroOpBits::B8)
         {

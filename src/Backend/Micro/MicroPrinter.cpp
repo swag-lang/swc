@@ -144,6 +144,8 @@ namespace
                 return "fmin";
             case MicroOp::FloatMultiply:
                 return "fmul";
+            case MicroOp::FloatRound:
+                return "fround";
             case MicroOp::FloatSqrt:
                 return "fsqrt";
             case MicroOp::FloatSubtract:

@@ -1099,6 +1099,15 @@ func @strcmp(str1, str2: cstring)->s32;
     // Returns '(val1 * val2) + val3'
     func @muladd(val1, val2, val3: f32)->f32;
     func @muladd(val1, val2, val3: f64)->f64;
+
+    func @floor(value: f32)->f32;
+    func @floor(value: f64)->f64;
+    func @ceil(value: f32)->f32;
+    func @ceil(value: f64)->f64;
+    func @trunc(value: f32)->f32;
+    func @trunc(value: f64)->f64;
+    func @round(value: f32)->f32;
+    func @round(value: f64)->f64;
 }
 
 #[Swag.ConstExpr, Swag.Overload]
@@ -1130,15 +1139,6 @@ func @strcmp(str1, str2: cstring)->s32;
     func @log2(value: f64)->f64;
     func @log10(value: f32)->f32;
     func @log10(value: f64)->f64;
-
-    func @floor(value: f32)->f32;
-    func @floor(value: f64)->f64;
-    func @ceil(value: f32)->f32;
-    func @ceil(value: f64)->f64;
-    func @trunc(value: f32)->f32;
-    func @trunc(value: f64)->f64;
-    func @round(value: f32)->f32;
-    func @round(value: f64)->f64;
 
     func @exp(value: f32)->f32;
     func @exp(value: f64)->f64;

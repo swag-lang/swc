@@ -23,6 +23,14 @@ namespace
         Lz,
     };
 
+    enum class FloatRoundKind : uint8_t
+    {
+        NearestEven = 0,
+        Floor       = 1,
+        Ceil        = 2,
+        Trunc       = 3,
+    };
+
     MicroOpBits intrinsicNumericOpBits(const TypeInfo& typeInfo)
     {
         if (typeInfo.isFloat())
@@ -586,6 +594,80 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenFloatRoundIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, FloatRoundKind kind)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          valueRef      = children[0];
+        const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        SWC_ASSERT(resultType.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+        MicroReg materializedValue = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        builder.emitLoadRegReg(resultPayload.reg, materializedValue, opBits);
+        builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(static_cast<uint64_t>(kind), 64), MicroOp::FloatRound, opBits);
+        return Result::Continue;
+    }
+
+    Result codeGenRoundAwayFromZero(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          valueRef      = children[0];
+        const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        SWC_ASSERT(resultType.isFloat());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+
+        MicroReg materializedValue = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        builder.emitLoadRegReg(resultPayload.reg, materializedValue, opBits);
+
+        const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        builder.emitClearReg(zeroReg, opBits);
+
+        const uint64_t halfBits = opBits == MicroOpBits::B32 ? 0x3F000000ull : 0x3FE0000000000000ull;
+        const MicroReg halfReg  = codeGen.nextVirtualRegisterForType(resultTypeRef);
+        builder.emitLoadRegImm(halfReg, ApInt(halfBits, 64), opBits);
+
+        const MicroLabelRef negativeLabel = builder.createLabel();
+        const MicroLabelRef doneLabel     = builder.createLabel();
+        builder.emitCmpRegReg(resultPayload.reg, zeroReg, opBits);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, negativeLabel);
+
+        builder.emitOpBinaryRegReg(resultPayload.reg, halfReg, MicroOp::FloatAdd, opBits);
+        builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(static_cast<uint64_t>(FloatRoundKind::Floor), 64), MicroOp::FloatRound, opBits);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(negativeLabel);
+        builder.emitOpBinaryRegReg(resultPayload.reg, halfReg, MicroOp::FloatSubtract, opBits);
+        builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(static_cast<uint64_t>(FloatRoundKind::Ceil), 64), MicroOp::FloatRound, opBits);
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     Result codeGenCompiler(CodeGen& codeGen)
     {
         const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
@@ -651,6 +733,14 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenBitCount(codeGen, *this, BitCountKind::Lz);
         case TokenId::IntrinsicMulAdd:
             return codeGenMulAdd(codeGen, *this);
+        case TokenId::IntrinsicFloor:
+            return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Floor);
+        case TokenId::IntrinsicCeil:
+            return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Ceil);
+        case TokenId::IntrinsicTrunc:
+            return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Trunc);
+        case TokenId::IntrinsicRound:
+            return codeGenRoundAwayFromZero(codeGen, *this);
 
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);

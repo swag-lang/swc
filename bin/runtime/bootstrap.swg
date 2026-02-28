@@ -933,17 +933,6 @@ func @bytecode()->bool;
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func @compiler()->Swag.ICompiler;
 
-// Returns a system allocated memory block of 'size' bytes.
-//
-// Use [[@free]] to release the allocated memory.
-func @alloc(size: u64)->[*] void;
-
-// Realloc a system memory block allocated with [[@alloc]]
-func @realloc(ptr: [*] void, size: u64)->[*] void;
-
-// Free a system memory block allocated with [[@alloc]]
-func @free(ptr: [*] void);
-
 // Set all bytes of a given memory block to 'value'
 func @memset(dst: [*] void, value: u8, size: u64);
 
@@ -955,12 +944,6 @@ func @memmove(dst: [*] void, src: const [*] void, size: u64);
 
 // Compare two memory blocks, and returns -1, 0 if equal, or 1.
 func @memcmp(dst, src: const [*] void, size: u64)->s32;
-
-// Returns the length of the given 0 terminated string.
-func @strlen(str: cstring)->u64;
-
-// Compare two zero terminated strings, and returns -1, 0 if equal, or 1.
-func @strcmp(str1, str2: cstring)->s32;
 
 // Atomic operations
 #[Swag.Discardable, Swag.Overload]
@@ -1117,6 +1100,22 @@ func @strcmp(str1, str2: cstring)->s32;
     func @round(value: f32)->f32;
     func @round(value: f64)->f64;
 }
+
+// Returns a system allocated memory block of 'size' bytes.
+// Use [[@free]] to release the allocated memory.
+func @alloc(size: u64)->[*] void;
+
+// Realloc a system memory block allocated with [[@alloc]]
+func @realloc(ptr: [*] void, size: u64)->[*] void;
+
+// Free a system memory block allocated with [[@alloc]]
+func @free(ptr: [*] void);
+
+// Returns the length of the given 0 terminated string.
+func @strlen(str: cstring)->u64;
+
+// Compare two zero terminated strings, and returns -1, 0 if equal, or 1.
+func @strcmp(str1, str2: cstring)->s32;
 
 #[Swag.ConstExpr, Swag.Overload]
 {

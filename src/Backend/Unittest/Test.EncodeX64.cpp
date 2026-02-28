@@ -287,7 +287,8 @@ namespace
     Result buildTernaryAndConvert(const RunCaseFn& runCase)
     {
         ENCODE_CASE("op_ternary_madd", "F2 0F 59 C1 F2 0F 58 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::MultiplyAdd, MicroOpBits::B64););
-        ENCODE_CASE("op_ternary_cmpxchg_lock", "4D 0F B1 1C 24", b.emitOpTernaryRegRegReg(RAX, R12, R11, MicroOp::CompareExchange, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_cmpxchg_lock", "F0 4D 0F B1 1C 24", b.emitOpTernaryRegRegReg(RAX, R12, R11, MicroOp::CompareExchange, MicroOpBits::B64););
+        ENCODE_CASE("op_ternary_cmpxchg_non_rax_conform", "4C 89 C0 F0 4D 0F B1 1C 24 49 89 C0", b.emitOpTernaryRegRegReg(R8, R12, R11, MicroOp::CompareExchange, MicroOpBits::B64););
         ENCODE_CASE("convert_i2f_b64", "F2 49 0F 2A D2", b.emitOpBinaryRegReg(XMM2, R10, MicroOp::ConvertIntToFloat, MicroOpBits::B64););
         ENCODE_CASE("convert_f2i_b64", "F2 4C 0F 2C DB", b.emitOpBinaryRegReg(R11, XMM3, MicroOp::ConvertFloatToInt, MicroOpBits::B64););
         return Result::Continue;

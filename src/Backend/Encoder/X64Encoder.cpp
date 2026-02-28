@@ -802,6 +802,23 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     }
 
     ///////////////////////////////////////////
+    if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+    {
+        const MicroOp op = ops[4].microOp;
+        if (op == MicroOp::CompareExchange)
+        {
+            const MicroReg raxReg = x64RegToMicroReg(X64Reg::Rax);
+            if (ops[0].reg != raxReg)
+            {
+                outIssue.kind         = MicroConformanceIssueKind::RewriteRegRegOperandToFixedReg;
+                outIssue.operandIndex = 0;
+                outIssue.requiredReg  = raxReg;
+                return true;
+            }
+        }
+    }
+
+    ///////////////////////////////////////////
     if (inst.op == MicroInstrOpcode::LoadRegImm || inst.op == MicroInstrOpcode::LoadRegPtrImm || inst.op == MicroInstrOpcode::LoadRegPtrReloc)
     {
         if (ops[0].reg.isFloat())
@@ -2891,6 +2908,7 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     {
         SWC_ASSERT(microRegToX64Reg(reg0) == X64Reg::Rax);
 
+        emitCpuOp(store_, 0xF0);
         emitRex(store_, opBits, reg2, reg1);
         emitCpuOp(store_, 0x0F);
         emitSpecCpuOp(store_, 0xB1, opBits);

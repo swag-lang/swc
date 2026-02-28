@@ -208,6 +208,127 @@ namespace
         return outReg;
     }
 
+    TypeRef intrinsicOperandTypeRef(CodeGen& codeGen, AstNodeRef nodeRef, const CodeGenNodePayload& payload)
+    {
+        if (payload.typeRef.isValid())
+            return payload.typeRef;
+        return codeGen.viewType(nodeRef).typeRef();
+    }
+
+    Result codeGenAtomicBinaryRmw(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          ptrRef         = children[0];
+        const AstNodeRef          valueRef       = children[1];
+        const CodeGenNodePayload& ptrPayload     = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& valuePayload   = codeGen.payload(valueRef);
+        const TypeRef             valueTypeRef   = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
+        const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultTypeInfo = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits         = intrinsicNumericOpBits(resultTypeInfo);
+        MicroBuilder&             builder        = codeGen.builder();
+
+        SWC_ASSERT(resultTypeInfo.isIntLike());
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+
+        MicroReg valueReg = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+
+        const MicroReg expectedReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(expectedReg, ptrReg, 0, opBits);
+
+        const MicroLabelRef retryLabel = builder.createLabel();
+        const MicroLabelRef doneLabel  = builder.createLabel();
+        builder.placeLabel(retryLabel);
+
+        const MicroReg desiredReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(desiredReg, expectedReg, opBits);
+        builder.emitOpBinaryRegReg(desiredReg, valueReg, op, opBits);
+
+        const MicroReg observedReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(observedReg, expectedReg, opBits);
+        builder.emitOpTernaryRegRegReg(observedReg, ptrReg, desiredReg, MicroOp::CompareExchange, opBits);
+        builder.emitCmpRegReg(observedReg, expectedReg, opBits);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        builder.emitLoadRegReg(expectedReg, observedReg, opBits);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, retryLabel);
+        builder.placeLabel(doneLabel);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = expectedReg;
+        return Result::Continue;
+    }
+
+    Result codeGenAtomicExchange(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          ptrRef         = children[0];
+        const AstNodeRef          valueRef       = children[1];
+        const CodeGenNodePayload& ptrPayload     = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& valuePayload   = codeGen.payload(valueRef);
+        const TypeRef             valueTypeRef   = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
+        const TypeRef             resultTypeRef  = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultTypeInfo = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits         = intrinsicNumericOpBits(resultTypeInfo);
+        MicroBuilder&             builder        = codeGen.builder();
+
+        SWC_ASSERT(resultTypeInfo.isIntLike());
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+
+        MicroReg valueReg = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+        builder.emitOpBinaryMemReg(ptrReg, 0, valueReg, MicroOp::Exchange, opBits);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = valueReg;
+        return Result::Continue;
+    }
+
+    Result codeGenAtomicCompareExchange(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          ptrRef          = children[0];
+        const AstNodeRef          compareRef      = children[1];
+        const AstNodeRef          exchangeRef     = children[2];
+        const CodeGenNodePayload& ptrPayload      = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& comparePayload  = codeGen.payload(compareRef);
+        const CodeGenNodePayload& exchangePayload = codeGen.payload(exchangeRef);
+        const TypeRef             compareTypeRef  = intrinsicOperandTypeRef(codeGen, compareRef, comparePayload);
+        const TypeRef             exchangeTypeRef = intrinsicOperandTypeRef(codeGen, exchangeRef, exchangePayload);
+        const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultTypeInfo  = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits          = intrinsicNumericOpBits(resultTypeInfo);
+        MicroBuilder&             builder         = codeGen.builder();
+
+        SWC_ASSERT(resultTypeInfo.isIntLike());
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+
+        MicroReg compareReg  = MicroReg::invalid();
+        MicroReg exchangeReg = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(compareReg, codeGen, comparePayload, compareTypeRef, resultTypeRef);
+        materializeIntrinsicNumericOperand(exchangeReg, codeGen, exchangePayload, exchangeTypeRef, resultTypeRef);
+        builder.emitOpTernaryRegRegReg(compareReg, ptrReg, exchangeReg, MicroOp::CompareExchange, opBits);
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        resultPayload.reg                 = compareReg;
+        return Result::Continue;
+    }
+
     Result codeGenMemCopyIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         SmallVector<AstNodeRef> children;
@@ -890,6 +1011,18 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemMoveIntrinsic(codeGen, *this);
         case TokenId::IntrinsicMemCmp:
             return codeGenMemCmpIntrinsic(codeGen, *this);
+        case TokenId::IntrinsicAtomicAdd:
+            return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Add);
+        case TokenId::IntrinsicAtomicAnd:
+            return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::And);
+        case TokenId::IntrinsicAtomicOr:
+            return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Or);
+        case TokenId::IntrinsicAtomicXor:
+            return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Xor);
+        case TokenId::IntrinsicAtomicXchg:
+            return codeGenAtomicExchange(codeGen, *this);
+        case TokenId::IntrinsicAtomicCmpXchg:
+            return codeGenAtomicCompareExchange(codeGen, *this);
 
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);

@@ -336,16 +336,16 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 1);
 
-        const AstNodeRef          exprRef         = children[0];
-        const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
-        const SemaNodeView        exprView        = codeGen.viewType(exprRef);
-        const TypeRef             exprTypeRef     = exprPayload.typeRef.isValid() ? exprPayload.typeRef : exprView.typeRef();
-        const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType      = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         opBits          = intrinsicNumericOpBits(resultType);
-        CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder         = codeGen.builder();
-        MicroReg                  materializedReg = MicroReg::invalid();
+        const AstNodeRef          exprRef       = children[0];
+        const CodeGenNodePayload& exprPayload   = codeGen.payload(exprRef);
+        const SemaNodeView        exprView      = codeGen.viewType(exprRef);
+        const TypeRef             exprTypeRef   = exprPayload.typeRef.isValid() ? exprPayload.typeRef : exprView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         opBits        = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        MicroReg                  materializedReg;
 
         SWC_ASSERT(opBits != MicroOpBits::Zero);
         materializeIntrinsicNumericOperand(materializedReg, codeGen, exprPayload, exprTypeRef, resultTypeRef);
@@ -437,22 +437,22 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
-        const AstNodeRef          valueRef          = children[0];
-        const AstNodeRef          countRef          = children[1];
-        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
-        const CodeGenNodePayload& countPayload      = codeGen.payload(countRef);
-        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
-        const SemaNodeView        countView         = codeGen.viewType(countRef);
-        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
-        const TypeRef             countTypeRef      = countPayload.typeRef.isValid() ? countPayload.typeRef : countView.typeRef();
-        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
-        const TypeInfo&           countType         = codeGen.typeMgr().get(countTypeRef);
-        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
-        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder           = codeGen.builder();
-        MicroReg                  materializedValue = MicroReg::invalid();
-        MicroReg                  materializedCount = MicroReg::invalid();
+        const AstNodeRef          valueRef      = children[0];
+        const AstNodeRef          countRef      = children[1];
+        const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+        const CodeGenNodePayload& countPayload  = codeGen.payload(countRef);
+        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
+        const SemaNodeView        countView     = codeGen.viewType(countRef);
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             countTypeRef  = countPayload.typeRef.isValid() ? countPayload.typeRef : countView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const TypeInfo&           countType     = codeGen.typeMgr().get(countTypeRef);
+        const MicroOpBits         resultBits    = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        MicroReg                  materializedValue;
+        MicroReg                  materializedCount;
 
         SWC_ASSERT(resultType.isIntLikeUnsigned());
         SWC_ASSERT(countType.isIntLikeUnsigned());
@@ -473,16 +473,16 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 1);
 
-        const AstNodeRef          valueRef          = children[0];
-        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
-        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
-        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
-        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder           = codeGen.builder();
-        MicroReg                  materializedValue = MicroReg::invalid();
+        const AstNodeRef          valueRef      = children[0];
+        const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+        const SemaNodeView        valueView     = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType    = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         resultBits    = intrinsicNumericOpBits(resultType);
+        CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        MicroReg                  materializedValue;
 
         SWC_ASSERT(resultType.isIntLikeUnsigned());
         SWC_ASSERT(resultBits == MicroOpBits::B16 || resultBits == MicroOpBits::B32 || resultBits == MicroOpBits::B64);
@@ -500,17 +500,17 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 1);
 
-        const AstNodeRef          valueRef          = children[0];
-        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
-        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
-        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
-        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
-        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
-        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
-        const uint32_t            logicalBitWidth   = getNumBits(resultBits);
-        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder           = codeGen.builder();
-        MicroReg                  materializedValue = MicroReg::invalid();
+        const AstNodeRef          valueRef        = children[0];
+        const CodeGenNodePayload& valuePayload    = codeGen.payload(valueRef);
+        const SemaNodeView        valueView       = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef    = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef   = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType      = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         resultBits      = intrinsicNumericOpBits(resultType);
+        const uint32_t            logicalBitWidth = getNumBits(resultBits);
+        CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder         = codeGen.builder();
+        MicroReg                  materializedValue;
 
         SWC_ASSERT(resultType.isIntLikeUnsigned());
         SWC_ASSERT(resultBits == MicroOpBits::B8 || resultBits == MicroOpBits::B16 || resultBits == MicroOpBits::B32 || resultBits == MicroOpBits::B64);
@@ -573,9 +573,7 @@ namespace
         SWC_ASSERT(resultType.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
-        MicroReg aReg = MicroReg::invalid();
-        MicroReg bReg = MicroReg::invalid();
-        MicroReg cReg = MicroReg::invalid();
+        MicroReg aReg, bReg, cReg;
         materializeIntrinsicNumericOperand(aReg, codeGen, aPayload, aTypeRef, resultTypeRef);
         materializeIntrinsicNumericOperand(bReg, codeGen, bPayload, bTypeRef, resultTypeRef);
         materializeIntrinsicNumericOperand(cReg, codeGen, cPayload, cTypeRef, resultTypeRef);

@@ -95,12 +95,7 @@ namespace __Win32RT
 
     #[Swag.Foreign("kernel32")]
     {
-        func RtlCopyMemory(destination: *void, source: const *void, length: u64);
-        func RtlMoveMemory(destination: *void, source: const *void, length: u64);
-        func RtlCompareMemory(destination, source: const *void, length: u64)->u64;
-        func RtlFillMemory(destination: *void, length: u64, fill: s32);
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
-
         func GetStdHandle(nStdHandle: u32)->HANDLE;
         func WriteFile(hFile: HANDLE, lpBuffer: const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;

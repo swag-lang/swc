@@ -1032,6 +1032,28 @@ func @strcmp(str1, str2: cstring)->s32;
     func @sqrt(value: f32)->f32;
     func @sqrt(value: f64)->f64;
 
+    func @min(value1, value2: s8)->s8;
+    func @min(value1, value2: s16)->s16;
+    func @min(value1, value2: s32)->s32;
+    func @min(value1, value2: s64)->s64;
+    func @min(value1, value2: u8)->u8;
+    func @min(value1, value2: u16)->u16;
+    func @min(value1, value2: u32)->u32;
+    func @min(value1, value2: u64)->u64;
+    func @min(value1, value2: f32)->f32;
+    func @min(value1, value2: f64)->f64;
+
+    func @max(value1, value2: s8)->s8;
+    func @max(value1, value2: s16)->s16;
+    func @max(value1, value2: s32)->s32;
+    func @max(value1, value2: s64)->s64;
+    func @max(value1, value2: u8)->u8;
+    func @max(value1, value2: u16)->u16;
+    func @max(value1, value2: u32)->u32;
+    func @max(value1, value2: u64)->u64;
+    func @max(value1, value2: f32)->f32;
+    func @max(value1, value2: f64)->f64;
+
     func @sin(value: f32)->f32;
     func @sin(value: f64)->f64;
     func @cos(value: f32)->f32;
@@ -1084,28 +1106,6 @@ func @strcmp(str1, str2: cstring)->s32;
     func @pow(value1, value2: f64)->f64;
     func @atan2(value1, value2: f32)->f32;
     func @atan2(value1, value2: f64)->f64;
-
-    func @min(value1, value2: s8)->s8;
-    func @min(value1, value2: s16)->s16;
-    func @min(value1, value2: s32)->s32;
-    func @min(value1, value2: s64)->s64;
-    func @min(value1, value2: u8)->u8;
-    func @min(value1, value2: u16)->u16;
-    func @min(value1, value2: u32)->u32;
-    func @min(value1, value2: u64)->u64;
-    func @min(value1, value2: f32)->f32;
-    func @min(value1, value2: f64)->f64;
-
-    func @max(value1, value2: s8)->s8;
-    func @max(value1, value2: s16)->s16;
-    func @max(value1, value2: s32)->s32;
-    func @max(value1, value2: s64)->s64;
-    func @max(value1, value2: u8)->u8;
-    func @max(value1, value2: u16)->u16;
-    func @max(value1, value2: u32)->u32;
-    func @max(value1, value2: u64)->u64;
-    func @max(value1, value2: f32)->f32;
-    func @max(value1, value2: f64)->f64;
 
     // Count the number of bits set to 1
     func @bitcountnz(value: u8)->u8;

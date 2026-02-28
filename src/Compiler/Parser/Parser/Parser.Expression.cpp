@@ -5,6 +5,64 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool canStartSubType(TokenId id)
+    {
+        if (Token::isType(id))
+            return true;
+
+        switch (id)
+        {
+            case TokenId::Identifier:
+            case TokenId::KwdStruct:
+            case TokenId::KwdUnion:
+            case TokenId::KwdFunc:
+            case TokenId::KwdMtd:
+            case TokenId::CompilerDeclType:
+            case TokenId::KwdConst:
+            case TokenId::ModifierNullable:
+            case TokenId::SymAsterisk:
+            case TokenId::SymAmpersand:
+            case TokenId::SymAmpersandAmpersand:
+            case TokenId::SymLeftBracket:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool looksLikeArrayTypeExpression(const Token* tok, const Token* lastTok)
+    {
+        SWC_ASSERT(tok);
+        if (tok->id != TokenId::SymLeftBracket)
+            return false;
+
+        const Token* cursor = tok;
+        uint32_t     depth  = 0;
+        while (cursor <= lastTok)
+        {
+            if (cursor->id == TokenId::SymLeftBracket)
+                depth++;
+            else if (cursor->id == TokenId::SymRightBracket)
+            {
+                SWC_ASSERT(depth);
+                depth--;
+                if (depth == 0)
+                    break;
+            }
+
+            cursor++;
+        }
+
+        if (cursor > lastTok || depth != 0 || cursor == lastTok)
+            return false;
+
+        if ((cursor + 1)->startsLine())
+            return false;
+
+        return canStartSubType((cursor + 1)->id);
+    }
+
     int getBinaryPrecedence(TokenId id)
     {
         switch (id)
@@ -762,6 +820,8 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::SymLeftBracket:
             if (nextIs(TokenId::SymDotDot) || nextIs(TokenId::SymQuestion) || nextIs(TokenId::SymAsterisk))
+                return parseType();
+            if (looksLikeArrayTypeExpression(tokPtr(), lastToken_))
                 return parseType();
             return parseLiteralArray();
 

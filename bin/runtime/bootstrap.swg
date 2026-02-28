@@ -1054,6 +1054,13 @@ func @strcmp(str1, str2: cstring)->s32;
     func @max(value1, value2: f32)->f32;
     func @max(value1, value2: f64)->f64;
 
+    func @abs(value: s8)->s8;
+    func @abs(value: s16)->s16;
+    func @abs(value: s32)->s32;
+    func @abs(value: s64)->s64;
+    func @abs(value: f32)->f32;
+    func @abs(value: f64)->f64;
+
     // Rotate bits left
     func @rol(value: u8, num: u8)->u8;
     func @rol(value: u16, num: u8)->u16;
@@ -1088,17 +1095,14 @@ func @strcmp(str1, str2: cstring)->s32;
     func @bitcountlz(value: u16)->u16;
     func @bitcountlz(value: u32)->u32;
     func @bitcountlz(value: u64)->u64;
+
+    // Returns '(val1 * val2) + val3'
+    func @muladd(val1, val2, val3: f32)->f32;
+    func @muladd(val1, val2, val3: f64)->f64;
 }
 
 #[Swag.ConstExpr, Swag.Overload]
 {
-    func @abs(value: s8)->s8;
-    func @abs(value: s16)->s16;
-    func @abs(value: s32)->s32;
-    func @abs(value: s64)->s64;
-    func @abs(value: f32)->f32;
-    func @abs(value: f64)->f64;
-
     func @sin(value: f32)->f32;
     func @sin(value: f64)->f64;
     func @cos(value: f32)->f32;
@@ -1144,8 +1148,4 @@ func @strcmp(str1, str2: cstring)->s32;
     func @pow(value1, value2: f64)->f64;
     func @atan2(value1, value2: f32)->f32;
     func @atan2(value1, value2: f64)->f64;
-
-    // Returns '(val1 * val2) + val3'
-    func @muladd(val1, val2, val3: f32)->f32;
-    func @muladd(val1, val2, val3: f64)->f64;
 }

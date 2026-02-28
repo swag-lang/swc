@@ -1011,14 +1011,37 @@ namespace
             return Result::Continue;
 
         SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        if (!argView.type() || !argView.cst())
-            return Result::Continue;
-        if (!argView.type()->isScalarUnsized())
+        if (!argView.type())
             return Result::Continue;
 
-        ConstantRef newCstRef = ConstantRef::invalid();
-        SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown));
-        sema.setConstant(argView.nodeRef(), newCstRef);
+        if (argView.cst())
+        {
+            ConstantRef newCstRef = ConstantRef::invalid();
+            SWC_RESULT_VERIFY(Cast::concretizeConstant(sema, newCstRef, argView.nodeRef(), argView.cstRef(), TypeInfo::Sign::Unknown, true));
+            sema.setConstant(argView.nodeRef(), newCstRef);
+            argView = SemaNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        if (!argView.type()->isAggregateArray())
+            return Result::Continue;
+
+        const auto& elemTypes = argView.type()->payloadAggregate().types;
+        if (elemTypes.empty())
+            return Result::Continue;
+
+        const TypeRef firstElemTypeRef = elemTypes.front();
+        for (const TypeRef elemTypeRef : elemTypes)
+        {
+            if (elemTypeRef != firstElemTypeRef)
+                return Result::Continue;
+        }
+
+        SmallVector4<uint64_t> dims;
+        dims.push_back(static_cast<uint64_t>(elemTypes.size()));
+        const TypeRef concreteArrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, firstElemTypeRef));
+
+        SemaNodeView castView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SWC_RESULT_VERIFY(Cast::cast(sema, castView, concreteArrayTypeRef, CastKind::Implicit));
         return Result::Continue;
     }
 

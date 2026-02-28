@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroOpBits compareOpBits(const TypeInfo& typeInfo)
+    MicroOpBits compareOpBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
         if (typeInfo.isFloat())
         {
@@ -26,6 +26,10 @@ namespace
         if (typeInfo.isBool())
             return MicroOpBits::B8;
 
+        const uint64_t size = typeInfo.sizeOf(ctx);
+        if (size == 1 || size == 2 || size == 4 || size == 8)
+            return microOpBitsFromChunkSize(static_cast<uint32_t>(size));
+
         return MicroOpBits::B64;
     }
 
@@ -39,12 +43,13 @@ namespace
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        outReg                        = codeGen.nextVirtualRegisterForType(operandTypeRef);
-        const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
-        const MicroOpBits opBits      = compareOpBits(operandType);
+        outReg                                 = codeGen.nextVirtualRegisterForType(operandTypeRef);
+        const TypeInfo&   operandType          = codeGen.typeMgr().get(operandTypeRef);
+        const MicroOpBits opBits               = compareOpBits(operandType, codeGen.ctx());
+        const bool        isAddressBackedValue = operandType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 
         MicroBuilder& builder = codeGen.builder();
-        if (operandPayload.isAddress())
+        if (operandPayload.isAddress() || (operandPayload.isValue() && isAddressBackedValue))
             builder.emitLoadRegMem(outReg, operandPayload.reg, 0, opBits);
         else
             builder.emitLoadRegReg(outReg, operandPayload.reg, opBits);
@@ -57,8 +62,8 @@ namespace
 
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const TypeInfo&   dstType = codeGen.typeMgr().get(dstTypeRef);
-        const MicroOpBits srcBits = compareOpBits(srcType);
-        const MicroOpBits dstBits = compareOpBits(dstType);
+        const MicroOpBits srcBits = compareOpBits(srcType, codeGen.ctx());
+        const MicroOpBits dstBits = compareOpBits(dstType, codeGen.ctx());
 
         MicroBuilder& builder = codeGen.builder();
 
@@ -111,7 +116,7 @@ namespace
 
     bool usesUnsignedConditions(const TypeInfo& typeInfo)
     {
-        return typeInfo.isFloat() || typeInfo.isIntLikeUnsigned() || typeInfo.isPointerLike() || typeInfo.isBool();
+        return typeInfo.isFloat() || typeInfo.isIntLikeUnsigned() || typeInfo.isPointerLike() || typeInfo.isBool() || typeInfo.isEnum();
     }
 
     MicroCond relationalCondition(TokenId tokId, bool unsignedOrFloatCompare)
@@ -145,7 +150,7 @@ namespace
 
         const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = compareOpBits(compareType);
+        const MicroOpBits opBits         = compareOpBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;
@@ -196,7 +201,7 @@ namespace
 
         const TypeRef     compareTypeRef = resolveCompareTypeRef(codeGen, leftView, rightView);
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
-        const MicroOpBits opBits         = compareOpBits(compareType);
+        const MicroOpBits opBits         = compareOpBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         MicroReg leftReg, rightReg;

@@ -521,6 +521,46 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         return true;
     }
 
+    if (srcCst.isAggregate())
+    {
+        const auto&              values = srcCst.getAggregate();
+        SmallVector<ConstantRef> concretizedValues;
+        concretizedValues.reserve(values.size());
+
+        bool changed = false;
+        for (const ConstantRef valueRef : values)
+        {
+            ConstantRef concretizedValueRef = ConstantRef::invalid();
+            if (!concretizeConstant(sema, concretizedValueRef, valueRef, hintSign, force32BitInts))
+                return false;
+
+            concretizedValues.push_back(concretizedValueRef);
+            changed = changed || concretizedValueRef != valueRef;
+        }
+
+        if (!changed)
+        {
+            result = cstRef;
+            return true;
+        }
+
+        ConstantValue concretizedAggregate;
+        if (srcCst.isAggregateArray())
+            concretizedAggregate = ConstantValue::makeAggregateArray(ctx, concretizedValues);
+        else
+        {
+            const auto&                namesSrc = ty.payloadAggregate().names;
+            SmallVector<IdentifierRef> names;
+            names.reserve(namesSrc.size());
+            for (const IdentifierRef name : namesSrc)
+                names.push_back(name);
+            concretizedAggregate = ConstantValue::makeAggregateStruct(ctx, names, concretizedValues);
+        }
+
+        result = sema.cstMgr().addConstant(ctx, concretizedAggregate);
+        return true;
+    }
+
     result = cstRef;
     return true;
 }

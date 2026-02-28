@@ -467,61 +467,137 @@ enum VariadicKind: u16
     #assert(V0)
 }
 
-// BUG: before
-/*
 #test
 {
-    func variadicAnyStress(values: ...)->bool
+    func variadicAnyStressAKinds(values: ...)->bool
     {
-        @assert(@countof(values) == 12)
-        @assert(@kindof(values[0]) == VariadicPair)
-        @assert(@kindof(values[1]) == VariadicPayload)
-        @assert(@kindof(values[2]) == VariadicKind)
-        @assert(@kindof(values[3]) == string)
-        @assert(@kindof(values[4]) == *void)
-        @assert(@kindof(values[5]) == bool)
-        @assert(@kindof(values[6]) == rune)
-        @assert(@kindof(values[7]) == s64)
-        @assert(@kindof(values[8]) == u64)
-        @assert(@kindof(values[9]) == s32)
-        @assert(@kindof(values[10]) == f64)
-        @assert(@kindof(values[11]) == [4] s32)
+        if @countof(values) != 4 do
+            return false
+        if @kindof(values[0]) != VariadicPair do
+            return false
+        if @kindof(values[1]) != VariadicPayload do
+            return false
+        if @kindof(values[2]) != VariadicKind do
+            return false
+        if @kindof(values[3]) != string do
+            return false
 
-        let pair = cast(VariadicPair) values[0]
-        let payload = cast(VariadicPayload) values[1]
-        let kind = cast(VariadicKind) values[2]
-        let text = cast(string) values[3]
-        let ptr = cast(*void) values[4]
-        let b = cast(bool) values[5]
-        let r = cast(rune) values[6]
-        let i64 = cast(s64) values[7]
-        let u64v = cast(u64) values[8]
-        let i32 = cast(s32) values[9]
-        let f64v = cast(f64) values[10]
-        let arr = cast([4] s32) values[11]
-
-        @assert(pair.a == 2 and pair.b == 3)
-        @assert(payload.arr[0] == 5 and payload.arr[1] == 8 and payload.arr[2] == 13)
-        @assert(payload.flag and payload.tag == 21'u8)
-        @assert(kind == VariadicKind.B)
-        @assert(text == "untyped-variadic-stress")
-        @assert(ptr == cast(*void) 0x4040'u64)
-        @assert(b)
-        @assert(r == 'K')
-        @assert(i64 == -123456789's64)
-        @assert(u64v == 987654321'u64)
-        @assert(i32 == -77)
-        @assert(f64v == 2.5'f64)
-        @assert(arr[0] == -1 and arr[1] == 0 and arr[2] == 1 and arr[3] == 2)
         return true
+    }
+
+    func variadicAnyStressAPair(values: ...)->bool
+    {
+        let pair = cast(VariadicPair) values[0]
+        return pair.a == 2 and pair.b == 3
+    }
+
+    func variadicAnyStressAPayload(values: ...)->bool
+    {
+        let payload = cast(VariadicPayload) values[1]
+        return payload.arr[0] == 5 and
+               payload.arr[1] == 8 and
+               payload.arr[2] == 13 and
+               payload.flag and
+               payload.tag == 21'u8
+    }
+
+    func variadicAnyStressAKind(values: ...)->bool
+    {
+        let kind = cast(VariadicKind) values[2]
+        return kind == VariadicKind.B
+    }
+
+    func variadicAnyStressAString(values: ...)->bool
+    {
+        let text = cast(string) values[3]
+        return text == "untyped-variadic-stress"
     }
 
     const pair: VariadicPair = {a: 2, b: 3}
     const payload: VariadicPayload = {arr: [5, 8, 13], flag: true, tag: 21'u8}
-    const V0 = #run variadicAnyStress(pair, payload, VariadicKind.B, "untyped-variadic-stress", cast(*void) 0x4040'u64, true, 'K', -123456789's64, 987654321'u64, -77's32, 2.5'f64, [-1, 0, 1, 2])
+    const V0 = #run variadicAnyStressAKinds(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V1 = #run variadicAnyStressAPair(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V2 = #run variadicAnyStressAPayload(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V3 = #run variadicAnyStressAKind(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V4 = #run variadicAnyStressAString(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    #assert(V0)
+    #assert(V1)
+    #assert(V2)
+    #assert(V3)
+    #assert(V4)
+}
+
+#test
+{
+    func variadicAnyStressB(values: ...)->bool
+    {
+        if @countof(values) != 4 do
+            return false
+        if @kindof(values[0]) != *void do
+            return false
+        if @kindof(values[1]) != bool do
+            return false
+        if @kindof(values[2]) != rune do
+            return false
+        if @kindof(values[3]) != s64 do
+            return false
+
+        let ptr = cast(*void) values[0]
+        let b = cast(bool) values[1]
+        let r = cast(rune) values[2]
+        let i64 = cast(s64) values[3]
+
+        return ptr == cast(*void) 0x4040'u64 and
+               b and
+               r == 'K' and
+               i64 == -123456789's64
+    }
+
+    const V0 = #run variadicAnyStressB(cast(*void) 0x4040'u64, true, cast(rune) 'K', -123456789's64)
     #assert(V0)
 }
-*/
+
+#test
+{
+    func variadicAnyStressC(values: ...)->bool
+    {
+        if @countof(values) != 3 do
+            return false
+        if @kindof(values[0]) != u64 do
+            return false
+        if @kindof(values[1]) != s32 do
+            return false
+        if @kindof(values[2]) != f64 do
+            return false
+
+        let u64v = cast(u64) values[0]
+        let i32 = cast(s32) values[1]
+        let f64v = cast(f64) values[2]
+
+        return u64v == 987654321'u64 and
+               i32 == -77 and
+               f64v == 2.5'f64
+    }
+
+    const V0 = #run variadicAnyStressC(987654321'u64, -77's32, 2.5'f64)
+    #assert(V0)
+}
+
+#test
+{
+    func variadicAnyStressD(values: ...)->bool
+    {
+        if @countof(values) != 1 do
+            return false
+        if @kindof(values[0]) != [4] s32 do
+            return false
+        let arr = cast([4] s32) values[0]
+        return arr[0] == -1 and arr[1] == 0 and arr[2] == 1 and arr[3] == 2
+    }
+
+    const V0 = #run variadicAnyStressD([-1, 0, 1, 2])
+    #assert(V0)
+}
 
 // BUG: before
 /*

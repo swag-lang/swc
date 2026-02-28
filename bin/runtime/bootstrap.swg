@@ -1114,9 +1114,6 @@ func @free(ptr: [*] void);
 // Returns the length of the given 0 terminated string.
 func @strlen(str: cstring)->u64;
 
-// Compare two zero terminated strings, and returns -1, 0 if equal, or 1.
-func @strcmp(str1, str2: cstring)->s32;
-
 #[Swag.ConstExpr, Swag.Overload]
 {
     // Trigonometric functions.

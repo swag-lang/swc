@@ -200,7 +200,6 @@ impl MutexRW
     func realloc(ptr: [*] void, s: s64)->[*] void;
     func free(ptr: [*] void);
     func strlen(a: cstring)->s64;
-    func strcmp(a, b: cstring)->s32;
     func memcpy(dst: [*] void, src: const [*] void, size: s64)->[*] void;
     func memmove(dst: [*] void, src: const [*] void, size: s64)->[*] void;
     func memset(dst: [*] void, value: s32, size: s64)->[*] void;
@@ -229,11 +228,6 @@ func @free(ptr: [*] void)
 func @strlen(str: cstring)->u64
 {
     return cast(u64) strlen(str)
-}
-
-func @strcmp(str1, str2: cstring)->s32
-{
-    return strcmp(str1, str2)
 }
 
 func @memset(dst: [*] void, value: u8, size: u64)

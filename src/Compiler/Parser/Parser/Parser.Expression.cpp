@@ -704,7 +704,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::IntrinsicRealloc:
         case TokenId::IntrinsicStringCmp:
-        case TokenId::IntrinsicStrCmp:
         case TokenId::IntrinsicMin:
         case TokenId::IntrinsicMax:
         case TokenId::IntrinsicRol:

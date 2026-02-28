@@ -376,7 +376,6 @@ SWC_TOKEN_DEF(IntrinsicAlloc, "@alloc",  TokenIdKindE::Intrinsic | TokenIdKindE:
 SWC_TOKEN_DEF(IntrinsicRealloc, "@realloc",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicMemCmp, "@memcmp",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicStrLen, "@strlen",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicStrCmp, "@strcmp",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - ATOMIC
 

@@ -59,30 +59,3 @@
 
     #assert(#run strlenBasic() == 5)
 }
-
-#test
-{
-    #[Swag.NoInline]
-    func strcmpEq()->bool
-    {
-        let a = cast(cstring) @dataof("same")
-        let b = cast(cstring) @dataof("same")
-        return @strcmp(a, b) == 0
-    }
-
-    #assert(#run strcmpEq())
-}
-
-#test
-{
-    #[Swag.NoInline]
-    func strcmpLessGreater()->bool
-    {
-        let a = cast(cstring) @dataof("abc")
-        let b = cast(cstring) @dataof("abd")
-        let c = cast(cstring) @dataof("abe")
-        return @strcmp(a, b) < 0 and @strcmp(c, b) > 0
-    }
-
-    #assert(#run strcmpLessGreater())
-}

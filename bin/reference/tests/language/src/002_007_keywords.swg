@@ -310,7 +310,6 @@ with '@' to prevent conflicts with user-defined identifiers.
 @sin
 @sinh
 @sqrt
-@strcmp
 @strlen
 @tan
 @tanh

@@ -78,8 +78,6 @@ var _70 = @atomcmpxchg(a, b, c)
 var _71 = @typecmp(a, b, c)
 var _72 = @muladd(a, b, c)
 
-var _73 = @strcmp("a", "b")
-var _74 = @strcmp("a")                  // swc-expected-error {{parser_err_too_few_arguments}}
 var _75 = @memcmp(a, b, c)
 var _76 = @memcmp(a, b)                 // swc-expected-error {{parser_err_too_few_arguments}}
 
@@ -111,7 +109,6 @@ func test()
     @memmove(a, b, c)
     @memset(a, b, c)
     let a = @memcmp(a, b, c)
-    let a = @strcmp(a, b)
     let a = @stringcmp(a, b)
 
     @init(a)

@@ -1674,7 +1674,7 @@ namespace PeepholePass
         outRules.push_back({RuleTarget::LoadRegReg, foldCopyOpCopyBack});
 
         // Rule: fold_copy_swap_add_into_accumulator
-        // Purpose: fold copy old-index + copy loaded-value + add + accumulator-store into direct add on loaded value.
+        // Purpose: fold copy old-index + copy loaded-value + add + accumulator-store into direct 'add' on loaded value.
         // Example: mov rax,r8; mov r8,rcx; add r8,rax; add [rsp+30],r8 -> add rcx,r8; add [rsp+30],rcx
         outRules.push_back({RuleTarget::LoadRegReg, foldCopySwapAddIntoAccumulator});
 

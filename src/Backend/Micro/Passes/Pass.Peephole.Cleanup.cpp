@@ -1450,7 +1450,7 @@ namespace PeepholePass
                 bool replacedUse = false;
                 for (auto scanIt = std::next(copyIt); scanIt != endIt; ++scanIt)
                 {
-                    MicroInstr&        scanInst = *scanIt;
+                    MicroInstr&              scanInst = *scanIt;
                     const MicroInstrOperand* scanOps  = scanInst.ops(*SWC_NOT_NULL(context.operands));
                     if (!scanOps)
                     {

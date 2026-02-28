@@ -178,7 +178,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    MicroOpBits    indexBits = MicroOpBits::B64;
+    auto           indexBits = MicroOpBits::B64;
     const MicroReg indexReg  = materializeIndexReg(codeGen, nodeArgRef, indexBits);
     const MicroReg baseReg   = resolveIndexBaseAddress(codeGen, *indexedView.type(), indexedPayload);
 

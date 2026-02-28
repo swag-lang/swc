@@ -166,9 +166,8 @@ namespace
 
         size_t                        count = 0;
         const MicroStorage::ConstView view  = instructions->view();
-        for (auto it = view.begin(); it != view.end(); ++it)
+        for (const auto& inst : view)
         {
-            const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::Label)
                 continue;
 

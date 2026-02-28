@@ -179,7 +179,7 @@ namespace
     SymbolVariable& registerUniqueMemberRuntimeStorageSymbol(Sema& sema, const AstNode& node)
     {
         TaskContext&        ctx         = sema.ctx();
-        const Utf8          privateName = Utf8("__member_runtime_storage");
+        const auto          privateName = Utf8("__member_runtime_storage");
         const IdentifierRef idRef       = SemaHelpers::getUniqueIdentifier(sema, privateName);
         const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
 

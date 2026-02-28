@@ -187,7 +187,7 @@ namespace
         const AstNodeRef          exprRef     = children[0];
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         const MicroReg            condReg     = codeGen.nextVirtualIntRegister();
-        constexpr MicroOpBits     condBits    = MicroOpBits::B8;
+        constexpr auto            condBits    = MicroOpBits::B8;
 
         if (exprPayload.isAddress())
             builder.emitLoadRegMem(condReg, exprPayload.reg, 0, condBits);

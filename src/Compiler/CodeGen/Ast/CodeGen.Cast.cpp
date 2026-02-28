@@ -257,7 +257,7 @@ namespace
             return Result::Continue;
         }
 
-        MicroOpBits valueBits = MicroOpBits::Zero;
+        auto valueBits = MicroOpBits::Zero;
         if (anyCastAsValueBits(codeGen, dstType, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);

@@ -157,7 +157,7 @@ namespace
         MicroBuilder& builder             = codeGen.builder();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
 
-        MicroCond cond = MicroCond::Equal;
+        auto cond = MicroCond::Equal;
         switch (tokId)
         {
             case TokenId::SymEqualEqual:

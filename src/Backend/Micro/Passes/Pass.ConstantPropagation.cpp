@@ -618,8 +618,8 @@ namespace
         if (!bitWidth)
             return Math::FoldStatus::Unsupported;
 
-        Math::FoldUnaryOp unaryOp = Math::FoldUnaryOp::Plus;
-        bool              isSignedInput;
+        auto unaryOp = Math::FoldUnaryOp::Plus;
+        bool isSignedInput;
         switch (microOp)
         {
             case MicroOp::Negate:

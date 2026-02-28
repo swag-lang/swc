@@ -202,35 +202,6 @@ moduleprivate
     func strcmp(a, b: const [*] u8)->s32;
 }
 
-#[Swag.NoDoc]
-func @memset(dst: *void, value: s32, size: u64)
-{
-    __Win32RT.RtlFillMemory(dst, size, value)
-}
-
-#[Swag.NoDoc]
-func @memcpy(dst: *void, src: const *void, size: u64)
-{
-    __Win32RT.RtlCopyMemory(dst, src, size)
-}
-
-#[Swag.NoDoc]
-func @memmove(dst: *void, src: const *void, size: u64)
-{
-    __Win32RT.RtlMoveMemory(dst, src, size)
-}
-
-#[Swag.NoDoc]
-func @memcmp(dst, src: const [*] void, size: u64)->s32
-{
-    let len = __Win32RT.RtlCompareMemory(dst, src, size)
-    if len == size do
-        return 0
-    let p1 = cast(const [*] s8) dst
-    let p2 = cast(const [*] s8) src
-    return cast(s32) p1[len] - cast(s32) p2[len]
-}
-
 ////////////////////////////////////////////////////////////
 func __printString(message: string)
 {

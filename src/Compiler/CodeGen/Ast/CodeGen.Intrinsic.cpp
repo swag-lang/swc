@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Intrinsic.Payload.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -159,6 +160,147 @@ namespace
         const CodeGenNodePayload storagePayload = resolveIntrinsicRuntimeStoragePayload(codeGen, *SWC_NOT_NULL(payload->runtimeStorageSym));
         SWC_ASSERT(storagePayload.isAddress());
         return storagePayload.reg;
+    }
+
+    bool tryGetIntrinsicMemSizeConst(CodeGen& codeGen, AstNodeRef sizeRef, uint32_t& outSizeInBytes)
+    {
+        outSizeInBytes              = 0;
+        const SemaNodeView sizeView = codeGen.viewConstant(sizeRef);
+        if (!sizeView.hasConstant())
+            return false;
+
+        const ConstantValue& sizeCst = codeGen.cstMgr().get(sizeView.cstRef());
+        if (!sizeCst.isInt())
+            return false;
+
+        const ApsInt& sizeInt = sizeCst.getInt();
+        if (!sizeInt.fit64())
+            return false;
+
+        const uint64_t sizeU64 = sizeInt.as64();
+        if (sizeU64 > std::numeric_limits<uint32_t>::max())
+            return false;
+
+        outSizeInBytes = static_cast<uint32_t>(sizeU64);
+        return true;
+    }
+
+    bool isIntrinsicIntConstantZero(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const SemaNodeView valueView = codeGen.viewConstant(nodeRef);
+        if (!valueView.hasConstant())
+            return false;
+
+        const ConstantValue& valueCst = codeGen.cstMgr().get(valueView.cstRef());
+        if (!valueCst.isInt())
+            return false;
+
+        return valueCst.getInt().isZero();
+    }
+
+    MicroReg materializeIntrinsicIntArgReg(CodeGen& codeGen, const CodeGenNodePayload& payload, MicroOpBits opBits)
+    {
+        const MicroReg outReg = codeGen.nextVirtualIntRegister();
+        if (payload.isAddress())
+            codeGen.builder().emitLoadRegMem(outReg, payload.reg, 0, opBits);
+        else
+            codeGen.builder().emitLoadRegReg(outReg, payload.reg, opBits);
+        return outReg;
+    }
+
+    Result codeGenMemCopyIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          dstRef     = children[0];
+        const AstNodeRef          srcRef     = children[1];
+        const AstNodeRef          sizeRef    = children[2];
+        const CodeGenNodePayload& dstPayload = codeGen.payload(dstRef);
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcRef);
+
+        uint32_t sizeInBytes = 0;
+        if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
+            return codeGenCallExprCommon(codeGen, node.nodeExprRef);
+
+        const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
+        const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
+        CodeGenHelpers::emitMemCopy(codeGen, dstReg, srcReg, sizeInBytes);
+        return Result::Continue;
+    }
+
+    Result codeGenMemSetIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          dstRef       = children[0];
+        const AstNodeRef          valueRef     = children[1];
+        const AstNodeRef          sizeRef      = children[2];
+        const CodeGenNodePayload& dstPayload   = codeGen.payload(dstRef);
+        const CodeGenNodePayload& valuePayload = codeGen.payload(valueRef);
+
+        uint32_t sizeInBytes = 0;
+        if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
+            return codeGenCallExprCommon(codeGen, node.nodeExprRef);
+
+        const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
+        if (isIntrinsicIntConstantZero(codeGen, valueRef))
+        {
+            CodeGenHelpers::emitMemZero(codeGen, dstReg, sizeInBytes);
+            return Result::Continue;
+        }
+
+        const MicroReg valueReg = materializeIntrinsicIntArgReg(codeGen, valuePayload, MicroOpBits::B8);
+        CodeGenHelpers::emitMemSet(codeGen, dstReg, valueReg, sizeInBytes);
+        return Result::Continue;
+    }
+
+    Result codeGenMemMoveIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          dstRef     = children[0];
+        const AstNodeRef          srcRef     = children[1];
+        const AstNodeRef          sizeRef    = children[2];
+        const CodeGenNodePayload& dstPayload = codeGen.payload(dstRef);
+        const CodeGenNodePayload& srcPayload = codeGen.payload(srcRef);
+
+        uint32_t sizeInBytes = 0;
+        if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
+            return codeGenCallExprCommon(codeGen, node.nodeExprRef);
+
+        const MicroReg dstReg = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
+        const MicroReg srcReg = materializeIntrinsicIntArgReg(codeGen, srcPayload, MicroOpBits::B64);
+        CodeGenHelpers::emitMemMove(codeGen, dstReg, srcReg, sizeInBytes);
+        return Result::Continue;
+    }
+
+    Result codeGenMemCmpIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const AstNodeRef          leftRef      = children[0];
+        const AstNodeRef          rightRef     = children[1];
+        const AstNodeRef          sizeRef      = children[2];
+        const CodeGenNodePayload& leftPayload  = codeGen.payload(leftRef);
+        const CodeGenNodePayload& rightPayload = codeGen.payload(rightRef);
+
+        uint32_t sizeInBytes = 0;
+        if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
+            return codeGenCallExprCommon(codeGen, node.nodeExprRef);
+
+        const MicroReg      leftReg       = materializeIntrinsicIntArgReg(codeGen, leftPayload, MicroOpBits::B64);
+        const MicroReg      rightReg      = materializeIntrinsicIntArgReg(codeGen, rightPayload, MicroOpBits::B64);
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        CodeGenHelpers::emitMemCompare(codeGen, resultPayload.reg, leftReg, rightReg, sizeInBytes);
+        return Result::Continue;
     }
 
     Result codeGenMakeSlice(CodeGen& codeGen, const AstIntrinsicCall& node, bool forString)
@@ -740,6 +882,14 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Trunc);
         case TokenId::IntrinsicRound:
             return codeGenRoundAwayFromZero(codeGen, *this);
+        case TokenId::IntrinsicMemCpy:
+            return codeGenMemCopyIntrinsic(codeGen, *this);
+        case TokenId::IntrinsicMemSet:
+            return codeGenMemSetIntrinsic(codeGen, *this);
+        case TokenId::IntrinsicMemMove:
+            return codeGenMemMoveIntrinsic(codeGen, *this);
+        case TokenId::IntrinsicMemCmp:
+            return codeGenMemCmpIntrinsic(codeGen, *this);
 
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);

@@ -25,10 +25,9 @@ namespace
 
     enum class FloatRoundKind : uint8_t
     {
-        NearestEven = 0,
-        Floor       = 1,
-        Ceil        = 2,
-        Trunc       = 3,
+        Floor = 1,
+        Ceil  = 2,
+        Trunc = 3,
     };
 
     MicroOpBits intrinsicNumericOpBits(const TypeInfo& typeInfo)

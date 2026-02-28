@@ -16,6 +16,13 @@ Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef);
 
 namespace
 {
+    enum class BitCountKind
+    {
+        Nz,
+        Tz,
+        Lz,
+    };
+
     MicroOpBits intrinsicNumericOpBits(const TypeInfo& typeInfo)
     {
         if (typeInfo.isFloat())
@@ -487,6 +494,61 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenBitCount(CodeGen& codeGen, const AstIntrinsicCallExpr& node, BitCountKind kind)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const AstNodeRef          valueRef          = children[0];
+        const CodeGenNodePayload& valuePayload      = codeGen.payload(valueRef);
+        const SemaNodeView        valueView         = codeGen.viewType(valueRef);
+        const TypeRef             valueTypeRef      = valuePayload.typeRef.isValid() ? valuePayload.typeRef : valueView.typeRef();
+        const TypeRef             resultTypeRef     = codeGen.curViewType().typeRef();
+        const TypeInfo&           resultType        = codeGen.typeMgr().get(resultTypeRef);
+        const MicroOpBits         resultBits        = intrinsicNumericOpBits(resultType);
+        const uint32_t            logicalBitWidth   = getNumBits(resultBits);
+        CodeGenNodePayload&       resultPayload     = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder           = codeGen.builder();
+        MicroReg                  materializedValue = MicroReg::invalid();
+
+        SWC_ASSERT(resultType.isIntLikeUnsigned());
+        SWC_ASSERT(resultBits == MicroOpBits::B8 || resultBits == MicroOpBits::B16 || resultBits == MicroOpBits::B32 || resultBits == MicroOpBits::B64);
+
+        materializeIntrinsicNumericOperand(materializedValue, codeGen, valuePayload, valueTypeRef, resultTypeRef);
+
+        resultPayload.reg = codeGen.nextVirtualIntRegister();
+        if (kind == BitCountKind::Nz)
+        {
+            builder.emitClearReg(resultPayload.reg, resultBits);
+            builder.emitOpBinaryRegReg(resultPayload.reg, materializedValue, MicroOp::PopCount, resultBits);
+            return Result::Continue;
+        }
+
+        builder.emitClearReg(resultPayload.reg, resultBits);
+        builder.emitCmpRegImm(materializedValue, ApInt(0, 64), resultBits);
+        const MicroLabelRef doneLabel = builder.createLabel();
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+        if (kind == BitCountKind::Tz)
+        {
+            builder.emitOpBinaryRegReg(resultPayload.reg, materializedValue, MicroOp::BitScanForward, resultBits);
+            builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(1, 64), MicroOp::Add, resultBits);
+        }
+        else
+        {
+            SWC_ASSERT(kind == BitCountKind::Lz);
+            const MicroReg bitPosReg = codeGen.nextVirtualIntRegister();
+            builder.emitClearReg(bitPosReg, resultBits);
+            builder.emitOpBinaryRegReg(bitPosReg, materializedValue, MicroOp::BitScanReverse, resultBits);
+            builder.emitLoadRegImm(resultPayload.reg, ApInt(logicalBitWidth, 64), resultBits);
+            builder.emitOpBinaryRegReg(resultPayload.reg, bitPosReg, MicroOp::Subtract, resultBits);
+        }
+
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     Result codeGenCompiler(CodeGen& codeGen)
     {
         const uint64_t      compilerIfAddress = reinterpret_cast<uint64_t>(&codeGen.compiler().runtimeCompiler());
@@ -544,6 +606,12 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenRotate(codeGen, *this, MicroOp::RotateRight);
         case TokenId::IntrinsicByteSwap:
             return codeGenByteSwap(codeGen, *this);
+        case TokenId::IntrinsicBitCountNz:
+            return codeGenBitCount(codeGen, *this, BitCountKind::Nz);
+        case TokenId::IntrinsicBitCountTz:
+            return codeGenBitCount(codeGen, *this, BitCountKind::Tz);
+        case TokenId::IntrinsicBitCountLz:
+            return codeGenBitCount(codeGen, *this, BitCountKind::Lz);
 
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);

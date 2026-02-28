@@ -1191,7 +1191,7 @@ void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint6
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(canEncodeSigned32(memOffset));
 
-    if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
+    if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
         emitRex(store_, numBitsDst, reg, memReg);
         emitCpuOp(store_, 0x0F);
@@ -1222,7 +1222,7 @@ void X64Encoder::encodeLoadZeroExtendRegReg(MicroReg regDst, MicroReg regSrc, Mi
     SWC_ASSERT(numBitsSrc != numBitsDst);
     SWC_ASSERT(!(regDst.isFloat() || regSrc.isFloat()));
 
-    if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
+    if (numBitsSrc == MicroOpBits::B8 && (numBitsDst == MicroOpBits::B16 || numBitsDst == MicroOpBits::B32 || numBitsDst == MicroOpBits::B64))
     {
         emitRex(store_, numBitsDst, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
@@ -2114,21 +2114,44 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
 
     else if (op == MicroOp::BitScanForward || op == MicroOp::BitScanReverse)
     {
-        emitRex(store_, opBits, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, op);
-        emitModRm(store_, regDst, regSrc);
+        if (opBits == MicroOpBits::B8)
+        {
+            encodeLoadZeroExtendRegReg(regDst, regSrc, MicroOpBits::B16, MicroOpBits::B8);
+            emitRex(store_, MicroOpBits::B16, regDst, regDst);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, op);
+            emitModRm(store_, regDst, regDst);
+        }
+        else
+        {
+            emitRex(store_, opBits, regDst, regSrc);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, op);
+            emitModRm(store_, regDst, regSrc);
+        }
     }
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::PopCount)
     {
-        emitCpuOp(store_, 0xF3);
-        emitRex(store_, opBits, regDst, regSrc);
-        emitCpuOp(store_, 0x0F);
-        emitCpuOp(store_, MicroOp::PopCount);
-        emitModRm(store_, regDst, regSrc);
+        if (opBits == MicroOpBits::B8)
+        {
+            encodeLoadZeroExtendRegReg(regDst, regSrc, MicroOpBits::B16, MicroOpBits::B8);
+            emitCpuOp(store_, 0xF3);
+            emitRex(store_, MicroOpBits::B16, regDst, regDst);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, MicroOp::PopCount);
+            emitModRm(store_, regDst, regDst);
+        }
+        else
+        {
+            emitCpuOp(store_, 0xF3);
+            emitRex(store_, opBits, regDst, regSrc);
+            emitCpuOp(store_, 0x0F);
+            emitCpuOp(store_, MicroOp::PopCount);
+            emitModRm(store_, regDst, regSrc);
+        }
     }
 
     ///////////////////////////////////////////

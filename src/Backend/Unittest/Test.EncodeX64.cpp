@@ -194,6 +194,9 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_bsf", "4D 0F BC C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanForward, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_bsr", "4D 0F BD C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanReverse, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_popcnt", "F3 4D 0F B8 C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::PopCount, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_bsf_b8", "66 45 0F B6 C1 66 45 0F BC C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanForward, MicroOpBits::B8););
+        ENCODE_CASE("op_binary_reg_reg_bsr_b8", "66 45 0F B6 C1 66 45 0F BD C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::BitScanReverse, MicroOpBits::B8););
+        ENCODE_CASE("op_binary_reg_reg_popcnt_b8", "66 45 0F B6 C1 F3 66 45 0F B8 C0", b.emitOpBinaryRegReg(R8, R9, MicroOp::PopCount, MicroOpBits::B8););
         ENCODE_CASE("op_binary_reg_reg_mul_signed", "4D 0F AF C1", b.emitOpBinaryRegReg(R8, R9, MicroOp::MultiplySigned, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_shl_rcx", "49 D3 E2", b.emitOpBinaryRegReg(R10, RCX, MicroOp::ShiftLeft, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_rol", "49 D3 C2", b.emitOpBinaryRegReg(R10, RCX, MicroOp::RotateLeft, MicroOpBits::B64););

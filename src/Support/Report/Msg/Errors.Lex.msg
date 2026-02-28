@@ -18,3 +18,4 @@ SWC_DIAG_DEF(lex_err_empty_hex_escape, Error, "empty hexadecimal escape sequence
 SWC_DIAG_DEF(lex_err_too_many_char_char, Error, "too many characters in character literal; only one is allowed")
 SWC_DIAG_DEF(lex_err_invalid_number_suffix, Error, "invalid number suffix: '{tok}'; not a recognized numeric type suffix")
 SWC_DIAG_DEF(lex_err_invalid_char, Error, "invalid character: '{tok}'; not allowed in source file")
+SWC_DIAG_DEF(lex_err_reserved_identifier, Error, "identifiers starting with '__' are reserved for runtime/compiler internals")

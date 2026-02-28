@@ -702,6 +702,8 @@ void Lexer::lexIdentifier()
                 raiseTokenError(DiagnosticId::parser_err_invalid_compiler, startTokenOffset_, static_cast<uint32_t>(name.size()));
             else if (name[0] == '@')
                 raiseTokenError(DiagnosticId::parser_err_invalid_intrinsic, startTokenOffset_, static_cast<uint32_t>(name.size()));
+            else if (!srcView_->isRuntimeFile() && name.size() >= 2 && name[0] == '_' && name[1] == '_')
+                raiseTokenError(DiagnosticId::lex_err_reserved_identifier, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
             const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
             srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});

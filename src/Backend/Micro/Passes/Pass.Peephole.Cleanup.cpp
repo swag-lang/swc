@@ -875,16 +875,24 @@ namespace
         if (!reg.isValid())
             return true;
 
-        for (auto it = startIt; it != endIt; ++it)
+        auto scanIt = startIt;
+
+        SmallVector<uint32_t> visitedJumpTargets;
+        uint32_t              followedJumpCount = 0;
+        while (scanIt != endIt)
         {
-            const MicroInstr&        scanInst = *it;
+            const MicroInstr&        scanInst = *scanIt;
             const MicroInstrOperand* scanOps  = scanInst.ops(*context.operands);
             if (!scanOps)
                 return true;
 
+            if (scanInst.op == MicroInstrOpcode::Nop || scanInst.op == MicroInstrOpcode::Label)
+            {
+                ++scanIt;
+                continue;
+            }
+
             const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
-            if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
-                return true;
 
             for (const MicroReg useReg : useDef.uses)
             {
@@ -897,6 +905,51 @@ namespace
                 if (defReg == reg)
                     return false;
             }
+
+            if (scanInst.op == MicroInstrOpcode::JumpCond && MicroInstrInfo::isUnconditionalJumpInstruction(scanInst, scanOps))
+            {
+                if (scanOps[2].valueU64 > std::numeric_limits<uint32_t>::max())
+                    return true;
+
+                const uint32_t targetLabelId = static_cast<uint32_t>(scanOps[2].valueU64);
+                if (std::find(visitedJumpTargets.begin(), visitedJumpTargets.end(), targetLabelId) != visitedJumpTargets.end())
+                    return true;
+                visitedJumpTargets.push_back(targetLabelId);
+
+                followedJumpCount++;
+                if (followedJumpCount > 16)
+                    return true;
+
+                MicroStorage::Iterator targetLabelIt;
+                bool                   foundTarget = false;
+                for (auto it = context.instructions->view().begin(); it != endIt; ++it)
+                {
+                    const MicroInstr& candidate = *it;
+                    if (candidate.op != MicroInstrOpcode::Label)
+                        continue;
+
+                    const MicroInstrOperand* labelOps = candidate.ops(*context.operands);
+                    if (!labelOps || labelOps[0].valueU64 > std::numeric_limits<uint32_t>::max())
+                        continue;
+                    if (static_cast<uint32_t>(labelOps[0].valueU64) != targetLabelId)
+                        continue;
+
+                    targetLabelIt = it;
+                    foundTarget   = true;
+                    break;
+                }
+
+                if (!foundTarget)
+                    return true;
+
+                scanIt = std::next(targetLabelIt);
+                continue;
+            }
+
+            if (useDef.isCall || MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
+                return true;
+
+            ++scanIt;
         }
 
         return false;
@@ -979,7 +1032,6 @@ namespace
             case MicroOp::And:
             case MicroOp::Or:
             case MicroOp::Xor:
-            case MicroOp::MultiplySigned:
                 break;
             default:
                 return false;
@@ -994,8 +1046,10 @@ namespace
         if (!binMutable || !binMutableOps)
             return false;
 
-        const MicroInstr originalBinInst = *binMutable;
-        const auto       originalBinOps  = std::array{binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
+        MicroInstr                       probeBinInst         = *binMutable;
+        std::array<MicroInstrOperand, 5> rewrittenBinOps      = {binMutableOps[0], binMutableOps[1], binMutableOps[2], binMutableOps[3], MicroInstrOperand{}};
+        auto                             rewrittenBinOpcode   = MicroInstrOpcode::End;
+        uint8_t                          rewrittenBinOperands = 5;
 
         if (binInst.op == MicroInstrOpcode::OpBinaryRegImm)
         {
@@ -1004,13 +1058,12 @@ namespace
             if (binOps[0].reg != tmpReg || binOps[1].opBits != memOpBits)
                 return false;
 
-            binMutable->op            = MicroInstrOpcode::OpBinaryMemImm;
-            binMutable->numOperands   = 5;
-            binMutableOps[0].reg      = memBase;
-            binMutableOps[1].opBits   = memOpBits;
-            binMutableOps[2].microOp  = binOps[2].microOp;
-            binMutableOps[3].valueU64 = memOffset;
-            binMutableOps[4]          = binOps[3];
+            rewrittenBinOpcode          = MicroInstrOpcode::OpBinaryMemImm;
+            rewrittenBinOps[0].reg      = memBase;
+            rewrittenBinOps[1].opBits   = memOpBits;
+            rewrittenBinOps[2].microOp  = binOps[2].microOp;
+            rewrittenBinOps[3].valueU64 = memOffset;
+            rewrittenBinOps[4]          = binOps[3];
         }
         else if (binInst.op == MicroInstrOpcode::OpBinaryRegReg)
         {
@@ -1028,30 +1081,27 @@ namespace
             if (rhsReg == tmpReg)
                 return false;
 
-            binMutable->op            = MicroInstrOpcode::OpBinaryMemReg;
-            binMutable->numOperands   = 5;
-            binMutableOps[0].reg      = memBase;
-            binMutableOps[1].reg      = rhsReg;
-            binMutableOps[2].opBits   = memOpBits;
-            binMutableOps[3].microOp  = binOps[3].microOp;
-            binMutableOps[4].valueU64 = memOffset;
+            rewrittenBinOpcode          = MicroInstrOpcode::OpBinaryMemReg;
+            rewrittenBinOps[0].reg      = memBase;
+            rewrittenBinOps[1].reg      = rhsReg;
+            rewrittenBinOps[2].opBits   = memOpBits;
+            rewrittenBinOps[3].microOp  = binOps[3].microOp;
+            rewrittenBinOps[4].valueU64 = memOffset;
         }
         else
         {
             return false;
         }
 
-        if (MicroPassHelpers::violatesEncoderConformance(context, *binMutable, binMutableOps))
-        {
-            *binMutable   = originalBinInst;
-            binMutableOps = binMutable->ops(*context.operands);
-            if (binMutableOps)
-            {
-                for (uint32_t i = 0; i < 5; ++i)
-                    binMutableOps[i] = originalBinOps[i];
-            }
+        probeBinInst.op          = rewrittenBinOpcode;
+        probeBinInst.numOperands = rewrittenBinOperands;
+        if (MicroPassHelpers::violatesEncoderConformance(context, probeBinInst, rewrittenBinOps.data()))
             return false;
-        }
+
+        binMutable->op          = rewrittenBinOpcode;
+        binMutable->numOperands = rewrittenBinOperands;
+        for (uint32_t i = 0; i < rewrittenBinOperands; ++i)
+            binMutableOps[i] = rewrittenBinOps[i];
 
         context.instructions->erase(instRef);
         context.instructions->erase(storeRef);

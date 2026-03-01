@@ -57,24 +57,17 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
-    void clearRunContext();
-    void clearState();
-    void initRunState(MicroPassContext& context);
-    void collectReferencedLabels();
-    void updateCompareStateForInstruction(MicroInstr&                                   inst,
-                                          MicroInstrOperand*                            ops,
-                                          std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef);
-    void clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
-    void clearForCallBoundary(CallConvKind callConvKind);
-
-    bool tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;
-    bool tryResolveStackOffsetForAmcFromState(uint64_t& outOffset,
-                                              MicroReg  baseReg,
-                                              MicroReg  mulReg,
-                                              uint64_t  mulValue,
-                                              uint64_t  addValue) const;
-    bool rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops);
-    bool definesRegisterInSet(std::span<const MicroReg> defs, MicroReg reg) const;
+    void        clearRunContext();
+    void        clearState();
+    void        initRunState(MicroPassContext& context);
+    void        collectReferencedLabels();
+    void        updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef);
+    void        clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
+    void        clearForCallBoundary(CallConvKind callConvKind);
+    bool        tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;
+    bool        tryResolveStackOffsetForAmcFromState(uint64_t& outOffset, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue) const;
+    bool        rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const;
+    static bool definesRegisterInSet(std::span<const MicroReg> defs, MicroReg reg);
 
     KnownRegMap                                               known_;
     KnownStackSlotMap                                         knownStackSlots_;

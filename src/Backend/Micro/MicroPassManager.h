@@ -34,17 +34,19 @@ public:
     MicroPassManager(MicroPassManager&&) noexcept;
     MicroPassManager& operator=(MicroPassManager&&) noexcept;
 
-    void   clear();
-    void   configureDefaultPipeline(bool optimize);
-    void   addStartPass(MicroPass& pass);
-    void   addLoopPass(MicroPass& pass);
-    void   addFinalPass(MicroPass& pass);
+    void clear();
+    void configureDefaultPipeline(bool optimize);
+    void addStartPass(MicroPass& pass) { startPasses_.push_back(&pass); }
+    void addLoopPass(MicroPass& pass) { loopPasses_.push_back(&pass); }
+    void addFinalPass(MicroPass& pass) { finalPasses_.push_back(&pass); }
+
     Result run(MicroPassContext& context) const;
 
 private:
-    std::vector<MicroPass*>                             loopPasses_;
-    std::vector<MicroPass*>                             startPasses_;
-    std::vector<MicroPass*>                             finalPasses_;
+    std::vector<MicroPass*> startPasses_;
+    std::vector<MicroPass*> loopPasses_;
+    std::vector<MicroPass*> finalPasses_;
+
     std::unique_ptr<MicroControlFlowSimplificationPass> cfgSimplifyPass_;
     std::unique_ptr<MicroInstructionCombinePass>        instructionCombinePass_;
     std::unique_ptr<MicroStrengthReductionPass>         strengthReductionPass_;

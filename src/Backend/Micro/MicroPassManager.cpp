@@ -248,8 +248,8 @@ MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = def
 
 void MicroPassManager::clear()
 {
-    loopPasses_.clear();
     startPasses_.clear();
+    loopPasses_.clear();
     finalPasses_.clear();
 }
 
@@ -277,21 +277,6 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     addLoopPass(*legalizePass_);
     addLoopPass(*regAllocPass_);
     addFinalPass(*emitPass_);
-}
-
-void MicroPassManager::addStartPass(MicroPass& pass)
-{
-    startPasses_.push_back(&pass);
-}
-
-void MicroPassManager::addLoopPass(MicroPass& pass)
-{
-    loopPasses_.push_back(&pass);
-}
-
-void MicroPassManager::addFinalPass(MicroPass& pass)
-{
-    finalPasses_.push_back(&pass);
 }
 
 Result MicroPassManager::run(MicroPassContext& context) const

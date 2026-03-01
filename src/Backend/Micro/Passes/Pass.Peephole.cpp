@@ -18,11 +18,6 @@ void MicroPeepholePass::initRunState(MicroPassContext& context)
     context_  = &context;
     storage_  = context.instructions;
     operands_ = context.operands;
-
-    rules_.clear();
-    rules_.reserve(48);
-    buildRules(rules_);
-    ruleDispatch_ = buildRuleDispatch(rules_);
 }
 
 bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroInstrOpcode opcode)
@@ -50,7 +45,7 @@ bool MicroPeepholePass::isRuleApplicableToOpcode(const Rule& rule, const MicroIn
     }
 }
 
-void MicroPeepholePass::buildRules(RuleList& outRules) const
+void MicroPeepholePass::buildRules(RuleList& outRules)
 {
     appendAddressingRules(outRules);
     appendImmediateRules(outRules);
@@ -68,10 +63,22 @@ MicroPeepholePass::RuleDispatch MicroPeepholePass::buildRuleDispatch(const RuleL
         for (const Rule& rule : rules)
         {
             if (isRuleApplicableToOpcode(rule, opcode))
-                bucket.push_back(&rule);
+                bucket.push_back(rule);
         }
     }
 
+    return dispatch;
+}
+
+const MicroPeepholePass::RuleDispatch& MicroPeepholePass::getRuleDispatch()
+{
+    static const RuleDispatch dispatch = []()
+    {
+        RuleList rules;
+        rules.reserve(48);
+        buildRules(rules);
+        return buildRuleDispatch(rules);
+    }();
     return dispatch;
 }
 
@@ -79,12 +86,11 @@ bool MicroPeepholePass::applyOpcodeRules(const Cursor& cursor)
 {
     SWC_ASSERT(cursor.inst != nullptr);
 
-    const auto& rules = ruleDispatch_.rulesByOpcode[static_cast<size_t>(SWC_NOT_NULL(cursor.inst)->op)];
-    for (const RulePtr rule : rules)
+    const auto& rules = getRuleDispatch().rulesByOpcode[static_cast<size_t>(SWC_NOT_NULL(cursor.inst)->op)];
+    for (const Rule& rule : rules)
     {
-        SWC_ASSERT(rule != nullptr);
-        SWC_ASSERT(SWC_NOT_NULL(rule)->applyMutable != nullptr || SWC_NOT_NULL(rule)->applyConst != nullptr);
-        if (SWC_NOT_NULL(rule)->apply(*this, cursor))
+        SWC_ASSERT(rule.applyMutable != nullptr || rule.applyConst != nullptr);
+        if (rule.apply(*this, cursor))
             return true;
     }
 

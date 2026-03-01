@@ -74,18 +74,17 @@ public:
     bool areFlagsDeadAfterInstruction(MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt) const;
 
 private:
-    using RulePtr = const Rule*;
-
     struct RuleDispatch
     {
-        static constexpr size_t                                K_MICRO_OPCODE_COUNT = static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1;
-        std::array<std::vector<RulePtr>, K_MICRO_OPCODE_COUNT> rulesByOpcode;
+        static constexpr size_t                              K_MICRO_OPCODE_COUNT = static_cast<size_t>(MicroInstrOpcode::OpTernaryRegRegReg) + 1;
+        std::array<std::vector<Rule>, K_MICRO_OPCODE_COUNT> rulesByOpcode;
     };
 
     void                   initRunState(MicroPassContext& context);
     static bool            isRuleApplicableToOpcode(const Rule& rule, MicroInstrOpcode opcode);
-    void                   buildRules(RuleList& outRules) const;
+    static void            buildRules(RuleList& outRules);
     static RuleDispatch    buildRuleDispatch(const RuleList& rules);
+    static const RuleDispatch& getRuleDispatch();
     bool                   applyOpcodeRules(const Cursor& cursor);
     MicroStorage::Iterator computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;
     static void            appendAddressingRules(RuleList& outRules);
@@ -96,8 +95,6 @@ private:
     MicroPassContext*    context_  = nullptr;
     MicroStorage*        storage_  = nullptr;
     MicroOperandStorage* operands_ = nullptr;
-    RuleList             rules_;
-    RuleDispatch         ruleDispatch_;
 };
 
 SWC_END_NAMESPACE();

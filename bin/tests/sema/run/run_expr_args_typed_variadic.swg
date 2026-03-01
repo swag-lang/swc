@@ -276,3 +276,65 @@ alias TypedVariadicAlias = s32
     const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
     #assert(V0)
 }
+
+#test
+{
+    func variadicTypedStressCount(values: s32...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            acc += v * cast(s32) (i + 1)
+        }
+
+        return acc
+    }
+
+    const V0 = #run variadicTypedStressCount(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    #assert(V0 == 385)
+}
+
+#test
+{
+    func variadicTypedStressKind(values: TypedVariadicKind...)->bool
+    {
+        if @countof(values) != 6 do
+            return false
+
+        foreach v, i in values
+        {
+            if (i & 1) == 0 and v != TypedVariadicKind.A do
+                return false
+            if (i & 1) == 1 and v != TypedVariadicKind.B do
+                return false
+        }
+
+        return true
+    }
+
+    const V0 = #run variadicTypedStressKind(TypedVariadicKind.A, TypedVariadicKind.B, TypedVariadicKind.A, TypedVariadicKind.B, TypedVariadicKind.A, TypedVariadicKind.B)
+    #assert(V0)
+}
+
+#test
+{
+    func variadicTypedStressPayload(values: TypedVariadicPayload...)->u64
+    {
+        var acc: u64 = 0
+
+        foreach v, i in values
+        {
+            acc += cast(u64) v.arr[0] + cast(u64) v.arr[1] + cast(u64) v.arr[2]
+            acc += cast(u64) v.flag + cast(u64) v.tag + i
+        }
+
+        return acc
+    }
+
+    const p0: TypedVariadicPayload = {arr: [1, 2, 3], flag: true, tag: 4'u8}
+    const p1: TypedVariadicPayload = {arr: [5, 6, 7], flag: false, tag: 8'u8}
+    const p2: TypedVariadicPayload = {arr: [9, 10, 11], flag: true, tag: 12'u8}
+    const V0 = #run variadicTypedStressPayload(p0, p1, p2)
+    #assert(V0 == 83'u64)
+}

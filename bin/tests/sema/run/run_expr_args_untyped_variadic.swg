@@ -644,3 +644,82 @@ enum VariadicKind: u16
     func variadicAny(values: ...)->any { return values["a"] } // swc-expected-error {{sema_err_index_not_int}}
     const V0 = #run variadicAny(1)
 }
+
+#test
+{
+    func variadicAnyStressWeighted(values: ...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            if @kindof(v) == s32
+            {
+                let p = cast(*s32) @dataof(v)
+                acc += dref p * cast(s32) (i + 1)
+                continue
+            }
+
+            if @kindof(v) == bool
+            {
+                let p = cast(*bool) @dataof(v)
+                acc += cast(s32) dref p * 100
+                continue
+            }
+
+            if @kindof(v) == rune
+            {
+                let p = cast(*rune) @dataof(v)
+                acc += cast(s32) dref p
+            }
+        }
+
+        return acc
+    }
+
+    const V0 = #run variadicAnyStressWeighted(1's32, 2's32, false, cast(rune) 'A', 4's32, true)
+    #assert(V0 == 190)
+}
+
+#test
+{
+    func variadicAnyStressKinds(values: ...)->bool
+    {
+        if @countof(values) != 8 do
+            return false
+
+        return @kindof(values[0]) == s32 and
+               @kindof(values[1]) == s64 and
+               @kindof(values[2]) == u32 and
+               @kindof(values[3]) == f64 and
+               @kindof(values[4]) == bool and
+               @kindof(values[5]) == rune and
+               @kindof(values[6]) == string and
+               @kindof(values[7]) == *void
+    }
+
+    const V0 = #run variadicAnyStressKinds(1's32, 2's64, 3'u32, 4.5'f64, true, cast(rune) 'X', "ok", cast(*void) 0x55'u64)
+    #assert(V0)
+}
+
+#test
+{
+    func variadicAnyStressAggregates(values: ...)->u64
+    {
+        let p0 = cast(*VariadicPair) @dataof(values[0])
+        let p1 = cast(*VariadicPayload) @dataof(values[1])
+        let p2 = cast(*[3] s32) @dataof(values[2])
+
+        let v0 = dref p0
+        let v1 = dref p1
+        let v2 = dref p2
+
+        return cast(u64) (v0.a + v0.b + v1.arr[0] + v1.arr[1] + v1.arr[2] + v1.tag + v2[0] + v2[1] + v2[2])
+    }
+
+    const pair: VariadicPair = {a: 2, b: 3}
+    const payload: VariadicPayload = {arr: [4, 5, 6], flag: true, tag: 7'u8}
+    const arr: [3] s32 = [8, 9, 10]
+    const V0 = #run variadicAnyStressAggregates(pair, payload, arr)
+    #assert(V0 == 54'u64)
+}

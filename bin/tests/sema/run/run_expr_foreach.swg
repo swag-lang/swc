@@ -205,3 +205,87 @@ struct ForeachVariadicPayload
     const V = #run foreachTypedVariadicPayload(p0, p1)
     #assert(V == 28'u64)
 }
+
+#test
+{
+    func foreachNestedWithWhere(values: s32...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values where (v & 1) == 1
+        {
+            foreach w, j in values
+            {
+                if j == i do
+                    continue
+                acc += v + w + cast(s32) i + cast(s32) j
+            }
+        }
+
+        return acc
+    }
+
+    const V = #run foreachNestedWithWhere(1, 2, 3, 4, 5)
+    #assert(V == 120)
+}
+
+#test
+{
+    func foreachUntypedMixed(values: ...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            if @kindof(v) == s32
+            {
+                let p = cast(*s32) @dataof(v)
+                acc += dref p * cast(s32) (i + 1)
+                continue
+            }
+
+            if @kindof(v) == bool
+            {
+                let p = cast(*bool) @dataof(v)
+                acc += cast(s32) dref p * 10
+                continue
+            }
+
+            if @kindof(v) == rune
+            {
+                let p = cast(*rune) @dataof(v)
+                acc += cast(s32) dref p
+            }
+        }
+
+        return acc
+    }
+
+    const V = #run foreachUntypedMixed(2's32, true, cast(rune) 'A', 4's32, false)
+    #assert(V == 93)
+}
+
+#test
+{
+    func foreachTypedLarge(values: s32...)->s32
+    {
+        var acc: s32 = 0
+
+        foreach v, i in values
+        {
+            if (i & 1) == 0
+            {
+                acc += v * cast(s32) (i + 1)
+            }
+            else
+            {
+                acc -= v * cast(s32) (i + 1)
+            }
+        }
+
+        return acc
+    }
+
+    const V = #run foreachTypedLarge(10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+    #assert(V == 0)
+}

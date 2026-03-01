@@ -32,11 +32,7 @@ private:
     static bool isPureDefCandidate(const MicroInstr& inst, const MicroInstrUseDef& useDef, const Encoder* encoder, CallConvKind callConvKind);
     static bool isBackwardDeadDefRemovableInstruction(const MicroInstr& inst);
     static void addLiveReg(std::unordered_set<MicroReg>& liveRegs, MicroReg reg);
-    static void transferInstructionLiveness(std::unordered_set<MicroReg>&       outLiveIn,
-                                            const std::unordered_set<MicroReg>& liveOut,
-                                            const MicroInstr&                   inst,
-                                            const MicroInstrUseDef&             useDef,
-                                            CallConvKind                        callConvKind);
+    static void transferInstructionLiveness(std::unordered_set<MicroReg>& outLiveIn, const std::unordered_set<MicroReg>& liveOut, const MicroInstr& inst, const MicroInstrUseDef& useDef, CallConvKind callConvKind);
 
     MicroPassContext*                           context_      = nullptr;
     MicroStorage*                               storage_      = nullptr;

@@ -75,7 +75,6 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                     changed  = false;
     MicroStorage&            storage  = *context.instructions;
     MicroOperandStorage&     operands = *context.operands;
     const MicroStorage::View view     = storage.view();
@@ -103,7 +102,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
                     const MicroInstrRef nextRef = it.current;
                     ++it;
                     storage.erase(nextRef);
-                    changed = true;
+                    context.passChanged = true;
                     continue;
                 }
             }
@@ -111,7 +110,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             if (isJumpToImmediateNextLabel(jumpOps, it, endIt, operands))
             {
                 storage.erase(instRef);
-                changed = true;
+                context.passChanged = true;
                 continue;
             }
         }
@@ -128,7 +127,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             const MicroInstrRef deadRef = scanIt.current;
             ++scanIt;
             storage.erase(deadRef);
-            changed = true;
+            context.passChanged = true;
         }
     }
 
@@ -154,10 +153,9 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             continue;
 
         storage.erase(instRef);
-        changed = true;
+        context.passChanged = true;
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

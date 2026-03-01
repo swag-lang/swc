@@ -129,8 +129,6 @@ Result MicroPeepholePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
     SWC_ASSERT(context.operands);
-    bool changed = false;
-
     const MicroStorage::View view  = context.instructions->view();
     const auto               endIt = view.end();
     for (auto it = view.begin(); it != endIt;)
@@ -158,15 +156,14 @@ Result MicroPeepholePass::run(MicroPassContext& context)
 
         if (applyOpcodeRules(context, cursor))
         {
-            changed = true;
-            it      = computeResumeIterator(context, view, prevIt, hasPrev, instRef, nextIt);
+            context.passChanged = true;
+            it                  = computeResumeIterator(context, view, prevIt, hasPrev, instRef, nextIt);
             continue;
         }
 
         it = nextIt;
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

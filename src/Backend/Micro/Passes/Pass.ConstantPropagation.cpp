@@ -18,7 +18,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool changed = false;
     initRunState(context);
     const MicroInstr*        prevInst = nullptr;
     const MicroInstrOperand* prevOps  = nullptr;
@@ -33,9 +32,9 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
         // Phase 1: rewrite the instruction from currently known values.
         if (rewriteMemoryBaseToKnownStack(inst, ops))
-            changed = true;
+            context.passChanged = true;
 
-        SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef));
+        SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 
         // Phase 2: consume defs/calls and invalidate stale state.
         updateCompareStateForInstruction(inst, ops, deferredKnownDef);
@@ -74,7 +73,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         prevOps  = ops;
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 SWC_END_NAMESPACE();

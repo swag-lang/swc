@@ -219,10 +219,10 @@ namespace
         const size_t                              instructionCount = instructionRefs.size();
         std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
         std::vector<std::unordered_set<uint32_t>> liveOut(instructionCount);
-        bool                                      changed = true;
-        while (changed)
+        bool                                      dataflowUpdated = true;
+        while (dataflowUpdated)
         {
-            changed = false;
+            dataflowUpdated = false;
 
             for (size_t i = instructionCount; i > 0; --i)
             {
@@ -252,9 +252,9 @@ namespace
 
                 if (newLiveOut != liveOut[idx] || newLiveIn != liveIn[idx])
                 {
-                    liveOut[idx] = std::move(newLiveOut);
-                    liveIn[idx]  = std::move(newLiveIn);
-                    changed      = true;
+                    liveOut[idx]    = std::move(newLiveOut);
+                    liveIn[idx]     = std::move(newLiveIn);
+                    dataflowUpdated = true;
                 }
             }
         }
@@ -292,7 +292,7 @@ namespace
 
     bool eliminateDeadPureDefsByBackwardLivenessLinearTail(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
     {
-        bool                         changed = false;
+        bool                         removedAny = false;
         std::unordered_set<uint32_t> liveRegs;
         liveRegs.reserve(64);
 
@@ -355,7 +355,7 @@ namespace
             if (!liveRegs.contains(defKey))
             {
                 eraseList.push_back(instRef);
-                changed = true;
+                removedAny = true;
                 continue;
             }
 
@@ -368,7 +368,7 @@ namespace
         for (const MicroInstrRef ref : eraseList)
             storage.erase(ref);
 
-        return changed;
+        return removedAny;
     }
 
     bool eliminateDeadPureDefsByBackwardLiveness(const MicroPassContext& context, MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
@@ -393,7 +393,6 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool changed = false;
     lastPureDefByReg_.clear();
     lastPureDefByReg_.reserve(64);
 
@@ -433,7 +432,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             if (previousDefIt != lastPureDefByReg_.end())
             {
                 storage.erase(previousDefIt->second);
-                changed = true;
+                context.passChanged = true;
                 lastPureDefByReg_.erase(previousDefIt);
             }
         }
@@ -445,9 +444,8 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     }
 
     if (eliminateDeadPureDefsByBackwardLiveness(context, storage, operands, context.encoder, context.callConvKind))
-        changed = true;
+        context.passChanged = true;
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

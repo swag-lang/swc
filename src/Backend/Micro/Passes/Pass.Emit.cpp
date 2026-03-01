@@ -253,7 +253,6 @@ Result MicroEmitPass::run(MicroPassContext& context)
         encoder.encodePatchJump(pending.jump, it->second);
     }
 
-    context.passChanged = false;
     return Result::Continue;
 }
 

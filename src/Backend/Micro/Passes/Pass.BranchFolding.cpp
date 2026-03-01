@@ -20,7 +20,6 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool changed = false;
     knownValues_.clear();
     knownValues_.reserve(64);
     referencedLabels_.clear();
@@ -53,13 +52,13 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                         if (ops[0].cpuCond != MicroCond::Unconditional)
                         {
                             ops[0].cpuCond = MicroCond::Unconditional;
-                            changed        = true;
+                            context.passChanged = true;
                         }
                     }
                     else
                     {
                         storage.erase(instRef);
-                        changed       = true;
+                        context.passChanged = true;
                         compareValid_ = false;
                         continue;
                     }
@@ -163,7 +162,6 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         }
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

@@ -61,28 +61,28 @@ namespace
 
     struct PassState
     {
-        MicroPassContext*&                                                        context;
-        const CallConv*&                                                          conv;
-        MicroStorage*&                                                            instructions;
-        MicroOperandStorage*&                                                     operands;
-        uint32_t&                                                                 instructionCount;
-        uint64_t&                                                                 spillFrameUsed;
-        bool&                                                                     hasControlFlow;
-        std::vector<std::vector<uint32_t>>&                                       liveOut;
-        std::vector<std::vector<uint32_t>>&                                       concreteLiveOut;
-        std::unordered_set<uint32_t>&                                             vregsLiveAcrossCall;
-        std::unordered_map<uint32_t, std::vector<uint32_t>>&                      usePositions;
-        std::unordered_set<uint32_t>&                                             intPersistentSet;
-        std::unordered_set<uint32_t>&                                             floatPersistentSet;
-        SmallVector<MicroReg>&                                                    freeIntTransient;
-        SmallVector<MicroReg>&                                                    freeIntPersistent;
-        SmallVector<MicroReg>&                                                    freeFloatTransient;
-        SmallVector<MicroReg>&                                                    freeFloatPersistent;
-        std::unordered_map<uint32_t, MicroRegisterAllocationPass::VRegState>&     states;
-        std::unordered_map<uint32_t, MicroReg>&                                   mapping;
-        std::unordered_map<uint32_t, uint32_t>&                                   liveStamp;
-        std::unordered_map<uint32_t, uint32_t>&                                   concreteLiveStamp;
-        std::unordered_set<uint32_t>&                                             callSpillVregs;
+        MicroPassContext*&                                                    context;
+        const CallConv*&                                                      conv;
+        MicroStorage*&                                                        instructions;
+        MicroOperandStorage*&                                                 operands;
+        uint32_t&                                                             instructionCount;
+        uint64_t&                                                             spillFrameUsed;
+        bool&                                                                 hasControlFlow;
+        std::vector<std::vector<uint32_t>>&                                   liveOut;
+        std::vector<std::vector<uint32_t>>&                                   concreteLiveOut;
+        std::unordered_set<uint32_t>&                                         vregsLiveAcrossCall;
+        std::unordered_map<uint32_t, std::vector<uint32_t>>&                  usePositions;
+        std::unordered_set<uint32_t>&                                         intPersistentSet;
+        std::unordered_set<uint32_t>&                                         floatPersistentSet;
+        SmallVector<MicroReg>&                                                freeIntTransient;
+        SmallVector<MicroReg>&                                                freeIntPersistent;
+        SmallVector<MicroReg>&                                                freeFloatTransient;
+        SmallVector<MicroReg>&                                                freeFloatPersistent;
+        std::unordered_map<uint32_t, MicroRegisterAllocationPass::VRegState>& states;
+        std::unordered_map<uint32_t, MicroReg>&                               mapping;
+        std::unordered_map<uint32_t, uint32_t>&                               liveStamp;
+        std::unordered_map<uint32_t, uint32_t>&                               concreteLiveStamp;
+        std::unordered_set<uint32_t>&                                         callSpillVregs;
     };
 
     void initState(const PassState& state, MicroPassContext& context)
@@ -313,10 +313,10 @@ namespace
             }
         }
 
-        bool changed = true;
-        while (changed)
+        bool livenessUpdated = true;
+        while (livenessUpdated)
         {
-            changed = false;
+            livenessUpdated = false;
 
             for (int64_t rev = static_cast<int64_t>(state.instructionCount) - 1; rev >= 0; --rev)
             {
@@ -348,7 +348,7 @@ namespace
                     newInV != liveInVirtual[i] ||
                     newInC != liveInConcrete[i])
                 {
-                    changed            = true;
+                    livenessUpdated    = true;
                     liveOutVirtual[i]  = std::move(newOutV);
                     liveOutConcrete[i] = std::move(newOutC);
                     liveInVirtual[i]   = std::move(newInV);
@@ -1094,10 +1094,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     initState(state, context);
 
     if (!state.instructionCount)
-    {
-        context.passChanged = false;
         return Result::Continue;
-    }
 
     const bool hadVirtualRegisters = hasVirtualRegisters(context);
 

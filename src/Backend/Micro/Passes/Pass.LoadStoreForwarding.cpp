@@ -164,7 +164,7 @@ namespace
         SWC_ASSERT(context.instructions != nullptr);
         SWC_ASSERT(context.operands != nullptr);
 
-        bool                 changed  = false;
+        bool                 updated  = false;
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         StackSlotMap         slotValues;
@@ -202,7 +202,7 @@ namespace
                             inst.numOperands = 3;
                             ops[1].reg       = slotValue.reg;
                             ops[2].opBits    = slotKey.opBits;
-                            changed          = true;
+                            updated          = true;
                         }
                         else if (slotValue.kind == StackSlotValueKind::Immediate &&
                                  ops[0].reg.isInt() &&
@@ -212,7 +212,7 @@ namespace
                             inst.numOperands = 3;
                             ops[1].opBits    = slotKey.opBits;
                             ops[2].valueU64  = slotValue.immediate;
-                            changed          = true;
+                            updated          = true;
                         }
                     }
                 }
@@ -266,7 +266,7 @@ namespace
             }
         }
 
-        return changed;
+        return updated;
     }
 }
 
@@ -275,7 +275,6 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                 changed  = false;
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
@@ -304,7 +303,7 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
                     scanInst.numOperands = 3;
                     scanOps[1].reg       = firstOps[1].reg;
                     scanOps[2].opBits    = firstOps[2].opBits;
-                    changed              = true;
+                    context.passChanged  = true;
                     break;
                 }
 
@@ -316,7 +315,7 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
                     scanInst.numOperands = 3;
                     scanOps[1].opBits    = firstOps[1].opBits;
                     scanOps[2].valueU64  = firstOps[3].valueU64;
-                    changed              = true;
+                    context.passChanged  = true;
                     break;
                 }
             }
@@ -327,9 +326,8 @@ Result MicroLoadStoreForwardingPass::run(MicroPassContext& context)
     }
 
     if (promoteStackSlotLoads(context))
-        changed = true;
+        context.passChanged = true;
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

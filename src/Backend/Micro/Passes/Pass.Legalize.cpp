@@ -786,8 +786,6 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     if (stackScratchFrameSize)
         insertScratchFrame(context, encoder, stackScratchFrameSize);
 
-    bool changed = false;
-
     // Iterate once over instructions, but keep fixing a given instruction
     // until the encoder reports it conformant.
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
@@ -807,7 +805,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
 
         for (;;)
         {
-            changed                               = true;
+            context.passChanged                   = true;
             const uint64_t stackScratchBaseOffset = computeStackScratchBaseOffset(context, encoder, instRef, stackScratchFrameSize);
             applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset, nextVirtualIntRegIndex);
 
@@ -821,7 +819,6 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         }
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

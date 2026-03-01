@@ -9,7 +9,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     switch (inst.op)
     {
@@ -17,26 +17,26 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(const Mic
         case MicroInstrOpcode::LoadRegMem:
         case MicroInstrOpcode::LoadSignedExtRegMem:
         case MicroInstrOpcode::LoadZeroExtRegMem:
-            return rewriteLoadFromMemoryInstructions(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
+            return rewriteLoadFromMemoryInstructions(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
 
         case MicroInstrOpcode::LoadAddrRegMem:
         case MicroInstrOpcode::LoadRegReg:
         case MicroInstrOpcode::LoadSignedExtRegReg:
         case MicroInstrOpcode::LoadZeroExtRegReg:
-            return rewriteLoadAndMoveInstructions(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
+            return rewriteLoadAndMoveInstructions(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
 
         case MicroInstrOpcode::OpBinaryRegMem:
         case MicroInstrOpcode::OpBinaryRegReg:
         case MicroInstrOpcode::CmpRegReg:
         case MicroInstrOpcode::OpBinaryRegImm:
         case MicroInstrOpcode::OpUnaryReg:
-            return rewriteRegisterOperationInstructions(context, changed, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
+            return rewriteRegisterOperationInstructions(context, instRef, inst, ops, deferredKnownDef, deferredAddressDef);
 
         case MicroInstrOpcode::LoadMemReg:
         case MicroInstrOpcode::LoadAmcMemReg:
         case MicroInstrOpcode::OpBinaryMemReg:
         case MicroInstrOpcode::CmpMemReg:
-            return rewriteMemoryOperandInstructions(context, changed, instRef, inst, ops);
+            return rewriteMemoryOperandInstructions(context, instRef, inst, ops);
 
         default:
             break;
@@ -45,7 +45,7 @@ Result MicroConstantPropagationPass::rewriteInstructionFromKnownValues(const Mic
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const
+Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const
 {
     SWC_UNUSED(instRef);
 
@@ -86,7 +86,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const Mic
             if (rewritten)
             {
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
 
             uint64_t knownStackAddressOffset = 0;
@@ -111,7 +111,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const Mic
                     inst.numOperands = 3;
                     ops[1].opBits    = ops[2].opBits;
                     ops[2].valueU64  = normalizedValue;
-                    changed          = true;
+                    context.passChanged = true;
                 }
                 else
                 {
@@ -159,7 +159,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const Mic
             inst.numOperands = 3;
             ops[1].opBits    = ops[2].opBits;
             ops[2].valueU64  = immValue;
-            changed          = true;
+            context.passChanged = true;
             break;
         }
 
@@ -170,7 +170,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(const Mic
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, const DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     SWC_UNUSED(context);
     SWC_UNUSED(instRef);
@@ -193,7 +193,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroP
             inst.numOperands = 3;
             ops[1].opBits    = ops[2].opBits;
             ops[2].valueU64  = MicroPassHelpers::normalizeToOpBits(itKnown->second.value + baseOffset, ops[2].opBits);
-            changed          = true;
+            context.passChanged = true;
 
             if (ops[2].opBits != MicroOpBits::B64)
                 break;
@@ -213,7 +213,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroP
                 inst.op         = MicroInstrOpcode::LoadRegImm;
                 ops[1].opBits   = ops[2].opBits;
                 ops[2].valueU64 = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
-                changed         = true;
+                context.passChanged = true;
 
                 if (ops[2].opBits == MicroOpBits::B64)
                 {
@@ -237,7 +237,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroP
                 inst.numOperands = 3;
                 ops[1].opBits    = ops[2].opBits;
                 ops[2].valueU64  = signExtendToBits(itKnown->second.value, ops[3].opBits, ops[2].opBits);
-                changed          = true;
+                context.passChanged = true;
             }
             break;
         }
@@ -254,7 +254,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroP
                 inst.numOperands = 3;
                 ops[1].opBits    = ops[2].opBits;
                 ops[2].valueU64  = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
-                changed          = true;
+                context.passChanged = true;
             }
             break;
         }
@@ -266,7 +266,7 @@ Result MicroConstantPropagationPass::rewriteLoadAndMoveInstructions(const MicroP
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
+Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef)
 {
     switch (inst.op)
     {
@@ -295,7 +295,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                                 inst.numOperands = 3;
                                 ops[1].opBits    = ops[2].opBits;
                                 ops[2].valueU64  = foldedValue;
-                                changed          = true;
+                                context.passChanged = true;
                                 break;
                             case BinaryFoldResult::SafetyError:
                                 if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
@@ -316,7 +316,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                         ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
                         ops[3].valueU64  = immValue;
                         if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                            changed = true;
+                            context.passChanged = true;
                     }
                 }
             }
@@ -344,7 +344,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                                 inst.numOperands = 3;
                                 ops[1].opBits    = ops[2].opBits;
                                 ops[2].valueU64  = foldedValue;
-                                changed          = true;
+                                context.passChanged = true;
                                 break;
                             case BinaryFoldResult::SafetyError:
                                 if (!MicroPassHelpers::isAddOrSubMicroOp(ops[3].microOp))
@@ -365,7 +365,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                         ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
                         ops[3].valueU64  = immValue;
                         if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                            changed = true;
+                            context.passChanged = true;
                     }
                 }
             }
@@ -381,7 +381,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                         inst.numOperands = 3;
                         ops[1].opBits    = ops[2].opBits;
                         ops[2].valueU64  = immValue;
-                        changed          = true;
+                        context.passChanged = true;
                     }
                 }
             }
@@ -419,7 +419,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                 ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                 ops[2].valueU64  = immValue;
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
             break;
         }
@@ -444,7 +444,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                     inst.numOperands = 3;
                     ops[1].opBits    = opBits;
                     ops[2].valueU64  = foldedValue;
-                    changed          = true;
+                    context.passChanged = true;
 
                     if (opBits == MicroOpBits::B64)
                     {
@@ -481,7 +481,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
                     ops[2].valueU64  = foldedValue;
-                    changed          = true;
+                    context.passChanged = true;
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {
@@ -499,7 +499,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(const 
     return Result::Continue;
 }
 
-Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
 {
     SWC_UNUSED(instRef);
 
@@ -523,7 +523,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const Micr
                 ops[2].valueU64  = rewriteSnapshot.operands[3].valueU64;
                 ops[3].valueU64  = immValue;
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
             break;
         }
@@ -548,7 +548,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const Micr
                 ops[6].valueU64  = rewriteSnapshot.operands[6].valueU64;
                 ops[7].valueU64  = immValue;
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
             break;
         }
@@ -572,7 +572,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const Micr
                 ops[3].valueU64  = rewriteSnapshot.operands[4].valueU64;
                 ops[4].valueU64  = immValue;
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
             break;
         }
@@ -595,7 +595,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(const Micr
                 ops[2].valueU64  = rewriteSnapshot.operands[3].valueU64;
                 ops[3].valueU64  = immValue;
                 if (commitOrRestoreInstrRewrite(context, rewriteSnapshot, inst, ops))
-                    changed = true;
+                    context.passChanged = true;
             }
             break;
         }

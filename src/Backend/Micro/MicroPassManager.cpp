@@ -154,7 +154,7 @@ namespace
         return optimizationIterationLimit(context.builder->backendBuildCfg());
     }
 
-    Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
+    Result runPass(MicroPassContext& context, MicroPass& pass)
     {
         uint64_t storageRevisionBefore = 0;
         if (context.instructions)
@@ -178,14 +178,12 @@ namespace
                 context.builder->markControlFlowGraphMaybeDirty();
         }
 
-        bool changed = context.passChanged;
-        if (changed && context.builder->pruneDeadRelocations())
-            changed = true;
+        if (context.passChanged && context.builder)
+            context.builder->pruneDeadRelocations();
 
         if (shouldPrintPass(context, pass, false))
             printPassInstructions(context, pass, false);
 
-        outChanged = changed;
         return Result::Continue;
     }
 
@@ -194,8 +192,7 @@ namespace
         for (MicroPass* pass : passes)
         {
             SWC_ASSERT(pass != nullptr);
-            bool changed = false;
-            SWC_RESULT_VERIFY(runPass(context, *pass, changed));
+            SWC_RESULT_VERIFY(runPass(context, *pass));
         }
 
         return Result::Continue;
@@ -209,15 +206,14 @@ namespace
         const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
-            bool changed = false;
+            bool iterationMutated = false;
             for (MicroPass* pass : passes)
             {
-                bool passChanged = false;
-                SWC_RESULT_VERIFY(runPass(context, *pass, passChanged));
-                changed = changed || passChanged;
+                SWC_RESULT_VERIFY(runPass(context, *pass));
+                iterationMutated = iterationMutated || context.passChanged;
             }
 
-            if (!changed)
+            if (!iterationMutated)
                 break;
         }
 

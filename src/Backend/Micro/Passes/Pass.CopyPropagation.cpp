@@ -49,7 +49,6 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool changed = false;
     aliases_.clear();
     aliases_.reserve(64);
 
@@ -73,8 +72,8 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             const MicroReg resolvedReg = resolveAlias(aliases_, reg);
             if (resolvedReg != reg && reg.isSameClass(resolvedReg))
             {
-                reg     = resolvedReg;
-                changed = true;
+                reg                 = resolvedReg;
+                context.passChanged = true;
             }
         }
 
@@ -95,7 +94,6 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             aliases_.clear();
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

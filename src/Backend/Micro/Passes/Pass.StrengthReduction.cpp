@@ -49,7 +49,6 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                 changed  = false;
     MicroOperandStorage& operands = *context.operands;
     for (const MicroInstr& inst : context.instructions->view())
     {
@@ -68,7 +67,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     break;
                 ops[2].microOp  = MicroOp::ShiftLeft;
                 ops[3].valueU64 = integerLog2(ops[3].valueU64);
-                changed         = true;
+                context.passChanged = true;
                 break;
 
             case MicroOp::DivideUnsigned:
@@ -76,7 +75,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     break;
                 ops[2].microOp  = MicroOp::ShiftRight;
                 ops[3].valueU64 = integerLog2(ops[3].valueU64);
-                changed         = true;
+                context.passChanged = true;
                 break;
 
             case MicroOp::ModuloUnsigned:
@@ -84,7 +83,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     break;
                 ops[2].microOp  = MicroOp::And;
                 ops[3].valueU64 = ops[3].valueU64 - 1;
-                changed         = true;
+                context.passChanged = true;
                 break;
 
             default:
@@ -92,7 +91,6 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         }
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

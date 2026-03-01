@@ -1435,7 +1435,7 @@ namespace PeepholePass
 
         bool applyCopyCoalescing(const MicroPassContext& context, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, MicroReg dstReg, MicroReg srcReg)
         {
-            bool changed = false;
+            bool replacedAnyUse = false;
 
             for (; scanIt != endIt; ++scanIt)
             {
@@ -1455,12 +1455,12 @@ namespace PeepholePass
                     if (reg != dstReg || !ref.use)
                         continue;
 
-                    reg     = srcReg;
-                    changed = true;
+                    reg            = srcReg;
+                    replacedAnyUse = true;
                 }
             }
 
-            return changed;
+            return replacedAnyUse;
         }
 
         bool coalesceCopyInstruction(const MicroPassContext& context, const Cursor& cursor)

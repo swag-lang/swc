@@ -97,7 +97,6 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                 changed  = false;
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     for (auto it = storage.view().begin(); it != storage.view().end();)
@@ -143,10 +142,9 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         firstOps[2].microOp  = combinedOp;
         firstOps[3].valueU64 = combinedValue;
         storage.erase(nextIt.current);
-        changed = true;
+        context.passChanged = true;
     }
 
-    context.passChanged = changed;
     return Result::Continue;
 }
 

@@ -261,7 +261,7 @@ namespace
         if (remap.empty())
             return false;
 
-        bool  changed  = false;
+        bool  remapped = false;
         auto& operands = *context.operands;
         for (const auto& inst : context.instructions->view())
         {
@@ -281,11 +281,11 @@ namespace
                     continue;
 
                 *SWC_NOT_NULL(microInstrRef.reg) = mapIt->second;
-                changed                          = true;
+                remapped                         = true;
             }
         }
 
-        return changed;
+        return remapped;
     }
 }
 
@@ -301,7 +301,6 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         savedRegSlots_.clear();
         savedRegsStackSubSize_ = 0;
         useFramePointer_       = false;
-        context.passChanged    = false;
         return Result::Continue;
     }
 

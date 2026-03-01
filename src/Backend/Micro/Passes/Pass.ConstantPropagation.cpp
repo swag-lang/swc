@@ -31,9 +31,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         DeferredDef         deferredAddressDef;
 
         // Phase 1: rewrite the instruction from currently known values.
-        if (rewriteMemoryBaseToKnownStack(inst, ops))
-            context.passChanged = true;
-
+        rewriteMemoryBaseToKnownStack(inst, ops);
         SWC_RESULT_VERIFY(rewriteInstructionFromKnownValues(instRef, inst, ops, deferredKnownDef, deferredAddressDef));
 
         // Phase 2: consume defs/calls and invalidate stale state.
@@ -69,24 +67,24 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     return Result::Continue;
 }
 
-bool MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
+void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const
 {
     SWC_ASSERT(context_ != nullptr);
     if (!ops || !stackPointerReg_.isValid())
-        return false;
+        return;
 
     uint8_t memBaseIndex   = 0;
     uint8_t memOffsetIndex = 0;
     if (!MicroInstrInfo::getMemBaseOffsetOperandIndices(memBaseIndex, memOffsetIndex, inst))
-        return false;
+        return;
 
     const MicroReg baseReg = ops[memBaseIndex].reg;
     if (!baseReg.isInt() || baseReg == stackPointerReg_)
-        return false;
+        return;
 
     uint64_t stackOffset = 0;
     if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
-        return false;
+        return;
 
     const MicroReg originalBase   = ops[memBaseIndex].reg;
     const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
@@ -96,9 +94,8 @@ bool MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInst
     {
         ops[memBaseIndex].reg        = originalBase;
         ops[memOffsetIndex].valueU64 = originalOffset;
-        return false;
+        return;
     }
-
-    return true;
+    context_->passChanged = true;
 }
 SWC_END_NAMESPACE();

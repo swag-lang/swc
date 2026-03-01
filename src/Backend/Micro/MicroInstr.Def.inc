@@ -28,7 +28,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero,
+        .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -39,7 +39,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero,
+        .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -218,7 +218,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })
@@ -229,7 +229,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 2,
     })
@@ -309,7 +309,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero,
+        .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -320,7 +320,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::Zero,
+        .flags                 = MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
@@ -411,7 +411,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })
@@ -479,7 +479,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::OpBinaryMemReg,
         .microOpIndex          = 3,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 4,
     })
@@ -490,7 +490,7 @@ SWC_MICRO_INSTR_DEF(
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,
-        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .flags                 = MicroInstrFlagsE::DefinesCpuFlags | MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 3,
     })

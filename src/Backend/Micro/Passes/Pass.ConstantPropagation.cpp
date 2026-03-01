@@ -287,25 +287,6 @@ namespace
         return false;
     }
 
-    bool writesMemory(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::LoadMemImm:
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::OpUnaryMem:
-            case MicroInstrOpcode::OpBinaryMemReg:
-            case MicroInstrOpcode::OpBinaryMemImm:
-            case MicroInstrOpcode::Push:
-            case MicroInstrOpcode::Pop:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     void eraseKnownDefs(KnownRegMap& known, std::span<const MicroReg> defs)
     {
         for (const MicroReg reg : defs)
@@ -1581,7 +1562,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             }
         }
 
-        if (writesMemory(inst) && !handledMemoryWrite)
+        if (MicroInstrInfo::isMemoryWriteInstruction(inst) && !handledMemoryWrite)
         {
             knownStackSlots.clear();
             knownStackAddresses.clear();

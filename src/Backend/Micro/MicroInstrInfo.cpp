@@ -42,6 +42,12 @@ bool MicroInstrInfo::definesCpuFlags(const MicroInstr& inst)
     return info.flags.has(MicroInstrFlagsE::DefinesCpuFlags);
 }
 
+bool MicroInstrInfo::isMemoryWriteInstruction(const MicroInstr& inst)
+{
+    const MicroInstrDef& info = MicroInstr::info(inst.op);
+    return info.flags.has(MicroInstrFlagsE::WritesMemory);
+}
+
 bool MicroInstrInfo::getMemBaseOffsetOperandIndices(uint8_t& outBaseIndex, uint8_t& outOffsetIndex, const MicroInstr& inst)
 {
     const MicroInstrDef& info = MicroInstr::info(inst.op);

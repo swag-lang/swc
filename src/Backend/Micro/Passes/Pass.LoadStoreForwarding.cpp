@@ -94,25 +94,6 @@ namespace
         return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
     }
 
-    bool writesMemory(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::LoadMemImm:
-            case MicroInstrOpcode::LoadAmcMemReg:
-            case MicroInstrOpcode::LoadAmcMemImm:
-            case MicroInstrOpcode::OpUnaryMem:
-            case MicroInstrOpcode::OpBinaryMemReg:
-            case MicroInstrOpcode::OpBinaryMemImm:
-            case MicroInstrOpcode::Push:
-            case MicroInstrOpcode::Pop:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     bool isStackBaseRegister(const MicroPassContext& context, const MicroReg reg)
     {
         const CallConv& conv = CallConv::get(context.callConvKind);
@@ -265,7 +246,7 @@ namespace
         const MicroInstrUseDef useDef = scanInst.collectUseDef(*context.operands, context.encoder);
         if (MicroInstrInfo::isLocalDataflowBarrier(scanInst, useDef))
             return false;
-        if (writesMemory(scanInst))
+        if (MicroInstrInfo::isMemoryWriteInstruction(scanInst))
             return false;
 
         const MicroReg storeBaseReg = storeOps[0].reg;
@@ -361,7 +342,7 @@ namespace
                     invalidateSlotsUsingRegister(slotValues, defReg);
             }
 
-            if (!writesMemory(inst))
+            if (!MicroInstrInfo::isMemoryWriteInstruction(inst))
                 continue;
 
             StackSlotKey slotKey;

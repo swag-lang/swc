@@ -38,6 +38,7 @@ enum class MicroInstrFlagsE : uint16_t
     DefinesCpuFlags          = 1 << 4,
     HasMemBaseOffsetOperands = 1 << 5,
     IsCallInstruction        = 1 << 6,
+    WritesMemory             = 1 << 7,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 

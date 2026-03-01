@@ -10,6 +10,7 @@ namespace MicroInstrInfo
     bool isLocalDataflowBarrier(const MicroInstr& inst, const MicroInstrUseDef& useDef);
     bool usesCpuFlags(const MicroInstr& inst);
     bool definesCpuFlags(const MicroInstr& inst);
+    bool isMemoryWriteInstruction(const MicroInstr& inst);
     bool getMemBaseOffsetOperandIndices(uint8_t& outBaseIndex, uint8_t& outOffsetIndex, const MicroInstr& inst);
 }
 

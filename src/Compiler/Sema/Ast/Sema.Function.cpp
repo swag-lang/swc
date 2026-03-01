@@ -55,7 +55,7 @@ namespace
 {
     bool isCallResultIgnored(const Sema& sema)
     {
-        const AstNode* const parent = sema.visit().parentNode();
+        const AstNode* parent = sema.visit().parentNode();
         if (!parent)
             return false;
 

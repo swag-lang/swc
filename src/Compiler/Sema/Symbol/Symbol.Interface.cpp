@@ -14,7 +14,7 @@ void SymbolInterface::addFunction(SymbolFunction* sym)
 
 Result SymbolInterface::canBeCompleted(Sema& sema) const
 {
-    for (auto* const method : functions_)
+    for (const auto* method : functions_)
     {
         auto& symFunc = method->cast<SymbolFunction>();
         SWC_RESULT_VERIFY(sema.waitSemaCompleted(&symFunc, symFunc.codeRef()));

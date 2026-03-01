@@ -608,7 +608,7 @@ namespace
         ctx.global().jobMgr().waitingJobs(jobs, clientId);
 
         bool doneSomething = false;
-        for (auto* const job : jobs)
+        for (Job* job : jobs)
         {
             const TaskState& state = job->ctx().state();
             if (state.kind == TaskStateKind::SemaWaitCompilerDefined)

@@ -131,7 +131,7 @@ namespace
 
     AstNodeRef extractPureExprRef(Sema& sema, const SymbolFunction& fn)
     {
-        const AstNode* const declNode = fn.decl();
+        const AstNode* declNode = fn.decl();
         if (!declNode)
             return AstNodeRef::invalid();
         if (!declNode->is(AstNodeId::FunctionDecl))
@@ -371,7 +371,7 @@ namespace SemaPurity
 
         SmallVector<IdentifierRef> parameterIds;
         parameterIds.reserve(sym.parameters().size());
-        for (const SymbolVariable* const param : sym.parameters())
+        for (const SymbolVariable* param : sym.parameters())
         {
             SWC_ASSERT(param != nullptr);
             if (param->idRef().isValid())

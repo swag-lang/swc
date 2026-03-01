@@ -36,7 +36,7 @@ namespace
     {
         outDecl = nullptr;
 
-        const AstNode* const declNode = fn.decl();
+        const AstNode* declNode = fn.decl();
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
@@ -383,7 +383,7 @@ namespace
         if (!isAutoInlineScalarType(returnType))
             return false;
 
-        for (const SymbolVariable* const param : fn.parameters())
+        for (const SymbolVariable* param : fn.parameters())
         {
             SWC_ASSERT(param != nullptr);
             const TypeInfo& paramType = sema.typeMgr().get(param->typeRef());

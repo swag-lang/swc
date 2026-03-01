@@ -39,7 +39,7 @@ namespace
     MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
     {
         SWC_ASSERT(copySize > 0);
-        auto* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
+        const auto* storage = codeGen.compiler().allocateArray<std::byte>(copySize);
 
         MicroBuilder&       builder       = codeGen.builder();
         const MicroReg      dstReg        = codeGen.nextVirtualIntRegister();
@@ -86,7 +86,7 @@ namespace
         TypeRef normalizedTypeRef = TypeRef::invalid();
         if (argIndex < params.size())
         {
-            const SymbolVariable* const param = params[argIndex];
+            const SymbolVariable* param = params[argIndex];
             SWC_ASSERT(param != nullptr);
             normalizedTypeRef = param->typeRef();
         }
@@ -426,7 +426,7 @@ namespace
 
         if (!params.empty())
         {
-            const SymbolVariable* const lastParam = params.back();
+            const SymbolVariable* lastParam = params.back();
             SWC_ASSERT(lastParam != nullptr);
 
             const TypeInfo& lastParamType = codeGen.ctx().typeMgr().get(lastParam->typeRef());

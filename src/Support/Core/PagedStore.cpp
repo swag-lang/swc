@@ -124,8 +124,8 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     page->used.store(newUsed, std::memory_order_relaxed);
     totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
 
-    auto* const hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
-    hdr->total      = totalElems;
+    auto* hdr  = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
+    hdr->total = totalElems;
 
     std::memcpy(page->bytes() + dataOffsetF, src, static_cast<size_t>(fit) * elemSize);
 
@@ -153,7 +153,7 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
             pageUsed = 0;
         }
         const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};
-        auto* const   hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
+        auto*         hdr = reinterpret_cast<SpanHdrRaw*>(page->bytes() + pageUsed);
         hdr->total        = 0;
         page->used.store(pageUsed + need, std::memory_order_relaxed);
         totalBytes_ += need;

@@ -40,7 +40,7 @@ namespace
     MicroReg materializeAddressValueCopy(CodeGen& codeGen, MicroReg srcAddressReg, uint32_t copySize)
     {
         SWC_ASSERT(copySize > 0);
-        auto* const storage = codeGen.compiler().allocateArray<std::byte>(copySize);
+        const auto* storage = codeGen.compiler().allocateArray<std::byte>(copySize);
 
         MicroBuilder&       builder       = codeGen.builder();
         const MicroReg      dstReg        = codeGen.nextVirtualIntRegister();
@@ -141,7 +141,7 @@ namespace
         const bool                             hasIndirectReturnArg = normalizedRet.isIndirect;
         for (size_t i = 0; i < params.size(); ++i)
         {
-            const SymbolVariable* const symVar = params[i];
+            const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             outParamInfos[i] = CodeGenFunctionHelpers::functionParameterInfo(codeGen, symbolFunc, *symVar, hasIndirectReturnArg);
         }
@@ -158,7 +158,7 @@ namespace
         registerParamIndices.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
         {
-            const SymbolVariable* const symVar = params[i];
+            const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (!paramInfo.isRegisterArg)
@@ -169,8 +169,8 @@ namespace
 
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
         {
-            const uint32_t              paramIndex = registerParamIndices[i];
-            const SymbolVariable* const symVar     = params[paramIndex];
+            const uint32_t        paramIndex = registerParamIndices[i];
+            const SymbolVariable* symVar     = params[paramIndex];
             SWC_ASSERT(symVar != nullptr);
             const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[paramIndex];
 
@@ -202,7 +202,7 @@ namespace
 
         for (size_t i = 0; i < params.size(); ++i)
         {
-            const SymbolVariable* const symVar = params[i];
+            const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
             const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)

@@ -23,7 +23,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     {
         const MicroInstrRef instRef = it.current;
         MicroInstr&         inst    = *it;
-        auto* const         ops     = inst.ops(*operands_);
+        MicroInstrOperand*  ops     = inst.ops(*operands_);
         DeferredDef         deferredKnownDef;
         DeferredDef         deferredAddressDef;
 

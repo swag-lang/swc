@@ -952,7 +952,7 @@ namespace
         uint32_t    numCommon = numParams;
         if (numParams > 0)
         {
-            const SymbolVariable* const lastParam = params.back();
+            const SymbolVariable* lastParam = params.back();
             SWC_ASSERT(lastParam != nullptr);
             if (lastParam->type(sema.ctx()).isAnyVariadic())
                 numCommon = numParams - 1;
@@ -982,7 +982,7 @@ namespace
         if (numParams == 0)
             return Result::Continue;
 
-        const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+        const SymbolVariable* variadicParam = selectedFn.parameters().back();
         SWC_ASSERT(variadicParam != nullptr);
         const TypeInfo& variadicType = variadicParam->type(sema.ctx());
         if (!variadicType.isTypedVariadic())
@@ -1051,7 +1051,7 @@ namespace
         if (numParams == 0)
             return Result::Continue;
 
-        const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+        const SymbolVariable* variadicParam = selectedFn.parameters().back();
         SWC_ASSERT(variadicParam != nullptr);
         const TypeInfo& variadicType = variadicParam->type(sema.ctx());
         if (!variadicType.isVariadic())
@@ -1137,7 +1137,7 @@ namespace
         uint32_t   variadicParamIdx   = 0;
         if (numParams)
         {
-            const SymbolVariable* const variadicParam = selectedFn.parameters().back();
+            const SymbolVariable* variadicParam = selectedFn.parameters().back();
             SWC_ASSERT(variadicParam != nullptr);
             const TypeInfo& variadicType = variadicParam->type(sema.ctx());
             hasUntypedVariadic           = variadicType.isVariadic();

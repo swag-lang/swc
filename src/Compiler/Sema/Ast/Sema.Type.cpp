@@ -387,7 +387,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 {
     TaskContext& ctx = sema.ctx();
 
-    auto* const symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    auto* symFunc = Symbol::make<SymbolFunction>(ctx, this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
 
     SmallVector<AstNodeRef> params;
     sema.ast().appendNodes(params, spanParamsRef);
@@ -402,7 +402,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         if (param.hasFlag(AstLambdaParamFlagsE::Named))
             idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
 
-        auto* const symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
+        auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
         symVar->setTypeRef(paramTypeRef);
 
         symFunc->addParameter(symVar);

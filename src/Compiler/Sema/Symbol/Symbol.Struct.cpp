@@ -161,7 +161,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 
 Result SymbolStruct::canBeCompleted(Sema& sema) const
 {
-    for (auto* const field : fields_)
+    for (const auto* field : fields_)
     {
         auto& symVar = field->cast<SymbolVariable>();
 
@@ -209,7 +209,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     sizeInBytes_ = 0;
     alignment_   = 1;
 
-    for (auto* const field : fields_)
+    for (SymbolVariable* field : fields_)
     {
         auto&       symVar = field->cast<SymbolVariable>();
         const auto& type   = symVar.typeInfo(ctx);

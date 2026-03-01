@@ -65,7 +65,7 @@ namespace
 
             SmallVector<SymbolFunction*> dependencies;
             function->appendCallDependencies(dependencies);
-            for (auto* const dependency : std::ranges::reverse_view(dependencies))
+            for (auto* dependency : std::ranges::reverse_view(dependencies))
             {
                 if (!dependency || dependency == function)
                     continue;

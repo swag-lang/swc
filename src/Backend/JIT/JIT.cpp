@@ -244,7 +244,7 @@ namespace
 
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
-        auto* const    basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
+        auto*          basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
         const uint64_t patchEndOffset = static_cast<uint64_t>(reloc.codeOffset) + sizeof(uint64_t);
         SWC_FORCE_ASSERT(patchEndOffset <= writableCode.size_bytes());
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));

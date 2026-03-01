@@ -15,7 +15,7 @@ namespace
 {
     bool hasConcreteFunctionCandidate(std::span<const Symbol*> symbols)
     {
-        for (const Symbol* const sym : symbols)
+        for (const Symbol* sym : symbols)
         {
             if (!sym || !sym->isFunction())
                 continue;
@@ -34,7 +34,7 @@ namespace
 
         if (!hasConcreteFunctionCandidate(inSymbols))
         {
-            for (const Symbol* const sym : inSymbols)
+            for (const Symbol* sym : inSymbols)
             {
                 if (sym)
                     outSymbols.push_back(sym);
@@ -42,7 +42,7 @@ namespace
             return;
         }
 
-        for (const Symbol* const sym : inSymbols)
+        for (const Symbol* sym : inSymbols)
         {
             if (!sym)
                 continue;
@@ -70,7 +70,7 @@ namespace
 
         // Currently, "callable" means "function symbol".
         // Extend here later for function pointers/delegates/call-operator types if needed.
-        for (const Symbol* const s : filteredSymbols)
+        for (const Symbol* s : filteredSymbols)
         {
             if (s && s->isFunction())
                 outSymbols.push_back(s);

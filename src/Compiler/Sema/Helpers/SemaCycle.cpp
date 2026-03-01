@@ -130,7 +130,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx_ = &ctx;
     std::unordered_set<const Symbol*> reportedSymbols;
 
-    for (auto* const job : jobs)
+    for (Job* job : jobs)
     {
         const auto& state = job->ctx().state();
         if (state.waiterSymbol && state.symbol)
@@ -139,7 +139,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     detectAndReportCycles();
 
-    for (auto* const job : jobs)
+    for (Job* job : jobs)
     {
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())

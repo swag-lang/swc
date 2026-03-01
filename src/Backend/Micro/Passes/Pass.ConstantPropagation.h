@@ -50,6 +50,10 @@ struct MicroRelocation;
 class MicroStorage;
 class MicroOperandStorage;
 struct MicroInstrUseDef;
+namespace Math
+{
+    enum class FoldStatus : uint8_t;
+}
 
 class MicroConstantPropagationPass final : public MicroPass
 {
@@ -59,6 +63,21 @@ public:
 
 private:
     using DeferredDef = std::optional<std::pair<MicroReg, uint64_t>>;
+    enum class BinaryFoldResult : uint8_t
+    {
+        NotFolded,
+        Folded,
+        SafetyError,
+    };
+
+    struct InstrRewriteSnapshot
+    {
+        static constexpr uint32_t K_MAX_OPERANDS = 8;
+
+        MicroInstrOpcode                              op          = MicroInstrOpcode::Nop;
+        uint8_t                                       numOperands = 0;
+        std::array<MicroInstrOperand, K_MAX_OPERANDS> operands{};
+    };
 
     Result rewriteInstructionFromKnownValues(MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
     Result rewriteLoadFromMemoryInstructions(MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const;
@@ -75,6 +94,29 @@ private:
     void   updateKnownConstantPointersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
     void   updateKnownAddressesForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
     void   applyDeferredAddressDefinition(const DeferredDef& deferredAddressDef);
+    void   eraseOverlappingStackSlots(uint64_t offset, MicroOpBits opBits);
+    void   setKnownStackSlot(uint64_t offset, MicroOpBits opBits, uint64_t value);
+    void   eraseOverlappingStackAddresses(uint64_t offset, MicroOpBits opBits);
+    void   setKnownStackAddress(uint64_t stackSlotOffset, uint64_t stackAddressOffset);
+    bool   tryGetKnownStackAddress(uint64_t& outStackAddressOffset, uint64_t stackSlotOffset, MicroOpBits opBits) const;
+    bool   tryGetKnownStackSlotValue(uint64_t& outValue, uint64_t offset, MicroOpBits opBits) const;
+    bool   tryResolveStackOffset(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;
+    bool   tryResolveStackOffsetForAmc(uint64_t& outOffset, MicroReg baseReg, MicroReg mulReg, uint64_t mulValue, uint64_t addValue) const;
+    bool   callHasStackAddressArgument(CallConvKind callConvKind) const;
+    void   eraseKnownDefs(MicroRegSpan defs);
+    void   eraseKnownAddressDefs(MicroRegSpan defs);
+    void   eraseKnownConstantPointerDefs(MicroRegSpan defs);
+    static bool tryGetPointerBytesRange(std::array<std::byte, 16>& outBytes, uint32_t numBytes, uint64_t pointer, uint64_t offset);
+    void   setKnownStackSlotsFromBytes(uint64_t baseOffset, std::span<const std::byte> bytes);
+    static uint64_t signExtendToBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits);
+    static bool   foldFloatBinaryToBits(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits);
+    static bool   foldConvertFloatToIntToBits(uint64_t& outValue, uint64_t srcBits, MicroOpBits opBits);
+    static BinaryFoldResult tryFoldBinaryImmediateForPropagation(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits, Math::FoldStatus* outSafetyStatus = nullptr);
+    static bool   tryApplyUnsignedAddSubOffset(uint64_t& outValue, uint64_t inValue, uint64_t delta, MicroOp op);
+    static void   captureInstrRewriteSnapshot(InstrRewriteSnapshot& outSnapshot, const MicroInstr& inst, const MicroInstrOperand* ops);
+    static void   restoreInstrRewriteSnapshot(const InstrRewriteSnapshot& snapshot, MicroInstr& inst, MicroInstrOperand* ops);
+    bool          commitOrRestoreInstrRewrite(const InstrRewriteSnapshot& snapshot, MicroInstr& inst, MicroInstrOperand* ops) const;
+    static Math::FoldStatus foldUnaryImmediateToBits(uint64_t& outValue, uint64_t inValue, MicroOp microOp, MicroOpBits opBits);
     void   rewriteMemoryBaseToKnownStack(const MicroInstr& inst, MicroInstrOperand* ops) const;
     void   clearRunContext();
     void   clearState();

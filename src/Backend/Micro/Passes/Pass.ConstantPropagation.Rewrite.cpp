@@ -3,7 +3,6 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
-#include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -24,7 +23,7 @@ void MicroConstantPropagationPass::rewriteMemoryBaseToKnownStack(const MicroInst
         return;
 
     uint64_t stackOffset = 0;
-    if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, baseReg, ops[memOffsetIndex].valueU64))
+    if (!tryResolveStackOffset(stackOffset, baseReg, ops[memOffsetIndex].valueU64))
         return;
 
     const MicroReg originalBase   = ops[memBaseIndex].reg;
@@ -91,7 +90,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
                 break;
 
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffsetForAmc(stackOffset, knownAddresses_, known_, stackPointerReg_, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
+            if (!tryResolveStackOffsetForAmc(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
                 break;
 
             InstrRewriteSnapshot rewriteSnapshot;
@@ -99,7 +98,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
             bool rewritten = false;
 
             uint64_t knownValue = 0;
-            if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[4].opBits))
+            if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[4].opBits))
             {
                 inst.op          = MicroInstrOpcode::LoadRegImm;
                 inst.numOperands = 3;
@@ -119,12 +118,12 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
 
             if (rewritten)
             {
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
 
             uint64_t knownStackAddressOffset = 0;
-            if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses_, stackOffset, ops[3].opBits))
+            if (tryGetKnownStackAddress(knownStackAddressOffset, stackOffset, ops[3].opBits))
                 deferredAddressDef = std::pair{ops[0].reg, knownStackAddressOffset};
             break;
         }
@@ -132,11 +131,11 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
         case MicroInstrOpcode::LoadRegMem:
         {
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[3].valueU64))
+            if (!tryResolveStackOffset(stackOffset, ops[1].reg, ops[3].valueU64))
                 break;
 
             uint64_t knownValue = 0;
-            if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits))
+            if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[2].opBits))
             {
                 const uint64_t normalizedValue = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                 if (ops[0].reg.isInt())
@@ -157,7 +156,7 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
                 break;
 
             uint64_t knownStackAddressOffset = 0;
-            if (tryGetKnownStackAddress(knownStackAddressOffset, knownStackAddresses_, stackOffset, ops[2].opBits))
+            if (tryGetKnownStackAddress(knownStackAddressOffset, stackOffset, ops[2].opBits))
                 deferredAddressDef = std::pair{ops[0].reg, knownStackAddressOffset};
             break;
         }
@@ -169,11 +168,11 @@ Result MicroConstantPropagationPass::rewriteLoadFromMemoryInstructions(MicroInst
                 break;
 
             uint64_t stackOffset = 0;
-            if (!tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[4].valueU64))
+            if (!tryResolveStackOffset(stackOffset, ops[1].reg, ops[4].valueU64))
                 break;
 
             uint64_t knownValue = 0;
-            if (!tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[3].opBits))
+            if (!tryGetKnownStackSlotValue(knownValue, stackOffset, ops[3].opBits))
                 break;
 
             uint64_t immValue = 0;
@@ -310,10 +309,10 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[1].reg, ops[4].valueU64))
+            if (tryResolveStackOffset(stackOffset, ops[1].reg, ops[4].valueU64))
             {
                 uint64_t knownValue = 0;
-                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits))
+                if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[2].opBits))
                 {
                     const uint64_t immValue   = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                     const auto     itKnownDst = known_.find(ops[0].reg);
@@ -349,7 +348,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                         ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                         ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
                         ops[3].valueU64  = immValue;
-                        if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                        if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                             context_->passChanged = true;
                     }
                 }
@@ -398,7 +397,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                         ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                         ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
                         ops[3].valueU64  = immValue;
-                        if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                        if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                             context_->passChanged = true;
                     }
                 }
@@ -452,7 +451,7 @@ Result MicroConstantPropagationPass::rewriteRegisterOperationInstructions(MicroI
                 inst.numOperands = 3;
                 ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                 ops[2].valueU64  = immValue;
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
             break;
@@ -555,7 +554,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstr
                 ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                 ops[2].valueU64  = rewriteSnapshot.operands[3].valueU64;
                 ops[3].valueU64  = immValue;
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
             break;
@@ -580,7 +579,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstr
                 ops[5].valueU64  = rewriteSnapshot.operands[5].valueU64;
                 ops[6].valueU64  = rewriteSnapshot.operands[6].valueU64;
                 ops[7].valueU64  = immValue;
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
             break;
@@ -604,7 +603,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstr
                 ops[2].microOp   = rewriteSnapshot.operands[3].microOp;
                 ops[3].valueU64  = rewriteSnapshot.operands[4].valueU64;
                 ops[4].valueU64  = immValue;
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
             break;
@@ -627,7 +626,7 @@ Result MicroConstantPropagationPass::rewriteMemoryOperandInstructions(MicroInstr
                 ops[1].opBits    = rewriteSnapshot.operands[2].opBits;
                 ops[2].valueU64  = rewriteSnapshot.operands[3].valueU64;
                 ops[3].valueU64  = immValue;
-                if (commitOrRestoreInstrRewrite(*context_, rewriteSnapshot, inst, ops))
+                if (commitOrRestoreInstrRewrite(rewriteSnapshot, inst, ops))
                     context_->passChanged = true;
             }
             break;

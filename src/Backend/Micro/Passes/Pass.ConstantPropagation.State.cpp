@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
-#include "Backend/Micro/Passes/Pass.ConstantPropagation.Private.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -117,10 +116,10 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[2].valueU64))
+            if (tryResolveStackOffset(stackOffset, ops[0].reg, ops[2].valueU64))
             {
                 uint64_t knownValue = 0;
-                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
+                if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[1].opBits))
                 {
                     compareState_.valid  = true;
                     compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[1].opBits);
@@ -144,11 +143,11 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 break;
 
             uint64_t stackOffset = 0;
-            if (tryResolveStackOffset(stackOffset, knownAddresses_, stackPointerReg_, ops[0].reg, ops[3].valueU64))
+            if (tryResolveStackOffset(stackOffset, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t   knownValue = 0;
                 const auto itKnownRhs = known_.find(ops[1].reg);
-                if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits) && itKnownRhs != known_.end())
+                if (tryGetKnownStackSlotValue(knownValue, stackOffset, ops[2].opBits) && itKnownRhs != known_.end())
                 {
                     compareState_.valid  = true;
                     compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
@@ -198,7 +197,7 @@ void MicroConstantPropagationPass::clearControlFlowBoundaryForInstruction(const 
 
 void MicroConstantPropagationPass::clearForCallBoundary(CallConvKind callConvKind)
 {
-    const bool hasStackAddressArg = callHasStackAddressArgument(knownAddresses_, callConvKind);
+    const bool hasStackAddressArg = callHasStackAddressArgument(callConvKind);
     known_.clear();
     if (hasStackAddressArg)
         knownStackSlots_.clear();

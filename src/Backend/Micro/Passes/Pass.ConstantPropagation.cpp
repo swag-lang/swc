@@ -15,49 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct KnownConstant
-    {
-        uint64_t value = 0;
-    };
-
-    struct KnownConstantPointer
-    {
-        uint64_t pointer = 0;
-        uint64_t offset  = 0;
-    };
-
-    struct CompareState
-    {
-        bool        valid  = false;
-        uint64_t    lhs    = 0;
-        uint64_t    rhs    = 0;
-        MicroOpBits opBits = MicroOpBits::B64;
-    };
-
-    struct StackSlotKey
-    {
-        uint64_t    offset = 0;
-        MicroOpBits opBits = MicroOpBits::Zero;
-
-        bool operator==(const StackSlotKey&) const = default;
-    };
-
-    struct StackSlotKeyHash
-    {
-        size_t operator()(const StackSlotKey& key) const
-        {
-            size_t hash = std::hash<uint64_t>{}(key.offset);
-            hash ^= std::hash<uint32_t>{}(static_cast<uint32_t>(key.opBits) + 0x9e3779b9u);
-            return hash;
-        }
-    };
-
-    using KnownRegMap             = std::unordered_map<uint32_t, KnownConstant>;
-    using KnownStackSlotMap       = std::unordered_map<StackSlotKey, KnownConstant, StackSlotKeyHash>;
-    using KnownAddressMap         = std::unordered_map<uint32_t, uint64_t>;
-    using KnownStackAddressMap    = std::unordered_map<uint64_t, uint64_t>;
-    using KnownConstantPointerMap = std::unordered_map<uint32_t, KnownConstantPointer>;
-
     uint32_t opBitsNumBytes(MicroOpBits opBits)
     {
         switch (opBits)
@@ -721,24 +678,17 @@ namespace
     }
 }
 
-struct MicroConstantPropagationPass::RunState
+void MicroConstantPropagationPass::clearState()
 {
-    KnownRegMap                                               known;
-    KnownStackSlotMap                                         knownStackSlots;
-    KnownAddressMap                                           knownAddresses;
-    KnownStackAddressMap                                      knownStackAddresses;
-    KnownConstantPointerMap                                   knownConstantPointers;
-    CompareState                                              compareState;
-    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
-    std::unordered_set<MicroLabelRef>                         referencedLabels;
-};
-
-MicroConstantPropagationPass::MicroConstantPropagationPass() :
-    runState_(std::make_unique<RunState>())
-{
+    known_.clear();
+    knownStackSlots_.clear();
+    knownAddresses_.clear();
+    knownStackAddresses_.clear();
+    knownConstantPointers_.clear();
+    compareState_ = {};
+    relocationByInstructionRef_.clear();
+    referencedLabels_.clear();
 }
-
-MicroConstantPropagationPass::~MicroConstantPropagationPass() = default;
 
 Result MicroConstantPropagationPass::run(MicroPassContext& context)
 {
@@ -747,25 +697,16 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
 
     bool changed = false;
 
-    RunState& runState = *SWC_NOT_NULL(runState_.get());
+    clearState();
 
-    KnownRegMap&             known                      = runState.known;
-    KnownStackSlotMap&       knownStackSlots            = runState.knownStackSlots;
-    KnownAddressMap&         knownAddresses             = runState.knownAddresses;
-    KnownStackAddressMap&    knownStackAddresses        = runState.knownStackAddresses;
-    KnownConstantPointerMap& knownConstantPointers      = runState.knownConstantPointers;
-    CompareState&            compareState               = runState.compareState;
-    auto&                    relocationByInstructionRef = runState.relocationByInstructionRef;
-    auto&                    referencedLabels           = runState.referencedLabels;
-
-    known.clear();
-    knownStackSlots.clear();
-    knownAddresses.clear();
-    knownStackAddresses.clear();
-    knownConstantPointers.clear();
-    compareState = {};
-    relocationByInstructionRef.clear();
-    referencedLabels.clear();
+    KnownRegMap&             known                      = known_;
+    KnownStackSlotMap&       knownStackSlots            = knownStackSlots_;
+    KnownAddressMap&         knownAddresses             = knownAddresses_;
+    KnownStackAddressMap&    knownStackAddresses        = knownStackAddresses_;
+    KnownConstantPointerMap& knownConstantPointers      = knownConstantPointers_;
+    CompareState&            compareState               = compareState_;
+    auto&                    relocationByInstructionRef = relocationByInstructionRef_;
+    auto&                    referencedLabels           = referencedLabels_;
 
     known.reserve(64);
     knownStackSlots.reserve(64);

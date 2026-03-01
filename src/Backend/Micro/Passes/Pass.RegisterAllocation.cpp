@@ -40,15 +40,7 @@ namespace
         return false;
     }
 
-    struct VRegState
-    {
-        MicroReg    phys;
-        uint64_t    spillOffset = 0;
-        MicroOpBits spillBits   = MicroOpBits::B64;
-        bool        mapped      = false;
-        bool        hasSpill    = false;
-        bool        dirty       = false;
-    };
+    using VRegState = MicroRegisterAllocationPass::VRegState;
 
     struct PendingInsert
     {
@@ -69,53 +61,32 @@ namespace
 
     struct PassState
     {
-        MicroPassContext*    context      = nullptr;
-        const CallConv*      conv         = nullptr;
-        MicroStorage*        instructions = nullptr;
-        MicroOperandStorage* operands     = nullptr;
-
-        uint32_t instructionCount = 0;
-        uint64_t spillFrameUsed   = 0;
-        bool     hasControlFlow   = false;
-
-        std::vector<std::vector<uint32_t>>                  liveOut;
-        std::vector<std::vector<uint32_t>>                  concreteLiveOut;
-        std::unordered_set<uint32_t>                        vregsLiveAcrossCall;
-        std::unordered_map<uint32_t, std::vector<uint32_t>> usePositions;
-
-        std::unordered_set<uint32_t> intPersistentSet;
-        std::unordered_set<uint32_t> floatPersistentSet;
-
-        SmallVector<MicroReg> freeIntTransient;
-        SmallVector<MicroReg> freeIntPersistent;
-        SmallVector<MicroReg> freeFloatTransient;
-        SmallVector<MicroReg> freeFloatPersistent;
-
-        std::unordered_map<uint32_t, VRegState> states;
-        std::unordered_map<uint32_t, MicroReg>  mapping;
-        std::unordered_map<uint32_t, uint32_t>  liveStamp;
-        std::unordered_map<uint32_t, uint32_t>  concreteLiveStamp;
-        std::unordered_set<uint32_t>            callSpillVregs;
+        MicroPassContext*&                                                        context;
+        const CallConv*&                                                          conv;
+        MicroStorage*&                                                            instructions;
+        MicroOperandStorage*&                                                     operands;
+        uint32_t&                                                                 instructionCount;
+        uint64_t&                                                                 spillFrameUsed;
+        bool&                                                                     hasControlFlow;
+        std::vector<std::vector<uint32_t>>&                                       liveOut;
+        std::vector<std::vector<uint32_t>>&                                       concreteLiveOut;
+        std::unordered_set<uint32_t>&                                             vregsLiveAcrossCall;
+        std::unordered_map<uint32_t, std::vector<uint32_t>>&                      usePositions;
+        std::unordered_set<uint32_t>&                                             intPersistentSet;
+        std::unordered_set<uint32_t>&                                             floatPersistentSet;
+        SmallVector<MicroReg>&                                                    freeIntTransient;
+        SmallVector<MicroReg>&                                                    freeIntPersistent;
+        SmallVector<MicroReg>&                                                    freeFloatTransient;
+        SmallVector<MicroReg>&                                                    freeFloatPersistent;
+        std::unordered_map<uint32_t, MicroRegisterAllocationPass::VRegState>&     states;
+        std::unordered_map<uint32_t, MicroReg>&                                   mapping;
+        std::unordered_map<uint32_t, uint32_t>&                                   liveStamp;
+        std::unordered_map<uint32_t, uint32_t>&                                   concreteLiveStamp;
+        std::unordered_set<uint32_t>&                                             callSpillVregs;
     };
 
     void initState(PassState& state, MicroPassContext& context)
     {
-        state.liveOut.clear();
-        state.concreteLiveOut.clear();
-        state.vregsLiveAcrossCall.clear();
-        state.usePositions.clear();
-        state.intPersistentSet.clear();
-        state.floatPersistentSet.clear();
-        state.freeIntTransient.clear();
-        state.freeIntPersistent.clear();
-        state.freeFloatTransient.clear();
-        state.freeFloatPersistent.clear();
-        state.states.clear();
-        state.mapping.clear();
-        state.liveStamp.clear();
-        state.concreteLiveStamp.clear();
-        state.callSpillVregs.clear();
-
         state.context          = &context;
         state.conv             = &CallConv::get(context.callConvKind);
         state.instructions     = SWC_NOT_NULL(context.instructions);
@@ -1062,24 +1033,64 @@ namespace
     }
 }
 
-struct MicroRegisterAllocationPass::RunState
+void MicroRegisterAllocationPass::clearState()
 {
-    PassState passState;
-};
+    context_          = nullptr;
+    conv_             = nullptr;
+    instructions_     = nullptr;
+    operands_         = nullptr;
+    instructionCount_ = 0;
+    spillFrameUsed_   = 0;
+    hasControlFlow_   = false;
 
-MicroRegisterAllocationPass::MicroRegisterAllocationPass() :
-    runState_(std::make_unique<RunState>())
-{
+    liveOut_.clear();
+    concreteLiveOut_.clear();
+    vregsLiveAcrossCall_.clear();
+    usePositions_.clear();
+    intPersistentSet_.clear();
+    floatPersistentSet_.clear();
+    freeIntTransient_.clear();
+    freeIntPersistent_.clear();
+    freeFloatTransient_.clear();
+    freeFloatPersistent_.clear();
+    states_.clear();
+    mapping_.clear();
+    liveStamp_.clear();
+    concreteLiveStamp_.clear();
+    callSpillVregs_.clear();
 }
-
-MicroRegisterAllocationPass::~MicroRegisterAllocationPass() = default;
 
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
+    clearState();
+
     // Order matters: liveness/use analysis informs allocation, then we patch IR and finalize frame.
-    PassState& state = SWC_NOT_NULL(runState_.get())->passState;
+    PassState state = {
+        context_,
+        conv_,
+        instructions_,
+        operands_,
+        instructionCount_,
+        spillFrameUsed_,
+        hasControlFlow_,
+        liveOut_,
+        concreteLiveOut_,
+        vregsLiveAcrossCall_,
+        usePositions_,
+        intPersistentSet_,
+        floatPersistentSet_,
+        freeIntTransient_,
+        freeIntPersistent_,
+        freeFloatTransient_,
+        freeFloatPersistent_,
+        states_,
+        mapping_,
+        liveStamp_,
+        concreteLiveStamp_,
+        callSpillVregs_,
+    };
     initState(state, context);
 
     if (!state.instructionCount)

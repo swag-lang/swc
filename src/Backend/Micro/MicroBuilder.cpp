@@ -136,7 +136,7 @@ void MicroBuilder::addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg f
     if (!virtualReg.isVirtual() || !forbiddenReg.isValid() || forbiddenReg.isVirtual())
         return;
 
-    auto& forbiddenRegs = virtualRegForbiddenPhysRegs_[virtualReg.packed];
+    auto& forbiddenRegs = virtualRegForbiddenPhysRegs_[virtualReg];
     for (const auto reg : forbiddenRegs)
     {
         if (reg == forbiddenReg)
@@ -161,15 +161,10 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg ph
     if (!virtualReg.isVirtual())
         return false;
 
-    return isVirtualRegPhysRegForbidden(virtualReg.packed, physReg);
-}
-
-bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const
-{
     if (!physReg.isValid() || physReg.isVirtual())
         return false;
 
-    const auto it = virtualRegForbiddenPhysRegs_.find(virtualRegKey);
+    const auto it = virtualRegForbiddenPhysRegs_.find(virtualReg);
     if (it == virtualRegForbiddenPhysRegs_.end())
         return false;
 
@@ -182,19 +177,23 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg
     return false;
 }
 
+bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const
+{
+    MicroReg virtualReg = MicroReg::invalid();
+    virtualReg.packed   = virtualRegKey;
+    return isVirtualRegPhysRegForbidden(virtualReg, physReg);
+}
+
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
 {
     uint32_t nextIndex = 1;
-    for (const auto& key : virtualRegForbiddenPhysRegs_ | std::views::keys)
+    for (const auto key : virtualRegForbiddenPhysRegs_ | std::views::keys)
     {
-        const uint32_t virtualRegKey = key;
-        MicroReg       reg;
-        reg.packed = virtualRegKey;
-        if (!reg.isVirtualInt())
+        if (!key.isVirtualInt())
             continue;
 
-        if (reg.index() < MicroReg::K_MAX_INDEX)
-            nextIndex = std::max(nextIndex, reg.index() + 1);
+        if (key.index() < MicroReg::K_MAX_INDEX)
+            nextIndex = std::max(nextIndex, key.index() + 1);
         else
             return MicroReg::K_MAX_INDEX;
     }

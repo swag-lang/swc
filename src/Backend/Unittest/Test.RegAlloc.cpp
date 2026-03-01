@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Unittest/UnittestHelpers.h"
 #include "Support/Unittest/Unittest.h"
-#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -321,8 +321,8 @@ namespace
         bool  hasStore = false;
         bool  hasLoad  = false;
 
-        std::unordered_set<uint32_t> spillBaseRegs;
-        spillBaseRegs.insert(conv.stackPointer.packed);
+        std::unordered_set<MicroReg> spillBaseRegs;
+        spillBaseRegs.insert(conv.stackPointer);
 
         for (const auto& inst : builder.instructions().view())
         {
@@ -342,7 +342,7 @@ namespace
             {
                 const MicroInstrOperand* ops = inst.ops(storeOps);
                 if (ops[1].reg == conv.stackPointer && ops[2].opBits == MicroOpBits::B64)
-                    spillBaseRegs.insert(ops[0].reg.packed);
+                    spillBaseRegs.insert(ops[0].reg);
                 continue;
             }
 
@@ -352,10 +352,10 @@ namespace
             const MicroInstrOperand* ops = inst.ops(storeOps);
             if (inst.op == MicroInstrOpcode::LoadMemReg)
             {
-                if (spillBaseRegs.contains(ops[0].reg.packed))
+                if (spillBaseRegs.contains(ops[0].reg))
                     hasStore = true;
             }
-            else if (spillBaseRegs.contains(ops[1].reg.packed))
+            else if (spillBaseRegs.contains(ops[1].reg))
             {
                 hasLoad = true;
             }

@@ -68,7 +68,7 @@ void MicroConstantPropagationPass::collectReferencedLabels()
     MicroPassHelpers::collectReferencedLabels(*storage_, *operands_, referencedLabels_, true);
 }
 
-void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef)
+void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<MicroReg, uint64_t>>& deferredKnownDef)
 {
     switch (inst.op)
     {
@@ -77,7 +77,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (!ops[0].reg.isInt())
                 break;
 
-            const auto itKnown = known_.find(ops[0].reg.packed);
+            const auto itKnown = known_.find(ops[0].reg);
             if (itKnown != known_.end())
             {
                 compareState_.valid  = true;
@@ -96,8 +96,8 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (!ops[0].reg.isInt() || !ops[1].reg.isInt())
                 break;
 
-            const auto itKnownLhs = known_.find(ops[0].reg.packed);
-            const auto itKnownRhs = known_.find(ops[1].reg.packed);
+            const auto itKnownLhs = known_.find(ops[0].reg);
+            const auto itKnownRhs = known_.find(ops[1].reg);
             if (itKnownLhs != known_.end() && itKnownRhs != known_.end())
             {
                 compareState_.valid  = true;
@@ -147,7 +147,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
             {
                 uint64_t   knownValue = 0;
-                const auto itKnownRhs = known_.find(ops[1].reg.packed);
+                const auto itKnownRhs = known_.find(ops[1].reg);
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits) && itKnownRhs != known_.end())
                 {
                     compareState_.valid  = true;
@@ -173,7 +173,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
 
             const std::optional<bool> condValue = MicroPassHelpers::evaluateCondition(ops[1].cpuCond, compareState_.lhs, compareState_.rhs, compareState_.opBits);
             if (condValue.has_value())
-                deferredKnownDef = std::pair{ops[0].reg.packed, static_cast<uint64_t>(*condValue ? 1 : 0)};
+                deferredKnownDef = std::pair{ops[0].reg, static_cast<uint64_t>(*condValue ? 1 : 0)};
             break;
         }
         default:

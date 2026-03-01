@@ -10,7 +10,7 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
-    std::unordered_map<uint32_t, uint64_t> knownValues_;
+    std::unordered_map<MicroReg, uint64_t> knownValues_;
     std::unordered_set<MicroLabelRef>      referencedLabels_;
     bool                                   compareValid_  = false;
     uint64_t                               compareLhs_    = 0;

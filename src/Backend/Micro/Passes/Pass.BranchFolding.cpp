@@ -51,7 +51,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                     {
                         if (ops[0].cpuCond != MicroCond::Unconditional)
                         {
-                            ops[0].cpuCond = MicroCond::Unconditional;
+                            ops[0].cpuCond      = MicroCond::Unconditional;
                             context.passChanged = true;
                         }
                     }
@@ -59,7 +59,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                     {
                         storage.erase(instRef);
                         context.passChanged = true;
-                        compareValid_ = false;
+                        compareValid_       = false;
                         continue;
                     }
                 }
@@ -69,7 +69,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         }
         else if (inst.op == MicroInstrOpcode::CmpRegImm && ops[0].reg.isInt())
         {
-            const auto knownIt = knownValues_.find(ops[0].reg.packed);
+            const auto knownIt = knownValues_.find(ops[0].reg);
             if (knownIt != knownValues_.end())
             {
                 compareValid_  = true;
@@ -84,8 +84,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         }
         else if (inst.op == MicroInstrOpcode::CmpRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
         {
-            const auto lhsIt = knownValues_.find(ops[0].reg.packed);
-            const auto rhsIt = knownValues_.find(ops[1].reg.packed);
+            const auto lhsIt = knownValues_.find(ops[0].reg);
+            const auto rhsIt = knownValues_.find(ops[1].reg);
             if (lhsIt != knownValues_.end() && rhsIt != knownValues_.end())
             {
                 compareValid_  = true;
@@ -105,7 +105,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         for (const MicroReg defReg : useDef.defs)
-            knownValues_.erase(defReg.packed);
+            knownValues_.erase(defReg);
 
         if (useDef.isCall)
         {
@@ -116,36 +116,36 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
 
         if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isInt())
         {
-            knownValues_[ops[0].reg.packed] = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
+            knownValues_[ops[0].reg] = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
         }
         else if (inst.op == MicroInstrOpcode::ClearReg && ops[0].reg.isInt())
         {
-            knownValues_[ops[0].reg.packed] = 0;
+            knownValues_[ops[0].reg] = 0;
         }
         else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
         {
-            const auto sourceIt = knownValues_.find(ops[1].reg.packed);
+            const auto sourceIt = knownValues_.find(ops[1].reg);
             if (sourceIt != knownValues_.end())
             {
-                knownValues_[ops[0].reg.packed] = MicroPassHelpers::normalizeToOpBits(sourceIt->second, ops[2].opBits);
+                knownValues_[ops[0].reg] = MicroPassHelpers::normalizeToOpBits(sourceIt->second, ops[2].opBits);
             }
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg.isInt())
         {
-            const auto valueIt = knownValues_.find(ops[0].reg.packed);
+            const auto valueIt = knownValues_.find(ops[0].reg);
             if (valueIt != knownValues_.end())
             {
                 uint64_t               folded     = 0;
                 const Math::FoldStatus foldStatus = MicroPassHelpers::foldBinaryImmediate(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
-                    knownValues_[ops[0].reg.packed] = folded;
+                    knownValues_[ops[0].reg] = folded;
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {
                     if (MicroPassHelpers::tryFoldAddSubSignedNoOverflow(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                     {
-                        knownValues_[ops[0].reg.packed] = folded;
+                        knownValues_[ops[0].reg] = folded;
                     }
                     else if (!MicroPassHelpers::isAddOrSubMicroOp(ops[2].microOp))
                     {

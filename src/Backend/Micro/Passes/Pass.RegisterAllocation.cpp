@@ -52,7 +52,7 @@ namespace
     struct AllocRequest
     {
         MicroReg virtReg;
-        uint32_t virtKey          = 0;
+        MicroReg virtKey          = MicroReg::invalid();
         bool     needsPersistent  = false;
         bool     isUse            = false;
         bool     isDef            = false;
@@ -68,21 +68,21 @@ namespace
         uint32_t&                                                             instructionCount;
         uint64_t&                                                             spillFrameUsed;
         bool&                                                                 hasControlFlow;
-        std::vector<std::vector<uint32_t>>&                                   liveOut;
-        std::vector<std::vector<uint32_t>>&                                   concreteLiveOut;
-        std::unordered_set<uint32_t>&                                         vregsLiveAcrossCall;
-        std::unordered_map<uint32_t, std::vector<uint32_t>>&                  usePositions;
-        std::unordered_set<uint32_t>&                                         intPersistentSet;
-        std::unordered_set<uint32_t>&                                         floatPersistentSet;
+        std::vector<std::vector<MicroReg>>&                                   liveOut;
+        std::vector<std::vector<MicroReg>>&                                   concreteLiveOut;
+        std::unordered_set<MicroReg>&                                         vregsLiveAcrossCall;
+        std::unordered_map<MicroReg, std::vector<uint32_t>>&                  usePositions;
+        std::unordered_set<MicroReg>&                                         intPersistentSet;
+        std::unordered_set<MicroReg>&                                         floatPersistentSet;
         SmallVector<MicroReg>&                                                freeIntTransient;
         SmallVector<MicroReg>&                                                freeIntPersistent;
         SmallVector<MicroReg>&                                                freeFloatTransient;
         SmallVector<MicroReg>&                                                freeFloatPersistent;
-        std::unordered_map<uint32_t, MicroRegisterAllocationPass::VRegState>& states;
-        std::unordered_map<uint32_t, MicroReg>&                               mapping;
-        std::unordered_map<uint32_t, uint32_t>&                               liveStamp;
-        std::unordered_map<uint32_t, uint32_t>&                               concreteLiveStamp;
-        std::unordered_set<uint32_t>&                                         callSpillVregs;
+        std::unordered_map<MicroReg, MicroRegisterAllocationPass::VRegState>& states;
+        std::unordered_map<MicroReg, MicroReg>&                               mapping;
+        std::unordered_map<MicroReg, uint32_t>&                               liveStamp;
+        std::unordered_map<MicroReg, uint32_t>&                               concreteLiveStamp;
+        std::unordered_set<MicroReg>&                                         callSpillVregs;
     };
 
     void initState(const PassState& state, MicroPassContext& context)
@@ -114,7 +114,7 @@ namespace
         }
     }
 
-    bool isLiveOut(const PassState& state, uint32_t key, uint32_t stamp)
+    bool isLiveOut(const PassState& state, MicroReg key, uint32_t stamp)
     {
         const auto it = state.liveStamp.find(key);
         if (it == state.liveStamp.end())
@@ -127,13 +127,13 @@ namespace
         if (!reg.isInt() && !reg.isFloat())
             return false;
 
-        const auto it = state.concreteLiveStamp.find(reg.packed);
+        const auto it = state.concreteLiveStamp.find(reg);
         if (it == state.concreteLiveStamp.end())
             return false;
         return it->second == stamp;
     }
 
-    bool containsKey(std::span<const uint32_t> keys, uint32_t key)
+    bool containsKey(std::span<const MicroReg> keys, MicroReg key)
     {
         for (const auto value : keys)
         {
@@ -144,28 +144,28 @@ namespace
         return false;
     }
 
-    void addCallConcreteClobberedRegs(std::vector<uint32_t>& defConcreteRegs, const CallConv& callConv)
+    void addCallConcreteClobberedRegs(std::vector<MicroReg>& defConcreteRegs, const CallConv& callConv)
     {
         defConcreteRegs.reserve(defConcreteRegs.size() + callConv.intTransientRegs.size() + callConv.floatTransientRegs.size());
         for (const auto reg : callConv.intTransientRegs)
-            defConcreteRegs.push_back(reg.packed);
+            defConcreteRegs.push_back(reg);
         for (const auto reg : callConv.floatTransientRegs)
-            defConcreteRegs.push_back(reg.packed);
+            defConcreteRegs.push_back(reg);
     }
 
     bool isPersistentPhysReg(const PassState& state, MicroReg reg)
     {
         if (reg.isInt())
-            return state.intPersistentSet.contains(reg.packed);
+            return state.intPersistentSet.contains(reg);
 
         if (reg.isFloat())
-            return state.floatPersistentSet.contains(reg.packed);
+            return state.floatPersistentSet.contains(reg);
 
         SWC_ASSERT(false);
         return false;
     }
 
-    bool isPhysRegForbiddenForVirtual(const PassState& state, uint32_t virtKey, MicroReg physReg)
+    bool isPhysRegForbiddenForVirtual(const PassState& state, MicroReg virtKey, MicroReg physReg)
     {
         SWC_ASSERT(state.context != nullptr);
         SWC_ASSERT(state.context->builder != nullptr);
@@ -174,7 +174,7 @@ namespace
 
     bool tryTakeAllowedPhysical(SmallVector<MicroReg>& pool,
                                 const PassState&       state,
-                                uint32_t               virtKey,
+                                MicroReg               virtKey,
                                 uint32_t               stamp,
                                 bool                   allowConcreteLive,
                                 MicroReg&              outPhys)
@@ -202,7 +202,7 @@ namespace
     {
         if (reg.isInt())
         {
-            if (state.intPersistentSet.contains(reg.packed))
+            if (state.intPersistentSet.contains(reg))
                 state.freeIntPersistent.push_back(reg);
             else
                 state.freeIntTransient.push_back(reg);
@@ -211,7 +211,7 @@ namespace
 
         if (reg.isFloat())
         {
-            if (state.floatPersistentSet.contains(reg.packed))
+            if (state.floatPersistentSet.contains(reg))
                 state.freeFloatPersistent.push_back(reg);
             else
                 state.freeFloatTransient.push_back(reg);
@@ -221,7 +221,7 @@ namespace
         SWC_ASSERT(false);
     }
 
-    uint32_t distanceToNextUse(const PassState& state, uint32_t key, uint32_t instructionIndex)
+    uint32_t distanceToNextUse(const PassState& state, MicroReg key, uint32_t instructionIndex)
     {
         const auto useIt = state.usePositions.find(key);
         if (useIt == state.usePositions.end())
@@ -254,14 +254,14 @@ namespace
             return;
 
         std::vector<MicroInstrUseDef>             useDefs;
-        std::vector<std::vector<uint32_t>>        useVirtual;
-        std::vector<std::vector<uint32_t>>        defVirtual;
-        std::vector<std::vector<uint32_t>>        useConcrete;
-        std::vector<std::vector<uint32_t>>        defConcrete;
-        std::vector<std::unordered_set<uint32_t>> liveInVirtual;
-        std::vector<std::unordered_set<uint32_t>> liveOutVirtual;
-        std::vector<std::unordered_set<uint32_t>> liveInConcrete;
-        std::vector<std::unordered_set<uint32_t>> liveOutConcrete;
+        std::vector<std::vector<MicroReg>>        useVirtual;
+        std::vector<std::vector<MicroReg>>        defVirtual;
+        std::vector<std::vector<MicroReg>>        useConcrete;
+        std::vector<std::vector<MicroReg>>        defConcrete;
+        std::vector<std::unordered_set<MicroReg>> liveInVirtual;
+        std::vector<std::unordered_set<MicroReg>> liveOutVirtual;
+        std::vector<std::unordered_set<MicroReg>> liveInConcrete;
+        std::vector<std::unordered_set<MicroReg>> liveOutConcrete;
 
         useDefs.resize(state.instructionCount);
         useVirtual.resize(state.instructionCount);
@@ -293,17 +293,17 @@ namespace
             for (const auto& reg : useDefs[idx].uses)
             {
                 if (reg.isVirtual())
-                    usesV.push_back(reg.packed);
+                    usesV.push_back(reg);
                 else if (reg.isInt() || reg.isFloat())
-                    usesC.push_back(reg.packed);
+                    usesC.push_back(reg);
             }
 
             for (const auto& reg : useDefs[idx].defs)
             {
                 if (reg.isVirtual())
-                    defsV.push_back(reg.packed);
+                    defsV.push_back(reg);
                 else if (reg.isInt() || reg.isFloat())
-                    defsC.push_back(reg.packed);
+                    defsC.push_back(reg);
             }
 
             if (useDefs[idx].isCall)
@@ -322,8 +322,8 @@ namespace
             {
                 const uint32_t i = static_cast<uint32_t>(rev);
 
-                std::unordered_set<uint32_t> newOutV;
-                std::unordered_set<uint32_t> newOutC;
+                std::unordered_set<MicroReg> newOutV;
+                std::unordered_set<MicroReg> newOutC;
                 const SmallVector<uint32_t>& successors = controlFlowGraph.successors(i);
                 for (const auto succIdx : successors)
                 {
@@ -331,13 +331,13 @@ namespace
                     newOutC.insert(liveInConcrete[succIdx].begin(), liveInConcrete[succIdx].end());
                 }
 
-                std::unordered_set<uint32_t> newInV = newOutV;
+                std::unordered_set<MicroReg> newInV = newOutV;
                 for (const auto defKey : defVirtual[i])
                     newInV.erase(defKey);
                 for (const auto useKey : useVirtual[i])
                     newInV.insert(useKey);
 
-                std::unordered_set<uint32_t> newInC = newOutC;
+                std::unordered_set<MicroReg> newInC = newOutC;
                 for (const auto defKey : defConcrete[i])
                     newInC.erase(defKey);
                 for (const auto useKey : useConcrete[i])
@@ -393,7 +393,7 @@ namespace
                 if (!reg.isVirtual())
                     continue;
 
-                state.usePositions[reg.packed].push_back(idx);
+                state.usePositions[reg].push_back(idx);
             }
 
             ++idx;
@@ -409,10 +409,10 @@ namespace
         state.floatPersistentSet.reserve(state.conv->floatPersistentRegs.size() * 2 + 8);
 
         for (const auto reg : state.conv->intPersistentRegs)
-            state.intPersistentSet.insert(reg.packed);
+            state.intPersistentSet.insert(reg);
 
         for (const auto reg : state.conv->floatPersistentRegs)
-            state.floatPersistentSet.insert(reg.packed);
+            state.floatPersistentSet.insert(reg);
 
         state.freeIntTransient.clear();
         state.freeIntPersistent.clear();
@@ -428,7 +428,7 @@ namespace
             if (reg == state.conv->framePointer)
                 continue;
 
-            if (state.intPersistentSet.contains(reg.packed))
+            if (state.intPersistentSet.contains(reg))
                 state.freeIntPersistent.push_back(reg);
             else
                 state.freeIntTransient.push_back(reg);
@@ -436,7 +436,7 @@ namespace
 
         for (const auto reg : state.conv->floatRegs)
         {
-            if (state.floatPersistentSet.contains(reg.packed))
+            if (state.floatPersistentSet.contains(reg))
                 state.freeFloatPersistent.push_back(reg);
             else
                 state.freeFloatTransient.push_back(reg);
@@ -534,7 +534,7 @@ namespace
             return;
     }
 
-    bool isCandidateBetter(const PassState& state, uint32_t candidateKey, MicroReg candidateReg, uint32_t currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
+    bool isCandidateBetter(const PassState& state, MicroReg candidateKey, MicroReg candidateReg, MicroReg currentBestKey, MicroReg currentBestReg, uint32_t instructionIndex, uint32_t stamp)
     {
         if (!currentBestReg.isValid())
             return true;
@@ -564,23 +564,23 @@ namespace
         if (candidatePersistent != bestPersistent)
             return !candidatePersistent;
 
-        return candidateKey > currentBestKey;
+        return candidateKey.hash() > currentBestKey.hash();
     }
 
     bool selectEvictionCandidate(const PassState&          state,
-                                 uint32_t                  requestVirtKey,
+                                 MicroReg                  requestVirtKey,
                                  uint32_t                  instructionIndex,
                                  bool                      isFloatReg,
                                  bool                      fromPersistentPool,
-                                 std::span<const uint32_t> protectedKeys,
+                                 std::span<const MicroReg> protectedKeys,
                                  uint32_t                  stamp,
                                  bool                      allowConcreteLive,
-                                 uint32_t&                 outVirtKey,
+                                 MicroReg&                 outVirtKey,
                                  MicroReg&                 outPhys)
     {
         // Choose mapped virtual reg that is cheapest to evict under current constraints.
-        outVirtKey = 0;
-        outPhys    = MicroReg{};
+        outVirtKey = MicroReg::invalid();
+        outPhys    = MicroReg::invalid();
 
         for (const auto& [virtKey, physReg] : state.mapping)
         {
@@ -658,7 +658,7 @@ namespace
         return false;
     }
 
-    void unmapVirtReg(const PassState& state, uint32_t virtKey)
+    void unmapVirtReg(const PassState& state, MicroReg virtKey)
     {
         const auto mapIt = state.mapping.find(virtKey);
         if (mapIt == state.mapping.end())
@@ -671,7 +671,7 @@ namespace
             stateIt->second.mapped = false;
     }
 
-    void mapVirtReg(const PassState& state, uint32_t virtKey, MicroReg physReg)
+    void mapVirtReg(const PassState& state, MicroReg virtKey, MicroReg physReg)
     {
         state.mapping[virtKey] = physReg;
 
@@ -681,14 +681,14 @@ namespace
     }
 
     bool selectEvictionCandidateWithFallback(const PassState&          state,
-                                             uint32_t                  requestVirtKey,
+                                             MicroReg                  requestVirtKey,
                                              uint32_t                  instructionIndex,
                                              bool                      isFloatReg,
                                              bool                      preferPersistentPool,
-                                             std::span<const uint32_t> protectedKeys,
+                                             std::span<const MicroReg> protectedKeys,
                                              uint32_t                  stamp,
                                              bool                      allowConcreteLive,
-                                             uint32_t&                 outVirtKey,
+                                             MicroReg&                 outVirtKey,
                                              MicroReg&                 outPhys)
     {
         if (selectEvictionCandidate(state, requestVirtKey, instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, stamp, allowConcreteLive, outVirtKey, outPhys))
@@ -699,7 +699,7 @@ namespace
 
     MicroReg allocatePhysical(PassState&                  state,
                               const AllocRequest&         request,
-                              std::span<const uint32_t>   protectedKeys,
+                              std::span<const MicroReg>   protectedKeys,
                               uint32_t                    stamp,
                               int64_t                     stackDepth,
                               std::vector<PendingInsert>& pending)
@@ -709,7 +709,7 @@ namespace
         if (tryTakeFreePhysical(state, request, stamp, false, physReg))
             return physReg;
 
-        uint32_t victimKey = 0;
+        MicroReg victimKey = MicroReg::invalid();
         MicroReg victimReg;
 
         const bool isFloatReg           = request.virtReg.isVirtualFloat();
@@ -737,7 +737,7 @@ namespace
 
     MicroReg assignVirtReg(PassState&                  state,
                            const AllocRequest&         request,
-                           std::span<const uint32_t>   protectedKeys,
+                           std::span<const MicroReg>   protectedKeys,
                            uint32_t                    stamp,
                            int64_t                     stackDepth,
                            std::vector<PendingInsert>& pending)
@@ -768,7 +768,7 @@ namespace
         // Calls may clobber transient regs; force spill of vulnerable live values before call.
         for (auto it = state.mapping.begin(); it != state.mapping.end();)
         {
-            const uint32_t virtKey = it->first;
+            const MicroReg virtKey = it->first;
             const MicroReg physReg = it->second;
 
             if (!state.callSpillVregs.contains(virtKey) || !isLiveOut(state, virtKey, stamp))
@@ -910,7 +910,7 @@ namespace
             SmallVector<MicroInstrRegOperandRef> regRefs;
             it->collectRegOperands(*state.operands, regRefs, state.context->encoder);
 
-            SmallVector<uint32_t> protectedKeys;
+            SmallVector<MicroReg> protectedKeys;
             protectedKeys.reserve(regRefs.size());
             for (const auto& regRef : regRefs)
             {
@@ -921,8 +921,8 @@ namespace
                 if (!reg.isVirtual())
                     continue;
 
-                if (!containsKey(protectedKeys, reg.packed))
-                    protectedKeys.push_back(reg.packed);
+                if (!containsKey(protectedKeys, reg))
+                    protectedKeys.push_back(reg);
             }
 
             std::vector<PendingInsert> pending;
@@ -939,7 +939,7 @@ namespace
 
                 AllocRequest request;
                 request.virtReg          = reg;
-                request.virtKey          = reg.packed;
+                request.virtKey          = reg;
                 request.isUse            = regRef.use;
                 request.isDef            = regRef.def;
                 request.instructionIndex = idx;

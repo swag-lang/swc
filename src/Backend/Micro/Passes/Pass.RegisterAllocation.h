@@ -36,24 +36,24 @@ private:
     uint64_t spillFrameUsed_   = 0;
     bool     hasControlFlow_   = false;
 
-    std::vector<std::vector<uint32_t>>                  liveOut_;
-    std::vector<std::vector<uint32_t>>                  concreteLiveOut_;
-    std::unordered_set<uint32_t>                        vregsLiveAcrossCall_;
-    std::unordered_map<uint32_t, std::vector<uint32_t>> usePositions_;
+    std::vector<std::vector<MicroReg>>                  liveOut_;
+    std::vector<std::vector<MicroReg>>                  concreteLiveOut_;
+    std::unordered_set<MicroReg>                        vregsLiveAcrossCall_;
+    std::unordered_map<MicroReg, std::vector<uint32_t>> usePositions_;
 
-    std::unordered_set<uint32_t> intPersistentSet_;
-    std::unordered_set<uint32_t> floatPersistentSet_;
+    std::unordered_set<MicroReg> intPersistentSet_;
+    std::unordered_set<MicroReg> floatPersistentSet_;
 
     SmallVector<MicroReg> freeIntTransient_;
     SmallVector<MicroReg> freeIntPersistent_;
     SmallVector<MicroReg> freeFloatTransient_;
     SmallVector<MicroReg> freeFloatPersistent_;
 
-    std::unordered_map<uint32_t, VRegState> states_;
-    std::unordered_map<uint32_t, MicroReg>  mapping_;
-    std::unordered_map<uint32_t, uint32_t>  liveStamp_;
-    std::unordered_map<uint32_t, uint32_t>  concreteLiveStamp_;
-    std::unordered_set<uint32_t>            callSpillVregs_;
+    std::unordered_map<MicroReg, VRegState> states_;
+    std::unordered_map<MicroReg, MicroReg>  mapping_;
+    std::unordered_map<MicroReg, uint32_t>  liveStamp_;
+    std::unordered_map<MicroReg, uint32_t>  concreteLiveStamp_;
+    std::unordered_set<MicroReg>            callSpillVregs_;
 };
 
 SWC_END_NAMESPACE();

@@ -40,11 +40,11 @@ struct StackSlotKeyHash
     }
 };
 
-using KnownRegMap             = std::unordered_map<uint32_t, KnownConstant>;
+using KnownRegMap             = std::unordered_map<MicroReg, KnownConstant>;
 using KnownStackSlotMap       = std::unordered_map<StackSlotKey, KnownConstant, StackSlotKeyHash>;
-using KnownAddressMap         = std::unordered_map<uint32_t, uint64_t>;
+using KnownAddressMap         = std::unordered_map<MicroReg, uint64_t>;
 using KnownStackAddressMap    = std::unordered_map<uint64_t, uint64_t>;
-using KnownConstantPointerMap = std::unordered_map<uint32_t, KnownConstantPointer>;
+using KnownConstantPointerMap = std::unordered_map<MicroReg, KnownConstantPointer>;
 
 struct MicroRelocation;
 class MicroStorage;
@@ -58,7 +58,7 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
-    using DeferredDef = std::optional<std::pair<uint32_t, uint64_t>>;
+    using DeferredDef = std::optional<std::pair<MicroReg, uint64_t>>;
 
     Result      rewriteInstructionFromKnownValues(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
     Result      rewriteLoadFromMemoryInstructions(MicroPassContext& context, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef) const;
@@ -79,7 +79,7 @@ private:
     void        clearState();
     void        initRunState(MicroPassContext& context);
     void        collectReferencedLabels();
-    void        updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef);
+    void        updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<MicroReg, uint64_t>>& deferredKnownDef);
     void        clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
     void        clearForCallBoundary(CallConvKind callConvKind);
     bool        tryResolveStackOffsetFromState(uint64_t& outOffset, MicroReg baseReg, uint64_t baseOffset) const;

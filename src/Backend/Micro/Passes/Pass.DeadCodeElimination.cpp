@@ -13,20 +13,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void addCallArgumentRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
+    void addCallArgumentRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv)
     {
         for (const MicroReg reg : conv.intArgRegs)
-            liveRegs.insert(reg.packed);
+            liveRegs.insert(reg);
         for (const MicroReg reg : conv.floatArgRegs)
-            liveRegs.insert(reg.packed);
+            liveRegs.insert(reg);
     }
 
-    void killCallClobberedRegs(std::unordered_set<uint32_t>& liveRegs, const CallConv& conv)
+    void killCallClobberedRegs(std::unordered_set<MicroReg>& liveRegs, const CallConv& conv)
     {
         for (const MicroReg reg : conv.intTransientRegs)
-            liveRegs.erase(reg.packed);
+            liveRegs.erase(reg);
         for (const MicroReg reg : conv.floatTransientRegs)
-            liveRegs.erase(reg.packed);
+            liveRegs.erase(reg);
     }
 
     bool isFullWidthIntegerWrite(MicroOpBits opBits)
@@ -164,15 +164,15 @@ namespace
         return isRemovableInstruction(inst);
     }
 
-    void addLiveReg(std::unordered_set<uint32_t>& liveRegs, MicroReg reg)
+    void addLiveReg(std::unordered_set<MicroReg>& liveRegs, MicroReg reg)
     {
         if (!reg.isValid() || reg.isNoBase())
             return;
-        liveRegs.insert(reg.packed);
+        liveRegs.insert(reg);
     }
 
-    void transferInstructionLiveness(std::unordered_set<uint32_t>&       outLiveIn,
-                                     const std::unordered_set<uint32_t>& liveOut,
+    void transferInstructionLiveness(std::unordered_set<MicroReg>&       outLiveIn,
+                                     const std::unordered_set<MicroReg>& liveOut,
                                      const MicroInstr&                   inst,
                                      const MicroInstrUseDef&             useDef,
                                      CallConvKind                        callConvKind)
@@ -195,15 +195,15 @@ namespace
             // Calls clobber transient regs and consume argument regs.
             // Do not apply generic def-kill here: call defs can overlap arg regs.
             for (const MicroReg useReg : useDef.uses)
-                outLiveIn.insert(useReg.packed);
+                outLiveIn.insert(useReg);
             return;
         }
 
         for (const MicroReg defReg : useDef.defs)
-            outLiveIn.erase(defReg.packed);
+            outLiveIn.erase(defReg);
 
         for (const MicroReg useReg : useDef.uses)
-            outLiveIn.insert(useReg.packed);
+            outLiveIn.insert(useReg);
     }
 
     bool eliminateDeadPureDefsByBackwardLivenessCfg(MicroStorage&                storage,
@@ -217,8 +217,8 @@ namespace
             return false;
 
         const size_t                              instructionCount = instructionRefs.size();
-        std::vector<std::unordered_set<uint32_t>> liveIn(instructionCount);
-        std::vector<std::unordered_set<uint32_t>> liveOut(instructionCount);
+        std::vector<std::unordered_set<MicroReg>> liveIn(instructionCount);
+        std::vector<std::unordered_set<MicroReg>> liveOut(instructionCount);
         bool                                      dataflowUpdated = true;
         while (dataflowUpdated)
         {
@@ -234,7 +234,7 @@ namespace
 
                 const MicroInstrUseDef useDef = inst->collectUseDef(operands, encoder);
 
-                std::unordered_set<uint32_t> newLiveOut;
+                std::unordered_set<MicroReg> newLiveOut;
                 const SmallVector<uint32_t>& successors = controlFlowGraph.successors(static_cast<uint32_t>(idx));
                 for (const uint32_t successorIndexRef : successors)
                 {
@@ -242,12 +242,12 @@ namespace
                     if (successorIndex >= liveIn.size())
                         continue;
 
-                    const std::unordered_set<uint32_t>& successorLiveIn = liveIn[successorIndex];
-                    for (const uint32_t regKey : successorLiveIn)
-                        newLiveOut.insert(regKey);
+                    const std::unordered_set<MicroReg>& successorLiveIn = liveIn[successorIndex];
+                    for (const MicroReg reg : successorLiveIn)
+                        newLiveOut.insert(reg);
                 }
 
-                std::unordered_set<uint32_t> newLiveIn;
+                std::unordered_set<MicroReg> newLiveIn;
                 transferInstructionLiveness(newLiveIn, newLiveOut, *inst, useDef, callConvKind);
 
                 if (newLiveOut != liveOut[idx] || newLiveIn != liveIn[idx])
@@ -274,7 +274,7 @@ namespace
             if (!isBackwardDeadDefRemovableInstruction(*inst) || !isPureDefCandidate(*inst, useDef, encoder, callConvKind))
                 continue;
 
-            const uint32_t defRegKey = useDef.defs.front().packed;
+            const MicroReg defRegKey = useDef.defs.front();
             if (liveOut[i].contains(defRegKey))
                 continue;
 
@@ -293,7 +293,7 @@ namespace
     bool eliminateDeadPureDefsByBackwardLivenessLinearTail(MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder, CallConvKind callConvKind)
     {
         bool                         removedAny = false;
-        std::unordered_set<uint32_t> liveRegs;
+        std::unordered_set<MicroReg> liveRegs;
         liveRegs.reserve(64);
 
         std::vector<MicroInstrRef> eraseList;
@@ -320,7 +320,7 @@ namespace
                 killCallClobberedRegs(liveRegs, convAtCall);
                 addCallArgumentRegs(liveRegs, convAtCall);
                 for (const MicroReg useReg : useDef.uses)
-                    liveRegs.insert(useReg.packed);
+                    liveRegs.insert(useReg);
                 continue;
             }
 
@@ -345,13 +345,13 @@ namespace
             if (!isBackwardDeadDefRemovableInstruction(inst) || !isPureDefCandidate(inst, useDef, encoder, callConvKind))
             {
                 for (const MicroReg defReg : useDef.defs)
-                    liveRegs.erase(defReg.packed);
+                    liveRegs.erase(defReg);
                 for (const MicroReg useReg : useDef.uses)
-                    liveRegs.insert(useReg.packed);
+                    liveRegs.insert(useReg);
                 continue;
             }
 
-            const uint32_t defKey = useDef.defs.front().packed;
+            const MicroReg defKey = useDef.defs.front();
             if (!liveRegs.contains(defKey))
             {
                 eraseList.push_back(instRef);
@@ -360,9 +360,9 @@ namespace
             }
 
             for (const MicroReg defReg : useDef.defs)
-                liveRegs.erase(defReg.packed);
+                liveRegs.erase(defReg);
             for (const MicroReg useReg : useDef.uses)
-                liveRegs.insert(useReg.packed);
+                liveRegs.insert(useReg);
         }
 
         for (const MicroInstrRef ref : eraseList)
@@ -421,14 +421,14 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
         }
 
         for (const MicroReg useReg : useDef.uses)
-            lastPureDefByReg_.erase(useReg.packed);
+            lastPureDefByReg_.erase(useReg);
 
         for (const MicroReg defReg : useDef.defs)
         {
             if (!canCurrentDefKillPreviousPureDef(inst, ops, defReg))
                 continue;
 
-            const auto previousDefIt = lastPureDefByReg_.find(defReg.packed);
+            const auto previousDefIt = lastPureDefByReg_.find(defReg);
             if (previousDefIt != lastPureDefByReg_.end())
             {
                 storage.erase(previousDefIt->second);
@@ -440,7 +440,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
         const bool trackAsPureDef = isPureDefCandidate(inst, useDef, context.encoder, context.callConvKind);
 
         if (trackAsPureDef)
-            lastPureDefByReg_[useDef.defs.front().packed] = currentRef;
+            lastPureDefByReg_[useDef.defs.front()] = currentRef;
     }
 
     if (eliminateDeadPureDefsByBackwardLiveness(context, storage, operands, context.encoder, context.callConvKind))

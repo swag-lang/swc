@@ -161,7 +161,7 @@ private:
     Runtime::BuildCfgBackend                            backendBuildCfg_{};
     std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
-    std::unordered_map<uint32_t, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
+    std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
     MicroPassManager                                    passManager_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;

@@ -31,7 +31,7 @@ namespace
     {
         size_t operator()(const StackSlotKey& key) const
         {
-            size_t hashValue = std::hash<uint32_t>{}(key.baseReg.packed);
+            size_t hashValue = std::hash<MicroReg>{}(key.baseReg);
             hashValue ^= std::hash<uint64_t>{}(key.offset) + 0x9e3779b97f4a7c15ull + (hashValue << 6) + (hashValue >> 2);
             hashValue ^= std::hash<uint8_t>{}(static_cast<uint8_t>(key.opBits)) + 0x9e3779b97f4a7c15ull + (hashValue << 6) + (hashValue >> 2);
             return hashValue;

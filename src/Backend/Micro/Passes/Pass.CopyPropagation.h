@@ -10,7 +10,7 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
-    std::unordered_map<uint32_t, MicroReg> aliases_;
+    std::unordered_map<MicroReg, MicroReg> aliases_;
 };
 
 SWC_END_NAMESPACE();

@@ -60,8 +60,9 @@ struct MicroReg
     static constexpr MicroReg instructionPointer() { return MicroReg(MicroRegKind::Special, static_cast<uint32_t>(MicroRegSpecial::InstructionPointer)); }
     static constexpr MicroReg noBase() { return MicroReg(MicroRegKind::Special, static_cast<uint32_t>(MicroRegSpecial::NoBase)); }
 
-    constexpr bool operator==(const MicroReg& other) const { return packed == other.packed; }
-    constexpr bool operator!=(const MicroReg& other) const { return packed != other.packed; }
+    constexpr uint32_t hash() const { return packed; }
+    constexpr bool     operator==(const MicroReg& other) const { return packed == other.packed; }
+    constexpr bool     operator!=(const MicroReg& other) const { return packed != other.packed; }
 };
 
 using MicroRegSpan = std::span<const MicroReg>;
@@ -78,3 +79,12 @@ constexpr bool microRegSpanContains(const MicroRegSpan regs, const MicroReg reg)
 }
 
 SWC_END_NAMESPACE();
+
+template<>
+struct std::hash<swc::MicroReg>
+{
+    size_t operator()(const swc::MicroReg& reg) const noexcept
+    {
+        return std::hash<uint32_t>{}(reg.hash());
+    }
+};

@@ -116,7 +116,7 @@ namespace
             return true;
         }
 
-        const auto itAddress = knownAddresses.find(baseReg.packed);
+        const auto itAddress = knownAddresses.find(baseReg);
         if (itAddress == knownAddresses.end())
             return false;
 
@@ -130,7 +130,7 @@ namespace
         if (!tryResolveStackOffset(baseOffset, knownAddresses, stackPointerReg, baseReg, 0))
             return false;
 
-        const auto itKnownMul = known.find(mulReg.packed);
+        const auto itKnownMul = known.find(mulReg);
         if (itKnownMul == known.end())
             return false;
 
@@ -151,7 +151,7 @@ namespace
         const CallConv& callConv = CallConv::get(callConvKind);
         for (const MicroReg argReg : callConv.intArgRegs)
         {
-            if (knownAddresses.contains(argReg.packed))
+            if (knownAddresses.contains(argReg))
                 return true;
         }
 
@@ -194,7 +194,7 @@ namespace
     {
         for (const MicroReg reg : defs)
         {
-            known.erase(reg.packed);
+            known.erase(reg);
         }
     }
 
@@ -202,14 +202,14 @@ namespace
     {
         for (const MicroReg reg : defs)
         {
-            knownAddresses.erase(reg.packed);
+            knownAddresses.erase(reg);
         }
     }
 
     void eraseKnownConstantPointerDefs(KnownConstantPointerMap& knownConstantPointers, MicroRegSpan defs)
     {
         for (const MicroReg reg : defs)
-            knownConstantPointers.erase(reg.packed);
+            knownConstantPointers.erase(reg);
     }
 
     bool tryGetPointerBytesRange(std::array<std::byte, 16>& outBytes, uint32_t numBytes, uint64_t pointer, uint64_t offset)

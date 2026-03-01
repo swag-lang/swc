@@ -12,12 +12,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    MicroReg resolveAlias(const std::unordered_map<uint32_t, MicroReg>& aliases, MicroReg reg)
+    MicroReg resolveAlias(const std::unordered_map<MicroReg, MicroReg>& aliases, MicroReg reg)
     {
         MicroReg current = reg;
         for (uint32_t depth = 0; depth < 32; ++depth)
         {
-            const auto it = aliases.find(current.packed);
+            const auto it = aliases.find(current);
             if (it == aliases.end())
                 return current;
             if (it->second == current)
@@ -28,11 +28,11 @@ namespace
         return current;
     }
 
-    void killAliasForDefinition(std::unordered_map<uint32_t, MicroReg>& aliases, MicroReg reg)
+    void killAliasForDefinition(std::unordered_map<MicroReg, MicroReg>& aliases, MicroReg reg)
     {
         for (auto it = aliases.begin(); it != aliases.end();)
         {
-            if (it->first == reg.packed || it->second == reg)
+            if (it->first == reg || it->second == reg)
             {
                 it = aliases.erase(it);
                 continue;
@@ -87,7 +87,7 @@ Result MicroCopyPropagationPass::run(MicroPassContext& context)
             const MicroReg           dstReg  = instOps[0].reg;
             const MicroReg           srcReg  = resolveAlias(aliases_, instOps[1].reg);
             if (dstReg != srcReg && dstReg.isSameClass(srcReg) && instOps[2].opBits == MicroOpBits::B64)
-                aliases_[dstReg.packed] = srcReg;
+                aliases_[dstReg] = srcReg;
         }
 
         if (MicroInstrInfo::isLocalDataflowBarrier(inst, useDef))

@@ -76,7 +76,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
             uint64_t stackOffset = 0;
             if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[3].valueU64))
             {
-                const auto itKnownReg = known_.find(ops[1].reg.packed);
+                const auto itKnownReg = known_.find(ops[1].reg);
                 if (itKnownReg != known_.end())
                     setKnownStackSlot(knownStackSlots_, stackOffset, ops[2].opBits, itKnownReg->second.value);
                 else if (!tryTrackConstantPointerStackCopy(stackOffset, ops[2].opBits, ops[1].reg, prevInst, prevOps))
@@ -84,7 +84,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
 
                 if (ops[2].opBits == MicroOpBits::B64)
                 {
-                    const auto itKnownAddress = knownAddresses_.find(ops[1].reg.packed);
+                    const auto itKnownAddress = knownAddresses_.find(ops[1].reg);
                     if (itKnownAddress != knownAddresses_.end())
                         setKnownStackAddress(knownStackAddresses_, stackOffset, itKnownAddress->second);
                     else
@@ -115,7 +115,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
             uint64_t stackOffset = 0;
             if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64))
             {
-                const auto itKnownReg = known_.find(ops[2].reg.packed);
+                const auto itKnownReg = known_.find(ops[2].reg);
                 if (itKnownReg != known_.end())
                     setKnownStackSlot(knownStackSlots_, stackOffset, ops[4].opBits, itKnownReg->second.value);
                 else
@@ -123,7 +123,7 @@ Result MicroConstantPropagationPass::trackStackStoreInstruction(const MicroInstr
 
                 if (ops[4].opBits == MicroOpBits::B64)
                 {
-                    const auto itKnownAddress = knownAddresses_.find(ops[2].reg.packed);
+                    const auto itKnownAddress = knownAddresses_.find(ops[2].reg);
                     if (itKnownAddress != knownAddresses_.end())
                         setKnownStackAddress(knownStackAddresses_, stackOffset, itKnownAddress->second);
                     else
@@ -177,7 +177,7 @@ Result MicroConstantPropagationPass::trackStackMutationInstruction(const MicroPa
             if (tryResolveStackOffsetFromState(stackOffset, ops[0].reg, ops[4].valueU64))
             {
                 uint64_t   knownValue = 0;
-                const auto itKnownReg = known_.find(ops[1].reg.packed);
+                const auto itKnownReg = known_.find(ops[1].reg);
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits) && itKnownReg != known_.end())
                 {
                     uint64_t foldedValue = 0;
@@ -243,7 +243,7 @@ bool MicroConstantPropagationPass::tryTrackConstantPointerStackCopy(uint64_t sta
     if (prevOps[0].reg != sourceReg || prevOps[2].opBits != slotOpBits || !prevOps[1].reg.isInt())
         return false;
 
-    const auto itConstPtr = knownConstantPointers_.find(prevOps[1].reg.packed);
+    const auto itConstPtr = knownConstantPointers_.find(prevOps[1].reg);
     if (itConstPtr == knownConstantPointers_.end())
         return false;
 
@@ -262,17 +262,17 @@ Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const Mi
     switch (inst.op)
     {
         case MicroInstrOpcode::LoadRegImm:
-            known_[ops[0].reg.packed] = {
+            known_[ops[0].reg] = {
                 .value = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
             };
             break;
 
         case MicroInstrOpcode::LoadRegReg:
         {
-            const auto itKnown = known_.find(ops[1].reg.packed);
+            const auto itKnown = known_.find(ops[1].reg);
             if (itKnown != known_.end())
             {
-                known_[ops[0].reg.packed] = {
+                known_[ops[0].reg] = {
                     .value = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits),
                 };
             }
@@ -280,7 +280,7 @@ Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const Mi
         }
 
         case MicroInstrOpcode::ClearReg:
-            known_[ops[0].reg.packed] = {
+            known_[ops[0].reg] = {
                 .value = 0,
             };
             break;
@@ -290,7 +290,7 @@ Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const Mi
             if (!ops[0].reg.isInt())
                 break;
 
-            const auto itKnown = known_.find(ops[0].reg.packed);
+            const auto itKnown = known_.find(ops[0].reg);
             if (itKnown != known_.end())
             {
                 uint64_t               foldedValue  = 0;
@@ -298,7 +298,7 @@ Result MicroConstantPropagationPass::updateKnownRegistersForInstruction(const Mi
                 const BinaryFoldResult foldResult   = tryFoldBinaryImmediateForPropagation(foldedValue, itKnown->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits, &safetyStatus);
                 if (foldResult == BinaryFoldResult::Folded)
                 {
-                    known_[ops[0].reg.packed] = {
+                    known_[ops[0].reg] = {
                         .value = foldedValue,
                     };
                 }
@@ -352,14 +352,14 @@ void MicroConstantPropagationPass::updateKnownConstantPointersForInstruction(Mic
 
             if (canTrackConstantPointer && ops[2].valueU64)
             {
-                knownConstantPointers_[ops[0].reg.packed] = {
+                knownConstantPointers_[ops[0].reg] = {
                     .pointer = ops[2].valueU64,
                     .offset  = 0,
                 };
             }
             else
             {
-                knownConstantPointers_.erase(ops[0].reg.packed);
+                knownConstantPointers_.erase(ops[0].reg);
             }
             break;
         }
@@ -369,14 +369,14 @@ void MicroConstantPropagationPass::updateKnownConstantPointersForInstruction(Mic
             if (!ops[0].reg.isInt() || !ops[1].reg.isInt() || ops[2].opBits != MicroOpBits::B64)
                 break;
 
-            const auto itConstPtr = knownConstantPointers_.find(ops[1].reg.packed);
+            const auto itConstPtr = knownConstantPointers_.find(ops[1].reg);
             if (itConstPtr != knownConstantPointers_.end())
             {
-                knownConstantPointers_[ops[0].reg.packed] = itConstPtr->second;
+                knownConstantPointers_[ops[0].reg] = itConstPtr->second;
             }
             else
             {
-                knownConstantPointers_.erase(ops[0].reg.packed);
+                knownConstantPointers_.erase(ops[0].reg);
             }
             break;
         }
@@ -386,19 +386,19 @@ void MicroConstantPropagationPass::updateKnownConstantPointersForInstruction(Mic
             if (!ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64)
                 break;
 
-            const auto itConstPtr = knownConstantPointers_.find(ops[0].reg.packed);
+            const auto itConstPtr = knownConstantPointers_.find(ops[0].reg);
             if (itConstPtr != knownConstantPointers_.end())
             {
                 auto     knownConstPtr = itConstPtr->second;
                 uint64_t updatedOffset = 0;
                 if (tryApplyUnsignedAddSubOffset(updatedOffset, knownConstPtr.offset, ops[3].valueU64, ops[2].microOp))
                 {
-                    knownConstPtr.offset                      = updatedOffset;
-                    knownConstantPointers_[ops[0].reg.packed] = knownConstPtr;
+                    knownConstPtr.offset               = updatedOffset;
+                    knownConstantPointers_[ops[0].reg] = knownConstPtr;
                 }
                 else
                 {
-                    knownConstantPointers_.erase(ops[0].reg.packed);
+                    knownConstantPointers_.erase(ops[0].reg);
                 }
             }
             break;
@@ -419,7 +419,7 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
                 break;
             uint64_t stackOffset = 0;
             if (tryResolveStackOffsetFromState(stackOffset, ops[1].reg, ops[3].valueU64))
-                knownAddresses_[ops[0].reg.packed] = stackOffset;
+                knownAddresses_[ops[0].reg] = stackOffset;
             break;
         }
         case MicroInstrOpcode::LoadAddrAmcRegMem:
@@ -429,7 +429,7 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
             uint64_t stackOffset = 0;
             if (tryResolveStackOffsetForAmcFromState(stackOffset, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64))
             {
-                knownAddresses_[ops[0].reg.packed] = stackOffset;
+                knownAddresses_[ops[0].reg] = stackOffset;
             }
             break;
         }
@@ -439,13 +439,13 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
                 break;
             if (ops[1].reg == stackPointerReg_)
             {
-                knownAddresses_[ops[0].reg.packed] = 0;
+                knownAddresses_[ops[0].reg] = 0;
             }
             else
             {
-                const auto itAddress = knownAddresses_.find(ops[1].reg.packed);
+                const auto itAddress = knownAddresses_.find(ops[1].reg);
                 if (itAddress != knownAddresses_.end())
-                    knownAddresses_[ops[0].reg.packed] = itAddress->second;
+                    knownAddresses_[ops[0].reg] = itAddress->second;
             }
             break;
         }
@@ -453,12 +453,12 @@ void MicroConstantPropagationPass::updateKnownAddressesForInstruction(const Micr
         {
             if (!ops[0].reg.isInt() || ops[1].opBits != MicroOpBits::B64)
                 break;
-            const auto itAddress = knownAddresses_.find(ops[0].reg.packed);
+            const auto itAddress = knownAddresses_.find(ops[0].reg);
             if (itAddress != knownAddresses_.end())
             {
                 uint64_t updatedOffset = 0;
                 if (tryApplyUnsignedAddSubOffset(updatedOffset, itAddress->second, ops[3].valueU64, ops[2].microOp))
-                    knownAddresses_[ops[0].reg.packed] = updatedOffset;
+                    knownAddresses_[ops[0].reg] = updatedOffset;
             }
             break;
         }

@@ -50,7 +50,7 @@ namespace
         return false;
     }
 
-    void collectUsedConcreteRegs(const MicroPassContext& context, std::unordered_set<uint32_t>& outUsedRegs)
+    void collectUsedConcreteRegs(const MicroPassContext& context, std::unordered_set<MicroReg>& outUsedRegs)
     {
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
@@ -70,7 +70,7 @@ namespace
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
-                outUsedRegs.insert(reg.packed);
+                outUsedRegs.insert(reg);
             }
         }
     }
@@ -184,7 +184,7 @@ namespace
         return true;
     }
 
-    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<uint32_t>& usedRegs, const std::unordered_set<uint32_t>& pickedTransientRegs, MicroReg& outReg)
+    bool tryPickUnusedTransientIntReg(const CallConv& conv, const std::unordered_set<MicroReg>& usedRegs, const std::unordered_set<MicroReg>& pickedTransientRegs, MicroReg& outReg)
     {
         for (const MicroReg reg : conv.intTransientRegs)
         {
@@ -192,9 +192,9 @@ namespace
                 continue;
             if (!isSafeTransientReplacementIntReg(conv, reg))
                 continue;
-            if (usedRegs.contains(reg.packed))
+            if (usedRegs.contains(reg))
                 continue;
-            if (pickedTransientRegs.contains(reg.packed))
+            if (pickedTransientRegs.contains(reg))
                 continue;
 
             outReg = reg;
@@ -209,7 +209,7 @@ namespace
         if (hasCallInstruction(context))
             return false;
 
-        std::unordered_set<uint32_t> usedRegs;
+        std::unordered_set<MicroReg> usedRegs;
         collectUsedConcreteRegs(context, usedRegs);
         if (usedRegs.empty())
             return false;
@@ -219,7 +219,7 @@ namespace
 
         if (conv.framePointer.isValid() &&
             conv.isIntPersistentReg(conv.framePointer) &&
-            usedRegs.contains(conv.framePointer.packed) &&
+            usedRegs.contains(conv.framePointer) &&
             isFramePointerLocallyInitializedFromStackPointer(context, conv))
         {
             remapCandidates.push_back(conv.framePointer);
@@ -231,7 +231,7 @@ namespace
                 continue;
             if (persistentReg == conv.framePointer)
                 continue;
-            if (!usedRegs.contains(persistentReg.packed))
+            if (!usedRegs.contains(persistentReg))
                 continue;
             if (!isRegDefinedBeforeAnyUse(context, persistentReg))
                 continue;
@@ -242,8 +242,8 @@ namespace
         if (remapCandidates.empty())
             return false;
 
-        std::unordered_set<uint32_t>           pickedTransientRegs;
-        std::unordered_map<uint32_t, MicroReg> remap;
+        std::unordered_set<MicroReg>           pickedTransientRegs;
+        std::unordered_map<MicroReg, MicroReg> remap;
         pickedTransientRegs.reserve(remapCandidates.size() * 2 + 1);
         remap.reserve(remapCandidates.size() * 2 + 1);
 
@@ -253,9 +253,9 @@ namespace
             if (!tryPickUnusedTransientIntReg(conv, usedRegs, pickedTransientRegs, replacementReg))
                 continue;
 
-            remap[persistentReg.packed] = replacementReg;
-            pickedTransientRegs.insert(replacementReg.packed);
-            usedRegs.insert(replacementReg.packed);
+            remap[persistentReg] = replacementReg;
+            pickedTransientRegs.insert(replacementReg);
+            usedRegs.insert(replacementReg);
         }
 
         if (remap.empty())
@@ -276,7 +276,7 @@ namespace
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
-                const auto mapIt = remap.find(reg.packed);
+                const auto mapIt = remap.find(reg);
                 if (mapIt == remap.end())
                     continue;
 

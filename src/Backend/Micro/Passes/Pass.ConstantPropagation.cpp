@@ -674,12 +674,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     deferredAddressDef = std::pair{ops[0].reg.packed, itAddress->second + baseOffset};
                 break;
             }
-            default:
-                break;
-        }
-
-        switch (inst.op)
-        {
             case MicroInstrOpcode::LoadRegReg:
             {
                 const MicroReg sourceReg = ops[1].reg;
@@ -950,12 +944,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 }
                 break;
             }
-            default:
-                break;
-        }
-
-        switch (inst.op)
-        {
             case MicroInstrOpcode::LoadMemReg:
             {
                 if (!ops[1].reg.isInt())

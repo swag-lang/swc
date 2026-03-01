@@ -278,9 +278,9 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 Result MicroPassManager::run(MicroPassContext& context) const
 {
     SWC_ASSERT(context.instructions != nullptr);
-    context.printInstrCountBefore = context.instructions->count();
-
     SWC_RESULT_VERIFY(runLinearPasses(context, startPasses_));
+
+    context.printInstrCountBefore = context.instructions->count();
     SWC_RESULT_VERIFY(runLoopPasses(context, loopPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
 

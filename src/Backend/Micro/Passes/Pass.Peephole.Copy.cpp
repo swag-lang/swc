@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -82,7 +82,7 @@ namespace PeepholePass
 
                 const MicroReg originalSrcReg = scanOps[1].reg;
                 scanOps[1].reg                = copySrcReg;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[1].reg = originalSrcReg;
                     return false;
@@ -164,7 +164,7 @@ namespace PeepholePass
 
                 const MicroReg originalSrcReg = scanOps[1].reg;
                 scanOps[1].reg                = copySrcReg;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[1].reg = originalSrcReg;
                     return false;
@@ -259,7 +259,7 @@ namespace PeepholePass
                     replaced.push_back(&reg);
                 }
 
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     for (MicroReg* reg : replaced)
                         *SWC_NOT_NULL(reg) = copyDstReg;
@@ -338,7 +338,7 @@ namespace PeepholePass
             if (!isCopyDeadAfterInstruction(context, std::next(nextIt), endIt, copyDstReg))
                 return false;
 
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
                 return false;
 
             SWC_NOT_NULL(context.instructions)->erase(instRef);
@@ -430,7 +430,7 @@ namespace PeepholePass
 
                 const MicroReg originalBaseReg = scanOps[baseIndex].reg;
                 scanOps[baseIndex].reg         = copySrcReg;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[baseIndex].reg = originalBaseReg;
                     return false;
@@ -621,7 +621,7 @@ namespace PeepholePass
 
                 if (!rewriteAccumulatorInstruction(scanInst, plan.rewrittenOps.data(), accReg, retReg))
                     return false;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, plan.rewrittenOps.data()))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, plan.rewrittenOps.data()))
                     return false;
 
                 rewritePlans.push_back(std::move(plan));
@@ -717,7 +717,7 @@ namespace PeepholePass
 
                 const MicroReg originalBaseReg = scanOps[1].reg;
                 scanOps[1].reg                 = copySrcReg;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[1].reg = originalBaseReg;
                     return false;
@@ -785,7 +785,7 @@ namespace PeepholePass
             const MicroInstrOpcode originalSecondLoadOp  = secondLoadInst.op;
 
             firstLoadOps[1].reg = baseSrcReg;
-            if (MicroOptimization::violatesEncoderConformance(context, firstLoadInst, firstLoadOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, firstLoadInst, firstLoadOps))
             {
                 for (uint32_t i = 0; i < 4; ++i)
                     firstLoadOps[i] = originalFirstLoadOps[i];
@@ -798,7 +798,7 @@ namespace PeepholePass
             secondLoadOps[1].reg          = copiedValueReg;
             secondLoadOps[2].opBits       = originalSecondLoadOps[2].opBits;
             secondLoadOps[3].valueU64     = 0;
-            if (MicroOptimization::violatesEncoderConformance(context, secondLoadInst, secondLoadOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, secondLoadInst, secondLoadOps))
             {
                 for (uint32_t i = 0; i < 4; ++i)
                     firstLoadOps[i] = originalFirstLoadOps[i];
@@ -852,7 +852,7 @@ namespace PeepholePass
             MicroInstrOperand* mutableOpOps   = opInst.ops(*context.operands);
             const MicroReg     originalDstReg = mutableOpOps[0].reg;
             mutableOpOps[0].reg               = srcReg;
-            if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, opInst, mutableOpOps))
             {
                 mutableOpOps[0].reg = originalDstReg;
                 return false;
@@ -1144,7 +1144,7 @@ namespace PeepholePass
             const MicroReg originalOpSrc = mutableOpOps[1].reg;
             mutableOpOps[1].reg          = valueReg;
 
-            if (MicroOptimization::violatesEncoderConformance(context, opInst, mutableOpOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, opInst, mutableOpOps))
             {
                 mutableOpOps[1].reg = originalOpSrc;
                 return false;
@@ -1197,7 +1197,7 @@ namespace PeepholePass
 
             const MicroReg originalDstReg = unaryOps[0].reg;
             unaryOps[0].reg               = srcReg;
-            if (MicroOptimization::violatesEncoderConformance(context, unaryInst, unaryOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, unaryInst, unaryOps))
             {
                 unaryOps[0].reg = originalDstReg;
                 return false;
@@ -1327,7 +1327,7 @@ namespace PeepholePass
                 if (!isBinaryMutation && changedInstruction)
                     replacedAny = true;
 
-                if (changedInstruction && MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (changedInstruction && MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     failed = true;
                     break;
@@ -1412,7 +1412,7 @@ namespace PeepholePass
                             MicroReg&      mutableReg  = *SWC_NOT_NULL(ref.reg);
                             const MicroReg originalReg = mutableReg;
                             mutableReg                 = srcReg;
-                            if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                            if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                             {
                                 mutableReg  = originalReg;
                                 canCoalesce = false;
@@ -1615,7 +1615,7 @@ namespace PeepholePass
 
             const MicroReg originalReg = prevOpOps[0].reg;
             mutablePrevOpOps[0].reg    = origReg;
-            if (MicroOptimization::violatesEncoderConformance(context, prevOpInst, mutablePrevOpOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, prevOpInst, mutablePrevOpOps))
             {
                 mutablePrevOpOps[0].reg = originalReg;
                 return false;

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Combines consecutive immediate ops on the same destination into one op.
 // Example: add r1, 2; add r1, 3  ->  add r1, 5.
@@ -22,7 +22,7 @@ namespace
         uint64_t combined = 0;
         combined          = firstOp == MicroOp::Add ? combined + firstValue : combined - firstValue;
         combined          = secondOp == MicroOp::Add ? combined + secondValue : combined - secondValue;
-        combined          = MicroOptimization::normalizeToOpBits(combined, opBits);
+        combined          = MicroPassHelpers::normalizeToOpBits(combined, opBits);
 
         outOp    = MicroOp::Add;
         outValue = combined;
@@ -38,15 +38,15 @@ namespace
         {
             case MicroOp::And:
                 outOp    = MicroOp::And;
-                outValue = MicroOptimization::normalizeToOpBits(firstValue & secondValue, opBits);
+                outValue = MicroPassHelpers::normalizeToOpBits(firstValue & secondValue, opBits);
                 return true;
             case MicroOp::Or:
                 outOp    = MicroOp::Or;
-                outValue = MicroOptimization::normalizeToOpBits(firstValue | secondValue, opBits);
+                outValue = MicroPassHelpers::normalizeToOpBits(firstValue | secondValue, opBits);
                 return true;
             case MicroOp::Xor:
                 outOp    = MicroOp::Xor;
-                outValue = MicroOptimization::normalizeToOpBits(firstValue ^ secondValue, opBits);
+                outValue = MicroPassHelpers::normalizeToOpBits(firstValue ^ secondValue, opBits);
                 return true;
             default:
                 return false;

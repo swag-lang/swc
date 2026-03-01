@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -11,7 +11,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-uint64_t MicroOptimization::normalizeToOpBits(uint64_t value, MicroOpBits opBits)
+uint64_t MicroPassHelpers::normalizeToOpBits(uint64_t value, MicroOpBits opBits)
 {
     if (opBits == MicroOpBits::B64)
         return value;
@@ -80,7 +80,7 @@ namespace
     }
 }
 
-Math::FoldStatus MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
+Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits)
 {
     const uint64_t value    = normalizeToOpBits(inValue, opBits);
     const uint64_t imm      = normalizeToOpBits(immediate, opBits);
@@ -114,7 +114,7 @@ Math::FoldStatus MicroOptimization::foldBinaryImmediate(uint64_t& outValue, uint
     return Math::FoldStatus::Ok;
 }
 
-Result MicroOptimization::raiseFoldSafetyError(const MicroPassContext& context, MicroInstrRef instructionRef, Math::FoldStatus status)
+Result MicroPassHelpers::raiseFoldSafetyError(const MicroPassContext& context, MicroInstrRef instructionRef, Math::FoldStatus status)
 {
     const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
     if (diagId == DiagnosticId::None)
@@ -201,7 +201,7 @@ namespace
     }
 }
 
-bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
+bool MicroPassHelpers::isNoOpEncoderInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     if (!ops && inst.numOperands != 0)
         return false;
@@ -265,7 +265,7 @@ bool MicroOptimization::isNoOpEncoderInstruction(const MicroInstr& inst, const M
     return false;
 }
 
-bool MicroOptimization::violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
+bool MicroPassHelpers::violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     if (!context.encoder || !ops)
         return false;

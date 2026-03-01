@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -44,7 +44,7 @@ namespace PeepholePass
             MicroInstr probeInst;
             probeInst.op          = opcode;
             probeInst.numOperands = static_cast<uint8_t>(N);
-            return !MicroOptimization::violatesEncoderConformance(context, probeInst, ops.data());
+            return !MicroPassHelpers::violatesEncoderConformance(context, probeInst, ops.data());
         }
 
         uint32_t opBitsNumBytes(const MicroOpBits opBits)
@@ -584,7 +584,7 @@ namespace PeepholePass
                     return false;
                 }
 
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;
                     for (uint32_t i = 0; i < 8; ++i)
@@ -640,7 +640,7 @@ namespace PeepholePass
             nextOps[1].reg      = baseReg;
             nextOps[2].opBits   = MicroOpBits::B64;
             nextOps[3].valueU64 = offset;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             {
                 nextInst.op         = MicroInstrOpcode::OpBinaryRegImm;
                 nextOps[0].reg      = originalDst;
@@ -969,7 +969,7 @@ namespace PeepholePass
             nextOps[1].reg      = ops[1].reg;
             nextOps[2].opBits   = ops[2].opBits;
             nextOps[3].valueU64 = ops[3].valueU64;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             {
                 nextInst.op = originalOp;
                 for (uint32_t i = 0; i < 4; ++i)
@@ -1015,7 +1015,7 @@ namespace PeepholePass
             const uint64_t originalOffset  = nextOps[3].valueU64;
             nextOps[1].reg                 = ops[1].reg;
             nextOps[3].valueU64            = foldedOffset;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             {
                 nextOps[1].reg      = originalBaseReg;
                 nextOps[3].valueU64 = originalOffset;
@@ -1110,7 +1110,7 @@ namespace PeepholePass
 
             const MicroReg originalBase = rewriteOps[1].reg;
             rewriteOps[1].reg           = conv.framePointer;
-            if (MicroOptimization::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
             {
                 rewriteOps[1].reg = originalBase;
                 return false;
@@ -1205,7 +1205,7 @@ namespace PeepholePass
                 const uint64_t originalOffset  = scanOps[offsetIndex].valueU64;
                 scanOps[baseIndex].reg         = ops[1].reg;
                 scanOps[offsetIndex].valueU64  = foldedMemOffset;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanOps[baseIndex].reg        = originalBaseReg;
                     scanOps[offsetIndex].valueU64 = originalOffset;
@@ -1291,7 +1291,7 @@ namespace PeepholePass
                 scanInst.op                        = MicroInstrOpcode::LoadRegMem;
                 scanOps[2].opBits                  = scanOps[3].opBits;
                 scanOps[3].valueU64                = mergedOffset;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;
                     for (uint32_t i = 0; i < 8; ++i)
@@ -1419,7 +1419,7 @@ namespace PeepholePass
 
                 rewriteOps[candidate.baseIndex].reg        = baseReg;
                 rewriteOps[candidate.offsetIndex].valueU64 = newOffset;
-                if (MicroOptimization::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
                 {
                     for (const RewriteCandidate& rollback : candidates)
                     {
@@ -1546,7 +1546,7 @@ namespace PeepholePass
                 rewriteOps[7].valueU64 = nextOps[3].valueU64;
             }
 
-            if (MicroOptimization::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, *rewriteInst, rewriteOps))
             {
                 rewriteInst->op = originalOp;
                 for (uint32_t i = 0; i < 8; ++i)

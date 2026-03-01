@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -204,8 +204,8 @@ namespace PeepholePass
             set2MutableOps[1].opBits   = MicroOpBits::B32;
             set2MutableOps[2].valueU64 = jumpOps[2].valueU64;
 
-            if (MicroOptimization::violatesEncoderConformance(context, *set1Mutable, set1MutableOps) ||
-                MicroOptimization::violatesEncoderConformance(context, *set2Mutable, set2MutableOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, *set1Mutable, set1MutableOps) ||
+                MicroPassHelpers::violatesEncoderConformance(context, *set2Mutable, set2MutableOps))
             {
                 *set1Mutable   = originalSet1;
                 *set2Mutable   = originalSet2;
@@ -357,7 +357,7 @@ namespace PeepholePass
 
             const MicroCond originalJumpCond = jumpOps[0].cpuCond;
             jumpOps[0].cpuCond               = newJumpCond;
-            if (MicroOptimization::violatesEncoderConformance(context, jumpInst, jumpOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, jumpInst, jumpOps))
             {
                 jumpOps[0].cpuCond = originalJumpCond;
                 return false;
@@ -411,7 +411,7 @@ namespace PeepholePass
 
             const MicroCond originalNextSetCond = nextSetCondOps[1].cpuCond;
             nextSetCondOps[1].cpuCond           = foldedCond;
-            if (MicroOptimization::violatesEncoderConformance(context, nextSetCondInst, nextSetCondOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextSetCondInst, nextSetCondOps))
             {
                 nextSetCondOps[1].cpuCond = originalNextSetCond;
                 return false;
@@ -1300,7 +1300,7 @@ namespace PeepholePass
             const MicroInstrRef      instRef = cursor.instRef;
             const MicroInstr&        inst    = *SWC_NOT_NULL(cursor.inst);
             const MicroInstrOperand* ops     = cursor.ops;
-            if (!MicroOptimization::isNoOpEncoderInstruction(inst, ops))
+            if (!MicroPassHelpers::isNoOpEncoderInstruction(inst, ops))
                 return false;
 
             SWC_NOT_NULL(context.instructions)->erase(instRef);
@@ -1499,7 +1499,7 @@ namespace PeepholePass
                             reg = toReg;
                         }
 
-                        if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                        if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                         {
                             rollbackRewritesFrom(rewrites, rewriteStart);
                             rollbackRewritesFrom(rewrites, 0);
@@ -1530,7 +1530,7 @@ namespace PeepholePass
 
                 const MicroReg originalSetCondReg = setCondOps[0].reg;
                 setCondOps[0].reg                 = dstReg;
-                if (MicroOptimization::violatesEncoderConformance(context, *setCondInst, setCondOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, *setCondInst, setCondOps))
                 {
                     setCondOps[0].reg = originalSetCondReg;
                     return false;
@@ -1540,7 +1540,7 @@ namespace PeepholePass
                 const MicroReg originalZeroExtSrc = zeroExtOps[1].reg;
                 zeroExtOps[0].reg                 = dstReg;
                 zeroExtOps[1].reg                 = dstReg;
-                if (MicroOptimization::violatesEncoderConformance(context, zeroExtInst, zeroExtOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, zeroExtInst, zeroExtOps))
                 {
                     setCondOps[0].reg = originalSetCondReg;
                     zeroExtOps[0].reg = originalZeroExtDst;
@@ -1657,7 +1657,7 @@ namespace PeepholePass
                 scanOps[1].opBits   = originalOps[2].opBits;
                 scanOps[2].valueU64 = originalOps[3].valueU64;
                 scanOps[3].setImmediateValue(ApInt(0, getNumBits(originalOps[2].opBits)));
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;
                     for (uint32_t i = 0; i < 4; ++i)

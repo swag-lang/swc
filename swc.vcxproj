@@ -224,7 +224,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.LoadStoreForwarding.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.cpp"/>
         <ClCompile Include="src\Backend\\Micro\MicroInstrInfo.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroOptimization.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPassHelpers.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Addressing.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Cleanup.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Peephole.Common.cpp"/>
@@ -411,7 +411,7 @@
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
-        <ClInclude Include="src\\Backend\\Micro\\MicroOptimization.h"/>
+        <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroControlFlowGraph.h"/>
         <ClInclude Include="src\Backend\Unittest\UnittestHelpers.h"/>

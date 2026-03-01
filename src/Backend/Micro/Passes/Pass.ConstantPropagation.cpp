@@ -3,8 +3,8 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Propagates known constants through register operations.
 // Example: load r1, 5; add r2, r1  ->  add r2, 5.
@@ -67,7 +67,7 @@ namespace
     {
         eraseOverlappingStackSlots(knownSlots, offset, opBits);
         knownSlots[{.offset = offset, .opBits = opBits}] = {
-            .value = MicroOptimization::normalizeToOpBits(value, opBits),
+            .value = MicroPassHelpers::normalizeToOpBits(value, opBits),
         };
     }
 
@@ -137,7 +137,7 @@ namespace
 
             const uint64_t shiftBytes = offset - knownKey.offset;
             const uint64_t shifted    = knownValue.value >> (shiftBytes * 8);
-            outValue                  = MicroOptimization::normalizeToOpBits(shifted, opBits);
+            outValue                  = MicroPassHelpers::normalizeToOpBits(shifted, opBits);
             return true;
         }
 
@@ -223,7 +223,7 @@ namespace
         const uint64_t originalOffset = ops[memOffsetIndex].valueU64;
         ops[memBaseIndex].reg         = stackPointerReg;
         ops[memOffsetIndex].valueU64  = stackOffset;
-        if (MicroOptimization::violatesEncoderConformance(context, inst, ops))
+        if (MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
         {
             ops[memBaseIndex].reg        = originalBase;
             ops[memOffsetIndex].valueU64 = originalOffset;
@@ -308,26 +308,26 @@ namespace
 
     uint64_t signExtendToBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits)
     {
-        const uint64_t normalizedSrc = MicroOptimization::normalizeToOpBits(value, srcBits);
+        const uint64_t normalizedSrc = MicroPassHelpers::normalizeToOpBits(value, srcBits);
 
         switch (srcBits)
         {
             case MicroOpBits::B8:
-                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(normalizedSrc))), dstBits);
+                return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int8_t>(normalizedSrc))), dstBits);
             case MicroOpBits::B16:
-                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(normalizedSrc))), dstBits);
+                return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int16_t>(normalizedSrc))), dstBits);
             case MicroOpBits::B32:
-                return MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(normalizedSrc))), dstBits);
+                return MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(normalizedSrc))), dstBits);
             case MicroOpBits::B64:
-                return MicroOptimization::normalizeToOpBits(normalizedSrc, dstBits);
+                return MicroPassHelpers::normalizeToOpBits(normalizedSrc, dstBits);
             default:
-                return MicroOptimization::normalizeToOpBits(normalizedSrc, dstBits);
+                return MicroPassHelpers::normalizeToOpBits(normalizedSrc, dstBits);
         }
     }
 
     int64_t toSigned(uint64_t value, MicroOpBits opBits)
     {
-        const uint64_t normalized = MicroOptimization::normalizeToOpBits(value, opBits);
+        const uint64_t normalized = MicroPassHelpers::normalizeToOpBits(value, opBits);
         switch (opBits)
         {
             case MicroOpBits::B8:
@@ -345,8 +345,8 @@ namespace
 
     std::optional<bool> evaluateCondition(MicroCond condition, uint64_t lhs, uint64_t rhs, MicroOpBits opBits)
     {
-        const uint64_t lhsUnsigned = MicroOptimization::normalizeToOpBits(lhs, opBits);
-        const uint64_t rhsUnsigned = MicroOptimization::normalizeToOpBits(rhs, opBits);
+        const uint64_t lhsUnsigned = MicroPassHelpers::normalizeToOpBits(lhs, opBits);
+        const uint64_t rhsUnsigned = MicroPassHelpers::normalizeToOpBits(rhs, opBits);
         const int64_t  lhsSigned   = toSigned(lhs, opBits);
         const int64_t  rhsSigned   = toSigned(rhs, opBits);
 
@@ -414,7 +414,7 @@ namespace
 
             uint32_t resultBits = 0;
             std::memcpy(&resultBits, &result, sizeof(resultBits));
-            outValue = MicroOptimization::normalizeToOpBits(resultBits, MicroOpBits::B32);
+            outValue = MicroPassHelpers::normalizeToOpBits(resultBits, MicroOpBits::B32);
             return true;
         }
 
@@ -466,7 +466,7 @@ namespace
                 return false;
             }
 
-            outValue = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(value))), MicroOpBits::B32);
+            outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(static_cast<int64_t>(static_cast<int32_t>(value))), MicroOpBits::B32);
             return true;
         }
 
@@ -542,7 +542,7 @@ namespace
             resultSigned = lhsSigned - rhsSigned;
         }
 
-        outValue = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
+        outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
         return true;
     }
 
@@ -565,7 +565,7 @@ namespace
                                                           MicroOpBits       opBits,
                                                           Math::FoldStatus* outSafetyStatus = nullptr)
     {
-        const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(outValue, lhs, rhs, op, opBits);
+        const Math::FoldStatus foldStatus = MicroPassHelpers::foldBinaryImmediate(outValue, lhs, rhs, op, opBits);
         if (foldStatus == Math::FoldStatus::Ok)
             return BinaryFoldResult::Folded;
 
@@ -634,7 +634,7 @@ namespace
 
     bool commitOrRestoreInstrRewrite(const MicroPassContext& context, const InstrRewriteSnapshot& snapshot, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        if (!MicroOptimization::violatesEncoderConformance(context, inst, ops))
+        if (!MicroPassHelpers::violatesEncoderConformance(context, inst, ops))
             return true;
 
         restoreInstrRewriteSnapshot(snapshot, inst, ops);
@@ -665,7 +665,7 @@ namespace
                 return Math::FoldStatus::Unsupported;
         }
 
-        const uint64_t normalized = MicroOptimization::normalizeToOpBits(inValue, opBits);
+        const uint64_t normalized = MicroPassHelpers::normalizeToOpBits(inValue, opBits);
         const ApsInt   input(&normalized, bitWidth, !isSignedInput);
 
         ApsInt                 folded;
@@ -673,7 +673,7 @@ namespace
         if (foldStatus != Math::FoldStatus::Ok)
             return foldStatus;
 
-        outValue = MicroOptimization::normalizeToOpBits(folded.as64(), opBits);
+        outValue = MicroPassHelpers::normalizeToOpBits(folded.as64(), opBits);
         return Math::FoldStatus::Ok;
     }
 }
@@ -728,7 +728,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
                     ops[1].opBits    = ops[3].opBits;
-                    ops[2].valueU64  = MicroOptimization::normalizeToOpBits(knownValue, ops[3].opBits);
+                    ops[2].valueU64  = MicroPassHelpers::normalizeToOpBits(knownValue, ops[3].opBits);
                     rewritten        = true;
                 }
                 else if (ops[3].opBits == ops[4].opBits)
@@ -761,7 +761,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 uint64_t knownValue = 0;
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits))
                 {
-                    const uint64_t normalizedValue = MicroOptimization::normalizeToOpBits(knownValue, ops[2].opBits);
+                    const uint64_t normalizedValue = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                     if (ops[0].reg.isInt())
                     {
                         inst.op          = MicroInstrOpcode::LoadRegImm;
@@ -805,7 +805,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                         immValue = signExtendToBits(knownValue, ops[3].opBits, ops[2].opBits);
                         break;
                     case MicroInstrOpcode::LoadZeroExtRegMem:
-                        immValue = MicroOptimization::normalizeToOpBits(knownValue, ops[2].opBits);
+                        immValue = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                         break;
                     default:
                         break;
@@ -832,7 +832,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 inst.op          = MicroInstrOpcode::LoadRegImm;
                 inst.numOperands = 3;
                 ops[1].opBits    = ops[2].opBits;
-                ops[2].valueU64  = MicroOptimization::normalizeToOpBits(itKnown->second.value + baseOffset, ops[2].opBits);
+                ops[2].valueU64  = MicroPassHelpers::normalizeToOpBits(itKnown->second.value + baseOffset, ops[2].opBits);
                 changed          = true;
 
                 if (ops[2].opBits != MicroOpBits::B64)
@@ -857,7 +857,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 {
                     inst.op         = MicroInstrOpcode::LoadRegImm;
                     ops[1].opBits   = ops[2].opBits;
-                    ops[2].valueU64 = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    ops[2].valueU64 = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     changed         = true;
 
                     if (ops[2].opBits == MicroOpBits::B64)
@@ -896,7 +896,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     inst.op          = MicroInstrOpcode::LoadRegImm;
                     inst.numOperands = 3;
                     ops[1].opBits    = ops[2].opBits;
-                    ops[2].valueU64  = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    ops[2].valueU64  = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     changed          = true;
                 }
                 break;
@@ -912,7 +912,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     uint64_t knownValue = 0;
                     if (tryGetKnownStackSlotValue(knownValue, knownStackSlots, stackOffset, ops[2].opBits))
                     {
-                        const uint64_t immValue   = MicroOptimization::normalizeToOpBits(knownValue, ops[2].opBits);
+                        const uint64_t immValue   = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
                         const auto     itKnownDst = known.find(ops[0].reg.packed);
 
                         if (itKnownDst != known.end())
@@ -930,7 +930,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                                     break;
                                 case BinaryFoldResult::SafetyError:
                                     if (!isAddOrSub(ops[3].microOp))
-                                        return MicroOptimization::raiseFoldSafetyError(context, instRef, safetyStatus);
+                                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                                     break;
                                 case BinaryFoldResult::NotFolded:
                                     break;
@@ -960,7 +960,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     const auto itKnownSrc = known.find(ops[1].reg.packed);
                     if (itKnownSrc != known.end())
                     {
-                        const uint64_t immValue   = MicroOptimization::normalizeToOpBits(itKnownSrc->second.value, ops[2].opBits);
+                        const uint64_t immValue   = MicroPassHelpers::normalizeToOpBits(itKnownSrc->second.value, ops[2].opBits);
                         const auto     itKnownDst = known.find(ops[0].reg.packed);
 
                         if (itKnownDst != known.end())
@@ -978,7 +978,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                                     break;
                                 case BinaryFoldResult::SafetyError:
                                     if (!isAddOrSub(ops[3].microOp))
-                                        return MicroOptimization::raiseFoldSafetyError(context, instRef, safetyStatus);
+                                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                                     break;
                                 case BinaryFoldResult::NotFolded:
                                     break;
@@ -1039,7 +1039,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnown = known.find(ops[1].reg.packed);
                 if (itKnown != known.end())
                 {
-                    const uint64_t       immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
                     captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
 
@@ -1090,7 +1090,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     else if (foldResult == BinaryFoldResult::SafetyError)
                     {
                         if (!isAddOrSub(binaryOp))
-                            return MicroOptimization::raiseFoldSafetyError(context, instRef, safetyStatus);
+                            return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                     }
                 }
                 break;
@@ -1114,7 +1114,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     }
                     else if (Math::isSafetyError(foldStatus))
                     {
-                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
+                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
                     }
                 }
                 break;
@@ -1133,7 +1133,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnown = known.find(ops[1].reg.packed);
                 if (itKnown != known.end())
                 {
-                    const uint64_t       immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
                     captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
 
@@ -1157,7 +1157,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnown = known.find(ops[2].reg.packed);
                 if (itKnown != known.end())
                 {
-                    const uint64_t       immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[4].opBits);
+                    const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[4].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
                     captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
 
@@ -1183,7 +1183,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnown = known.find(ops[1].reg.packed);
                 if (itKnown != known.end())
                 {
-                    const uint64_t       immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
                     captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
 
@@ -1208,7 +1208,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 const auto itKnown = known.find(ops[1].reg.packed);
                 if (itKnown != known.end())
                 {
-                    const uint64_t       immValue = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
+                    const uint64_t       immValue = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits);
                     InstrRewriteSnapshot rewriteSnapshot;
                     captureInstrRewriteSnapshot(rewriteSnapshot, inst, ops);
 
@@ -1427,7 +1427,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                         if (foldStatus == Math::FoldStatus::Ok)
                             setKnownStackSlot(knownStackSlots, stackOffset, ops[1].opBits, foldedValue);
                         else if (Math::isSafetyError(foldStatus))
-                            return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
+                            return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
                         else
                             eraseOverlappingStackSlots(knownStackSlots, stackOffset, ops[1].opBits);
                     }
@@ -1455,7 +1455,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
         {
             case MicroInstrOpcode::LoadRegImm:
                 known[ops[0].reg.packed] = {
-                    .value = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
+                    .value = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
                 };
                 break;
             case MicroInstrOpcode::LoadRegReg:
@@ -1464,7 +1464,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                 if (itKnown != known.end())
                 {
                     known[ops[0].reg.packed] = {
-                        .value = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[2].opBits),
+                        .value = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[2].opBits),
                     };
                 }
                 break;
@@ -1494,7 +1494,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     else if (foldResult == BinaryFoldResult::SafetyError)
                     {
                         if (!isAddOrSub(ops[2].microOp))
-                            return MicroOptimization::raiseFoldSafetyError(context, instRef, safetyStatus);
+                            return MicroPassHelpers::raiseFoldSafetyError(context, instRef, safetyStatus);
                     }
                 }
                 break;
@@ -1740,8 +1740,8 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (itKnown != known_.end())
             {
                 compareState_.valid  = true;
-                compareState_.lhs    = MicroOptimization::normalizeToOpBits(itKnown->second.value, ops[1].opBits);
-                compareState_.rhs    = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
+                compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(itKnown->second.value, ops[1].opBits);
+                compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
                 compareState_.opBits = ops[1].opBits;
             }
             else
@@ -1760,8 +1760,8 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
             if (itKnownLhs != known_.end() && itKnownRhs != known_.end())
             {
                 compareState_.valid  = true;
-                compareState_.lhs    = MicroOptimization::normalizeToOpBits(itKnownLhs->second.value, ops[2].opBits);
-                compareState_.rhs    = MicroOptimization::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
+                compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(itKnownLhs->second.value, ops[2].opBits);
+                compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
                 compareState_.opBits = ops[2].opBits;
             }
             else
@@ -1782,8 +1782,8 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[1].opBits))
                 {
                     compareState_.valid  = true;
-                    compareState_.lhs    = MicroOptimization::normalizeToOpBits(knownValue, ops[1].opBits);
-                    compareState_.rhs    = MicroOptimization::normalizeToOpBits(ops[3].valueU64, ops[1].opBits);
+                    compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[1].opBits);
+                    compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(ops[3].valueU64, ops[1].opBits);
                     compareState_.opBits = ops[1].opBits;
                 }
                 else
@@ -1810,8 +1810,8 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
                 if (tryGetKnownStackSlotValue(knownValue, knownStackSlots_, stackOffset, ops[2].opBits) && itKnownRhs != known_.end())
                 {
                     compareState_.valid  = true;
-                    compareState_.lhs    = MicroOptimization::normalizeToOpBits(knownValue, ops[2].opBits);
-                    compareState_.rhs    = MicroOptimization::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
+                    compareState_.lhs    = MicroPassHelpers::normalizeToOpBits(knownValue, ops[2].opBits);
+                    compareState_.rhs    = MicroPassHelpers::normalizeToOpBits(itKnownRhs->second.value, ops[2].opBits);
                     compareState_.opBits = ops[2].opBits;
                 }
                 else

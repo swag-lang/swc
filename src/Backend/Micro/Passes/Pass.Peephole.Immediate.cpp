@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Private.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -72,7 +72,7 @@ namespace PeepholePass
                 scanOps[1].opBits   = storeBits;
                 scanOps[2].valueU64 = originalOps[3].valueU64;
                 scanOps[3].valueU64 = value;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;
                     for (uint32_t i = 0; i < 4; ++i)
@@ -146,7 +146,7 @@ namespace PeepholePass
                 scanOps[0]          = originalOps[0];
                 scanOps[1].opBits   = opBits;
                 scanOps[2].valueU64 = immValue;
-                if (MicroOptimization::violatesEncoderConformance(context, scanInst, scanOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, scanInst, scanOps))
                 {
                     scanInst.op = originalOp;
                     for (uint32_t i = 0; i < 3; ++i)
@@ -199,7 +199,7 @@ namespace PeepholePass
             nextOps[1].opBits   = opBits;
             nextOps[2].microOp  = originalOps[3].microOp;
             nextOps[3].valueU64 = immValue;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             {
                 nextInst.op = originalOp;
                 for (uint32_t i = 0; i < 4; ++i)
@@ -248,7 +248,7 @@ namespace PeepholePass
             nextOps[0]          = originalOps[0];
             nextOps[1].opBits   = opBits;
             nextOps[2].valueU64 = immValue;
-            if (MicroOptimization::violatesEncoderConformance(context, nextInst, nextOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, nextInst, nextOps))
             {
                 nextInst.op = originalOp;
                 for (uint32_t i = 0; i < 3; ++i)
@@ -313,7 +313,7 @@ namespace PeepholePass
             MicroInstr probeInst;
             probeInst.op          = MicroInstrOpcode::OpBinaryMemImm;
             probeInst.numOperands = 5;
-            if (MicroOptimization::violatesEncoderConformance(context, probeInst, memImmOps.data()))
+            if (MicroPassHelpers::violatesEncoderConformance(context, probeInst, memImmOps.data()))
                 return false;
 
             MicroStorage&        instructions = *context.instructions;
@@ -429,7 +429,7 @@ namespace PeepholePass
                 addOps[1].reg      = originalAddOps[1].reg;
                 addOps[2].opBits   = opBits;
                 addOps[3].valueU64 = 0;
-                if (MicroOptimization::violatesEncoderConformance(context, addInst, addOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, addInst, addOps))
                 {
                     addInst.op = originalAddOp;
                     for (uint32_t i = 0; i < 4; ++i)
@@ -451,7 +451,7 @@ namespace PeepholePass
                         {
                             const MicroReg originalMidDstReg = midOps[0].reg;
                             midOps[0].reg                    = dstReg;
-                            if (MicroOptimization::violatesEncoderConformance(context, *midInst, midOps))
+                            if (MicroPassHelpers::violatesEncoderConformance(context, *midInst, midOps))
                             {
                                 midOps[0].reg = originalMidDstReg;
                             }
@@ -475,7 +475,7 @@ namespace PeepholePass
                 addOps[1].reg               = originalAddOps[1].reg;
                 addOps[2].opBits            = MicroOpBits::B64;
                 addOps[3].valueU64          = scaledOffset;
-                if (MicroOptimization::violatesEncoderConformance(context, addInst, addOps))
+                if (MicroPassHelpers::violatesEncoderConformance(context, addInst, addOps))
                 {
                     addInst.op = originalAddOp;
                     for (uint32_t i = 0; i < 4; ++i)
@@ -540,7 +540,7 @@ namespace PeepholePass
             firstInst->op        = MicroInstrOpcode::LoadMemImm;
             firstOps[1].opBits   = MicroOpBits::B64;
             firstOps[3].valueU64 = merged;
-            if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, *firstInst, firstOps))
             {
                 firstInst->op = originalFirstOp;
                 for (uint32_t i = 0; i < 4; ++i)
@@ -705,7 +705,7 @@ namespace PeepholePass
                 combinedImm &= opBitsMask;
             firstOps[2].microOp  = combinedOp;
             firstOps[3].valueU64 = combinedImm;
-            if (MicroOptimization::violatesEncoderConformance(context, *firstInst, firstOps))
+            if (MicroPassHelpers::violatesEncoderConformance(context, *firstInst, firstOps))
             {
                 firstOps[2].microOp  = originalFirstOp;
                 firstOps[3].valueU64 = originalFirstImm;

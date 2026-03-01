@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.BranchFolding.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Folds branch decisions when compare inputs are compile-time constants.
 // Example: cmp r1, 42; jz L1 -> jmp L1 (if r1 is known 42).
@@ -15,7 +15,7 @@ namespace
 {
     int64_t toSigned(uint64_t value, MicroOpBits opBits)
     {
-        const uint64_t normalized = MicroOptimization::normalizeToOpBits(value, opBits);
+        const uint64_t normalized = MicroPassHelpers::normalizeToOpBits(value, opBits);
         switch (opBits)
         {
             case MicroOpBits::B8:
@@ -33,8 +33,8 @@ namespace
 
     std::optional<bool> evaluateCondition(MicroCond condition, uint64_t lhs, uint64_t rhs, MicroOpBits opBits)
     {
-        const uint64_t lhsUnsigned = MicroOptimization::normalizeToOpBits(lhs, opBits);
-        const uint64_t rhsUnsigned = MicroOptimization::normalizeToOpBits(rhs, opBits);
+        const uint64_t lhsUnsigned = MicroPassHelpers::normalizeToOpBits(lhs, opBits);
+        const uint64_t rhsUnsigned = MicroPassHelpers::normalizeToOpBits(rhs, opBits);
         const int64_t  lhsSigned   = toSigned(lhs, opBits);
         const int64_t  rhsSigned   = toSigned(rhs, opBits);
 
@@ -123,7 +123,7 @@ namespace
             resultSigned = lhsSigned - rhsSigned;
         }
 
-        outValue = MicroOptimization::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
+        outValue = MicroPassHelpers::normalizeToOpBits(static_cast<uint64_t>(resultSigned), opBits);
         return true;
     }
 
@@ -200,8 +200,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             if (knownIt != knownValues_.end())
             {
                 compareValid_  = true;
-                compareLhs_    = MicroOptimization::normalizeToOpBits(knownIt->second, ops[1].opBits);
-                compareRhs_    = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
+                compareLhs_    = MicroPassHelpers::normalizeToOpBits(knownIt->second, ops[1].opBits);
+                compareRhs_    = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
                 compareOpBits_ = ops[1].opBits;
             }
             else
@@ -216,8 +216,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             if (lhsIt != knownValues_.end() && rhsIt != knownValues_.end())
             {
                 compareValid_  = true;
-                compareLhs_    = MicroOptimization::normalizeToOpBits(lhsIt->second, ops[2].opBits);
-                compareRhs_    = MicroOptimization::normalizeToOpBits(rhsIt->second, ops[2].opBits);
+                compareLhs_    = MicroPassHelpers::normalizeToOpBits(lhsIt->second, ops[2].opBits);
+                compareRhs_    = MicroPassHelpers::normalizeToOpBits(rhsIt->second, ops[2].opBits);
                 compareOpBits_ = ops[2].opBits;
             }
             else
@@ -243,7 +243,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
 
         if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isInt())
         {
-            knownValues_[ops[0].reg.packed] = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
+            knownValues_[ops[0].reg.packed] = MicroPassHelpers::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
         }
         else if (inst.op == MicroInstrOpcode::ClearReg && ops[0].reg.isInt())
         {
@@ -254,7 +254,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             const auto sourceIt = knownValues_.find(ops[1].reg.packed);
             if (sourceIt != knownValues_.end())
             {
-                knownValues_[ops[0].reg.packed] = MicroOptimization::normalizeToOpBits(sourceIt->second, ops[2].opBits);
+                knownValues_[ops[0].reg.packed] = MicroPassHelpers::normalizeToOpBits(sourceIt->second, ops[2].opBits);
             }
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg.isInt())
@@ -263,7 +263,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             if (valueIt != knownValues_.end())
             {
                 uint64_t               folded     = 0;
-                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                const Math::FoldStatus foldStatus = MicroPassHelpers::foldBinaryImmediate(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
                     knownValues_[ops[0].reg.packed] = folded;
@@ -276,7 +276,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                     }
                     else if (!isAddOrSub(ops[2].microOp))
                     {
-                        return MicroOptimization::raiseFoldSafetyError(context, instRef, foldStatus);
+                        return MicroPassHelpers::raiseFoldSafetyError(context, instRef, foldStatus);
                     }
                 }
             }

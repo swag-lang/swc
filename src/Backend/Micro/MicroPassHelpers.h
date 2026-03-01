@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 struct MicroPassContext;
 
-namespace MicroOptimization
+namespace MicroPassHelpers
 {
     uint64_t         normalizeToOpBits(uint64_t value, MicroOpBits opBits);
     Math::FoldStatus foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits);

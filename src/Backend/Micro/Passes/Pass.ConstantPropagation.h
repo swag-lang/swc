@@ -49,6 +49,7 @@ using KnownConstantPointerMap = std::unordered_map<uint32_t, KnownConstantPointe
 struct MicroRelocation;
 class MicroStorage;
 class MicroOperandStorage;
+struct MicroInstrUseDef;
 
 class MicroConstantPropagationPass final : public MicroPass
 {
@@ -57,6 +58,23 @@ public:
     Result           run(MicroPassContext& context) override;
 
 private:
+    using DeferredDef = std::optional<std::pair<uint32_t, uint64_t>>;
+
+    Result      rewriteInstructionFromKnownValues(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result      rewriteLoadFromMemoryInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result      rewriteLoadAndMoveInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result      rewriteRegisterOperationInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops, DeferredDef& deferredKnownDef, DeferredDef& deferredAddressDef);
+    Result      rewriteMemoryOperandInstructions(MicroPassContext& context, bool& changed, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops);
+    void        invalidateStateForDefinitions(const MicroInstrUseDef& useDef);
+    Result      trackKnownMemoryWrite(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
+    Result      trackStackStoreInstruction(const MicroInstr* prevInst, const MicroInstrOperand* prevOps, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
+    Result      trackStackMutationInstruction(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, bool& handledMemoryWrite);
+    bool        tryTrackConstantPointerStackCopy(uint64_t stackOffset, MicroOpBits slotOpBits, MicroReg sourceReg, const MicroInstr* prevInst, const MicroInstrOperand* prevOps);
+    Result      updateKnownRegistersForInstruction(MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
+    void        applyDeferredKnownDefinition(const DeferredDef& deferredKnownDef);
+    void        updateKnownConstantPointersForInstruction(MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops);
+    void        updateKnownAddressesForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops);
+    void        applyDeferredAddressDefinition(const DeferredDef& deferredAddressDef);
     void        clearRunContext();
     void        clearState();
     void        initRunState(MicroPassContext& context);

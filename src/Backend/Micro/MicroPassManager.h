@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
-#include "Backend/Micro/MicroPrinter.h"
+#include "Backend/Micro/MicroPass.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/Result.h"
 
@@ -47,16 +47,6 @@ struct MicroPassContext
     size_t optimizationInstrAdded   = 0;
 #endif
     bool passChanged = false;
-};
-
-class MicroPass
-{
-public:
-    virtual ~MicroPass()                   = default;
-    virtual std::string_view  name() const = 0;
-    virtual MicroRegPrintMode printModeBefore() const { return MicroRegPrintMode::Concrete; }
-    virtual MicroRegPrintMode printModeAfter() const { return MicroRegPrintMode::Concrete; }
-    virtual Result            run(MicroPassContext& context) = 0;
 };
 
 class MicroPassManager

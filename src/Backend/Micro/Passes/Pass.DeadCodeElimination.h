@@ -8,6 +8,9 @@ class MicroDeadCodeEliminationPass final : public MicroPass
 public:
     std::string_view name() const override { return "dce"; }
     Result           run(MicroPassContext& context) override;
+
+private:
+    std::unordered_map<uint32_t, MicroInstrRef> lastPureDefByReg_;
 };
 
 SWC_END_NAMESPACE();

@@ -6,9 +6,16 @@ SWC_BEGIN_NAMESPACE();
 class MicroRegisterAllocationPass final : public MicroPass
 {
 public:
+    MicroRegisterAllocationPass();
+    ~MicroRegisterAllocationPass();
+
     std::string_view  name() const override { return "regalloc"; }
     MicroRegPrintMode printModeBefore() const override { return MicroRegPrintMode::Virtual; }
     Result            run(MicroPassContext& context) override;
+
+private:
+    struct RunState;
+    std::unique_ptr<RunState> runState_;
 };
 
 SWC_END_NAMESPACE();

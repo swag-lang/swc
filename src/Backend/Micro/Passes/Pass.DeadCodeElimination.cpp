@@ -393,9 +393,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                                        changed = false;
-    std::unordered_map<uint32_t, MicroInstrRef> lastPureDefByReg;
-    lastPureDefByReg.reserve(64);
+    bool changed = false;
+    lastPureDefByReg_.clear();
+    lastPureDefByReg_.reserve(64);
 
     MicroStorage&              storage  = *context.instructions;
     const MicroOperandStorage& operands = *context.operands;
@@ -408,7 +408,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         if (isControlFlowBarrier(inst, useDef))
         {
-            lastPureDefByReg.clear();
+            lastPureDefByReg_.clear();
             continue;
         }
 
@@ -417,31 +417,31 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
             // Calls consume argument registers and clobber transient registers.
             // The forward local-def map does not model ABI argument uses, so do not
             // propagate pure defs across calls.
-            lastPureDefByReg.clear();
+            lastPureDefByReg_.clear();
             continue;
         }
 
         for (const MicroReg useReg : useDef.uses)
-            lastPureDefByReg.erase(useReg.packed);
+            lastPureDefByReg_.erase(useReg.packed);
 
         for (const MicroReg defReg : useDef.defs)
         {
             if (!canCurrentDefKillPreviousPureDef(inst, ops, defReg))
                 continue;
 
-            const auto previousDefIt = lastPureDefByReg.find(defReg.packed);
-            if (previousDefIt != lastPureDefByReg.end())
+            const auto previousDefIt = lastPureDefByReg_.find(defReg.packed);
+            if (previousDefIt != lastPureDefByReg_.end())
             {
                 storage.erase(previousDefIt->second);
                 changed = true;
-                lastPureDefByReg.erase(previousDefIt);
+                lastPureDefByReg_.erase(previousDefIt);
             }
         }
 
         const bool trackAsPureDef = isPureDefCandidate(inst, useDef, context.encoder, context.callConvKind);
 
         if (trackAsPureDef)
-            lastPureDefByReg[useDef.defs.front().packed] = currentRef;
+            lastPureDefByReg_[useDef.defs.front().packed] = currentRef;
     }
 
     if (eliminateDeadPureDefsByBackwardLiveness(context, storage, operands, context.encoder, context.callConvKind))

@@ -8,6 +8,9 @@ class MicroCopyPropagationPass final : public MicroPass
 public:
     std::string_view name() const override { return "copy-prop"; }
     Result           run(MicroPassContext& context) override;
+
+private:
+    std::unordered_map<uint32_t, MicroReg> aliases_;
 };
 
 SWC_END_NAMESPACE();

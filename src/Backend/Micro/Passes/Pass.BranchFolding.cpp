@@ -13,19 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct KnownConstant
-    {
-        uint64_t value = 0;
-    };
-
-    struct CompareState
-    {
-        bool        valid  = false;
-        uint64_t    lhs    = 0;
-        uint64_t    rhs    = 0;
-        MicroOpBits opBits = MicroOpBits::B64;
-    };
-
     int64_t toSigned(uint64_t value, MicroOpBits opBits)
     {
         const uint64_t normalized = MicroOptimization::normalizeToOpBits(value, opBits);
@@ -151,22 +138,25 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                                        changed = false;
-    std::unordered_map<uint32_t, KnownConstant> known;
-    known.reserve(64);
-    CompareState compareState{};
+    bool changed = false;
+    knownValues_.clear();
+    knownValues_.reserve(64);
+    referencedLabels_.clear();
+    compareValid_  = false;
+    compareLhs_    = 0;
+    compareRhs_    = 0;
+    compareOpBits_ = MicroOpBits::B64;
 
-    MicroStorage&                     storage  = *context.instructions;
-    MicroOperandStorage&              operands = *context.operands;
-    std::unordered_set<MicroLabelRef> referencedLabels;
-    referencedLabels.reserve(storage.count());
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
+    referencedLabels_.reserve(storage.count());
     for (const MicroInstr& scanInst : storage.view())
     {
         if ((scanInst.op == MicroInstrOpcode::JumpCond || scanInst.op == MicroInstrOpcode::JumpCondImm) && scanInst.numOperands >= 3)
         {
             const auto* scanOps = scanInst.ops(operands);
             if (scanOps)
-                referencedLabels.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
+                referencedLabels_.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
         }
     }
 
@@ -179,9 +169,9 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
         MicroInstrOperand* ops = inst.ops(operands);
         if (inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm)
         {
-            if (compareState.valid)
+            if (compareValid_)
             {
-                const std::optional<bool> jumpTaken = evaluateCondition(ops[0].cpuCond, compareState.lhs, compareState.rhs, compareState.opBits);
+                const std::optional<bool> jumpTaken = evaluateCondition(ops[0].cpuCond, compareLhs_, compareRhs_, compareOpBits_);
                 if (jumpTaken.has_value())
                 {
                     if (*jumpTaken)
@@ -195,104 +185,94 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
                     else
                     {
                         storage.erase(instRef);
-                        changed            = true;
-                        compareState.valid = false;
+                        changed       = true;
+                        compareValid_ = false;
                         continue;
                     }
                 }
             }
 
-            compareState.valid = false;
+            compareValid_ = false;
         }
         else if (inst.op == MicroInstrOpcode::CmpRegImm && ops[0].reg.isInt())
         {
-            const auto knownIt = known.find(ops[0].reg.packed);
-            if (knownIt != known.end())
+            const auto knownIt = knownValues_.find(ops[0].reg.packed);
+            if (knownIt != knownValues_.end())
             {
-                compareState.valid  = true;
-                compareState.lhs    = MicroOptimization::normalizeToOpBits(knownIt->second.value, ops[1].opBits);
-                compareState.rhs    = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
-                compareState.opBits = ops[1].opBits;
+                compareValid_  = true;
+                compareLhs_    = MicroOptimization::normalizeToOpBits(knownIt->second, ops[1].opBits);
+                compareRhs_    = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
+                compareOpBits_ = ops[1].opBits;
             }
             else
             {
-                compareState.valid = false;
+                compareValid_ = false;
             }
         }
         else if (inst.op == MicroInstrOpcode::CmpRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
         {
-            const auto lhsIt = known.find(ops[0].reg.packed);
-            const auto rhsIt = known.find(ops[1].reg.packed);
-            if (lhsIt != known.end() && rhsIt != known.end())
+            const auto lhsIt = knownValues_.find(ops[0].reg.packed);
+            const auto rhsIt = knownValues_.find(ops[1].reg.packed);
+            if (lhsIt != knownValues_.end() && rhsIt != knownValues_.end())
             {
-                compareState.valid  = true;
-                compareState.lhs    = MicroOptimization::normalizeToOpBits(lhsIt->second.value, ops[2].opBits);
-                compareState.rhs    = MicroOptimization::normalizeToOpBits(rhsIt->second.value, ops[2].opBits);
-                compareState.opBits = ops[2].opBits;
+                compareValid_  = true;
+                compareLhs_    = MicroOptimization::normalizeToOpBits(lhsIt->second, ops[2].opBits);
+                compareRhs_    = MicroOptimization::normalizeToOpBits(rhsIt->second, ops[2].opBits);
+                compareOpBits_ = ops[2].opBits;
             }
             else
             {
-                compareState.valid = false;
+                compareValid_ = false;
             }
         }
         else
         {
-            compareState.valid = false;
+            compareValid_ = false;
         }
 
         const MicroInstrUseDef useDef = inst.collectUseDef(operands, context.encoder);
         for (const MicroReg defReg : useDef.defs)
-            known.erase(defReg.packed);
+            knownValues_.erase(defReg.packed);
 
         if (useDef.isCall)
         {
-            known.clear();
-            compareState.valid = false;
+            knownValues_.clear();
+            compareValid_ = false;
             continue;
         }
 
         if (inst.op == MicroInstrOpcode::LoadRegImm && ops[0].reg.isInt())
         {
-            known[ops[0].reg.packed] = {
-                .value = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits),
-            };
+            knownValues_[ops[0].reg.packed] = MicroOptimization::normalizeToOpBits(ops[2].valueU64, ops[1].opBits);
         }
         else if (inst.op == MicroInstrOpcode::ClearReg && ops[0].reg.isInt())
         {
-            known[ops[0].reg.packed] = {
-                .value = 0,
-            };
+            knownValues_[ops[0].reg.packed] = 0;
         }
         else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg.isInt() && ops[1].reg.isInt())
         {
-            const auto sourceIt = known.find(ops[1].reg.packed);
-            if (sourceIt != known.end())
+            const auto sourceIt = knownValues_.find(ops[1].reg.packed);
+            if (sourceIt != knownValues_.end())
             {
-                known[ops[0].reg.packed] = {
-                    .value = MicroOptimization::normalizeToOpBits(sourceIt->second.value, ops[2].opBits),
-                };
+                knownValues_[ops[0].reg.packed] = MicroOptimization::normalizeToOpBits(sourceIt->second, ops[2].opBits);
             }
         }
         else if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg.isInt())
         {
-            const auto valueIt = known.find(ops[0].reg.packed);
-            if (valueIt != known.end())
+            const auto valueIt = knownValues_.find(ops[0].reg.packed);
+            if (valueIt != knownValues_.end())
             {
                 uint64_t               folded     = 0;
-                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
+                const Math::FoldStatus foldStatus = MicroOptimization::foldBinaryImmediate(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits);
                 if (foldStatus == Math::FoldStatus::Ok)
                 {
-                    known[ops[0].reg.packed] = {
-                        .value = folded,
-                    };
+                    knownValues_[ops[0].reg.packed] = folded;
                 }
                 else if (Math::isSafetyError(foldStatus))
                 {
-                    if (tryFoldAddSubSignedNoOverflow(folded, valueIt->second.value, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
+                    if (tryFoldAddSubSignedNoOverflow(folded, valueIt->second, ops[3].valueU64, ops[2].microOp, ops[1].opBits))
                     {
-                        known[ops[0].reg.packed] = {
-                            .value = folded,
-                        };
+                        knownValues_[ops[0].reg.packed] = folded;
                     }
                     else if (!isAddOrSub(ops[2].microOp))
                     {
@@ -308,7 +288,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             if (ops && inst.numOperands >= 1)
             {
                 const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
-                clearForControlFlowBoundary = referencedLabels.contains(labelRef);
+                clearForControlFlowBoundary = referencedLabels_.contains(labelRef);
             }
             else
             {
@@ -322,8 +302,8 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
 
         if (clearForControlFlowBoundary)
         {
-            known.clear();
-            compareState.valid = false;
+            knownValues_.clear();
+            compareValid_ = false;
         }
     }
 

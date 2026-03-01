@@ -203,9 +203,9 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
         }
     }
 
-    std::unordered_set<MicroLabelRef> referencedLabels;
-    referencedLabels.reserve(storage.count());
-    collectReferencedLabels(storage, operands, referencedLabels);
+    referencedLabels_.clear();
+    referencedLabels_.reserve(storage.count());
+    collectReferencedLabels(storage, operands, referencedLabels_);
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
@@ -221,7 +221,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
             continue;
 
         const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
-        if (referencedLabels.contains(labelRef))
+        if (referencedLabels_.contains(labelRef))
             continue;
 
         storage.erase(instRef);

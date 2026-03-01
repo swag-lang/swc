@@ -721,18 +721,52 @@ namespace
     }
 }
 
+struct MicroConstantPropagationPass::RunState
+{
+    KnownRegMap                                               known;
+    KnownStackSlotMap                                         knownStackSlots;
+    KnownAddressMap                                           knownAddresses;
+    KnownStackAddressMap                                      knownStackAddresses;
+    KnownConstantPointerMap                                   knownConstantPointers;
+    CompareState                                              compareState;
+    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
+    std::unordered_set<MicroLabelRef>                         referencedLabels;
+};
+
+MicroConstantPropagationPass::MicroConstantPropagationPass() :
+    runState_(std::make_unique<RunState>())
+{
+}
+
+MicroConstantPropagationPass::~MicroConstantPropagationPass() = default;
+
 Result MicroConstantPropagationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    bool                    changed = false;
-    KnownRegMap             known;
-    KnownStackSlotMap       knownStackSlots;
-    KnownAddressMap         knownAddresses;
-    KnownStackAddressMap    knownStackAddresses;
-    KnownConstantPointerMap knownConstantPointers;
-    CompareState            compareState{};
+    bool changed = false;
+
+    RunState& runState = *SWC_NOT_NULL(runState_.get());
+
+    KnownRegMap&             known                      = runState.known;
+    KnownStackSlotMap&       knownStackSlots            = runState.knownStackSlots;
+    KnownAddressMap&         knownAddresses             = runState.knownAddresses;
+    KnownStackAddressMap&    knownStackAddresses        = runState.knownStackAddresses;
+    KnownConstantPointerMap& knownConstantPointers      = runState.knownConstantPointers;
+    CompareState&            compareState               = runState.compareState;
+    auto&                    relocationByInstructionRef = runState.relocationByInstructionRef;
+    auto&                    referencedLabels           = runState.referencedLabels;
+
+    known.clear();
+    knownStackSlots.clear();
+    knownAddresses.clear();
+    knownStackAddresses.clear();
+    knownConstantPointers.clear();
+    compareState = {};
+    relocationByInstructionRef.clear();
+    referencedLabels.clear();
+
     known.reserve(64);
     knownStackSlots.reserve(64);
     knownAddresses.reserve(32);
@@ -743,9 +777,8 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
     if (context.encoder)
         stackPointerReg = context.encoder->stackPointerReg();
 
-    MicroStorage&                                             storage  = *context.instructions;
-    MicroOperandStorage&                                      operands = *context.operands;
-    std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstructionRef;
+    MicroStorage&        storage  = *context.instructions;
+    MicroOperandStorage& operands = *context.operands;
     if (context.builder)
     {
         const auto& relocations = context.builder->codeRelocations();
@@ -754,7 +787,6 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
             relocationByInstructionRef[relocation.instructionRef] = &relocation;
     }
 
-    std::unordered_set<MicroLabelRef> referencedLabels;
     referencedLabels.reserve(storage.count());
     for (const MicroInstr& scanInst : storage.view())
     {

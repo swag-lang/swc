@@ -100,11 +100,28 @@ namespace
 
     void initState(PassState& state, MicroPassContext& context)
     {
+        state.liveOut.clear();
+        state.concreteLiveOut.clear();
+        state.vregsLiveAcrossCall.clear();
+        state.usePositions.clear();
+        state.intPersistentSet.clear();
+        state.floatPersistentSet.clear();
+        state.freeIntTransient.clear();
+        state.freeIntPersistent.clear();
+        state.freeFloatTransient.clear();
+        state.freeFloatPersistent.clear();
+        state.states.clear();
+        state.mapping.clear();
+        state.liveStamp.clear();
+        state.concreteLiveStamp.clear();
+        state.callSpillVregs.clear();
+
         state.context          = &context;
         state.conv             = &CallConv::get(context.callConvKind);
         state.instructions     = SWC_NOT_NULL(context.instructions);
         state.operands         = SWC_NOT_NULL(context.operands);
         state.instructionCount = state.instructions->count();
+        state.spillFrameUsed   = 0;
         state.hasControlFlow   = false;
 
         const size_t reserveCount = static_cast<size_t>(state.instructionCount) * 2ull + 8ull;
@@ -1045,12 +1062,24 @@ namespace
     }
 }
 
+struct MicroRegisterAllocationPass::RunState
+{
+    PassState passState;
+};
+
+MicroRegisterAllocationPass::MicroRegisterAllocationPass() :
+    runState_(std::make_unique<RunState>())
+{
+}
+
+MicroRegisterAllocationPass::~MicroRegisterAllocationPass() = default;
+
 Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions);
 
     // Order matters: liveness/use analysis informs allocation, then we patch IR and finalize frame.
-    PassState state;
+    PassState& state = SWC_NOT_NULL(runState_.get())->passState;
     initState(state, context);
 
     if (!state.instructionCount)

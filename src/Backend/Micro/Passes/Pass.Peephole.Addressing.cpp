@@ -1627,7 +1627,7 @@ namespace
 
 }
 
-void MicroPeepholePass::appendAddressingRules(RuleList& outRules) const
+void MicroPeepholePass::appendAddressingRules(RuleList& outRules)
 {
     outRules.push_back({RuleTarget::LoadRegImm, foldZeroIndexAmcFromImmediate});
     outRules.push_back({RuleTarget::LoadRegImm, foldImmediateIndexAmcIntoNextLoadRegMem});

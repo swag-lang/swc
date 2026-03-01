@@ -1551,7 +1551,7 @@ namespace
 
 }
 
-void MicroPeepholePass::appendCleanupRules(RuleList& outRules) const
+void MicroPeepholePass::appendCleanupRules(RuleList& outRules)
 {
     // Rule: remove_overwritten_store_to_same_slot
     // Purpose: remove an earlier store when a later store overwrites the exact same address before any read.

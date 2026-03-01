@@ -70,10 +70,10 @@ private:
     static RuleDispatch    buildRuleDispatch(const RuleList& rules);
     bool                   applyOpcodeRules(const Cursor& cursor);
     MicroStorage::Iterator computeResumeIterator(const MicroStorage::View& view, const MicroStorage::Iterator& prevIt, bool hasPrev, MicroInstrRef instRef, const MicroStorage::Iterator& nextIt) const;
-    void                   appendAddressingRules(RuleList& outRules) const;
-    void                   appendImmediateRules(RuleList& outRules) const;
-    void                   appendCopyRules(RuleList& outRules) const;
-    void                   appendCleanupRules(RuleList& outRules) const;
+    static void            appendAddressingRules(RuleList& outRules);
+    static void            appendImmediateRules(RuleList& outRules);
+    static void            appendCopyRules(RuleList& outRules);
+    static void            appendCleanupRules(RuleList& outRules);
 
     MicroPassContext*    context_  = nullptr;
     MicroStorage*        storage_  = nullptr;

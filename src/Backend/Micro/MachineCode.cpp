@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Main/Stats.h"
-#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 

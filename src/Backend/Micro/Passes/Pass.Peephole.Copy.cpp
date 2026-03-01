@@ -1650,7 +1650,7 @@ namespace
     }
 }
 
-void MicroPeepholePass::appendCopyRules(RuleList& outRules) const
+void MicroPeepholePass::appendCopyRules(RuleList& outRules)
 {
     // Rule: forward_copy_into_next_binary_source
     // Purpose: forward copied source register into the next binary operation source.

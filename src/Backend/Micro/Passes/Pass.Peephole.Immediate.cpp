@@ -727,7 +727,7 @@ namespace
 
 }
 
-void MicroPeepholePass::appendImmediateRules(RuleList& outRules) const
+void MicroPeepholePass::appendImmediateRules(RuleList& outRules)
 {
     // Rule: merge_regimm_arithmetic_with_next
     // Purpose: merge two same-register immediate add/sub operations into one, anywhere in the block.

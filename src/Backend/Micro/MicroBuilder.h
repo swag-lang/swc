@@ -2,7 +2,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Runtime.h"

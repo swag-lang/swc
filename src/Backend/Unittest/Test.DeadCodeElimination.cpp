@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.DeadCodeElimination.h"
 #include "Support/Unittest/Unittest.h"
 

@@ -2,7 +2,7 @@
 #include "Backend/Micro/MicroOptimization.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"

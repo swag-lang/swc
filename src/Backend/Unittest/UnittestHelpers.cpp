@@ -2,7 +2,7 @@
 #include "Backend/Unittest/UnittestHelpers.h"
 #if SWC_HAS_UNITTEST
 #include "Backend/Micro/MicroInstr.h"
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"

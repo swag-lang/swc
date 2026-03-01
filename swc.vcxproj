@@ -235,7 +235,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.cpp"/>
-        <ClCompile Include="src\Backend\\Micro\MicroPass.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\MicroPassManager.cpp"/>
         <ClCompile Include="src\Backend\\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Block.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.If.cpp"/>
@@ -437,7 +437,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PrologEpilog.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.StrengthReduction.h"/>
-        <ClInclude Include="src\Backend\\Micro\MicroPass.h"/>
+        <ClInclude Include="src\Backend\\Micro\MicroPassManager.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>

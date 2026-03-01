@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

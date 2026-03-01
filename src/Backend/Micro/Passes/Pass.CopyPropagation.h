@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Micro/MicroPass.h"
+#include "Backend/Micro/MicroPassManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

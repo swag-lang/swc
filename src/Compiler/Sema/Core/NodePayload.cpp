@@ -279,9 +279,9 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
     const AstNode&       node     = ast().node(nodeRef);
-    const auto           info     = payloadInfo(node);
+    const PayloadInfo    info     = payloadInfo(node);
     const uint32_t       shardIdx = info.shardIdx;
-    const auto&          shard    = shards_[shardIdx];
+    const Shard&         shard    = shards_[shardIdx];
     const Symbol* const* slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
     const Symbol&        value    = *SWC_NOT_NULL(*slot);
     return value;
@@ -291,12 +291,12 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
-    const AstNode& node     = ast().node(nodeRef);
-    const auto     info     = payloadInfo(node);
-    const uint32_t shardIdx = info.shardIdx;
-    auto&          shard    = shards_[shardIdx];
-    Symbol**       slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
-    Symbol&        value    = *SWC_NOT_NULL(*slot);
+    const AstNode&    node     = ast().node(nodeRef);
+    const PayloadInfo info     = payloadInfo(node);
+    const uint32_t    shardIdx = info.shardIdx;
+    Shard&            shard    = shards_[shardIdx];
+    Symbol**          slot     = SWC_NOT_NULL(shard.store.ptr<Symbol*>(info.ref));
+    Symbol&           value    = *SWC_NOT_NULL(*slot);
     return value;
 }
 
@@ -304,7 +304,7 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     SWC_ASSERT(symbol);
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    auto&                  shard    = shards_[shardIdx];
+    Shard&                 shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
@@ -327,11 +327,11 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
-    const AstNode& node     = ast().node(nodeRef);
-    const auto     info     = payloadInfo(node);
-    const uint32_t shardIdx = info.shardIdx;
-    const auto&    shard    = shards_[shardIdx];
-    const auto     spanView = shard.store.span<const Symbol*>(info.ref);
+    const AstNode&    node     = ast().node(nodeRef);
+    const PayloadInfo info     = payloadInfo(node);
+    const uint32_t    shardIdx = info.shardIdx;
+    const Shard&      shard    = shards_[shardIdx];
+    const auto        spanView = shard.store.span<const Symbol*>(info.ref);
 
     if (spanView.empty())
         return {};
@@ -357,7 +357,7 @@ std::span<Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef)
 void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
 {
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    auto&                  shard    = shards_[shardIdx];
+    Shard&                 shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);
@@ -372,7 +372,7 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*>
 void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
 {
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    auto&                  shard    = shards_[shardIdx];
+    Shard&                 shard    = shards_[shardIdx];
     const std::unique_lock lock(shard.mutex);
 
     AstNode& node = ast().node(nodeRef);

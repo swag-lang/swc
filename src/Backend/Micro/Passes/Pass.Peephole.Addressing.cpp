@@ -36,16 +36,6 @@ namespace PeepholePass
             return !MicroPassHelpers::violatesEncoderConformance(context, probeInst, ops.data());
         }
 
-        bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
-        {
-            if (!lhsSize || !rhsSize)
-                return false;
-
-            const uint64_t lhsEnd = lhsOffset + lhsSize;
-            const uint64_t rhsEnd = rhsOffset + rhsSize;
-            return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
-        }
-
         bool tryGetMemoryAccess(MemoryAccessInfo& outAccess, const MicroInstr& inst, const MicroInstrOperand* ops)
         {
             if (!ops)
@@ -152,7 +142,7 @@ namespace PeepholePass
             if (!accessSize || !targetSize)
                 return true;
 
-            return rangesOverlap(access.offset, accessSize, targetOffset, targetSize);
+            return MicroPassHelpers::rangesOverlap(access.offset, accessSize, targetOffset, targetSize);
         }
 
         bool canCrossInstruction(const MicroPassContext&       context,

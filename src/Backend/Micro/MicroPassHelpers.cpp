@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -35,6 +37,62 @@ int64_t MicroPassHelpers::toSignedValue(uint64_t value, MicroOpBits opBits)
             return static_cast<int64_t>(normalized);
         default:
             return static_cast<int64_t>(normalized);
+    }
+}
+
+bool MicroPassHelpers::tryInvertCondition(MicroCond& outCond, MicroCond cond)
+{
+    switch (cond)
+    {
+        case MicroCond::Equal:
+        case MicroCond::Zero:
+            outCond = MicroCond::NotEqual;
+            return true;
+        case MicroCond::NotEqual:
+        case MicroCond::NotZero:
+            outCond = MicroCond::Equal;
+            return true;
+        case MicroCond::Above:
+            outCond = MicroCond::BelowOrEqual;
+            return true;
+        case MicroCond::AboveOrEqual:
+            outCond = MicroCond::Below;
+            return true;
+        case MicroCond::Below:
+            outCond = MicroCond::AboveOrEqual;
+            return true;
+        case MicroCond::BelowOrEqual:
+        case MicroCond::NotAbove:
+            outCond = MicroCond::Above;
+            return true;
+        case MicroCond::Greater:
+            outCond = MicroCond::LessOrEqual;
+            return true;
+        case MicroCond::GreaterOrEqual:
+            outCond = MicroCond::Less;
+            return true;
+        case MicroCond::Less:
+            outCond = MicroCond::GreaterOrEqual;
+            return true;
+        case MicroCond::LessOrEqual:
+            outCond = MicroCond::Greater;
+            return true;
+        case MicroCond::Overflow:
+            outCond = MicroCond::NotOverflow;
+            return true;
+        case MicroCond::NotOverflow:
+            outCond = MicroCond::Overflow;
+            return true;
+        case MicroCond::Parity:
+        case MicroCond::EvenParity:
+            outCond = MicroCond::NotParity;
+            return true;
+        case MicroCond::NotParity:
+        case MicroCond::NotEvenParity:
+            outCond = MicroCond::Parity;
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -75,6 +133,114 @@ std::optional<bool> MicroPassHelpers::evaluateCondition(MicroCond condition, uin
         default:
             return std::nullopt;
     }
+}
+
+bool MicroPassHelpers::rangesOverlap(uint64_t lhsOffset, uint32_t lhsSize, uint64_t rhsOffset, uint32_t rhsSize)
+{
+    if (!lhsSize || !rhsSize)
+        return false;
+
+    const uint64_t lhsEnd = lhsOffset + lhsSize;
+    const uint64_t rhsEnd = rhsOffset + rhsSize;
+    return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
+}
+
+bool MicroPassHelpers::isStackBaseRegister(const MicroPassContext& context, MicroReg reg)
+{
+    const CallConv& conv = CallConv::get(context.callConvKind);
+    if (reg == conv.stackPointer)
+        return true;
+
+    if (conv.framePointer.isValid() && reg == conv.framePointer)
+        return true;
+
+    if (context.encoder)
+    {
+        const MicroReg stackPointerReg = context.encoder->stackPointerReg();
+        if (stackPointerReg.isValid() && reg == stackPointerReg)
+            return true;
+    }
+
+    return false;
+}
+
+bool MicroPassHelpers::getMemAccessOpBits(MicroOpBits& outOpBits, const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    if (!ops)
+        return false;
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::LoadRegMem:
+            outOpBits = ops[2].opBits;
+            return true;
+        case MicroInstrOpcode::LoadMemReg:
+            outOpBits = ops[2].opBits;
+            return true;
+        case MicroInstrOpcode::LoadMemImm:
+            outOpBits = ops[1].opBits;
+            return true;
+        case MicroInstrOpcode::LoadSignedExtRegMem:
+            outOpBits = ops[3].opBits;
+            return true;
+        case MicroInstrOpcode::LoadZeroExtRegMem:
+            outOpBits = ops[3].opBits;
+            return true;
+        case MicroInstrOpcode::CmpMemReg:
+            outOpBits = ops[2].opBits;
+            return true;
+        case MicroInstrOpcode::CmpMemImm:
+            outOpBits = ops[1].opBits;
+            return true;
+        case MicroInstrOpcode::OpUnaryMem:
+            outOpBits = ops[1].opBits;
+            return true;
+        case MicroInstrOpcode::OpBinaryRegMem:
+            outOpBits = ops[2].opBits;
+            return true;
+        case MicroInstrOpcode::OpBinaryMemReg:
+            outOpBits = ops[2].opBits;
+            return true;
+        case MicroInstrOpcode::OpBinaryMemImm:
+            outOpBits = ops[1].opBits;
+            return true;
+        default:
+            return false;
+    }
+}
+
+void MicroPassHelpers::collectReferencedLabels(const MicroStorage& storage, const MicroOperandStorage& operands, std::unordered_set<MicroLabelRef>& outLabels, bool includeJumpCondImm)
+{
+    outLabels.clear();
+    for (const MicroInstr& inst : storage.view())
+    {
+        const bool isJumpCond    = inst.op == MicroInstrOpcode::JumpCond;
+        const bool isJumpCondImm = inst.op == MicroInstrOpcode::JumpCondImm;
+        if (!isJumpCond && (!includeJumpCondImm || !isJumpCondImm))
+            continue;
+        if (inst.numOperands < 3)
+            continue;
+
+        const MicroInstrOperand* const ops = inst.ops(operands);
+        if (!ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
+            continue;
+
+        outLabels.insert(MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64)));
+    }
+}
+
+bool MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(const MicroInstr& inst, const MicroInstrOperand* ops, const std::unordered_set<MicroLabelRef>& referencedLabels)
+{
+    if (inst.op == MicroInstrOpcode::Label)
+    {
+        if (!ops || inst.numOperands < 1 || ops[0].valueU64 > std::numeric_limits<uint32_t>::max())
+            return true;
+
+        const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
+        return referencedLabels.contains(labelRef);
+    }
+
+    return MicroInstrInfo::isTerminatorInstruction(inst);
 }
 
 bool MicroPassHelpers::tryFoldAddSubSignedNoOverflow(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)

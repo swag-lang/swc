@@ -15,16 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool rangesOverlap(uint64_t lhsOffset, uint32_t lhsSize, uint64_t rhsOffset, uint32_t rhsSize)
-    {
-        if (!lhsSize || !rhsSize)
-            return false;
-
-        const uint64_t lhsEnd = lhsOffset + lhsSize;
-        const uint64_t rhsEnd = rhsOffset + rhsSize;
-        return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
-    }
-
     void eraseOverlappingStackSlots(KnownStackSlotMap& knownSlots, uint64_t offset, MicroOpBits opBits)
     {
         const uint32_t slotSize = getNumBytes(opBits);
@@ -37,7 +27,7 @@ namespace
         for (auto it = knownSlots.begin(); it != knownSlots.end();)
         {
             const uint32_t knownSize = getNumBytes(it->first.opBits);
-            if (rangesOverlap(offset, slotSize, it->first.offset, knownSize))
+            if (MicroPassHelpers::rangesOverlap(offset, slotSize, it->first.offset, knownSize))
                 it = knownSlots.erase(it);
             else
                 ++it;
@@ -63,7 +53,7 @@ namespace
 
         for (auto it = knownStackAddresses.begin(); it != knownStackAddresses.end();)
         {
-            if (rangesOverlap(offset, slotSize, it->first, sizeof(uint64_t)))
+            if (MicroPassHelpers::rangesOverlap(offset, slotSize, it->first, sizeof(uint64_t)))
                 it = knownStackAddresses.erase(it);
             else
                 ++it;
@@ -1557,25 +1547,7 @@ void MicroConstantPropagationPass::collectReferencedLabels()
     SWC_ASSERT(operands_ != nullptr);
 
     referencedLabels_.reserve(storage_->count());
-    for (const MicroInstr& scanInst : storage_->view())
-    {
-        switch (scanInst.op)
-        {
-            case MicroInstrOpcode::JumpCond:
-            case MicroInstrOpcode::JumpCondImm:
-            {
-                if (scanInst.numOperands < 3)
-                    break;
-
-                const auto* scanOps = scanInst.ops(*operands_);
-                if (scanOps)
-                    referencedLabels_.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
-                break;
-            }
-            default:
-                break;
-        }
-    }
+    MicroPassHelpers::collectReferencedLabels(*storage_, *operands_, referencedLabels_, true);
 }
 
 void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroInstr& inst, MicroInstrOperand* ops, std::optional<std::pair<uint32_t, uint64_t>>& deferredKnownDef)
@@ -1695,29 +1667,7 @@ void MicroConstantPropagationPass::updateCompareStateForInstruction(const MicroI
 
 void MicroConstantPropagationPass::clearControlFlowBoundaryForInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
 {
-    bool clearForControlFlowBoundary = false;
-    switch (inst.op)
-    {
-        case MicroInstrOpcode::Label:
-        {
-            if (ops && inst.numOperands >= 1)
-            {
-                const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
-                clearForControlFlowBoundary = referencedLabels_.contains(labelRef);
-            }
-            else
-            {
-                clearForControlFlowBoundary = true;
-            }
-            break;
-        }
-        default:
-            if (MicroInstrInfo::isTerminatorInstruction(inst))
-                clearForControlFlowBoundary = true;
-            break;
-    }
-
-    if (clearForControlFlowBoundary)
+    if (MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(inst, ops, referencedLabels_))
     {
         known_.clear();
         knownStackSlots_.clear();

@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.ControlFlowSimplification.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Simplifies the micro CFG by removing structurally redundant control flow.
 // Example: jmp L1; L1:          ->  <remove jump>.
@@ -12,62 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryInvertCondition(MicroCond& outCond, MicroCond cond)
-    {
-        switch (cond)
-        {
-            case MicroCond::Equal:
-            case MicroCond::Zero:
-                outCond = MicroCond::NotEqual;
-                return true;
-            case MicroCond::NotEqual:
-            case MicroCond::NotZero:
-                outCond = MicroCond::Equal;
-                return true;
-            case MicroCond::Above:
-                outCond = MicroCond::BelowOrEqual;
-                return true;
-            case MicroCond::AboveOrEqual:
-                outCond = MicroCond::Below;
-                return true;
-            case MicroCond::Below:
-                outCond = MicroCond::AboveOrEqual;
-                return true;
-            case MicroCond::BelowOrEqual:
-            case MicroCond::NotAbove:
-                outCond = MicroCond::Above;
-                return true;
-            case MicroCond::Greater:
-                outCond = MicroCond::LessOrEqual;
-                return true;
-            case MicroCond::GreaterOrEqual:
-                outCond = MicroCond::Less;
-                return true;
-            case MicroCond::Less:
-                outCond = MicroCond::GreaterOrEqual;
-                return true;
-            case MicroCond::LessOrEqual:
-                outCond = MicroCond::Greater;
-                return true;
-            case MicroCond::Overflow:
-                outCond = MicroCond::NotOverflow;
-                return true;
-            case MicroCond::NotOverflow:
-                outCond = MicroCond::Overflow;
-                return true;
-            case MicroCond::Parity:
-            case MicroCond::EvenParity:
-                outCond = MicroCond::NotParity;
-                return true;
-            case MicroCond::NotParity:
-            case MicroCond::NotEvenParity:
-                outCond = MicroCond::Parity;
-                return true;
-            default:
-                return false;
-        }
-    }
-
     bool isJumpToImmediateNextLabel(const MicroInstrOperand* jumpOps, MicroStorage::Iterator scanIt, const MicroStorage::Iterator& endIt, const MicroOperandStorage& operands)
     {
         SWC_ASSERT(jumpOps != nullptr);
@@ -96,22 +41,6 @@ namespace
         return false;
     }
 
-    void collectReferencedLabels(const MicroStorage& storage, const MicroOperandStorage& operands, std::unordered_set<MicroLabelRef>& outLabels)
-    {
-        outLabels.clear();
-        for (const MicroInstr& inst : storage.view())
-        {
-            if (inst.op != MicroInstrOpcode::JumpCond)
-                continue;
-
-            const MicroInstrOperand* ops = inst.ops(operands);
-            if (!ops || ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
-                continue;
-
-            outLabels.insert(MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64)));
-        }
-    }
-
     bool tryMergeConditionalAndUnconditionalJump(const MicroInstr& conditionalJumpInst, const MicroInstr& unconditionalJumpInst, const MicroStorage::Iterator& scanIt, const MicroStorage::Iterator& endIt, MicroOperandStorage& operands)
     {
         if (conditionalJumpInst.op != MicroInstrOpcode::JumpCond || unconditionalJumpInst.op != MicroInstrOpcode::JumpCond)
@@ -132,7 +61,7 @@ namespace
             return false;
 
         MicroCond invertedCond;
-        if (!tryInvertCondition(invertedCond, conditionalOps[0].cpuCond))
+        if (!MicroPassHelpers::tryInvertCondition(invertedCond, conditionalOps[0].cpuCond))
             return false;
 
         conditionalOps[0].cpuCond  = invertedCond;
@@ -205,7 +134,7 @@ Result MicroControlFlowSimplificationPass::run(MicroPassContext& context)
 
     referencedLabels_.clear();
     referencedLabels_.reserve(storage.count());
-    collectReferencedLabels(storage, operands, referencedLabels_);
+    MicroPassHelpers::collectReferencedLabels(storage, operands, referencedLabels_, false);
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {

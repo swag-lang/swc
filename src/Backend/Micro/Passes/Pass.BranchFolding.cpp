@@ -32,15 +32,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
     referencedLabels_.reserve(storage.count());
-    for (const MicroInstr& scanInst : storage.view())
-    {
-        if ((scanInst.op == MicroInstrOpcode::JumpCond || scanInst.op == MicroInstrOpcode::JumpCondImm) && scanInst.numOperands >= 3)
-        {
-            const auto* scanOps = scanInst.ops(operands);
-            if (scanOps)
-                referencedLabels_.insert(MicroLabelRef(static_cast<uint32_t>(scanOps[2].valueU64)));
-        }
-    }
+    MicroPassHelpers::collectReferencedLabels(storage, operands, referencedLabels_, true);
 
     for (auto it = storage.view().begin(); it != storage.view().end();)
     {
@@ -164,25 +156,7 @@ Result MicroBranchFoldingPass::run(MicroPassContext& context)
             }
         }
 
-        bool clearForControlFlowBoundary = false;
-        if (inst.op == MicroInstrOpcode::Label)
-        {
-            if (ops && inst.numOperands >= 1)
-            {
-                const MicroLabelRef labelRef(static_cast<uint32_t>(ops[0].valueU64));
-                clearForControlFlowBoundary = referencedLabels_.contains(labelRef);
-            }
-            else
-            {
-                clearForControlFlowBoundary = true;
-            }
-        }
-        else if (MicroInstrInfo::isTerminatorInstruction(inst))
-        {
-            clearForControlFlowBoundary = true;
-        }
-
-        if (clearForControlFlowBoundary)
+        if (MicroPassHelpers::shouldClearDataflowStateOnControlFlowBoundary(inst, ops, referencedLabels_))
         {
             knownValues_.clear();
             compareValid_ = false;

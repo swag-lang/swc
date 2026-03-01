@@ -10,47 +10,6 @@ namespace PeepholePass
 {
     namespace
     {
-        bool tryInvertCondition(MicroCond& outCond, MicroCond cond)
-        {
-            switch (cond)
-            {
-                case MicroCond::Equal:
-                case MicroCond::Zero:
-                    outCond = MicroCond::NotEqual;
-                    return true;
-                case MicroCond::NotEqual:
-                case MicroCond::NotZero:
-                    outCond = MicroCond::Equal;
-                    return true;
-                case MicroCond::Below:
-                    outCond = MicroCond::AboveOrEqual;
-                    return true;
-                case MicroCond::BelowOrEqual:
-                    outCond = MicroCond::Above;
-                    return true;
-                case MicroCond::Above:
-                    outCond = MicroCond::BelowOrEqual;
-                    return true;
-                case MicroCond::AboveOrEqual:
-                    outCond = MicroCond::Below;
-                    return true;
-                case MicroCond::Less:
-                    outCond = MicroCond::GreaterOrEqual;
-                    return true;
-                case MicroCond::LessOrEqual:
-                    outCond = MicroCond::Greater;
-                    return true;
-                case MicroCond::Greater:
-                    outCond = MicroCond::LessOrEqual;
-                    return true;
-                case MicroCond::GreaterOrEqual:
-                    outCond = MicroCond::Less;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         bool foldBoolAndChainIntoDirectJumps(const MicroPassContext& context, const Cursor& cursor)
         {
             const MicroInstr*        cmp1Inst = cursor.inst;
@@ -174,7 +133,7 @@ namespace PeepholePass
 
             MicroCond invertedCond1;
             MicroCond invertedCond2;
-            if (!tryInvertCondition(invertedCond1, set1Ops[1].cpuCond) || !tryInvertCondition(invertedCond2, set2Ops[1].cpuCond))
+            if (!MicroPassHelpers::tryInvertCondition(invertedCond1, set1Ops[1].cpuCond) || !MicroPassHelpers::tryInvertCondition(invertedCond2, set2Ops[1].cpuCond))
                 return false;
 
             const MicroInstrRef      set1Ref        = set1It.current;
@@ -351,7 +310,7 @@ namespace PeepholePass
             MicroCond newJumpCond = setCondCond;
             if (jumpOps[0].cpuCond == MicroCond::Equal || jumpOps[0].cpuCond == MicroCond::Zero)
             {
-                if (!tryInvertCondition(newJumpCond, newJumpCond))
+                if (!MicroPassHelpers::tryInvertCondition(newJumpCond, newJumpCond))
                     return false;
             }
 
@@ -405,7 +364,7 @@ namespace PeepholePass
             MicroCond foldedCond = originalSetCond;
             if (cmpToBoolCond == MicroCond::Equal || cmpToBoolCond == MicroCond::Zero)
             {
-                if (!tryInvertCondition(foldedCond, foldedCond))
+                if (!MicroPassHelpers::tryInvertCondition(foldedCond, foldedCond))
                     return false;
             }
 
@@ -429,25 +388,6 @@ namespace PeepholePass
             return true;
         }
 
-        bool isStackBaseRegister(const MicroPassContext& context, const MicroReg reg)
-        {
-            const CallConv& conv = CallConv::get(context.callConvKind);
-            if (reg == conv.stackPointer)
-                return true;
-
-            if (conv.framePointer.isValid() && reg == conv.framePointer)
-                return true;
-
-            if (context.encoder)
-            {
-                const MicroReg stackPointerReg = context.encoder->stackPointerReg();
-                if (stackPointerReg.isValid() && reg == stackPointerReg)
-                    return true;
-            }
-
-            return false;
-        }
-
         bool isStackPointerRegister(const MicroPassContext& context, const MicroReg reg)
         {
             const CallConv& conv = CallConv::get(context.callConvKind);
@@ -462,61 +402,6 @@ namespace PeepholePass
             }
 
             return false;
-        }
-
-        bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
-        {
-            if (!lhsSize || !rhsSize)
-                return false;
-
-            const uint64_t lhsEnd = lhsOffset + lhsSize;
-            const uint64_t rhsEnd = rhsOffset + rhsSize;
-            return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
-        }
-
-        bool getMemAccessOpBits(MicroOpBits& outOpBits, const MicroInstr& inst, const MicroInstrOperand* ops)
-        {
-            if (!ops)
-                return false;
-
-            switch (inst.op)
-            {
-                case MicroInstrOpcode::LoadRegMem:
-                    outOpBits = ops[2].opBits;
-                    return true;
-                case MicroInstrOpcode::LoadMemReg:
-                    outOpBits = ops[2].opBits;
-                    return true;
-                case MicroInstrOpcode::LoadMemImm:
-                    outOpBits = ops[1].opBits;
-                    return true;
-                case MicroInstrOpcode::LoadSignedExtRegMem:
-                    outOpBits = ops[3].opBits;
-                    return true;
-                case MicroInstrOpcode::LoadZeroExtRegMem:
-                    outOpBits = ops[3].opBits;
-                    return true;
-                case MicroInstrOpcode::CmpMemReg:
-                    outOpBits = ops[2].opBits;
-                    return true;
-                case MicroInstrOpcode::CmpMemImm:
-                    outOpBits = ops[1].opBits;
-                    return true;
-                case MicroInstrOpcode::OpUnaryMem:
-                    outOpBits = ops[1].opBits;
-                    return true;
-                case MicroInstrOpcode::OpBinaryRegMem:
-                    outOpBits = ops[2].opBits;
-                    return true;
-                case MicroInstrOpcode::OpBinaryMemReg:
-                    outOpBits = ops[2].opBits;
-                    return true;
-                case MicroInstrOpcode::OpBinaryMemImm:
-                    outOpBits = ops[1].opBits;
-                    return true;
-                default:
-                    return false;
-            }
         }
 
         bool isAddressOnlyInstruction(const MicroInstr& inst)
@@ -589,10 +474,10 @@ namespace PeepholePass
             {
                 case MicroInstrOpcode::LoadAmcRegMem:
                 case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    return isStackBaseRegister(context, ops[1].reg) || isStackBaseRegister(context, ops[2].reg);
+                    return MicroPassHelpers::isStackBaseRegister(context, ops[1].reg) || MicroPassHelpers::isStackBaseRegister(context, ops[2].reg);
                 case MicroInstrOpcode::LoadAmcMemReg:
                 case MicroInstrOpcode::LoadAmcMemImm:
-                    return isStackBaseRegister(context, ops[0].reg) || isStackBaseRegister(context, ops[1].reg);
+                    return MicroPassHelpers::isStackBaseRegister(context, ops[0].reg) || MicroPassHelpers::isStackBaseRegister(context, ops[1].reg);
                 default:
                     return false;
             }
@@ -789,7 +674,7 @@ namespace PeepholePass
                 const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
                 if (scanBaseReg != slotBaseReg)
                 {
-                    if (!isStackBaseRegister(context, scanBaseReg))
+                    if (!MicroPassHelpers::isStackBaseRegister(context, scanBaseReg))
                         continue;
 
                     if (!equivalentStackBases)
@@ -802,21 +687,21 @@ namespace PeepholePass
                 const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
                 if (isAddressOnlyInstruction(scanInst))
                 {
-                    if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, 1))
+                    if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, 1))
                         return true;
 
                     continue;
                 }
 
                 auto scanOpBits = MicroOpBits::Zero;
-                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                if (!MicroPassHelpers::getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return true;
 
                 const uint32_t scanSlotSize = getNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return true;
 
-                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
+                if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
                     return true;
             }
 
@@ -878,7 +763,7 @@ namespace PeepholePass
 
             if (!dstReg.isValid() || dstReg == baseReg)
                 return false;
-            if (!isStackBaseRegister(context, baseReg))
+            if (!MicroPassHelpers::isStackBaseRegister(context, baseReg))
                 return false;
 
             const uint32_t slotSize = getNumBytes(opBits);
@@ -933,11 +818,11 @@ namespace PeepholePass
                     return false;
 
                 const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
-                if (!isStackBaseRegister(context, scanBaseReg))
+                if (!MicroPassHelpers::isStackBaseRegister(context, scanBaseReg))
                     return false;
 
                 auto scanOpBits = MicroOpBits::Zero;
-                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                if (!MicroPassHelpers::getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
                 const uint32_t scanSlotSize = getNumBytes(scanOpBits);
@@ -945,7 +830,7 @@ namespace PeepholePass
                     return false;
 
                 const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
-                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
+                if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize))
                     return false;
             }
 
@@ -1027,11 +912,11 @@ namespace PeepholePass
                 return false;
 
             const MicroReg baseReg = ops[baseIndex].reg;
-            if (!isStackBaseRegister(context, baseReg))
+            if (!MicroPassHelpers::isStackBaseRegister(context, baseReg))
                 return false;
 
             auto opBits = MicroOpBits::Zero;
-            if (!getMemAccessOpBits(opBits, *inst, ops))
+            if (!MicroPassHelpers::getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
             const uint32_t slotSize = getNumBytes(opBits);
@@ -1108,11 +993,11 @@ namespace PeepholePass
                     return false;
 
                 const MicroReg scanBaseReg = scanOps[scanBaseIndex].reg;
-                if (!isStackBaseRegister(context, scanBaseReg))
+                if (!MicroPassHelpers::isStackBaseRegister(context, scanBaseReg))
                     return false;
 
                 auto scanOpBits = MicroOpBits::Zero;
-                if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
+                if (!MicroPassHelpers::getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
                 const uint32_t scanSlotSize = getNumBytes(scanOpBits);
@@ -1120,7 +1005,7 @@ namespace PeepholePass
                     return false;
 
                 const uint64_t scanSlotOffset = scanOps[scanOffsetIndex].valueU64;
-                if (rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
+                if (MicroPassHelpers::rangesOverlap(slotOffset, slotSize, scanSlotOffset, scanSlotSize) && isMemoryReadInstruction(scanInst))
                     return false;
             }
 
@@ -1151,7 +1036,7 @@ namespace PeepholePass
                 return false;
 
             auto opBits = MicroOpBits::Zero;
-            if (!getMemAccessOpBits(opBits, *inst, ops))
+            if (!MicroPassHelpers::getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
             const uint32_t slotSize = getNumBytes(opBits);
@@ -1195,7 +1080,7 @@ namespace PeepholePass
                 return false;
             if (saveOps[2].opBits != MicroOpBits::B64)
                 return false;
-            if (!isStackBaseRegister(context, saveOps[0].reg))
+            if (!MicroPassHelpers::isStackBaseRegister(context, saveOps[0].reg))
                 return false;
 
             const MicroReg savedReg = saveOps[1].reg;
@@ -1725,3 +1610,4 @@ namespace PeepholePass
 }
 
 SWC_END_NAMESPACE();
+

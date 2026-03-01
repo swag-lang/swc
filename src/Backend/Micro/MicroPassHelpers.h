@@ -2,16 +2,25 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Support/Core/Result.h"
 #include "Support/Math/Fold.h"
+#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
 struct MicroPassContext;
+class MicroStorage;
+class MicroOperandStorage;
 
 namespace MicroPassHelpers
 {
     uint64_t         normalizeToOpBits(uint64_t value, MicroOpBits opBits);
     int64_t          toSignedValue(uint64_t value, MicroOpBits opBits);
+    bool             tryInvertCondition(MicroCond& outCond, MicroCond cond);
     std::optional<bool> evaluateCondition(MicroCond condition, uint64_t lhs, uint64_t rhs, MicroOpBits opBits);
+    bool             rangesOverlap(uint64_t lhsOffset, uint32_t lhsSize, uint64_t rhsOffset, uint32_t rhsSize);
+    bool             isStackBaseRegister(const MicroPassContext& context, MicroReg reg);
+    bool             getMemAccessOpBits(MicroOpBits& outOpBits, const MicroInstr& inst, const MicroInstrOperand* ops);
+    void             collectReferencedLabels(const MicroStorage& storage, const MicroOperandStorage& operands, std::unordered_set<MicroLabelRef>& outLabels, bool includeJumpCondImm);
+    bool             shouldClearDataflowStateOnControlFlowBoundary(const MicroInstr& inst, const MicroInstrOperand* ops, const std::unordered_set<MicroLabelRef>& referencedLabels);
     bool             tryFoldAddSubSignedNoOverflow(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits);
     bool             isAddOrSubMicroOp(MicroOp op);
     Math::FoldStatus foldBinaryImmediate(uint64_t& outValue, uint64_t inValue, uint64_t immediate, MicroOp microOp, MicroOpBits opBits);

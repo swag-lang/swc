@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.LoadStoreForwarding.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 
 // Forwards recent store values into matching following loads.
 // Example: store [rbp+8], r1; load r2, [rbp+8] -> mov r2, r1.
@@ -54,80 +54,6 @@ namespace
 
     using StackSlotMap = std::unordered_map<StackSlotKey, StackSlotValue, StackSlotKeyHash>;
 
-    bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
-    {
-        if (!lhsSize || !rhsSize)
-            return false;
-
-        const uint64_t lhsEnd = lhsOffset + lhsSize;
-        const uint64_t rhsEnd = rhsOffset + rhsSize;
-        return lhsOffset < rhsEnd && rhsOffset < lhsEnd;
-    }
-
-    bool isStackBaseRegister(const MicroPassContext& context, const MicroReg reg)
-    {
-        const CallConv& conv = CallConv::get(context.callConvKind);
-        if (reg == conv.stackPointer)
-            return true;
-
-        if (conv.framePointer.isValid() && reg == conv.framePointer)
-            return true;
-
-        if (context.encoder)
-        {
-            const MicroReg stackPointerReg = context.encoder->stackPointerReg();
-            if (stackPointerReg.isValid() && reg == stackPointerReg)
-                return true;
-        }
-
-        return false;
-    }
-
-    bool getMemAccessOpBits(MicroOpBits& outOpBits, const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        if (!ops)
-            return false;
-
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::LoadRegMem:
-                outOpBits = ops[2].opBits;
-                return true;
-            case MicroInstrOpcode::LoadMemReg:
-                outOpBits = ops[2].opBits;
-                return true;
-            case MicroInstrOpcode::LoadMemImm:
-                outOpBits = ops[1].opBits;
-                return true;
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-                outOpBits = ops[3].opBits;
-                return true;
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-                outOpBits = ops[3].opBits;
-                return true;
-            case MicroInstrOpcode::CmpMemReg:
-                outOpBits = ops[2].opBits;
-                return true;
-            case MicroInstrOpcode::CmpMemImm:
-                outOpBits = ops[1].opBits;
-                return true;
-            case MicroInstrOpcode::OpUnaryMem:
-                outOpBits = ops[1].opBits;
-                return true;
-            case MicroInstrOpcode::OpBinaryRegMem:
-                outOpBits = ops[2].opBits;
-                return true;
-            case MicroInstrOpcode::OpBinaryMemReg:
-                outOpBits = ops[2].opBits;
-                return true;
-            case MicroInstrOpcode::OpBinaryMemImm:
-                outOpBits = ops[1].opBits;
-                return true;
-            default:
-                return false;
-        }
-    }
-
     bool getStackSlotKey(StackSlotKey& outKey, const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (!ops)
@@ -139,11 +65,11 @@ namespace
             return false;
 
         const MicroReg baseReg = ops[baseIndex].reg;
-        if (!isStackBaseRegister(context, baseReg))
+        if (!MicroPassHelpers::isStackBaseRegister(context, baseReg))
             return false;
 
         auto opBits = MicroOpBits::Zero;
-        if (!getMemAccessOpBits(opBits, inst, ops))
+        if (!MicroPassHelpers::getMemAccessOpBits(opBits, inst, ops))
             return false;
 
         outKey.baseReg = baseReg;
@@ -167,7 +93,7 @@ namespace
             const uint32_t      slotSize = getNumBytes(slotKey.opBits);
             if (slotSize &&
                 slotKey.baseReg == targetKey.baseReg &&
-                rangesOverlap(slotKey.offset, slotSize, targetKey.offset, targetSize))
+                MicroPassHelpers::rangesOverlap(slotKey.offset, slotSize, targetKey.offset, targetSize))
             {
                 it = slots.erase(it);
             }
@@ -295,7 +221,7 @@ namespace
             bool clearAllSlots = false;
             for (const MicroReg defReg : useDef.defs)
             {
-                if (isStackBaseRegister(context, defReg))
+                if (MicroPassHelpers::isStackBaseRegister(context, defReg))
                 {
                     clearAllSlots = true;
                     break;

@@ -20,8 +20,7 @@ struct MicroPassContext
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit  = 0;
-    size_t   printInstrCountBeforeAll    = 0;
-    bool     hasPrintInstrCountBeforeAll = false;
+    size_t   printInstrCountBefore    = 0;
     bool     passChanged                 = false;
 
 #if SWC_HAS_STATS

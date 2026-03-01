@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.BranchFolding.h"
 #include "Backend/Micro/Passes/Pass.ConstantPropagation.h"
 #include "Backend/Micro/Passes/Pass.ControlFlowSimplification.h"
@@ -18,7 +19,6 @@
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
-#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,20 +26,6 @@ namespace
 {
     constexpr uint32_t K_OPT_ITERATION_OFF = 1;
     constexpr uint32_t K_OPT_ITERATION_ON  = 4;
-    size_t             countNonLabelInstructions(const MicroStorage* instructions);
-
-    void updatePrintInstructionCountBaseline(MicroPassContext& context)
-    {
-        if (!context.instructions)
-            return;
-
-        const size_t currentCount = countNonLabelInstructions(context.instructions);
-        if (!context.hasPrintInstrCountBeforeAll || currentCount > context.printInstrCountBeforeAll)
-        {
-            context.printInstrCountBeforeAll    = currentCount;
-            context.hasPrintInstrCountBeforeAll = true;
-        }
-    }
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
@@ -75,12 +61,10 @@ namespace
         if (!backendCfg.optimize)
             return optimize;
 
-        if (!context.instructions || !context.hasPrintInstrCountBeforeAll)
-            return optimize;
-
-        const size_t countAfter  = countNonLabelInstructions(context.instructions);
-        const size_t countBefore = context.printInstrCountBeforeAll;
+        const size_t countAfter  = context.instructions->count();
+        const size_t countBefore = context.printInstrCountBefore;
         double       gainPercent = 0.0;
+
         if (countBefore)
         {
             const double delta = static_cast<double>(countBefore) - static_cast<double>(countAfter);
@@ -173,31 +157,12 @@ namespace
         return optimizationIterationLimit(Runtime::BuildCfgBackend{});
     }
 
-    size_t countNonLabelInstructions(const MicroStorage* instructions)
-    {
-        if (!instructions)
-            return 0;
-
-        size_t                        count = 0;
-        const MicroStorage::ConstView view  = instructions->view();
-        for (const auto& inst : view)
-        {
-            if (inst.op == MicroInstrOpcode::Label)
-                continue;
-
-            ++count;
-        }
-
-        return count;
-    }
-
     Result runPass(MicroPassContext& context, MicroPass& pass, bool& outChanged)
     {
         uint64_t storageRevisionBefore = 0;
         if (context.instructions)
             storageRevisionBefore = context.instructions->revision();
 
-        updatePrintInstructionCountBaseline(context);
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
@@ -220,7 +185,6 @@ namespace
         if (changed && context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
             changed = true;
 
-        updatePrintInstructionCountBaseline(context);
         if (shouldPrintPass(context, pass, false))
             printPassInstructions(context, pass, false);
 
@@ -245,9 +209,6 @@ namespace
         if (optimizationPasses.empty())
             return Result::Continue;
 
-#if SWC_HAS_STATS
-        const size_t countBefore = countNonLabelInstructions(context.instructions);
-#endif
         const uint32_t maxIterations = std::max<uint32_t>(optimizationIterationLimit(context), 1);
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
@@ -264,14 +225,6 @@ namespace
             if (!changed)
                 break;
         }
-
-#if SWC_HAS_STATS
-        const size_t countAfter = countNonLabelInstructions(context.instructions);
-        if (countAfter <= countBefore)
-            context.optimizationInstrRemoved += countBefore - countAfter;
-        else
-            context.optimizationInstrAdded += countAfter - countBefore;
-#endif
 
         return Result::Continue;
     }
@@ -404,18 +357,13 @@ void MicroPassManager::addFinal(MicroPass& pass)
 
 Result MicroPassManager::run(MicroPassContext& context) const
 {
-    context.printInstrCountBeforeAll    = 0;
-    context.hasPrintInstrCountBeforeAll = false;
-    if (context.instructions)
-    {
-        context.printInstrCountBeforeAll    = countNonLabelInstructions(context.instructions);
-        context.hasPrintInstrCountBeforeAll = true;
-    }
-
+    SWC_ASSERT(context.instructions != nullptr);
+    context.printInstrCountBefore = context.instructions->count();
     SWC_RESULT_VERIFY(runOptimizationPasses(context, preOptimizationPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
     SWC_RESULT_VERIFY(runOptimizationPasses(context, postOptimizationPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
+
     return Result::Continue;
 }
 

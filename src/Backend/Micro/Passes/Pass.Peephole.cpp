@@ -4,6 +4,15 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool MicroPeepholePass::Rule::apply(MicroPeepholePass& pass, const Cursor& cursor) const
+{
+    if (applyMutable != nullptr)
+        return applyMutable(pass, cursor);
+
+    SWC_ASSERT(applyConst != nullptr);
+    return applyConst(pass, cursor);
+}
+
 void MicroPeepholePass::initRunState(MicroPassContext& context)
 {
     context_  = &context;
@@ -74,7 +83,7 @@ bool MicroPeepholePass::applyOpcodeRules(const Cursor& cursor)
     for (const RulePtr rule : rules)
     {
         SWC_ASSERT(rule != nullptr);
-        SWC_ASSERT(SWC_NOT_NULL(rule)->apply != nullptr);
+        SWC_ASSERT(SWC_NOT_NULL(rule)->applyMutable != nullptr || SWC_NOT_NULL(rule)->applyConst != nullptr);
         if (SWC_NOT_NULL(rule)->apply(*this, cursor))
             return true;
     }

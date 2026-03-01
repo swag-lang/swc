@@ -31,12 +31,30 @@ public:
         LoadMemImm,
     };
 
-    using RuleApplyFn = bool (*)(MicroPeepholePass& pass, const Cursor& cursor);
+    using RuleApplyMutableFn = bool (*)(MicroPeepholePass& pass, const Cursor& cursor);
+    using RuleApplyConstFn   = bool (*)(const MicroPeepholePass& pass, const Cursor& cursor);
 
     struct Rule
     {
-        RuleTarget  target;
-        RuleApplyFn apply;
+        RuleTarget        target         = RuleTarget::AnyInstruction;
+        RuleApplyMutableFn applyMutable  = nullptr;
+        RuleApplyConstFn   applyConst    = nullptr;
+
+        Rule() = default;
+
+        Rule(const RuleTarget targetValue, const RuleApplyMutableFn applyValue):
+            target(targetValue),
+            applyMutable(applyValue)
+        {
+        }
+
+        Rule(const RuleTarget targetValue, const RuleApplyConstFn applyValue):
+            target(targetValue),
+            applyConst(applyValue)
+        {
+        }
+
+        bool apply(MicroPeepholePass& pass, const Cursor& cursor) const;
     };
 
     using RuleList = std::vector<Rule>;

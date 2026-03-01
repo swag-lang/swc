@@ -179,7 +179,7 @@ namespace
         }
 
         bool changed = context.passChanged;
-        if (changed && context.builder && SWC_NOT_NULL(context.builder)->pruneDeadRelocations())
+        if (changed && context.builder->pruneDeadRelocations())
             changed = true;
 
         if (shouldPrintPass(context, pass, false))
@@ -250,8 +250,8 @@ MicroPassManager& MicroPassManager::operator=(MicroPassManager&&) noexcept = def
 
 void MicroPassManager::clear()
 {
-    optimizationPasses_.clear();
-    mandatoryPasses_.clear();
+    loopPasses_.clear();
+    startPasses_.clear();
     finalPasses_.clear();
 }
 
@@ -259,54 +259,44 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 {
     clear();
 
-    addMandatory(*legalizePass_);
-    addMandatory(*regAllocPass_);
-    addMandatory(*prologEpilogPass_);
+    addStartPass(*legalizePass_);
+    addStartPass(*regAllocPass_);
+    addStartPass(*prologEpilogPass_);
 
     if (optimize)
     {
-        addPreOptimization(*strengthReductionPass_);
-        addPreOptimization(*instructionCombinePass_);
-        addPreOptimization(*copyPropagationPass_);
-        addPreOptimization(*constantPropagationPass_);
-        addPreOptimization(*loadStoreForwardPass_);
-        addPreOptimization(*branchFoldingPass_);
-        addPreOptimization(*cfgSimplifyPass_);
-        addPreOptimization(*deadCodePass_);
-        addPreOptimization(*peepholePass_);
-        addPreOptimization(*legalizePass_);
-        addPreOptimization(*regAllocPass_);
+        addLoopPass(*strengthReductionPass_);
+        addLoopPass(*instructionCombinePass_);
+        addLoopPass(*copyPropagationPass_);
+        addLoopPass(*constantPropagationPass_);
+        addLoopPass(*loadStoreForwardPass_);
+        addLoopPass(*branchFoldingPass_);
+        addLoopPass(*cfgSimplifyPass_);
+        addLoopPass(*deadCodePass_);
+        addLoopPass(*peepholePass_);
+        addLoopPass(*legalizePass_);
+        addLoopPass(*regAllocPass_);
     }
     else
     {
-        addPreOptimization(*legalizePass_);
-        addPreOptimization(*regAllocPass_);
+        addLoopPass(*legalizePass_);
+        addLoopPass(*regAllocPass_);
     }
 
-    addFinal(*emitPass_);
+    addFinalPass(*emitPass_);
 }
 
-void MicroPassManager::add(MicroPass& pass)
+void MicroPassManager::addStartPass(MicroPass& pass)
 {
-    addMandatory(pass);
+    startPasses_.push_back(&pass);
 }
 
-void MicroPassManager::addMandatory(MicroPass& pass)
+void MicroPassManager::addLoopPass(MicroPass& pass)
 {
-    mandatoryPasses_.push_back(&pass);
+    loopPasses_.push_back(&pass);
 }
 
-void MicroPassManager::addPreOptimization(MicroPass& pass)
-{
-    optimizationPasses_.push_back(&pass);
-}
-
-void MicroPassManager::addPostOptimization(MicroPass& pass)
-{
-    optimizationPasses_.push_back(&pass);
-}
-
-void MicroPassManager::addFinal(MicroPass& pass)
+void MicroPassManager::addFinalPass(MicroPass& pass)
 {
     finalPasses_.push_back(&pass);
 }
@@ -316,8 +306,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_ASSERT(context.instructions != nullptr);
     context.printInstrCountBefore = context.instructions->count();
 
-    SWC_RESULT_VERIFY(runLinearPasses(context, mandatoryPasses_));
-    SWC_RESULT_VERIFY(runOptimizationPasses(context, optimizationPasses_));
+    SWC_RESULT_VERIFY(runLinearPasses(context, startPasses_));
+    SWC_RESULT_VERIFY(runOptimizationPasses(context, loopPasses_));
     SWC_RESULT_VERIFY(runLinearPasses(context, finalPasses_));
 
     return Result::Continue;

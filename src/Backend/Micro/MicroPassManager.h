@@ -34,20 +34,16 @@ public:
     MicroPassManager(MicroPassManager&&) noexcept;
     MicroPassManager& operator=(MicroPassManager&&) noexcept;
 
-    void clear();
-    void configureDefaultPipeline(bool optimize);
-
-    // Legacy API: append to mandatory pipeline stage.
-    void   add(MicroPass& pass);
-    void   addMandatory(MicroPass& pass);
-    void   addPreOptimization(MicroPass& pass);
-    void   addPostOptimization(MicroPass& pass);
-    void   addFinal(MicroPass& pass);
+    void   clear();
+    void   configureDefaultPipeline(bool optimize);
+    void   addStartPass(MicroPass& pass);
+    void   addLoopPass(MicroPass& pass);
+    void   addFinalPass(MicroPass& pass);
     Result run(MicroPassContext& context) const;
 
 private:
-    std::vector<MicroPass*>                             optimizationPasses_;
-    std::vector<MicroPass*>                             mandatoryPasses_;
+    std::vector<MicroPass*>                             loopPasses_;
+    std::vector<MicroPass*>                             startPasses_;
     std::vector<MicroPass*>                             finalPasses_;
     std::unique_ptr<MicroControlFlowSimplificationPass> cfgSimplifyPass_;
     std::unique_ptr<MicroInstructionCombinePass>        instructionCombinePass_;

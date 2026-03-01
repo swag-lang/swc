@@ -26,7 +26,7 @@ namespace
 
         MicroPeepholePass peepholePass;
         MicroPassManager  passes;
-        passes.add(peepholePass);
+        passes.addStartPass(peepholePass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind = CallConvKind::Host;

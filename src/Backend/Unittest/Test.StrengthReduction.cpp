@@ -15,7 +15,7 @@ namespace
     {
         MicroStrengthReductionPass pass;
         MicroPassManager           passManager;
-        passManager.add(pass);
+        passManager.addStartPass(pass);
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Host;

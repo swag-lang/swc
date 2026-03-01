@@ -81,10 +81,10 @@ namespace Backend::Unittest
         MicroLegalizePass           legalizePass;
         MicroEmitPass               encodePass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
-        passes.add(legalizePass);
-        passes.add(regAllocPass);
-        passes.add(encodePass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(legalizePass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
         SWC_RESULT_VERIFY(builder.runPasses(passes, &encoder, passCtx));

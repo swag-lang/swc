@@ -70,7 +70,7 @@ namespace
 
             MicroRegisterAllocationPass regAllocPass;
             MicroPassManager            passes;
-            passes.add(regAllocPass);
+            passes.addStartPass(regAllocPass);
 
             MicroPassContext passCtx;
             passCtx.callConvKind = callConvKind;
@@ -424,8 +424,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Enabled)
         MicroRegisterAllocationPass regAllocPass;
         MicroPrologEpilogPass       persistentRegsPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
-        passes.add(persistentRegsPass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(persistentRegsPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
@@ -449,8 +449,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_Disabled)
         MicroRegisterAllocationPass regAllocPass;
         MicroPrologEpilogPass       persistentRegsPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
-        passes.add(persistentRegsPass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(persistentRegsPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
@@ -474,8 +474,8 @@ SWC_TEST_BEGIN(RegAlloc_PreservePersistentRegs_NoNeed)
         MicroRegisterAllocationPass regAllocPass;
         MicroPrologEpilogPass       persistentRegsPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
-        passes.add(persistentRegsPass);
+        passes.addStartPass(regAllocPass);
+        passes.addStartPass(persistentRegsPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind           = callConvKind;
@@ -498,7 +498,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_IntPressureAcrossCall)
 
         MicroRegisterAllocationPass regAllocPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
+        passes.addStartPass(regAllocPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
@@ -521,7 +521,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_FloatAcrossCall_NoPersistent)
 
         MicroRegisterAllocationPass regAllocPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
+        passes.addStartPass(regAllocPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
@@ -544,7 +544,7 @@ SWC_TEST_BEGIN(RegAlloc_VirtualRegForbiddenPhysRegs)
 
         MicroRegisterAllocationPass regAllocPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
+        passes.addStartPass(regAllocPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;
@@ -566,7 +566,7 @@ SWC_TEST_BEGIN(RegAlloc_Spill_BalancedControlFlow)
 
         MicroRegisterAllocationPass regAllocPass;
         MicroPassManager            passes;
-        passes.add(regAllocPass);
+        passes.addStartPass(regAllocPass);
 
         MicroPassContext passCtx;
         passCtx.callConvKind = callConvKind;

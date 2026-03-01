@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
-#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Support/Core/SmallVector.h"
 #include "Support/Core/DenseBits.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Math/Helpers.h"
 
 // Assigns physical registers to virtual registers and handles spills.
@@ -33,6 +32,13 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     usePositions_.reserve(static_cast<size_t>(instructionCount_) + 8ull);
     instructionUseDefs_.clear();
     instructionUseDefs_.resize(instructionCount_);
+    useVirtualIndices_.reserve(instructionCount_);
+    defVirtualIndices_.reserve(instructionCount_);
+    useConcreteIndices_.reserve(instructionCount_);
+    defConcreteIndices_.reserve(instructionCount_);
+    predecessors_.reserve(instructionCount_);
+    worklist_.reserve(instructionCount_);
+    inWorklist_.reserve(instructionCount_);
     states_.reserve(reserveCount);
     mapping_.reserve(reserveCount);
     liveStamp_.reserve(reserveCount);
@@ -217,35 +223,39 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (instructionRefs.size() != instructionCount_)
         return;
 
-    MicroDenseRegIndex denseVirtual;
-    MicroDenseRegIndex denseConcrete;
-    const size_t       denseReserve = static_cast<size_t>(instructionCount_) * 2ull + 8ull;
-    denseVirtual.reserve(denseReserve);
-    denseConcrete.reserve(denseReserve);
+    const size_t denseReserve = static_cast<size_t>(instructionCount_) * 2ull + 8ull;
+    denseVirtualRegs_.clear();
+    denseConcreteRegs_.clear();
+    denseVirtualRegs_.reserve(denseReserve);
+    denseConcreteRegs_.reserve(denseReserve);
 
-    std::vector<SmallVector<uint32_t, 4>> useVirtualIndices(instructionCount_);
-    std::vector<SmallVector<uint32_t, 4>> defVirtualIndices(instructionCount_);
-    std::vector<SmallVector<uint32_t, 4>> useConcreteIndices(instructionCount_);
-    std::vector<SmallVector<uint32_t, 4>> defConcreteIndices(instructionCount_);
+    useVirtualIndices_.resize(instructionCount_);
+    defVirtualIndices_.resize(instructionCount_);
+    useConcreteIndices_.resize(instructionCount_);
+    defConcreteIndices_.resize(instructionCount_);
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
         const MicroInstrUseDef& useDef = instructionUseDefs_[idx];
-        auto&                   usesV  = useVirtualIndices[idx];
-        auto&                   defsV  = defVirtualIndices[idx];
-        auto&                   usesC  = useConcreteIndices[idx];
-        auto&                   defsC  = defConcreteIndices[idx];
+        auto&                   usesV  = useVirtualIndices_[idx];
+        auto&                   defsV  = defVirtualIndices_[idx];
+        auto&                   usesC  = useConcreteIndices_[idx];
+        auto&                   defsC  = defConcreteIndices_[idx];
+        usesV.clear();
+        defsV.clear();
+        usesC.clear();
+        defsC.clear();
 
         for (const MicroReg reg : useDef.uses)
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = denseVirtual.ensure(reg);
+                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
                 usesV.push_back(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = denseConcrete.ensure(reg);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
                 usesC.push_back(regIndex);
             }
         }
@@ -254,12 +264,12 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = denseVirtual.ensure(reg);
+                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
                 defsV.push_back(regIndex);
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = denseConcrete.ensure(reg);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
                 defsC.push_back(regIndex);
             }
         }
@@ -269,60 +279,61 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             const CallConv& callConv = CallConv::get(useDef.callConv);
             for (const MicroReg reg : callConv.intTransientRegs)
             {
-                const uint32_t regIndex = denseConcrete.ensure(reg);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
                 defsC.push_back(regIndex);
             }
             for (const MicroReg reg : callConv.floatTransientRegs)
             {
-                const uint32_t regIndex = denseConcrete.ensure(reg);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
                 defsC.push_back(regIndex);
             }
         }
     }
 
-    const uint32_t virtualWordCount  = denseVirtual.wordCount();
-    const uint32_t concreteWordCount = denseConcrete.wordCount();
-    const auto&    virtualRegs       = denseVirtual.regs();
-    const auto&    concreteRegs      = denseConcrete.regs();
+    const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
+    const uint32_t concreteWordCount = denseConcreteRegs_.wordCount();
+    const auto&    virtualRegs       = denseVirtualRegs_.regs();
+    const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
-    std::vector<uint64_t> liveInVirtualBits(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
-    std::vector<uint64_t> liveInConcreteBits(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
+    liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
+    liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
 
-    std::vector<SmallVector<uint32_t>> predecessors(instructionCount_);
+    predecessors_.resize(instructionCount_);
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
+        predecessors_[idx].clear();
         const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
         for (const uint32_t succIdx : successors)
         {
             if (succIdx >= instructionCount_)
                 continue;
-            predecessors[succIdx].push_back(idx);
+            predecessors_[succIdx].push_back(idx);
         }
     }
 
-    std::vector<uint32_t> worklist;
-    worklist.reserve(instructionCount_);
-    std::vector<uint8_t> inWorklist(instructionCount_, 0);
+    worklist_.clear();
+    worklist_.reserve(instructionCount_);
+    inWorklist_.assign(instructionCount_, 0);
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
-        worklist.push_back(idx);
-        inWorklist[idx] = 1;
+        worklist_.push_back(idx);
+        inWorklist_[idx] = 1;
     }
 
-    std::vector<uint64_t> tempOutVirtual(virtualWordCount, 0);
-    std::vector<uint64_t> tempInVirtual(virtualWordCount, 0);
-    std::vector<uint64_t> tempOutConcrete(concreteWordCount, 0);
-    std::vector<uint64_t> tempInConcrete(concreteWordCount, 0);
+    tempOutVirtual_.assign(virtualWordCount, 0);
+    tempInVirtual_.assign(virtualWordCount, 0);
+    tempOutConcrete_.assign(concreteWordCount, 0);
+    tempInConcrete_.assign(concreteWordCount, 0);
 
-    while (!worklist.empty())
+    while (!worklist_.empty())
     {
-        const uint32_t instructionIndex = worklist.back();
-        worklist.pop_back();
-        inWorklist[instructionIndex] = 0;
+        const uint32_t instructionIndex = worklist_.back();
+        worklist_.pop_back();
+        inWorklist_[instructionIndex] = 0;
 
-        for (uint64_t& value : tempOutVirtual)
+        for (uint64_t& value : tempOutVirtual_)
             value = 0;
-        for (uint64_t& value : tempOutConcrete)
+        for (uint64_t& value : tempOutConcrete_)
             value = 0;
 
         const SmallVector<uint32_t>& successors = controlFlowGraph.successors(instructionIndex);
@@ -331,51 +342,51 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (succIdx >= instructionCount_)
                 continue;
 
-            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
-            for (size_t word = 0; word < tempOutVirtual.size(); ++word)
-                tempOutVirtual[word] |= succInVirtual[word];
-            for (size_t word = 0; word < tempOutConcrete.size(); ++word)
-                tempOutConcrete[word] |= succInConcrete[word];
+            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
+            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
+            for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
+                tempOutVirtual_[word] |= succInVirtual[word];
+            for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
+                tempOutConcrete_[word] |= succInConcrete[word];
         }
 
-        tempInVirtual  = tempOutVirtual;
-        tempInConcrete = tempOutConcrete;
+        tempInVirtual_  = tempOutVirtual_;
+        tempInConcrete_ = tempOutConcrete_;
         {
-            std::span<uint64_t> inVirtual = tempInVirtual;
-            for (const uint32_t bitIndex : defVirtualIndices[instructionIndex])
+            const std::span inVirtual = tempInVirtual_;
+            for (const uint32_t bitIndex : defVirtualIndices_[instructionIndex])
                 DenseBits::clear(inVirtual, bitIndex);
-            for (const uint32_t bitIndex : useVirtualIndices[instructionIndex])
+            for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
                 DenseBits::set(inVirtual, bitIndex);
         }
         {
-            std::span<uint64_t> inConcrete = tempInConcrete;
-            for (const uint32_t bitIndex : defConcreteIndices[instructionIndex])
+            const std::span inConcrete = tempInConcrete_;
+            for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
                 DenseBits::clear(inConcrete, bitIndex);
-            for (const uint32_t bitIndex : useConcreteIndices[instructionIndex])
+            for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
                 DenseBits::set(inConcrete, bitIndex);
         }
 
-        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits, instructionIndex, virtualWordCount), tempInVirtual);
-        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits, instructionIndex, concreteWordCount), tempInConcrete);
+        const bool changedVirtual  = DenseBits::copyIfChanged(DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount), tempInVirtual_);
+        const bool changedConcrete = DenseBits::copyIfChanged(DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount), tempInConcrete_);
         if (!changedVirtual && !changedConcrete)
             continue;
 
-        for (const uint32_t predIdx : predecessors[instructionIndex])
+        for (const uint32_t predIdx : predecessors_[instructionIndex])
         {
-            if (inWorklist[predIdx])
+            if (inWorklist_[predIdx])
                 continue;
 
-            worklist.push_back(predIdx);
-            inWorklist[predIdx] = 1;
+            worklist_.push_back(predIdx);
+            inWorklist_[predIdx] = 1;
         }
     }
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
-        for (uint64_t& value : tempOutVirtual)
+        for (uint64_t& value : tempOutVirtual_)
             value = 0;
-        for (uint64_t& value : tempOutConcrete)
+        for (uint64_t& value : tempOutConcrete_)
             value = 0;
 
         const SmallVector<uint32_t>& successors = controlFlowGraph.successors(idx);
@@ -384,20 +395,20 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (succIdx >= instructionCount_)
                 continue;
 
-            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits, succIdx, virtualWordCount);
-            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits, succIdx, concreteWordCount);
-            for (size_t word = 0; word < tempOutVirtual.size(); ++word)
-                tempOutVirtual[word] |= succInVirtual[word];
-            for (size_t word = 0; word < tempOutConcrete.size(); ++word)
-                tempOutConcrete[word] |= succInConcrete[word];
+            const std::span<const uint64_t> succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
+            const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
+            for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
+                tempOutVirtual_[word] |= succInVirtual[word];
+            for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
+                tempOutConcrete_[word] |= succInConcrete[word];
         }
 
         auto& outVirtual = liveOut_[idx];
         outVirtual.clear();
-        outVirtual.reserve(DenseBits::count(tempOutVirtual));
-        for (size_t wordIndex = 0; wordIndex < tempOutVirtual.size(); ++wordIndex)
+        outVirtual.reserve(DenseBits::count(tempOutVirtual_));
+        for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
         {
-            uint64_t wordBits = tempOutVirtual[wordIndex];
+            uint64_t wordBits = tempOutVirtual_[wordIndex];
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -411,10 +422,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
 
         auto& outConcrete = concreteLiveOut_[idx];
         outConcrete.clear();
-        outConcrete.reserve(DenseBits::count(tempOutConcrete));
-        for (size_t wordIndex = 0; wordIndex < tempOutConcrete.size(); ++wordIndex)
+        outConcrete.reserve(DenseBits::count(tempOutConcrete_));
+        for (size_t wordIndex = 0; wordIndex < tempOutConcrete_.size(); ++wordIndex)
         {
-            uint64_t wordBits = tempOutConcrete[wordIndex];
+            uint64_t wordBits = tempOutConcrete_[wordIndex];
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -1076,6 +1087,21 @@ void MicroRegisterAllocationPass::clearState()
     vregsLiveAcrossCall_.clear();
     usePositions_.clear();
     instructionUseDefs_.clear();
+    denseVirtualRegs_.clear();
+    denseConcreteRegs_.clear();
+    useVirtualIndices_.clear();
+    defVirtualIndices_.clear();
+    useConcreteIndices_.clear();
+    defConcreteIndices_.clear();
+    liveInVirtualBits_.clear();
+    liveInConcreteBits_.clear();
+    predecessors_.clear();
+    worklist_.clear();
+    inWorklist_.clear();
+    tempOutVirtual_.clear();
+    tempInVirtual_.clear();
+    tempOutConcrete_.clear();
+    tempInConcrete_.clear();
     intPersistentSet_.clear();
     floatPersistentSet_.clear();
     freeIntTransient_.clear();

@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Support/Core/SmallVector.h"
@@ -115,6 +116,21 @@ private:
     std::unordered_set<MicroReg>                        vregsLiveAcrossCall_;
     std::unordered_map<MicroReg, std::vector<uint32_t>> usePositions_;
     std::vector<MicroInstrUseDef>                       instructionUseDefs_;
+    MicroDenseRegIndex                                  denseVirtualRegs_;
+    MicroDenseRegIndex                                  denseConcreteRegs_;
+    std::vector<SmallVector<uint32_t, 4>>               useVirtualIndices_;
+    std::vector<SmallVector<uint32_t, 4>>               defVirtualIndices_;
+    std::vector<SmallVector<uint32_t, 4>>               useConcreteIndices_;
+    std::vector<SmallVector<uint32_t, 4>>               defConcreteIndices_;
+    std::vector<uint64_t>                               liveInVirtualBits_;
+    std::vector<uint64_t>                               liveInConcreteBits_;
+    std::vector<SmallVector<uint32_t>>                  predecessors_;
+    std::vector<uint32_t>                               worklist_;
+    std::vector<uint8_t>                                inWorklist_;
+    std::vector<uint64_t>                               tempOutVirtual_;
+    std::vector<uint64_t>                               tempInVirtual_;
+    std::vector<uint64_t>                               tempOutConcrete_;
+    std::vector<uint64_t>                               tempInConcrete_;
 
     std::unordered_set<MicroReg> intPersistentSet_;
     std::unordered_set<MicroReg> floatPersistentSet_;

@@ -15,25 +15,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t opBitsNumBytes(MicroOpBits opBits)
-    {
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                return 1;
-            case MicroOpBits::B16:
-                return 2;
-            case MicroOpBits::B32:
-                return 4;
-            case MicroOpBits::B64:
-                return 8;
-            case MicroOpBits::B128:
-                return 16;
-            default:
-                return 0;
-        }
-    }
-
     bool rangesOverlap(uint64_t lhsOffset, uint32_t lhsSize, uint64_t rhsOffset, uint32_t rhsSize)
     {
         if (!lhsSize || !rhsSize)
@@ -46,7 +27,7 @@ namespace
 
     void eraseOverlappingStackSlots(KnownStackSlotMap& knownSlots, uint64_t offset, MicroOpBits opBits)
     {
-        const uint32_t slotSize = opBitsNumBytes(opBits);
+        const uint32_t slotSize = microOpBitsNumBytes(opBits);
         if (!slotSize)
         {
             knownSlots.clear();
@@ -55,7 +36,7 @@ namespace
 
         for (auto it = knownSlots.begin(); it != knownSlots.end();)
         {
-            const uint32_t knownSize = opBitsNumBytes(it->first.opBits);
+            const uint32_t knownSize = microOpBitsNumBytes(it->first.opBits);
             if (rangesOverlap(offset, slotSize, it->first.offset, knownSize))
                 it = knownSlots.erase(it);
             else
@@ -73,7 +54,7 @@ namespace
 
     void eraseOverlappingStackAddresses(KnownStackAddressMap& knownStackAddresses, uint64_t offset, MicroOpBits opBits)
     {
-        const uint32_t slotSize = opBitsNumBytes(opBits);
+        const uint32_t slotSize = microOpBitsNumBytes(opBits);
         if (!slotSize)
         {
             knownStackAddresses.clear();
@@ -117,13 +98,13 @@ namespace
             return true;
         }
 
-        const uint32_t wantedSize = opBitsNumBytes(opBits);
+        const uint32_t wantedSize = microOpBitsNumBytes(opBits);
         if (!wantedSize || wantedSize > sizeof(uint64_t))
             return false;
 
         for (const auto& [knownKey, knownValue] : knownSlots)
         {
-            const uint32_t knownSize = opBitsNumBytes(knownKey.opBits);
+            const uint32_t knownSize = microOpBitsNumBytes(knownKey.opBits);
             if (!knownSize || knownSize > sizeof(uint64_t))
                 continue;
 
@@ -1156,7 +1137,7 @@ Result MicroConstantPropagationPass::run(MicroPassContext& context)
                     else
                     {
                         bool           handledConstantCopy = false;
-                        const uint32_t slotNumBytes        = opBitsNumBytes(ops[2].opBits);
+                        const uint32_t slotNumBytes        = microOpBitsNumBytes(ops[2].opBits);
                         if (it != storage.view().begin() &&
                             slotNumBytes &&
                             slotNumBytes <= 16)

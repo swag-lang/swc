@@ -65,6 +65,11 @@ inline uint32_t getNumBits(MicroOpBits opBits)
     return static_cast<uint32_t>(opBits);
 }
 
+inline uint32_t microOpBitsNumBytes(MicroOpBits opBits)
+{
+    return getNumBits(opBits) / 8;
+}
+
 enum class MicroOp : uint8_t
 {
     Add,

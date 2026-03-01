@@ -464,25 +464,6 @@ namespace PeepholePass
             return false;
         }
 
-        uint32_t opBitsNumBytes(const MicroOpBits opBits)
-        {
-            switch (opBits)
-            {
-                case MicroOpBits::B8:
-                    return 1;
-                case MicroOpBits::B16:
-                    return 2;
-                case MicroOpBits::B32:
-                    return 4;
-                case MicroOpBits::B64:
-                    return 8;
-                case MicroOpBits::B128:
-                    return 16;
-                default:
-                    return 0;
-            }
-        }
-
         bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
         {
             if (!lhsSize || !rhsSize)
@@ -831,7 +812,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return true;
 
-                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return true;
 
@@ -900,7 +881,7 @@ namespace PeepholePass
             if (!isStackBaseRegister(context, baseReg))
                 return false;
 
-            const uint32_t slotSize = opBitsNumBytes(opBits);
+            const uint32_t slotSize = microOpBitsNumBytes(opBits);
             if (!slotSize)
                 return false;
 
@@ -959,7 +940,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
-                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return false;
 
@@ -1053,7 +1034,7 @@ namespace PeepholePass
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
-            const uint32_t slotSize = opBitsNumBytes(opBits);
+            const uint32_t slotSize = microOpBitsNumBytes(opBits);
             if (!slotSize)
                 return false;
             const uint64_t slotOffset = ops[offsetIndex].valueU64;
@@ -1134,7 +1115,7 @@ namespace PeepholePass
                 if (!getMemAccessOpBits(scanOpBits, scanInst, scanOps))
                     return false;
 
-                const uint32_t scanSlotSize = opBitsNumBytes(scanOpBits);
+                const uint32_t scanSlotSize = microOpBitsNumBytes(scanOpBits);
                 if (!scanSlotSize)
                     return false;
 
@@ -1173,7 +1154,7 @@ namespace PeepholePass
             if (!getMemAccessOpBits(opBits, *inst, ops))
                 return false;
 
-            const uint32_t slotSize = opBitsNumBytes(opBits);
+            const uint32_t slotSize = microOpBitsNumBytes(opBits);
             if (!slotSize)
                 return false;
 

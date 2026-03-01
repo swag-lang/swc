@@ -65,25 +65,6 @@ namespace
         return false;
     }
 
-    uint32_t opBitsNumBytes(const MicroOpBits opBits)
-    {
-        switch (opBits)
-        {
-            case MicroOpBits::B8:
-                return 1;
-            case MicroOpBits::B16:
-                return 2;
-            case MicroOpBits::B32:
-                return 4;
-            case MicroOpBits::B64:
-                return 8;
-            case MicroOpBits::B128:
-                return 16;
-            default:
-                return 0;
-        }
-    }
-
     bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
     {
         if (!lhsSize || !rhsSize)
@@ -184,7 +165,7 @@ namespace
 
     void invalidateOverlappingSlots(StackSlotMap& slots, const StackSlotKey& targetKey)
     {
-        const uint32_t targetSize = opBitsNumBytes(targetKey.opBits);
+        const uint32_t targetSize = microOpBitsNumBytes(targetKey.opBits);
         if (!targetSize)
         {
             slots.clear();
@@ -194,7 +175,7 @@ namespace
         for (auto it = slots.begin(); it != slots.end();)
         {
             const StackSlotKey& slotKey  = it->first;
-            const uint32_t      slotSize = opBitsNumBytes(slotKey.opBits);
+            const uint32_t      slotSize = microOpBitsNumBytes(slotKey.opBits);
             if (slotSize &&
                 slotKey.baseReg == targetKey.baseReg &&
                 rangesOverlap(slotKey.offset, slotSize, targetKey.offset, targetSize))

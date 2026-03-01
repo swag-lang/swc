@@ -47,25 +47,6 @@ namespace PeepholePass
             return !MicroPassHelpers::violatesEncoderConformance(context, probeInst, ops.data());
         }
 
-        uint32_t opBitsNumBytes(const MicroOpBits opBits)
-        {
-            switch (opBits)
-            {
-                case MicroOpBits::B8:
-                    return 1;
-                case MicroOpBits::B16:
-                    return 2;
-                case MicroOpBits::B32:
-                    return 4;
-                case MicroOpBits::B64:
-                    return 8;
-                case MicroOpBits::B128:
-                    return 16;
-                default:
-                    return 0;
-            }
-        }
-
         bool rangesOverlap(const uint64_t lhsOffset, const uint32_t lhsSize, const uint64_t rhsOffset, const uint32_t rhsSize)
         {
             if (!lhsSize || !rhsSize)
@@ -177,8 +158,8 @@ namespace PeepholePass
             if (!matchesRead && !matchesWrite)
                 return false;
 
-            const uint32_t accessSize = opBitsNumBytes(access.opBits);
-            const uint32_t targetSize = opBitsNumBytes(targetOpBits);
+            const uint32_t accessSize = microOpBitsNumBytes(access.opBits);
+            const uint32_t targetSize = microOpBitsNumBytes(targetOpBits);
             if (!accessSize || !targetSize)
                 return true;
 

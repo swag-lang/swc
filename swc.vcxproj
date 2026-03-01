@@ -217,6 +217,9 @@
         <ClCompile Include="src\Backend\\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.BranchFolding.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Rewrite.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Track.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.State.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.CopyPropagation.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.DeadCodeElimination.cpp"/>
@@ -410,6 +413,7 @@
         <ClInclude Include="src\Backend\Micro\MicroPass.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\\Micro\MicroStorage.h"/>

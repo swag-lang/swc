@@ -204,6 +204,15 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Rewrite.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.Track.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.ConstantPropagation.State.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.ControlFlowSimplification.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
@@ -741,6 +750,9 @@
       <Filter>src\Backend</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Micro\Passes\Pass.Peephole.Private.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantPropagation.Private.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h">
